@@ -927,7 +927,7 @@ const MECH_CHAPTERS=[
     {id:'spring-force',title:'כוח הקפיץ',sub:'חוק הוק F=-kx'},
   ]},
   {id:'planar',icon:'🌀',title:'פרק ו: תנועה במישור',sections:[
-    {id:'projectile',title:'תנועת קליעים',sub:'שלכת, מרחק מרבי'},
+    {id:'projectile',title:'תנועה בליסטית',sub:'שלכת, מרחק מרבי'},
     {id:'circular',title:'תנועה מעגלית',sub:'תאוצה צנטריפטלית'},
   ]},
   {id:'momentum',icon:'💥',title:'פרק ז: תנע',sections:[
@@ -957,9 +957,9 @@ const OPTICS_CHAPTERS=[
   ]},
   {id:'opt-reflection',icon:'🔆',title:'פרק ב: החזרת אור',sections:[
     {id:'refl-laws',title:'חוקי ההחזרה',sub:'θᵢ = θᵣ, אנכי ומשטח'},
-    {id:'plane-mirror',title:'מראה מישורית',sub:'תמונה וירטואלית, ישרה, שווה גודל'},
+    {id:'plane-mirror',title:'מראה מישורית',sub:'תמונה מדומה, ישרה, שווה גודל'},
     {id:'concave-mirror',title:'מראה קעורה',sub:'1/f=1/dₒ+1/dᵢ, הגדלה'},
-    {id:'convex-mirror',title:'מראה קמורה',sub:'תמונה וירטואלית, מוקטנת, f<0'},
+    {id:'convex-mirror',title:'מראה קמורה',sub:'תמונה מדומה, מוקטנת, f<0'},
   ]},
   {id:'opt-refraction',icon:'🌈',title:'פרק ג: שבירת אור',sections:[
     {id:'snell-law',title:'חוק סנל',sub:'n₁sinθ₁=n₂sinθ₂'},
@@ -968,13 +968,13 @@ const OPTICS_CHAPTERS=[
   ]},
   {id:'opt-lenses',icon:'🔍',title:'פרק ד: עדשות',sections:[
     {id:'convex-lens',title:'עדשה מרכזת',sub:'מוקד, 1/f=1/dₒ+1/dᵢ, תמונות'},
-    {id:'concave-lens',title:'עדשה מפזרת',sub:'תמונה וירטואלית, f<0'},
+    {id:'concave-lens',title:'עדשה מפזרת',sub:'תמונה מדומה, f<0'},
     {id:'lens-eye',title:'העין האנושית',sub:'קורנאה, עדשה, רשתית — ראייה'},
   ]},
   {id:'opt-waves',icon:'〰️',title:'פרק ה: אופטיקה גלית',sections:[
     {id:'interference',title:'הפרעה — אינטרפרנציה',sub:'בונה ומהרס, הפרש דרכים'},
     {id:'youngs-slits',title:'ניסוי יאנג — סדקים כפולים',sub:'d·sinθ=mλ, פסי אור'},
-    {id:'diffraction',title:'עקיפה',sub:'סדק יחיד, עיקרון הויגנס'},
+    {id:'diffraction',title:'עקיפה',sub:'סדק יחיד, עקרון הויגנס'},
   ]},
 ];
 
@@ -1367,7 +1367,7 @@ const CONTENT={
     `,
     enrich:{
       title:'מדוע אינרטיה? — המקבילה בין מסה כבידתית ואינרטיאלית',
-      html:`<p>יש שני סוגי "מסה": <b>מסה כבידתית</b> (qemikia עם שדה הכבידה) ו<b>מסה אינרטיאלית</b> (עמידות לתאוצה). שאלה מדהימה: מדוע הן שוות? אינשטיין הפך זאת ל<b>עיקרון הקוולנטיות</b> — אבן הפינה של תורת היחסות הכללית!</p>
+      html:`<p>יש שני סוגי "מסה": <b>מסה כבידתית</b> (qemikia עם שדה הכבידה) ו<b>מסה אינרטיאלית</b> (עמידות לתאוצה). שאלה מדהימה: מדוע הן שוות? אינשטיין הפך זאת ל<b>עקרון הקוולנטיות</b> — אבן הפינה של תורת היחסות הכללית!</p>
       <div class="enrich-formula">${tex('m_{\\mathrm{כבי}} = m_{\\mathrm{אינ}}', true)}</div>`
     }
   },
@@ -1986,7 +1986,7 @@ const CONTENT={
       <div class="def-block"><div class="def-title">חיכוך ${P('f','חיכוך','מקביל למשטח, נגד התנועה')}</div>
         <p>סטטי: ${M('f_s \\leq \\mu_s N')}. קינטי: ${M('f_k = \\mu_k N')}. תמיד מנגד לתנועה.</p>
       </div>
-      <div class="def-block"><div class="def-title">כוח קפיץ (הוק)</div>
+      <div class="def-block"><div class="def-title">כוח אלסטי (חוק הוק)</div>
         <p>${M('F=-kx')} — כוח משחזר לשיווי המשקל.</p>
       </div>
       <div class="info-grid">
@@ -2205,10 +2205,10 @@ const CONTENT={
     `,
     enrich:{
       title:'גבול האלסטיות',
-      html:`<p>חוק הוק תקף רק עד <b>גבול האלסטיות</b>. מעבר לו — הקפיץ נשאר מעוות לצמיתות. ב-1678 רוברט הוק מצא: ${M('\\text{ut tensio, sic vis}')} — "כפי המתיחה, כן הכוח". קפיצי שעון מכני מבוססים על עיקרון זה!</p>`
+      html:`<p>חוק הוק תקף רק עד <b>גבול האלסטיות</b>. מעבר לו — הקפיץ נשאר מעוות לצמיתות. ב-1678 רוברט הוק מצא: ${M('\\text{ut tensio, sic vis}')} — "כפי המתיחה, כן הכוח". קפיצי שעון מכני מבוססים על עקרון זה!</p>`
     }
   },
-  sim:{type:'spring-force',title:'כוח קפיץ F=-kx',desc:'גרור את המסה לאמפליטודה. ראה F=-kx ואנרגיה. שנה k.'},
+  sim:{type:'spring-force',title:'כוח אלסטי F=-kx',desc:'גרור את המסה לאמפליטודה. ראה F=-kx ואנרגיה. שנה k.'},
   example:{title:'חוק הוק',text:'קפיץ עם k=200 N/m נמתח 0.15 מ\'.',steps:[{q:'|F| = ?',a:'|F| = k|x| = 200×0.15 = 30 N'},{q:'כיוון הכוח?',a:'תמיד לכיוון שיווי המשקל — כוח משחזר'}]},
   quiz:[
     {q:'k=200 N/m, x=0.1 מ׳. |F|=?',opts:['2 נ׳','20 נ׳','200 נ׳','2000 נ׳'],correct:1,
@@ -2355,7 +2355,7 @@ const CONTENT={
       </div>
       ${fBox('a = \\frac{F - \\mu_k N}{m}','תאוצה תחת כוח עם חיכוך קינטי')}
       ${animCanvas('anim-friction-comb',192,'סטטי→קינטי — מעבר תנועה')}
-      <p class="anim-note">ABS מונע נעילת גלגלים — שומר <b>חיכוך סטטי</b> (μs > μk) ומקצר מרחק עצירה ב-40%. עיקרון: μs > μk תמיד.</p>
+      <p class="anim-note">ABS מונע נעילת גלגלים — שומר <b>חיכוך סטטי</b> (μs > μk) ומקצר מרחק עצירה ב-40%. עקרון: μs > μk תמיד.</p>
       ${animCanvas('anim-friction3',178,'ABS מול גלישה')}
       <div class="info-grid">
         <div class="info-item"><div class="il">שקט</div><div class="iv">${M('f_s=F\\leq\\mu_sN')}</div></div>
@@ -2715,7 +2715,7 @@ const CONTENT={
 
 'planar.projectile':{
   theory:{
-    title:'תנועת קליעים',
+    title:'תנועה בליסטית',
     html:`
       <p>קליע הנזרק בזווית ${M('\\theta')} מקיים <b>תנועה מרוכבת</b>: ציר x — תנועה שוות-מהירות; ציר y — נפילה חופשית.</p>
       <div class="def-block"><div class="def-title">עקרון הסופרפוזיציה</div>
@@ -2855,7 +2855,7 @@ const OPTICS_CONTENT={
         <p>המדענים היוונים (אוקלידס, ~300 לפנה"ס) היו ראשונים לנסח גיאומטריה של אור — אך טעו בנקודה אחת מהותית: הם חשבו שהעין <em>פולטת</em> קרניות לעולם ("תיאוריית הפליטה"). <br><br>
         <b>אבן אל-הית'ם (אלחאזן), 965–1040 לספירה</b> — מדען ערבי מבגדד שכתב את "ספר האופטיקה" (Kitab al-Manazir, ~1011) — הוא הראשון שהוכיח בניסויים שהאור <em>נכנס</em> לעין מהסביבה, לא יוצא ממנה. המציא את מצלמת הפינהול (Camera obscura) ותיאר נכון כיצד היא יוצרת תמונה הפוכה. ספרו תורגם ללטינית ב-1270 והיה בסיס לאופטיקה האירופאית.</p>
       </div>
-      <p><b>מצלמת פינהול (Camera obscura):</b> חדר חשוך עם פתח קטן בקיר — האור מהחוץ יוצר תמונה <em>הפוכה ומוקטנת</em> של הנוף על הקיר הנגדי. עיקרון זה הוביל להמצאת המצלמה הצילומית (1839).</p>
+      <p><b>מצלמת פינהול (Camera obscura):</b> חדר חשוך עם פתח קטן בקיר — האור מהחוץ יוצר תמונה <em>הפוכה ומוקטנת</em> של הנוף על הקיר הנגדי. עקרון זה הוביל להמצאת המצלמה הצילומית (1839).</p>
       <div class="def-block"><div class="def-title">ספקטרום האור הנראה — תצפית</div>
         <p>האור "הלבן" של השמש אינו טהור — הוא כולל את כל צבעי הקשת. ניוטון הראה זאת ב-1666 עם פריזמה (ראה פרק ג’). הצבעים שהעין מזהה מתאימים לאורכי גל שונים, מ-380nm (סגול) עד 700nm (אדום).</p>
       </div>
@@ -2955,9 +2955,9 @@ const OPTICS_CONTENT={
         ['\\theta_i','זווית פגיעה','מהנורמל לקרן הנכנסת'],
         ['\\theta_r','זווית החזרה','מהנורמל לקרן המוחזרת']
       ])}
-      <div class="enrich-card"><div class="enrich-title">הרון מאלכסנדריה ועיקרון פרמה</div>
-        <p><b>הרון מאלכסנדריה (ca. 60 לספירה)</b> הוכיח כבר לפני ~2000 שנה שחוק ההחזרה נובע מעיקרון גיאומטרי פשוט: האור עובר בדרך ה<em>קצרה ביותר</em> בין שתי נקודות דרך המשטח. מכאן θᵢ=θᵣ מתחייב מגיאומטריה טהורה.<br><br>
-        <b>עיקרון פרמה (1662):</b> פייר דה פרמה הרחיב — האור עובר תמיד ב<em>מסלול הזמן הקצר ביותר</em>. עיקרון זה מסביר בצורה מאוחדת ואלגנטית גם החזרה וגם שבירה.</p>
+      <div class="enrich-card"><div class="enrich-title">הרון מאלכסנדריה ועקרון פרמה</div>
+        <p><b>הרון מאלכסנדריה (ca. 60 לספירה)</b> הוכיח כבר לפני ~2000 שנה שחוק ההחזרה נובע מעקרון גיאומטרי פשוט: האור עובר בדרך ה<em>קצרה ביותר</em> בין שתי נקודות דרך המשטח. מכאן θᵢ=θᵣ מתחייב מגיאומטריה טהורה.<br><br>
+        <b>עקרון פרמה (1662):</b> פייר דה פרמה הרחיב — האור עובר תמיד ב<em>מסלול הזמן הקצר ביותר</em>. עקרון זה מסביר בצורה מאוחדת ואלגנטית גם החזרה וגם שבירה.</p>
       </div>
       <p><b>החזרה ספקולרית</b> (Specular): משטח חלק — מראה. <b>החזרה דיפוזית</b> (Diffuse): משטח מחוספס — קרניים מוחזרות לכל הכיוונים. זו הסיבה שאנחנו רואים עצמים שאינם מקור אור.</p>
       <div class="theory-anim">${animCanvas('anim-refl-law',140,'חוק ההחזרה: θᵢ = θᵣ')}</div>`,
@@ -2986,13 +2986,13 @@ const OPTICS_CONTENT={
   theory:{
     title:'מראה מישורית',
     html:`
-      <p>המראה המישורית יוצרת <b>תמונה וירטואלית</b>: נראית כאילו היא מאחורי המראה, אך האור לא עובר שם ממש.</p>
+      <p>המראה המישורית יוצרת <b>תמונה מדומה</b>: נראית כאילו היא מאחורי המראה, אך האור לא עובר שם ממש.</p>
       <div class="enrich-card"><div class="enrich-title">תולדות המראה</div>
         <p>מראות ראשונות: <b>ברונזה מלוטשת</b> במצרים ובמסופוטמיה (~4000 לפנה"ס). הרומאים ייצרו מראות זכוכית עם ציפוי מתכתי. המראה המודרנית (זכוכית + כסף כימי) הומצאה ב-<b>1835 על ידי יוסטוס פון ליביג</b>.</p>
       </div>
       <div class="def-block"><div class="def-title">תכונות תמונת המראה המישורית</div>
         <ul style="padding-right:20px;color:#b8cfe0;font-size:.9rem;line-height:2">
-          <li><b>וירטואלית</b> — לא ניתן להקרין על מסך</li>
+          <li><b>מדומה</b> — לא ניתן להקרין על מסך</li>
           <li><b>ישרה</b> — לא הפוכה מעלה-מטה</li>
           <li><b>שווה גודל</b> — |m|=1</li>
           <li><b>מרחק שווה</b> — dᵢ = dₒ (אחורי המראה)</li>
@@ -3006,17 +3006,17 @@ const OPTICS_CONTENT={
       <div class="def-block"><div class="def-title">פרדוקס: למה המראה מחליפה ימין-שמאל?</div>
         <p>למעשה, המראה <em>אינה</em> מחליפה ימין-שמאל! היא הופכת <b>קדמי-אחורי</b> (ציר z). כשאתה מסובב את עצמך דמיונית לפנות אל המראה, ימינך נראה שמאל — אך זה ה<em>סיבוב</em> שלך, לא המראה. המראה הופכת רק את ה<em>עומק</em>.</p>
       </div>
-      <div class="theory-anim">${animCanvas('anim-plane-mirror-t',148,'תמונה וירטואלית במראה מישורית')}</div>`,
+      <div class="theory-anim">${animCanvas('anim-plane-mirror-t',148,'תמונה מדומה במראה מישורית')}</div>`,
     enrich:{title:'מספר תמונות בין שתי מראות',html:`<p>שתי מראות מישוריות בזווית θ ביניהן יוצרות <b>n=(360°/θ)−1</b> תמונות. בזווית 90° — 3 תמונות, בזווית 60° — 5 תמונות. בשתי מראות מקבילות — אינסוף תמונות!</p>`}
   },
   sim:{type:'opt-plane-mirror',desc:'גרור את העצם (החץ הכחול) לאורך ציר ה-x. ראה כיצד התמונה (החץ המקווקו) נוצרת מאחורי המראה במרחק שווה.'},
   example:{title:'מיקום תמונה במראה מישורית',text:'עצם נמצא 30 cm מפני המראה. איפה התמונה?',
     steps:[
-      {q:'dᵢ=dₒ → dᵢ=?',a:'dᵢ=30 cm מאחורי המראה (וירטואלית)'},
+      {q:'dᵢ=dₒ → dᵢ=?',a:'dᵢ=30 cm מאחורי המראה (מדומה)'},
       {q:'גודל התמונה ביחס לעצם?',a:'שווה גודל, m=1'},
     ]},
   quiz:[
-    {q:'מהי תמונה וירטואלית?',opts:['תמונה שניתן להקרין על מסך','תמונה שנוצרת כשקרניים נחתכות בפועל','תמונה שנוצרת כשהמשכי הקרניים נחתכים (לא קרניים ממשיות)','תמונה בצבעים שגויים'],correct:2,explain:'תמונה וירטואלית נוצרת מהיות נקודת החיתוך של המשכי קרנות מוחזרות — מאחורי המראה. האור לא עובר שם בפועל.'},
+    {q:'מהי תמונה מדומה?',opts:['תמונה שניתן להקרין על מסך','תמונה שנוצרת כשקרניים נחתכות בפועל','תמונה שנוצרת כשהמשכי הקרניים נחתכים (לא קרניים ממשיות)','תמונה בצבעים שגויים'],correct:2,explain:'תמונה מדומה נוצרת מהיות נקודת החיתוך של המשכי קרנות מוחזרות — מאחורי המראה. האור לא עובר שם בפועל.'},
     {q:'עצם במרחק 25 cm ממראה מישורית. איפה התמונה?',opts:['25 cm לפני המראה','50 cm מאחורי המראה','25 cm מאחורי המראה','12.5 cm מאחורי המראה'],correct:2,explain:'dᵢ=dₒ=25 cm. התמונה נמצאת מאחורי המראה במרחק שווה למרחק העצם.',formula:'d_i=d_o'},
     {q:'מה ההגדלה (m) של מראה מישורית?',opts:['0.5','2','+1','−1'],correct:2,explain:'m=1 תמיד — התמונה שווה גודל לעצם. לא הפוכה (m חיובי = ישרה).'},
     {q:'אדם עומד 2 m מממראה. כדי לראות את כל גופו (1.8 m גובה), מה אורך המראה המינימלי?',opts:['1.8 m','2 m','0.9 m','3.6 m'],correct:2,explain:'מינימום מראה = מחצית גובה האדם = 0.9 m. הקרניים מהרגל חוזרות מחצי הדרך לעיניים.',hint:'חשוב על גיאומטריה: כדי לראות רגלים — קרן מהרגל לעין עוברת בחצי גובה המראה'},
@@ -3032,20 +3032,21 @@ const OPTICS_CONTENT={
   theory:{
     title:'מראה קעורה',
     html:`
-      <p>מראה קעורה מרכזת קרניים מקבילות לנקודה אחת — <b>מוקד F</b>. היא יכולה לייצר תמונות ממשיות ווירטואליות בהתאם למיקום העצם.</p>
+      <p>מראה קעורה מרכזת קרניים מקבילות לנקודה אחת — <b>מוקד F</b>. היא יכולה לייצר תמונות ממשיות ומדומות בהתאם למיקום העצם.</p>
       <div class="enrich-card"><div class="enrich-title">ארכימדס ומראות השריפה (212 לפנה"ס — אגדה?)</div>
         <p>האגדה: ארכימדס השתמש בקבוצת מראות כדי לשרוף ספינות רומאיות. ניסויים מודרניים הוכיחו שזה <em>אפשרי</em> — מראות קעורות גדולות מספיקות לשרוף עץ. מתקני <b>אנרגיה סולארית</b> (Ivanpah, קליפורניה) עושים בדיוק זאת: אלפי מראות מכוונות אל מגדל לייצור חשמל. <b>טלסקופ ניוטון (1668)</b> השתמש במראה קעורה במקום עדשה — פתר בעיית עיוות כרומטי.</p>
       </div>
       <div class="def-block"><div class="def-title">מושגי מפתח</div>
         <ul style="padding-right:20px;color:#b8cfe0;font-size:.9rem;line-height:1.9">
-          <li><b>מרכז עקמומיות C</b> — במרחק R. קרן דרך C מוחזרת על עצמה.</li>
-          <li><b>מוקד F</b> — קרניים מקבילות מתכנסות כאן. f = R/2.</li>
+          <li><b>ציר ראשי</b> (= <b>ציר אופטי</b>) — קו הסימטריה המרכזי של המראה. שני השמות זהים בספרות.</li>
+          <li><b>מרכז עקמומיות C</b> — במרחק R על הציר הראשי. קרן דרך C מוחזרת על עצמה.</li>
+          <li><b>מוקד F</b> — קרניים מקבילות לציר הראשי מתכנסות כאן. f = R/2.</li>
         </ul>
       </div>
       ${fBox('\\dfrac{1}{f}=\\dfrac{1}{d_o}+\\dfrac{1}{d_i}','משוואת המראה',[
         ['f','אורך מוקדי','f=R/2, חיובי למראה קעורה'],
         ['d_o','מרחק עצם','חיובי תמיד'],
-        ['d_i','מרחק תמונה','חיובי=ממשית, שלילי=וירטואלית']
+        ['d_i','מרחק תמונה','חיובי=ממשית, שלילי=מדומה']
       ])}
       ${fBox('m = -\\dfrac{d_i}{d_o}','הגדלה',[['m','הגדלה','m>0: ישרה; m<0: הפוכה; |m|>1: מוגדלת']])}
       <div class="info-grid">
@@ -3053,11 +3054,11 @@ const OPTICS_CONTENT={
         <div class="info-item"><div class="il">dₒ = 2f</div><div class="iv">ממשית, הפוכה, שווה גודל</div></div>
         <div class="info-item"><div class="il">f &lt; dₒ &lt; 2f</div><div class="iv">ממשית, הפוכה, מוגדלת</div></div>
         <div class="info-item"><div class="il">dₒ = f</div><div class="iv">תמונה ב-∞ (קרניות מקבילות)</div></div>
-        <div class="info-item"><div class="il">dₒ &lt; f</div><div class="iv">וירטואלית, ישרה, מוגדלת</div></div>
+        <div class="info-item"><div class="il">dₒ &lt; f</div><div class="iv">מדומה, ישרה, מוגדלת</div></div>
       </div>
       <div class="theory-anim">${animCanvas('anim-concave-mirror-t',152,'יצירת תמונה — מראה קעורה')}</div>`,
   },
-  sim:{type:'opt-concave-mirror',desc:'גרור את העצם לאורך ציר הראייה. ראה כיצד התמונה משתנה — ממשית/וירטואלית, גדולה/קטנה, הפוכה/ישרה — בהתאם למיקום העצם ביחס למוקד.'},
+  sim:{type:'opt-concave-mirror',desc:'גרור את העצם לאורך הציר הראשי. ראה כיצד התמונה משתנה — ממשית/מדומה, גדולה/קטנה, הפוכה/ישרה — בהתאם למיקום העצם ביחס למוקד.'},
   example:{title:'חישוב מיקום תמונה',text:'מראה קעורה עם f=15 cm. עצם ב-dₒ=45 cm. מצא dᵢ ו-m.',
     steps:[
       {q:'1/dᵢ = 1/f − 1/dₒ = 1/15 − 1/45 = ?',a:'3/45−1/45=2/45 → dᵢ=22.5 cm'},
@@ -3066,13 +3067,13 @@ const OPTICS_CONTENT={
   quiz:[
     {q:'מה הקשר בין f ל-R במראה כדורית?',opts:['f=R','f=2R','f=R/2','f=R²'],correct:2,explain:'f=R/2. אורך המוקד הוא חצי מרדיוס העקמומיות — נובע מגיאומטריה של הקרניים.',formula:'f=R/2'},
     {q:'מראה קעורה f=10 cm, dₒ=30 cm. מהו dᵢ?',opts:['15 cm','20 cm','10 cm','5 cm'],correct:0,explain:'1/dᵢ=1/10−1/30=3/30−1/30=2/30 → dᵢ=15 cm. ממשית (חיובי).',formula:'1/f=1/dₒ+1/dᵢ'},
-    {q:'dᵢ שלילי מסמן:',opts:['תמונה ממשית','שגיאת חישוב','תמונה וירטואלית','תמונה הפוכה'],correct:2,explain:'dᵢ<0 → התמונה וירטואלית (מאחורי המראה), כמו כשהעצם בין המוקד למראה.'},
+    {q:'dᵢ שלילי מסמן:',opts:['תמונה ממשית','שגיאת חישוב','תמונה מדומה','תמונה הפוכה'],correct:2,explain:'dᵢ<0 → התמונה מדומה (מאחורי המראה), כמו כשהעצם בין המוקד למראה.'},
     {q:'מה ההגדלה כשהעצם בדיוק במרכז העקמומיות (dₒ=2f)?',opts:['m=+2','m=−1','m=−2','m=+0.5'],correct:1,explain:'dₒ=2f → 1/dᵢ=1/f−1/2f=1/2f → dᵢ=2f. m=−2f/2f=−1. הפוכה, שווה גודל.'},
   ],
   problem:{title:'טלסקופ השתקפות',text:'מראה קעורה עם R=60 cm. עצם ב-dₒ=25 cm ממנה.',
     steps:[
       {q:'f=R/2 = ? (cm)',unit:'cm',answer:'30',tolerance:0,explain:'f=60/2=30 cm',hint:'f=R/2'},
-      {q:'1/dᵢ=1/30−1/25. חשב dᵢ (cm). הכנס ערך שלילי אם וירטואלית.',unit:'cm',answer:'-150',tolerance:2,explain:'1/dᵢ=5/150−6/150=−1/150 → dᵢ=−150 cm (וירטואלית!). dₒ<f לכן וירטואלית.',hint:'כשdₒ<f, התמונה וירטואלית ו-dᵢ שלילי'},
+      {q:'1/dᵢ=1/30−1/25. חשב dᵢ (cm). הכנס ערך שלילי אם מדומה.',unit:'cm',answer:'-150',tolerance:2,explain:'1/dᵢ=5/150−6/150=−1/150 → dᵢ=−150 cm (מדומה!). dₒ<f לכן מדומה.',hint:'כשdₒ<f, התמונה מדומה ו-dᵢ שלילי'},
       {q:'m=−dᵢ/dₒ=?',unit:'',answer:'6',tolerance:0.1,explain:'m=−(−150)/25=+6. ישרה (m חיובי), מוגדלת פי 6 — כמו מראת איפור!',hint:'m=−dᵢ/dₒ, שים לב לסימנים'},
     ]}
 },
@@ -3081,35 +3082,35 @@ const OPTICS_CONTENT={
   theory:{
     title:'מראה קמורה',
     html:`
-      <p>מראה קמורה (בולטת כלפי חוץ) מפזרת קרניים. האורך המוקדי שלה <b>שלילי</b> (f&lt;0) כי המוקד הוא וירטואלי — מאחורי המראה.</p>
-      <div class="def-block"><div class="def-title">תמיד: תמונה וירטואלית, ישרה, מוקטנת</div>
-        <p>ללא קשר למיקום העצם, מראה קמורה תמיד יוצרת תמונה וירטואלית (dᵢ&lt;0), ישרה (m&gt;0) ומוקטנת (|m|&lt;1). משתמשים בה כשרוצים שדה ראייה רחב.</p>
+      <p>מראה קמורה (בולטת כלפי חוץ) מפזרת קרניים. האורך המוקדי שלה <b>שלילי</b> (f&lt;0) כי המוקד הוא מדומה — מאחורי המראה.</p>
+      <div class="def-block"><div class="def-title">תמיד: תמונה מדומה, ישרה, מוקטנת</div>
+        <p>ללא קשר למיקום העצם, מראה קמורה תמיד יוצרת תמונה מדומה (dᵢ&lt;0), ישרה (m&gt;0) ומוקטנת (|m|&lt;1). משתמשים בה כשרוצים שדה ראייה רחב.</p>
       </div>
       ${fBox('\\dfrac{1}{f}=\\dfrac{1}{d_o}+\\dfrac{1}{d_i},\\quad f<0','משוואת מראה קמורה',[])}
       <p>יישומים: מראות צד של רכבים (כיתוב "עצמים קרובים יותר ממה שנראה"), מצלמות אבטחה, מראות בפינות רחוב. יתרון: שדה ראייה רחב; חסרון: אינן ניתנות לשיפוט מרחק.</p>
       <div class="info-grid">
-        <div class="info-item"><div class="il">אורך מוקדי</div><div class="iv">f &lt; 0 (וירטואלי)</div></div>
-        <div class="info-item"><div class="il">dᵢ</div><div class="iv">תמיד שלילי (וירטואלית)</div></div>
+        <div class="info-item"><div class="il">אורך מוקדי</div><div class="iv">f &lt; 0 (מדומה)</div></div>
+        <div class="info-item"><div class="il">dᵢ</div><div class="iv">תמיד שלילי (מדומה)</div></div>
         <div class="info-item"><div class="il">הגדלה m</div><div class="iv">0 &lt; m &lt; 1 (מוקטנת, ישרה)</div></div>
         <div class="info-item"><div class="il">שדה ראייה</div><div class="iv">רחב — יתרון!</div></div>
       </div>
-      <div class="theory-anim">${animCanvas('anim-convex-mirror-t',138,'מראה קמורה — תמונה וירטואלית')}</div>`,
+      <div class="theory-anim">${animCanvas('anim-convex-mirror-t',138,'מראה קמורה — תמונה מדומה')}</div>`,
   },
-  sim:{type:'opt-convex-mirror',desc:'גרור את העצם. שים לב שהתמונה תמיד מאחורי המראה (וירטואלית) ותמיד קטנה יותר — ללא תלות במיקום העצם.'},
+  sim:{type:'opt-convex-mirror',desc:'גרור את העצם. שים לב שהתמונה תמיד מאחורי המראה (מדומה) ותמיד קטנה יותר — ללא תלות במיקום העצם.'},
   example:{title:'מראת רכב',text:'מראת צד עם f=−20 cm. עצם ב-dₒ=60 cm. מצא dᵢ ו-m.',
     steps:[
-      {q:'1/dᵢ=1/(−20)−1/60=−3/60−1/60=?',a:'−4/60 → dᵢ=−15 cm (וירטואלית)'},
+      {q:'1/dᵢ=1/(−20)−1/60=−3/60−1/60=?',a:'−4/60 → dᵢ=−15 cm (מדומה)'},
       {q:'m=−dᵢ/dₒ=−(−15)/60=?',a:'m=+0.25 — ישרה, מוקטנת פי 4'},
     ]},
   quiz:[
-    {q:'מראה קמורה מייצרת תמיד:',opts:['תמונה ממשית הפוכה','תמונה ממשית ישרה','תמונה וירטואלית ישרה מוקטנת','תמונה וירטואלית הפוכה מוגדלת'],correct:2,explain:'מראה קמורה (f<0) תמיד: וירטואלית (dᵢ<0), ישרה (m>0), מוקטנת (m<1). אין חריגים.'},
+    {q:'מראה קמורה מייצרת תמיד:',opts:['תמונה ממשית הפוכה','תמונה ממשית ישרה','תמונה מדומה ישרה מוקטנת','תמונה מדומה הפוכה מוגדלת'],correct:2,explain:'מראה קמורה (f<0) תמיד: מדומה (dᵢ<0), ישרה (m>0), מוקטנת (m<1). אין חריגים.'},
     {q:'מדוע מראות צד של רכבים הן קמורות?',opts:['כי הן זולות יותר','כי הן נותנות שדה ראייה רחב','כי הן מגדילות','כי הן יוצרות תמונות ממשיות'],correct:1,explain:'מראה קמורה מפזרת אור — שדה ראייה רחב בהרבה ממראה מישורית. החיסרון: עצמים נראים קרובים יותר מהמציאות.'},
-    {q:'מראה קמורה f=−30 cm, dₒ=90 cm. dᵢ=?',opts:['−22.5 cm','+22.5 cm','−45 cm','+45 cm'],correct:0,explain:'1/dᵢ=1/(−30)−1/90=−3/90−1/90=−4/90 → dᵢ=−22.5 cm. שלילי=וירטואלית.',formula:'1/f=1/dₒ+1/dᵢ'},
+    {q:'מראה קמורה f=−30 cm, dₒ=90 cm. dᵢ=?',opts:['−22.5 cm','+22.5 cm','−45 cm','+45 cm'],correct:0,explain:'1/dᵢ=1/(−30)−1/90=−3/90−1/90=−4/90 → dᵢ=−22.5 cm. שלילי=מדומה.',formula:'1/f=1/dₒ+1/dᵢ'},
     {q:'מהי הגדלה m במקרה הקודם?',opts:['−0.25','+0.25','−4','+4'],correct:1,explain:'m=−dᵢ/dₒ=−(−22.5)/90=+0.25. חיובי=ישרה, קטן מ-1=מוקטנת.'},
   ],
   problem:{title:'מראת אבטחה',text:'מראת כיפה (קמורה) עם f=−40 cm. עצם (אדם) ב-dₒ=200 cm.',
     steps:[
-      {q:'1/dᵢ=1/(−40)−1/200. חשב dᵢ (cm)',unit:'cm',answer:'-33.3',tolerance:1,explain:'1/dᵢ=−5/200−1/200=−6/200 → dᵢ=−33.3 cm. וירטואלית.',hint:'1/dᵢ=1/f−1/dₒ'},
+      {q:'1/dᵢ=1/(−40)−1/200. חשב dᵢ (cm)',unit:'cm',answer:'-33.3',tolerance:1,explain:'1/dᵢ=−5/200−1/200=−6/200 → dᵢ=−33.3 cm. מדומה.',hint:'1/dᵢ=1/f−1/dₒ'},
       {q:'m=−dᵢ/dₒ=?',unit:'',answer:'0.167',tolerance:0.01,explain:'m=33.3/200≈0.167. מוקטנת פי 6 — שדה ראייה רחב.',hint:'m=−dᵢ/dₒ, שים לב ל-dᵢ שלילי'},
     ]}
 },
@@ -3124,7 +3125,7 @@ const OPTICS_CONTENT={
         <b>תומס הריוט (1601)</b> — גילה את החוק המדויק אך מעולם לא פרסם.<br>
         <b>וילברורד סנל (1621)</b> — גילה באופן עצמאי, כתב בכתב יד; מת ב-1626 לפני פרסום.<br>
         <b>רנה דקארט (1637)</b> — פרסם ראשון ב-"La Dioptrique" — לכן בצרפת נקרא "חוק דקארט".<br>
-        <b>פייר דה פרמה (1662)</b> — הוכיח את החוק מ<em>עיקרון הזמן המינימלי</em>: האור עובר בנתיב שבו הזמן קצר ביותר. מהירות שונה בשני חומרים — הנתיב האופטימלי מקיים בדיוק את n₁sinθ₁=n₂sinθ₂.
+        <b>פייר דה פרמה (1662)</b> — הוכיח את החוק מ<em>עקרון הזמן המינימלי</em>: האור עובר בנתיב שבו הזמן קצר ביותר. מהירות שונה בשני חומרים — הנתיב האופטימלי מקיים בדיוק את n₁sinθ₁=n₂sinθ₂.
         </p>
       </div>
       ${fBox('n_1 \\sin\\theta_1 = n_2 \\sin\\theta_2','חוק סנל',[
@@ -3234,7 +3235,7 @@ const OPTICS_CONTENT={
   theory:{
     title:'עדשה מרכזת (קמורה)',
     html:`
-      <p>עדשה מרכזת <b>מכופפת קרניים לכיוון הציר</b>. קרניים מקבילות מתכנסות במוקד F. f&gt;0 תמיד.</p>
+      <p>עדשה מרכזת <b>מכופפת קרניים לכיוון הציר הראשי</b>. קרניים מקבילות מתכנסות במוקד F. f&gt;0 תמיד.</p>
       <div class="enrich-card"><div class="enrich-title">תולדות העדשה — מהמשקפיים לחלל</div>
         <ul style="padding-right:20px;color:#b8cfe0;font-size:.9rem;line-height:1.9">
           <li><b>~1290, איטליה</b> — <b>משקפיים</b> הומצאו (סלווינו ד'ארמאטי?). מהפכה: אנשים מבוגרים עם ראייה ארוכה יכלו לקרוא.</li>
@@ -3246,16 +3247,16 @@ const OPTICS_CONTENT={
       ${fBox('\\dfrac{1}{f}=\\dfrac{1}{d_o}+\\dfrac{1}{d_i}','משוואת העדשה הדקה',[
         ['f','אורך מוקדי','חיובי לעדשה מרכזת'],
         ['d_o','מרחק עצם','חיובי תמיד'],
-        ['d_i','מרחק תמונה','חיובי=ממשית, שלילי=וירטואלית']
+        ['d_i','מרחק תמונה','חיובי=ממשית, שלילי=מדומה']
       ])}
       ${fBox('m = -\\dfrac{d_i}{d_o}','הגדלה',[])}
       <div class="info-grid">
         <div class="info-item"><div class="il">dₒ &gt; 2f</div><div class="iv">ממשית, הפוכה, מוקטנת</div></div>
         <div class="info-item"><div class="il">dₒ = 2f</div><div class="iv">ממשית, הפוכה, שווה גודל</div></div>
         <div class="info-item"><div class="il">f &lt; dₒ &lt; 2f</div><div class="iv">ממשית, הפוכה, מוגדלת</div></div>
-        <div class="info-item"><div class="il">dₒ &lt; f</div><div class="iv">וירטואלית, ישרה, מוגדלת</div></div>
+        <div class="info-item"><div class="il">dₒ &lt; f</div><div class="iv">מדומה, ישרה, מוגדלת</div></div>
       </div>
-      <p><b>שיטת 3 הקרניות לבניית תמונה:</b> (1) קרן מקבילה לציר → דרך מוקד F. (2) קרן דרך המרכז האופטי → ישר ללא שבירה. (3) קרן דרך מוקד F → יוצאת מקבילה לציר.</p>
+      <p><b>שיטת 3 הקרניות לבניית תמונה:</b> (1) קרן מקבילה לציר הראשי → דרך מוקד F. (2) קרן דרך המרכז האופטי → ישר ללא שבירה. (3) קרן דרך מוקד F → יוצאת מקבילה לציר.</p>
       <div class="theory-anim">${animCanvas('anim-convex-lens-t',152,'עדשה מרכזת — יצירת תמונה')}</div>`,
   },
   sim:{type:'opt-convex-lens',desc:'גרור את העצם לאורך הציר. ראה כיצד גודל ומיקום התמונה משתנים. שים לב מה קורה כשהעצם חוצה את המוקד!'},
@@ -3266,9 +3267,9 @@ const OPTICS_CONTENT={
     ]},
   quiz:[
     {q:'עדשה מרכזת f=20cm. עצם ב-dₒ=60cm. מהו dᵢ?',opts:['30 cm','15 cm','60 cm','20 cm'],correct:0,explain:'1/dᵢ=1/20−1/60=3/60−1/60=2/60 → dᵢ=30 cm. ממשית.',formula:'1/f=1/dₒ+1/dᵢ'},
-    {q:'מה קורה כשהעצם בתוך המוקד (dₒ<f) בעדשה מרכזת?',opts:['תמונה ממשית הפוכה','תמונה ממשית ישרה','תמונה וירטואלית מוגדלת ישרה','אין תמונה'],correct:2,explain:'כשdₒ<f, dᵢ<0 → וירטואלית. m>0 → ישרה. |m|>1 → מוגדלת. זה עקרון הזכוכית המגדלת!'},
+    {q:'מה קורה כשהעצם בתוך המוקד (dₒ<f) בעדשה מרכזת?',opts:['תמונה ממשית הפוכה','תמונה ממשית ישרה','תמונה מדומה מוגדלת ישרה','אין תמונה'],correct:2,explain:'כשdₒ<f, dᵢ<0 → מדומה. m>0 → ישרה. |m|>1 → מוגדלת. זה עקרון הזכוכית המגדלת!'},
     {q:'m=−3 אומר שהתמונה:',opts:['מוקטנת פי 3, ישרה','מוגדלת פי 3, הפוכה','מוגדלת פי 3, ישרה','מוקטנת פי 3, הפוכה'],correct:1,explain:'|m|=3 → מוגדלת פי 3. m שלילי → הפוכה. ממשית (כי dᵢ>0 → m<0).'},
-    {q:'זכוכית מגדלת עובדת כי:',opts:['dₒ>2f','dₒ=2f','dₒ<f','dₒ=f'],correct:2,explain:'בזכוכית מגדלת העצם בין המוקד לעדשה (dₒ<f). תוצאה: תמונה וירטואלית, ישרה, מוגדלת מאחורי העצם.'},
+    {q:'זכוכית מגדלת עובדת כי:',opts:['dₒ>2f','dₒ=2f','dₒ<f','dₒ=f'],correct:2,explain:'בזכוכית מגדלת העצם בין המוקד לעדשה (dₒ<f). תוצאה: תמונה מדומה, ישרה, מוגדלת מאחורי העצם.'},
   ],
   problem:{title:'מיקרוסקופ אופטי',text:'מיקרוסקופ פשוט: עדשת אובייקטיב f₁=5mm, דₒ=6mm. העדשה השנייה (העינית) f₂=25mm.',
     steps:[
@@ -3281,35 +3282,35 @@ const OPTICS_CONTENT={
   theory:{
     title:'עדשה מפזרת (קעורה)',
     html:`
-      <p>עדשה מפזרת (עדשה קעורה — biconcave) <b>מפזרת קרניים מציר</b>. קרניים מקבילות מתפצלות כאילו יוצאות ממוקד וירטואלי F. f&lt;0 תמיד.</p>
+      <p>עדשה מפזרת (עדשה קעורה — biconcave) <b>מפזרת קרניים מהציר הראשי</b>. קרניים מקבילות מתפצלות כאילו יוצאות ממוקד מדומה F. f&lt;0 תמיד.</p>
       ${fBox('\\dfrac{1}{f}=\\dfrac{1}{d_o}+\\dfrac{1}{d_i},\\quad f<0','משוואת עדשה מפזרת',[])}
-      <div class="def-block"><div class="def-title">תמיד: תמונה וירטואלית, ישרה, מוקטנת</div>
-        <p>בניגוד לעדשה מרכזת, עדשה מפזרת תמיד יוצרת תמונה וירטואלית (dᵢ&lt;0), ישרה (m&gt;0) ומוקטנת (0&lt;m&lt;1). לא משנה איפה העצם.</p>
+      <div class="def-block"><div class="def-title">תמיד: תמונה מדומה, ישרה, מוקטנת</div>
+        <p>בניגוד לעדשה מרכזת, עדשה מפזרת תמיד יוצרת תמונה מדומה (dᵢ&lt;0), ישרה (m&gt;0) ומוקטנת (0&lt;m&lt;1). לא משנה איפה העצם.</p>
       </div>
       <div class="info-grid">
-        <div class="info-item"><div class="il">אורך מוקדי</div><div class="iv">f &lt; 0 (וירטואלי)</div></div>
-        <div class="info-item"><div class="il">דᵢ</div><div class="iv">תמיד שלילי (וירטואלית)</div></div>
+        <div class="info-item"><div class="il">אורך מוקדי</div><div class="iv">f &lt; 0 (מדומה)</div></div>
+        <div class="info-item"><div class="il">דᵢ</div><div class="iv">תמיד שלילי (מדומה)</div></div>
         <div class="info-item"><div class="il">הגדלה</div><div class="iv">0 &lt; m &lt; 1 (מוקטנת)</div></div>
         <div class="info-item"><div class="il">שימוש</div><div class="iv">תיקון קוצר ראייה (מיופיה)</div></div>
       </div>
       <p><b>קוצר ראייה (מיופיה):</b> העין הקצרת ממקמת תמונה לפני הרשתית. עדשה מפזרת (f&lt;0) מפזרת את הקרניות לפני הכניסה לעין — נקודה רחוקה נראית כנקודה קרובה יותר, שהעין הקצרת יכולה להתמקד עליה.</p>
-      <div class="theory-anim">${animCanvas('anim-concave-lens-t',138,'עדשה מפזרת — תמונה וירטואלית')}</div>`,
+      <div class="theory-anim">${animCanvas('anim-concave-lens-t',138,'עדשה מפזרת — תמונה מדומה')}</div>`,
   },
-  sim:{type:'opt-concave-lens',desc:'גרור את העצם. שים לב שהתמונה תמיד מאותו צד כמו העצם (וירטואלית) ותמיד קטנה יותר. שנה את f לראות שינויים.'},
+  sim:{type:'opt-concave-lens',desc:'גרור את העצם. שים לב שהתמונה תמיד מאותו צד כמו העצם (מדומה) ותמיד קטנה יותר. שנה את f לראות שינויים.'},
   example:{title:'תיקון קוצר ראייה',text:'עין קצרת רואה בחדות עד 50 cm. מה f של עדשה מתקנת לראות עצמים רחוקים (∞)?',
     steps:[
-      {q:'העצם ב-∞, תמונה צריכה להיות ב-dᵢ=−50 cm (וירטואלית, מול העין)',a:'1/f=1/∞+1/(−50)=−0.02 → f=−50 cm'},
+      {q:'העצם ב-∞, תמונה צריכה להיות ב-dᵢ=−50 cm (מדומה, מול העין)',a:'1/f=1/∞+1/(−50)=−0.02 → f=−50 cm'},
       {q:'f=−50 cm. עוצמת העדשה (דיופטרים)?',a:'P=1/f(m)=1/(−0.5)=−2 דיופטר'},
     ]},
   quiz:[
-    {q:'עדשה מפזרת f=−15cm. עצם b-dₒ=45cm. dᵢ=?',opts:['−11.25 cm','−45 cm','11.25 cm','30 cm'],correct:0,explain:'1/dᵢ=1/(−15)−1/45=−3/45−1/45=−4/45 → dᵢ=−11.25 cm. שלילי=וירטואלית.',formula:'1/dᵢ=1/f−1/dₒ'},
+    {q:'עדשה מפזרת f=−15cm. עצם b-dₒ=45cm. dᵢ=?',opts:['−11.25 cm','−45 cm','11.25 cm','30 cm'],correct:0,explain:'1/dᵢ=1/(−15)−1/45=−3/45−1/45=−4/45 → dᵢ=−11.25 cm. שלילי=מדומה.',formula:'1/dᵢ=1/f−1/dₒ'},
     {q:'עדשה מפזרת מתאימה לתיקון:',opts:['ראייה קצרה (מיופיה)','ראייה ארוכה (היפראופיה)','קשקשת (אסטיגמציה)','עיוורון צבעים'],correct:0,explain:'עדשה מפזרת (f<0) מפזרת קרניות — מזיזה נקודת ההתמקדות לאחור — מתאים למיופיה שבה נקודת ההתמקדות נמצאת לפני הרשתית.'},
     {q:'m=0.4 לעדשה מפזרת אומר:',opts:['מוגדלת פי 2.5','מוקטנת, ישרה','הפוכה','ממשית'],correct:1,explain:'0<m<1 ו-m חיובי: מוקטנת (פי 2.5) וישרה. כך תמיד בעדשה מפזרת.'},
-    {q:'מה ההבדל העיקרי בין עדשה מרכזת לעדשה מפזרת?',opts:['עובי','f חיובי/שלילי','צבע','חומר'],correct:1,explain:'עדשה מרכזת: f>0, יכולה לתת תמונות ממשיות ווירטואליות. עדשה מפזרת: f<0, תמיד וירטואלית ומוקטנת. ההבדל המהותי הוא f.'},
+    {q:'מה ההבדל העיקרי בין עדשה מרכזת לעדשה מפזרת?',opts:['עובי','f חיובי/שלילי','צבע','חומר'],correct:1,explain:'עדשה מרכזת: f>0, יכולה לתת תמונות ממשיות ומדומות. עדשה מפזרת: f<0, תמיד מדומה ומוקטנת. ההבדל המהותי הוא f.'},
   ],
   problem:{title:'תיקון ראייה ארוכה',text:'אדם היפראופי (ראייה ארוכה) רואה בחדות מ-150 cm בלבד (נקודה קרובה). מצא עדשה שתאפשר ראייה ב-25 cm (נקודה קרובה תקינה).',
     steps:[
-      {q:'העצם ב-25cm. תמונה ב-dᵢ=−150cm (וירטואלית, צד העצם). 1/f=1/25+1/(−150)=?',unit:'',answer:'0.033',tolerance:0.002,explain:'1/f=6/150−1/150=5/150=1/30 → f=30 cm. עדשה מרכזת.',hint:'1/f=1/dₒ+1/dᵢ. dᵢ שלילי כי וירטואלית'},
+      {q:'העצם ב-25cm. תמונה ב-dᵢ=−150cm (מדומה, צד העצם). 1/f=1/25+1/(−150)=?',unit:'',answer:'0.033',tolerance:0.002,explain:'1/f=6/150−1/150=5/150=1/30 → f=30 cm. עדשה מרכזת.',hint:'1/f=1/dₒ+1/dᵢ. dᵢ שלילי כי מדומה'},
       {q:'f=?(cm)',unit:'cm',answer:'30',tolerance:0.5,explain:'f=30 cm > 0 — עדשה מרכזת לתיקון ראייה ארוכה.',hint:'f=1/(ממה שחישבת)'},
     ]}
 },
@@ -3355,7 +3356,7 @@ const OPTICS_CONTENT={
   ],
   problem:{title:'תיקון עינית',text:'עין קצרת ראייה. נקודה רחוקה=80 cm (לא ∞). מה f המשקפיים?',
     steps:[
-      {q:'עצם ב-∞, תמונה צריכה להופיע ב-dᵢ=−80cm. 1/f=?',unit:'1/m',answer:'-1.25',tolerance:0.05,explain:'1/f=0+1/(−0.80)=−1.25 m⁻¹. f=−80 cm. עדשה מפזרת.',hint:'dₒ=∞ → 1/dₒ=0. dᵢ=−80cm שלילי (וירטואלית)'},
+      {q:'עצם ב-∞, תמונה צריכה להופיע ב-dᵢ=−80cm. 1/f=?',unit:'1/m',answer:'-1.25',tolerance:0.05,explain:'1/f=0+1/(−0.80)=−1.25 m⁻¹. f=−80 cm. עדשה מפזרת.',hint:'dₒ=∞ → 1/dₒ=0. dᵢ=−80cm שלילי (מדומה)'},
       {q:'f=?(cm)',unit:'cm',answer:'-80',tolerance:1,explain:'f=−80 cm. עדשה מפזרת עם P=−1.25 דיופטר.',hint:'f=1/(תשובה קודמת) — שים לב ליחידות'},
     ]}
 },
@@ -3454,7 +3455,7 @@ const OPTICS_CONTENT={
       <div class="enrich-card"><div class="enrich-title">גרימלדי — המגלה הנשכח (1665)</div>
         <p>פרנצ'סקו גרימלדי, כהן ישועי איטלקי, תיאר ב-1665 (פוסטומית) כיצד אור העובר דרך פתח צר מתפשט הרחק מעבר לצל הגיאומטרי. הוא קרא לתופעה "Diffractio". ניוטון ידע על עקיפה — ניסה להסבירה בתיאורית חלקיקים ולא הצליח לחלוטין.</p>
       </div>
-      <div class="def-block"><div class="def-title">עיקרון הויגנס-פרנל</div>
+      <div class="def-block"><div class="def-title">עקרון הויגנס-פרנל</div>
         <p>כל נקודה על חזית גל היא מקור גל כדורי משני. סכום כל הגלים המשניים = חזית חדשה. מסביר שבירה, החזרה, ועקיפה.</p>
       </div>
       ${fBox('a \\sin\\theta = m\\lambda','מינימות בסדק יחיד',[
@@ -6980,7 +6981,7 @@ function simForceTypes(canvas){
     applied: {on:false, label:'כוח מופעל (F)',  color:'#34d399', formula:'F = החלקה', dir:'right'},
     friction:{on:false, label:'חיכוך (f)',       color:'#f87171', formula:'f = μN = '+(mu*m*g).toFixed(1)+'N', dir:'left'},
     tension: {on:false, label:'מתיחות (T)',      color:'#22d3ee', formula:'T = ?', dir:'upper-right'},
-    spring:  {on:false, label:'כוח קפיץ (Fs)',   color:'#fb923c', formula:'Fs = kx', dir:'upper-left'},
+    spring:  {on:false, label:'כוח אלסטי (Fs)',   color:'#fb923c', formula:'Fs = kx', dir:'upper-left'},
   };
   var forceKeys=Object.keys(forces);
 
@@ -8203,7 +8204,7 @@ function simPendulum(canvas){
 }
 
 function simProjectile(canvas){
-  // SECTION: planar.projectile — תנועה קליעתית
+  // SECTION: planar.projectile — תנועה בליסטית
   // PEDAGOGY: Projectile motion. v0 and angle controls. Shows x(t) and y(t) are independent.
   // Live trajectory trace, range calculation, max height. Pause at peak.
   const H=490; const {ctx,W,dpr}=setupCanvas(canvas,H);
@@ -8350,7 +8351,7 @@ function simProjectile(canvas){
     // ── Top info panel ─────────────────────────────────
     ctx.save(); ctx.fillStyle='rgba(6,14,28,.92)'; ctx.strokeStyle='#1e4060'; ctx.lineWidth=1.5;
     ctx.beginPath(); ctx.roundRect(8,6,W-16,50,6); ctx.fill(); ctx.stroke(); ctx.restore();
-    simText(ctx,'תנועה קליעתית: x ו-y בלתי תלויים!',W/2,18,'#22d3ee',11,undefined,true);
+    simText(ctx,'תנועה בליסטית: x ו-y בלתי תלויים!',W/2,18,'#22d3ee',11,undefined,true);
     simText(ctx,'x(t) = v₀cosθ·t   |   y(t) = v₀sinθ·t − ½gt²',W/2,32,'#94a3b8',9.5,undefined,true);
     if(launched){
       var R=(getV0()*getV0()*Math.sin(2*getAngle()*Math.PI/180)/g);
@@ -9890,7 +9891,7 @@ function simOptPlaneMirror(canvas){
     ctx.beginPath();ctx.ellipse(eyeX,eyeY,14,9,0,0,Math.PI*2);ctx.stroke();
     ctx.fillStyle='#1e3a5f';ctx.beginPath();ctx.arc(eyeX,eyeY,4,0,Math.PI*2);ctx.fill();
     ctx.restore();
-    optInfoBox(ctx,8,8,155,['dₒ='+dist.toFixed(1)+' u','dᵢ=−'+dist.toFixed(1)+' u','(וירטואלית)','m = +1']);
+    optInfoBox(ctx,8,8,155,['dₒ='+dist.toFixed(1)+' u','dᵢ=−'+dist.toFixed(1)+' u','(מדומה)','m = +1']);
     t=setTimeout(draw,33);
   }
   var t;function poll(){if(_simStop[id])return;draw();}poll();
@@ -9960,7 +9961,7 @@ function simOptConcaveMirror(canvas){
       ctx.lineTo(imgX-7,imgTipY+arrowDir*14);ctx.lineTo(imgX+7,imgTipY+arrowDir*14);
       ctx.closePath();ctx.fill();
       ctx.setLineDash([]);optNoGlow(ctx);ctx.restore();
-      optLabel(ctx,isVirt?'וירטואלית':'ממשית',imgX,Math.min(imgTipY,cy)-20,isVirt?'#34d399':'#f87171',9);
+      optLabel(ctx,isVirt?'מדומה':'ממשית',imgX,Math.min(imgTipY,cy)-20,isVirt?'#34d399':'#f87171',9);
     }
     // ── 3 canonical rays ────────────────────────────────────────────────────
     if(isFinite(diVal)&&Math.abs(diVal)>8){
@@ -10071,7 +10072,7 @@ function simOptConvexMirror(canvas){
     ctx.beginPath();ctx.moveTo(vFx,cy-8);ctx.lineTo(vFx,cy+8);ctx.stroke();
     optNoGlow(ctx);ctx.setLineDash([]);ctx.restore();
     ctx.save();ctx.fillStyle='rgba(4,9,20,.75)';ctx.beginPath();ctx.roundRect(vFx-20,cy+11,40,16,3);ctx.fill();ctx.restore();
-    optLabel(ctx,'F (וירטואלי)',vFx,cy+19,'#f59e0b',9);
+    optLabel(ctx,'F (מדומה)',vFx,cy+19,'#f59e0b',9);
     // Object (to the right)
     var objX=mx+doPx,objH=58;
     ctx.save();ctx.strokeStyle='#60a5fa';ctx.lineWidth=3;optGlow(ctx,'#60a5fa',8);
@@ -10089,7 +10090,7 @@ function simOptConvexMirror(canvas){
     ctx.fillStyle='rgba(52,211,153,.4)';ctx.beginPath();
     ctx.moveTo(imgX,cy-imgH);ctx.lineTo(imgX-7,cy-imgH+14);ctx.lineTo(imgX+7,cy-imgH+14);ctx.closePath();ctx.fill();
     ctx.setLineDash([]);optNoGlow(ctx);ctx.restore();
-    optLabel(ctx,'תמונה וירטואלית',imgX,cy+14,'#34d399',9);
+    optLabel(ctx,'תמונה מדומה',imgX,cy+14,'#34d399',9);
     var objTipX=objX,objTipY=cy-objH;
     // RAY 1: parallel to axis → hits mirror at (mx, cy-objH) → reflects as if from virtual F
     // Incident: horizontal from objTip to mirror
@@ -10118,7 +10119,7 @@ function simOptConvexMirror(canvas){
     optDash(ctx,mx,r2hitY,imgX,cy-imgH,'rgba(99,102,241,.35)');
     // Info box
     var mStr=m_mag.toFixed(2);
-    optInfoBox(ctx,8,8,178,['f=−'+f+'px (וירטואלי)','dₒ='+Math.round(doPx)+'px','dᵢ=−'+Math.round(Math.abs(diVal))+'px','m=+'+mStr+' (ישרה, מוקטנת)']);
+    optInfoBox(ctx,8,8,178,['f=−'+f+'px (מדומה)','dₒ='+Math.round(doPx)+'px','dᵢ=−'+Math.round(Math.abs(diVal))+'px','m=+'+mStr+' (ישרה, מוקטנת)']);
     t=setTimeout(draw,33);
   }
   var t;function poll(){if(_simStop[id])return;draw();}poll();
@@ -10485,7 +10486,7 @@ function simOptConvexLens(canvas){
       ctx.fillStyle=isVirt?'rgba(52,211,153,.5)':'rgba(248,113,113,.5)';
       ctx.beginPath();ctx.moveTo(imgX,cy-imgH);ctx.lineTo(imgX-8,cy-imgH+(imgH>0?16:-16));ctx.lineTo(imgX+8,cy-imgH+(imgH>0?16:-16));ctx.closePath();ctx.fill();
       ctx.setLineDash([]);optNoGlow(ctx);ctx.restore();
-      optLabel(ctx,isVirt?'תמונה וירטואלית':'תמונה ממשית',imgX,cy-Math.abs(imgH)-18,isVirt?'#34d399':'#f87171',9);
+      optLabel(ctx,isVirt?'תמונה מדומה':'תמונה ממשית',imgX,cy-Math.abs(imgH)-18,isVirt?'#34d399':'#f87171',9);
       if(isFinite(imgX)&&Math.abs(imgX-lx)<W-30&&imgX>10&&imgX<W-10){
         // Ray 1: parallel → F'
         optRay(ctx,Math.max(10,objX-10),cy-objH,lx,cy-objH,'rgba(251,191,36,.6)',1.8,false);
@@ -10498,7 +10499,7 @@ function simOptConvexLens(canvas){
     }
     var m_=isFinite(diVal)?(-diVal/doPx).toFixed(2):'∞';
     var diS=isFinite(diVal)?Math.round(diVal)+'px':'∞';
-    optInfoBox(ctx,8,8,180,['dₒ='+Math.round(doPx)+'px','dᵢ='+diS,'= m='+m_,diVal<0?'וירטואלית, ישרה':'ממשית, '+(parseFloat(m_)<0?'הפוכה':'ישרה')]);
+    optInfoBox(ctx,8,8,180,['dₒ='+Math.round(doPx)+'px','dᵢ='+diS,'= m='+m_,diVal<0?'מדומה, ישרה':'ממשית, '+(parseFloat(m_)<0?'הפוכה':'ישרה')]);
     t=setTimeout(draw,33);
   }
   var t;function poll(){if(_simStop[id])return;draw();}poll();
@@ -10546,7 +10547,7 @@ function simOptConcaveLens(canvas){
     ctx.fillStyle='rgba(52,211,153,.4)';ctx.beginPath();
     ctx.moveTo(imgX,imgTipY);ctx.lineTo(imgX-7,imgTipY+15);ctx.lineTo(imgX+7,imgTipY+15);ctx.closePath();ctx.fill();
     ctx.setLineDash([]);optNoGlow(ctx);ctx.restore();
-    optLabel(ctx,'תמונה וירטואלית',imgX,cy+14,'#34d399',9);
+    optLabel(ctx,'תמונה מדומה',imgX,cy+14,'#34d399',9);
     var objTipX=objX,objTipY=cy-objH;
     // RAY 1: parallel to axis → diverges from lens as if coming from F1
     // Incident: horizontal to lens at (lx, cy-objH)
@@ -10578,7 +10579,7 @@ function simOptConcaveLens(canvas){
     optRay(ctx,lx,r3hitY,W-16,r3hitY,'rgba(167,139,250,.65)',1.8,true);
     optDash(ctx,lx,r3hitY,imgX,imgTipY,'rgba(167,139,250,.3)');
     var mStr=m_mag.toFixed(2);
-    optInfoBox(ctx,8,8,185,['dₒ='+Math.round(doPx)+'px','dᵢ='+Math.round(diVal)+'px','m=+'+mStr+' (ישרה, מוקטנת)','וירטואלית תמיד']);
+    optInfoBox(ctx,8,8,185,['dₒ='+Math.round(doPx)+'px','dᵢ='+Math.round(diVal)+'px','m=+'+mStr+' (ישרה, מוקטנת)','מדומה תמיד']);
     t=setTimeout(draw,33);
   }
   var t;function poll(){if(_simStop[id])return;draw();}poll();
@@ -14285,7 +14286,7 @@ runAnim('anim-plane-mirror-t',(canvas,ctx,W,H,t)=>{
   ctx.closePath();ctx.fill();
   ctx.setLineDash([]);ctx.shadowBlur=0;ctx.restore();
   oLbl(ctx,'תמונה',imgX,oy+arrH+10,'#22d3ee',9);
-  oLbl(ctx,'(וירטואלית)',imgX,oy+arrH+20,'#22d3ee',8);
+  oLbl(ctx,'(מדומה)',imgX,oy+arrH+20,'#22d3ee',8);
   // Reflection rays (2 rays)
   var eyeX=12,eyeY=H/2;
   var rays=[oy-16,oy+10];
@@ -14388,7 +14389,7 @@ runAnim('anim-convex-mirror-t',(canvas,ctx,W,H,t)=>{
   ctx.save();ctx.strokeStyle='#f59e0b';ctx.lineWidth=1.5;ctx.setLineDash([3,3]);
   ctx.beginPath();ctx.moveTo(fX,cy-5);ctx.lineTo(fX,cy+5);ctx.stroke();
   ctx.setLineDash([]);ctx.restore();
-  oLbl(ctx,'F (וירטואלי)',fX,cy+12,'#f59e0b',8);
+  oLbl(ctx,'F (מדומה)',fX,cy+12,'#f59e0b',8);
   // Object
   var objX=W*0.78,objH=24;
   ctx.save();ctx.strokeStyle='#fbbf24';ctx.lineWidth=2;ctx.shadowColor='#fbbf24';ctx.shadowBlur=6;
@@ -14406,12 +14407,12 @@ runAnim('anim-convex-mirror-t',(canvas,ctx,W,H,t)=>{
   ctx.save();ctx.strokeStyle='rgba(34,211,238,.6)';ctx.lineWidth=1.5;ctx.setLineDash([3,3]);
   ctx.beginPath();ctx.moveTo(imgX,cy);ctx.lineTo(imgX,cy-imgH);ctx.stroke();
   ctx.setLineDash([]);ctx.restore();
-  oLbl(ctx,'תמונה\nוירטואלית',imgX,cy+12,'#22d3ee',8);
+  oLbl(ctx,'תמונה\nמדומה',imgX,cy+12,'#22d3ee',8);
   // Rays
   oRay(ctx,objX,cy-objH,cx+R*0.02,cy-objH,'#f97316',1.5);
   oDash(ctx,cx+R*0.02,cy-objH,fX,cy,'#f97316');
   oRay(ctx,cx+R*0.02,cy-objH,W-8,cy-objH*0.3,'#f97316',1.5);
-  oLbl(ctx,'תמיד: וירטואלית, ישרה, מוקטנת',W/2,H-6,'#64748b',9);
+  oLbl(ctx,'תמיד: מדומה, ישרה, מוקטנת',W/2,H-6,'#64748b',9);
 });
 
 // ─── 7. Enhanced Snell's Law ─────────────────────────────────────────────────
@@ -14659,7 +14660,7 @@ runAnim('anim-concave-lens-t',(canvas,ctx,W,H,t)=>{
   ctx.fillStyle='rgba(34,211,238,.5)';ctx.beginPath();
   ctx.moveTo(imgX,cy-imgH);ctx.lineTo(imgX-4,cy-imgH+7);ctx.lineTo(imgX+4,cy-imgH+7);
   ctx.closePath();ctx.fill();ctx.setLineDash([]);ctx.restore();
-  oLbl(ctx,'תמונה\nוירטואלית',imgX,cy-imgH-10,'#22d3ee',8);
+  oLbl(ctx,'תמונה\nמדומה',imgX,cy-imgH-10,'#22d3ee',8);
   // Rays
   var tipY=cy-objH;
   oRay(ctx,objX,tipY,lx,tipY,'#f97316',1.5);
@@ -14669,7 +14670,7 @@ runAnim('anim-concave-lens-t',(canvas,ctx,W,H,t)=>{
   oRay(ctx,lx,tipY,W-8,tipY+slope*(W-8-lx),'#f97316',1.5);
   oRay(ctx,objX,tipY,lx,cy,'#a78bfa',1.5);
   oRay(ctx,lx,cy,W-8,cy,'#a78bfa',1.5);
-  oLbl(ctx,'עדשה מפזרת — תמיד וירטואלית, ישרה, מוקטנת',W/2,H-5,'#e2e8f0',8);
+  oLbl(ctx,'עדשה מפזרת — תמיד מדומה, ישרה, מוקטנת',W/2,H-5,'#e2e8f0',8);
 });
 
 // ─── 12. Eye focus ────────────────────────────────────────────────────────────
@@ -15500,7 +15501,7 @@ var FORMULA_DATA=[
   ]},
   {ch:'פרק ה: כוחות ב׳',rows:[
     {f:'W = mg',d:'כוח כובד'},
-    {f:'F_spring = k·x',d:'כוח קפיץ (גודל)'},
+    {f:'F_spring = k·x',d:'כוח אלסטי (גודל)'},
     {f:'μₛ > μₖ',d:'סטטי > קינטי תמיד'},
   ]},
   {ch:'פרק ו: תנועה במישור',rows:[
