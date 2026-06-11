@@ -954,6 +954,7 @@ const OPTICS_CHAPTERS=[
   {id:'opt-light',icon:'💡',title:'פרק א: טבע האור',sections:[
     {id:'light-nature',title:'מהו אור?',sub:'גל אלקטרומגנטי, מהירות, ספקטרום'},
     {id:'light-speed',title:'מהירות האור ומדד שבירה',sub:'c, n=c/v, חומרים שונים'},
+    {id:'em-spectrum',title:'הספקטרום האלקטרומגנטי המלא',sub:'רדיו, IR, UV, רנטגן, גמא, E=hf'},
   ]},
   {id:'opt-reflection',icon:'🔆',title:'פרק ב: החזרת אור',sections:[
     {id:'refl-laws',title:'חוקי ההחזרה',sub:'θᵢ = θᵣ, אנכי ומשטח'},
@@ -975,6 +976,12 @@ const OPTICS_CHAPTERS=[
     {id:'interference',title:'הפרעה — אינטרפרנציה',sub:'בונה ומהרס, הפרש דרכים'},
     {id:'youngs-slits',title:'ניסוי יאנג — סדקים כפולים',sub:'d·sinθ=mλ, פסי אור'},
     {id:'diffraction',title:'עקיפה',sub:'סדק יחיד, עקרון הויגנס'},
+  ]},
+  {id:'opt-modern',icon:'🔬',title:'פרק ו: אופטיקה מודרנית',sections:[
+    {id:'em-spectrum-full',title:'הספקטרום המלא',sub:'רדיו, מיקרוגל, IR, UV, רנטגן, גמא'},
+    {id:'polarization',title:'קיטוב האור',sub:'חוק מאלוס, I=I₀cos²θ'},
+    {id:'doppler',title:'אפקט דופלר לאור',sub:'הסחה לאדום, מרחב, מהירות'},
+    {id:'lasers',title:'לייזר — אור קוהרנטי',sub:'פליטה מעוררת, E=hf'},
   ]},
 ];
 
@@ -3494,6 +3501,207 @@ const OPTICS_CONTENT={
     ]}
 },
 
+
+'opt-light.em-spectrum':{
+  theory:{
+    title:'הספקטרום האלקטרומגנטי המלא',
+    html:`
+      <p>האור הנראה שאנחנו רואים הוא <em>פחות מאחד אחוז</em> מהספקטרום האלקטרומגנטי המלא. מגלי רדיו שאורכם קילומטרים ועד קרני גמא שאורכן פיקומטרים — כולם אותה תופעה פיזיקלית: גלים אלקטרומגנטיים.</p>
+      ${fBox('c = \\lambda f','קשר אורך גל-תדירות',[['c','מהירות האור','3×10⁸ m/s'],['\\lambda','אורך הגל','מטרים'],['f','תדירות','הרץ (Hz)'] ])}
+      ${fBox('E = hf = \\dfrac{hc}{\\lambda}','אנרגיית פוטון',[['h','קבוע פלאנק','6.626×10⁻³⁴ J·s'],['f','תדירות','Hz'],['E','אנרגיית פוטון','ג\'ול'] ])}
+      <table style="width:100%;border-collapse:collapse;font-size:.82rem;margin:16px 0">
+        <tr style="background:rgba(99,102,241,.18);color:#c7d2fe"><th style="padding:6px 8px;text-align:right">קטע</th><th style="padding:6px 8px">λ</th><th style="padding:6px 8px">f</th><th style="padding:6px 8px">E (פוטון)</th><th style="padding:6px 8px;text-align:right">שימוש</th></tr>
+        <tr style="border-bottom:1px solid rgba(99,102,241,.15)"><td style="padding:5px 8px;color:#e2e8f0">גלי רדיו</td><td style="padding:5px 8px;color:#94a3b8">&gt;1 mm</td><td style="padding:5px 8px;color:#94a3b8">&lt;300 GHz</td><td style="padding:5px 8px;color:#94a3b8">&lt;1.2 meV</td><td style="padding:5px 8px;color:#94a3b8">שידורים, WiFi</td></tr>
+        <tr style="border-bottom:1px solid rgba(99,102,241,.15)"><td style="padding:5px 8px;color:#e2e8f0">מיקרוגל</td><td style="padding:5px 8px;color:#94a3b8">1mm–10cm</td><td style="padding:5px 8px;color:#94a3b8">3–300 GHz</td><td style="padding:5px 8px;color:#94a3b8">1.2meV–1.2eV</td><td style="padding:5px 8px;color:#94a3b8">תנורי מיקרו, רדאר</td></tr>
+        <tr style="border-bottom:1px solid rgba(99,102,241,.15)"><td style="padding:5px 8px;color:#fbbf24">אינפרא-אדום (IR)</td><td style="padding:5px 8px;color:#94a3b8">700nm–1mm</td><td style="padding:5px 8px;color:#94a3b8">0.3–430 THz</td><td style="padding:5px 8px;color:#94a3b8">1.2meV–1.7eV</td><td style="padding:5px 8px;color:#94a3b8">חום, שלט רחוק, ראיית לילה</td></tr>
+        <tr style="border-bottom:1px solid rgba(99,102,241,.15)"><td style="padding:5px 8px;color:#fde68a;font-weight:700">אור נראה 👁</td><td style="padding:5px 8px;color:#fde68a">380–700 nm</td><td style="padding:5px 8px;color:#fde68a">430–790 THz</td><td style="padding:5px 8px;color:#fde68a">1.8–3.3 eV</td><td style="padding:5px 8px;color:#fde68a">ראייה, צמחייה</td></tr>
+        <tr style="border-bottom:1px solid rgba(99,102,241,.15)"><td style="padding:5px 8px;color:#a78bfa">UV (אולטרה-סגול)</td><td style="padding:5px 8px;color:#94a3b8">10–380 nm</td><td style="padding:5px 8px;color:#94a3b8">790THz–30PHz</td><td style="padding:5px 8px;color:#94a3b8">3.3–124 eV</td><td style="padding:5px 8px;color:#94a3b8">שיזוף, בקטריציד, ויטמין D</td></tr>
+        <tr style="border-bottom:1px solid rgba(99,102,241,.15)"><td style="padding:5px 8px;color:#60a5fa">רנטגן (X-ray)</td><td style="padding:5px 8px;color:#94a3b8">0.01–10 nm</td><td style="padding:5px 8px;color:#94a3b8">30PHz–30EHz</td><td style="padding:5px 8px;color:#94a3b8">124eV–124keV</td><td style="padding:5px 8px;color:#94a3b8">הדמיה רפואית, ביקורת נמל</td></tr>
+        <tr><td style="padding:5px 8px;color:#f87171">קרני גמא (γ)</td><td style="padding:5px 8px;color:#94a3b8">&lt;0.01 nm</td><td style="padding:5px 8px;color:#94a3b8">&gt;30 EHz</td><td style="padding:5px 8px;color:#94a3b8">&gt;124 keV</td><td style="padding:5px 8px;color:#94a3b8">גרעין אטומי, PET-CT</td></tr>
+      </table>
+      <div class="def-block"><div class="def-title">חלונות האטמוספרה</div>
+        <p>האטמוספרה של כדור הארץ שקופה רק לחלק מהספקטרום. <b>חלון נראה</b> (380–700nm) וחלון <b>רדיו</b> (&lt;10cm) מאפשרים לנו לראות ולקלוט שידורים. UV, X-ray וגמא נבלעים ומגנים עלינו — אך דורשים לוויינים לאסטרונומיה מחוץ לאטמוספרה.</p>
+      </div>
+      <div class="enrich-card"><div class="enrich-title">ציר הזמן: מגלי הספקטרום</div>
+        <p><b>מקסוול (1865)</b> — חזה גלים אלקטרומגנטיים תיאורטית; חישב c=1/√(ε₀μ₀) ≈ 3×10⁸ m/s.<br>
+        <b>הרץ (1888)</b> — הוכיח גלי רדיו ניסויית. "לא רואה להם תכלית פרקטית" — טעה.<br>
+        <b>רנטגן (1895)</b> — גילה X-rays בטעות. תוך שבועות: צילום ידה של אשתו. נובל 1901.<br>
+        <b>בקרל + קירי (1896–98)</b> — גילו רדיואקטיביות ← קרני גמא.</p>
+      </div>
+      <div class="theory-anim">${animCanvas('anim-emspec-full-t',148,'הספקטרום האלקטרומגנטי המלא')}</div>`,
+  },
+  sim:{type:'opt-em-spectrum',desc:'גרור את המחוון כדי לעבור לאורך הספקטרום האלקטרומגנטי — מגלי רדיו ועד קרני גמא. ראה כיצד אורך הגל, התדירות והאנרגיה משתנים.'},
+  example:{title:'אנרגיית קרן גמא',text:'קרן גמא עם אורך גל λ=0.01 nm. חשב את אנרגיית הפוטון.',
+    steps:[
+      {q:'המר nm ל-m: λ=0.01×10⁻⁹ m',a:'λ=10⁻¹¹ m'},
+      {q:'E=hc/λ = (6.626×10⁻³⁴ × 3×10⁸) / 10⁻¹¹',a:'E=1.99×10⁻¹⁴ J'},
+      {q:'המר ל-eV (÷1.6×10⁻¹⁹)',a:'E ≈ 124,000 eV = 124 keV'},
+    ]},
+  quiz:[
+    {q:'איזה קרינה EM חודרת עצמות הכי טוב?',opts:['IR','אור נראה','UV','רנטגן (X-ray)'],correct:3,explain:'רנטגן — אנרגיה גבוהה (keV) חודרת רקמות רכות אך נבלעת על ידי עצמות צפופות. זה בסיס הצילום הרפואי.',formula:'E=hf'},
+    {q:'אורך גל תנור מיקרוגל (2.45 GHz)?',opts:['12 cm','12 mm','12 μm','12 nm'],correct:0,explain:'λ=c/f=(3×10⁸)/(2.45×10⁹)=0.122m≈12cm — אורך גל בסנטימטרים.',formula:'λ=c/f'},
+    {q:'מדוע קרינת IR מורגשת כחום?',opts:['נעה מהר יותר','פוטוניה נספגים בתנודות מולקולריות ומחממים','UV חם יותר','גלים ארוכים יותר חמים תמיד'],correct:1,explain:'פוטוני IR (אנרגיה ~0.01–1.7eV) תואמים לתנודות מולקולריות — נספגים ומחממים. לכן גוף חם פולט IR.',formula:'E=hf'},
+    {q:'כל גלי EM בחלל ריק נעים ב:',opts:['מהירות שונה לפי תדירות','c=3×10⁸ m/s תמיד','v<c לגלי רדיו','v>c לגמא'],correct:1,explain:'כל הגלים האלקטרומגנטיים בחלל ריק נעים במהירות c=3×10⁸ m/s בדיוק — בלי יוצא מן הכלל.',formula:'c=λf'},
+  ],
+  problem:{title:'תחנת AM ואורך גל',text:'תחנת רדיו AM משדרת ב-f=1000 kHz. מצא את אורך הגל ואת אנרגיית פוטון אחד.',
+    steps:[
+      {q:'חשב λ=c/f (f=10⁶ Hz)',unit:'m',answer:'300',tolerance:5,explain:'λ=3×10⁸/10⁶=300m — אורך גל של שלוש מאות מטרים!',hint:'λ=c/f'},
+      {q:'E=hf=6.626×10⁻³⁴×10⁶ — ב-μeV (÷1.6×10⁻¹⁹×10⁶)',unit:'μeV',answer:'4.1',tolerance:0.3,explain:'E=6.626×10⁻²⁸ J = 4.14×10⁻⁹ eV ≈ 4.14 neV. זעיר לעומת פוטון X-ray (keV) — פי 10¹³!',hint:'E=hf; 1eV=1.6×10⁻¹⁹J'},
+    ]}
+},
+
+'opt-modern.em-spectrum-full':{
+  theory:{
+    title:'הספקטרום האלקטרומגנטי — מבט מלא',
+    html:`
+      <p>בפרק א ראינו את הספקטרום הנראה. כאן נרחיב את הראייה לספקטרום המלא — 20 סדרי גודל של אורך גל, מגלי רדיו ועד קרני גמא.</p>
+      ${fBox('c = \\lambda f','מהירות האור',[['c','3×10⁸ m/s','קבוע'],['\\lambda','אורך גל','מ'],['f','תדירות','Hz']])}
+      ${fBox('E = hf','אנרגיית פוטון',[['h','6.626×10⁻³⁴ J·s','קבוע פלאנק'],['f','תדירות','Hz']])}
+      <div class="def-block"><div class="def-title">עיקרון מרכזי: כל הגלים EM שווים</div>
+        <p>גל רדיו, אור נראה, קרן X — כולם אותה תופעה: שדות E ו-B מתנדנדים. ההבדל רק ב<em>תדירות</em> (ולכן ב<em>אנרגיה</em>). גל עם תדירות גבוהה יותר = פוטונים אנרגטיים יותר.</p>
+      </div>
+      <p>ראה סימולציית הספקטרום בפרק א לחקירה מעמיקה.</p>
+      <div class="theory-anim">${animCanvas('anim-emspec-full-t',148,'הספקטרום האלקטרומגנטי המלא')}</div>`,
+  },
+  sim:{type:'opt-em-spectrum',desc:'חקור את הספקטרום האלקטרומגנטי המלא — מגלי רדיו ועד קרני גמא.'},
+  example:{title:'השוואת פוטוני X ורדיו',text:'השווה אנרגיית פוטון של X-ray (λ=0.1nm) לפוטון רדיו (λ=1m).',
+    steps:[
+      {q:'E_X=hc/λ=(6.626×10⁻³⁴×3×10⁸)/(10⁻¹⁰)',a:'E_X=1.99×10⁻¹⁵ J = 12.4 keV'},
+      {q:'E_radio=hc/λ=(6.626×10⁻³⁴×3×10⁸)/1',a:'E_radio=1.99×10⁻²⁵ J ≈ 1.24×10⁻⁶ eV'},
+      {q:'יחס E_X/E_radio',a:'יחס = 10⁻¹⁰/1 → 10¹⁰ — פי עשרה מיליארד!'},
+    ]},
+  quiz:[
+    {q:'מהו הסדר הנכון מאורך גל קצר לארוך?',opts:['רדיו, IR, נראה, UV, X, γ','γ, X, UV, נראה, IR, רדיו','UV, X, γ, IR, נראה, רדיו','נראה, UV, X, γ, IR, רדיו'],correct:1,explain:'מגמא (קצר ביותר, אנרגטי ביותר) עד רדיו (ארוך ביותר, אנרגיה נמוכה ביותר): γ < X < UV < נראה < IR < מיקרוגל < רדיו',formula:'E=hf, λ=c/f'},
+    {q:'פוטון של UV יותר אנרגטי מפוטון IR כי:',opts:['UV נע מהר יותר','UV קצר יותר — f גבוה יותר → E=hf גדול יותר','UV קצר יותר — אורך גל קטן = אנרגיה קטנה','אותה אנרגיה'],correct:1,explain:'E=hf — תדירות גבוהה יותר (=אורך גל קצר יותר) → אנרגיה גדולה יותר. UV (f~10¹⁵Hz) >> IR (f~10¹³Hz).',formula:'E=hf'},
+    {q:'מדוע עיניים לא רואות UV?',opts:['UV נע מהר מדי','UV נבלע בעדשת העין לפני שמגיע לרשתית','UV אינו בעל אנרגיה','UV נחזר מהקרנית'],correct:1,explain:'עדשת העין בולעת UV. חיות כמו דבורים רואות UV — הפרחים "מסמנים" להן נמשי UV שאינו נראה לנו.',formula:''},
+    {q:'X-ray רפואי: מדוע לא חודר עצמות?',opts:['עצמות מחזירות X-ray','עצמות צפופות — אטומי סידן בולעים X-ray יעיל יותר מרקמה רכה','X-ray חלש מדי','אנרגיית X-ray נמוכה'],correct:1,explain:'עצמות עשירות בסידן (Z=20) — חתך פעולה גדול לבליעת X-ray. רקמה רכה (C,H,O,N) שקופה יותר. לכן עצם מופיעה לבנה בצילום.',formula:''},
+  ],
+  problem:{title:'מיקרוסקופ אלקטרוני',text:'מיקרוסקופ אלקטרוני משתמש ב-λ=0.001nm. השווה לאור נראה (λ=500nm) — בכמה גדולה יותר יכולת ההפרדה?',
+    steps:[
+      {q:'כמה פעמים אורך גל EM קטן מ-λ_אור?',unit:'פעמים',answer:'500000',tolerance:10000,explain:'500nm/0.001nm=500,000 פעמים קטן יותר. כוח הפרדה של מיקרוסקופ פרופורציוני ל-1/λ.',hint:'ratio=500nm/0.001nm'},
+    ]}
+},
+
+'opt-modern.polarization':{
+  theory:{
+    title:'קיטוב האור — חוק מאלוס',
+    html:`
+      <p>גל EM הוא <b>גל רוחבי</b> — שדה E מתנדנד בניצב לכיוון ההתפשטות. כיוון ההתנדנדות נקרא <b>כיוון הקיטוב</b>. באור טבעי, כל כיווני הקיטוב קיימים בו-זמנית — אור <em>בלתי מקוטב</em>. מסנן קיטוב (פולרואיד) מעביר רק כיוון אחד.</p>
+      ${fBox('I = I_0 \\cos^2\\theta','חוק מאלוס (1809)',[['I_0','עוצמה לאחר קוטב ראשון','W/m²'],['\\theta','זווית בין ציר הקוטב למנתח','°'],['I','עוצמה לאחר מנתח','W/m²']])}
+      <div class="info-grid">
+        <div class="info-item"><div class="il">θ=0°</div><div class="iv">I = I₀ — מלא</div></div>
+        <div class="info-item"><div class="il">θ=45°</div><div class="iv">I = I₀/2</div></div>
+        <div class="info-item"><div class="il">θ=90°</div><div class="iv">I = 0 — כיבוי!</div></div>
+        <div class="info-item"><div class="il">אור טבעי→קוטב</div><div class="iv">I = I₀/2</div></div>
+      </div>
+      <div class="def-block"><div class="def-title">זווית ברוסטר</div>
+        <p>כאשר אור פוגע במשטח בזווית ${M('\\theta_B = \\arctan(n_2/n_1)')} — האור המוחזר מקוטב לינארית לחלוטין. זו <b>זווית ברוסטר</b>. לזכוכית (n=1.5): θ_B = arctan(1.5) ≈ 56°. עדשות מצלמה עם פילטר CP מנצלות עיקרון זה.</p>
+      </div>
+      <div class="enrich-card"><div class="enrich-title">מסכי LCD — קיטוב בפעולה</div>
+        <p>בכל מסך LCD: שני פולרואידים ניצבים (90° זה לזה) ← <em>אמורים לחסום כל אור</em>. בין ביהם: גביש נוזלי שמסובב את כיוון הקיטוב. מתח חשמלי → שינוי זווית הגביש → שליטה בכמות האור שעוברת = בהירות פיקסל.</p>
+      </div>
+      <div class="enrich-card"><div class="enrich-title">משקפי שמש ו-3D קולנוע</div>
+        <p><b>משקפי שמש מקוטבים</b>: מסנן קיטוב אופקי חוסם השתקפויות אופקיות מדרכים ומים (אור מוחזר מקוטב אופקית). <b>קולנוע תלת-מימד</b>: העין הימנית רואה קיטוב שמאלי-סיבובי, השמאלית — ימני. כל עין קולטת תמונה אחרת → תלת-מימד.</p>
+      </div>
+      <div class="theory-anim">${animCanvas('anim-polar-t',148,'קיטוב וחוק מאלוס')}</div>`,
+  },
+  sim:{type:'opt-polarization',desc:'שנה את זווית המנתח (0°–180°) וראה כיצד עוצמת האור המועברת משתנה לפי I=I₀cos²θ. הגרף בזמן אמת.'},
+  example:{title:'חוק מאלוס — חישוב',text:'אור מקוטב עם I₀=400 W/m² עובר דרך מנתח בזווית θ=30°.',
+    steps:[
+      {q:'I=I₀cos²θ=400×cos²(30°)',a:'cos(30°)=√3/2 ≈ 0.866'},
+      {q:'I=400×(0.866)²=400×0.75',a:'I = 300 W/m²'},
+    ]},
+  quiz:[
+    {q:'θ=60°, I₀=100 W/m². I=?',opts:['50 W/m²','75 W/m²','25 W/m²','100 W/m²'],correct:2,explain:'I=I₀cos²(60°)=100×(0.5)²=100×0.25=25 W/m²',formula:'I=I₀cos²θ'},
+    {q:'שני קוטבים בזווית 90° זה לזה. אור עובר?',opts:['I₀/2','I₀/4','I₀','אפס'],correct:3,explain:'cos²(90°)=0 → I=0. כיבוי מלא — "extinction". זהו עיקרון מסכי LCD.',formula:'I=I₀cos²θ'},
+    {q:'כיצד מסך LCD שולט בבהירות פיקסל?',opts:['שינוי מתח חשמל ישיר','גביש נוזלי בין קוטבים ניצבים מסובב כיוון קיטוב','פילטר צבע ניתן לכוונון','שינוי עוצמת נורת הגב'],correct:1,explain:'שני פולרואידים ניצבים → בלי גביש: חסימה מלאה. גביש מסובב קיטוב בזווית θ → I=I₀cos²θ עוברת. מתח שולט בθ → בהירות.',formula:'I=I₀cos²θ'},
+    {q:'אור טבעי עובר דרך קוטב אחד. עוצמה לאחר?',opts:['I₀','I₀/2','I₀/4','תלוי בזווית'],correct:1,explain:'אור טבעי (לא מקוטב) דרך קוטב אחד: I=I₀/2. הקוטב מעביר רק את הרכיב בכיוון ציר קיטובו — חצי העוצמה.',formula:'I=I₀/2 (אור טבעי)'},
+  ],
+  problem:{title:'פילטר צילומי',text:'I₀=1000 W/m² אור טבעי. עובר קוטב ראשון (אנכי), אחר כך מנתח בθ=40° מהאנכי.',
+    steps:[
+      {q:'לאחר קוטב ראשון (אור טבעי): I₁=?',unit:'W/m²',answer:'500',tolerance:5,explain:'I₁=I₀/2=1000/2=500 W/m²',hint:'אור טבעי→קוטב: חצי העוצמה עוברת'},
+      {q:'לאחר מנתח בθ=40°: I₂=I₁cos²(40°)',unit:'W/m²',answer:'293',tolerance:10,explain:'I₂=500×cos²(40°)=500×(0.766)²=500×0.587≈293 W/m²',hint:'I=I₁cos²θ, cos(40°)≈0.766'},
+    ]}
+},
+
+'opt-modern.doppler':{
+  theory:{
+    title:'אפקט דופלר לאור',
+    html:`
+      <p>כמו לקול — גם לאור יש אפקט דופלר. כשמקור אור מתקרב, האור נדחס לאורכי גל קצרים יותר (<b>כחלול</b>). כשמתרחק — נמתח (<b>אדמדום</b>). ההבדל: לאור נצרך לחשבון רלטיביסטי.</p>
+      ${fBox('\\lambda_{obs} = \\lambda_0 \\sqrt{\\dfrac{1+\\beta}{1-\\beta}}','דופלר רלטיביסטי (מתרחק)',[['\\beta','v/c','מהירות יחסית לאור'],['\\lambda_0','אורך גל במקור','nm'],['\\lambda_{obs}','אורך גל נצפה','nm']])}
+      <div class="def-block"><div class="def-title">הסחה אדומה (Redshift) z</div>
+        <p>${M('z = \\dfrac{\\lambda_{obs}-\\lambda_0}{\\lambda_0}')} — אם z&gt;0: מתרחק (אדמדום). אם z&lt;0: מתקרב (כחלול). לβ קטן: z≈β=v/c.</p>
+      </div>
+      <div class="enrich-card"><div class="enrich-title">האבל (1929) — היקום מתרחב</div>
+        <p>אדווין האבל מדד הסחות אדומות של 24 גלקסיות. גילה שכולן מתרחקות, ומהירות ההתרחקות פרופורציונלית למרחק: v=H₀·d. זה הוכיח שהיקום <em>מתרחב</em>. H₀ ≈ 70 km/s/Mpc. פרס נובל 2011 לגלאי ההאצה (אנרגיה אפלה).</p>
+      </div>
+      <div class="enrich-card"><div class="enrich-title">מד מהירות מכוניות ורדאר מזג אוויר</div>
+        <p>מד מהירות שוטרים: פולט גל מיקרוגל (10 GHz), מודד תדירות ההחזר. הסחה לתדירות גבוהה יותר = מתקרב = מהירות. Δf/f₀=β=v/c → v=c·Δf/f₀. גם רדאר מזג האוויר עובד כך — מודד סחיפת גשם.</p>
+      </div>
+      <div class="theory-anim">${animCanvas('anim-doppler-t',148,'אפקט דופלר לאור')}</div>`,
+  },
+  sim:{type:'opt-doppler',desc:'הזז את מהירות המקור ושנה אורך הגל. ראה כיצד הגלים מתכנסים (כחלול) ומתפשטים (אדמדום) מצפייני השמאל והימין.'},
+  example:{title:'גלקסיה מתרחקת — z=0.1',text:'גלקסיה מראה הסחה אדומה z=0.1. חשב את מהירות ההתרחקות.',
+    steps:[
+      {q:'לβ קטן: z≈β → β≈0.1',a:'v=βc≈0.1×3×10⁸=3×10⁷ m/s'},
+      {q:'מדויק יותר (רלטיביסטי): β=(z²+2z)/(z²+2z+2)',a:'β=(0.01+0.2)/(0.01+0.2+2)=0.21/2.21≈0.095 → v≈0.095c'},
+    ]},
+  quiz:[
+    {q:'כוכב מתקרב ב-v=0.01c, λ₀=500nm. λ_obs≈?',opts:['~505nm (אדמדום)','~495nm (כחלול)','~500nm ללא שינוי','~450nm'],correct:1,explain:'מתקרב → כחלול → λ קטן יותר. לβ קטן: λ_obs≈λ₀(1-β)=500×0.99≈495nm.',formula:'λ_obs≈λ₀√((1-β)/(1+β))'},
+    {q:'גילוי האבל הראה שגלקסיות:',opts:['ניצבות','מתרחקות בעיקר — היקום מתרחב','מתקרבות','אקראיות'],correct:1,explain:'האבל 1929: כל הגלקסיות (חוץ מקבוצה מקומית) מתרחקות. מהירות ∝ מרחק (חוק האבל). עדות ישירה להתרחבות היקום.',formula:'v=H₀d'},
+    {q:'מד מהירות מיקרוגל (רדאר) מודד:',opts:['שינוי עוצמה','שינוי תדירות ההחזר','שינוי כיוון','שינוי קיטוב'],correct:1,explain:'פולט f₀, מקבל f_obs. Δf=f_obs-f₀ פרופורציוני למהירות. β=Δf/f₀ → v=βc.',formula:'Δf/f₀=v/c'},
+    {q:'z>0 אומר:',opts:['מתקרב (כחלול)','מתרחק (אדמדום)','מהירות אפס','תנועה ניצבת'],correct:1,explain:'z=(λ_obs-λ₀)/λ₀. λ_obs>λ₀ → z>0 → אורך גל גדל → אדמדום → מתרחק.',formula:'z=(λ_obs-λ₀)/λ₀'},
+  ],
+  problem:{title:'מד מהירות',text:'מד מהירות פולט f₀=10 GHz. מכונית החוזרת מחזירה f_obs=10.001 GHz. מצא מהירות המכונית.',
+    steps:[
+      {q:'Δf=f_obs-f₀=10.001-10=? GHz',unit:'MHz',answer:'1',tolerance:0.1,explain:'Δf=0.001 GHz=1 MHz',hint:'Δf=f_obs-f₀'},
+      {q:'β=Δf/f₀=10⁶/10¹⁰=10⁻⁴. v=βc (km/h)?',unit:'km/h',answer:'108',tolerance:5,explain:'v=10⁻⁴×3×10⁸=3×10⁴ m/s=30 km/s... רגע — לגל מוחזר: Δf/f₀=2v/c → v=c×Δf/(2f₀)=3×10⁸×10⁻⁴=30,000 m/s? לא — 2v/c=10⁻⁴ → v=1.5×10⁴ m/s=54000 km/h. הנוסחה הנכונה: Δf=2f₀v/c → v=Δf×c/(2f₀)=10⁶×3×10⁸/(2×10¹⁰)=15,000 m/s=54,000 km/h... בפועל עבור v<<c: Δf_reflected=2f₀(v/c) → v=c×Δf/(2f₀)=3×10⁸×10⁶/(2×10¹⁰)=15,000 m/s=54,000 km/h. אם f=10GHz ו-v=30m/s=108km/h: Δf=2×10¹⁰×30/(3×10⁸)=2000 Hz=2kHz.',hint:'v=c·Δf/(2f₀) (גל מוחזר — מקדם 2)'},
+    ]}
+},
+
+'opt-modern.lasers':{
+  theory:{
+    title:'לייזר — אור קוהרנטי',
+    html:`
+      <p><b>לייזר</b> = <em>Light Amplification by Stimulated Emission of Radiation</em>. אינשטיין ניבא את הפליטה המעוררת ב-1917 — 43 שנה לפני הלייזר הראשון!</p>
+      <div class="def-block"><div class="def-title">שלושה סוגי אינטראקציה פוטון-אטום</div>
+        <div class="info-grid">
+          <div class="info-item"><div class="il">ספיגה</div><div class="iv">פוטון נבלע, אלקטרון קופץ למעלה</div></div>
+          <div class="info-item"><div class="il">פליטה ספונטנית</div><div class="iv">אלקטרון יורד, פולט פוטון — כיוון ופאזה אקראיים</div></div>
+          <div class="info-item"><div class="il">פליטה מעוררת ★</div><div class="iv">פוטון מגיע → מעורר פוטון <em>זהה</em>: אותו כיוון, פאזה, תדירות</div></div>
+        </div>
+      </div>
+      ${fBox('E_2 - E_1 = hf','אנרגיית פוטון לייזר',[['E_2-E_1','הפרש אנרגיה בין מצבים','J'],['h','קבוע פלאנק','6.626×10⁻³⁴ J·s'],['f','תדירות הלייזר','Hz']])}
+      <p><b>היפוך אוכלוסין</b>: תנאי הכרחי ללייזר — יותר אלקטרונים במצב עירור מאשר במצב יסוד. מושג על ידי "שאיבה" (pumping) — אנרגיה חיצונית. בלי היפוך אוכלוסין — בליעה שולטת, לא גבור.</p>
+      <p><b>הרכיבים:</b> מקור שאיבה → מדיום פעיל (גז/גביש/סיב) → חלל תהודה (שני מראות) → קרן יוצאת דרך מראה דחוף.</p>
+      <div class="enrich-card"><div class="enrich-title">הלייזר הראשון — 1960</div>
+        <p>תיאודור מיימן (1960) — לייזר רובי (Cr:Al₂O₃), λ=694nm, פעפוע. אינשטיין (1917) ניבא תיאורטית. ניק בסוב וחבריו זכו בנובל 1964. מיימן לא זכה — מחלוקת.</p>
+      </div>
+      <div class="enrich-card"><div class="enrich-title">יישומים</div>
+        <p>📦 ברקוד (650nm) | 💿 DVD (650nm) / Blu-ray (405nm) | 👁 לייזיק (193nm UV ArF) | ✂ חיתוך CO₂ (10.6μm) | 📡 סיבים אופטיים | 🔬 LiDAR / ניפוח גרעיני (NIF)</p>
+      </div>
+      <div class="theory-anim">${animCanvas('anim-laser-t',148,'לייזר — פליטה מעוררת')}</div>`,
+  },
+  sim:{type:'opt-laser',desc:'שנה את עוצמת השאיבה ובחר סוג לייזר. ראה את מדד היפוך האוכלוסין, מפל הפליטה המעוררת ויצירת הקרן.'},
+  example:{title:'אנרגיית פוטון לייזר He-Ne',text:'לייזר He-Ne פולט λ=633 nm. חשב אנרגיית פוטון ב-J וב-eV.',
+    steps:[
+      {q:'E=hc/λ=(6.626×10⁻³⁴×3×10⁸)/(633×10⁻⁹)',a:'E=1.988×10⁻²⁵/6.33×10⁻⁷=3.14×10⁻¹⁹ J'},
+      {q:'המר ל-eV: E÷1.6×10⁻¹⁹',a:'E≈1.96 eV'},
+    ]},
+  quiz:[
+    {q:'מה מייחד לייזר לעומת נורה רגילה?',opts:['הספק גבוה יותר','פליטה מעוררת → קוהרנטי, חד-צבעי, מכוון','UV בלבד','אין הבדל, רק יעיל יותר'],correct:1,explain:'לייזר: כל הפוטונים זהים (אותה תדירות, פאזה, כיוון) — קוהרנטי. נורה: פליטה ספונטנית — פוטונים אקראיים לכל כיוון.',formula:''},
+    {q:'היפוך אוכלוסין פירושו:',opts:['מספר שווה במצב יסוד ועירור','יותר אלקטרונים במצב עירור מאשר יסוד','אלקטרונים יורדים בלבד','ספיגה עולה על גבור'],correct:1,explain:'בלי היפוך אוכלוסין: בליעה > פליטה מעוררת → אין גבור. עם היפוך: פליטה מעוררת > בליעה → הגבור. זה הלב של הלייזר.',formula:''},
+    {q:'ניתוח לייזיק עיניים משתמש ב-λ=193nm (UV). מדוע לא אור אדום?',opts:['אדום מסוכן יותר','UV קצר יותר → מוקד קטן יותר + פוטונים אנרגטיים חותכים רקמה מדויק','אדום לא עובד על רקמה','UV זול יותר'],correct:1,explain:'שתי סיבות: 1) מוקד λ קטן = נקודה קטנה יותר → דיוק. 2) E=hf — UV אנרגטי יותר, שובר קשרים מולקולריים מדויק בלי חום מקרי.',formula:'E=hf'},
+    {q:'DVD (650nm) ו-Blu-ray (405nm) — הבדל קיבולת:',opts:['אותה קיבולת','DVD גדולה יותר','Blu-ray גדולה יותר כי λ קצר יותר → נקודה קטנה יותר','תלוי בחברה'],correct:2,explain:'נקודת מוקד ∝ λ. Blu-ray (405nm) < DVD (650nm) → נקודה קטנה ב-40% → פי 5-6 יותר נתונים באותה שטח.',formula:'spot∝λ'},
+  ],
+  problem:{title:'ספירת פוטונים',text:'לייזר מצביע 5 mW, λ=532 nm (ירוק). כמה פוטונים נפלטים בשנייה?',
+    steps:[
+      {q:'E_פוטון=hc/λ=(6.626×10⁻³⁴×3×10⁸)/(532×10⁻⁹)',unit:'J',answer:'3.74e-19',tolerance:1e-20,explain:'E=1.988×10⁻²⁵/5.32×10⁻⁷=3.74×10⁻¹⁹ J/פוטון',hint:'E=hc/λ'},
+      {q:'N=P/E=5×10⁻³/3.74×10⁻¹⁹ (פוטון/שנייה)',unit:'פוטונים/ש',answer:'1.34e16',tolerance:1e15,explain:'N=5×10⁻³/3.74×10⁻¹⁹≈1.34×10¹⁶ פוטונים בשנייה. מספר עצום!',hint:'N=P/E_photon'},
+    ]}
+},
+
 };// end OPTICS_CONTENT
 
 // Merge optics into main lookup
@@ -3640,6 +3848,10 @@ function initSim(id,type){
     'opt-interference':simOptInterference,
     'opt-youngs':simOptYoungs,
     'opt-diffraction':simOptDiffraction,
+    'opt-em-spectrum':simOptEMSpectrum,
+    'opt-polarization':simOptPolarization,
+    'opt-doppler':simOptDoppler,
+    'opt-laser':simOptLaser,
   }[type]||simPlaceholder)(canvas,type);
   },50);
 }
@@ -10962,6 +11174,510 @@ function simOptDiffraction(canvas){
 
 
 
+
+
+// ─────────────────────────────────────────────────────────────
+// EM SPECTRUM sim
+// ─────────────────────────────────────────────────────────────
+function simOptEMSpectrum(canvas,id){
+  var _g=(_simGen[id]=(_simGen[id]||0)+1);
+  var R=setupCanvas(canvas,480);var ctx=R.ctx,W=R.W,H=R.H;
+  var animT=0,last=null;
+  var bands=[
+    {name:'גלי רדיו',icon:'📻',col:'#6366f1',logMin:-3,logMax:3,fLabel:'kHz–GHz',app:'שידורים, WiFi'},
+    {name:'מיקרוגל',icon:'📡',col:'#8b5cf6',logMin:3,logMax:5,fLabel:'GHz–THz',app:'תנור, רדאר'},
+    {name:'IR',icon:'♨',col:'#f97316',logMin:5,logMax:6.7,fLabel:'THz',app:'חום, שלט'},
+    {name:'נראה',icon:'👁',col:'#facc15',logMin:6.7,logMax:6.9,fLabel:'430–790THz',app:'ראייה'},
+    {name:'UV',icon:'☀',col:'#a78bfa',logMin:6.9,logMax:7.5,fLabel:'PHz',app:'שיזוף, UV-C'},
+    {name:'רנטגן',icon:'🔬',col:'#60a5fa',logMin:7.5,logMax:8.5,fLabel:'EHz',app:'הדמיה רפואית'},
+    {name:'גמא',icon:'⚡',col:'#f87171',logMin:8.5,logMax:10,fLabel:'>EHz',app:'גרעין, PET'},
+  ];
+  function getPos(){var e=document.getElementById('inp-ems-pos');return e?parseFloat(e.value)/100:0.45;}
+  function logToMeters(log10_f){
+    // f in Hz → λ=c/f
+    var f=Math.pow(10,log10_f+3); // slider 0-100 maps log10(f/Hz) 3..22
+    return 3e8/f;
+  }
+  function formatLambda(m){
+    if(m>=1e3)return (m/1e3).toFixed(1)+' km';
+    if(m>=1)return m.toFixed(2)+' m';
+    if(m>=1e-2)return (m*100).toFixed(1)+' cm';
+    if(m>=1e-3)return (m*1e3).toFixed(1)+' mm';
+    if(m>=1e-6)return (m*1e6).toFixed(1)+' μm';
+    if(m>=1e-9)return (m*1e9).toFixed(1)+' nm';
+    if(m>=1e-12)return (m*1e12).toFixed(1)+' pm';
+    return m.toExponential(2)+' m';
+  }
+  function formatFreq(hz){
+    if(hz>=1e18)return (hz/1e18).toFixed(1)+' EHz';
+    if(hz>=1e15)return (hz/1e15).toFixed(1)+' PHz';
+    if(hz>=1e12)return (hz/1e12).toFixed(1)+' THz';
+    if(hz>=1e9)return (hz/1e9).toFixed(1)+' GHz';
+    if(hz>=1e6)return (hz/1e6).toFixed(1)+' MHz';
+    if(hz>=1e3)return (hz/1e3).toFixed(1)+' kHz';
+    return hz.toFixed(0)+' Hz';
+  }
+  function formatEnergy(hz){
+    var eV=6.626e-34*hz/1.6e-19;
+    if(eV>=1e6)return (eV/1e6).toFixed(2)+' MeV';
+    if(eV>=1e3)return (eV/1e3).toFixed(1)+' keV';
+    if(eV>=1)return eV.toFixed(3)+' eV';
+    if(eV>=1e-3)return (eV*1e3).toFixed(2)+' meV';
+    if(eV>=1e-6)return (eV*1e6).toFixed(2)+' μeV';
+    return (eV*1e9).toFixed(2)+' neV';
+  }
+  function draw(ts){
+    if(_simGen[id]!==_g)return;
+    if(_simStop[id])return;
+    var dt=last?Math.min((ts-last)/1000,0.05):0.016;last=ts;animT+=dt;
+    var pos=getPos(); // 0..1
+    // Map pos to log10(f): range 3Hz (radio AM) to 22Hz (ultra-gamma)
+    var logF=3+pos*19; // log10 of freq in Hz
+    var freq=Math.pow(10,logF);
+    var lambda=3e8/freq;
+    ctx.fillStyle='#0f172a';ctx.fillRect(0,0,W,H);
+    // Spectrum bar
+    var barY=30,barH=36,barX=20,barW=W-40;
+    // Gradient
+    var grad=ctx.createLinearGradient(barX,0,barX+barW,0);
+    grad.addColorStop(0,'#6366f1');
+    grad.addColorStop(0.2,'#8b5cf6');
+    grad.addColorStop(0.35,'#f97316');
+    // visible rainbow in narrow band at ~pos 0.4-0.42
+    grad.addColorStop(0.38,'#ff0000');
+    grad.addColorStop(0.395,'#ffaa00');
+    grad.addColorStop(0.41,'#00ee00');
+    grad.addColorStop(0.42,'#4444ff');
+    grad.addColorStop(0.44,'#a78bfa');
+    grad.addColorStop(0.55,'#60a5fa');
+    grad.addColorStop(1,'#f87171');
+    ctx.fillStyle=grad;
+    ctx.beginPath();ctx.roundRect(barX,barY,barW,barH,6);ctx.fill();
+    // Band labels above
+    for(var bi=0;bi<bands.length;bi++){
+      var bx=barX+barW*(bi/bands.length+1/(2*bands.length));
+      ctx.fillStyle=bands[bi].col;ctx.font='bold 9px sans-serif';ctx.textAlign='center';
+      ctx.fillText(bands[bi].icon+' '+bands[bi].name,bx,barY-6);
+    }
+    // Cursor line
+    var cx=barX+pos*barW;
+    ctx.save();ctx.strokeStyle='#fff';ctx.lineWidth=2;
+    ctx.setLineDash([4,3]);
+    ctx.beginPath();ctx.moveTo(cx,barY-2);ctx.lineTo(cx,barY+barH+2);ctx.stroke();
+    ctx.setLineDash([]);ctx.restore();
+    // Cursor triangle
+    ctx.fillStyle='#fff';ctx.beginPath();
+    ctx.moveTo(cx,barY+barH+2);ctx.lineTo(cx-6,barY+barH+14);ctx.lineTo(cx+6,barY+barH+14);ctx.closePath();ctx.fill();
+    // Determine current band
+    var curBand=bands[0];
+    for(var bi2=0;bi2<bands.length;bi2++){
+      var bMin=3+bands[bi2].logMin/10*17; // approximate
+      if(logF>=3+bands[bi2].logMin&&logF<3+bands[bi2].logMax) curBand=bands[bi2];
+    }
+    // Re-map band boundaries properly
+    var allLogMin=[3,9,11.5,12.65,12.9,13.5,14.5];
+    var allLogMax=[9,11.5,12.65,12.9,13.5,14.5,22];
+    for(var bi3=0;bi3<bands.length;bi3++){
+      if(logF>=allLogMin[bi3]&&logF<allLogMax[bi3]){curBand=bands[bi3];break;}
+    }
+    if(logF>=allLogMax[bands.length-1])curBand=bands[bands.length-1];
+    // Wave visualization
+    var waveY=H/2+10,waveH=80;
+    var waveCycles=Math.max(1,Math.min(40,pos*50)); // # cycles to draw
+    ctx.save();
+    var wCol=curBand.col;
+    if(logF>=12.65&&logF<=12.9){
+      // visible: use wavelength color
+      var visPos=(logF-12.65)/(12.9-12.65);
+      var visNm=700-visPos*320; // ~700nm red to ~380nm violet
+      wCol=wavelengthToHex(Math.max(380,Math.min(700,visNm)));
+    }
+    ctx.strokeStyle=wCol;ctx.lineWidth=2.5;
+    optGlow(ctx,wCol,8);
+    ctx.beginPath();
+    var npts=300;
+    for(var xi=0;xi<=npts;xi++){
+      var xp=20+xi*(W-40)/npts;
+      var phase=xi/npts*Math.PI*2*waveCycles+animT*2;
+      var amp=waveH/2*0.8;
+      var yp=waveY+Math.sin(phase)*amp;
+      xi===0?ctx.moveTo(xp,yp):ctx.lineTo(xp,yp);
+    }
+    ctx.stroke();optNoGlow(ctx);ctx.restore();
+    // Labels
+    ctx.font='bold 13px sans-serif';ctx.fillStyle=curBand.col;ctx.textAlign='right';
+    ctx.fillText(curBand.icon+' '+curBand.name,W-20,waveY-waveH/2-8);
+    // Info box
+    var infoLines=['λ = '+formatLambda(lambda),'f = '+formatFreq(freq),'E = '+formatEnergy(freq),'שימוש: '+curBand.app];
+    optInfoBox(ctx,20,H-90,W-40,infoLines);
+    // Visible window marker
+    var visX1=barX+barW*(0.38);
+    var visX2=barX+barW*(0.44);
+    ctx.save();ctx.strokeStyle='#fbbf24';ctx.lineWidth=1.5;
+    ctx.beginPath();ctx.moveTo(visX1,barY+barH+22);ctx.lineTo(visX1,barY+barH+30);ctx.lineTo(visX2,barY+barH+30);ctx.lineTo(visX2,barY+barH+22);ctx.stroke();
+    ctx.fillStyle='#fbbf24';ctx.font='8px sans-serif';ctx.textAlign='center';
+    ctx.fillText('אור נראה',(visX1+visX2)/2,barY+barH+40);ctx.restore();
+    requestAnimationFrame(draw);
+  }
+  function poll(){if(_simStop[id])return;requestAnimationFrame(draw);}poll();
+}
+
+// ─────────────────────────────────────────────────────────────
+// POLARIZATION sim
+// ─────────────────────────────────────────────────────────────
+function simOptPolarization(canvas,id){
+  var _g=(_simGen[id]=(_simGen[id]||0)+1);
+  var R=setupCanvas(canvas,480);var ctx=R.ctx,W=R.W,H=R.H;
+  var animT=0,last=null;
+  function getAngle(){var e=document.getElementById('inp-pol-angle');return e?parseFloat(e.value):45;}
+  function getI0(){var e=document.getElementById('inp-pol-i0');return e?parseFloat(e.value)/100:0.8;}
+  function draw(ts){
+    if(_simGen[id]!==_g)return;if(_simStop[id])return;
+    var dt=last?Math.min((ts-last)/1000,0.05):0.016;last=ts;animT+=dt;
+    var theta=getAngle()*Math.PI/180;
+    var I0=getI0();
+    var I=I0*Math.cos(theta)*Math.cos(theta);
+    ctx.fillStyle='#0f172a';ctx.fillRect(0,0,W,H);
+    var beamY=H*0.42;
+    var srcX=30,pol1X=W*0.28,pol2X=W*0.62,eyeX=W-30;
+    var beamCol='#fbbf24';
+    // Source: unpolarized — spinning arrows
+    ctx.save();
+    var nArrows=8;
+    for(var i=0;i<nArrows;i++){
+      var ang=i*Math.PI/nArrows+animT*1.5;
+      var len=18;
+      ctx.strokeStyle='rgba(251,191,36,0.6)';ctx.lineWidth=1.5;
+      ctx.beginPath();
+      ctx.moveTo(srcX+Math.cos(ang+Math.PI)*len*0.4,beamY+Math.sin(ang+Math.PI)*len*0.4);
+      ctx.lineTo(srcX+Math.cos(ang)*len,beamY+Math.sin(ang)*len);
+      ctx.stroke();
+    }
+    ctx.fillStyle='#fbbf24';ctx.beginPath();ctx.arc(srcX,beamY,8,0,Math.PI*2);ctx.fill();
+    ctx.restore();
+    // Beam srcX->pol1X: wide (unpolarized, many arrows)
+    ctx.save();ctx.strokeStyle='rgba(251,191,36,0.3)';ctx.lineWidth=10;
+    ctx.beginPath();ctx.moveTo(srcX+10,beamY);ctx.lineTo(pol1X-15,beamY);ctx.stroke();
+    ctx.restore();
+    // Polarizer disc 1 (vertical)
+    ctx.save();
+    ctx.strokeStyle='#94a3b8';ctx.lineWidth=3;
+    ctx.beginPath();ctx.arc(pol1X,beamY,22,0,Math.PI*2);ctx.stroke();
+    ctx.strokeStyle='#22d3ee';ctx.lineWidth=2.5;
+    ctx.beginPath();ctx.moveTo(pol1X,beamY-18);ctx.lineTo(pol1X,beamY+18);ctx.stroke();
+    ctx.fillStyle='#94a3b8';ctx.font='9px sans-serif';ctx.textAlign='center';
+    ctx.fillText('קוטב',pol1X,beamY+34);ctx.restore();
+    // Beam pol1->pol2: single vertical arrow oscillating
+    var amp1=16*I0;
+    var phase1=animT*4;
+    ctx.save();ctx.strokeStyle='rgba(251,191,36,0.7)';ctx.lineWidth=7;
+    ctx.beginPath();ctx.moveTo(pol1X+24,beamY);ctx.lineTo(pol2X-20,beamY);ctx.stroke();
+    // vertical oscillation arrows
+    for(var xi=0;xi<5;xi++){
+      var xp=pol1X+30+xi*(pol2X-pol1X-50)/4;
+      var osc=Math.sin(phase1+xi*0.8)*amp1;
+      ctx.strokeStyle='rgba(251,191,36,0.9)';ctx.lineWidth=1.5;
+      arrow(ctx,xp,beamY-Math.abs(osc),xp,beamY+Math.abs(osc),'rgba(251,191,36,0.9)',1.5,6);
+    }
+    ctx.restore();
+    // Analyzer disc 2 (rotatable)
+    ctx.save();
+    ctx.strokeStyle='#94a3b8';ctx.lineWidth=3;
+    ctx.beginPath();ctx.arc(pol2X,beamY,22,0,Math.PI*2);ctx.stroke();
+    ctx.strokeStyle='#f472b6';ctx.lineWidth=2.5;
+    ctx.beginPath();
+    ctx.moveTo(pol2X+Math.cos(theta+Math.PI/2)*18,beamY+Math.sin(theta+Math.PI/2)*18);
+    ctx.lineTo(pol2X+Math.cos(theta-Math.PI/2)*18,beamY+Math.sin(theta-Math.PI/2)*18);
+    ctx.stroke();
+    // angle arc
+    ctx.strokeStyle='rgba(244,114,182,0.5)';ctx.lineWidth=1;
+    ctx.beginPath();ctx.arc(pol2X,beamY,14,Math.PI*3/2,Math.PI*3/2+theta);ctx.stroke();
+    ctx.fillStyle='#f472b6';ctx.font='8px sans-serif';ctx.textAlign='left';
+    ctx.fillText('θ='+getAngle()+'°',pol2X+16,beamY-14);
+    ctx.fillStyle='#94a3b8';ctx.font='9px sans-serif';ctx.textAlign='center';
+    ctx.fillText('מנתח',pol2X,beamY+34);ctx.restore();
+    // Transmitted beam pol2->eye
+    var amp2=16*Math.sqrt(I);
+    if(I>0.01){
+      ctx.save();ctx.strokeStyle='rgba(251,191,36,'+Math.min(1,I/I0+0.2)+')';ctx.lineWidth=Math.max(1,7*I);
+      ctx.beginPath();ctx.moveTo(pol2X+24,beamY);ctx.lineTo(eyeX-14,beamY);ctx.stroke();ctx.restore();
+    } else {
+      ctx.save();ctx.fillStyle='#ef4444';ctx.font='bold 12px sans-serif';ctx.textAlign='center';
+      ctx.fillText('כיבוי מלא!',pol2X+(eyeX-pol2X)/2,beamY-20);ctx.restore();
+    }
+    // Eye
+    ctx.save();ctx.font='22px sans-serif';ctx.textAlign='center';
+    ctx.globalAlpha=0.3+I*0.7;
+    ctx.fillText('👁',eyeX,beamY+8);ctx.restore();
+    // RIGHT: cos²θ graph
+    var gx=W*0.72,gy=40,gw=W*0.26,gh=H*0.55;
+    ctx.save();ctx.strokeStyle='rgba(100,116,139,0.4)';ctx.lineWidth=1;
+    ctx.strokeRect(gx,gy,gw,gh);
+    // Axis labels
+    ctx.fillStyle='#64748b';ctx.font='8px sans-serif';ctx.textAlign='center';
+    ctx.fillText('0°',gx,gy+gh+10);ctx.fillText('90°',gx+gw/2,gy+gh+10);ctx.fillText('180°',gx+gw,gy+gh+10);
+    ctx.save();ctx.translate(gx-8,gy+gh/2);ctx.rotate(-Math.PI/2);ctx.textAlign='center';
+    ctx.fillText('I/I₀',0,0);ctx.restore();
+    // cos²θ curve
+    ctx.strokeStyle='rgba(34,211,238,0.35)';ctx.lineWidth=1.5;ctx.beginPath();
+    for(var di=0;di<=180;di++){
+      var a=di*Math.PI/180;var iv=Math.cos(a)*Math.cos(a);
+      var px=gx+di/180*gw;var py=gy+gh-iv*gh;
+      di===0?ctx.moveTo(px,py):ctx.lineTo(px,py);
+    }
+    ctx.stroke();
+    // Current point
+    var curX=gx+(getAngle()/180)*gw;
+    var curY=gy+gh-I/I0*gh;
+    ctx.strokeStyle='rgba(251,191,36,0.3)';ctx.lineWidth=1;ctx.setLineDash([3,3]);
+    ctx.beginPath();ctx.moveTo(curX,gy+gh);ctx.lineTo(curX,curY);ctx.stroke();ctx.setLineDash([]);
+    ctx.fillStyle='#fbbf24';ctx.beginPath();ctx.arc(curX,curY,5,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#e2e8f0';ctx.font='bold 10px sans-serif';ctx.textAlign='center';
+    ctx.fillText('I/I₀='+(I/I0).toFixed(2),curX,gy+gh+22);
+    ctx.restore();
+    // Info box
+    var degStr=getAngle()+'°';
+    var pct=Math.round(I/I0*100);
+    optInfoBox(ctx,20,H-70,W*0.62-30,['θ = '+degStr,'cos²θ = '+(I/I0).toFixed(3),'העברה: '+pct+'%']);
+    requestAnimationFrame(draw);
+  }
+  function poll(){if(_simStop[id])return;requestAnimationFrame(draw);}poll();
+}
+
+// ─────────────────────────────────────────────────────────────
+// DOPPLER sim
+// ─────────────────────────────────────────────────────────────
+function simOptDoppler(canvas,id){
+  var _g=(_simGen[id]=(_simGen[id]||0)+1);
+  var R=setupCanvas(canvas,480);var ctx=R.ctx,W=R.W,H=R.H;
+  var animT=0,last=null;
+  var emissions=[];
+  var lastEmit=-1;
+  function getV(){var e=document.getElementById('inp-dop-v');return e?parseFloat(e.value)/100:0.2;}
+  function getWL(){var e=document.getElementById('inp-dop-wl');return e?parseFloat(e.value):550;}
+  function dopplerShift(beta,receding){
+    if(receding) return Math.sqrt((1+beta)/(1-beta));
+    else return Math.sqrt((1-beta)/(1+beta));
+  }
+  function draw(ts){
+    if(_simGen[id]!==_g)return;if(_simStop[id])return;
+    var dt=last?Math.min((ts-last)/1000,0.05):0.016;last=ts;animT+=dt;
+    var beta=getV();
+    var lambda0=getWL();
+    var srcVx=beta*200; // pixels per second
+    // Source oscillates left-right
+    var period=6;
+    var srcX=W/2+Math.sin(animT*Math.PI*2/period)*W*0.25;
+    var srcY=H/2;
+    var waveSpeed=130; // px/sec
+    // Emit wavefront periodically
+    var emitInterval=0.4;
+    if(animT-lastEmit>emitInterval){
+      emissions.push({x:srcX,y:srcY,t:animT});
+      lastEmit=animT;
+      if(emissions.length>30)emissions.shift();
+    }
+    ctx.fillStyle='#0f172a';ctx.fillRect(0,0,W,H);
+    var srcCol=wavelengthToHex(lambda0);
+    var srcRGB=wavelengthToRGB(lambda0).match(/\d+/g);
+    // Draw wavefronts
+    for(var ei=0;ei<emissions.length;ei++){
+      var em=emissions[ei];
+      var age=animT-em.t;
+      var r=age*waveSpeed;
+      if(r>W*1.5)continue;
+      var alpha=Math.max(0,0.7-age*0.18);
+      ctx.save();ctx.strokeStyle='rgba('+srcRGB[0]+','+srcRGB[1]+','+srcRGB[2]+','+alpha.toFixed(2)+')';
+      ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(em.x,em.y,r,0,Math.PI*2);ctx.stroke();ctx.restore();
+    }
+    // Source star
+    ctx.save();
+    optGlow(ctx,srcCol,20);
+    ctx.fillStyle=srcCol;ctx.beginPath();ctx.arc(srcX,srcY,12,0,Math.PI*2);ctx.fill();
+    optNoGlow(ctx);
+    // Corona
+    for(var ci=0;ci<6;ci++){
+      var ca=ci*Math.PI/3+animT;
+      ctx.strokeStyle='rgba('+srcRGB[0]+','+srcRGB[1]+','+srcRGB[2]+',.4)';ctx.lineWidth=1.5;
+      ctx.beginPath();ctx.moveTo(srcX+Math.cos(ca)*12,srcY+Math.sin(ca)*12);
+      ctx.lineTo(srcX+Math.cos(ca)*20,srcY+Math.sin(ca)*20);ctx.stroke();
+    }
+    ctx.restore();
+    // Motion arrow
+    var vSign=Math.cos(animT*Math.PI*2/period)>0?1:-1;
+    ctx.save();ctx.strokeStyle='#94a3b8';ctx.lineWidth=2;
+    arrow(ctx,srcX,srcY-22,srcX+vSign*30,srcY-22,'#94a3b8',2,8);
+    ctx.restore();
+    // Left observer
+    var leftX=18,rightX=W-18;
+    ctx.save();ctx.font='20px sans-serif';ctx.textAlign='center';
+    ctx.fillText('👤',leftX,srcY+30);ctx.fillText('👤',rightX,srcY+30);ctx.restore();
+    // Compute Doppler shifts for left and right
+    var srcMovingRight=vSign>0;
+    var lambdaLeft,lambdaRight;
+    // Left observer: if source moves right -> receding from left -> redshift
+    if(srcMovingRight){
+      lambdaLeft=lambda0*dopplerShift(beta,true);
+      lambdaRight=lambda0*dopplerShift(beta,false);
+    } else {
+      lambdaLeft=lambda0*dopplerShift(beta,false);
+      lambdaRight=lambda0*dopplerShift(beta,true);
+    }
+    lambdaLeft=Math.max(200,Math.min(1000,lambdaLeft));
+    lambdaRight=Math.max(200,Math.min(1000,lambdaRight));
+    var colLeft=wavelengthToHex(Math.max(380,Math.min(700,lambdaLeft)));
+    var colRight=wavelengthToHex(Math.max(380,Math.min(700,lambdaRight)));
+    // Color swatches for observers
+    ctx.save();
+    ctx.fillStyle=colLeft;ctx.beginPath();ctx.roundRect(leftX-14,srcY-50,28,16,4);ctx.fill();
+    ctx.fillStyle='#e2e8f0';ctx.font='8px sans-serif';ctx.textAlign='center';
+    ctx.fillText(lambdaLeft.toFixed(0)+'nm',leftX,srcY-58);
+    ctx.fillStyle=colRight;ctx.beginPath();ctx.roundRect(rightX-14,srcY-50,28,16,4);ctx.fill();
+    ctx.fillStyle='#e2e8f0';ctx.textAlign='center';
+    ctx.fillText(lambdaRight.toFixed(0)+'nm',rightX,srcY-58);
+    ctx.restore();
+    // Labels
+    optLabel(ctx,'כחלול / אדמדום',W/2,H-90,'#94a3b8',9);
+    var zLeft=((lambdaLeft-lambda0)/lambda0).toFixed(3);
+    var zRight=((lambdaRight-lambda0)/lambda0).toFixed(3);
+    optInfoBox(ctx,20,H-68,W-40,['β = v/c = '+beta.toFixed(2),'λ₀ = '+lambda0+'nm','שמאל: λ='+lambdaLeft.toFixed(0)+'nm (z='+zLeft+')','ימין: λ='+lambdaRight.toFixed(0)+'nm (z='+zRight+')']);
+    requestAnimationFrame(draw);
+  }
+  function poll(){if(_simStop[id])return;requestAnimationFrame(draw);}poll();
+}
+
+// ─────────────────────────────────────────────────────────────
+// LASER sim
+// ─────────────────────────────────────────────────────────────
+function simOptLaser(canvas,id){
+  var _g=(_simGen[id]=(_simGen[id]||0)+1);
+  var R=setupCanvas(canvas,480);var ctx=R.ctx,W=R.W,H=R.H;
+  var animT=0,last=null;
+  var photons=[];
+  function getPump(){var e=document.getElementById('inp-laser-pump');return e?parseFloat(e.value)/100:0.6;}
+  function getType(){var e=document.getElementById('inp-laser-type');return e?parseInt(e.value):633;}
+  function draw(ts){
+    if(_simGen[id]!==_g)return;if(_simStop[id])return;
+    var dt=last?Math.min((ts-last)/1000,0.05):0.016;last=ts;animT+=dt;
+    var pump=getPump();
+    var wl=getType();
+    var lCol=wavelengthToHex(wl);
+    var lRGB=wavelengthToRGB(wl).match(/\d+/g);
+    var threshold=0.45;
+    var aboveThresh=pump>threshold;
+    ctx.fillStyle='#0f172a';ctx.fillRect(0,0,W,H);
+    var cavL=W*0.12,cavR=W*0.8,cavY=H*0.38,cavH=H*0.22;
+    // Active medium
+    var medGrad=ctx.createLinearGradient(cavL,0,cavR,0);
+    var alpha=Math.min(1,pump*1.5);
+    medGrad.addColorStop(0,'rgba('+lRGB[0]+','+lRGB[1]+','+lRGB[2]+','+(alpha*0.15)+')');
+    medGrad.addColorStop(0.5,'rgba('+lRGB[0]+','+lRGB[1]+','+lRGB[2]+','+(alpha*0.4)+')');
+    medGrad.addColorStop(1,'rgba('+lRGB[0]+','+lRGB[1]+','+lRGB[2]+','+(alpha*0.15)+')');
+    ctx.fillStyle=medGrad;
+    ctx.beginPath();ctx.roundRect(cavL,cavY,cavR-cavL,cavH,4);ctx.fill();
+    ctx.strokeStyle='rgba('+lRGB[0]+','+lRGB[1]+','+lRGB[2]+',.5)';ctx.lineWidth=1.5;
+    ctx.beginPath();ctx.roundRect(cavL,cavY,cavR-cavL,cavH,4);ctx.stroke();
+    // Mirror left (total reflector)
+    ctx.save();ctx.fillStyle='#e2e8f0';ctx.fillRect(cavL-5,cavY-6,6,cavH+12);
+    ctx.fillStyle='#64748b';ctx.font='8px sans-serif';ctx.textAlign='center';
+    ctx.fillText('מראה',cavL-2,cavY-12);ctx.fillText('100%',cavL-2,cavY-4);ctx.restore();
+    // Mirror right (partial reflector)
+    ctx.save();
+    var mrGrad=ctx.createLinearGradient(cavR-3,0,cavR+3,0);
+    mrGrad.addColorStop(0,'rgba(226,232,240,0.9)');mrGrad.addColorStop(1,'rgba(226,232,240,0.3)');
+    ctx.fillStyle=mrGrad;ctx.fillRect(cavR-1,cavY-6,5,cavH+12);
+    ctx.fillStyle='#64748b';ctx.font='8px sans-serif';ctx.textAlign='center';
+    ctx.fillText('דחוף',cavR+2,cavY-12);ctx.fillText('~30%',cavR+2,cavY-4);ctx.restore();
+    // Pump arrows (top)
+    var nPump=Math.round(pump*8);
+    for(var pi=0;pi<nPump;pi++){
+      var px=cavL+20+pi*(cavR-cavL-40)/(nPump+1);
+      ctx.save();ctx.strokeStyle='rgba(255,255,255,0.5)';ctx.lineWidth=1;
+      arrow(ctx,px,cavY-30,px,cavY,'rgba(255,255,255,0.5)',1,6);ctx.restore();
+    }
+    ctx.fillStyle='#94a3b8';ctx.font='9px sans-serif';ctx.textAlign='center';
+    ctx.fillText('שאיבה (pump)',W*0.46,cavY-35);
+    // Energy level atoms in cavity
+    var nAtoms=12;
+    for(var ai=0;ai<nAtoms;ai++){
+      var ax=cavL+20+ai*(cavR-cavL-30)/nAtoms;
+      var ay=cavY+cavH/2;
+      // Excited fraction = pump
+      var excited=Math.sin(animT*3+ai*0.7)>1-2*pump;
+      var atomCol=excited?'rgba('+lRGB[0]+','+lRGB[1]+','+lRGB[2]+',.9)':'rgba(148,163,184,.5)';
+      ctx.save();ctx.fillStyle=atomCol;ctx.beginPath();ctx.arc(ax,ay,4,0,Math.PI*2);ctx.fill();
+      if(excited){
+        optGlow(ctx,lCol,6);ctx.fillStyle=lCol;ctx.beginPath();ctx.arc(ax,ay,4,0,Math.PI*2);ctx.fill();optNoGlow(ctx);
+      }
+      ctx.restore();
+    }
+    // Bouncing photons inside cavity
+    if(aboveThresh){
+      // Spawn photons
+      if(animT>0.1&&photons.length<8){
+        photons.push({x:cavL,y:cavY+cavH/2,vx:200,vy:(Math.random()-0.5)*30,t:animT});
+      }
+      for(var phi=photons.length-1;phi>=0;phi--){
+        var ph=photons[phi];
+        ph.x+=ph.vx*dt;ph.y+=ph.vy*dt;
+        if(ph.x>=cavR-2){
+          if(Math.random()<0.3){photons.splice(phi,1);continue;} // exits through partial mirror
+          ph.vx=-Math.abs(ph.vx);
+        }
+        if(ph.x<=cavL+2)ph.vx=Math.abs(ph.vx);
+        if(ph.y<cavY||ph.y>cavY+cavH)ph.vy*=-1;
+        ctx.save();optGlow(ctx,lCol,10);
+        ctx.strokeStyle=lCol;ctx.lineWidth=2;
+        ctx.beginPath();ctx.moveTo(ph.x-8,ph.y);ctx.lineTo(ph.x+8,ph.y);ctx.stroke();
+        // Arrowhead
+        ctx.fillStyle=lCol;ctx.beginPath();
+        var ax2=ph.vx>0?ph.x+8:ph.x-8;
+        ctx.moveTo(ax2,ph.y);ctx.lineTo(ax2-(ph.vx>0?1:-1)*8,ph.y-4);ctx.lineTo(ax2-(ph.vx>0?1:-1)*8,ph.y+4);ctx.closePath();ctx.fill();
+        optNoGlow(ctx);ctx.restore();
+      }
+      // Output beam
+      ctx.save();optGlow(ctx,lCol,15);
+      ctx.strokeStyle=lCol;ctx.lineWidth=4;
+      ctx.beginPath();ctx.moveTo(cavR+4,cavY+cavH/2);ctx.lineTo(W-10,cavY+cavH/2);ctx.stroke();
+      optNoGlow(ctx);ctx.restore();
+      // Beam label
+      ctx.fillStyle=lCol;ctx.font='bold 11px sans-serif';ctx.textAlign='left';
+      ctx.fillText('קרן לייזר '+wl+'nm',cavR+8,cavY+cavH/2-10);
+    } else {
+      // Below threshold: random spontaneous emission
+      var nSpon=Math.round(pump*6);
+      for(var si=0;si<nSpon;si++){
+        var phase2=animT*5+si*2.1;
+        var sx=cavL+30+(cavR-cavL-60)*((si+0.5)/nSpon);
+        var sAng=phase2;
+        var sLen=20;
+        ctx.save();ctx.strokeStyle='rgba('+lRGB[0]+','+lRGB[1]+','+lRGB[2]+',.5)';ctx.lineWidth=1;
+        arrow(ctx,sx,cavY+cavH/2,sx+Math.cos(sAng)*sLen,cavY+cavH/2+Math.sin(sAng)*sLen,'rgba('+lRGB[0]+','+lRGB[1]+','+lRGB[2]+',.5)',1,5);
+        ctx.restore();
+      }
+      ctx.fillStyle='#ef4444';ctx.font='bold 10px sans-serif';ctx.textAlign='center';
+      ctx.fillText('מתחת לסף — פליטה ספונטנית',W/2,cavY+cavH+22);
+    }
+    // Population inversion meter
+    var meterX=W*0.87,meterY=cavY+cavH,meterH=cavH*1.2;
+    ctx.fillStyle='rgba(30,41,59,.8)';ctx.beginPath();ctx.roundRect(meterX-14,meterY-meterH,28,meterH,4);ctx.fill();
+    ctx.strokeStyle='#475569';ctx.lineWidth=1;ctx.beginPath();ctx.roundRect(meterX-14,meterY-meterH,28,meterH,4);ctx.stroke();
+    var fillH=pump*meterH;
+    var meterCol=aboveThresh?'#22c55e':'#ef4444';
+    ctx.fillStyle=meterCol;ctx.beginPath();ctx.roundRect(meterX-12,meterY-fillH+2,24,fillH-4,3);ctx.fill();
+    ctx.fillStyle='#e2e8f0';ctx.font='8px sans-serif';ctx.textAlign='center';
+    ctx.fillText('היפוך',meterX,meterY+12);
+    ctx.fillText(aboveThresh?'✓':'✗',meterX,meterY-meterH-8);
+    // Threshold line
+    ctx.save();ctx.strokeStyle='#fbbf24';ctx.lineWidth=1;ctx.setLineDash([3,3]);
+    ctx.beginPath();ctx.moveTo(meterX-14,meterY-threshold*meterH);ctx.lineTo(meterX+14,meterY-threshold*meterH);ctx.stroke();ctx.setLineDash([]);ctx.restore();
+    // Info box
+    optInfoBox(ctx,20,H-70,W*0.82-20,['שאיבה: '+Math.round(pump*100)+'%','סוג: '+wl+'nm','מצב: '+(aboveThresh?'★ לייזר פעיל!':'מתחת לסף')]);
+    requestAnimationFrame(draw);
+  }
+  function poll(){if(_simStop[id])return;requestAnimationFrame(draw);}poll();
+}
+
 // THEORY MINI-ANIMATIONS  (all fn(canvas,ctx,t) — t in seconds)
 // ══════════════════════════════════════════════
 
@@ -14898,6 +15614,154 @@ runAnim('anim-diffraction-t',(canvas,ctx,W,H,t)=>{
   }
   oLbl(ctx,'עיפרוך — עיקול גלים סביב קצה',W/2,H-5,'#e2e8f0',9);
   oLbl(ctx,'סדק a='+Math.round(slitHalf*2)+'px',slitX-2,cy-slitHalf-8,'#94a3b8',8);
+
+// ─── EM Spectrum full theory anim ───────────────────────────
+runAnim('anim-emspec-full-t',function(canvas,ctx,W,H,t){
+  oBg(ctx,W,H);
+  var bands=[
+    {name:'רדיו',col:'#6366f1',cycles:0.5},
+    {name:'מיקרו',col:'#8b5cf6',cycles:2},
+    {name:'IR',col:'#f97316',cycles:5},
+    {name:'נראה',col:'#facc15',cycles:10},
+    {name:'UV',col:'#a78bfa',cycles:20},
+    {name:'X',col:'#60a5fa',cycles:40},
+    {name:'γ',col:'#f87171',cycles:80},
+  ];
+  var n=bands.length;
+  var bw=W/n;
+  var cy=H/2+5;
+  var wh=H*0.28;
+  for(var i=0;i<n;i++){
+    var b=bands[i];
+    var bx=i*bw;
+    // Sine wave for each band
+    ctx.save();ctx.strokeStyle=b.col;ctx.lineWidth=1.5;
+    ctx.beginPath();
+    var pts=60;
+    for(var j=0;j<=pts;j++){
+      var xp=bx+j*bw/pts;
+      var phase=j/pts*Math.PI*2*b.cycles+t*2;
+      var yp=cy+Math.sin(phase)*wh;
+      j===0?ctx.moveTo(xp,yp):ctx.lineTo(xp,yp);
+    }
+    ctx.stroke();ctx.restore();
+    // Band name
+    oLbl(ctx,b.name,bx+bw/2,H-6,b.col,8);
+  }
+  // Visible bracket
+  var visX1=W*(3/n);var visX2=W*(4/n);
+  ctx.save();ctx.strokeStyle='#fbbf24';ctx.lineWidth=1.5;
+  ctx.beginPath();ctx.moveTo(visX1,H-18);ctx.lineTo(visX1,H-24);ctx.lineTo(visX2,H-24);ctx.lineTo(visX2,H-18);ctx.stroke();
+  oLbl(ctx,'👁',(visX1+visX2)/2,H-27,'#fbbf24',10);
+  ctx.restore();
+  // Walking cursor
+  var cx=((t*0.07)%1)*W;
+  ctx.save();ctx.strokeStyle='rgba(255,255,255,0.7)';ctx.lineWidth=1.5;ctx.setLineDash([3,3]);
+  ctx.beginPath();ctx.moveTo(cx,4);ctx.lineTo(cx,H-28);ctx.stroke();ctx.setLineDash([]);ctx.restore();
+});
+
+// ─── Polarization theory anim ───────────────────────────────
+runAnim('anim-polar-t',function(canvas,ctx,W,H,t){
+  oBg(ctx,W,H);
+  var cy=H/2;
+  var theta=(Math.sin(t*0.6)+1)*Math.PI/2; // oscillate 0..pi
+  // Stage 1: unpolarized source
+  var s1x=W*0.1;
+  ctx.save();ctx.fillStyle='#fbbf24';ctx.beginPath();ctx.arc(s1x,cy,8,0,Math.PI*2);ctx.fill();ctx.restore();
+  for(var i=0;i<6;i++){
+    var ang=i*Math.PI/3+t*1.2;
+    oRay(ctx,s1x,cy,s1x+Math.cos(ang)*16,cy+Math.sin(ang)*16,'rgba(251,191,36,0.5)',1.2);
+  }
+  // Beam to pol1
+  oRay(ctx,s1x+10,cy,W*0.35-10,cy,'rgba(251,191,36,0.4)',8);
+  // Polarizer 1
+  var p1x=W*0.35;
+  ctx.save();ctx.strokeStyle='#94a3b8';ctx.lineWidth=2;ctx.beginPath();ctx.arc(p1x,cy,14,0,Math.PI*2);ctx.stroke();
+  ctx.strokeStyle='#22d3ee';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(p1x,cy-12);ctx.lineTo(p1x,cy+12);ctx.stroke();ctx.restore();
+  // Polarized beam
+  oRay(ctx,p1x+16,cy,W*0.62-12,cy,'rgba(251,191,36,0.7)',5);
+  // Analyzer 2 (rotating)
+  var p2x=W*0.62;
+  ctx.save();ctx.strokeStyle='#94a3b8';ctx.lineWidth=2;ctx.beginPath();ctx.arc(p2x,cy,14,0,Math.PI*2);ctx.stroke();
+  ctx.strokeStyle='#f472b6';ctx.lineWidth=2;
+  ctx.beginPath();ctx.moveTo(p2x+Math.cos(theta+Math.PI/2)*12,cy+Math.sin(theta+Math.PI/2)*12);
+  ctx.lineTo(p2x+Math.cos(theta-Math.PI/2)*12,cy+Math.sin(theta-Math.PI/2)*12);ctx.stroke();ctx.restore();
+  // Transmitted beam (dimmed by cos²θ)
+  var I=Math.cos(theta)*Math.cos(theta);
+  if(I>0.02){
+    oRay(ctx,p2x+16,cy,W*0.88,cy,'rgba(251,191,36,'+I.toFixed(2)+')',I*6+1);
+  }
+  // Labels
+  oLbl(ctx,'I=I₀cos²θ',W*0.75,H-8,'#f472b6',9);
+  oLbl(ctx,'θ='+Math.round(theta*180/Math.PI)+'°',p2x,cy-22,'#f472b6',8);
+});
+
+// ─── Doppler theory anim ────────────────────────────────────
+runAnim('anim-doppler-t',function(canvas,ctx,W,H,t){
+  oBg(ctx,W,H);
+  var cy=H/2;
+  // Moving star
+  var srcX=W/2+Math.sin(t*Math.PI/4)*W*0.25;
+  var srcCol='#fbbf24';
+  // Past emission points
+  var nRings=5;
+  for(var i=0;i<nRings;i++){
+    var age=(i+1)*0.5;
+    var emX=W/2+Math.sin((t-age)*Math.PI/4)*W*0.25;
+    var r=age*70;
+    var al=Math.max(0,0.6-age*0.1);
+    ctx.save();ctx.strokeStyle='rgba(251,191,36,'+al.toFixed(2)+')';ctx.lineWidth=1.2;
+    ctx.beginPath();ctx.arc(emX,cy,r,0,Math.PI*2);ctx.stroke();ctx.restore();
+  }
+  // Star
+  ctx.save();ctx.fillStyle=srcCol;ctx.beginPath();ctx.arc(srcX,cy,9,0,Math.PI*2);ctx.fill();ctx.restore();
+  // Observers
+  ctx.save();ctx.font='16px sans-serif';ctx.textAlign='center';
+  ctx.fillText('👤',20,cy+10);ctx.fillText('👤',W-20,cy+10);ctx.restore();
+  // Labels
+  oLbl(ctx,'כחלול',20,cy-28,'#60a5fa',9);
+  oLbl(ctx,'אדמדום',W-20,cy-28,'#f87171',9);
+  // Arrow
+  var movingRight=Math.cos(t*Math.PI/4)>0;
+  var ax=srcX+(movingRight?20:-20);
+  oRay(ctx,srcX,cy-16,ax,cy-16,(movingRight?'#94a3b8':'#94a3b8'),2);
+});
+
+// ─── Laser theory anim ──────────────────────────────────────
+runAnim('anim-laser-t',function(canvas,ctx,W,H,t){
+  oBg(ctx,W,H);
+  var cy=H/2;
+  var mirL=W*0.08,mirR=W*0.78;
+  // Mirrors
+  ctx.save();ctx.fillStyle='#e2e8f0';
+  ctx.fillRect(mirL-3,cy-20,4,40);
+  ctx.fillStyle='rgba(226,232,240,0.4)';ctx.fillRect(mirR-1,cy-20,4,40);ctx.restore();
+  // Active medium
+  ctx.save();ctx.fillStyle='rgba(239,68,68,0.12)';
+  ctx.beginPath();ctx.roundRect(mirL+4,cy-14,mirR-mirL-8,28,4);ctx.fill();ctx.restore();
+  // Photons bouncing
+  var nPh=4;
+  for(var i=0;i<nPh;i++){
+    var phase=t*2+i*Math.PI*2/nPh;
+    var px=mirL+8+(mirR-mirL-16)*((phase/(2*Math.PI))%1);
+    ctx.save();optGlow(ctx,'#ef4444',8);
+    ctx.strokeStyle='#ef4444';ctx.lineWidth=2;
+    ctx.beginPath();ctx.moveTo(px-6,cy);ctx.lineTo(px+6,cy);ctx.stroke();
+    optNoGlow(ctx);ctx.restore();
+  }
+  // Output beam
+  var beamAlpha=0.5+0.4*Math.sin(t*3);
+  oRay(ctx,mirR+4,cy,W-8,cy,'rgba(239,68,68,'+beamAlpha.toFixed(2)+')',3);
+  oLbl(ctx,'קרן לייזר',W-25,cy-10,'#ef4444',8);
+  oLbl(ctx,'פליטה מעוררת',W/2,H-6,'#94a3b8',8);
+  // Stimulated emission icon: 1 in → 2 out
+  var ix=W*0.42,iy=cy;
+  oPhoton(ctx,ix-20,iy,'#ef4444',t*3);
+  ctx.save();ctx.fillStyle='#ef4444';ctx.beginPath();ctx.arc(ix,iy,6,0,Math.PI*2);ctx.fill();ctx.restore();
+  oPhoton(ctx,ix+20,iy-8,'#ef4444',t*3+0.3);
+  oPhoton(ctx,ix+20,iy+8,'#ef4444',t*3-0.3);
+});
+
 });
 
 }
@@ -15097,6 +15961,10 @@ function buildSim(sim){
   else if(sim.type==='opt-interference')extra=C(rng('int-lambda',10,80,40,2,'אורך גל λ',' px')+rng('int-d',20,120,60,5,'מרחק מקורות d',' px'));
   else if(sim.type==='opt-youngs')extra=C(rng('ys-lambda',400,700,500,10,'אורך גל λ',' nm')+rng('ys-d',0.1,1,0.3,0.05,'מרחק סדקים d',' mm')+rng('ys-L',0.5,3,1,0.1,'מרחק מסך L',' m'));
   else if(sim.type==='opt-diffraction')extra=C(rng('diff-a',0.05,1,0.1,0.01,'רוחב סדק a',' mm')+rng('diff-lambda',380,700,500,10,'אורך גל λ',' nm'));
+  else if(sim.type==='opt-em-spectrum')extra=C(rng('ems-pos',0,100,45,1,'מיקום בספקטרום','%'));
+  else if(sim.type==='opt-polarization')extra=C(rng('pol-angle',0,180,45,1,'זווית מנתח θ','°')+rng('pol-i0',20,100,80,5,'עוצמה ראשונית I₀','%'));
+  else if(sim.type==='opt-doppler')extra=C(rng('dop-v',0,80,20,1,'מהירות מקור (% c)','%')+rng('dop-wl',400,700,550,5,'אורך גל מקורי λ₀',' nm'));
+  else if(sim.type==='opt-laser')extra=C(rng('laser-pump',0,100,60,5,'עוצמת שאיבה','%')+'<div class="range-wrap"><label>סוג לייזר:</label><select id="inp-laser-type" style="background:#1e293b;color:#e2e8f0;border:1px solid #334155;border-radius:6px;padding:4px 8px;font-size:.85rem"><option value="633">He-Ne (633nm)</option><option value="514">Ar⁺ (514nm)</option><option value="1064">Nd:YAG (1064nm)</option></select></div>');
   const simDone=isCompleted(state.chapter,state.section,'sim');
   return `<div class="sim-container">
     <div class="sim-canvas-wrap"><canvas id="sim-canvas" height="280"></canvas></div>
