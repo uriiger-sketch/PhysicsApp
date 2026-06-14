@@ -955,6 +955,7 @@ const OPTICS_CHAPTERS=[
     {id:'light-nature',title:'מהו אור?',sub:'גל אלקטרומגנטי, מהירות, ספקטרום'},
     {id:'light-speed',title:'מהירות האור ומדד שבירה',sub:'c, n=c/v, חומרים שונים'},
     {id:'em-spectrum',title:'הספקטרום האלקטרומגנטי המלא',sub:'רדיו, IR, UV, רנטגן, גמא, E=hf'},
+    {id:'color-mixing',title:'ערבוב צבעים',sub:'RGB חיבורי, CMY חיסורי, ספקטרום'},
   ]},
   {id:'opt-reflection',icon:'🔆',title:'פרק ב: החזרת אור',sections:[
     {id:'refl-laws',title:'חוקי ההחזרה',sub:'θᵢ = θᵣ, אנכי ומשטח'},
@@ -966,16 +967,20 @@ const OPTICS_CHAPTERS=[
     {id:'snell-law',title:'חוק סנל',sub:'n₁sinθ₁=n₂sinθ₂'},
     {id:'tir',title:'החזרה פנימית מלאה',sub:'זווית קריטית, סיבים אופטיים'},
     {id:'prism',title:'פריזמה ופיזור',sub:'ניסיון ניוטון, קשת'},
+    {id:'fiber-optics',title:'סיבים אופטיים',sub:'החזרה פנימית מלאה, NA, תקשורת אור'},
   ]},
   {id:'opt-lenses',icon:'🔍',title:'פרק ד: עדשות',sections:[
     {id:'convex-lens',title:'עדשה מרכזת',sub:'מוקד, 1/f=1/dₒ+1/dᵢ, תמונות'},
     {id:'concave-lens',title:'עדשה מפזרת',sub:'תמונה מדומה, f<0'},
     {id:'lens-eye',title:'העין האנושית',sub:'קורנאה, עדשה, רשתית — ראייה'},
+    {id:'telescope',title:'מכשירים אופטיים',sub:'טלסקופ: M=fₒ/fₑ, מיקרוסקופ'},
   ]},
   {id:'opt-waves',icon:'〰️',title:'פרק ה: אופטיקה גלית',sections:[
     {id:'interference',title:'הפרעה — אינטרפרנציה',sub:'בונה ומהרס, הפרש דרכים'},
     {id:'youngs-slits',title:'ניסוי יאנג — סדקים כפולים',sub:'d·sinθ=mλ, פסי אור'},
     {id:'diffraction',title:'עקיפה',sub:'סדק יחיד, עקרון הויגנס'},
+    {id:'thin-film',title:'התאבכות בקרום דק',sub:'בועות סבון, 2nt=(m+½)λ, ציפויים'},
+    {id:'grating',title:'סריג עקיפה',sub:'ספקטרוסקופיה, d·sinθ=mλ, סדרי עקיפה'},
   ]},
   {id:'opt-modern',icon:'🔬',title:'פרק ו: אופטיקה מודרנית',sections:[
     {id:'em-spectrum-full',title:'הספקטרום המלא',sub:'רדיו, מיקרוגל, IR, UV, רנטגן, גמא'},
@@ -3702,6 +3707,211 @@ const OPTICS_CONTENT={
     ]}
 },
 
+
+'opt-light.color-mixing':{
+  theory:{
+    title:'ערבוב צבעים — חיבורי וחיסורי',
+    html:`
+      <p>האור הלבן הוא <b>תערובת של כל צבעי הקשת</b>. ניוטון הראה ב-1666 שפריזמה מפרידה את הצבעים — וצירופם מחדש מחזיר את הלבן.</p>
+      <div class="def-block"><div class="def-title">ערבוב חיבורי — אור (Additive)</div>
+        <p>שלושה קרני אור צבעוניות על מסך שחור. הצבעים <b>מתחברים</b>:</p>
+        <div class="info-grid">
+          <div class="info-item"><div class="il">אדום + ירוק</div><div class="iv">= צהוב</div></div>
+          <div class="info-item"><div class="il">ירוק + כחול</div><div class="iv">= ציאן</div></div>
+          <div class="info-item"><div class="il">אדום + כחול</div><div class="iv">= ורוד (מגנטה)</div></div>
+          <div class="info-item"><div class="il">אדום + ירוק + כחול</div><div class="iv">= לבן</div></div>
+        </div>
+        <p>שימוש: מסכי LCD/OLED, פרויקטורים, תאורת LED. כל פיקסל = R+G+B בעוצמות שונות.</p>
+      </div>
+      <div class="def-block"><div class="def-title">ערבוב חיסורי — פיגמנטים (Subtractive)</div>
+        <p>צבעים <b>בולעים</b> חלק מהספקטרום ומשקפים את הנותר:</p>
+        <div class="info-grid">
+          <div class="info-item"><div class="il">ציאן + מגנטה</div><div class="iv">= כחול</div></div>
+          <div class="info-item"><div class="il">מגנטה + צהוב</div><div class="iv">= אדום</div></div>
+          <div class="info-item"><div class="il">ציאן + צהוב</div><div class="iv">= ירוק</div></div>
+          <div class="info-item"><div class="il">C + M + Y</div><div class="iv">= שחור</div></div>
+        </div>
+        <p>שימוש: דפוס (CMYK), ציור, צבעי מים.</p>
+      </div>
+      <div class="enrich-card"><div class="enrich-title">מדוע השמיים כחולים?</div>
+        <p>פיזור ריילי: אור כחול (λ קצר) מתפזר פי 4 יותר מאדום. בשקיעה, האור עובר מסלול ארוך — כחול כבר מפוזר → נראה כתום-אדום.</p>
+      </div>
+      <div class="theory-anim">${animCanvas('anim-color-mix-t',148,'ערבוב צבעים חיבורי')}</div>`,
+  },
+  sim:{type:'opt-color-mix',desc:'שנה עוצמות אדום/ירוק/כחול וראה ערבוב חיבורי. צהוב = R+G, ציאן = G+B, ורוד = R+B, לבן = R+G+B.'},
+  example:{title:'ערבוב RGB',text:'עוצמות: R=100%, G=60%, B=0%. מה הצבע המעורב?',
+    steps:[
+      {q:'R=255, G=153, B=0 (RGB ערכי)',a:'כתום — ערבוב חיבורי של אדום מלא + ירוק חלקי'},
+      {q:'בקוד hex: rgb(255,153,0)',a:'#FF9900 — כתום רווי. כמו בלוגו אמזון!'},
+    ]},
+  quiz:[
+    {q:'אור ירוק + אור כחול = ?',opts:['צהוב','ורוד','ציאן','לבן'],correct:2,explain:'ערבוב חיבורי: G+B=ציאן (כחול-ירקרק). R+G=צהוב, R+B=מגנטה.',formula:''},
+    {q:'מדוע עלה ירוק נראה ירוק?',opts:['פולט אור ירוק','בולע אדום+כחול, משקף ירוק','משקף את כל הצבעים חוץ מירוק','מכיל פיגמנט ניאון'],correct:1,explain:'ערבוב חיסורי: הכלורופיל בולע אדום וכחול (לפוטוסינתזה) ומשקף ירוק — לכן אנחנו רואים ירוק.',formula:''},
+    {q:'בדפוס CMYK, מה ה-K?',opts:['כחול (Blue)','כרום (Chrome)','שחור (Key/Black)','קינמון'],correct:2,explain:'K=Key=שחור. נוסף כי C+M+Y בפועל לא נותן שחור מושלם, ושחור צבעי יקר. שחור K אחיד ועמוק.',formula:''},
+    {q:'מסך טלוויזיה משתמש ב:',opts:['CMY','RGB חיבורי','פיגמנטים חיסוריים','קשת ניוטון'],correct:1,explain:'כל פיקסל: שלוש תתי-נקודות (R,G,B) מוארות. מרחוק — עין ממצעת ורואה צבע מעורב. זה ערבוב חיבורי.',formula:''},
+  ],
+  problem:{title:'ספקטרום RGB',text:'מסך מציג "צהוב טהור" (R=255, G=255, B=0). מהו אורך הגל של צהוב בספקטרום הרציף? מדוע המסך לא מציג אורך גל אחד?',
+    steps:[
+      {q:'צהוב ספקטרלי: λ≈570nm (בין אדום 700nm לירוק 530nm)',unit:'nm',answer:'570',tolerance:15,explain:'צהוב "אמיתי" הוא אורך גל יחיד ~570-590nm. פיזיקה של פיגמנט/לייזר.',hint:'הסתכל על ספקטרום הקשת — צהוב בין ירוק לאדום'},
+      {q:'מסך: R=255+G=255 → מפעיל שני LED → עין מרגישה כ"צהוב" אך זה לא אורך גל אחד.',unit:'nm',answer:'570',tolerance:30,explain:'Metamerism (מטמריות): שתי גירויים שונים יוצרים אותה תחושת צבע. מסך יוצר "צהוב" מ-R+G אף שאין פוטון 570nm. העין רגישה ל-3 צבעים בסיס.',hint:'עין = 3 סוגי קונוסים (L,M,S)'},
+    ]}
+},
+
+'opt-refraction.fiber-optics':{
+  theory:{
+    title:'סיבים אופטיים — אור בכבל',
+    html:`
+      <p>סיב אופטי מוליך אור על ידי <b>החזרה פנימית מלאה חוזרת</b>. הסיב הוא ליבה (core) בעלת ${ "n_1" } גבוה עטופה במעטה (cladding) עם ${"n_2 < n_1" }.</p>
+      ${fBox('\\theta_c = \\arcsin\\!\\left(\\dfrac{n_2}{n_1}\\right)','זווית קריטית',[['n_1','מדד שבירה ליבה','≈1.48'],['n_2','מדד שבירה מעטה','≈1.46'],['\\theta_c','זווית קריטית','~80°']])}
+      ${fBox('\\mathrm{NA} = \\sqrt{n_1^2 - n_2^2}','פתח מספרי (Numerical Aperture)',[['\\mathrm{NA}','פתח מספרי — כמה אור נכנס','טיפי 0.1-0.5']])}
+      <p><b>כלל ה-TIR בסיב:</b> קרן הנכנסת לסיב תישאר בו כל עוד זוויתה הפנימית גדולה מ-θ_c. פעולה מצוינת גם בסיבים כפופים — האור עוקב אחרי הכיפוף.</p>
+      <div class="def-block"><div class="def-title">יתרונות על חוט נחושת</div>
+        <div class="info-grid">
+          <div class="info-item"><div class="il">רוחב פס</div><div class="iv">THz — אינסוף ערוצים</div></div>
+          <div class="info-item"><div class="il">הנחתה</div><div class="iv">0.2 dB/km (SiO₂ טהור)</div></div>
+          <div class="info-item"><div class="il">הפרעות EM</div><div class="iv">אין — אור לא מושפע</div></div>
+          <div class="info-item"><div class="il">משקל</div><div class="iv">קל מאוד</div></div>
+        </div>
+      </div>
+      <div class="enrich-card"><div class="enrich-title">כבל תת-ימי — Atlantic Crossing</div>
+        <p>כבל TAT-14 (2001): 3,000 km בין ארה"ב לאירופה. מעביר >10 Tb/s. מגבר אופטי כל 50-80km (EDFA — erbium-doped fiber amplifier). קצב שגיאות: 10⁻¹².</p>
+      </div>
+      <div class="theory-anim">${animCanvas('anim-fiber-t',148,'סיב אופטי — TIR רצוף')}</div>`,
+  },
+  sim:{type:'opt-fiber',desc:'שנה את מדד השבירה של הליבה וראה כיצד האור מוחזר מחזור אחרי מחזור בתוך הסיב. זיהוי זווית קריטית בזמן אמת.'},
+  example:{title:'זווית קריטית בסיב',text:'ליבה n₁=1.50, מעטה n₂=1.46. מהי זווית הקריטית?',
+    steps:[
+      {q:'sinθ_c = n₂/n₁ = 1.46/1.50',a:'sinθ_c = 0.9733'},
+      {q:'θ_c = arcsin(0.9733)',a:'θ_c ≈ 76.7°'},
+      {q:'NA = √(n₁²-n₂²) = √(2.25-2.1316)',a:'NA = √0.1184 ≈ 0.344'},
+    ]},
+  quiz:[
+    {q:'סיב אופטי מוליך אור בגלל:',opts:['השתקפות חיצונית','הפרעה בנייה','החזרה פנימית מלאה','עקיפה'],correct:2,explain:'TIR: האור פוגע בממשק ליבה-מעטה בזווית גדולה מהקריטית ומוחזר 100% ללא הפסד. כל קרן עושה מאות אלפי זינוקים בכל ק"מ.',formula:'θ_c=arcsin(n₂/n₁)'},
+    {q:'מה קורה כש-n₁ קטן יותר (ליבה פחות צפופה)?',opts:['זווית קריטית גדלה','זווית קריטית קטנה','NA גדל','אין שינוי'],correct:0,explain:'θ_c=arcsin(n₂/n₁): כש-n₁ קטן, n₂/n₁ גדל → arcsin גדל → θ_c גדל. ה"חלון" TIR מצטמצם → פחות קרניים מוחזרות.',formula:'θ_c=arcsin(n₂/n₁)'},
+    {q:'NA (פתח מספרי) קובע:',opts:['מהירות הפצה','כמה אור נאסף לסיב','צבע האור','חוזק הסיב'],correct:1,explain:'NA=sin(θ_קבלה_מקס)=√(n₁²-n₂²). ה-NA גדול → הסיב מקבל טווח זוויות גדול יותר של קרניים נכנסות.',formula:'NA=√(n₁²-n₂²)'},
+    {q:'למה סיבים אופטיים עדיפים על נחושת לאינטרנט?',opts:['זולים יותר','גמישים יותר','רוחב פס גבוה בהרבה + הנחתה נמוכה','מוליכים חשמל'],correct:2,explain:'SiO₂ טהור: הנחתה 0.2 dB/km לעומת ~20 dB/km בנחושת. THz bandwidth לעומת GHz. אין רעש EM. הסיבה לאינטרנט מודרני.',formula:''},
+  ],
+  problem:{title:'עיצוב סיב',text:'ליבה n₁=1.62, מעטה n₂=1.52. (א) חשב θ_c. (ב) מה מקסימום זווית כניסה לאור ייקלט?',
+    steps:[
+      {q:'sinθ_c = n₂/n₁ = 1.52/1.62',unit:'',answer:'0.938',tolerance:0.005,explain:'sinθ_c = 0.9383 → θ_c = arcsin(0.9383) ≈ 69.6°. כל קרן הפוגעת בזווית גדולה מזו תוחזר.',hint:'sinθ_c = n₂/n₁'},
+      {q:'NA = √(1.62²-1.52²) = √(2.6244-2.3104)',unit:'',answer:'0.56',tolerance:0.03,explain:'NA = √0.314 ≈ 0.560. זווית קבלה מקסימלית: arcsin(0.560) ≈ 34°.',hint:'NA=√(n₁²-n₂²)'},
+    ]}
+},
+
+'opt-lenses.telescope':{
+  theory:{
+    title:'מכשירים אופטיים — טלסקופ ומיקרוסקופ',
+    html:`
+      <p>שני המכשירים משתמשים ב<b>שתי עדשות</b>: עדשה אובייקטיב (objective) יוצרת תמונה ביניים, ועדשת עין (eyepiece) מגדילה אותה.</p>
+      <div class="def-block"><div class="def-title">טלסקופ אסטרונומי</div>
+        ${fBox('M_{\\text{tel}} = -\\dfrac{f_o}{f_e}','הגדלה טלסקופ',[['f_o','מוקד אובייקטיב','ארוך, 100-2000mm'],['f_e','מוקד עדשת עין','קצר, 10-40mm'],['M','הגדלה זוויתית','']])}
+        <p>תמונה: הפוכה (M שלילי), מוגדלת. הפרדה זוויתית: θ_min = 1.22λ/D (קריטריון ריילי).</p>
+      </div>
+      <div class="def-block"><div class="def-title">מיקרוסקופ</div>
+        ${fBox('M_{\\text{mic}} = \\dfrac{d}{f_o} \\cdot \\dfrac{25\\,\\mathrm{cm}}{f_e}','הגדלה מיקרוסקופ',[['d','אורך הצינור (tube length)','≈160mm'],['f_o','מוקד אובייקטיב','קצר, 2-40mm'],['f_e','מוקד עדשת עין','10-25mm']])}
+        <p>דרישה: עצם ממש מחוץ למוקד האובייקטיב → תמונה ממשית מוגדלת → הגדלה נוספת ע"י עדשת עין.</p>
+      </div>
+      <div class="enrich-card"><div class="enrich-title">גלילאו ורשת הגלקסיה</div>
+        <p>גלילאו (1609) הכין טלסקופ x30. ראה: ירח יופיטר, כתמי שמש, טבעות שבתאי (לא הבין), שביל החלב = כוכבים נפרדים. שינה לחלוטין את ההשקפה הקוסמולוגית — כנגד הכנסייה.</p>
+      </div>
+      <div class="theory-anim">${animCanvas('anim-telescope-t',148,'טלסקופ — שתי עדשות')}</div>`,
+  },
+  sim:{type:'opt-telescope',desc:'שנה מוקדי האובייקטיב ועדשת העין. ראה תרשים קרניים של הטלסקופ וחישוב הגדלה בזמן אמת.'},
+  example:{title:'טלסקופ אסטרונומי',text:'fₒ=1200mm, fₑ=25mm. מהי ההגדלה?',
+    steps:[
+      {q:'M = -fₒ/fₑ = -1200/25',a:'M = -48×'},
+      {q:'הסימן השלילי מציין תמונה הפוכה',a:'הגדלה זוויתית: 48 פעם — ירח נראה פי 48 גדול'},
+    ]},
+  quiz:[
+    {q:'לטלסקופ fₒ=900mm, fₑ=18mm. הגדלה = ?',opts:['18×','50×','900×','0.02×'],correct:1,explain:'M=fₒ/fₑ=900/18=50. הגדלה זוויתית פי 50. הכוכבים נראים קרובים יותר x50.',formula:'M=fₒ/fₑ'},
+    {q:'למה בטלסקופ אסטרונומי התמונה הפוכה?',opts:['תמיד','כי M שלילי — עדשה מרכזת','כי האור מרחוק','עקיפה'],correct:1,explain:'עדשה מרכזת עם עצם מעבר למוקד: M=-dᵢ/dₒ. כש-dₒ→∞, dᵢ=f. התמונה הביניים ממשית+הפוכה. עדשת העין מגדילה את ההפוכה → כולל הפוך.',formula:'M=-fₒ/fₑ'},
+    {q:'מיקרוסקופ: להגדיל עוד יותר, מה עושים?',opts:['מגדילים fₒ','מקצרים fₒ ו-fₑ','מגדילים fₑ','מרחיקים עצם'],correct:1,explain:'M=d/fₒ × 25/fₑ: להגדיל M → קצר fₒ (תמונת ביניים גדולה יותר) וקצר fₑ (עדשת עין מגדילה יותר).',formula:'M=d·25cm/(fₒ·fₑ)'},
+    {q:'מה מגביל את הרזולוציה של טלסקופ?',opts:['הגדלה','קוטר עדשת אובייקטיב D','אורך המכשיר','הצבע'],correct:1,explain:'קריטריון ריילי: θ_min=1.22λ/D. D גדול → θ_min קטן → רזולוציה גבוהה. לכן מראות 10m (VLT, Keck) — לא עדשות: אין זכוכית שקופה ב-10m.',formula:'θ_min=1.22λ/D'},
+  ],
+  problem:{title:'הגדלת מיקרוסקופ',text:'מיקרוסקופ: tube length d=160mm, fₒ=4mm, fₑ=10mm. חשב הגדלה כוללת.',
+    steps:[
+      {q:'M_אובייקטיב = d/fₒ = 160/4',unit:'×',answer:'40',tolerance:0.5,explain:'התמונה הממשית שנוצרת על ידי האובייקטיב מוגדלת x40.',hint:'M_obj = d/f_obj'},
+      {q:'M_עין = 25cm/fₑ = 250/10',unit:'×',answer:'25',tolerance:0.5,explain:'עדשת עין כלוב: D_קונבנציונלי = 25cm. M_eye=25cm/f_e=25.',hint:'M_eye = 25cm/f_eye'},
+      {q:'M_כולל = M_obj × M_eye = 40×25',unit:'×',answer:'1000',tolerance:10,explain:'הגדלה כוללת: 40×25=1000. תא חיידק 1μm נראה כ-1mm — ברור לעין!',hint:'M_total = M_obj × M_eye'},
+    ]}
+},
+
+'opt-waves.thin-film':{
+  theory:{
+    title:'התאבכות בקרום דק — בועות סבון',
+    html:`
+      <p>כאשר אור פוגע בשכבה דקה (קרום סבון, שמן על מים, ציפוי עדשה), שתי קרניים מוחזרות — מהמשטח הקדמי ומהאחורי — ומתאבכות.</p>
+      <div class="def-block"><div class="def-title">מעבר פאזה בהחזרה</div>
+        <p>כשאור עובר מחומר עם $n$ נמוך לחומר עם $n$ גבוה, הגל המוחזר עובר <b>היפוך פאזה (π)</b>. בקרום סבון: היפוך רק במשטח האחד (אוויר→סבון) — מה שקובע את תנאי ההתאבכות.</p>
+      </div>
+      ${fBox('2n t \\cos\\theta = \\left(m+\\tfrac{1}{2}\\right)\\lambda','בנייה (bright) — קרום דק',[['n','מדד שבירה הקרום','סבון: ~1.33'],['t','עובי קרום','nm'],['\\theta','זווית','0 לאנכי'],['m','סדר עקיפה','0,1,2...']])}
+      <p>עוצמת השתקפות: ${M('I \\propto \\sin^2\\!\\left(\\tfrac{2\\pi n t}{\\lambda}\\right)')}. כל אורך גל מקבל עוצמה שונה → <b>קשת צבעים</b>!</p>
+      <div class="def-block"><div class="def-title">ציפוי אנטי-החזרה (AR Coating)</div>
+        <p>עדשות מצלמה/משקפיים מצופות ב-MgF₂ (n≈1.38). עובי: t=λ/4n → מבטל החזרה ל-λ=550nm (ירוק). לכן עדשות נראות סגול-אדום (כל הצבעים חוץ מירוק משתקפים קצת).</p>
+      </div>
+      <div class="enrich-card"><div class="enrich-title">צבעי יונה וחיפושית ה-Morpho</div>
+        <p>כנפי פרפר Morpho כחול — לא פיגמנט! מבנה ננו-סריגי (photonic crystal) ביוצר התאבכות בנייה לכחול בלבד. הצבע לא דוהה לעולם. חוקרים מנסים לחקות זאת לצבעים "מבניים".</p>
+      </div>
+      <div class="theory-anim">${animCanvas('anim-thin-film-t',148,'קרום דק — צבעי התאבכות')}</div>`,
+  },
+  sim:{type:'opt-thin-film',desc:'שנה עובי קרום t ומדד שבירה n. ראה אילו צבעים משתקפים חזק (I∝sin²(2πnt/λ)) ואת ספקטרום ההשתקפות. הקרום מציג קשת מלאה.'},
+  example:{title:'ציפוי AR',text:'ציפוי MgF₂ (n=1.38) על עדשה. עובי לביטול החזרה ב-λ=550nm (ירוק)?',
+    steps:[
+      {q:'בקרום AR: תנאי קיטוע (destructive) 2nt=mλ, m=1',a:'t=λ/(2n)=550/(2×1.38)=550/2.76'},
+      {q:'t=199nm≈200nm',a:'עובי שכבה רבע-גל: t=λ/(4n)=550/(4×1.38)=100nm (m=1 עם שני הפיכות פאזה)'},
+    ]},
+  quiz:[
+    {q:'בועת סבון (n=1.33, t=100nm). m=0 בנייה: λ=?',opts:['266nm','532nm','400nm','133nm'],correct:0,explain:'2nt=(m+½)λ → λ=2nt/(m+½)=2(1.33)(100)/0.5=532nm... רגע, (m+½) עם m=0: λ=4nt/(2m+1)=4×1.33×100/1=532nm. כן! ירוק.',formula:'λ=4nt/(2m+1)'},
+    {q:'ציפוי AR (anti-reflection) פועל ע"י:',opts:['בליעה','התאבכות קיטוע בין קרן 1 ו-2','החזרה פנימית מלאה','עקיפה'],correct:1,explain:'שתי קרניות מוחזרות (מקדמי ואחורי) מתאבכות הרסנית. הגל המוחזר מתבטל → כל האור עובר. הנדסה של עובי לλ/4.',formula:'2nt=mλ (קיטוע)'},
+    {q:'מדוע עדשות מצלמה צבעוניות (סגול)?',opts:['פיגמנט','ציפוי AR מבטל ירוק → אדום+כחול=ורוד/סגול נשאר','חלודה','יצרן שרירותי'],correct:1,explain:'ציפוי AR מכוין לירוק (550nm). אדום+כחול לא מבוטלים לחלוטין → משתקפים → ורוד/סגול. זה סימן שהעדשה מצופה!',formula:''},
+    {q:'שכבת שמן (n=1.45) t=200nm. הצבע הנראה ב-θ=0?',opts:['לא נראה','כחול ~464nm','ירוק ~580nm','UV'],correct:1,explain:'4nt/(2m+1): m=0 → 4(1.45)(200)=1160nm (IR). m=1 → 1160/3=387nm (UV). m=2 → 1160/5=232nm. קרוב לנראה: 387nm (סגול-UV, קצה). עשוי להראות סגול כהה.',formula:'λ=4nt/(2m+1)'},
+  ],
+  problem:{title:'בועת סבון',text:'בועת סבון n=1.34, t=320nm. (א) אורכי גל נראים המשתקפים חזק (m=1,2)? (ב) איזה צבע?',
+    steps:[
+      {q:'m=1: λ=4nt/(2×1+1)=4(1.34)(320)/3',unit:'nm',answer:'571',tolerance:5,explain:'4×1.34×320/3=1715.2/3=571.7nm — צהוב-ירוק. עוצמה מקסימלית!',hint:'λ=4nt/(2m+1)'},
+      {q:'m=2: λ=4nt/5=4(1.34)(320)/5',unit:'nm',answer:'343',tolerance:5,explain:'343nm — UV עמוק, לא נראה. m=1 שולט: הבועה נראית צהוב-ירוקה עם גוון זה.',hint:'λ=4nt/(2m+1) עם m=2'},
+    ]}
+},
+
+'opt-waves.grating':{
+  theory:{
+    title:'סריג עקיפה — ספקטרוסקופיה',
+    html:`
+      <p>סריג עקיפה (diffraction grating) הוא משטח עם <b>אלפי-רבבות חריצים ס"מ</b>. כל חריץ פועל כמקור גל חדש (הויגנס). ההתאבכות הבנייה בין כולם יוצרת פסים חדים מאוד — "קווי ספקטרום".</p>
+      ${fBox('d \\sin\\theta_m = m\\lambda','משוואת הסריג (מקסימום)',[['d','מרווח בין חריצים','μm = 10⁻⁶m'],['\\theta_m','זווית סדר m','°'],['m','סדר עקיפה','0, ±1, ±2, ...'],['\\lambda','אורך גל','nm']])}
+      <p>בסדר 0 (m=0): θ=0, ישר קדימה — לא ניתן להפריד. בסדר ±1: זווית תלויה ב-λ → <b>ספקטרום צבעוני</b>. חדות הקווים: Δλ = λ/(mN) כש-N=מספר חריצים.</p>
+      <div class="def-block"><div class="def-title">לעומת פריזמה</div>
+        <div class="info-grid">
+          <div class="info-item"><div class="il">פריזמה</div><div class="iv">כחול נשבר יותר, כתם רציף, לא לינארי</div></div>
+          <div class="info-item"><div class="il">סריג</div><div class="iv">אדום בסדר 1 > כחול, קוים חדים, לינארי ב-sinθ</div></div>
+        </div>
+      </div>
+      <div class="enrich-card"><div class="enrich-title">כוכבים ורכב מינ׳ — ספקטרוסקופיה</div>
+        <p>ספקטרוסקופ סריגי חושף "טביעת אצבע" של כוכב: קווי פליטה/בליעה (Fraunhofer) חדים. כך מגלים הרכב כוכבים (He, H, Ca), טמפרטורה, מהירות (דופלר) — מרחק מיליוני שנות אור!</p>
+      </div>
+      <div class="theory-anim">${animCanvas('anim-grating-t',148,'סריג עקיפה — סדרי עקיפה')}</div>`,
+  },
+  sim:{type:'opt-grating',desc:'שנה מרווח הסריג d ואורך הגל λ. ראה קרניים בסדרים m=0,±1,±2 עם זוויות מחושבות. שים לב: אדום נסטה יותר מכחול (הפוך מפריזמה!).'},
+  example:{title:'סריג 600 חריצים/מ"מ',text:'d=1/600mm≈1667nm, λ=589nm (נתרן). מהי זווית סדר 1?',
+    steps:[
+      {q:'d·sinθ=mλ → sinθ=λ/d=589/1667',a:'sinθ=0.3533'},
+      {q:'θ=arcsin(0.3533)',a:'θ≈20.7°'},
+    ]},
+  quiz:[
+    {q:'סריג 500 חריצים/מ"מ, λ=500nm. זווית סדר 1?',opts:['14.5°','30°','45°','90°'],correct:0,explain:'d=1/500mm=2000nm. sinθ=500/2000=0.25 → θ=arcsin(0.25)≈14.48°.',formula:'d sinθ=mλ'},
+    {q:'בסריג, אדום (700nm) ↔ כחול (400nm) — מי בזווית גדולה יותר בסדר 1?',opts:['כחול','אדום','שווה','תלוי בסריג'],correct:1,explain:'sinθ=mλ/d: λ גדול → θ גדול. אדום (700nm) יוצא בזווית גדולה יותר! הפוך מפריזמה שם כחול נשבר יותר.',formula:'sinθ=λ/d'},
+    {q:'מה קורה בסדר m=0?',opts:['ספקטרום מלא','קרן לבנה ישר קדימה','לא קיים','החזרה מלאה'],correct:1,explain:'m=0: sinθ=0 → θ=0 לכל λ. כל הצבעים יוצאים ישר קדימה — קרן לבנה. אין פיזור בסדר 0.',formula:'m=0 → θ=0'},
+    {q:'כדי לקבל ספקטרום בסדר 2 של λ=700nm, d=2μm. אפשרי?',opts:['כן','לא — sin>1','רק אם θ<45°','צריך λ קצר יותר'],correct:1,explain:'sinθ=mλ/d=2×700/2000=0.7 → θ=44°. אפשרי! אבל אם sinθ>1 (בלתי אפשרי פיזיקלית) — הסדר לא קיים.',formula:'בדוק אם sinθ=mλ/d ≤ 1'},
+  ],
+  problem:{title:'ספקטרוסקופ',text:'סריג 800 חריצים/מ"מ. λ₁=486nm, λ₂=656nm (מימן). הפרש זוויות בסדר 1?',
+    steps:[
+      {q:'d=1/800mm=1250nm. sinθ₁=486/1250',unit:'°',answer:'22.9',tolerance:0.5,explain:'sinθ₁=0.3888 → θ₁=22.87°',hint:'sinθ=λ/d'},
+      {q:'sinθ₂=656/1250',unit:'°',answer:'31.6',tolerance:0.5,explain:'sinθ₂=0.5248 → θ₂=31.64°',hint:'sinθ=λ/d'},
+      {q:'Δθ=θ₂-θ₁=31.64-22.87',unit:'°',answer:'8.77',tolerance:0.3,explain:'Δθ≈8.8°. ספקטרוסקופ פשוט יפריד קווי Hα ו-Hβ של מימן בבירור.',hint:'Δθ=θ₂-θ₁'},
+    ]}
+},
+
+
 };// end OPTICS_CONTENT
 
 // Merge optics into main lookup
@@ -3852,6 +4062,11 @@ function initSim(id,type){
     'opt-polarization':simOptPolarization,
     'opt-doppler':simOptDoppler,
     'opt-laser':simOptLaser,
+    'opt-color-mix':simOptColorMix,
+    'opt-fiber':simOptFiber,
+    'opt-telescope':simOptTelescope,
+    'opt-thin-film':simOptThinFilm,
+    'opt-grating':simOptGrating,
   }[type]||simPlaceholder)(canvas,type);
   },50);
 }
@@ -11678,6 +11893,509 @@ function simOptLaser(canvas,id){
   function poll(){if(_simStop[id])return;requestAnimationFrame(draw);}poll();
 }
 
+
+// ─────────────────────────────────────────────────────────────
+// COLOR MIXING sim — Additive RGB spotlights
+// ─────────────────────────────────────────────────────────────
+function simOptColorMix(canvas,id){
+  var _g=(_simGen[id]=(_simGen[id]||0)+1);
+  var R=setupCanvas(canvas,460);var ctx=R.ctx,W=R.W,H=R.H;
+  function gR(){var e=document.getElementById('inp-cm-red');return e?parseFloat(e.value)/100:0.8;}
+  function gG(){var e=document.getElementById('inp-cm-green');return e?parseFloat(e.value)/100:0.8;}
+  function gB(){var e=document.getElementById('inp-cm-blue');return e?parseFloat(e.value)/100:0.8;}
+  function draw(ts){
+    if(_simGen[id]!==_g)return;if(_simStop[id])return;
+    var rv=gR(),gv=gG(),bv=gB();
+    ctx.fillStyle='#060c18';ctx.fillRect(0,0,W,H);
+    ctx.fillStyle='#475569';ctx.font='bold 10px Heebo';ctx.textAlign='center';
+    ctx.fillText('ערבוב חיבורי — אור (R+G+B)',W/2,14);
+    var cy=H*0.41,rr=Math.min(W,H)*0.22;
+    var rX=W*0.35,rY=cy+rr*0.4;
+    var gX=W*0.65,gY=cy+rr*0.4;
+    var bX=W*0.5, bY=cy-rr*0.48;
+    var cr=rr*0.92;
+    ctx.save();ctx.globalCompositeOperation='lighter';
+    // Red
+    var ri=Math.round(rv*255);
+    var gRed=ctx.createRadialGradient(rX,rY,0,rX,rY,cr);
+    gRed.addColorStop(0,'rgba('+ri+',0,0,'+Math.min(1,rv+0.1).toFixed(2)+')');
+    gRed.addColorStop(0.65,'rgba('+ri+',0,0,'+(rv*0.25).toFixed(2)+')');
+    gRed.addColorStop(1,'rgba('+ri+',0,0,0)');
+    ctx.beginPath();ctx.arc(rX,rY,cr,0,Math.PI*2);ctx.fillStyle=gRed;ctx.fill();
+    // Green
+    var gi=Math.round(gv*255);
+    var gGrn=ctx.createRadialGradient(gX,gY,0,gX,gY,cr);
+    gGrn.addColorStop(0,'rgba(0,'+gi+',0,'+Math.min(1,gv+0.1).toFixed(2)+')');
+    gGrn.addColorStop(0.65,'rgba(0,'+gi+',0,'+(gv*0.25).toFixed(2)+')');
+    gGrn.addColorStop(1,'rgba(0,'+gi+',0,0)');
+    ctx.beginPath();ctx.arc(gX,gY,cr,0,Math.PI*2);ctx.fillStyle=gGrn;ctx.fill();
+    // Blue
+    var bi=Math.round(bv*255);
+    var gBlu=ctx.createRadialGradient(bX,bY,0,bX,bY,cr);
+    gBlu.addColorStop(0,'rgba(0,0,'+bi+','+Math.min(1,bv+0.1).toFixed(2)+')');
+    gBlu.addColorStop(0.65,'rgba(0,0,'+bi+',' +(bv*0.25).toFixed(2)+')');
+    gBlu.addColorStop(1,'rgba(0,0,'+bi+',0)');
+    ctx.beginPath();ctx.arc(bX,bY,cr,0,Math.PI*2);ctx.fillStyle=gBlu;ctx.fill();
+    ctx.restore();
+    // Spotlight source dots (above circles)
+    ctx.save();
+    var sY=H*0.05;
+    [[rX,'#ff4444','אדום'],[gX,'#44ff44','ירוק'],[bX,'#4488ff','כחול']].forEach(function(arr){
+      var sx=arr[0],col=arr[1],lbl=arr[2];
+      ctx.fillStyle=col;ctx.beginPath();ctx.arc(sx,sY,7,0,Math.PI*2);ctx.fill();
+      ctx.strokeStyle='#334155';ctx.lineWidth=0.5;
+      ctx.beginPath();ctx.moveTo(sx,sY+7);ctx.lineTo(sx,H*0.18);ctx.stroke();
+      ctx.fillStyle=col;ctx.font='bold 10px Heebo';ctx.textAlign='center';
+      ctx.fillText(lbl,sx,sY-10);
+    });
+    ctx.restore();
+    // Overlap region labels
+    ctx.save();ctx.font='bold 9px Heebo';ctx.textAlign='center';
+    ctx.fillStyle='rgba(255,255,80,0.9)';ctx.fillText('צהוב',W*0.5,cy+rr*0.44);
+    ctx.fillStyle='rgba(80,255,255,0.9)';ctx.fillText('ציאן',W*0.625,cy-rr*0.06);
+    ctx.fillStyle='rgba(255,80,255,0.9)';ctx.fillText('ורוד',W*0.375,cy-rr*0.06);
+    ctx.fillStyle='rgba(255,255,255,0.9)';ctx.fillText('לבן',W*0.5,cy+rr*0.12);
+    ctx.restore();
+    // Info box
+    ctx.save();ctx.fillStyle='rgba(10,22,40,0.9)';ctx.strokeStyle='#1e293b';ctx.lineWidth=1;
+    ctx.beginPath();ctx.roundRect(10,H-74,W-20,60,6);ctx.fill();ctx.stroke();
+    ctx.textAlign='center';ctx.font='11px Heebo';
+    ctx.fillStyle='#ff6464';ctx.fillText('R: '+Math.round(rv*100)+'%',W*0.22,H-53);
+    ctx.fillStyle='#64ff64';ctx.fillText('G: '+Math.round(gv*100)+'%',W*0.5,H-53);
+    ctx.fillStyle='#6496ff';ctx.fillText('B: '+Math.round(bv*100)+'%',W*0.78,H-53);
+    var sumR=Math.min(255,ri),sumG=Math.min(255,gi),sumB=Math.min(255,bi);
+    ctx.fillStyle='rgb('+sumR+','+sumG+','+sumB+')';
+    ctx.fillText('צבע מרכז RGB('+sumR+','+sumG+','+sumB+')',W/2,H-33);
+    ctx.fillStyle='#64748b';ctx.font='9px Heebo';
+    ctx.fillText('R+G=צהוב  |  G+B=ציאן  |  R+B=ורוד  |  R+G+B=לבן',W/2,H-16);
+    ctx.restore();
+    requestAnimationFrame(draw);
+  }
+  function poll(){if(_simStop[id])return;requestAnimationFrame(draw);}poll();
+}
+
+// ─────────────────────────────────────────────────────────────
+// FIBER OPTICS sim — TIR bouncing in curved fiber
+// ─────────────────────────────────────────────────────────────
+function simOptFiber(canvas,id){
+  var _g=(_simGen[id]=(_simGen[id]||0)+1);
+  var R=setupCanvas(canvas,460);var ctx=R.ctx,W=R.W,H=R.H;
+  var animT=0,last=null;
+  function gN1(){var e=document.getElementById('inp-fib-n1');return e?parseFloat(e.value):1.50;}
+  function gN2(){var e=document.getElementById('inp-fib-n2');return e?parseFloat(e.value):1.46;}
+  function gAng(){var e=document.getElementById('inp-fib-ang');return e?parseFloat(e.value)*Math.PI/180:20*Math.PI/180;}
+  function draw(ts){
+    if(_simGen[id]!==_g)return;if(_simStop[id])return;
+    var dt=last?Math.min((ts-last)/1000,0.05):0.016;last=ts;animT+=dt;
+    var n1=gN1(),n2=gN2(),inAng=gAng();
+    ctx.fillStyle='#080e1a';ctx.fillRect(0,0,W,H);
+    var thetaC=Math.asin(Math.min(1,n2/n1));
+    var NA=Math.sqrt(Math.max(0,n1*n1-n2*n2));
+    var maxInAng=Math.asin(Math.min(1,NA));
+    var tir=inAng<=maxInAng;
+    // === FIBER SHAPE: bent S-curve ===
+    var fiberY=H*0.42,fiberR=H*0.32,fiberW=22;
+    var x0=W*0.05,x1=W*0.5,x2=W*0.95;
+    // Draw fiber cladding (outer) then core
+    function drawFiber(yw,col){
+      ctx.save();ctx.beginPath();
+      ctx.moveTo(x0,fiberY-yw/2);
+      ctx.bezierCurveTo(x1*0.5,fiberY-yw/2,x1*0.5,fiberY-fiberR-yw/2,x1,fiberY-fiberR);
+      ctx.bezierCurveTo(x1+(x2-x1)*0.5,fiberY-fiberR+yw/2,x1+(x2-x1)*0.5,fiberY+yw/2,x2,fiberY+yw/2);
+      ctx.lineTo(x2,fiberY-yw/2);
+      ctx.bezierCurveTo(x1+(x2-x1)*0.5,fiberY-yw/2,x1+(x2-x1)*0.5,fiberY-fiberR-yw/2,x1,fiberY-fiberR-yw);
+      ctx.bezierCurveTo(x1*0.5,fiberY-fiberR-yw*1.5,x1*0.5,fiberY+yw/2,x0,fiberY+yw/2);
+      ctx.closePath();ctx.fillStyle=col;ctx.fill();ctx.restore();
+    }
+    drawFiber(fiberW+10,'rgba(30,58,138,0.5)');// cladding
+    drawFiber(fiberW,'rgba(37,99,235,0.25)');  // core
+    // Fiber outline
+    ctx.save();ctx.strokeStyle='#3b82f6';ctx.lineWidth=1.5;
+    var drawCurve=function(offsetY){
+      ctx.beginPath();
+      ctx.moveTo(x0,fiberY+offsetY);
+      ctx.bezierCurveTo(x1*0.5,fiberY+offsetY,x1*0.5,fiberY-fiberR+offsetY,x1,fiberY-fiberR+offsetY);
+      ctx.bezierCurveTo(x1+(x2-x1)*0.5,fiberY-fiberR+offsetY,x1+(x2-x1)*0.5,fiberY+offsetY,x2,fiberY+offsetY);
+      ctx.stroke();
+    };
+    drawCurve(-fiberW/2);drawCurve(fiberW/2);ctx.restore();
+    // === BOUNCING LIGHT RAY (simplified parametric) ===
+    var phase=animT*0.6;
+    var nBounce=12;
+    ctx.save();
+    if(tir){optGlow(ctx,'#fbbf24',10);}
+    ctx.strokeStyle=tir?'#fbbf24':'rgba(251,191,36,0.3)';ctx.lineWidth=2;ctx.lineCap='round';
+    ctx.beginPath();
+    for(var i=0;i<nBounce;i++){
+      var t2=(i+phase%1)/nBounce;
+      var zig=((i+Math.floor(phase))%2===0)?-1:1;
+      // Parametric along the bezier path
+      var bx=x0+t2*(x2-x0);
+      var by=fiberY-fiberR*4*t2*(1-t2)+zig*(fiberW*0.35);
+      if(i===0)ctx.moveTo(bx,by);else ctx.lineTo(bx,by);
+    }
+    ctx.stroke();
+    if(tir)optNoGlow(ctx);
+    ctx.restore();
+    // === INCIDENT RAY (entering) ===
+    var entX=W*0.05,entY=fiberY;
+    ctx.save();ctx.strokeStyle='#fbbf24';ctx.lineWidth=3;ctx.lineCap='round';
+    ctx.beginPath();
+    var srcX=entX-60*Math.cos(inAng),srcY=entY-60*Math.sin(-inAng);
+    ctx.moveTo(srcX,srcY);ctx.lineTo(entX,entY);ctx.stroke();
+    ctx.restore();
+    // === EXITING RAY (right side) ===
+    if(tir){
+      ctx.save();optGlow(ctx,'#fbbf24',12);ctx.strokeStyle='#fbbf24';ctx.lineWidth=3;
+      ctx.beginPath();ctx.moveTo(x2,fiberY);ctx.lineTo(x2+60,fiberY);ctx.stroke();
+      optNoGlow(ctx);ctx.restore();
+      optLabel(ctx,'אור יוצא',x2+55,fiberY-12,'#fbbf24',9);
+    }
+    // === LABELS ===
+    optLabel(ctx,'ליבה n₁='+n1.toFixed(2),W*0.5,fiberY-fiberR-fiberW/2-10,'#93c5fd',9);
+    optLabel(ctx,'מעטה n₂='+n2.toFixed(2),W*0.5,fiberY+fiberW/2+22,'#475569',8);
+    // Critical angle display
+    var tcDeg=(thetaC*180/Math.PI).toFixed(1);
+    var maxDeg=(maxInAng*180/Math.PI).toFixed(1);
+    var inDeg=(inAng*180/Math.PI).toFixed(0);
+    // Status
+    ctx.save();ctx.fillStyle=tir?'#22c55e':'#ef4444';ctx.font='bold 11px Heebo';ctx.textAlign='center';
+    ctx.fillText(tir?'✓ TIR — אור נלכד בסיב':'✗ אור דולף — זווית גדולה מדי',W/2,H*0.12);ctx.restore();
+    optInfoBox(ctx,10,H-70,W-20,['n₁='+n1.toFixed(2)+', n₂='+n2.toFixed(2),'θ_קריטי='+tcDeg+'°, NA='+NA.toFixed(3),'זווית כניסה מקס׳: '+maxDeg+'°','זווית כניסה נוכחית: '+inDeg+'° — '+(tir?'נלכד':'דולף!')]);
+    requestAnimationFrame(draw);
+  }
+  function poll(){if(_simStop[id])return;requestAnimationFrame(draw);}poll();
+}
+
+// ─────────────────────────────────────────────────────────────
+// TELESCOPE sim — two-lens ray diagram
+// ─────────────────────────────────────────────────────────────
+function simOptTelescope(canvas,id){
+  var _g=(_simGen[id]=(_simGen[id]||0)+1);
+  var R=setupCanvas(canvas,460);var ctx=R.ctx,W=R.W,H=R.H;
+  var animT=0,last=null;
+  function gFo(){var e=document.getElementById('inp-tel-fo');return e?parseFloat(e.value):150;}
+  function gFe(){var e=document.getElementById('inp-tel-fe');return e?parseFloat(e.value):25;}
+  function draw(ts){
+    if(_simGen[id]!==_g)return;if(_simStop[id])return;
+    var dt=last?Math.min((ts-last)/1000,0.05):0.016;last=ts;animT+=dt;
+    var fo=gFo(),fe=gFe();
+    ctx.fillStyle='#0a1628';ctx.fillRect(0,0,W,H);
+    var ax=H/2,margin=W*0.05;
+    var totalLen=fo+fe;
+    var scale=(W-margin*2)/totalLen;
+    // Objective lens position
+    var L1x=margin+fo*scale*0.3;// put obj lens at 30% of fo from left (far object)
+    var L2x=L1x+fo*scale;// intermediate image at fo from L1
+    var L3x=L2x+fe*scale;// eyepiece at fe from image
+    // Draw principal axis
+    oDash(ctx,10,ax,W-10,ax,'#1e293b');
+    // === OBJECT (far left, arrow pointing up) ===
+    var objH=28,objX=margin*0.6;
+    ctx.save();ctx.strokeStyle='#fbbf24';ctx.lineWidth=2;ctx.shadowColor='#fbbf24';ctx.shadowBlur=6;
+    ctx.beginPath();ctx.moveTo(objX,ax);ctx.lineTo(objX,ax-objH);ctx.stroke();
+    ctx.fillStyle='#fbbf24';
+    ctx.beginPath();ctx.moveTo(objX,ax-objH);ctx.lineTo(objX-5,ax-objH+9);ctx.lineTo(objX+5,ax-objH+9);
+    ctx.closePath();ctx.fill();ctx.shadowBlur=0;ctx.restore();
+    optLabel(ctx,'עצם',objX,ax+12,'#fbbf24',8);
+    // === OBJECTIVE LENS ===
+    optLensShape(ctx,L1x,ax,8,70,'#3b82f6','rgba(59,130,246,0.08)');
+    optLabel(ctx,'אובייקטיב',L1x,ax+44,'#93c5fd',8);
+    optLabel(ctx,'fₒ='+fo+'mm',L1x,ax+56,'#60a5fa',8);
+    // === INTERMEDIATE IMAGE ===
+    var imgScale=fo/(fo*1000); // very far object → M=-fi/fo ≈ -fi/∞ = tiny, but we show symbolic
+    var imgH=-(objH*0.6);// inverted, smaller
+    ctx.save();ctx.strokeStyle='#f97316';ctx.lineWidth=1.5;ctx.setLineDash([4,3]);
+    ctx.beginPath();ctx.moveTo(L2x,ax);ctx.lineTo(L2x,ax+imgH);ctx.stroke();
+    ctx.setLineDash([]);ctx.restore();
+    ctx.fillStyle='#f97316';ctx.font='8px Heebo';ctx.textAlign='center';
+    ctx.fillText('תמונה\nביניים',L2x,ax+imgH-12);
+    optLabel(ctx,'↕ הפוכה',L2x,ax+imgH-22,'#f97316',8);
+    // === EYEPIECE LENS ===
+    optLensShape(ctx,L3x,ax,6,52,'#7c3aed','rgba(124,58,237,0.08)');
+    optLabel(ctx,'עדשת עין',L3x,ax+34,'#a78bfa',8);
+    optLabel(ctx,'fₑ='+fe+'mm',L3x,ax+46,'#8b5cf6',8);
+    // === 3 PRINCIPAL RAYS from object tip through L1 ===
+    // Ray 1: parallel to axis → through fo on far side
+    ctx.save();ctx.strokeStyle='rgba(251,191,36,0.7)';ctx.lineWidth=1.5;
+    ctx.beginPath();ctx.moveTo(objX,ax-objH);ctx.lineTo(L1x,ax-objH);
+    // After L1: through fo
+    ctx.lineTo(L2x,ax);ctx.stroke();
+    // Ray 2: through center of L1 (undeviated)
+    ctx.strokeStyle='rgba(251,191,36,0.5)';
+    ctx.beginPath();ctx.moveTo(objX,ax-objH);
+    var slope=(ax-objH-ax)/(L1x-objX);
+    ctx.lineTo(L2x,ax-objH+(L2x-objX)*slope);ctx.stroke();
+    ctx.restore();
+    // === EYE (output) ===
+    var eyeX=Math.min(W-margin*0.5,L3x+fe*scale*0.8);
+    ctx.save();ctx.strokeStyle='#e2e8f0';ctx.lineWidth=2;
+    ctx.beginPath();ctx.ellipse(eyeX,ax,18,10,0,0,Math.PI*2);ctx.stroke();
+    ctx.fillStyle='#1d4ed8';ctx.beginPath();ctx.arc(eyeX,ax,6,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#000';ctx.beginPath();ctx.arc(eyeX,ax,3,0,Math.PI*2);ctx.fill();
+    ctx.restore();
+    // === OUTPUT BEAM lines to eye ===
+    ctx.save();ctx.strokeStyle='rgba(167,139,250,0.5)';ctx.lineWidth=1;
+    ctx.beginPath();ctx.moveTo(L3x,ax-8);ctx.lineTo(eyeX,ax-3);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(L3x,ax+8);ctx.lineTo(eyeX,ax+3);ctx.stroke();
+    ctx.restore();
+    // === MAGNIFICATION DISPLAY ===
+    var M=fo/fe;
+    ctx.save();ctx.fillStyle='rgba(10,22,40,0.9)';ctx.strokeStyle='#1e293b';ctx.lineWidth=1;
+    ctx.beginPath();ctx.roundRect(10,10,W-20,38,6);ctx.fill();ctx.stroke();
+    ctx.fillStyle='#34d399';ctx.font='bold 13px Heebo';ctx.textAlign='center';
+    ctx.fillText('הגדלה: M = fₒ/fₑ = '+fo+'/'+fe+' = '+M.toFixed(1)+'×  |  אורך הצינור: '+(fo+fe)+'mm',W/2,32);
+    ctx.restore();
+    // Length scale bar
+    ctx.save();ctx.strokeStyle='#334155';ctx.lineWidth=1;
+    var scaleBarLen=fe*scale;
+    ctx.beginPath();ctx.moveTo(L3x,ax+60);ctx.lineTo(L3x+scaleBarLen,ax+60);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(L3x,ax+55);ctx.lineTo(L3x,ax+65);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(L3x+scaleBarLen,ax+55);ctx.lineTo(L3x+scaleBarLen,ax+65);ctx.stroke();
+    ctx.fillStyle='#64748b';ctx.font='8px Heebo';ctx.textAlign='center';
+    ctx.fillText('fₑ='+fe+'mm',L3x+scaleBarLen/2,ax+74);ctx.restore();
+    optInfoBox(ctx,10,H-64,W-20,['fₒ='+fo+'mm, fₑ='+fe+'mm','הגדלה M='+M.toFixed(1)+'×  (הפוכה)','אורך כולל: '+(fo+fe)+'mm','לטלסקופ: M גדולה = fₒ ארוך ו-fₑ קצר']);
+    requestAnimationFrame(draw);
+  }
+  function poll(){if(_simStop[id])return;requestAnimationFrame(draw);}poll();
+}
+
+// ─────────────────────────────────────────────────────────────
+// THIN FILM INTERFERENCE sim — soap film rainbow
+// ─────────────────────────────────────────────────────────────
+function simOptThinFilm(canvas,id){
+  var _g=(_simGen[id]=(_simGen[id]||0)+1);
+  var R=setupCanvas(canvas,500);var ctx=R.ctx,W=R.W,H=R.H;
+  var animT=0,last=null;
+  function getT(){var e=document.getElementById('inp-tf-thick');return e?parseFloat(e.value):300;}
+  function getN(){var e=document.getElementById('inp-tf-n');return e?parseFloat(e.value):1.33;}
+  // Reflected intensity: I ∝ sin²(2πnt/λ) (one phase flip at first surface)
+  function iRefl(wl,t,n){var ph=2*Math.PI*n*t/wl;return Math.pow(Math.sin(ph),2);}
+  // Get dominant reflected color RGB
+  function reflRGB(t,n){
+    var rr=0,gg=0,bb=0,tot=0;
+    for(var wl=380;wl<=700;wl+=8){
+      var I=iRefl(wl,t,n);
+      var hex=wavelengthToHex(wl);
+      rr+=parseInt(hex.slice(1,3),16)*I;
+      gg+=parseInt(hex.slice(3,5),16)*I;
+      bb+=parseInt(hex.slice(5,7),16)*I;
+      tot+=I;
+    }
+    if(tot<0.01)return [20,20,20];
+    return [Math.round(rr/tot),Math.round(gg/tot),Math.round(bb/tot)];
+  }
+  function draw(ts){
+    if(_simGen[id]!==_g)return;if(_simStop[id])return;
+    var dt=last?Math.min((ts-last)/1000,0.05):0.016;last=ts;animT+=dt;
+    var t0=getT(),n=getN();
+    ctx.fillStyle='#08101e';ctx.fillRect(0,0,W,H);
+    var filmX=W*0.44,filmW=16;
+    var fTop=H*0.07,fBot=H*0.72;
+    // === FILM with gradient thickness from top (thin) to bottom (thick) ===
+    // Shows rainbow of colors: different thicknesses → different constructive λ
+    var gfilm=ctx.createLinearGradient(0,fTop,0,fBot);
+    var nS=32;
+    for(var si=0;si<=nS;si++){
+      var tLocal=t0*(0.2+1.6*si/nS);
+      var rgb=reflRGB(tLocal,n);
+      gfilm.addColorStop(si/nS,'rgba('+rgb[0]+','+rgb[1]+','+rgb[2]+',0.92)');
+    }
+    // Film shadow/depth effect
+    var filmGlow=ctx.createLinearGradient(filmX-filmW/2-5,0,filmX+filmW/2+5,0);
+    filmGlow.addColorStop(0,'rgba(0,0,0,0)');
+    filmGlow.addColorStop(0.2,'rgba(255,255,255,0.08)');
+    filmGlow.addColorStop(0.5,'rgba(255,255,255,0.2)');
+    filmGlow.addColorStop(0.8,'rgba(255,255,255,0.08)');
+    filmGlow.addColorStop(1,'rgba(0,0,0,0)');
+    // Draw film
+    ctx.fillStyle=gfilm;
+    ctx.fillRect(filmX-filmW/2,fTop,filmW,fBot-fTop);
+    ctx.fillStyle=filmGlow;
+    ctx.fillRect(filmX-filmW/2,fTop,filmW,fBot-fTop);
+    ctx.strokeStyle='rgba(148,163,184,0.3)';ctx.lineWidth=0.5;
+    ctx.strokeRect(filmX-filmW/2,fTop,filmW,fBot-fTop);
+    // Film label
+    optLabel(ctx,'קרום דק',filmX,fBot+14,'#94a3b8',8);
+    optLabel(ctx,'n='+n.toFixed(2),filmX,fBot+26,'#64748b',7);
+    // === INCIDENT WHITE LIGHT (animated photons from left) ===
+    var incY=H*0.22,incAng=Math.PI/6;
+    var bLen=W*0.32;
+    var incX0=filmX-filmW/2-bLen*Math.cos(incAng),incY0=incY+bLen*Math.sin(incAng);
+    // Rainbow gradient beam
+    var bGrad=ctx.createLinearGradient(incX0,incY0,filmX-filmW/2,incY);
+    bGrad.addColorStop(0,'rgba(255,80,80,0.8)');
+    bGrad.addColorStop(0.25,'rgba(255,200,50,0.8)');
+    bGrad.addColorStop(0.5,'rgba(80,255,80,0.8)');
+    bGrad.addColorStop(0.75,'rgba(50,130,255,0.8)');
+    bGrad.addColorStop(1,'rgba(255,255,255,0.9)');
+    ctx.save();ctx.strokeStyle=bGrad;ctx.lineWidth=7;ctx.lineCap='round';
+    ctx.beginPath();ctx.moveTo(incX0,incY0);ctx.lineTo(filmX-filmW/2,incY);ctx.stroke();
+    ctx.restore();
+    optLabel(ctx,'אור לבן',incX0-8,incY0-12,'#e2e8f0',9);
+    // === REFLECTED BEAM (current t) ===
+    var rgb0=reflRGB(t0,n);
+    var rCol='rgb('+rgb0[0]+','+rgb0[1]+','+rgb0[2]+')';
+    var pulse=0.75+0.25*Math.sin(animT*2.8);
+    ctx.save();optGlow(ctx,rCol,14*pulse);ctx.strokeStyle=rCol;ctx.lineWidth=6;ctx.lineCap='round';
+    var refX1=filmX-filmW/2,refY1=incY;
+    var refX0=refX1-bLen*Math.cos(incAng),refY0=refY1-bLen*Math.sin(incAng);
+    ctx.beginPath();ctx.moveTo(refX1,refY1);ctx.lineTo(refX0,refY0);ctx.stroke();
+    optNoGlow(ctx);ctx.restore();
+    // Reflected color swatch
+    ctx.save();ctx.fillStyle=rCol;ctx.strokeStyle='rgba(255,255,255,0.2)';ctx.lineWidth=1;
+    ctx.beginPath();ctx.roundRect(refX0-28,refY0-36,56,16,4);ctx.fill();ctx.stroke();ctx.restore();
+    optLabel(ctx,'מוחזר',refX0-5,refY0-40,'#e2e8f0',8);
+    // === TRANSMITTED BEAM ===
+    ctx.save();ctx.strokeStyle='rgba(200,220,240,0.5)';ctx.lineWidth=4;ctx.lineCap='round';
+    ctx.beginPath();ctx.moveTo(filmX+filmW/2,incY);ctx.lineTo(filmX+filmW/2+bLen*Math.cos(incAng),incY);ctx.stroke();
+    ctx.restore();
+    optLabel(ctx,'מועבר',filmX+filmW/2+bLen*0.5,incY-10,'#64748b',8);
+    // === SPECTRUM BAR (right side) ===
+    var sX=W*0.62,sY=H*0.08,sW=W*0.33,sH=H*0.1;
+    optLabel(ctx,'ספקטרום מוחזר',sX+sW/2,sY-10,'#94a3b8',9);
+    for(var xi=0;xi<sW;xi++){
+      var wl=380+320*(xi/sW);
+      var I=iRefl(wl,t0,n);
+      var hex=wavelengthToHex(wl);
+      var rr=parseInt(hex.slice(1,3),16),gg=parseInt(hex.slice(3,5),16),bb=parseInt(hex.slice(5,7),16);
+      ctx.fillStyle='rgba('+rr+','+gg+','+bb+','+Math.max(0.05,I).toFixed(2)+')';
+      ctx.fillRect(sX+xi,sY,1,sH);
+    }
+    ctx.strokeStyle='#334155';ctx.lineWidth=1;ctx.strokeRect(sX,sY,sW,sH);
+    optLabel(ctx,'380',sX,sY+sH+10,'#475569',7);
+    optLabel(ctx,'700nm',sX+sW,sY+sH+10,'#475569',7);
+    // === INTENSITY GRAPH ===
+    var gX=W*0.62,gY=H*0.24,gW=W*0.33,gH=H*0.22;
+    ctx.fillStyle='rgba(10,20,38,0.7)';ctx.fillRect(gX,gY,gW,gH);
+    ctx.strokeStyle='#1e293b';ctx.lineWidth=1;ctx.strokeRect(gX,gY,gW,gH);
+    optLabel(ctx,'I_מוחזר(λ)',gX+gW/2,gY-8,'#94a3b8',8);
+    ctx.save();ctx.strokeStyle='rgba(148,210,255,0.9)';ctx.lineWidth=2;
+    ctx.beginPath();
+    for(var xi2=0;xi2<gW;xi2++){
+      var wl2=380+320*(xi2/gW);
+      var I2=iRefl(wl2,t0,n);
+      var py=gY+gH*(1-I2);
+      if(xi2===0)ctx.moveTo(gX+xi2,py);else ctx.lineTo(gX+xi2,py);
+    }
+    ctx.stroke();ctx.restore();
+    // Mark peak wavelengths
+    for(var m=0;m<=4;m++){
+      var lpeak=4*n*t0/(2*m+1);
+      if(lpeak>=385&&lpeak<=695){
+        var xi3=(lpeak-380)/320*gW;
+        ctx.save();ctx.strokeStyle='rgba(251,191,36,0.7)';ctx.lineWidth=1;ctx.setLineDash([2,3]);
+        ctx.beginPath();ctx.moveTo(gX+xi3,gY);ctx.lineTo(gX+xi3,gY+gH);ctx.stroke();ctx.setLineDash([]);ctx.restore();
+        optLabel(ctx,Math.round(lpeak)+'nm',gX+xi3,gY+gH+10,'#fbbf24',7);
+      }
+    }
+    // Current t marker on film
+    var tFrac=(t0-t0*0.2)/(t0*1.6-t0*0.2);// normalized position
+    var markerY=fTop+(fBot-fTop)*Math.min(1,Math.max(0,tFrac));
+    ctx.save();ctx.strokeStyle='#fff';ctx.lineWidth=1.5;
+    ctx.beginPath();ctx.moveTo(filmX-filmW/2-8,markerY);ctx.lineTo(filmX+filmW/2+8,markerY);ctx.stroke();
+    ctx.fillStyle='#fff';ctx.font='7px Heebo';ctx.textAlign='right';
+    ctx.fillText('t='+t0+'nm',filmX-filmW/2-10,markerY+3);ctx.restore();
+    // Info box
+    optInfoBox(ctx,10,H-68,W-20,['t='+t0+'nm, n='+n.toFixed(2),'I∝sin²(2πnt/λ)','מקס׳ (m=0): λ='+(4*n*t0).toFixed(0)+'nm','מקס׳ (m=1): λ='+(4*n*t0/3).toFixed(0)+'nm']);
+    requestAnimationFrame(draw);
+  }
+  function poll(){if(_simStop[id])return;requestAnimationFrame(draw);}poll();
+}
+
+// ─────────────────────────────────────────────────────────────
+// DIFFRACTION GRATING sim
+// ─────────────────────────────────────────────────────────────
+function simOptGrating(canvas,id){
+  var _g=(_simGen[id]=(_simGen[id]||0)+1);
+  var R=setupCanvas(canvas,480);var ctx=R.ctx,W=R.W,H=R.H;
+  var animT=0,last=null;
+  function getD(){var e=document.getElementById('inp-gr-d');return e?parseFloat(e.value)*1000:1500;}// μm→nm
+  function getLam(){var e=document.getElementById('inp-gr-lambda');return e?parseFloat(e.value):550;}
+  function draw(ts){
+    if(_simGen[id]!==_g)return;if(_simStop[id])return;
+    var dt=last?Math.min((ts-last)/1000,0.05):0.016;last=ts;animT+=dt;
+    var dNm=getD(),lambda=getLam();
+    ctx.fillStyle='#080e1a';ctx.fillRect(0,0,W,H);
+    var ax=H/2;
+    var grX=W*0.28,scrX=W*0.85;
+    var scrH=H*0.85,scrTop=(H-scrH)/2;
+    // === GRATING (vertical lines) ===
+    ctx.save();ctx.strokeStyle='#475569';ctx.lineWidth=1;
+    for(var i=0;i<8;i++){
+      var lx=grX-6+i*3;
+      ctx.beginPath();ctx.moveTo(lx,H*0.1);ctx.lineTo(lx,H*0.9);ctx.stroke();
+    }
+    ctx.strokeStyle='#64748b';ctx.lineWidth=2;
+    ctx.beginPath();ctx.moveTo(grX,H*0.08);ctx.lineTo(grX,H*0.92);ctx.stroke();
+    ctx.restore();
+    optLabel(ctx,'סריג',grX,H*0.08-8,'#94a3b8',9);
+    optLabel(ctx,'d='+( dNm/1000).toFixed(2)+'μm',grX,H*0.92+14,'#64748b',8);
+    // === INCIDENT BEAM ===
+    ctx.save();var lHex=wavelengthToHex(lambda);
+    optGlow(ctx,lHex,8);ctx.strokeStyle=lHex;ctx.lineWidth=4;ctx.lineCap='round';
+    ctx.beginPath();ctx.moveTo(W*0.05,ax);ctx.lineTo(grX,ax);ctx.stroke();
+    optNoGlow(ctx);ctx.restore();
+    optLabel(ctx,'λ='+lambda+'nm',W*0.15,ax-12,lHex,9);
+    // === SCREEN ===
+    ctx.save();ctx.fillStyle='rgba(30,41,59,0.8)';ctx.fillRect(scrX,scrTop,10,scrH);
+    ctx.strokeStyle='#334155';ctx.lineWidth=1;ctx.strokeRect(scrX,scrTop,10,scrH);ctx.restore();
+    optLabel(ctx,'מסך',scrX+5,scrTop-8,'#64748b',8);
+    // === DIFFRACTED ORDERS ===
+    var orders=[-2,-1,0,1,2];
+    var lRGB=wavelengthToRGB(lambda).match(/\d+/g);
+    orders.forEach(function(m){
+      var sinTh=m*lambda/dNm;
+      if(Math.abs(sinTh)>0.96)return;// beyond 90°, not observable
+      var th=Math.asin(sinTh);
+      // Direction from grating center
+      var dx=scrX-grX,dy=dx*Math.tan(th);
+      var hitY=ax+dy;
+      if(hitY<scrTop||hitY>scrTop+scrH)return;
+      // Draw the beam
+      var alpha=m===0?0.9:0.8;
+      ctx.save();
+      if(m!==0){optGlow(ctx,'rgb('+lRGB[0]+','+lRGB[1]+','+lRGB[2]+')',m===0?4:8);}
+      ctx.strokeStyle=m===0?'rgba(255,255,255,0.85)':'rgba('+lRGB[0]+','+lRGB[1]+','+lRGB[2]+','+alpha+')';
+      ctx.lineWidth=m===0?3:2.5;ctx.lineCap='round';
+      ctx.beginPath();ctx.moveTo(grX,ax);ctx.lineTo(scrX,hitY);ctx.stroke();
+      if(m!==0)optNoGlow(ctx);
+      ctx.restore();
+      // Angle label near grating
+      var labelX=grX+50,labelY=ax+Math.tan(th)*50;
+      optLabel(ctx,'m='+m,(m===0?grX+65:labelX),labelY+(m>=0?-10:10),(m===0?'#e2e8f0':'rgb('+lRGB[0]+','+lRGB[1]+','+lRGB[2]+')'),8);
+      // Bright dot on screen + intensity bar
+      var intensity=m===0?0.9:0.7;
+      ctx.save();optGlow(ctx,m===0?'#fff':'rgb('+lRGB[0]+','+lRGB[1]+','+lRGB[2]+')',10*intensity);
+      ctx.fillStyle=m===0?'rgba(255,255,255,0.95)':'rgba('+lRGB[0]+','+lRGB[1]+','+lRGB[2]+',0.95)';
+      ctx.beginPath();ctx.arc(scrX+2,hitY,5,0,Math.PI*2);ctx.fill();
+      optNoGlow(ctx);ctx.restore();
+      // Angle readout on right side of screen
+      if(m!==0){
+        ctx.fillStyle='rgba('+lRGB[0]+','+lRGB[1]+','+lRGB[2]+',0.8)';
+        ctx.font='8px Heebo';ctx.textAlign='left';
+        ctx.fillText('m='+m+': θ='+(th*180/Math.PI).toFixed(1)+'°',scrX+16,hitY+3);
+      }
+    });
+    // === ANGLE ARC at grating ===
+    var sinTh1=lambda/dNm;
+    if(Math.abs(sinTh1)<=1){
+      var th1=Math.asin(sinTh1);
+      optAngleArc(ctx,grX,ax,40,0,-th1,'#fbbf24',0.6);
+      optLabel(ctx,'θ₁='+(th1*180/Math.PI).toFixed(1)+'°',grX+55,ax-th1/2*100,'#fbbf24',8);
+    }
+    // === d·sinθ=mλ formula display ===
+    ctx.save();ctx.fillStyle='rgba(10,18,32,0.9)';ctx.strokeStyle='#1e293b';ctx.lineWidth=1;
+    ctx.beginPath();ctx.roundRect(10,10,W*0.55,32,6);ctx.fill();ctx.stroke();
+    ctx.fillStyle='#94a3b8';ctx.font='11px Heebo';ctx.textAlign='center';
+    ctx.fillText('d·sinθ = mλ   →   sinθ₁ = λ/d = '+lambda+'/'+dNm.toFixed(0)+'nm = '+(lambda/dNm).toFixed(3),W*0.28,30);
+    ctx.restore();
+    optInfoBox(ctx,10,H-70,W-20,['d='+( dNm/1000).toFixed(2)+'μm, λ='+lambda+'nm','m=±1: θ='+(Math.abs(sinTh1)<=1?(Math.asin(sinTh1)*180/Math.PI).toFixed(1)+'°':'לא קיים'),'m=±2: sinθ='+(2*lambda/dNm).toFixed(3)+(2*lambda/dNm<=1?' (קיים)':' (מעל 90° — לא קיים)'),'אדום נסטה יותר מכחול — הפוך מפריזמה']);
+    requestAnimationFrame(draw);
+  }
+  function poll(){if(_simStop[id])return;requestAnimationFrame(draw);}poll();
+}
+
 // THEORY MINI-ANIMATIONS  (all fn(canvas,ctx,t) — t in seconds)
 // ══════════════════════════════════════════════
 
@@ -15762,6 +16480,183 @@ runAnim('anim-laser-t',function(canvas,ctx,W,H,t){
   oPhoton(ctx,ix+20,iy+8,'#ef4444',t*3-0.3);
 });
 
+
+// ─── Color Mix theory anim ───────────────────────────────────
+runAnim('anim-color-mix-t',function(canvas,ctx,W,H,t){
+  oBg(ctx,W,H);
+  var cy=H*0.48,r=Math.min(W,H)*0.22;
+  var rX=W*0.35,rY=cy+r*0.38,gX=W*0.65,gY=cy+r*0.38,bX=W*0.5,bY=cy-r*0.5;
+  var cr=r*0.85;
+  var pulse=0.6+0.35*Math.sin(t*1.2);
+  ctx.save();ctx.globalCompositeOperation='lighter';
+  function spot(x,y,ri,gi,bi,a){
+    var g=ctx.createRadialGradient(x,y,0,x,y,cr);
+    g.addColorStop(0,'rgba('+ri+','+gi+','+bi+','+a.toFixed(2)+')');
+    g.addColorStop(0.6,'rgba('+ri+','+gi+','+bi+','+(a*0.2).toFixed(2)+')');
+    g.addColorStop(1,'rgba('+ri+','+gi+','+bi+',0)');
+    ctx.beginPath();ctx.arc(x,y,cr,0,Math.PI*2);ctx.fillStyle=g;ctx.fill();
+  }
+  spot(rX,rY,255,0,0,pulse);
+  spot(gX,gY,0,220,0,pulse);
+  spot(bX,bY,0,60,255,pulse);
+  ctx.restore();
+  oLbl(ctx,'R',rX,rY+cr+12,'#ff6464',9);
+  oLbl(ctx,'G',gX,gY+cr+12,'#44ff44',9);
+  oLbl(ctx,'B',bX,bY-cr-6,'#6496ff',9);
+  oLbl(ctx,'R+G+B=לבן',W/2,H-6,'#94a3b8',8);
+});
+
+// ─── Fiber optics theory anim ────────────────────────────────
+runAnim('anim-fiber-t',function(canvas,ctx,W,H,t){
+  oBg(ctx,W,H);
+  var fY=H*0.5,fw=14;
+  // Simple straight fiber
+  ctx.save();ctx.fillStyle='rgba(37,99,235,0.2)';ctx.fillRect(0,fY-fw/2,W,fw);
+  ctx.strokeStyle='#3b82f6';ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(0,fY-fw/2);ctx.lineTo(W,fY-fw/2);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(0,fY+fw/2);ctx.lineTo(W,fY+fw/2);ctx.stroke();
+  ctx.restore();
+  // Bouncing ray
+  var nBounce=10,speed=0.5;
+  ctx.save();optGlow(ctx,'#fbbf24',8);ctx.strokeStyle='#fbbf24';ctx.lineWidth=2;
+  ctx.beginPath();
+  for(var i=0;i<=nBounce;i++){
+    var px=i*W/nBounce;
+    var zig=(i%2===0)?-1:1;
+    var py=fY+zig*(fw*0.38);
+    if(i===0)ctx.moveTo(px,py);else ctx.lineTo(px,py);
+  }
+  // Animated photon dot along the path
+  var progFrac=((t*speed)%1);
+  var dotI=Math.floor(progFrac*nBounce);
+  var dotFrac=progFrac*nBounce-dotI;
+  var dx1=dotI*W/nBounce,dy1=fY+(dotI%2===0?-1:1)*(fw*0.38);
+  var dx2=(dotI+1)*W/nBounce,dy2=fY+((dotI+1)%2===0?-1:1)*(fw*0.38);
+  ctx.stroke();
+  ctx.fillStyle='#fbbf24';ctx.beginPath();ctx.arc(dx1+(dx2-dx1)*dotFrac,dy1+(dy2-dy1)*dotFrac,4,0,Math.PI*2);ctx.fill();
+  optNoGlow(ctx);ctx.restore();
+  oLbl(ctx,'ליבה n₁',W*0.5,fY,'#93c5fd',8);
+  oLbl(ctx,'TIR חוזר',W*0.75,fY-fw/2-10,'#fbbf24',8);
+  oLbl(ctx,'מעטה n₂<n₁',W*0.5,fY+fw/2+14,'#475569',8);
+});
+
+// ─── Telescope theory anim ──────────────────────────────────
+runAnim('anim-telescope-t',function(canvas,ctx,W,H,t){
+  oBg(ctx,W,H);
+  var ax=H/2;
+  var L1x=W*0.25,L2x=W*0.6,L3x=W*0.78;
+  oDash(ctx,8,ax,W-8,ax,'#1e293b');
+  // Object
+  ctx.save();ctx.strokeStyle='#fbbf24';ctx.lineWidth=2;
+  ctx.beginPath();ctx.moveTo(W*0.06,ax);ctx.lineTo(W*0.06,ax-24);ctx.stroke();
+  ctx.fillStyle='#fbbf24';ctx.beginPath();
+  ctx.moveTo(W*0.06,ax-24);ctx.lineTo(W*0.06-5,ax-15);ctx.lineTo(W*0.06+5,ax-15);
+  ctx.closePath();ctx.fill();ctx.restore();
+  // Obj lens
+  ctx.save();ctx.strokeStyle='#93c5fd';ctx.lineWidth=2;
+  ctx.beginPath();ctx.moveTo(L1x,ax-32);ctx.bezierCurveTo(L1x+12,ax,L1x+12,ax,L1x,ax+32);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(L1x,ax-32);ctx.bezierCurveTo(L1x-12,ax,L1x-12,ax,L1x,ax+32);ctx.stroke();
+  ctx.restore();
+  oLbl(ctx,'fₒ',L1x,ax+38,'#93c5fd',8);
+  // Intermediate image (inverted) — oscillates to show dynamism
+  var imgH=18*Math.sin(t*0.3+1);
+  ctx.save();ctx.strokeStyle='#f97316';ctx.lineWidth=1.5;ctx.setLineDash([4,3]);
+  ctx.beginPath();ctx.moveTo(L2x,ax);ctx.lineTo(L2x,ax-imgH);ctx.stroke();ctx.setLineDash([]);ctx.restore();
+  // Eye lens
+  ctx.save();ctx.strokeStyle='#a78bfa';ctx.lineWidth=2;
+  ctx.beginPath();ctx.moveTo(L3x,ax-22);ctx.bezierCurveTo(L3x+8,ax,L3x+8,ax,L3x,ax+22);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(L3x,ax-22);ctx.bezierCurveTo(L3x-8,ax,L3x-8,ax,L3x,ax+22);ctx.stroke();
+  ctx.restore();
+  oLbl(ctx,'fₑ',L3x,ax+28,'#a78bfa',8);
+  // Eye
+  ctx.save();ctx.strokeStyle='#e2e8f0';ctx.lineWidth=1.5;
+  ctx.beginPath();ctx.ellipse(W*0.92,ax,14,8,0,0,Math.PI*2);ctx.stroke();
+  ctx.fillStyle='#1d4ed8';ctx.beginPath();ctx.arc(W*0.92,ax,4,0,Math.PI*2);ctx.fill();ctx.restore();
+  // Rays
+  oRay(ctx,W*0.06,ax-24,L1x,ax-2,'rgba(251,191,36,0.6)',1);
+  oRay(ctx,L1x,ax-2,L2x,ax-imgH,'rgba(249,115,22,0.5)',1);
+  oRay(ctx,L2x,ax-imgH,L3x,ax-5,'rgba(167,139,250,0.6)',1);
+  oLbl(ctx,'M=fₒ/fₑ',W/2,H-6,'#94a3b8',8);
+});
+
+// ─── Thin film theory anim ──────────────────────────────────
+runAnim('anim-thin-film-t',function(canvas,ctx,W,H,t){
+  oBg(ctx,W,H);
+  var fX=W*0.48,fW=14,fTop=H*0.12,fBot=H*0.85;
+  // Film with animated color (slowly cycling thickness)
+  var tCycle=120+180*((Math.sin(t*0.35)+1)/2);// 120-300nm cycle
+  var n=1.33;
+  function iR(wl){return Math.pow(Math.sin(2*Math.PI*n*tCycle/wl),2);}
+  var gfilm=ctx.createLinearGradient(0,fTop,0,fBot);
+  for(var si=0;si<=20;si++){
+    var tL=tCycle*(0.3+1.4*si/20);
+    var rr=0,gg=0,bb=0,tot=0;
+    for(var wl=380;wl<=700;wl+=12){
+      var I=Math.pow(Math.sin(2*Math.PI*n*tL/wl),2);
+      var h=wavelengthToHex(wl);
+      rr+=parseInt(h.slice(1,3),16)*I;
+      gg+=parseInt(h.slice(3,5),16)*I;
+      bb+=parseInt(h.slice(5,7),16)*I;
+      tot+=I;
+    }
+    if(tot<0.01){rr=20;gg=20;bb=20;}else{rr/=tot;gg/=tot;bb/=tot;}
+    gfilm.addColorStop(si/20,'rgba('+Math.round(rr)+','+Math.round(gg)+','+Math.round(bb)+',0.9)');
+  }
+  ctx.fillStyle=gfilm;ctx.fillRect(fX-fW/2,fTop,fW,fBot-fTop);
+  ctx.strokeStyle='rgba(148,163,184,0.3)';ctx.lineWidth=0.5;ctx.strokeRect(fX-fW/2,fTop,fW,fBot-fTop);
+  // Incident ray
+  oRay(ctx,fX-60,H*0.3+40,fX-fW/2,H*0.3,'rgba(255,255,200,0.8)',3);
+  // Reflected ray (colored)
+  var rgb0={r:0,g:0,b:0,tot:0};
+  for(var wl2=380;wl2<=700;wl2+=12){
+    var I2=iR(wl2);var h2=wavelengthToHex(wl2);
+    rgb0.r+=parseInt(h2.slice(1,3),16)*I2;rgb0.g+=parseInt(h2.slice(3,5),16)*I2;
+    rgb0.b+=parseInt(h2.slice(5,7),16)*I2;rgb0.tot+=I2;
+  }
+  if(rgb0.tot>0.01){rgb0.r/=rgb0.tot;rgb0.g/=rgb0.tot;rgb0.b/=rgb0.tot;}
+  var rCol='rgb('+Math.round(rgb0.r)+','+Math.round(rgb0.g)+','+Math.round(rgb0.b)+')';
+  ctx.save();optGlow(ctx,rCol,8);
+  oRay(ctx,fX-fW/2,H*0.3,fX-60,H*0.3-40,rCol,3);
+  optNoGlow(ctx);ctx.restore();
+  oLbl(ctx,'קרום דק',fX,fBot+12,'#94a3b8',8);
+  oLbl(ctx,'n='+n,fX,fBot+22,'#64748b',7);
+  oLbl(ctx,'צבעים מהתאבכות',W/2,H-4,'#94a3b8',8);
+});
+
+// ─── Grating theory anim ────────────────────────────────────
+runAnim('anim-grating-t',function(canvas,ctx,W,H,t){
+  oBg(ctx,W,H);
+  var gX=W*0.3,ax=H/2;
+  // Animated wavelength cycling through spectrum
+  var wl=380+320*((Math.sin(t*0.4)+1)/2);
+  var lHex=wavelengthToHex(Math.round(wl));
+  var lRGB=wavelengthToRGB(Math.round(wl)).match(/\d+/g);
+  // Grating lines
+  ctx.save();ctx.strokeStyle='#475569';ctx.lineWidth=1;
+  for(var i=0;i<6;i++){ctx.beginPath();ctx.moveTo(gX-6+i*3,H*0.12);ctx.lineTo(gX-6+i*3,H*0.88);ctx.stroke();}
+  ctx.restore();
+  // Incident beam
+  oRay(ctx,W*0.06,ax,gX,ax,lHex,3);
+  // Orders m=0,±1
+  var d=1500;// nm
+  [[0,'#fff'],[1,lHex],[-1,lHex]].forEach(function(arr){
+    var m=arr[0],col=arr[1];
+    var sinTh=m*wl/d;
+    if(Math.abs(sinTh)>0.9)return;
+    var th=Math.asin(sinTh);
+    var dx=(W*0.88-gX),dy=dx*Math.tan(th);
+    if(Math.abs(ax+dy)<H*0.08||Math.abs(ax+dy)>H*0.92)return;
+    ctx.save();if(m!==0)optGlow(ctx,col,6);
+    oRay(ctx,gX,ax,W*0.88,ax+dy,m===0?'rgba(255,255,255,0.7)':col,m===0?2:2);
+    if(m!==0)optNoGlow(ctx);
+    ctx.restore();
+    oLbl(ctx,'m='+m,W*0.88+8,ax+dy,col,8);
+  });
+  oLbl(ctx,'d·sinθ=mλ',W/2,H-6,'#94a3b8',8);
+  oLbl(ctx,'λ='+Math.round(wl)+'nm',W*0.18,ax-12,lHex,9);
+});
+
+
 });
 
 }
@@ -15965,6 +16860,11 @@ function buildSim(sim){
   else if(sim.type==='opt-polarization')extra=C(rng('pol-angle',0,180,45,1,'זווית מנתח θ','°')+rng('pol-i0',20,100,80,5,'עוצמה ראשונית I₀','%'));
   else if(sim.type==='opt-doppler')extra=C(rng('dop-v',0,80,20,1,'מהירות מקור (% c)','%')+rng('dop-wl',400,700,550,5,'אורך גל מקורי λ₀',' nm'));
   else if(sim.type==='opt-laser')extra=C(rng('laser-pump',0,100,60,5,'עוצמת שאיבה','%')+'<div class="range-wrap"><label>סוג לייזר:</label><select id="inp-laser-type" style="background:#1e293b;color:#e2e8f0;border:1px solid #334155;border-radius:6px;padding:4px 8px;font-size:.85rem"><option value="633">He-Ne (633nm)</option><option value="514">Ar⁺ (514nm)</option><option value="1064">Nd:YAG (1064nm)</option></select></div>');
+  else if(sim.type==='opt-color-mix')extra=C(rng('cm-red',0,100,80,5,'אדום R','%')+rng('cm-green',0,100,80,5,'ירוק G','%')+rng('cm-blue',0,100,80,5,'כחול B','%'));
+  else if(sim.type==='opt-fiber')extra=C(rng('fib-n1',1.30,1.80,1.50,0.01,'מדד שבירה ליבה n₁','')+rng('fib-n2',1.20,1.70,1.46,0.01,'מדד שבירה מעטה n₂','')+rng('fib-ang',2,40,20,1,'זווית כניסה','°'));
+  else if(sim.type==='opt-telescope')extra=C(rng('tel-fo',30,300,150,5,'מוקד אובייקטיב fₒ','mm')+rng('tel-fe',5,60,25,5,'מוקד עדשת עין fₑ','mm'));
+  else if(sim.type==='opt-thin-film')extra=C(rng('tf-thick',50,600,300,5,'עובי קרום t','nm')+rng('tf-n',1.10,2.00,1.33,0.02,'מדד שבירה n',''));
+  else if(sim.type==='opt-grating')extra=C(rng('gr-d',0.5,5.0,1.5,0.1,'מרווח סריג d','μm')+rng('gr-lambda',380,700,550,5,'אורך גל λ','nm'));
   const simDone=isCompleted(state.chapter,state.section,'sim');
   return `<div class="sim-container">
     <div class="sim-canvas-wrap"><canvas id="sim-canvas" height="280"></canvas></div>
