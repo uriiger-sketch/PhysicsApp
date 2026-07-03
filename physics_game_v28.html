@@ -10088,7 +10088,7 @@ function simOptEmWave(canvas){
     ctx.save();
     for(var i=0;i<=N;i+=2){
       var x=i/N*W;var ph=kx*x-omega*t;
-      var bAmp=amp*0.7*Math.cos(ph); // B in phase with E (cos=sin shifted 90°... actually same phase for EM wave)
+      var bAmp=amp*0.7*Math.sin(ph); // B in phase with E — same phase, both peak at same spatial point
       if(Math.abs(bAmp)<0.5)continue;
       ctx.strokeStyle='rgba(167,139,250,.65)';ctx.lineWidth=Math.abs(bAmp/amp)*2.5+0.5;
       optGlow(ctx,'#a78bfa',4);
@@ -10349,8 +10349,10 @@ function simOptConcaveMirror(canvas){
   var f=85,cy=H/2,mx=W-52;
   function getObj(){var e=document.getElementById('inp-cm-do');return e?parseFloat(e.value):2.5;}
   function getWl(){var e=document.getElementById('inp-cm-wl');return e?parseFloat(e.value):550;}
+  var animT=0;
   function draw(){
     if(_simStop[id])return;
+    animT+=0.025;
     var doMult=getObj(),doPx=doMult*f;
     var wl=getWl(),wlHex=wavelengthToHex(wl);
     var _cr=wavelengthToRGB(wl).match(/\d+/g);
@@ -10482,6 +10484,12 @@ function simOptConcaveMirror(canvas){
     var _cn2=wl<430?'UV':wl<470?'סגול':wl<500?'כחול':wl<560?'ירוק':wl<590?'צהוב':wl<625?'כתום':'אדום';
     ctx.save();ctx.fillStyle=wlHex;optGlow(ctx,wlHex,8);ctx.beginPath();ctx.arc(W-20,H-20,8,0,Math.PI*2);ctx.fill();optNoGlow(ctx);ctx.restore();
     optInfoBox(ctx,8,8,172,['f='+f+'px','dₒ='+Math.round(doPx)+'px','dᵢ='+diS,'הגדלה m='+mS,'λ='+Math.round(wl)+'nm '+_cn2]);
+    // Animated photon along ray 1 (horizontal incident, toward mirror)
+    var _ph=(animT*0.35)%1;
+    var _pSX=Math.max(16,objX),_pEX=mx;
+    ctx.save();ctx.fillStyle=wlHex;optGlow(ctx,wlHex,14);
+    ctx.beginPath();ctx.arc(_pSX+(_pEX-_pSX)*_ph,cy-objH,3.5,0,Math.PI*2);ctx.fill();
+    optNoGlow(ctx);ctx.restore();
     requestAnimationFrame(draw);
   }
   function poll(){if(_simStop[id])return;requestAnimationFrame(draw);}poll();
@@ -10493,8 +10501,10 @@ function simOptConvexMirror(canvas){
   const id=canvas.id;var f=85,cy=H/2,mx=58;
   function getObj(){var e=document.getElementById('inp-cvm-do');return e?parseFloat(e.value):2.5;}
   function getWl(){var e=document.getElementById('inp-cvm-wl');return e?parseFloat(e.value):550;}
+  var animT=0;
   function draw(){
     if(_simStop[id])return;
+    animT+=0.025;
     var doMult=getObj(),doPx=doMult*f;
     var wl=getWl(),wlHex=wavelengthToHex(wl);
     var _vr=wavelengthToRGB(wl).match(/\d+/g);
@@ -10577,6 +10587,12 @@ function simOptConvexMirror(canvas){
     var _cn3=wl<430?'UV':wl<470?'סגול':wl<500?'כחול':wl<560?'ירוק':wl<590?'צהוב':wl<625?'כתום':'אדום';
     ctx.save();ctx.fillStyle=wlHex;optGlow(ctx,wlHex,8);ctx.beginPath();ctx.arc(W-20,H-20,8,0,Math.PI*2);ctx.fill();optNoGlow(ctx);ctx.restore();
     optInfoBox(ctx,8,8,178,['f=−'+f+'px (מדומה)','dₒ='+Math.round(doPx)+'px','dᵢ=−'+Math.round(Math.abs(diVal))+'px','m=+'+mStr+' (ישרה, מוקטנת)','λ='+Math.round(wl)+'nm '+_cn3]);
+    // Animated photon along ray 1 (horizontal incident, right→left toward convex mirror)
+    var _ph=(animT*0.35)%1;
+    var _pSX=objX,_pEX=mx;
+    ctx.save();ctx.fillStyle=wlHex;optGlow(ctx,wlHex,14);
+    ctx.beginPath();ctx.arc(_pSX+(_pEX-_pSX)*_ph,cy-objH,3.5,0,Math.PI*2);ctx.fill();
+    optNoGlow(ctx);ctx.restore();
     requestAnimationFrame(draw);
   }
   function poll(){if(_simStop[id])return;requestAnimationFrame(draw);}poll();
@@ -10919,8 +10935,10 @@ function simOptConvexLens(canvas){
   const id=canvas.id;var f=95,cy=H/2,lx=W/2;
   function getObj(){var e=document.getElementById('inp-cl-do');return e?parseFloat(e.value):2.2;}
   function getWl(){var e=document.getElementById('inp-cl-wl');return e?parseFloat(e.value):550;}
+  var animT=0;
   function draw(){
     if(_simStop[id])return;
+    animT+=0.025;
     var doMult=getObj(),doPx=doMult*f,diVal=1/(1/f-1/doPx);
     var wl=getWl(),wlHex=wavelengthToHex(wl);
     var bg=ctx.createLinearGradient(0,0,0,H);bg.addColorStop(0,'#020810');bg.addColorStop(1,'#030d1a');
@@ -10969,6 +10987,12 @@ function simOptConvexLens(canvas){
     var _ln=wl<430?'UV':wl<470?'סגול':wl<500?'כחול':wl<560?'ירוק':wl<590?'צהוב':wl<625?'כתום':'אדום';
     ctx.save();ctx.fillStyle=wlHex;optGlow(ctx,wlHex,8);ctx.beginPath();ctx.arc(W-20,H-20,8,0,Math.PI*2);ctx.fill();optNoGlow(ctx);ctx.restore();
     optInfoBox(ctx,8,8,180,['dₒ='+Math.round(doPx)+'px','dᵢ='+diS,'m='+m_,diVal<0?'מדומה, ישרה':'ממשית, '+(parseFloat(m_)<0?'הפוכה':'ישרה'),'λ='+Math.round(wl)+'nm '+_ln]);
+    // Animated photon along ray 1 (horizontal incident, left→right toward lens)
+    var _ph=(animT*0.35)%1;
+    var _pSX=Math.max(10,objX),_pEX=lx;
+    ctx.save();ctx.fillStyle=wlHex;optGlow(ctx,wlHex,14);
+    ctx.beginPath();ctx.arc(_pSX+(_pEX-_pSX)*_ph,cy-objH,3.5,0,Math.PI*2);ctx.fill();
+    optNoGlow(ctx);ctx.restore();
     requestAnimationFrame(draw);
   }
   function poll(){if(_simStop[id])return;requestAnimationFrame(draw);}poll();
@@ -10980,8 +11004,10 @@ function simOptConcaveLens(canvas){
   const id=canvas.id;var f=95,cy=H/2,lx=W/2;
   function getObj(){var e=document.getElementById('inp-dcl-do');return e?parseFloat(e.value):2.2;}
   function getWl(){var e=document.getElementById('inp-dcl-wl');return e?parseFloat(e.value):550;}
+  var animT=0;
   function draw(){
     if(_simStop[id])return;
+    animT+=0.025;
     var doMult=getObj(),doPx=doMult*f;
     var wl=getWl(),wlHex=wavelengthToHex(wl);
     // Concave lens: f_eff = -f  →  di = -f*do/(do+f)  [always negative = virtual]
@@ -11053,6 +11079,12 @@ function simOptConcaveLens(canvas){
     var _dl=wl<430?'UV':wl<470?'סגול':wl<500?'כחול':wl<560?'ירוק':wl<590?'צהוב':wl<625?'כתום':'אדום';
     ctx.save();ctx.fillStyle=wlHex;optGlow(ctx,wlHex,8);ctx.beginPath();ctx.arc(W-20,H-20,8,0,Math.PI*2);ctx.fill();optNoGlow(ctx);ctx.restore();
     optInfoBox(ctx,8,8,185,['dₒ='+Math.round(doPx)+'px','dᵢ='+Math.round(diVal)+'px','m=+'+mStr+' (ישרה, מוקטנת)','מדומה תמיד','λ='+Math.round(wl)+'nm '+_dl]);
+    // Animated photon along ray 1 (horizontal incident, left→right toward lens)
+    var _ph=(animT*0.35)%1;
+    var _pSX=objX,_pEX=lx;
+    ctx.save();ctx.fillStyle=wlHex;optGlow(ctx,wlHex,14);
+    ctx.beginPath();ctx.arc(_pSX+(_pEX-_pSX)*_ph,cy-objH,3.5,0,Math.PI*2);ctx.fill();
+    optNoGlow(ctx);ctx.restore();
     requestAnimationFrame(draw);
   }
   function poll(){if(_simStop[id])return;requestAnimationFrame(draw);}poll();
@@ -11164,7 +11196,8 @@ function simOptInterference(canvas){
   function draw(ts){
     if(_simStop[id])return;
     animT+=0.06;
-    var v=getVals();var lam=v.lambda,d=v.d;
+    var v=getVals();var lam_nm=v.lambda,d_mm=v.d;
+    var lam=10+(lam_nm-380)/320*70;var d=d_mm*10;// nm→px, mm→px
     var s1y=H/2-d/2,s2y=H/2+d/2,sx=W*0.22;
     var bg=ctx.createLinearGradient(0,0,0,H);bg.addColorStop(0,'#020810');bg.addColorStop(1,'#030d1a');
     ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);
@@ -11173,7 +11206,7 @@ function simOptInterference(canvas){
     // Draw animated 2D interference
     var imgData=ctx.createImageData(W,H);
     var k=2*Math.PI/lam;
-    var visWL=380+((lam-10)/(80-10))*320;visWL=Math.max(380,Math.min(700,visWL));
+    var visWL=lam_nm;// slider is now in nm directly
     var rgb=wavelengthToRGB(visWL).match(/[\d.]+/g);var lr=parseFloat(rgb[0])/255,lg=parseFloat(rgb[1])/255,lb=parseFloat(rgb[2])/255;
     for(var y=0;y<H;y++){
       for(var x=sx;x<W;x++){
@@ -11207,7 +11240,7 @@ function simOptInterference(canvas){
       ctx.beginPath();ctx.arc(sx,sy,6,0,Math.PI*2);ctx.fill();optNoGlow(ctx);ctx.restore();
       optLabel(ctx,'S'+(i+1),sx-16,sy,'#fbbf24',10);
     });
-    optInfoBox(ctx,8,8,140,['λ='+Math.round(lam)+'px','d='+Math.round(d)+'px']);
+    optInfoBox(ctx,8,8,152,['λ='+lam_nm+'nm','d='+d_mm+'mm']);
     requestAnimationFrame(draw);
   }requestAnimationFrame(draw);
 }
@@ -11239,7 +11272,8 @@ function simOptYoungs(canvas){
     ctx.beginPath();ctx.arc(20,cy,8,0,Math.PI*2);ctx.fill();optNoGlow(ctx);ctx.restore();
     optLabel(ctx,'מקור',20,cy+20,'#64748b',9);
     // Slit positions (shown proportionally on canvas, not physical scale)
-    var s1y=cy-36,s2y=cy+36;
+    var dScale=Math.max(14,Math.min(88,Math.round(v.d*88)));// 0.1mm→9px, 1.0mm→88px
+    var s1y=cy-dScale,s2y=cy+dScale;
     var slitH=8;
     ctx.save();ctx.fillStyle='rgba(15,28,46,.95)';ctx.strokeStyle='rgba(71,85,105,.4)';ctx.lineWidth=1;
     ctx.beginPath();ctx.roundRect(slitX-4,10,8,s1y-slitH-10,2);ctx.fill();ctx.stroke();
@@ -11307,7 +11341,8 @@ function simOptDiffraction(canvas){
     var col=wavelengthToHex(v.lambda);
     var bgG=ctx.createLinearGradient(0,0,0,H);bgG.addColorStop(0,'#020810');bgG.addColorStop(1,'#030d1a');
     ctx.fillStyle=bgG;ctx.fillRect(0,0,W,H);
-    var slitX=82,scrX=W-52,cy=H/2,slitHalf=18;
+    var slitX=82,scrX=W-52,cy=H/2;
+    var slitHalf=Math.max(5,Math.min(52,Math.round(5+v.a*47)));// dynamic: a=0.05mm→7px, a=1mm→52px
     // Barrier with slit
     ctx.save();ctx.fillStyle='rgba(15,28,46,.95)';ctx.strokeStyle='rgba(71,85,105,.4)';ctx.lineWidth=1;
     ctx.beginPath();ctx.roundRect(slitX-4,8,8,cy-slitHalf-8,2);ctx.fill();ctx.stroke();
@@ -11326,8 +11361,10 @@ function simOptDiffraction(canvas){
     var nWav=6;
     for(var w=1;w<=nWav;w++){
       var rr=(w*16+(animT*26)%(16));if(rr<4)continue;
-      ctx.save();ctx.strokeStyle=col;ctx.lineWidth=0.8;ctx.globalAlpha=(nWav-w+1)/nWav*0.3;
-      ctx.beginPath();ctx.arc(slitX,cy,rr,-Math.PI/2,Math.PI/2);ctx.stroke();
+      ctx.save();ctx.strokeStyle=col;ctx.lineWidth=0.8;ctx.globalAlpha=(nWav-w+1)/nWav*0.25;
+      [-slitHalf*0.5,0,slitHalf*0.5].forEach(function(off){
+        ctx.beginPath();ctx.arc(slitX,cy+off,rr,-Math.PI/2,Math.PI/2);ctx.stroke();
+      });
       ctx.restore();
     }
     // DIFFRACTION PATTERN: use normalized scale so first minimum is always visible
@@ -11905,13 +11942,16 @@ function simOptColorMix(canvas,id){
   function gB(){var e=document.getElementById('inp-cm-blue');return e?parseFloat(e.value)/100:0.8;}
   function draw(ts){
     if(_simGen[id]!==_g)return;if(_simStop[id])return;
+    var animT=ts/1000||0;
+    var pulse=1+0.07*Math.sin(animT*1.8);// gentle breathing ±7%
+    var drift=Math.sin(animT*0.65)*2.5;// slow 2.5px oscillation
     var rv=gR(),gv=gG(),bv=gB();
     ctx.fillStyle='#060c18';ctx.fillRect(0,0,W,H);
     ctx.fillStyle='#475569';ctx.font='bold 10px Heebo';ctx.textAlign='center';
     ctx.fillText('ערבוב חיבורי — אור (R+G+B)',W/2,14);
     var cy=H*0.41,rr=Math.min(W,H)*0.22;
-    var rX=W*0.35,rY=cy+rr*0.4;
-    var gX=W*0.65,gY=cy+rr*0.4;
+    var rX=W*0.35+drift,rY=cy+rr*0.4;
+    var gX=W*0.65-drift,gY=cy+rr*0.4;
     var bX=W*0.5, bY=cy-rr*0.48;
     var cr=rr*0.92;
     ctx.save();ctx.globalCompositeOperation='lighter';
@@ -11942,7 +11982,7 @@ function simOptColorMix(canvas,id){
     var sY=H*0.05;
     [[rX,'#ff4444','אדום'],[gX,'#44ff44','ירוק'],[bX,'#4488ff','כחול']].forEach(function(arr){
       var sx=arr[0],col=arr[1],lbl=arr[2];
-      ctx.fillStyle=col;ctx.beginPath();ctx.arc(sx,sY,7,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle=col;ctx.beginPath();ctx.arc(sx,sY,7*pulse,0,Math.PI*2);ctx.fill();
       ctx.strokeStyle='#334155';ctx.lineWidth=0.5;
       ctx.beginPath();ctx.moveTo(sx,sY+7);ctx.lineTo(sx,H*0.18);ctx.stroke();
       ctx.fillStyle=col;ctx.font='bold 10px Heebo';ctx.textAlign='center';
@@ -12021,17 +12061,23 @@ function simOptFiber(canvas,id){
     drawCurve(-fiberW/2);drawCurve(fiberW/2);ctx.restore();
     // === BOUNCING LIGHT RAY (simplified parametric) ===
     var phase=animT*0.6;
-    var nBounce=12;
+    var nBounce=14;
+    // Cubic bezier helper: evaluate one coordinate component
+    function cubBez(t,p0,p1,p2,p3){var u=1-t;return u*u*u*p0+3*u*u*t*p1+3*u*t*t*p2+t*t*t*p3;}
+    // Fiber centerline S-curve: two bezier segments
+    function midPt(tf){
+      if(tf<=0.5){var t=tf*2;return{x:cubBez(t,x0,x1*0.5,x1*0.5,x1),y:cubBez(t,fiberY,fiberY,fiberY-fiberR,fiberY-fiberR)};}
+      var t=(tf-0.5)*2;return{x:cubBez(t,x1,x1+(x2-x1)*0.5,x1+(x2-x1)*0.5,x2),y:cubBez(t,fiberY-fiberR,fiberY-fiberR,fiberY,fiberY)};
+    }
     ctx.save();
     if(tir){optGlow(ctx,'#fbbf24',10);}
     ctx.strokeStyle=tir?'#fbbf24':'rgba(251,191,36,0.3)';ctx.lineWidth=2;ctx.lineCap='round';
     ctx.beginPath();
     for(var i=0;i<nBounce;i++){
-      var t2=(i+phase%1)/nBounce;
-      var zig=((i+Math.floor(phase))%2===0)?-1:1;
-      // Parametric along the bezier path
-      var bx=x0+t2*(x2-x0);
-      var by=fiberY-fiberR*4*t2*(1-t2)+zig*(fiberW*0.35);
+      var tf=Math.min(0.999,(i+(phase%1))/nBounce);
+      var mp=midPt(tf);
+      var zig=((i+Math.floor(phase))%2===0)?1:-1;
+      var bx=mp.x,by=mp.y+zig*(fiberW*0.38);
       if(i===0)ctx.moveTo(bx,by);else ctx.lineTo(bx,by);
     }
     ctx.stroke();
@@ -12139,6 +12185,16 @@ function simOptTelescope(canvas,id){
     ctx.beginPath();ctx.moveTo(L3x,ax-8);ctx.lineTo(eyeX,ax-3);ctx.stroke();
     ctx.beginPath();ctx.moveTo(L3x,ax+8);ctx.lineTo(eyeX,ax+3);ctx.stroke();
     ctx.restore();
+    // === ANIMATED PHOTON: obj→L1 (horizontal) → L2 (converging to axis) ===
+    var _tph=(animT*0.28)%1;
+    var _d1=L1x-objX,_d2=L2x-L1x,_dTot=_d1+_d2;
+    var _tPos=_tph*_dTot;
+    var _phX,_phY;
+    if(_tPos<_d1){_phX=objX+_tPos;_phY=ax-objH;}
+    else{var _tt=(_tPos-_d1)/_d2;_phX=L1x+_tt*(L2x-L1x);_phY=(ax-objH)*(1-_tt)+ax*_tt;}
+    ctx.save();ctx.fillStyle='#fbbf24';optGlow(ctx,'#fbbf24',12);
+    ctx.beginPath();ctx.arc(_phX,_phY,3.5,0,Math.PI*2);ctx.fill();
+    optNoGlow(ctx);ctx.restore();
     // === MAGNIFICATION DISPLAY ===
     var M=fo/fe;
     ctx.save();ctx.fillStyle='rgba(10,22,40,0.9)';ctx.strokeStyle='#1e293b';ctx.lineWidth=1;
@@ -16853,7 +16909,7 @@ function buildSim(sim){
     '<button class="btn btn-primary" onclick="window._eyeMode(\'far\')">😊 תקינה</button>'+
     '<button class="btn btn-secondary" onclick="window._eyeMode(\'myopia\')">👓 קוצר ראייה</button>'+
     '<button class="btn btn-secondary" onclick="window._eyeMode(\'hyper\')">🔭 ראייה ארוכה</button></div>');
-  else if(sim.type==='opt-interference')extra=C(rng('int-lambda',10,80,40,2,'אורך גל λ',' px')+rng('int-d',20,120,60,5,'מרחק מקורות d',' px'));
+  else if(sim.type==='opt-interference')extra=C(rng('int-lambda',380,700,500,10,'אורך גל λ',' nm')+rng('int-d',2,12,5,0.5,'מרחק מקורות d',' mm'));
   else if(sim.type==='opt-youngs')extra=C(rng('ys-lambda',400,700,500,10,'אורך גל λ',' nm')+rng('ys-d',0.1,1,0.3,0.05,'מרחק סדקים d',' mm')+rng('ys-L',0.5,3,1,0.1,'מרחק מסך L',' m'));
   else if(sim.type==='opt-diffraction')extra=C(rng('diff-a',0.05,1,0.1,0.01,'רוחב סדק a',' mm')+rng('diff-lambda',380,700,500,10,'אורך גל λ',' nm'));
   else if(sim.type==='opt-em-spectrum')extra=C(rng('ems-pos',0,100,45,1,'מיקום בספקטרום','%'));
