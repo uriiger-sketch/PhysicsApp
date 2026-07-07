@@ -1825,7 +1825,7 @@ const CONTENT={
       <div class="def-block"><div class="def-title">חיבור — שיטת ראש לזנב</div>
         <p>מניחים את הזנב של ${M('\\vec{B}')} בראש ${M('\\vec{A}')}. הסכום = חץ מזנב ${M('\\vec{A}')} לראש ${M('\\vec{B}')}.</p>
       </div>
-      ${animCanvas('anim-vecadd',186,'גרור ראשי חצים — ירוק = A+B')}
+      ${animCanvas('anim-vecadd',186,'חיבור וקטורים ראש-אל-זנב — ירוק = A+B')}
       <p class="anim-note">חיסור וקטורי A−B הוא הוקטור מ<b>קצה B</b> לקצה A. ניתן לראות זאת כ-A + (−B).</p>
       ${animCanvas('anim-vecdiff',158,'חיסור A−B')}
       ${fBox('|\\vec{R}| = \\sqrt{A^2 + B^2 + 2AB\\cos\\theta}','גודל הסכום',[
@@ -4511,6 +4511,7 @@ function simAcceleration(canvas){
   canvas.addEventListener('mouseup',function(){dragging=false;});
   canvas.addEventListener('dblclick',function(){vel=getV0();ballX=W/2;hist=[];t=0;});
   var rb=document.getElementById('btn-acc-reset'); if(rb)rb.addEventListener('click',function(){vel=getV0();ballX=W/2;hist=[];t=0;});
+  var v0e=document.getElementById('inp-acc-v0'); if(v0e)v0e.addEventListener('input',function(){vel=getV0();ballX=W/2;hist=[];t=0;});
   requestAnimationFrame(draw);
 }
 
@@ -5250,7 +5251,7 @@ function simIncline(canvas){
 
   function getTheta(){ const e=document.getElementById('inp-inc-theta'); return e?parseFloat(e.value):30; }
   function getMu()   { const e=document.getElementById('inp-inc-mu');    return e?parseFloat(e.value):0; }
-  function getMass() { const e=document.getElementById('inp-inc-mass');  return e?parseFloat(e.value):5; }
+  function getMass() { const e=document.getElementById('inp-inc-m');  return e?parseFloat(e.value):3; }
   function getM1()   { const e=document.getElementById('inp-inc-m1');    return e?parseFloat(e.value):3; }
   function getM2()   { const e=document.getElementById('inp-inc-m2');    return e?parseFloat(e.value):5; }
 
@@ -5548,8 +5549,8 @@ function simTension(canvas){
 
   function getM1(){var e=document.getElementById('inp-ten-m1'); return e?parseFloat(e.value):m1;}
   function getM2(){var e=document.getElementById('inp-ten-m2'); return e?parseFloat(e.value):m2;}
-  function getAcc(){var e=document.getElementById('inp-ten-a'); return e?parseFloat(e.value):aEl;}
-  function getMEl(){var e=document.getElementById('inp-ten-m'); return e?parseFloat(e.value):mEl;}
+  function getAcc(){var e=document.getElementById('inp-ten-ea'); return e?parseFloat(e.value):aEl;}
+  function getMEl(){var e=document.getElementById('inp-ten-el'); return e?parseFloat(e.value):mEl;}
   function getModeSel(){
     var e=document.getElementById('inp-ten-mode');
     return e?e.value:'atwood';
@@ -7042,7 +7043,7 @@ function simSpringForce(canvas){
   var fmodeBtn=document.getElementById('btn-sf-fmode');
   if(fmodeBtn) fmodeBtn.addEventListener('click',function(){
     window._springForceModeAbs=!window._springForceModeAbs;
-    fmodeBtn.textContent=window._springForceModeAbs?'📐 הצג F=-kx':'📐 הצג |F|=k|x|';
+    fmodeBtn.textContent=window._springForceModeAbs?'📐 הצג |F|=k|x|':'📐 הצג F=-kx';
   });
 
   // Spring anchor on left wall
@@ -7173,12 +7174,35 @@ function simSpringForce(canvas){
     var state=compressed?'דחיסה (F כיוון חיובי ← מחזיר)':stretched?'מתיחה (F כיוון שלילי ← מחזיר)':'שיווי משקל';
     simText(ctx,state,W/2,46,compressed?'#60a5fa':stretched?'#f87171':'#34d399',8.5,undefined,true);
 
-    // ── |F|(|x|) GRAPH — Hooke's law: force SIZE vs displacement SIZE ──
-    // Positive quadrant only: x-axis = |x|, y-axis = |F|=k|x|
+    // ── F(x) GRAPH — Hooke's law: |F|=k|x| (default) or signed F=−kx (toggle) ──
+    var signedMode=!!window._springForceModeAbs;
     var GX=W*0.64, GY=SPRING_Y-20, GW=W-GX-12, GH=H-GY-12;
     ctx.save(); ctx.fillStyle='rgba(6,14,28,.9)'; ctx.strokeStyle='#1e4060'; ctx.lineWidth=1.5;
     ctx.beginPath(); ctx.roundRect(GX,GY,GW,GH,5); ctx.fill(); ctx.stroke(); ctx.restore();
-    simText(ctx,'|F| = k|x|  (חוק הוק)',GX+GW/2,GY+11,'#22d3ee',8,undefined,true);
+    simText(ctx,signedMode?'F = −kx  (חוק הוק)':'|F| = k|x|  (חוק הוק)',GX+GW/2,GY+11,'#22d3ee',8,undefined,true);
+    if(signedMode){
+      // Four-quadrant signed graph: origin at panel center, line F=−kx
+      var xRangeS=0.22, cOX=GX+GW/2, cOY=GY+14+(GH-24)/2;
+      var sXsc=(GW-24)/(2*xRangeS), sFsc=(GH-28)/(2*k*xRangeS);
+      ctx.save(); ctx.strokeStyle='#2d5275'; ctx.lineWidth=1;
+      ctx.beginPath(); ctx.moveTo(cOX,GY+16); ctx.lineTo(cOX,GY+GH-8); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(GX+8,cOY); ctx.lineTo(GX+GW-6,cOY); ctx.stroke();
+      ctx.restore();
+      simText(ctx,'x →',GX+GW-8,cOY+9,'#2d5275',7,'right');
+      simText(ctx,'F ↑',cOX+4,GY+22,'#2d5275',7,'left');
+      ctx.save(); ctx.strokeStyle='rgba(34,211,153,.4)'; ctx.lineWidth=1.5; ctx.setLineDash([3,4]);
+      ctx.beginPath();
+      ctx.moveTo(cOX-xRangeS*sXsc, cOY-k*xRangeS*sFsc);
+      ctx.lineTo(cOX+xRangeS*sXsc, cOY+k*xRangeS*sFsc);
+      ctx.stroke(); ctx.setLineDash([]); ctx.restore();
+      label(ctx,'F=−kx',cOX+26,cOY-22,'#22d3ee',7.5,'left');
+      var spx=Math.max(GX+8,Math.min(GX+GW-6,cOX+x*sXsc));
+      var spy=Math.max(GY+16,Math.min(GY+GH-8,cOY-F*sFsc));
+      ctx.save(); ctx.fillStyle=springCol; ctx.strokeStyle='#030c15'; ctx.lineWidth=1.5;
+      ctx.beginPath(); ctx.arc(spx,spy,5.5,0,Math.PI*2); ctx.fill(); ctx.stroke(); ctx.restore();
+      simText(ctx,'('+(x*100).toFixed(0)+'cm, '+F.toFixed(1)+'N)',spx+6,spy-6,springCol,7.5,'left');
+      simText(ctx,'שיפוע = −k = −'+k+' N/m',GX+GW/2,GY+GH-2,'#64748b',7.5,undefined,true);
+    } else {
     // Origin at bottom-left of data area
     var gOX=GX+10, gOY=GY+GH-10;
     var gDW=GW-18, gDH=GH-24;
@@ -7223,6 +7247,7 @@ function simSpringForce(canvas){
     ctx.beginPath(); ctx.arc(cpx2,cpy2,5.5,0,Math.PI*2); ctx.fill(); ctx.stroke(); ctx.restore();
     simText(ctx,'('+Math.abs(x*100).toFixed(0)+'cm, '+cabsF.toFixed(1)+'N)',cpx2+6,cpy2-5,springCol,7.5,'left');
     simText(ctx,'שיפוע = k = '+k+' N/m',GX+GW/2,GY+GH-2,'#64748b',7.5,undefined,true);
+    }
 
     requestAnimationFrame(draw);
   }
@@ -7704,8 +7729,8 @@ function simGravityForce(canvas){
       ctx.stroke(); ctx.restore();
 
       // Weight value (bold, colored)
-      simText(ctx,W_force.toFixed(0)+' N',cx,H-32,pl.col,10,undefined,true);
-      simText(ctx,'W=m·g',cx,H-19,'#64748b',7.5,undefined,true);
+      simText(ctx,W_force.toFixed(0)+' N',cx,H-46,pl.col,10,undefined,true);
+      simText(ctx,'W=m·g',cx,H-33,'#64748b',7.5,undefined,true);
     });
 
     // Earth highlight pulse
@@ -7717,9 +7742,8 @@ function simGravityForce(canvas){
 
     // Mass constant reminder
     ctx.save(); ctx.fillStyle='rgba(6,14,28,.88)'; ctx.strokeStyle='rgba(34,211,153,.3)'; ctx.lineWidth=1.5;
-    ctx.beginPath(); ctx.roundRect(8,H-52,W-16,44,5); ctx.fill(); ctx.stroke(); ctx.restore();
-    simText(ctx,'מסה (m='+m+' kg) — קבועה בכל מקום! | משקל (W=mg) — משתנה עם g',W/2,H-36,'#34d399',9.5,undefined,true);
-    simText(ctx,'ביקום ללא כבידה: W=0, אך m='+m+' kg עדיין! (ה"תמדה" אינה משתנה)',W/2,H-20,'#64748b',8.5,undefined,true);
+    ctx.beginPath(); ctx.roundRect(8,H-24,W-16,20,5); ctx.fill(); ctx.stroke(); ctx.restore();
+    simText(ctx,'מסה (m='+m+' kg) — קבועה בכל מקום! | משקל (W=mg) — משתנה עם g',W/2,H-14,'#34d399',9,undefined,true);
 
     requestAnimationFrame(draw);
   }
@@ -7740,12 +7764,13 @@ function simStaticFriction(canvas){
   var graphData=[]; // {F_applied, fs_actual}
   var FLOOR_Y=H*0.52;
 
-  function getF(){var e=document.getElementById('inp-sf-F'); return e?parseFloat(e.value):F;}
-  function getMu(){var e=document.getElementById('inp-sf-mus'); return e?parseFloat(e.value):mu_s;}
-  function getM(){var e=document.getElementById('inp-sf-mass'); return e?parseFloat(e.value):m;}
+  function getF(){var e=document.getElementById('inp-sft-F'); return e?parseFloat(e.value):F;}
+  function getMu(){var e=document.getElementById('inp-sft-mu'); return e?parseFloat(e.value):mu_s;}
+  function getM(){var e=document.getElementById('inp-sft-mass'); return e?parseFloat(e.value):m;}
 
-  var resetBtn=document.getElementById('btn-sf-reset');
-  if(resetBtn)resetBtn.addEventListener('click',function(){vel=0;pos=null;state='static';graphData=[];});
+  var resetBtn=document.getElementById('btn-sft-reset');
+  if(resetBtn)resetBtn.addEventListener('click',function(){vel=0;pos=null;state='static';graphData=[];
+    var fe=document.getElementById('inp-sft-F');if(fe){fe.value=0;var rv=document.getElementById('rv-sft-F');if(rv)rv.textContent='0';}});
 
   function draw(ts){
     if(_simStop[id])return;
@@ -8093,7 +8118,7 @@ function simFrictionCombined(canvas){
   var theta_prev=-1;
 
   function getTheta(){var e=document.getElementById('inp-fc-theta'); return e?parseFloat(e.value):theta;}
-  function getM(){var e=document.getElementById('inp-fc-mass'); return e?parseFloat(e.value):m;}
+  function getM(){var e=document.getElementById('inp-fc-m'); return e?parseFloat(e.value):m;}
   function getF(){var e=document.getElementById('inp-fc-F'); return e?parseFloat(e.value):F_push;}
   function getMu(){var e=document.getElementById('inp-fc-mu'); return e?parseFloat(e.value):mu;}
 
@@ -8940,7 +8965,7 @@ function simAtwood(canvas){
   var maxY=H-100;
   var y1=CEIL_Y+PR+8, y2=CEIL_Y+PR+8;  // TOP of each mass box
   var vel=0, pT=null;
-  var running=true;
+  var running=false, started=false;
 
   function getM1(){var e=document.getElementById('inp-atw-m1'); return e?parseFloat(e.value):3;}
   function getM2(){var e=document.getElementById('inp-atw-m2'); return e?parseFloat(e.value):5;}
@@ -8951,11 +8976,13 @@ function simAtwood(canvas){
     var bH=Math.max(36,heavier*6);
     // Start: both masses at top, just below pulley
     y1=CEIL_Y+PR+6; y2=CEIL_Y+PR+6;
-    vel=0; pT=null; running=true;
+    vel=0; pT=null; running=false; started=false;
   }
 
   var resetBtn=document.getElementById('btn-atw-reset');
   if(resetBtn)resetBtn.addEventListener('click',function(){reset();});
+  var launchBtn=document.getElementById('btn-atw-launch');
+  if(launchBtn)launchBtn.addEventListener('click',function(){running=true;started=true;pT=null;});
 
   reset();
 
@@ -9074,8 +9101,8 @@ function simAtwood(canvas){
     simText(ctx,'T = 2m\u2081m\u2082g/(m\u2081+m\u2082) = '+T.toFixed(2)+' N',W/2,H-64,'#34d399',11.5,undefined,true);
     var dir_str=a>0.02?'m\u2082 \u05d9\u05d5\u05e8\u05d3  \u2192  m\u2081 \u05e2\u05d5\u05dc\u05d4':a<-0.02?'m\u2081 \u05d9\u05d5\u05e8\u05d3  \u2192  m\u2082 \u05e2\u05d5\u05dc\u05d4':'\u05e9\u05d9\u05d5\u05d5\u05d9 \u05de\u05e9\u05e7\u05dc \u2014 m\u2081=m\u2082';
     simText(ctx,dir_str,W/2,H-42,Math.abs(a)>0.02?'#fbbf24':'#34d399',11.5,undefined,true);
-    var status=running?'\u05e9\u05e0\u05d4 m\u2081,m\u2082 \u2014 \u05dc\u05d7\u05e5 \u05d0\u05e4\u05e1 \u05dc\u05d7\u05d6\u05e8\u05d4':'\u05d4\u05e1\u05d9\u05de\u05d5\u05dc\u05d9\u05d4 \u05d4\u05e1\u05ea\u05d9\u05d9\u05de\u05d4 \u2014 \u05dc\u05d7\u05e5 \u05d0\u05e4\u05e1';
-    simText(ctx,status,W/2,H-22,running?'#334e68':'#ef4444',8.5,undefined,false);
+    var status=!started?'לחץ ▶ שחרר! כדי להתחיל':running?'שנה m₁,m₂ — לחץ אפס לחזרה':'הסימולציה הסתיימה — לחץ אפס';
+    simText(ctx,status,W/2,H-22,!started?'#fbbf24':running?'#334e68':'#ef4444',8.5,undefined,false);
 
     requestAnimationFrame(draw);
   }
@@ -9579,7 +9606,7 @@ function simSHMDef(canvas){
       ctx.beginPath(); ctx.arc(Math.min(gAX+gAW,cpx),gCY-(x_m/Math.max(A,1))*(GH/2-16),5,0,Math.PI*2); ctx.fill(); ctx.stroke(); ctx.restore();
     }
     simText(ctx,'t (s) →',gAX+gAW-2,gCY+10,'#3d6480',7,'right');
-    simText(ctx,'x ↑',gAX+2,gCY-gCH/2,'#a78bfa',7,'center');
+    simText(ctx,'x ↑',gAX+2,gCY-GH/2+8,'#a78bfa',7,'center');
     // T markers
     for(var ti=1;ti*T<=tSpan;ti++){
       var tp=gAX+(ti*T/tSpan)*gAW;
@@ -10820,7 +10847,7 @@ function simOptPrism(canvas){
   // Equilateral prism apex A=60 degrees
   var A=Math.PI/3;
   // Incident angle at entry face (in radians, from face normal)
-  var theta_i=0.4; // ~23 degrees from normal — produces visible spread
+  var theta_i=0.4; // updated each frame from the angle slider
   function computeRefraction(wl){
     var n=prismN(wl);
     var sinR1=Math.sin(theta_i)/n;
@@ -10854,18 +10881,32 @@ function simOptPrism(canvas){
     // Entry ~60% up the left face
     var et=0.52;
     var entX=pw[0]+(pw[2]-pw[0])*et,entY=ph[0]+(ph[2]-ph[0])*et;
-    // Incident white beam (from left)
+    // Incident angle from the slider (measured from the face normal)
+    var angE=document.getElementById('inp-prism-ang');
+    theta_i=angE?parseFloat(angE.value)*Math.PI/180:0.4;
+    // Inward normal of the left face → beam direction that makes exactly θᵢ with it
+    var lfdx0=pw[2]-pw[0],lfdy0=ph[2]-ph[0],lflen0=Math.hypot(lfdx0,lfdy0);
+    var nInX0=-lfdy0/lflen0,nInY0=lfdx0/lflen0;
+    var normAng=Math.atan2(nInY0,nInX0);
+    var beamAng=normAng-theta_i;
+    var bdx=Math.cos(beamAng),bdy=Math.sin(beamAng);
+    var srcX=entX-bdx*150,srcY=entY-bdy*150;
+    // Dashed normal at the entry point
+    optDash(ctx,entX-nInX0*46,entY-nInY0*46,entX+nInX0*24,entY+nInY0*24,'#475569',0.7);
+    // Incident white beam
     ctx.save();
-    var wbg=ctx.createLinearGradient(22,entY,entX,entY);
+    var wbg=ctx.createLinearGradient(srcX,srcY,entX,entY);
     wbg.addColorStop(0,'rgba(255,255,255,0)');wbg.addColorStop(1,'rgba(255,255,255,.85)');
     ctx.strokeStyle=wbg;ctx.lineWidth=8;optGlow(ctx,'#ffffff',12);
-    ctx.beginPath();ctx.moveTo(22,entY);ctx.lineTo(entX,entY);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(srcX,srcY);ctx.lineTo(entX,entY);ctx.stroke();
     optNoGlow(ctx);ctx.restore();
     // Photon on incident beam
+    var pfr=(animT*0.3)%1;
     ctx.save();ctx.fillStyle='#ffffff';optGlow(ctx,'#ffffff',18);
-    ctx.beginPath();ctx.arc(22+(entX-22)*((animT*0.3)%1),entY,3.5,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.arc(srcX+(entX-srcX)*pfr,srcY+(entY-srcY)*pfr,3.5,0,Math.PI*2);ctx.fill();
     optNoGlow(ctx);ctx.restore();
-    optLabel(ctx,'אור לבן',22,entY-12,'#e2e8f0',10);
+    optLabel(ctx,'אור לבן',srcX+16,srcY-12,'#e2e8f0',10);
+    optLabel(ctx,'θ='+Math.round(theta_i*180/Math.PI)+'°',entX-40,entY-24,'#fbbf24',9);
     // Left face normal direction (outward): perpendicular to left face, pointing left
     // Left face vector: (pw[2]-pw[0], ph[2]-ph[0])
     var lfDx=pw[2]-pw[0],lfDy=ph[2]-ph[0];
@@ -12361,13 +12402,19 @@ function simOptThinFilm(canvas,id){
     var fTop=H*0.07,fBot=H*0.72;
     // === FILM with gradient thickness from top (thin) to bottom (thick) ===
     // Shows rainbow of colors: different thicknesses → different constructive λ
-    var gfilm=ctx.createLinearGradient(0,fTop,0,fBot);
-    var nS=32;
-    for(var si=0;si<=nS;si++){
-      var tLocal=t0*(0.2+1.6*si/nS);
-      var rgb=reflRGB(tLocal,n);
-      gfilm.addColorStop(si/nS,'rgba('+rgb[0]+','+rgb[1]+','+rgb[2]+',0.92)');
+    // Cache the spectral gradient — rebuilding 33 stops × 40 wavelengths per frame is wasteful
+    var gKey=t0+'_'+n;
+    if(draw._gKey!==gKey){
+      var gf=ctx.createLinearGradient(0,fTop,0,fBot);
+      var nS=32;
+      for(var si=0;si<=nS;si++){
+        var tLocal=t0*(0.2+1.6*si/nS);
+        var rgb=reflRGB(tLocal,n);
+        gf.addColorStop(si/nS,'rgba('+rgb[0]+','+rgb[1]+','+rgb[2]+',0.92)');
+      }
+      draw._gKey=gKey;draw._grad=gf;
     }
+    var gfilm=draw._grad;
     // Film shadow/depth effect
     var filmGlow=ctx.createLinearGradient(filmX-filmW/2-5,0,filmX+filmW/2+5,0);
     filmGlow.addColorStop(0,'rgba(0,0,0,0)');
@@ -12949,7 +12996,7 @@ runAnim('anim-inertia',(canvas,ctx,W,H,t)=>{
   ctx.save(); ctx.strokeStyle='rgba(52,211,153,.15)'; ctx.lineWidth=1;
   for(let x=0;x<W;x+=24){ ctx.beginPath(); ctx.moveTo(x,FLY); ctx.lineTo(x+15,FLY+8); ctx.stroke(); }
   ctx.restore();
-  label(ctx,'χ חלק — ללא חיכוך',W/2,FLY+11,'#1a3a52',8);
+  label(ctx,'משטח חלק — ללא חיכוך',W/2,FLY+11,'#1a3a52',8);
 
   // Ghost trail
   const ghostXs=[bx-22,bx-44,bx-66,bx-88];
@@ -13506,7 +13553,7 @@ runAnim('anim-vecadd',(canvas,ctx,W,H,t)=>{
   label(ctx,'|R|=√(Rx²+Ry²)',px,py+112,'#22d3ee',8.5);
   label(ctx,'='+Rmag.toFixed(2),px,py+126,'#22d3ee',9);
 
-  label(ctx,'גרור ראשי חצים — ירוק = A+B',W/2,H-5,'#334e68',7.5);
+  label(ctx,'חיבור וקטורים ראש-אל-זנב — ירוק = A+B',W/2,H-5,'#334e68',7.5);
 });
 
 // CH2 ANIM: רכיבי ווקטור
@@ -14707,7 +14754,7 @@ runAnim('anim-collision-types',(canvas,ctx,W,H,t)=>{
   // Header
   ctx.save();ctx.fillStyle='rgba(6,14,28,.88)';ctx.strokeStyle='#1e4060';ctx.lineWidth=1;
   ctx.beginPath();ctx.roundRect(6,4,W-12,18,3);ctx.fill();ctx.stroke();ctx.restore();
-  label(ctx,'m₁='+m1+'kg מתנגש עם m₂='+m2+'kg נייח | v₁='+v1i+' m/s | e = מקדם התאוצה',W/2,13,'#64748b',7.5);
+  label(ctx,'m₁='+m1+'kg מתנגש עם m₂='+m2+'kg נייח | v₁='+v1i+' m/s | e = מקדם ההשבה',W/2,13,'#64748b',7.5);
 });
 
 
@@ -15009,8 +15056,8 @@ runAnim('anim-circular-force',(canvas,ctx,W,H,t)=>{
     const nx=(px-CX)/R, ny=(py-CY)/R;
     arrow(ctx,px,py,px+nx*36,py+ny*36,'#34d399',2,9);
     label(ctx,'N',px+nx*44,py+ny*44,'#34d399',10);
-    arrow(ctx,px,py,px,-py+CY-30,'#ef4444',2,9);
-    label(ctx,'mg',px+6,CY+R*0.3,'#ef4444',9);
+    arrow(ctx,px,py,px,py+28,'#ef4444',2,9);
+    label(ctx,'mg',px+10,py+22,'#ef4444',9);
     // Car box
     ctx.save();ctx.fillStyle='#0f2d1a';ctx.strokeStyle='#34d399';ctx.lineWidth=1.5;
     ctx.beginPath();ctx.roundRect(px-9,py-9,18,14,3);ctx.fill();ctx.stroke();ctx.restore();
@@ -15185,34 +15232,47 @@ runAnim('anim-tension2',(canvas,ctx,W,H,t)=>{
 
 runAnim('anim-normal2',(canvas,ctx,W,H,t)=>{
   bg(ctx,W,H);
-  var R=Math.min(65,H*0.28),m=1000,g=9.8,v=12;
+  var R=Math.min(65,H*0.28),g=9.8,v=12;
   var ac=v*v/R;
+  var carW=30,carH=16;
+  var swing=Math.sin(t*0.9)*0.55; // car slides back and forth over the curve
+  // ── Hill (crest): N = m(g − v²/R) < W ──
   var hx=W*0.25,hy=H*0.42;
   ctx.save();ctx.strokeStyle='#2d5275';ctx.lineWidth=2;
   ctx.beginPath();ctx.arc(hx,hy+R,R,Math.PI,0,true);ctx.stroke();ctx.restore();
-  var carW=36,carH=20;
-  ctx.save();ctx.fillStyle='#3b82f6';ctx.strokeStyle='#60a5fa';ctx.lineWidth=1.5;
-  ctx.beginPath();ctx.roundRect(hx-carW/2,hy-R-carH-2,carW,carH,3);ctx.fill();ctx.stroke();ctx.restore();
-  arrow(ctx,hx,hy-R-carH/2,hx,hy-R-carH/2-28,'#a78bfa',2,9);
-  label(ctx,'N',hx+5,hy-R-carH/2-14,'#a78bfa',8,'left');
-  arrow(ctx,hx,hy-R-carH/2,hx,hy-R-carH/2+28,'#fbbf24',2,9);
-  label(ctx,'W',hx+5,hy-R-carH/2+14,'#fbbf24',8,'left');
-  label(ctx,'N < W',hx,hy-R-carH-32,'#f87171',7.5);
-  label(ctx,'\u05d2\u05d1\u05e2\u05d4',hx,hy+R+14,'#64748b',8);
+  var hAng=-Math.PI/2+swing; // angle on the hill circle (top = -90°)
+  var hcx=hx+R*Math.cos(hAng),hcy=(hy+R)+R*Math.sin(hAng);
+  var hnx=Math.cos(hAng),hny=Math.sin(hAng); // outward normal (away from center)
+  ctx.save();ctx.translate(hcx,hcy);ctx.rotate(hAng+Math.PI/2);
+  ctx.fillStyle='#3b82f6';ctx.strokeStyle='#60a5fa';ctx.lineWidth=1.5;
+  ctx.beginPath();ctx.roundRect(-carW/2,-carH-2,carW,carH,3);ctx.fill();ctx.stroke();ctx.restore();
+  var nLenH=20; // N shorter than W on the crest
+  arrow(ctx,hcx,hcy-carH/2,hcx+hnx*nLenH,hcy-carH/2+hny*nLenH,'#a78bfa',2,8);
+  label(ctx,'N',hcx+hnx*(nLenH+9),hcy-carH/2+hny*(nLenH+9),'#a78bfa',8);
+  arrow(ctx,hcx,hcy-carH/2,hcx,hcy-carH/2+30,'#fbbf24',2,9);
+  label(ctx,'W',hcx+8,hcy-carH/2+22,'#fbbf24',8,'left');
+  label(ctx,'N < W',hx,hy-R-26,'#f87171',7.5);
+  label(ctx,'גבעה',hx,hy+R+14,'#64748b',8);
+  // ── Valley (dip): N = m(g + v²/R) > W ──
   var vx=W*0.72,vy=H*0.42;
   ctx.save();ctx.strokeStyle='#2d5275';ctx.lineWidth=2;
   ctx.beginPath();ctx.arc(vx,vy-R,R,0,Math.PI,false);ctx.stroke();ctx.restore();
-  ctx.save();ctx.fillStyle='#3b82f6';ctx.strokeStyle='#60a5fa';ctx.lineWidth=1.5;
-  ctx.beginPath();ctx.roundRect(vx-carW/2,vy-carH-2,carW,carH,3);ctx.fill();ctx.stroke();ctx.restore();
-  arrow(ctx,vx,vy-carH/2,vx,vy-carH/2-42,'#a78bfa',2,9);
-  label(ctx,'N',vx+5,vy-carH/2-21,'#a78bfa',8,'left');
-  arrow(ctx,vx,vy-carH/2,vx,vy-carH/2+28,'#fbbf24',2,9);
-  label(ctx,'W',vx+5,vy-carH/2+14,'#fbbf24',8,'left');
-  label(ctx,'N > W',vx,vy-carH-32,'#34d399',7.5);
-  label(ctx,'\u05e2\u05de\u05e7',vx,vy+14,'#64748b',8);
+  var vAng=Math.PI/2+swing; // angle on the valley circle (bottom = +90°)
+  var vcx=vx+R*Math.cos(vAng),vcy=(vy-R)+R*Math.sin(vAng);
+  var vnx=-Math.cos(vAng),vny=-Math.sin(vAng); // normal points toward the center (up)
+  ctx.save();ctx.translate(vcx,vcy);ctx.rotate(vAng-Math.PI/2);
+  ctx.fillStyle='#3b82f6';ctx.strokeStyle='#60a5fa';ctx.lineWidth=1.5;
+  ctx.beginPath();ctx.roundRect(-carW/2,-carH-2,carW,carH,3);ctx.fill();ctx.stroke();ctx.restore();
+  var nLenV=44; // N longer than W in the dip
+  arrow(ctx,vcx,vcy-carH/2,vcx+vnx*nLenV,vcy-carH/2+vny*nLenV,'#a78bfa',2,9);
+  label(ctx,'N',vcx+vnx*(nLenV+9),vcy-carH/2+vny*(nLenV+9),'#a78bfa',8);
+  arrow(ctx,vcx,vcy-carH/2,vcx,vcy-carH/2+30,'#fbbf24',2,9);
+  label(ctx,'W',vcx+8,vcy-carH/2+22,'#fbbf24',8,'left');
+  label(ctx,'N > W',vx,vy-2*R-14,'#34d399',7.5);
+  label(ctx,'עמק',vx,vy+14,'#64748b',8);
   ctx.save();ctx.fillStyle='rgba(6,14,28,.9)';ctx.strokeStyle='#1e4060';ctx.lineWidth=1;
   ctx.beginPath();ctx.roundRect(4,H-22,W-8,18,3);ctx.fill();ctx.stroke();ctx.restore();
-  label(ctx,'\u05d2\u05d1\u05e2\u05d4: N=m(g\u2212v\u00b2/R)  |  \u05e2\u05de\u05e7: N=m(g+v\u00b2/R)',W/2,H-11,'#94a3b8',7.5);
+  label(ctx,'גבעה: N=m(g−v²/R)  |  עמק: N=m(g+v²/R)',W/2,H-11,'#94a3b8',7.5);
 });
 
 runAnim('anim-n3-2',(canvas,ctx,W,H,t)=>{
@@ -15266,7 +15326,7 @@ runAnim('anim-force-intro2',(canvas,ctx,W,H,t)=>{
   if(rLen>3){arrow(ctx,CX,CY,CX+Rx,CY+Ry,'#fff',3,12);label(ctx,'\u03a3F',CX+Rx+6,CY+Ry-4,'#fff',10);}
   ctx.save();ctx.fillStyle='rgba(6,14,28,.9)';ctx.strokeStyle='#1e4060';ctx.lineWidth=1;
   ctx.beginPath();ctx.roundRect(4,4,W-8,20,3);ctx.fill();ctx.stroke();ctx.restore();
-  label(ctx,'|\u03a3F| = '+rLen.toFixed(1)+' N | \u03a3F=0 \u2192 \u05d2\u05d5\u05e3 \u05d9\u05e9\u05de\u05d5\u05e8 \u05de\u05e6\u05d1\u05d5',W/2,13,'#22d3ee',7.5);
+  label(ctx,'|ΣF| = '+rLen.toFixed(1)+' N '+(rLen<5?'≈ 0 → הגוף שומר על מצבו':'≠ 0 → הגוף מאיץ בכיוון ΣF'),W/2,13,'#22d3ee',7.5);
 });
 
 runAnim('anim-force-types2',(canvas,ctx,W,H,t)=>{
@@ -15310,7 +15370,6 @@ runAnim('anim-force-types2',(canvas,ctx,W,H,t)=>{
   // Banner
   ctx.save();ctx.fillStyle='rgba(6,14,28,.88)';ctx.strokeStyle='#1e4060';ctx.lineWidth=1;
   ctx.beginPath();ctx.roundRect(4,H-18,W-8,14,3);ctx.fill();ctx.stroke();ctx.restore();
-  label(ctx,'FBD: W↓ N↑ F← f→ | ΣF=F−f=ma','#94a3b8',H-10,'#94a3b8',7);
   label(ctx,'FBD: W↓ N↑  F ו-f באופק | ΣF = F−f = ma',W/2,H-9,'#94a3b8',7);
 });
 
@@ -15482,7 +15541,7 @@ runAnim('anim-gravity2',(canvas,ctx,W,H,t)=>{
     var by=startY+i*(BAR_H+BAR_GAP);
     ctx.save();ctx.fillStyle='rgba(30,58,82,.3)';
     ctx.beginPath();ctx.roundRect(BAR_X,by,BAR_W,BAR_H,3);ctx.fill();ctx.restore();
-    var animLen=barLen*Math.min(1,t*0.8);
+    var animLen=barLen*Math.min(1,(t%3)*0.8);
     ctx.save();ctx.fillStyle=pl.col+'bb';
     ctx.beginPath();ctx.roundRect(BAR_X,by,animLen,BAR_H,3);ctx.fill();ctx.restore();
     label(ctx,pl.name,BAR_X-6,by+BAR_H/2+3,pl.col,8,'right');
@@ -16824,7 +16883,6 @@ runAnim('anim-grating-t',function(canvas,ctx,W,H,t){
   // Animated wavelength cycling through spectrum
   var wl=380+320*((Math.sin(t*0.4)+1)/2);
   var lHex=wavelengthToHex(Math.round(wl));
-  var lRGB=wavelengthToRGB(Math.round(wl)).match(/\d+/g);
   // Grating lines
   ctx.save();ctx.strokeStyle='#475569';ctx.lineWidth=1;
   for(var i=0;i<6;i++){ctx.beginPath();ctx.moveTo(gX-6+i*3,H*0.12);ctx.lineTo(gX-6+i*3,H*0.88);ctx.stroke();}
@@ -17003,20 +17061,20 @@ function buildSim(sim){
   else if(sim.type==='freefall')extra=C(rng('v0',0,30,18,1,'v₀ ראשונית',' m/s')+rng('ff-g',1.6,25,9.8,0.2,'g כבידה',' m/s²')+btn('throw','🎯 זרוק!','btn-primary'));
   else if(sim.type==='multi-freefall')extra=C(rng('g-mff',1.6,25,9.8,0.1,'g (כבידה)',' m/s²')+rng('mff-h',5,40,20,1,'גובה h',' m'));
   else if(sim.type==='force-types')extra=C(rng('ft-F',0,60,20,2,'כוח מופעל F',' N')+rng('ft-x',0.01,0.20,0.08,0.01,'מתיחת קפיץ x',' m'));
-  else if(sim.type==='inertia')extra=C(rng('friction',0,0.8,0.4,0.05,'חיכוך μ')+rng('mass-in',1,15,5,0.5,'מסה m',' kg'));
+  else if(sim.type==='inertia')extra=C(rng('friction',0,0.8,0.4,0.05,'חיכוך μ')+rng('mass-in',1,15,5,0.5,'מסה m',' kg')+btn('push-right','💨 דחוף ימינה','btn-primary')+btn('push-left','דחוף שמאלה 💨','btn-secondary'));
   else if(sim.type==='newton2')extra=C(rng('mass',1,20,5,0.5,'מסה m',' kg')+rng('n2-F',-60,60,20,1,'כוח F',' N')+rng('n2-mu',0,0.8,0,0.05,'חיכוך μ'));
-  else if(sim.type==='newton3')extra=C(rng('n3-mA',1,15,3,0.5,'m_A',' kg')+rng('n3-mB',1,15,6,0.5,'m_B',' kg')+btn('n3-push','💥 דחוף!'));
+  else if(sim.type==='newton3')extra=C(rng('n3-mA',1,15,3,0.5,'m_A',' kg')+rng('n3-mB',1,15,6,0.5,'m_B',' kg')+rng('n3-F',50,600,300,10,'כוח דחיפה',' N')+btn('n3-push','💥 דחוף!'));
   else if(sim.type==='normal-force')extra=C(rng('nf-theta',0,70,0,1,'זווית θ','°')+rng('nf-mass',1,12,4,0.5,'מסה m',' kg')+rng('nf-mu',0,0.7,0,0.05,'חיכוך μ'));
   else if(sim.type==='incline')extra=C(rng('inc-theta',5,75,30,1,'זווית θ','°')+rng('inc-mu',0,0.8,0,0.05,'חיכוך μ')+rng('inc-m',0.5,10,3,0.5,'מסה m',' kg'));
   else if(sim.type==='tension')extra=C(rng('ten-m1',0.5,12,3,0.5,'m₁ אטווד',' kg')+rng('ten-m2',0.5,12,5,0.5,'m₂ אטווד',' kg')+rng('ten-el',0.5,5,3,0.5,'מסת מעלית',' kg')+rng('ten-ea',-5,5,0,0.5,'תאוצת מעלית',' m/s²')+btn('ten-launch','▶ שחרר!'));
   else if(sim.type==='fbd')extra=C(btn('fbd-reset','↺ נקה הכל','btn-secondary'));
   else if(sim.type==='momentum')extra=C(rng('mom-mass',0.5,8,2,0.5,'מסה',' kg')+rng('mom-vel',-10,10,4,1,'מהירות',' m/s'));
-  else if(sim.type==='momentum-cons')extra=C(rng('mc-m1',1,8,3,0.5,'m₁',' kg')+rng('mc-m2',1,8,2,0.5,'m₂',' kg')+rng('mc-v1',-8,8,4,1,'v₁',' m/s')+rng('mc-v2',-8,8,-2,1,'v₂',' m/s'));
-  else if(sim.type==='collision')extra=C(rng('col-e',0,1,1,0.05,'מקדם e (0=היצמד, 1=אלסטי)')+rng('col-m1',1,8,3,0.5,'m₁',' kg')+rng('col-m2',1,8,2,0.5,'m₂',' kg'));
+  else if(sim.type==='momentum-cons')extra=C(rng('mc-m1',1,8,3,0.5,'m₁',' kg')+rng('mc-m2',1,8,2,0.5,'m₂',' kg')+rng('mc-v1',-8,8,4,1,'v₁',' m/s')+rng('mc-v2',-8,8,-2,1,'v₂',' m/s')+btn('mc-reset','↺ אפס','btn-secondary'));
+  else if(sim.type==='collision')extra=C(rng('col-e',0,1,1,0.05,'מקדם e (0=היצמד, 1=אלסטי)')+rng('col-m1',1,8,3,0.5,'m₁',' kg')+rng('col-m2',1,8,2,0.5,'m₂',' kg')+rng('col-v1',0,8,4,0.5,'v₁ התחלתית',' m/s')+rng('col-v2',-8,0,-2,0.5,'v₂ התחלתית',' m/s')+btn('col-reset','↺ אפס','btn-secondary'));
   else if(sim.type==='energy-kinetic')extra=C(rng('ek-F',2,50,10,1,'כוח F',' N')+rng('ek-m',0.5,10,2,0.5,'מסה m',' kg')+btn('ek-launch','▶ הפעל!','btn-primary')+btn('ek-reset','↺ אפס','btn-secondary'));
-  else if(sim.type==='energy-potential')extra=C(rng('ep-m',0.5,8,2,0.5,'מסה m',' kg')+rng('ep-g',1.6,25,9.8,0.5,'g',' m/s²'));
+  else if(sim.type==='energy-potential')extra=C(rng('ep-m',0.5,8,2,0.5,'מסה m',' kg')+rng('ep-g',1.6,25,9.8,0.5,'g',' m/s²')+btn('ep-elastic','⚡ אנרגיה אלסטית','btn-secondary')+btn('ep-reset','↺ אפס','btn-secondary'));
   else if(sim.type==='energy')extra=C(rng('energy-m',0.5,4,1,0.5,'מסה m',' kg')+btn('energy-reset','↺ אפס','btn-secondary'));
-  else if(sim.type==='shm-def')extra=C(rng('shm-A',20,130,80,5,'אמפליטודה A',' px')+rng('shm-T',0.5,5,2,0.1,'מחזור T',' s'));
+  else if(sim.type==='shm-def')extra=C(rng('shm-A',20,130,80,5,'אמפליטודה A',' px')+rng('shm-T',0.5,5,2,0.1,'מחזור T',' s')+btn('shm-reset','↺ אפס','btn-secondary'));
   else if(sim.type==='vec-ops')extra=C(rng('vo-scalar',0.2,4,2,0.1,'מכפיל c')+btn('vo-sub','A−B')+btn('vo-scalar','c·A','btn-secondary'));
   else if(sim.type==='vec-components')extra=C(btn('vc-hint','💡 הסבר'));
   else if(sim.type==='spring')extra=C(rng('spring-k',0.1,25,2,0.1,'k (N/m)')+rng('spring-m',0.1,2,0.5,0.1,'מסה',' kg'));
@@ -17025,9 +17083,9 @@ function buildSim(sim){
   else if(sim.type==='static-friction')extra=C(rng('sft-mu',0.1,0.9,0.55,0.05,'μ_s')+rng('sft-mass',1,15,3,0.5,'מסה m',' kg')+rng('sft-F',0,80,0,1,'כוח F',' N')+btn('sft-reset','↺ אפס','btn-secondary'));
   else if(sim.type==='kinetic-friction')extra=C(rng('kf-v0',2,20,10,1,'מהירות v₀',' m/s')+rng('kf-mass',1,15,5,0.5,'מסה m',' kg')+rng('kf-mu',0.1,0.8,0.38,0.02,'μ_k')+btn('kf-launch','▶ שגר!','btn-primary')+btn('kf-reset','↺ אפס','btn-secondary'));
   else if(sim.type==='friction-combined')extra=C(rng('fc-theta',5,70,20,1,'זווית θ','°')+rng('fc-F',0,80,0,2,'כוח F',' N')+rng('fc-mu',0.05,0.8,0.45,0.05,'μ')+rng('fc-m',0.5,10,5,0.5,'מסה m',' kg'));
-  else if(sim.type==='pendulum')extra=C(rng('pend-L',0.3,3,1,0.1,'אורך L',' m')+rng('pend-g',1.6,25,9.8,0.5,'g',' m/s²'));
-  else if(sim.type==='projectile')extra=C(rng('proj-angle',10,80,45,1,'זווית θ','°')+rng('proj-v0',5,35,20,1,'מהירות v₀',' m/s'));
-  else if(sim.type==='circular')extra=C(rng('circ-r',0.5,3,1.2,0.1,'רדיוס r',' m')+rng('circ-v',2,15,6,0.5,'מהירות v',' m/s'));
+  else if(sim.type==='pendulum')extra=C(rng('pend-L',0.3,3,1,0.1,'אורך L',' m')+rng('pend-g',1.6,25,9.8,0.5,'g',' m/s²')+rng('pend-damp',0,0.1,0.02,0.005,'ריסון b','')+btn('pend-reset','↺ אפס','btn-secondary'));
+  else if(sim.type==='projectile')extra=C(rng('proj-angle',10,80,45,1,'זווית θ','°')+rng('proj-v0',5,35,20,1,'מהירות v₀',' m/s')+btn('proj-launch','▶ שגר!','btn-primary')+btn('proj-reset','↺ אפס','btn-secondary'));
+  else if(sim.type==='circular')extra=C(rng('circ-r',0.5,3,1.2,0.1,'רדיוס r',' m')+rng('circ-v',2,15,6,0.5,'מהירות v',' m/s')+btn('circ-pause','⏸ השהה/המשך','btn-secondary'));
   else if(sim.type==='atwood')extra=C(rng('atw-m1',0.5,10,3,0.5,'m₁',' kg')+rng('atw-m2',0.5,10,5,0.5,'m₂',' kg')+btn('atw-launch','▶ שחרר!','btn-primary')+btn('atw-reset','↺ אפס','btn-secondary'));
   // OPTICS CONTROLS
   else if(sim.type==='opt-em-wave')extra=C(rng('emw-wl',380,700,500,5,'אורך גל λ',' nm'));
@@ -17038,6 +17096,7 @@ function buildSim(sim){
   else if(sim.type==='opt-convex-mirror')extra=C(rng('cvm-do',0.5,4,2.5,0.1,'dₒ (מכפלות f)')+rng('cvm-wl',380,700,550,5,'צבע אור λ',' nm'));
   else if(sim.type==='opt-snell')extra=C(rng('snell-th',5,85,35,1,'זווית פגיעה θ₁','°')+rng('snell-n1',1,2,1,0.05,'n₁')+rng('snell-n2',1,2.5,1.5,0.05,'n₂')+rng('snell-wl',380,700,550,5,'צבע אור λ',' nm'));
   else if(sim.type==='opt-tir')extra=C(rng('tir-th',5,85,30,1,'זווית פגיעה θ','°')+rng('tir-n1',1.1,2.5,1.5,0.05,'n₁ (צפוף)')+rng('tir-n2',1,1.5,1,0.05,'n₂ (דליל)')+rng('tir-wl',380,700,550,5,'צבע אור λ',' nm'));
+  else if(sim.type==='opt-prism')extra=C(rng('prism-ang',10,55,23,1,'זווית פגיעה θ','°'));
   else if(sim.type==='opt-convex-lens')extra=C(rng('cl-do',0.3,4,2.2,0.1,'dₒ (מכפלות f)')+rng('cl-wl',380,700,550,5,'צבע אור λ',' nm'));
   else if(sim.type==='opt-concave-lens')extra=C(rng('dcl-do',0.5,4,2.2,0.1,'dₒ (מכפלות f)')+rng('dcl-wl',380,700,550,5,'צבע אור λ',' nm'));
   else if(sim.type==='opt-eye')extra=C('<div style="display:flex;gap:8px;flex-wrap:wrap">'+
