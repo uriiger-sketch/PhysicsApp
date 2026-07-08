@@ -3940,6 +3940,20 @@ function setupCanvas(canvas, H){
   return { ctx, W: cssW, H: cssH, dpr };
 }
 
+// ── Pointer helpers: dpr-safe canvas coords + drag→slider sync ──
+function simPointerXY(canvas,dpr,evt){
+  var r=canvas.getBoundingClientRect();
+  var scl=(canvas.width/dpr)/r.width;
+  return {x:((evt.touches?evt.touches[0].clientX:evt.clientX)-r.left)*scl,
+          y:((evt.touches?evt.touches[0].clientY:evt.clientY)-r.top)*scl};
+}
+function simSyncSlider(id,val,dec){
+  var el=document.getElementById('inp-'+id);if(!el)return;
+  var lo=parseFloat(el.min),hi=parseFloat(el.max);
+  el.value=Math.max(lo,Math.min(hi,val)).toFixed(dec);
+  el.dispatchEvent(new Event('input'));
+}
+
 // ── Shared drawing helpers ─────────────────────
 function simArrow(ctx, x1,y1, x2,y2, color, lw, hw){
   if(lw===undefined)lw=2.5; if(hw===undefined)hw=11;
@@ -4574,13 +4588,17 @@ function simFreefall(canvas){
       var physV=ball.vy; // m/s (positive=up)
       var by=toY(ball.ym); // canvas y
       var bx=Math.floor(W/2);
-      // Ghost trail
-      for(var i=1;i<16;i++){
-        var gt=ball.t-i*0.06; if(gt<0)continue;
-        var gym=Math.max(0,v0*gt-0.5*g*gt*gt); // kinematic, not ball state
+      // Equal-time strobe: a ghost every 0.15s since launch — the growing gaps SHOW the acceleration
+      var GDT=0.15;
+      for(var gi=1;gi*GDT<ball.t&&gi<90;gi++){
+        var gt=gi*GDT;
+        var gym=Math.max(0,v0*gt-0.5*g*gt*gt);
         var gpy=toY(gym); if(gpy<16)continue;
-        ctx.save(); ctx.globalAlpha=(16-i)/20; simCircle(ctx,bx,gpy,9,'rgba(99,102,241,.2)'); ctx.restore();
+        ctx.save(); ctx.globalAlpha=0.30;
+        simCircle(ctx,bx,gpy,7,'rgba(99,102,241,.35)','rgba(129,140,248,.5)',1);
+        ctx.restore();
       }
+      if(ball.t>0.6) simText(ctx,'Δt קבוע — המרווח גדל!',bx-96,toY(hm*0.55),'#818cf8',8.5,'center');
       // Velocity arrow
       var arDir=physV>=0?-1:1, arLen=Math.min(Math.abs(physV)*3,64);
       if(arLen>5) simArrow(ctx,bx,by+(arDir>0?20:-20),bx,by+(arDir>0?20+arLen:-20-arLen),physV>0?'#34d399':'#f87171',3,12);
@@ -6333,13 +6351,26 @@ function simCollision(canvas){
       simText(ctx,'p₂='+p2_now.toFixed(2),x2,GND-r2*2-34,'#f87171',7.5,undefined,false);
     }
 
-    // Collision flash
+    // Collision flash: core glow + expanding ring + radial sparks
     if(state==='after'&&collTimer<0.35){
       var alpha2=(0.35-collTimer)/0.35;
+      var fx2=(x1+x2)/2,fy2=GND-r1;
       ctx.save();ctx.globalAlpha=alpha2*0.65;
-      var gf=ctx.createRadialGradient((x1+x2)/2,GND-r1,0,(x1+x2)/2,GND-r1,32);
+      var gf=ctx.createRadialGradient(fx2,fy2,0,fx2,fy2,32);
       gf.addColorStop(0,'#fbbf24');gf.addColorStop(1,'transparent');
-      ctx.fillStyle=gf;ctx.beginPath();ctx.arc((x1+x2)/2,GND-r1,32,0,Math.PI*2);ctx.fill();ctx.restore();
+      ctx.fillStyle=gf;ctx.beginPath();ctx.arc(fx2,fy2,32,0,Math.PI*2);ctx.fill();ctx.restore();
+      var ringR=10+collTimer*160;
+      ctx.save();ctx.globalAlpha=alpha2*0.8;
+      ctx.strokeStyle='#fde68a';ctx.lineWidth=Math.max(0.5,2.5*alpha2);
+      ctx.beginPath();ctx.arc(fx2,fy2,ringR,0,Math.PI*2);ctx.stroke();
+      ctx.strokeStyle='#fbbf24';ctx.lineWidth=1.6;
+      for(var si2=0;si2<8;si2++){
+        var sa=si2*Math.PI/4+0.4;
+        var sr1=12+collTimer*90,sr2=sr1+10+alpha2*14;
+        ctx.beginPath();ctx.moveTo(fx2+Math.cos(sa)*sr1,fy2+Math.sin(sa)*sr1);
+        ctx.lineTo(fx2+Math.cos(sa)*sr2,fy2+Math.sin(sa)*sr2);ctx.stroke();
+      }
+      ctx.restore();
     }
 
     // STOPPED banner
@@ -8523,7 +8554,8 @@ function simPendulum(canvas){
   canvas.addEventListener('mouseup',onUp); canvas.addEventListener('touchend',onUp);
 
   var resetBtn=document.getElementById('btn-pend-reset');
-  if(resetBtn)resetBtn.addEventListener('click',function(){theta=0.5;omega=0;thetaHist=[];timeHist=[];clock=0;});
+  var trailP=[];
+  if(resetBtn)resetBtn.addEventListener('click',function(){theta=0.5;omega=0;thetaHist=[];timeHist=[];clock=0;trailP=[];});
 
   function draw(ts){
     if(_simStop[id])return;
@@ -8544,6 +8576,7 @@ function simPendulum(canvas){
 
     var T=2*Math.PI*Math.sqrt(L/g);
     var bx=bobX(), by=bobY();
+    if(!dragging){trailP.push({x:bx,y:by});if(trailP.length>70)trailP.shift();}else{trailP=[];}
     var speed=Math.abs(omega)*L*PX_PER_M;
     // Energy
     var h=L*(1-Math.cos(theta));
@@ -8552,6 +8585,15 @@ function simPendulum(canvas){
     var E0=g*L*(1-Math.cos(0.5)); // reference max PE
 
     simBg(ctx,W,H);
+
+    // ── Motion trail ──────────────────────────────────
+    for(var ti2=1;ti2<trailP.length;ti2++){
+      var fr2=ti2/trailP.length;
+      ctx.save();ctx.globalAlpha=fr2*fr2*0.45;
+      ctx.strokeStyle='#60a5fa';ctx.lineWidth=1+fr2*2.5;ctx.lineCap='round';
+      ctx.beginPath();ctx.moveTo(trailP[ti2-1].x,trailP[ti2-1].y);ctx.lineTo(trailP[ti2].x,trailP[ti2].y);ctx.stroke();
+      ctx.restore();
+    }
 
     // ── Pendulum rope and bob ─────────────────────────
     // Pivot mount
@@ -8672,6 +8714,7 @@ function simProjectile(canvas){
   var x=0, y=0, vx=0, vy=0;
   var running=false, launched=false;
   var trail=[];
+  var landT=-1, aiming=false;
   var peakH=0, range=0, tFlight=0;
 
   // Ground level
@@ -8687,16 +8730,37 @@ function simProjectile(canvas){
     v0=getV0(); angle=getAngle();
     var rad=angle*Math.PI/180;
     vx=v0*Math.cos(rad); vy=v0*Math.sin(rad);
-    x=0; y=0; running=true; launched=true; trail=[];
+    x=0; y=0; running=true; launched=true; trail=[]; landT=-1;
     peakH=0; range=0; tFlight=0;
     // Theoretical
     tFlight=2*v0*Math.sin(rad)/g;
     range=v0*v0*Math.sin(2*rad)/g;
     peakH=v0*v0*Math.sin(rad)*Math.sin(rad)/(2*g);
   }
-  function resetSim(){x=0;y=0;vx=0;vy=0;running=false;launched=false;trail=[];peakH=0;range=0;}
+  function resetSim(){x=0;y=0;vx=0;vy=0;running=false;launched=false;trail=[];peakH=0;range=0;landT=-1;}
   if(launchBtn)launchBtn.addEventListener('click',launch);
   if(resetBtn)resetBtn.addEventListener('click',resetSim);
+
+  // ── Drag-to-aim: pull from the cannon, release to fire ──
+  function _aDn(e){if(running)return;var p=simPointerXY(canvas,dpr,e);
+    if(Math.hypot(p.x-LAUNCH_X,p.y-GND_Y)<90){aiming=true;canvas.style.cursor='grabbing';e.preventDefault();}}
+  function _aMv(e){var p=simPointerXY(canvas,dpr,e);
+    if(aiming){
+      var dx2=p.x-LAUNCH_X,dy2=GND_Y-p.y;
+      if(dx2>4&&dy2>0){
+        simSyncSlider('proj-angle',Math.atan2(dy2,dx2)*180/Math.PI,0);
+        simSyncSlider('proj-v0',Math.hypot(dx2,dy2)/6,0);
+      }
+      e.preventDefault();
+    } else if(!running){
+      canvas.style.cursor=Math.hypot(p.x-LAUNCH_X,p.y-GND_Y)<90?'grab':'';
+    }
+  }
+  function _aUp(){if(aiming){aiming=false;canvas.style.cursor='';
+    var b=document.getElementById('btn-proj-launch');if(b)b.click();}}
+  canvas.addEventListener('mousedown',_aDn);canvas.addEventListener('touchstart',_aDn,{passive:false});
+  canvas.addEventListener('mousemove',_aMv);canvas.addEventListener('touchmove',_aMv,{passive:false});
+  canvas.addEventListener('mouseup',_aUp);canvas.addEventListener('touchend',_aUp);
 
   // Scale: pixels per meter
   var SCALE=Math.min(18, (W-80)/Math.max(1,v0*v0*Math.sin(2*45*Math.PI/180)/g));
@@ -8721,7 +8785,7 @@ function simProjectile(canvas){
       trail.push({x:x,y:y,vx:vx,vy:vy});
       if(trail.length>400)trail.shift();
       var py=GND_Y-y*SCALE;
-      if(py>=GND_Y){running=false; x=Math.max(x-vx*dt,0); y=0;}
+      if(py>=GND_Y){running=false; x=Math.max(x-vx*dt,0); y=0; landT=t;}
     }
 
     simBg(ctx,W,H);
@@ -8770,12 +8834,39 @@ function simProjectile(canvas){
       simText(ctx,'H='+(vy0*tpk-0.5*g*tpk*tpk).toFixed(1)+'m',pkX+4,pkY-4,'#a78bfa',8,'left');
     }
 
-    // ── Trail ──────────────────────────────────────────
+    // ── Trail + strobe ghosts (vx constant, vy changing) ──
     for(var i=1;i<trail.length;i++){
       var alpha=(i/trail.length)*0.6;
       ctx.save(); ctx.globalAlpha=alpha;
       ctx.fillStyle='#60a5fa';
       ctx.beginPath(); ctx.arc(LAUNCH_X+trail[i].x*SCALE,GND_Y-trail[i].y*SCALE,2,0,Math.PI*2); ctx.fill(); ctx.restore();
+    }
+    for(var i=12;i<trail.length-6;i+=12){
+      var tp=trail[i];
+      var gx2=LAUNCH_X+tp.x*SCALE,gy2=GND_Y-tp.y*SCALE;
+      ctx.save();ctx.globalAlpha=0.32;ctx.fillStyle='#60a5fa';
+      ctx.beginPath();ctx.arc(gx2,gy2,7,0,Math.PI*2);ctx.fill();ctx.restore();
+      var sc2=2.2;
+      simArrow(ctx,gx2,gy2,gx2+tp.vx*sc2,gy2,'rgba(52,211,153,.7)',1.6,7);
+      if(Math.abs(tp.vy)>0.8)simArrow(ctx,gx2,gy2,gx2,gy2-tp.vy*sc2,'rgba(248,113,113,.7)',1.6,7);
+    }
+    // Landing dust puff
+    if(launched&&!running&&landT>0&&t-landT<0.5){
+      var pu=(t-landT)/0.5,lx2=LAUNCH_X+x*SCALE;
+      ctx.save();ctx.globalAlpha=1-pu;ctx.fillStyle='#94a3b8';
+      for(var di=0;di<6;di++){
+        var da=Math.PI*(1+di/5),dr=8+pu*26;
+        ctx.beginPath();ctx.arc(lx2+Math.cos(da)*dr,GND_Y-4+Math.sin(da)*dr*0.6,2.6-pu*1.6,0,Math.PI*2);ctx.fill();
+      }
+      ctx.restore();
+    }
+    // Aim arrow while dragging / idle hint
+    if(aiming&&!running){
+      var ar3=angle*Math.PI/180,al3=Math.min(200,v0*6);
+      simArrow(ctx,LAUNCH_X,GND_Y,LAUNCH_X+Math.cos(ar3)*al3,GND_Y-Math.sin(ar3)*al3,'#fbbf24',3.5,14);
+      simText(ctx,'שחרר לשיגור!',LAUNCH_X+Math.cos(ar3)*al3+12,GND_Y-Math.sin(ar3)*al3-10,'#fbbf24',10,'left');
+    } else if(!launched){
+      simText(ctx,'✋ גרור מהתותח כדי לכוון — שחרר לירי',LAUNCH_X+6,GND_Y-74+Math.sin(t*3)*3,'#fbbf24',9,'left');
     }
 
     // ── Projectile ──────────────────────────────────────
@@ -8845,6 +8936,27 @@ function simCircular(canvas){
   var pauseBtn=document.getElementById('btn-circ-pause');
   if(pauseBtn)pauseBtn.addEventListener('click',function(){paused=!paused;pauseBtn.textContent=paused?'▶ המשך':'⏸ עצור';});
 
+  // ── Direct manipulation: drag the bob to set the radius ──
+  var dragBob=false;
+  function _bPos(){return {x:CX+Math.cos(theta)*r*PX_PER_M,y:CY+Math.sin(theta)*r*PX_PER_M};}
+  function _cDn(e){var p=simPointerXY(canvas,dpr,e);var b=_bPos();
+    if(Math.hypot(p.x-b.x,p.y-b.y)<28){dragBob=true;canvas.style.cursor='grabbing';e.preventDefault();}}
+  function _cMv(e){var p=simPointerXY(canvas,dpr,e);
+    if(dragBob){
+      theta=Math.atan2(p.y-CY,p.x-CX);
+      simSyncSlider('circ-r',Math.hypot(p.x-CX,p.y-CY)/PX_PER_M,2);
+      trail=[];
+      e.preventDefault();
+    } else {
+      var b2=_bPos();
+      canvas.style.cursor=Math.hypot(p.x-b2.x,p.y-b2.y)<28?'grab':'';
+    }
+  }
+  function _cUp(){dragBob=false;canvas.style.cursor='';}
+  canvas.addEventListener('mousedown',_cDn);canvas.addEventListener('touchstart',_cDn,{passive:false});
+  canvas.addEventListener('mousemove',_cMv);canvas.addEventListener('touchmove',_cMv,{passive:false});
+  canvas.addEventListener('mouseup',_cUp);canvas.addEventListener('touchend',_cUp);
+
   function draw(ts){
     if(_simStop[id])return;
     if(!pT)pT=ts; var dt=Math.min((ts-pT)/1000,0.04); pT=ts;
@@ -8854,7 +8966,7 @@ function simCircular(canvas){
     var T=2*Math.PI*r/v; // period
     var ac=v*v/r; // centripetal acceleration
 
-    if(!paused) theta+=omega*dt;
+    if(!paused&&!dragBob) theta+=omega*dt;
 
     var px=CX+Math.cos(theta)*r*PX_PER_M;
     var py=CY+Math.sin(theta)*r*PX_PER_M;
@@ -8880,13 +8992,13 @@ function simCircular(canvas){
     ctx.beginPath(); ctx.moveTo(CX,CY); ctx.lineTo(px,py); ctx.stroke(); ctx.restore();
     simText(ctx,'r='+r.toFixed(1)+'m',(CX+px)/2+6,(CY+py)/2-8,'#334155',8,'left');
 
-    // ── Trail ─────────────────────────────────────────
+    // ── Comet tail ────────────────────────────────────
     for(var i=1;i<trail.length;i++){
-      var alpha=(i/trail.length)*0.5;
-      var hue=200;
-      ctx.save(); ctx.globalAlpha=alpha;
-      ctx.fillStyle='#60a5fa';
-      ctx.beginPath(); ctx.arc(trail[i].x,trail[i].y,2.5,0,Math.PI*2); ctx.fill(); ctx.restore();
+      var fr=i/trail.length;
+      ctx.save(); ctx.globalAlpha=fr*fr*0.55;
+      ctx.strokeStyle='#60a5fa'; ctx.lineWidth=1+fr*3.5; ctx.lineCap='round';
+      ctx.beginPath(); ctx.moveTo(trail[i-1].x,trail[i-1].y); ctx.lineTo(trail[i].x,trail[i].y); ctx.stroke();
+      ctx.restore();
     }
 
     // ── Object ────────────────────────────────────────
@@ -10408,6 +10520,18 @@ function simOptConcaveMirror(canvas){
   function getObj(){var e=document.getElementById('inp-cm-do');return e?parseFloat(e.value):2.5;}
   function getWl(){var e=document.getElementById('inp-cm-wl');return e?parseFloat(e.value):550;}
   var animT=0;
+  // ── Direct manipulation: drag the object arrow ──
+  var dragObj=false,hasDragged=false;
+  function _objX(){return mx-getObj()*f;}
+  function _hit(p){var ox=_objX();return Math.abs(p.x-ox)<24&&p.y>cy-82&&p.y<cy+14;}
+  function _dn(e){var p=simPointerXY(canvas,dpr,e);if(_hit(p)){dragObj=true;hasDragged=true;canvas.style.cursor='grabbing';e.preventDefault();}}
+  function _mv(e){var p=simPointerXY(canvas,dpr,e);
+    if(dragObj){simSyncSlider('cm-do',(mx-p.x)/f,2);e.preventDefault();}
+    else canvas.style.cursor=_hit(p)?'grab':'';}
+  function _up(){dragObj=false;canvas.style.cursor='';}
+  canvas.addEventListener('mousedown',_dn);canvas.addEventListener('touchstart',_dn,{passive:false});
+  canvas.addEventListener('mousemove',_mv);canvas.addEventListener('touchmove',_mv,{passive:false});
+  canvas.addEventListener('mouseup',_up);canvas.addEventListener('touchend',_up);
   function draw(){
     if(_simStop[id])return;
     animT+=0.025;
@@ -10452,6 +10576,9 @@ function simOptConcaveMirror(canvas){
     ctx.fillStyle='#93c5fd';ctx.beginPath();ctx.moveTo(objX,cy-objH);ctx.lineTo(objX-8,cy-objH+15);ctx.lineTo(objX+8,cy-objH+15);ctx.closePath();ctx.fill();
     optNoGlow(ctx);ctx.restore();
     optLabel(ctx,'עצם',objX,cy+14,'#60a5fa',10);
+    if(!hasDragged&&animT<7){
+      optLabel(ctx,'✋ גרור את העצם',objX,cy-objH-24+Math.sin(animT*4)*3,'#fbbf24',10);
+    }
     // Image computation
     var isVirt=diVal<0;
     var imgX=mx-diVal; // real: left of mx, virtual: right of mx (behind)
@@ -10558,6 +10685,18 @@ function simOptConvexMirror(canvas){
   function getObj(){var e=document.getElementById('inp-cvm-do');return e?parseFloat(e.value):2.5;}
   function getWl(){var e=document.getElementById('inp-cvm-wl');return e?parseFloat(e.value):550;}
   var animT=0;
+  // ── Direct manipulation: drag the object arrow ──
+  var dragObj=false,hasDragged=false;
+  function _objX(){return mx+getObj()*f;}
+  function _hit(p){var ox=_objX();return Math.abs(p.x-ox)<24&&p.y>cy-82&&p.y<cy+14;}
+  function _dn(e){var p=simPointerXY(canvas,dpr,e);if(_hit(p)){dragObj=true;hasDragged=true;canvas.style.cursor='grabbing';e.preventDefault();}}
+  function _mv(e){var p=simPointerXY(canvas,dpr,e);
+    if(dragObj){simSyncSlider('cvm-do',(p.x-mx)/f,2);e.preventDefault();}
+    else canvas.style.cursor=_hit(p)?'grab':'';}
+  function _up(){dragObj=false;canvas.style.cursor='';}
+  canvas.addEventListener('mousedown',_dn);canvas.addEventListener('touchstart',_dn,{passive:false});
+  canvas.addEventListener('mousemove',_mv);canvas.addEventListener('touchmove',_mv,{passive:false});
+  canvas.addEventListener('mouseup',_up);canvas.addEventListener('touchend',_up);
   function draw(){
     if(_simStop[id])return;
     animT+=0.025;
@@ -10601,6 +10740,9 @@ function simOptConvexMirror(canvas){
     ctx.fillStyle='#93c5fd';ctx.beginPath();ctx.moveTo(objX,cy-objH);ctx.lineTo(objX-8,cy-objH+15);ctx.lineTo(objX+8,cy-objH+15);ctx.closePath();ctx.fill();
     optNoGlow(ctx);ctx.restore();
     optLabel(ctx,'עצם',objX,cy+14,'#60a5fa',10);
+    if(!hasDragged&&animT<7){
+      optLabel(ctx,'✋ גרור את העצם',objX,cy-objH-24+Math.sin(animT*4)*3,'#fbbf24',10);
+    }
     // Virtual image: BETWEEN mirror (mx) and virtual F (mx+f), to the RIGHT of mirror
     // imgX = mx + |diVal| = mx + f*do/(f+do)  [positive, between mx and vFx]
     var imgX=mx+Math.abs(diVal);
@@ -10700,11 +10842,13 @@ function simOptSnell(canvas){
     var L=175;
     // Incident beam (animated pulse)
     var ix=cx-L*Math.sin(th1),iy=MY-L*Math.cos(th1);
-    var segFrac=(animT*0.6)%1;
-    var px=ix+(cx-ix)*segFrac,py=iy+(MY-iy)*segFrac;
     optRay(ctx,ix,iy,cx,MY,wlHex,2.5,false);
     ctx.save();ctx.fillStyle='#ffffff';optGlow(ctx,wlHex,18);
-    ctx.beginPath();ctx.arc(px,py,4,0,Math.PI*2);ctx.fill();optNoGlow(ctx);ctx.restore();
+    for(var _s=0;_s<3;_s++){
+      var segFrac=(animT*0.6+_s/3)%1;
+      ctx.beginPath();ctx.arc(ix+(cx-ix)*segFrac,iy+(MY-iy)*segFrac,3.2,0,Math.PI*2);ctx.fill();
+    }
+    optNoGlow(ctx);ctx.restore();
     optLabel(ctx,'קרן נכנסת',ix-18,iy-10,wlHex,10);
     // Partial reflection (dim)
     var refX=cx+L*Math.sin(th1),refY=MY-L*Math.cos(th1);
@@ -10713,19 +10857,23 @@ function simOptSnell(canvas){
       // TIR - full reflection
       ctx.save();ctx.fillStyle='rgba(248,113,113,.08)';ctx.beginPath();ctx.arc(cx,MY,90,Math.PI,Math.PI*2);ctx.fill();ctx.restore();
       optRay(ctx,cx,MY,refX,refY,wlHex,2.8,true);
-      var tirSeg=(animT*0.6+0.5)%1;
-      var tpx=cx+(refX-cx)*tirSeg,tpy=MY+(refY-MY)*tirSeg;
       ctx.save();ctx.fillStyle='#ffffff';optGlow(ctx,wlHex,18);
-      ctx.beginPath();ctx.arc(tpx,tpy,4,0,Math.PI*2);ctx.fill();optNoGlow(ctx);ctx.restore();
+      for(var _s2=0;_s2<3;_s2++){
+        var tirSeg=(animT*0.6+0.5+_s2/3)%1;
+        ctx.beginPath();ctx.arc(cx+(refX-cx)*tirSeg,MY+(refY-MY)*tirSeg,3.2,0,Math.PI*2);ctx.fill();
+      }
+      optNoGlow(ctx);ctx.restore();
       ctx.save();ctx.fillStyle='rgba(4,9,20,.85)';ctx.beginPath();ctx.roundRect(W/2-80,MY+40,160,26,6);ctx.fill();ctx.restore();
       optLabel(ctx,'החזרה פנימית מלאה!',W/2,MY+53,'#f87171',13);
     } else {
       var refractX=cx+L*Math.sin(th2),refractY=MY+L*Math.cos(th2);
-      var rSeg=(animT*0.6+0.5)%1;
-      var rpx=cx+(refractX-cx)*rSeg,rpy=MY+(refractY-MY)*rSeg;
       optRay(ctx,cx,MY,refractX,refractY,wlHex,2.8,true);
       ctx.save();ctx.fillStyle='#ffffff';optGlow(ctx,wlHex,18);
-      ctx.beginPath();ctx.arc(rpx,rpy,4,0,Math.PI*2);ctx.fill();optNoGlow(ctx);ctx.restore();
+      for(var _s3=0;_s3<3;_s3++){
+        var rSeg=(animT*0.6+0.5+_s3/3)%1;
+        ctx.beginPath();ctx.arc(cx+(refractX-cx)*rSeg,MY+(refractY-MY)*rSeg,3.2,0,Math.PI*2);ctx.fill();
+      }
+      optNoGlow(ctx);ctx.restore();
       optLabel(ctx,'קרן שבורה',refractX+18,MY+L*0.55,wlHex,10);
     }
     // Angle arcs and labels
@@ -10784,18 +10932,24 @@ function simOptTIR(canvas){
     // Incident ray
     var ix=cx-L*Math.sin(th1r),iy=MY-L*Math.cos(th1r);
     optRay(ctx,ix,iy,cx,MY,wlHex,2.5,false);
-    var sp=(animT*0.6)%1,px2=ix+(cx-ix)*sp,py2=iy+(MY-iy)*sp;
     ctx.save();ctx.fillStyle='#ffffff';optGlow(ctx,wlHex,20);
-    ctx.beginPath();ctx.arc(px2,py2,4,0,Math.PI*2);ctx.fill();optNoGlow(ctx);ctx.restore();
+    for(var _t1=0;_t1<3;_t1++){
+      var sp=(animT*0.6+_t1/3)%1;
+      ctx.beginPath();ctx.arc(ix+(cx-ix)*sp,iy+(MY-iy)*sp,3.2,0,Math.PI*2);ctx.fill();
+    }
+    optNoGlow(ctx);ctx.restore();
     optLabel(ctx,'קרן נכנסת',ix-16,iy-10,wlHex,10);
     // Reflected ray
     var rx2=cx+L*Math.sin(th1r),ry2=MY-L*Math.cos(th1r);
     if(tir){
       ctx.save();ctx.fillStyle=wlA(0.1);ctx.beginPath();ctx.arc(cx,MY,80,Math.PI,Math.PI*2);ctx.fill();ctx.restore();
       optRay(ctx,cx,MY,rx2,ry2,wlHex,3,true);
-      var sp2=(animT*0.6+0.5)%1,px3=cx+(rx2-cx)*sp2,py3=MY+(ry2-MY)*sp2;
       ctx.save();ctx.fillStyle='#ffffff';optGlow(ctx,wlHex,20);
-      ctx.beginPath();ctx.arc(px3,py3,4,0,Math.PI*2);ctx.fill();optNoGlow(ctx);ctx.restore();
+      for(var _t2=0;_t2<3;_t2++){
+        var sp2=(animT*0.6+0.5+_t2/3)%1;
+        ctx.beginPath();ctx.arc(cx+(rx2-cx)*sp2,MY+(ry2-MY)*sp2,3.2,0,Math.PI*2);ctx.fill();
+      }
+      optNoGlow(ctx);ctx.restore();
     } else {
       optRay(ctx,cx,MY,rx2,ry2,'rgba(248,113,113,.3)',1.5,true);
       var th2r=th2*Math.PI/180;
@@ -11008,6 +11162,18 @@ function simOptConvexLens(canvas){
   function getObj(){var e=document.getElementById('inp-cl-do');return e?parseFloat(e.value):2.2;}
   function getWl(){var e=document.getElementById('inp-cl-wl');return e?parseFloat(e.value):550;}
   var animT=0;
+  // ── Direct manipulation: drag the object arrow ──
+  var dragObj=false,hasDragged=false;
+  function _objX(){return lx-getObj()*f;}
+  function _hit(p){var ox=_objX();return Math.abs(p.x-ox)<24&&p.y>cy-82&&p.y<cy+14;}
+  function _dn(e){var p=simPointerXY(canvas,dpr,e);if(_hit(p)){dragObj=true;hasDragged=true;canvas.style.cursor='grabbing';e.preventDefault();}}
+  function _mv(e){var p=simPointerXY(canvas,dpr,e);
+    if(dragObj){simSyncSlider('cl-do',(lx-p.x)/f,2);e.preventDefault();}
+    else canvas.style.cursor=_hit(p)?'grab':'';}
+  function _up(){dragObj=false;canvas.style.cursor='';}
+  canvas.addEventListener('mousedown',_dn);canvas.addEventListener('touchstart',_dn,{passive:false});
+  canvas.addEventListener('mousemove',_mv);canvas.addEventListener('touchmove',_mv,{passive:false});
+  canvas.addEventListener('mouseup',_up);canvas.addEventListener('touchend',_up);
   function draw(){
     if(_simStop[id])return;
     animT+=0.025;
@@ -11032,6 +11198,9 @@ function simOptConvexLens(canvas){
     ctx.fillStyle='#93c5fd';ctx.beginPath();ctx.moveTo(objX,cy-objH);ctx.lineTo(objX-8,cy-objH+16);ctx.lineTo(objX+8,cy-objH+16);ctx.closePath();ctx.fill();
     optNoGlow(ctx);ctx.restore();
     optLabel(ctx,'עצם',objX,cy+14,'#60a5fa',10);
+    if(!hasDragged&&animT<7){
+      optLabel(ctx,'✋ גרור את העצם',objX,cy-objH-24+Math.sin(animT*4)*3,'#fbbf24',10);
+    }
     // Image
     if(isFinite(diVal)&&Math.abs(diVal)>5){
       var imgX=lx+diVal,imgH=-(objH*diVal/doPx);
@@ -11101,6 +11270,18 @@ function simOptConcaveLens(canvas){
   function getObj(){var e=document.getElementById('inp-dcl-do');return e?parseFloat(e.value):2.2;}
   function getWl(){var e=document.getElementById('inp-dcl-wl');return e?parseFloat(e.value):550;}
   var animT=0;
+  // ── Direct manipulation: drag the object arrow ──
+  var dragObj=false,hasDragged=false;
+  function _objX(){return lx-getObj()*f;}
+  function _hit(p){var ox=_objX();return Math.abs(p.x-ox)<24&&p.y>cy-82&&p.y<cy+14;}
+  function _dn(e){var p=simPointerXY(canvas,dpr,e);if(_hit(p)){dragObj=true;hasDragged=true;canvas.style.cursor='grabbing';e.preventDefault();}}
+  function _mv(e){var p=simPointerXY(canvas,dpr,e);
+    if(dragObj){simSyncSlider('dcl-do',(lx-p.x)/f,2);e.preventDefault();}
+    else canvas.style.cursor=_hit(p)?'grab':'';}
+  function _up(){dragObj=false;canvas.style.cursor='';}
+  canvas.addEventListener('mousedown',_dn);canvas.addEventListener('touchstart',_dn,{passive:false});
+  canvas.addEventListener('mousemove',_mv);canvas.addEventListener('touchmove',_mv,{passive:false});
+  canvas.addEventListener('mouseup',_up);canvas.addEventListener('touchend',_up);
   function draw(){
     if(_simStop[id])return;
     animT+=0.025;
@@ -11131,6 +11312,9 @@ function simOptConcaveLens(canvas){
     ctx.fillStyle='#93c5fd';ctx.beginPath();ctx.moveTo(objX,cy-objH);ctx.lineTo(objX-8,cy-objH+15);ctx.lineTo(objX+8,cy-objH+15);ctx.closePath();ctx.fill();
     optNoGlow(ctx);ctx.restore();
     optLabel(ctx,'עצם',objX,cy+14,'#60a5fa',10);
+    if(!hasDragged&&animT<7){
+      optLabel(ctx,'✋ גרור את העצם',objX,cy-objH-24+Math.sin(animT*4)*3,'#fbbf24',10);
+    }
     // Virtual image: same side as object (left), upright, smaller
     var imgX=lx+diVal; // diVal<0, so imgX < lx (on left)
     var imgTipY=cy-m_mag*objH; // upright: above axis like object
@@ -11706,6 +11890,21 @@ function simOptPolarization(canvas,id){
   var animT=0,last=null;
   function getAngle(){var e=document.getElementById('inp-pol-angle');return e?parseFloat(e.value):45;}
   function getI0(){var e=document.getElementById('inp-pol-i0');return e?parseFloat(e.value)/100:0.8;}
+  // ── Direct manipulation: rotate the analyzer disc ──
+  var dragPol=false,hasDraggedPol=false;
+  function _discC(){return {x:R.W*0.62,y:R.H*0.42};}
+  function _pDn(e){var p=simPointerXY(canvas,R.dpr,e);var c=_discC();
+    if(Math.hypot(p.x-c.x,p.y-c.y)<34){dragPol=true;hasDraggedPol=true;canvas.style.cursor='grabbing';e.preventDefault();}}
+  function _pMv(e){var p=simPointerXY(canvas,R.dpr,e);var c=_discC();
+    if(dragPol){
+      var deg=Math.atan2(p.y-c.y,p.x-c.x)*180/Math.PI;
+      deg=((deg%180)+180)%180;
+      simSyncSlider('pol-angle',deg,0);e.preventDefault();
+    } else canvas.style.cursor=Math.hypot(p.x-c.x,p.y-c.y)<34?'grab':'';}
+  function _pUp(){dragPol=false;canvas.style.cursor='';}
+  canvas.addEventListener('mousedown',_pDn);canvas.addEventListener('touchstart',_pDn,{passive:false});
+  canvas.addEventListener('mousemove',_pMv);canvas.addEventListener('touchmove',_pMv,{passive:false});
+  canvas.addEventListener('mouseup',_pUp);canvas.addEventListener('touchend',_pUp);
   function draw(ts){
     if(_simGen[id]!==_g)return;if(_simStop[id])return;
     var dt=last?Math.min((ts-last)/1000,0.05):0.016;last=ts;animT+=dt;
@@ -11771,6 +11970,22 @@ function simOptPolarization(canvas,id){
     ctx.fillText('θ='+getAngle()+'°',pol2X+16,beamY-14);
     ctx.fillStyle='#94a3b8';ctx.font='9px sans-serif';ctx.textAlign='center';
     ctx.fillText('מנתח',pol2X,beamY+34);ctx.restore();
+    // Rotate hint until first drag
+    if(!hasDraggedPol&&animT<8){
+      var hw2=Math.sin(animT*3)*0.2;
+      ctx.save();ctx.strokeStyle='#fbbf24';ctx.lineWidth=2;
+      ctx.beginPath();ctx.arc(pol2X,beamY,30,-0.6+hw2,0.9+hw2);ctx.stroke();
+      var aA=0.9+hw2;
+      ctx.fillStyle='#fbbf24';
+      ctx.beginPath();
+      ctx.moveTo(pol2X+Math.cos(aA+0.16)*30,beamY+Math.sin(aA+0.16)*30);
+      ctx.lineTo(pol2X+Math.cos(aA-0.14)*37,beamY+Math.sin(aA-0.14)*37);
+      ctx.lineTo(pol2X+Math.cos(aA-0.14)*23,beamY+Math.sin(aA-0.14)*23);
+      ctx.closePath();ctx.fill();
+      ctx.font='9px Heebo';ctx.textAlign='center';
+      ctx.fillText('✋ גרור לסיבוב',pol2X,beamY+52);
+      ctx.restore();
+    }
     // Transmitted beam pol2->eye
     var amp2=16*Math.sqrt(I);
     if(I>0.01){
@@ -11828,6 +12043,7 @@ function simOptDoppler(canvas,id){
   var animT=0,last=null;
   var emissions=[];
   var lastEmit=-1;
+  var stars=[];for(var _si=0;_si<44;_si++){stars.push({x:Math.random(),y:Math.random(),r:0.6+Math.random()*1.3,tw:1+Math.random()*3});}
   function getV(){var e=document.getElementById('inp-dop-v');return e?parseFloat(e.value)/100:0.2;}
   function getWL(){var e=document.getElementById('inp-dop-wl');return e?parseFloat(e.value):550;}
   function dopplerShift(beta,receding){
@@ -11852,6 +12068,14 @@ function simOptDoppler(canvas,id){
       if(emissions.length>30)emissions.shift();
     }
     ctx.fillStyle='#0f172a';ctx.fillRect(0,0,W,H);
+    // Twinkling starfield backdrop
+    ctx.save();ctx.fillStyle='#e2e8f0';
+    for(var _si2=0;_si2<stars.length;_si2++){
+      var st=stars[_si2];
+      ctx.globalAlpha=0.12+0.26*Math.abs(Math.sin(animT*st.tw+st.x*9));
+      ctx.beginPath();ctx.arc(st.x*W,st.y*H,st.r,0,Math.PI*2);ctx.fill();
+    }
+    ctx.restore();
     var srcCol=wavelengthToHex(lambda0);
     var srcRGB=wavelengthToRGB(lambda0).match(/\d+/g);
     // Draw wavefronts
