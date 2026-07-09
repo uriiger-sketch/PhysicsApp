@@ -5270,6 +5270,21 @@ function simIncline(canvas){
   function getTheta(){ const e=document.getElementById('inp-inc-theta'); return e?parseFloat(e.value):30; }
   function getMu()   { const e=document.getElementById('inp-inc-mu');    return e?parseFloat(e.value):0; }
   function getMass() { const e=document.getElementById('inp-inc-m');  return e?parseFloat(e.value):3; }
+  // ── Direct manipulation: grab the ramp surface and tilt it ──
+  var dragRamp=false;
+  function _rampHit(p){var cxi=W*0.14,cyi=H-72,LEN=Math.min(W*0.70,320);
+    var d=Math.hypot(p.x-cxi,p.y-cyi);var a=Math.atan2(cyi-p.y,p.x-cxi)*180/Math.PI;
+    return d>28&&d<LEN+28&&a>-6&&a<86;}
+  function _rDn(e){var p=simPointerXY(canvas,(window.devicePixelRatio||1),e);
+    if(_rampHit(p)){dragRamp=true;canvas.style.cursor='grabbing';e.preventDefault();}}
+  function _rMv(e){var p=simPointerXY(canvas,(window.devicePixelRatio||1),e);
+    if(dragRamp){var cxi=W*0.14,cyi=H-72;
+      simSyncSlider('inc-theta',Math.atan2(cyi-p.y,p.x-cxi)*180/Math.PI,0);e.preventDefault();
+    } else canvas.style.cursor=_rampHit(p)?'grab':'';}
+  function _rUp(){dragRamp=false;canvas.style.cursor='';}
+  canvas.addEventListener('mousedown',_rDn);canvas.addEventListener('touchstart',_rDn,{passive:false});
+  canvas.addEventListener('mousemove',_rMv);canvas.addEventListener('touchmove',_rMv,{passive:false});
+  canvas.addEventListener('mouseup',_rUp);canvas.addEventListener('touchend',_rUp);
   function getM1()   { const e=document.getElementById('inp-inc-m1');    return e?parseFloat(e.value):3; }
   function getM2()   { const e=document.getElementById('inp-inc-m2');    return e?parseFloat(e.value):5; }
 
@@ -7306,6 +7321,20 @@ function simNormalForce(canvas){
 
   const BASE_X=W*0.08, BASE_Y=H-46;
   const INCL=Math.min(W*0.74,320);
+  // ── Direct manipulation: grab the surface and tilt it ──
+  var dragRamp=false;
+  function _rampHit(p){var d=Math.hypot(p.x-BASE_X,p.y-BASE_Y);var a=Math.atan2(BASE_Y-p.y,p.x-BASE_X)*180/Math.PI;
+    return d>26&&d<INCL+28&&a>-6&&a<80;}
+  function _rDn(e){var p=simPointerXY(canvas,(window.devicePixelRatio||1),e);
+    if(_rampHit(p)){dragRamp=true;canvas.style.cursor='grabbing';e.preventDefault();}}
+  function _rMv(e){var p=simPointerXY(canvas,(window.devicePixelRatio||1),e);
+    if(dragRamp){
+      simSyncSlider('nf-theta',Math.atan2(BASE_Y-p.y,p.x-BASE_X)*180/Math.PI,0);e.preventDefault();
+    } else canvas.style.cursor=_rampHit(p)?'grab':'';}
+  function _rUp(){dragRamp=false;canvas.style.cursor='';}
+  canvas.addEventListener('mousedown',_rDn);canvas.addEventListener('touchstart',_rDn,{passive:false});
+  canvas.addEventListener('mousemove',_rMv);canvas.addEventListener('touchmove',_rMv,{passive:false});
+  canvas.addEventListener('mouseup',_rUp);canvas.addEventListener('touchend',_rUp);
 
   function draw(ts){
     if(_simStop[id])return;
@@ -8715,6 +8744,9 @@ function simProjectile(canvas){
   var running=false, launched=false;
   var trail=[];
   var landT=-1, aiming=false;
+  var targetX=-1,hits=0,feedbackMsg='',feedbackT=-1,hitFxT=-1,hitFxX=0;
+  function newTarget(){targetX=15+Math.random()*55;}
+  newTarget();
   var peakH=0, range=0, tFlight=0;
 
   // Ground level
@@ -8785,7 +8817,19 @@ function simProjectile(canvas){
       trail.push({x:x,y:y,vx:vx,vy:vy});
       if(trail.length>400)trail.shift();
       var py=GND_Y-y*SCALE;
-      if(py>=GND_Y){running=false; x=Math.max(x-vx*dt,0); y=0; landT=t;}
+      if(py>=GND_Y){
+        running=false; x=Math.max(x-vx*dt,0); y=0; landT=t;
+        if(targetX>0){
+          var miss=x-targetX;
+          if(Math.abs(miss)<3){
+            hits++;feedbackMsg='🎯 פגיעה מדויקת! נחיתה ב-'+x.toFixed(1)+'m';
+            hitFxT=t;hitFxX=targetX;newTarget();
+          } else {
+            feedbackMsg='החטאה ב-'+Math.abs(miss).toFixed(1)+'m — '+(miss<0?'הגדל טווח: העלה v₀ או קרב את θ ל-45°':'הקטן טווח: הורד v₀ או הרחק את θ מ-45°');
+          }
+          feedbackT=t;
+        }
+      }
     }
 
     simBg(ctx,W,H);
@@ -8867,6 +8911,43 @@ function simProjectile(canvas){
       simText(ctx,'שחרר לשיגור!',LAUNCH_X+Math.cos(ar3)*al3+12,GND_Y-Math.sin(ar3)*al3-10,'#fbbf24',10,'left');
     } else if(!launched){
       simText(ctx,'✋ גרור מהתותח כדי לכוון — שחרר לירי',LAUNCH_X+6,GND_Y-74+Math.sin(t*3)*3,'#fbbf24',9,'left');
+    }
+    // ── Target challenge ──────────────────────────────
+    if(targetX>0){
+      var tgx=LAUNCH_X+targetX*SCALE;
+      if(tgx<W-16){
+        ctx.save();
+        [[14,'#ef4444'],[9,'#f8fafc'],[4,'#ef4444']].forEach(function(cc){
+          ctx.fillStyle=cc[1];ctx.beginPath();ctx.arc(tgx,GND_Y,cc[0],Math.PI,0);ctx.fill();
+        });
+        ctx.strokeStyle='#94a3b8';ctx.lineWidth=1.5;
+        ctx.beginPath();ctx.moveTo(tgx,GND_Y-14);ctx.lineTo(tgx,GND_Y-34);ctx.stroke();
+        ctx.fillStyle='#ef4444';
+        ctx.beginPath();ctx.moveTo(tgx,GND_Y-34);ctx.lineTo(tgx+16,GND_Y-29);ctx.lineTo(tgx,GND_Y-24);ctx.closePath();ctx.fill();
+        ctx.restore();
+        simText(ctx,'מטרה: '+targetX.toFixed(0)+'m',tgx,GND_Y+26,'#f87171',8.5,'center');
+      } else {
+        simText(ctx,'🎯 המטרה ב-'+targetX.toFixed(0)+'m — מחוץ למסך, הגדל טווח!',W-16,68,'#f87171',8.5,'right');
+      }
+      simText(ctx,'🎯 פגיעות: '+hits,W-16,GND_Y+40,'#fbbf24',10,'right');
+      if(feedbackT>0&&t-feedbackT<2.8&&!running){
+        var goodHit=feedbackMsg.indexOf('🎯')===0;
+        ctx.save();ctx.fillStyle='rgba(4,9,20,.9)';ctx.strokeStyle=goodHit?'#34d399':'#f59e0b';ctx.lineWidth=1.5;
+        ctx.beginPath();ctx.roundRect(W/2-200,62,400,26,6);ctx.fill();ctx.stroke();ctx.restore();
+        simText(ctx,feedbackMsg,W/2,78,goodHit?'#34d399':'#fbbf24',9.5,'center');
+      }
+      if(hitFxT>0&&t-hitFxT<1){
+        var fxp=t-hitFxT;
+        var fxx=LAUNCH_X+hitFxX*SCALE;
+        ctx.save();ctx.globalAlpha=1-fxp;
+        var cols=['#f87171','#34d399','#fbbf24','#60a5fa'];
+        for(var ci=0;ci<12;ci++){
+          var ca=ci*Math.PI/6,cr=fxp*70;
+          ctx.fillStyle=cols[ci%4];
+          ctx.beginPath();ctx.arc(fxx+Math.cos(ca)*cr,GND_Y-14-Math.abs(Math.sin(ca))*cr+fxp*fxp*60,3,0,Math.PI*2);ctx.fill();
+        }
+        ctx.restore();
+      }
     }
 
     // ── Projectile ──────────────────────────────────────
@@ -10667,6 +10748,12 @@ function simOptConcaveMirror(canvas){
     var _cn2=wl<430?'UV':wl<470?'סגול':wl<500?'כחול':wl<560?'ירוק':wl<590?'צהוב':wl<625?'כתום':'אדום';
     ctx.save();ctx.fillStyle=wlHex;optGlow(ctx,wlHex,8);ctx.beginPath();ctx.arc(W-20,H-20,8,0,Math.PI*2);ctx.fill();optNoGlow(ctx);ctx.restore();
     optInfoBox(ctx,8,8,172,['f='+f+'px','dₒ='+Math.round(doPx)+'px','dᵢ='+diS,'הגדלה m='+mS,'λ='+Math.round(wl)+'nm '+_cn2]);
+    if(dragObj){
+      var _mm=Math.abs(doPx-f)<7?'dₒ = f — הקרניים יוצאות מקבילות: אין תמונה!':Math.abs(doPx-2*f)<9?'dₒ = 2f (במרכז העקמומיות C) — תמונה הפוכה בגודל שווה!':doPx<f?'dₒ < f — מראת איפור: מדומה, ישרה ומוגדלת':'';
+      if(_mm){ctx.save();ctx.fillStyle='rgba(4,9,20,.88)';ctx.strokeStyle='#fbbf24';ctx.lineWidth=1;
+        ctx.beginPath();ctx.roundRect(W/2-160,H-34,320,24,6);ctx.fill();ctx.stroke();ctx.restore();
+        optLabel(ctx,_mm,W/2,H-21,'#fbbf24',10);}
+    }
     // Animated photon along ray 1 (horizontal incident, toward mirror)
     var _ph=(animT*0.35)%1;
     var _pSX=Math.max(16,objX),_pEX=mx;
@@ -10787,6 +10874,12 @@ function simOptConvexMirror(canvas){
     var _cn3=wl<430?'UV':wl<470?'סגול':wl<500?'כחול':wl<560?'ירוק':wl<590?'צהוב':wl<625?'כתום':'אדום';
     ctx.save();ctx.fillStyle=wlHex;optGlow(ctx,wlHex,8);ctx.beginPath();ctx.arc(W-20,H-20,8,0,Math.PI*2);ctx.fill();optNoGlow(ctx);ctx.restore();
     optInfoBox(ctx,8,8,178,['f=−'+f+'px (מדומה)','dₒ='+Math.round(doPx)+'px','dᵢ=−'+Math.round(Math.abs(diVal))+'px','m=+'+mStr+' (ישרה, מוקטנת)','λ='+Math.round(wl)+'nm '+_cn3]);
+    if(dragObj){
+      var _mm='שים לב: בכל מרחק — מדומה, ישרה ומוקטנת! (מראה קמורה)';
+      if(_mm){ctx.save();ctx.fillStyle='rgba(4,9,20,.88)';ctx.strokeStyle='#fbbf24';ctx.lineWidth=1;
+        ctx.beginPath();ctx.roundRect(W/2-160,H-34,320,24,6);ctx.fill();ctx.stroke();ctx.restore();
+        optLabel(ctx,_mm,W/2,H-21,'#fbbf24',10);}
+    }
     // Animated photon along ray 1 (horizontal incident, right→left toward convex mirror)
     var _ph=(animT*0.35)%1;
     var _pSX=objX,_pEX=mx;
@@ -10807,6 +10900,20 @@ function simOptSnell(canvas){
     return{th1:th?parseFloat(th.value):35,n1:n1?parseFloat(n1.value):1,n2:n2?parseFloat(n2.value):1.5};
   }
   function getWl(){var e=document.getElementById('inp-snell-wl');return e?parseFloat(e.value):550;}
+  // ── Direct manipulation: grab the incident beam and rotate it ──
+  var dragBeam=false;
+  function _bcHit(p){var cxh=W/2,MYh=H*0.44;var d=Math.hypot(p.x-cxh,p.y-MYh);
+    return p.y<MYh-4&&p.x<cxh+12&&d>36&&d<230;}
+  function _bDn(e){var p=simPointerXY(canvas,(window.devicePixelRatio||1),e);
+    if(_bcHit(p)){dragBeam=true;canvas.style.cursor='grabbing';e.preventDefault();}}
+  function _bMv(e){var p=simPointerXY(canvas,(window.devicePixelRatio||1),e);
+    if(dragBeam){var cxh=W/2,MYh=H*0.44;
+      simSyncSlider('snell-th',Math.atan2(cxh-p.x,MYh-p.y)*180/Math.PI,0);e.preventDefault();
+    } else canvas.style.cursor=_bcHit(p)?'grab':'';}
+  function _bUp(){dragBeam=false;canvas.style.cursor='';}
+  canvas.addEventListener('mousedown',_bDn);canvas.addEventListener('touchstart',_bDn,{passive:false});
+  canvas.addEventListener('mousemove',_bMv);canvas.addEventListener('touchmove',_bMv,{passive:false});
+  canvas.addEventListener('mouseup',_bUp);canvas.addEventListener('touchend',_bUp);
   function draw(){
     if(_simStop[id])return;
     animT+=0.03;
@@ -10900,6 +11007,20 @@ function simOptTIR(canvas){
     return{th:th?parseFloat(th.value):30,n1:n1?parseFloat(n1.value):1.5,n2:n2?parseFloat(n2.value):1};
   }
   function getWl(){var e=document.getElementById('inp-tir-wl');return e?parseFloat(e.value):550;}
+  // ── Direct manipulation: grab the incident beam and rotate it ──
+  var dragBeam=false;
+  function _bcHit(p){var cxh=W/2,MYh=H*0.46;var d=Math.hypot(p.x-cxh,p.y-MYh);
+    return p.y<MYh-4&&p.x<cxh+12&&d>36&&d<210;}
+  function _bDn(e){var p=simPointerXY(canvas,(window.devicePixelRatio||1),e);
+    if(_bcHit(p)){dragBeam=true;canvas.style.cursor='grabbing';e.preventDefault();}}
+  function _bMv(e){var p=simPointerXY(canvas,(window.devicePixelRatio||1),e);
+    if(dragBeam){var cxh=W/2,MYh=H*0.46;
+      simSyncSlider('tir-th',Math.atan2(cxh-p.x,MYh-p.y)*180/Math.PI,0);e.preventDefault();
+    } else canvas.style.cursor=_bcHit(p)?'grab':'';}
+  function _bUp(){dragBeam=false;canvas.style.cursor='';}
+  canvas.addEventListener('mousedown',_bDn);canvas.addEventListener('touchstart',_bDn,{passive:false});
+  canvas.addEventListener('mousemove',_bMv);canvas.addEventListener('touchmove',_bMv,{passive:false});
+  canvas.addEventListener('mouseup',_bUp);canvas.addEventListener('touchend',_bUp);
   function draw(){
     if(_simStop[id])return;
     animT+=0.03;
@@ -10998,6 +11119,23 @@ function simOptPrism(canvas){
   const id=canvas.id;var animT=0;
   // Cauchy dispersion: n(lambda_nm) for crown glass
   function prismN(wl){return 1.458+3480/(wl*wl);}
+  // ── Direct manipulation: grab the white beam and change the incidence angle ──
+  var dragBeam=false;
+  function _entPt(){return {x:W*0.28+(W*0.5-W*0.28)*0.52,y:H*0.83+(H*0.1-H*0.83)*0.52};}
+  function _prHit(p){var en=_entPt();var d=Math.hypot(p.x-en.x,p.y-en.y);
+    return p.x<en.x+20&&d>36&&d<200;}
+  function _prDn(e){var p=simPointerXY(canvas,(window.devicePixelRatio||1),e);
+    if(_prHit(p)){dragBeam=true;canvas.style.cursor='grabbing';e.preventDefault();}}
+  function _prMv(e){var p=simPointerXY(canvas,(window.devicePixelRatio||1),e);
+    if(dragBeam){var en=_entPt();
+      var normAng=Math.atan2(0.22*W,0.73*H);
+      var thd=(normAng-Math.atan2(en.y-p.y,en.x-p.x))*180/Math.PI;
+      simSyncSlider('prism-ang',thd,0);e.preventDefault();
+    } else canvas.style.cursor=_prHit(p)?'grab':'';}
+  function _prUp(){dragBeam=false;canvas.style.cursor='';}
+  canvas.addEventListener('mousedown',_prDn);canvas.addEventListener('touchstart',_prDn,{passive:false});
+  canvas.addEventListener('mousemove',_prMv);canvas.addEventListener('touchmove',_prMv,{passive:false});
+  canvas.addEventListener('mouseup',_prUp);canvas.addEventListener('touchend',_prUp);
   // Equilateral prism apex A=60 degrees
   var A=Math.PI/3;
   // Incident angle at entry face (in radians, from face normal)
@@ -11252,6 +11390,12 @@ function simOptConvexLens(canvas){
     var _ln=wl<430?'UV':wl<470?'סגול':wl<500?'כחול':wl<560?'ירוק':wl<590?'צהוב':wl<625?'כתום':'אדום';
     ctx.save();ctx.fillStyle=wlHex;optGlow(ctx,wlHex,8);ctx.beginPath();ctx.arc(W-20,H-20,8,0,Math.PI*2);ctx.fill();optNoGlow(ctx);ctx.restore();
     optInfoBox(ctx,8,8,180,['dₒ='+Math.round(doPx)+'px','dᵢ='+diS,'m='+m_,diVal<0?'מדומה, ישרה':'ממשית, '+(parseFloat(m_)<0?'הפוכה':'ישרה'),'λ='+Math.round(wl)+'nm '+_ln]);
+    if(dragObj){
+      var _mm=Math.abs(doPx-f)<7?'dₒ = f — הקרניים יוצאות מקבילות: אין תמונה!':Math.abs(doPx-2*f)<9?'dₒ = 2f — תמונה ממשית הפוכה בגודל שווה!':doPx<f?'dₒ < f — זכוכית מגדלת: מדומה, ישרה ומוגדלת':'';
+      if(_mm){ctx.save();ctx.fillStyle='rgba(4,9,20,.88)';ctx.strokeStyle='#fbbf24';ctx.lineWidth=1;
+        ctx.beginPath();ctx.roundRect(W/2-160,H-34,320,24,6);ctx.fill();ctx.stroke();ctx.restore();
+        optLabel(ctx,_mm,W/2,H-21,'#fbbf24',10);}
+    }
     // Animated photon along ray 1 (horizontal incident, left→right toward lens)
     var _ph=(animT*0.35)%1;
     var _pSX=Math.max(10,objX),_pEX=lx;
@@ -11359,6 +11503,12 @@ function simOptConcaveLens(canvas){
     var _dl=wl<430?'UV':wl<470?'סגול':wl<500?'כחול':wl<560?'ירוק':wl<590?'צהוב':wl<625?'כתום':'אדום';
     ctx.save();ctx.fillStyle=wlHex;optGlow(ctx,wlHex,8);ctx.beginPath();ctx.arc(W-20,H-20,8,0,Math.PI*2);ctx.fill();optNoGlow(ctx);ctx.restore();
     optInfoBox(ctx,8,8,185,['dₒ='+Math.round(doPx)+'px','dᵢ='+Math.round(diVal)+'px','m=+'+mStr+' (ישרה, מוקטנת)','מדומה תמיד','λ='+Math.round(wl)+'nm '+_dl]);
+    if(dragObj){
+      var _mm='שים לב: בכל מרחק — מדומה, ישרה ומוקטנת! (עדשה מפזרת)';
+      if(_mm){ctx.save();ctx.fillStyle='rgba(4,9,20,.88)';ctx.strokeStyle='#fbbf24';ctx.lineWidth=1;
+        ctx.beginPath();ctx.roundRect(W/2-160,H-34,320,24,6);ctx.fill();ctx.stroke();ctx.restore();
+        optLabel(ctx,_mm,W/2,H-21,'#fbbf24',10);}
+    }
     // Animated photon along ray 1 (horizontal incident, left→right toward lens)
     var _ph=(animT*0.35)%1;
     var _pSX=objX,_pEX=lx;
@@ -11757,6 +11907,19 @@ function simOptEMSpectrum(canvas,id){
     {name:'גמא',icon:'⚡',col:'#f87171',lo:19,hi:22,app:'גרעין, PET'},
   ];
   function getPos(){var e=document.getElementById('inp-ems-pos');return e?parseFloat(e.value)/100:0.45;}
+  // ── Direct manipulation: click/drag anywhere on the spectrum bar ──
+  var dragBar=false;
+  function _barHit(p){return p.x>=8&&p.x<=R.W-8&&p.y>=16&&p.y<=84;}
+  function _sSet(p){simSyncSlider('ems-pos',(p.x-20)/(R.W-40)*100,0);}
+  function _sDn(e){var p=simPointerXY(canvas,R.dpr,e);
+    if(_barHit(p)){dragBar=true;_sSet(p);canvas.style.cursor='ew-resize';e.preventDefault();}}
+  function _sMv(e){var p=simPointerXY(canvas,R.dpr,e);
+    if(dragBar){_sSet(p);e.preventDefault();}
+    else canvas.style.cursor=_barHit(p)?'ew-resize':'';}
+  function _sUp(){dragBar=false;canvas.style.cursor='';}
+  canvas.addEventListener('mousedown',_sDn);canvas.addEventListener('touchstart',_sDn,{passive:false});
+  canvas.addEventListener('mousemove',_sMv);canvas.addEventListener('touchmove',_sMv,{passive:false});
+  canvas.addEventListener('mouseup',_sUp);canvas.addEventListener('touchend',_sUp);
   function logToMeters(log10_f){
     // f in Hz → λ=c/f
     var f=Math.pow(10,log10_f+3); // slider 0-100 maps log10(f/Hz) 3..22
@@ -12370,6 +12533,20 @@ function simOptFiber(canvas,id){
   function gN1(){var e=document.getElementById('inp-fib-n1');return e?parseFloat(e.value):1.50;}
   function gN2(){var e=document.getElementById('inp-fib-n2');return e?parseFloat(e.value):1.46;}
   function gAng(){var e=document.getElementById('inp-fib-ang');return e?parseFloat(e.value)*Math.PI/180:20*Math.PI/180;}
+  // ── Direct manipulation: grab the entry ray and change the launch angle ──
+  var dragRay=false;
+  function _fHit(p){var enx=W*0.05,eny=H*0.42;var d=Math.hypot(p.x-enx,p.y-eny);
+    return p.x<enx+16&&d>12&&d<120;}
+  function _fDn(e){var p=simPointerXY(canvas,R.dpr,e);
+    if(_fHit(p)){dragRay=true;canvas.style.cursor='grabbing';e.preventDefault();}}
+  function _fMv(e){var p=simPointerXY(canvas,R.dpr,e);
+    if(dragRay){var enx=W*0.05,eny=H*0.42;
+      simSyncSlider('fib-ang',Math.atan2(p.y-eny,enx-p.x)*180/Math.PI,0);e.preventDefault();
+    } else canvas.style.cursor=_fHit(p)?'grab':'';}
+  function _fUp(){dragRay=false;canvas.style.cursor='';}
+  canvas.addEventListener('mousedown',_fDn);canvas.addEventListener('touchstart',_fDn,{passive:false});
+  canvas.addEventListener('mousemove',_fMv);canvas.addEventListener('touchmove',_fMv,{passive:false});
+  canvas.addEventListener('mouseup',_fUp);canvas.addEventListener('touchend',_fUp);
   function draw(ts){
     if(_simGen[id]!==_g)return;if(_simStop[id])return;
     var dt=last?Math.min((ts-last)/1000,0.05):0.016;last=ts;animT+=dt;
