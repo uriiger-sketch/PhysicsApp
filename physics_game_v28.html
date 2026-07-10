@@ -11813,81 +11813,154 @@ function simOptInterference(canvas){
 
 // ─── YOUNG'S DOUBLE SLIT — Enhanced ──────────────────────────────
 function simOptYoungs(canvas){
-  const H=440;const{ctx,W,dpr}=setupCanvas(canvas,H);
+  const H=460;const{ctx,W,dpr}=setupCanvas(canvas,H);
   const id=canvas.id;var animT=0;
+  var slitX=90,cy=H/2;
   function getVals(){
     var lE=document.getElementById('inp-ys-lambda'),dE=document.getElementById('inp-ys-d'),LE=document.getElementById('inp-ys-L');
     return{lambda:lE?parseFloat(lE.value):500,d:dE?parseFloat(dE.value):0.3,L:LE?parseFloat(LE.value):1};
   }
+  function LtoX(L){return slitX+150+(L-0.5)/2.5*(W-70-(slitX+150));}
+  function XtoL(x){return 0.5+2.5*(x-(slitX+150))/(W-70-(slitX+150));}
+  function calc(){
+    var v=getVals();
+    var lam_m=v.lambda*1e-9,d_m=v.d*1e-3,L_m=v.L;
+    var Dy_m=lam_m*L_m/d_m;
+    var SCALE_PX=(H*0.17)/(500e-9*1.0/0.3e-3);
+    return{v:v,lam_m:lam_m,d_m:d_m,L_m:L_m,Dy_m:Dy_m,S:SCALE_PX,
+      DyPx:Math.max(6,Math.min(H*0.38,Dy_m*SCALE_PX)),
+      scrX:LtoX(v.L),dScale:Math.max(14,Math.min(88,v.d*88))};
+  }
+  // ── Direct manipulation: detector probe, screen distance, slit separation ──
+  var detY=null,dragWhat=null,hasDragged=false;
+  function _dn(e){
+    var p=simPointerXY(canvas,dpr,e),c=calc();
+    var dy0=detY===null?cy-c.DyPx:detY;
+    if(Math.abs(p.x-(c.scrX+16))<22&&Math.abs(p.y-dy0)<20)dragWhat='det';
+    else if(Math.abs(p.x-c.scrX)<14)dragWhat='screen';
+    else if(Math.abs(p.x-slitX)<18&&Math.abs(Math.abs(p.y-cy)-c.dScale)<18)dragWhat='slit';
+    if(dragWhat){hasDragged=true;canvas.style.cursor='grabbing';e.preventDefault();}
+  }
+  function _mv(e){
+    var p=simPointerXY(canvas,dpr,e);
+    if(dragWhat==='det'){detY=Math.max(12,Math.min(H-12,p.y));e.preventDefault();}
+    else if(dragWhat==='screen'){simSyncSlider('ys-L',XtoL(p.x),2);e.preventDefault();}
+    else if(dragWhat==='slit'){simSyncSlider('ys-d',Math.abs(p.y-cy)/88,2);e.preventDefault();}
+    else{
+      var c=calc();var dy0=detY===null?cy-c.DyPx:detY;
+      canvas.style.cursor=((Math.abs(p.x-(c.scrX+16))<22&&Math.abs(p.y-dy0)<20)||Math.abs(p.x-c.scrX)<14||(Math.abs(p.x-slitX)<18&&Math.abs(Math.abs(p.y-cy)-c.dScale)<18))?'grab':'';
+    }
+  }
+  function _up(){dragWhat=null;canvas.style.cursor='';}
+  canvas.addEventListener('mousedown',_dn);canvas.addEventListener('touchstart',_dn,{passive:false});
+  canvas.addEventListener('mousemove',_mv);canvas.addEventListener('touchmove',_mv,{passive:false});
+  canvas.addEventListener('mouseup',_up);canvas.addEventListener('touchend',_up);
   function draw(){
     if(_simStop[id])return;
     animT+=0.04;
-    var v=getVals();
-    var lam_m=v.lambda*1e-9,d_m=v.d*1e-3,L_m=v.L;
-    var Dy_m=lam_m*L_m/d_m; // physical fringe spacing in meters
-    // SCALE: normalize so that at defaults (500nm, 0.3mm, 1m) fringe spacing = H*0.17
-    var DEFAULT_Dy=500e-9*1.0/0.3e-3; // ~1.667mm
-    var SCALE_PX=(H*0.17)/DEFAULT_Dy;  // pixels per meter of fringe spacing
-    var DyPx=Math.max(6,Math.min(H*0.38,Dy_m*SCALE_PX));
+    var c=calc(),v=c.v;
+    var scrX=c.scrX,DyPx=c.DyPx,dScale=c.dScale;
+    if(detY===null)detY=cy-DyPx;
     var col=wavelengthToHex(v.lambda);
     var bgG=ctx.createLinearGradient(0,0,0,H);bgG.addColorStop(0,'#020810');bgG.addColorStop(1,'#030d1a');
     ctx.fillStyle=bgG;ctx.fillRect(0,0,W,H);
-    var slitX=62,scrX=W-52,cy=H/2;
-    // Light source
-    ctx.save();ctx.fillStyle=col;optGlow(ctx,col,20);
-    ctx.beginPath();ctx.arc(20,cy,8,0,Math.PI*2);ctx.fill();optNoGlow(ctx);ctx.restore();
-    optLabel(ctx,'מקור',20,cy+20,'#64748b',9);
-    // Slit positions (shown proportionally on canvas, not physical scale)
-    var dScale=Math.max(14,Math.min(88,Math.round(v.d*88)));// 0.1mm→9px, 1.0mm→88px
     var s1y=cy-dScale,s2y=cy+dScale;
+    // Source
+    ctx.save();ctx.fillStyle=col;optGlow(ctx,col,20);
+    ctx.beginPath();ctx.arc(24,cy,8,0,Math.PI*2);ctx.fill();optNoGlow(ctx);ctx.restore();
+    optLabel(ctx,'מקור',24,cy+22,'#64748b',9);
+    // Source→slit rays + photons
+    var sp=(animT*0.45)%1;
+    [s1y,s2y].forEach(function(sy){
+      ctx.save();ctx.strokeStyle=col;ctx.lineWidth=1;ctx.globalAlpha=0.35;
+      ctx.beginPath();ctx.moveTo(24,cy);ctx.lineTo(slitX-4,sy);ctx.stroke();
+      ctx.globalAlpha=1;ctx.fillStyle=col;optGlow(ctx,col,8);
+      ctx.beginPath();ctx.arc(24+(slitX-28)*sp,cy+(sy-cy)*sp,2.5,0,Math.PI*2);ctx.fill();
+      optNoGlow(ctx);ctx.restore();
+    });
+    // Barrier with two slits (draggable separation)
     var slitH=8;
     ctx.save();ctx.fillStyle='rgba(15,28,46,.95)';ctx.strokeStyle='rgba(71,85,105,.4)';ctx.lineWidth=1;
     ctx.beginPath();ctx.roundRect(slitX-4,10,8,s1y-slitH-10,2);ctx.fill();ctx.stroke();
     ctx.beginPath();ctx.roundRect(slitX-4,s1y+slitH,8,s2y-s1y-slitH*2,2);ctx.fill();ctx.stroke();
     ctx.beginPath();ctx.roundRect(slitX-4,s2y+slitH,8,H-s2y-slitH-10,2);ctx.fill();ctx.stroke();
     ctx.restore();
-    optLabel(ctx,'d='+v.d+'mm',slitX+14,cy,col,9);
+    optLabel(ctx,'d='+v.d.toFixed(2)+'mm ↕',slitX+26,cy,col,9);
     optLabel(ctx,'S₁',slitX-14,s1y,'#94a3b8',8);
     optLabel(ctx,'S₂',slitX-14,s2y,'#94a3b8',8);
-    // Animated photon pulses from source to slits
-    var sp=(animT*0.45)%1;
-    [s1y,s2y].forEach(function(sy){
-      ctx.save();ctx.strokeStyle=col;ctx.lineWidth=1;ctx.globalAlpha=0.35;
-      ctx.beginPath();ctx.moveTo(20,cy);ctx.lineTo(slitX-4,sy);ctx.stroke();
-      ctx.globalAlpha=1;ctx.fillStyle=col;optGlow(ctx,col,8);
-      ctx.beginPath();ctx.arc(20+(slitX-24)*sp,cy+(sy-cy)*sp,2.5,0,Math.PI*2);ctx.fill();
-      optNoGlow(ctx);ctx.restore();
-    });
-    // Fringe pattern on screen — continuous cos² intensity profile
-    var fadeIn=Math.min(1,animT*0.25);
-    ctx.save();
-    for(var yy=4;yy<H-4;yy++){
-      var I=Math.pow(Math.cos(Math.PI*(yy-cy)/DyPx),2);
-      if(I<0.02)continue;
-      ctx.fillStyle=col;ctx.globalAlpha=I*fadeIn*0.9;
-      ctx.fillRect(scrX-4,yy,8,1);
-    }
-    ctx.restore();
-    // Rays from the slits to the central bright fringes
-    for(var m=-3;m<=3;m++){
-      var yb=cy+m*DyPx;if(yb<4||yb>H-4)continue;
+    // Huygens wavelets from both slits
+    for(var w=1;w<=4;w++){
+      var rr=(w*24+(animT*30)%24);
       [s1y,s2y].forEach(function(sy){
-        ctx.save();ctx.strokeStyle=col;ctx.lineWidth=0.8;ctx.globalAlpha=0.12*fadeIn;
-        ctx.setLineDash([4,9]);ctx.beginPath();ctx.moveTo(slitX,sy);ctx.lineTo(scrX,yb);ctx.stroke();ctx.setLineDash([]);ctx.restore();
+        ctx.save();ctx.strokeStyle=col;ctx.globalAlpha=0.10*(5-w)/4;ctx.lineWidth=1;
+        ctx.beginPath();ctx.arc(slitX,sy,rr,-Math.PI/2,Math.PI/2);ctx.stroke();ctx.restore();
       });
     }
-    // Screen
-    ctx.save();ctx.fillStyle='rgba(20,35,60,.9)';ctx.beginPath();ctx.roundRect(scrX-4,8,8,H-16,3);ctx.fill();ctx.restore();
-    optLabel(ctx,'מסך',scrX,H-10,'#64748b',9);
-    // Fringe spacing arrow + label
+    // Screen: BRIGHT wide fringes (cos² profile)
+    var fadeIn=Math.min(1,animT*0.25);
+    ctx.save();
+    for(var yy=6;yy<H-6;yy++){
+      var I=Math.pow(Math.cos(Math.PI*(yy-cy)/DyPx),2);
+      if(I<0.02)continue;
+      ctx.fillStyle=col;ctx.globalAlpha=I*fadeIn;
+      ctx.fillRect(scrX-8,yy,16,1);
+    }
+    ctx.restore();
+    // Intensity curve I(y) beside the screen
+    ctx.save();ctx.strokeStyle=col;ctx.lineWidth=1.6;ctx.globalAlpha=0.8;
+    ctx.beginPath();
+    for(var yy2=6;yy2<H-6;yy2+=2){
+      var I2=Math.pow(Math.cos(Math.PI*(yy2-cy)/DyPx),2);
+      var xx=scrX-12-I2*52;
+      yy2===6?ctx.moveTo(xx,yy2):ctx.lineTo(xx,yy2);
+    }
+    ctx.stroke();ctx.restore();
+    optLabel(ctx,'I(y)',scrX-56,16,'#64748b',8);
+    // Screen frame (draggable → L)
+    ctx.save();ctx.strokeStyle='rgba(148,163,184,.5)';ctx.lineWidth=1.5;
+    ctx.strokeRect(scrX-8,6,16,H-12);ctx.restore();
+    optLabel(ctx,'מסך ↔ L='+v.L.toFixed(2)+'m',scrX,H-10,'#94a3b8',9);
+    // Δy bracket
     if(DyPx>12){
       ctx.save();ctx.strokeStyle='#fbbf24';ctx.lineWidth=1;ctx.setLineDash([3,4]);
-      ctx.beginPath();ctx.moveTo(scrX+12,cy);ctx.lineTo(scrX+12,cy-DyPx);ctx.stroke();
+      ctx.beginPath();ctx.moveTo(scrX-64,cy);ctx.lineTo(scrX-64,cy-DyPx);ctx.stroke();
       ctx.setLineDash([]);ctx.restore();
-      var Dy_mm=(Dy_m*1000).toFixed(2);
-      optLabel(ctx,'Δy='+Dy_mm+'mm',scrX+40,cy-DyPx/2,'#fbbf24',9);
+      optLabel(ctx,'Δy='+(c.Dy_m*1000).toFixed(2)+'mm',scrX-64,cy-DyPx-10,'#fbbf24',8.5);
     }
-    optInfoBox(ctx,8,8,164,['λ='+v.lambda+'nm','d='+v.d+'mm','L='+v.L+'m','Δy=λL/d='+(Dy_m*1000).toFixed(2)+'mm']);
+    // ── DETECTOR: the path-difference probe (exact geometry) ──
+    var y_m=(detY-cy)/c.S;
+    var r1=Math.sqrt(c.L_m*c.L_m+(y_m-c.d_m/2)*(y_m-c.d_m/2));
+    var r2=Math.sqrt(c.L_m*c.L_m+(y_m+c.d_m/2)*(y_m+c.d_m/2));
+    var dPath=Math.abs(r2-r1);
+    var mVal=dPath/c.lam_m;
+    var mR=Math.round(mVal);
+    var toInt=Math.abs(mVal-mR);
+    var toHalf=Math.abs(mVal-(Math.floor(mVal)+0.5));
+    var kind=toInt<0.08?'max':toHalf<0.08?'min':'mid';
+    var kCol=kind==='max'?'#34d399':kind==='min'?'#f87171':'#e2e8f0';
+    // r1, r2 rays from the slits to the detector
+    ctx.save();ctx.setLineDash([5,5]);ctx.lineWidth=1.4;
+    ctx.strokeStyle='rgba(251,191,36,.75)';
+    ctx.beginPath();ctx.moveTo(slitX,s1y);ctx.lineTo(scrX-8,detY);ctx.stroke();
+    ctx.strokeStyle='rgba(34,211,238,.75)';
+    ctx.beginPath();ctx.moveTo(slitX,s2y);ctx.lineTo(scrX-8,detY);ctx.stroke();
+    ctx.setLineDash([]);ctx.restore();
+    optLabel(ctx,'r₁',slitX+(scrX-slitX)*0.45,s1y+(detY-s1y)*0.45-10,'#fbbf24',9);
+    optLabel(ctx,'r₂',slitX+(scrX-slitX)*0.45,s2y+(detY-s2y)*0.45+12,'#22d3ee',9);
+    // detector marker
+    ctx.save();ctx.fillStyle=kCol;optGlow(ctx,kCol,14);
+    ctx.beginPath();ctx.arc(scrX+16,detY,8,0,Math.PI*2);ctx.fill();optNoGlow(ctx);
+    ctx.fillStyle='#0b1220';ctx.beginPath();ctx.arc(scrX+16,detY,3.5,0,Math.PI*2);ctx.fill();ctx.restore();
+    if(!hasDragged&&animT<9){
+      optLabel(ctx,'✋ גרור את הגלאי',scrX-40,detY-22+Math.sin(animT*4)*3,'#fbbf24',10);
+    }
+    // verdict panel
+    ctx.save();ctx.fillStyle='rgba(4,9,20,.9)';ctx.strokeStyle=kCol;ctx.lineWidth=1.5;
+    ctx.beginPath();ctx.roundRect(8,H-78,238,70,7);ctx.fill();ctx.stroke();ctx.restore();
+    optLabel(ctx,'גלאי: y='+(y_m*1000).toFixed(2)+'mm',127,H-62,'#e2e8f0',10);
+    optLabel(ctx,'Δ = r₂−r₁ = '+mVal.toFixed(2)+'λ',127,H-45,kCol,11);
+    optLabel(ctx,kind==='max'?'התאבכות בונה — פס בהיר (m='+mR+')':kind==='min'?'התאבכות הורסת — פס כהה':'בין מקסימום למינימום',127,H-26,kCol,9.5);
+    optInfoBox(ctx,8,8,176,['λ='+v.lambda+'nm','d='+v.d.toFixed(2)+'mm  (גרור סדק)','L='+v.L.toFixed(2)+'m  (גרור מסך)','Δy=λL/d='+(c.Dy_m*1000).toFixed(2)+'mm']);
     requestAnimationFrame(draw);
   }
   function poll(){if(_simStop[id])return;requestAnimationFrame(draw);}poll();
@@ -11901,6 +11974,17 @@ function simOptDiffraction(canvas){
     var aE=document.getElementById('inp-diff-a'),lE=document.getElementById('inp-diff-lambda');
     return{a:aE?parseFloat(aE.value):0.1,lambda:lE?parseFloat(lE.value):500};
   }
+  // ── Direct manipulation: drag a probe along the screen ──
+  var probeY=null,dragProbe=false,probeTouched=false;
+  function _pDn(e){var p=simPointerXY(canvas,dpr,e);
+    if(Math.abs(p.x-(W-52))<28){dragProbe=true;probeTouched=true;probeY=Math.max(10,Math.min(H-10,p.y));canvas.style.cursor='grabbing';e.preventDefault();}}
+  function _pMv(e){var p=simPointerXY(canvas,dpr,e);
+    if(dragProbe){probeY=Math.max(10,Math.min(H-10,p.y));e.preventDefault();}
+    else canvas.style.cursor=Math.abs(p.x-(W-52))<28?'grab':'';}
+  function _pUp(){dragProbe=false;canvas.style.cursor='';}
+  canvas.addEventListener('mousedown',_pDn);canvas.addEventListener('touchstart',_pDn,{passive:false});
+  canvas.addEventListener('mousemove',_pMv);canvas.addEventListener('touchmove',_pMv,{passive:false});
+  canvas.addEventListener('mouseup',_pUp);canvas.addEventListener('touchend',_pUp);
   function draw(){
     if(_simStop[id])return;
     animT+=0.04;
@@ -11986,6 +12070,23 @@ function simOptDiffraction(canvas){
       ctx.beginPath();ctx.moveTo(slitX,cy+off);ctx.lineTo(scrX,cy);ctx.stroke();ctx.setLineDash([]);ctx.restore();
     });
     var th1=(ratio<1?(Math.asin(ratio)*180/Math.PI):90).toFixed(1);
+    // ── Probe: find the minima with your own hands ──
+    if(probeY===null)probeY=cy+H*0.15;
+    var thP=Math.atan((probeY-cy)/L_eff);
+    var mP=a_m*Math.sin(Math.abs(thP))/lam_m;
+    var mPR=Math.round(mP);
+    var isMinP=mPR>0&&Math.abs(mP-mPR)<0.06;
+    var pCol=isMinP?'#f87171':mP<0.5?'#34d399':'#e2e8f0';
+    ctx.save();ctx.setLineDash([4,6]);ctx.strokeStyle='rgba(148,163,184,.5)';ctx.lineWidth=1.2;
+    ctx.beginPath();ctx.moveTo(slitX,cy);ctx.lineTo(scrX-4,probeY);ctx.stroke();ctx.setLineDash([]);ctx.restore();
+    ctx.save();ctx.fillStyle=pCol;optGlow(ctx,pCol,12);
+    ctx.beginPath();ctx.arc(scrX+10,probeY,7,0,Math.PI*2);ctx.fill();optNoGlow(ctx);
+    ctx.fillStyle='#0b1220';ctx.beginPath();ctx.arc(scrX+10,probeY,3,0,Math.PI*2);ctx.fill();ctx.restore();
+    if(!probeTouched&&animT<9)optLabel(ctx,'✋ גרור את הגלאי',scrX-56,probeY-18+Math.sin(animT*4)*3,'#fbbf24',10);
+    ctx.save();ctx.fillStyle='rgba(4,9,20,.9)';ctx.strokeStyle=pCol;ctx.lineWidth=1.5;
+    ctx.beginPath();ctx.roundRect(8,H-64,230,56,7);ctx.fill();ctx.stroke();ctx.restore();
+    optLabel(ctx,'גלאי: a·sinθ = '+mP.toFixed(2)+'λ  (θ='+(thP*180/Math.PI).toFixed(1)+'°)',123,H-46,pCol,9.5);
+    optLabel(ctx,isMinP?'מינימום עקיפה! a·sinθ = '+mPR+'λ':mP<0.5?'בתוך הפס המרכזי הבהיר':'בין מינימומים',123,H-25,pCol,9.5);
     optInfoBox(ctx,8,8,164,['a='+v.a+'mm','λ='+v.lambda+'nm','θ_min₁='+th1+'°','סדק צר → פיזור רחב']);
     requestAnimationFrame(draw);
   }
@@ -13034,6 +13135,9 @@ function simOptGrating(canvas,id){
   var animT=0,last=null;
   function getD(){var e=document.getElementById('inp-gr-d');return e?parseFloat(e.value)*1000:1500;}// μm→nm
   function getLam(){var e=document.getElementById('inp-gr-lambda');return e?parseFloat(e.value):550;}
+  var whiteMode=false;
+  var wBtn=document.getElementById('btn-gr-white');
+  if(wBtn)wBtn.addEventListener('click',function(){whiteMode=!whiteMode;wBtn.textContent=whiteMode?'🔦 אור חד-גוני':'🌈 אור לבן';});
   function draw(ts){
     if(_simGen[id]!==_g)return;if(_simStop[id])return;
     var dt=last?Math.min((ts-last)/1000,0.05):0.016;last=ts;animT+=dt;
@@ -13066,6 +13170,33 @@ function simOptGrating(canvas,id){
     // === DIFFRACTED ORDERS ===
     var orders=[-2,-1,0,1,2];
     var lRGB=wavelengthToRGB(lambda).match(/\d+/g);
+    if(whiteMode){
+      // Spectroscopy: white light — every order m≠0 disperses into a full spectrum
+      orders.forEach(function(m){
+        if(m===0)return;
+        for(var wl2=410;wl2<=690;wl2+=20){
+          var sinT2=m*wl2/dNm;
+          if(Math.abs(sinT2)>0.96)continue;
+          var th2b=Math.asin(sinT2);
+          var hitY2=ax+(scrX-grX)*Math.tan(th2b);
+          if(hitY2<scrTop||hitY2>scrTop+scrH)continue;
+          ctx.save();ctx.strokeStyle=wavelengthToHex(wl2);ctx.globalAlpha=0.5;ctx.lineWidth=1.6;
+          ctx.beginPath();ctx.moveTo(grX,ax);ctx.lineTo(scrX,hitY2);ctx.stroke();
+          ctx.globalAlpha=0.95;ctx.fillStyle=wavelengthToHex(wl2);
+          ctx.fillRect(scrX,hitY2-2,9,4);
+          ctx.restore();
+        }
+        var sinL=m*545/dNm;
+        if(Math.abs(sinL)<=0.95){
+          optLabel(ctx,'m='+m,scrX+24,ax+(scrX-grX)*Math.tan(Math.asin(sinL)),'#e2e8f0',8);
+        }
+      });
+      // central order stays white — all wavelengths overlap at θ=0
+      ctx.save();ctx.strokeStyle='rgba(255,255,255,0.85)';ctx.lineWidth=3;ctx.lineCap='round';
+      ctx.beginPath();ctx.moveTo(grX,ax);ctx.lineTo(scrX,ax);ctx.stroke();
+      ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(scrX+2,ax,5,0,Math.PI*2);ctx.fill();ctx.restore();
+      optLabel(ctx,'m=0 (לבן)',scrX+32,ax,'#e2e8f0',8);
+    } else
     orders.forEach(function(m){
       var sinTh=m*lambda/dNm;
       if(Math.abs(sinTh)>0.96)return;// beyond 90°, not observable
@@ -17623,7 +17754,7 @@ function buildSim(sim){
   else if(sim.type==='opt-fiber')extra=C(rng('fib-n1',1.30,1.80,1.50,0.01,'מדד שבירה ליבה n₁','')+rng('fib-n2',1.20,1.70,1.46,0.01,'מדד שבירה מעטה n₂','')+rng('fib-ang',2,40,20,1,'זווית כניסה','°'));
   else if(sim.type==='opt-telescope')extra=C(rng('tel-fo',30,300,150,5,'מוקד אובייקטיב fₒ','mm')+rng('tel-fe',5,60,25,5,'מוקד עדשת עין fₑ','mm'));
   else if(sim.type==='opt-thin-film')extra=C(rng('tf-thick',50,600,300,5,'עובי קרום t','nm')+rng('tf-n',1.10,2.00,1.33,0.02,'מדד שבירה n',''));
-  else if(sim.type==='opt-grating')extra=C(rng('gr-d',0.5,5.0,1.5,0.1,'מרווח סריג d','μm')+rng('gr-lambda',380,700,550,5,'אורך גל λ','nm'));
+  else if(sim.type==='opt-grating')extra=C(rng('gr-d',0.5,5.0,1.5,0.1,'מרווח סריג d','μm')+rng('gr-lambda',380,700,550,5,'אורך גל λ','nm')+btn('gr-white','🌈 אור לבן','btn-secondary'));
   const simDone=isCompleted(state.chapter,state.section,'sim');
   return `<div class="sim-container">
     <div class="sim-canvas-wrap"><canvas id="sim-canvas" height="280"></canvas></div>
