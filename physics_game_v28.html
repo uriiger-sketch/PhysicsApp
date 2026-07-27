@@ -3610,7 +3610,7 @@ const OPTICS_CONTENT={
       </div>
       <div class="theory-anim">${animCanvas('anim-polar-t',148,'קיטוב וחוק מאלוס')}</div>`,
   },
-  sim:{type:'opt-polarization',desc:'שנה את זווית המנתח (0°–180°) וראה כיצד עוצמת האור המועברת משתנה לפי I=I₀cos²θ. הגרף בזמן אמת.'},
+  sim:{type:'opt-polarization',desc:'גרור את דיסקת המנתח לסיבוב. אור טבעי מאבד חצי מעוצמתו בקוטב הראשון (I₁=I₀/2), ורק אז חל חוק מאלוס: I₂=I₁cos²θ. עקוב אחר שרשרת העוצמות והגרף בזמן אמת.'},
   example:{title:'חוק מאלוס — חישוב',text:'אור מקוטב עם I₀=400 W/m² עובר דרך מנתח בזווית θ=30°.',
     steps:[
       {q:'I=I₀cos²θ=400×cos²(30°)',a:'cos(30°)=√3/2 ≈ 0.866'},
@@ -11334,6 +11334,18 @@ function simOptConvexLens(canvas){
   function getObj(){var e=document.getElementById('inp-cl-do');return e?parseFloat(e.value):2.2;}
   function getWl(){var e=document.getElementById('inp-cl-wl');return e?parseFloat(e.value):550;}
   function getF(){var e=document.getElementById('inp-cl-f');return e?parseFloat(e.value):95;}
+  // ── Focus-the-image lab: a real screen you slide until the image is sharp ──
+  var scrPos=null,dragScr=false,touchedScr=false,bestBlur=999;
+  function _scrHit(p){return scrPos!==null&&Math.abs(p.x-scrPos)<16;}
+  function _sDn(e){var p=simPointerXY(canvas,dpr,e);
+    if(!dragObj&&_scrHit(p)){dragScr=true;touchedScr=true;canvas.style.cursor='grabbing';e.preventDefault();}}
+  function _sMv(e){var p=simPointerXY(canvas,dpr,e);
+    if(dragScr){scrPos=Math.max(lx+30,Math.min(W-14,p.x));e.preventDefault();}
+    else if(!dragObj&&_scrHit(p))canvas.style.cursor='ew-resize';}
+  function _sUp(){dragScr=false;canvas.style.cursor='';}
+  canvas.addEventListener('mousedown',_sDn);canvas.addEventListener('touchstart',_sDn,{passive:false});
+  canvas.addEventListener('mousemove',_sMv);canvas.addEventListener('touchmove',_sMv,{passive:false});
+  canvas.addEventListener('mouseup',_sUp);canvas.addEventListener('touchend',_sUp);
   var animT=0;
   // ── Direct manipulation: drag the object arrow ──
   var dragObj=false,hasDragged=false;
@@ -11428,6 +11440,43 @@ function simOptConvexLens(canvas){
     var diS=isFinite(diVal)?Math.round(diVal)+'px':'∞';
     var _ln=wl<430?'UV':wl<470?'סגול':wl<500?'כחול':wl<560?'ירוק':wl<590?'צהוב':wl<625?'כתום':'אדום';
     ctx.save();ctx.fillStyle=wlHex;optGlow(ctx,wlHex,8);ctx.beginPath();ctx.arc(W-20,H-20,8,0,Math.PI*2);ctx.fill();optNoGlow(ctx);ctx.restore();
+    // ── SCREEN: real images can be projected; virtual ones cannot ──
+    if(scrPos===null)scrPos=Math.min(W-40,lx+150);
+    var realImg=isFinite(diVal)&&diVal>5;
+    var imgXr=lx+diVal, imgHr=-(objH*diVal/doPx);
+    var defocus=realImg?Math.abs(scrPos-imgXr):Infinity;
+    var LENS_AP=70; // half-aperture in px — sets the blur-cone slope
+    var blurR=realImg?Math.min(60,defocus*LENS_AP/Math.max(20,Math.abs(diVal))):0;
+    var inFocus=realImg&&blurR<3.5;
+    if(inFocus&&defocus<bestBlur)bestBlur=defocus;
+    ctx.save();
+    ctx.fillStyle='rgba(226,232,240,.10)';ctx.strokeStyle=inFocus?'#34d399':'rgba(148,163,184,.6)';
+    ctx.lineWidth=inFocus?2.5:1.5;
+    ctx.fillRect(scrPos-5,26,10,H-58);ctx.strokeRect(scrPos-5,26,10,H-58);
+    ctx.restore();
+    optLabel(ctx,'מסך',scrPos,H-20,inFocus?'#34d399':'#94a3b8',9);
+    if(realImg){
+      if(inFocus){
+        // Sharp projected image — inverted, height from magnification
+        ctx.save();ctx.strokeStyle='#f87171';ctx.lineWidth=4;optGlow(ctx,'#f87171',14);
+        ctx.beginPath();ctx.moveTo(scrPos,cy);ctx.lineTo(scrPos,cy-imgHr);ctx.stroke();
+        ctx.fillStyle='#f87171';ctx.beginPath();
+        ctx.moveTo(scrPos,cy-imgHr);ctx.lineTo(scrPos-8,cy-imgHr+(imgHr>0?16:-16));ctx.lineTo(scrPos+8,cy-imgHr+(imgHr>0?16:-16));
+        ctx.closePath();ctx.fill();optNoGlow(ctx);ctx.restore();
+        ctx.save();ctx.fillStyle='rgba(4,9,20,.9)';ctx.strokeStyle='#34d399';ctx.lineWidth=1.5;
+        ctx.beginPath();ctx.roundRect(scrPos-96,H-98,192,22,6);ctx.fill();ctx.stroke();ctx.restore();
+        optLabel(ctx,'✓ מוקד! תמונה חדה על המסך',scrPos,H-83,'#34d399',10);
+      } else {
+        // Out of focus: the cone of light paints a blur circle
+        ctx.save();ctx.globalAlpha=0.5;ctx.fillStyle='rgba(248,113,113,.35)';
+        ctx.beginPath();ctx.ellipse(scrPos,cy-imgHr/2,Math.max(3,blurR*0.5),Math.max(6,Math.abs(imgHr)/2+blurR),0,0,Math.PI*2);
+        ctx.fill();ctx.restore();
+        optLabel(ctx,'מטושטש — הזז את המסך ל-dᵢ='+Math.round(diVal)+'px',scrPos,H-83,'#f87171',9);
+      }
+    } else {
+      optLabel(ctx,'תמונה מדומה — לא ניתן להקרין על מסך!',scrPos,H-83,'#34d399',9);
+    }
+    if(!touchedScr&&animT<10)optLabel(ctx,'✋ גרור את המסך למוקד',scrPos,18+Math.sin(animT*4)*3,'#fbbf24',10);
     optInfoBox(ctx,8,8,180,['dₒ='+Math.round(doPx)+'px','dᵢ='+diS,'m='+m_,diVal<0?'מדומה, ישרה':'ממשית, '+(parseFloat(m_)<0?'הפוכה':'ישרה'),'λ='+Math.round(wl)+'nm '+_ln]);
     if(dragObj){
       var _mm=Math.abs(doPx-f)<7?'dₒ = f — הקרניים יוצאות מקבילות: אין תמונה!':Math.abs(doPx-2*f)<9?'dₒ = 2f — תמונה ממשית הפוכה בגודל שווה!':doPx<f?'dₒ < f — זכוכית מגדלת: מדומה, ישרה ומוגדלת':'';
@@ -12320,8 +12369,10 @@ function simOptPolarization(canvas,id){
     if(_simGen[id]!==_g)return;if(_simStop[id])return;
     var dt=last?Math.min((ts-last)/1000,0.05):0.016;last=ts;animT+=dt;
     var theta=getAngle()*Math.PI/180;
-    var I0=getI0();
-    var I=I0*Math.cos(theta)*Math.cos(theta);
+    var I0=getI0();                       // unpolarized source intensity
+    var I1=I0/2;                          // after 1st polarizer: ⟨cos²⟩=½ over random orientations
+    var mal=Math.cos(theta)*Math.cos(theta); // Malus factor cos²θ
+    var I=I1*mal;                         // after analyzer: I = (I₀/2)·cos²θ
     ctx.fillStyle='#0f172a';ctx.fillRect(0,0,W,H);
     var beamY=H*0.42;
     var srcX=30,pol1X=W*0.28,pol2X=W*0.62,eyeX=W-30;
@@ -12351,9 +12402,12 @@ function simOptPolarization(canvas,id){
     ctx.strokeStyle='#22d3ee';ctx.lineWidth=2.5;
     ctx.beginPath();ctx.moveTo(pol1X,beamY-18);ctx.lineTo(pol1X,beamY+18);ctx.stroke();
     ctx.fillStyle='#94a3b8';ctx.font='9px sans-serif';ctx.textAlign='center';
-    ctx.fillText('קוטב',pol1X,beamY+34);ctx.restore();
+    ctx.fillText('קוטב',pol1X,beamY+34);
+    ctx.fillStyle='#22d3ee';ctx.font='bold 9px Heebo';
+    ctx.fillText('I₁ = I₀/2',pol1X,beamY+46);
+    ctx.fillText('(חצי בדיוק!)',pol1X,beamY+57);ctx.restore();
     // Beam pol1->pol2: single vertical arrow oscillating
-    var amp1=16*I0;
+    var amp1=16*Math.sqrt(I1/0.5);
     var phase1=animT*4;
     ctx.save();ctx.strokeStyle='rgba(251,191,36,0.7)';ctx.lineWidth=7;
     ctx.beginPath();ctx.moveTo(pol1X+24,beamY);ctx.lineTo(pol2X-20,beamY);ctx.stroke();
@@ -12400,7 +12454,7 @@ function simOptPolarization(canvas,id){
     // Transmitted beam pol2->eye
     var amp2=16*Math.sqrt(I);
     if(I>0.01){
-      ctx.save();ctx.strokeStyle='rgba(251,191,36,'+Math.min(1,I/I0+0.2)+')';ctx.lineWidth=Math.max(1,7*I);
+      ctx.save();ctx.strokeStyle='rgba(251,191,36,'+Math.min(1,mal+0.2).toFixed(2)+')';ctx.lineWidth=Math.max(1,9*I);
       ctx.beginPath();ctx.moveTo(pol2X+24,beamY);ctx.lineTo(eyeX-14,beamY);ctx.stroke();ctx.restore();
     } else {
       ctx.save();ctx.fillStyle='#ef4444';ctx.font='bold 12px sans-serif';ctx.textAlign='center';
@@ -12408,7 +12462,7 @@ function simOptPolarization(canvas,id){
     }
     // Eye
     ctx.save();ctx.font='22px sans-serif';ctx.textAlign='center';
-    ctx.globalAlpha=0.3+I*0.7;
+    ctx.globalAlpha=0.3+mal*0.7;
     ctx.fillText('👁',eyeX,beamY+8);ctx.restore();
     // RIGHT: cos²θ graph
     var gx=W*0.72,gy=40,gw=W*0.26,gh=H*0.55;
@@ -12418,7 +12472,7 @@ function simOptPolarization(canvas,id){
     ctx.fillStyle='#64748b';ctx.font='8px sans-serif';ctx.textAlign='center';
     ctx.fillText('0°',gx,gy+gh+10);ctx.fillText('90°',gx+gw/2,gy+gh+10);ctx.fillText('180°',gx+gw,gy+gh+10);
     ctx.save();ctx.translate(gx-8,gy+gh/2);ctx.rotate(-Math.PI/2);ctx.textAlign='center';
-    ctx.fillText('I/I₀',0,0);ctx.restore();
+    ctx.fillText('I₂/I₁',0,0);ctx.restore();
     // cos²θ curve
     ctx.strokeStyle='rgba(34,211,238,0.35)';ctx.lineWidth=1.5;ctx.beginPath();
     for(var di=0;di<=180;di++){
@@ -12429,17 +12483,20 @@ function simOptPolarization(canvas,id){
     ctx.stroke();
     // Current point
     var curX=gx+(getAngle()/180)*gw;
-    var curY=gy+gh-I/I0*gh;
+    var curY=gy+gh-mal*gh;
     ctx.strokeStyle='rgba(251,191,36,0.3)';ctx.lineWidth=1;ctx.setLineDash([3,3]);
     ctx.beginPath();ctx.moveTo(curX,gy+gh);ctx.lineTo(curX,curY);ctx.stroke();ctx.setLineDash([]);
     ctx.fillStyle='#fbbf24';ctx.beginPath();ctx.arc(curX,curY,5,0,Math.PI*2);ctx.fill();
     ctx.fillStyle='#e2e8f0';ctx.font='bold 10px sans-serif';ctx.textAlign='center';
-    ctx.fillText('I/I₀='+(I/I0).toFixed(2),curX,gy+gh+22);
+    ctx.fillText('I₂/I₁='+mal.toFixed(2),curX,gy+gh+22);
     ctx.restore();
     // Info box
     var degStr=getAngle()+'°';
-    var pct=Math.round(I/I0*100);
-    optInfoBox(ctx,20,H-70,W*0.62-30,['θ = '+degStr,'cos²θ = '+(I/I0).toFixed(3),'העברה: '+pct+'%']);
+    optInfoBox(ctx,20,H-124,W*0.62-30,[
+      'I₀ = '+Math.round(I0*100)+'%  (אור טבעי, לא מקוטב)',
+      'I₁ = I₀/2 = '+Math.round(I1*100)+'%  (אחרי הקוטב)',
+      'I₂ = I₁·cos²θ = '+Math.round(I*100)+'%  (θ='+degStr+')',
+      'סה״כ מהמקור: '+Math.round(I/Math.max(I0,1e-6)*100)+'%']);
     requestAnimationFrame(draw);
   }
   function poll(){if(_simStop[id])return;requestAnimationFrame(draw);}poll();
@@ -12955,6 +13012,26 @@ function simOptTelescope(canvas,id){
   var animT=0,last=null;
   function gFo(){var e=document.getElementById('inp-tel-fo');return e?parseFloat(e.value):150;}
   function gFe(){var e=document.getElementById('inp-tel-fe');return e?parseFloat(e.value):25;}
+  // ── Direct manipulation: slide the lenses to set fₒ and fₑ ──
+  var dragLens=null,touchedT=false,_geo={};
+  function _tDn(e){var p=simPointerXY(canvas,R.dpr,e);
+    if(_geo.L1x!==undefined&&Math.abs(p.x-_geo.L1x)<24&&Math.abs(p.y-_geo.ax)<70)dragLens='obj';
+    else if(_geo.L3x!==undefined&&Math.abs(p.x-_geo.L3x)<24&&Math.abs(p.y-_geo.ax)<60)dragLens='eye';
+    if(dragLens){touchedT=true;canvas.style.cursor='grabbing';e.preventDefault();}}
+  function _tMv(e){var p=simPointerXY(canvas,R.dpr,e);
+    if(dragLens==='obj'&&_geo.scale){
+      simSyncSlider('tel-fo',(p.x-_geo.margin)/(_geo.scale*0.3),0);e.preventDefault();
+    } else if(dragLens==='eye'&&_geo.scale){
+      simSyncSlider('tel-fe',(p.x-_geo.L2x)/_geo.scale,0);e.preventDefault();
+    } else {
+      var hov=(_geo.L1x!==undefined&&Math.abs(p.x-_geo.L1x)<24&&Math.abs(p.y-_geo.ax)<70)||
+              (_geo.L3x!==undefined&&Math.abs(p.x-_geo.L3x)<24&&Math.abs(p.y-_geo.ax)<60);
+      canvas.style.cursor=hov?'grab':'';
+    }}
+  function _tUp(){dragLens=null;canvas.style.cursor='';}
+  canvas.addEventListener('mousedown',_tDn);canvas.addEventListener('touchstart',_tDn,{passive:false});
+  canvas.addEventListener('mousemove',_tMv);canvas.addEventListener('touchmove',_tMv,{passive:false});
+  canvas.addEventListener('mouseup',_tUp);canvas.addEventListener('touchend',_tUp);
   function draw(ts){
     if(_simGen[id]!==_g)return;if(_simStop[id])return;
     var dt=last?Math.min((ts-last)/1000,0.05):0.016;last=ts;animT+=dt;
@@ -12967,8 +13044,12 @@ function simOptTelescope(canvas,id){
     var L1x=margin+fo*scale*0.3;// put obj lens at 30% of fo from left (far object)
     var L2x=L1x+fo*scale;// intermediate image at fo from L1
     var L3x=L2x+fe*scale;// eyepiece at fe from image
+    _geo={L1x:L1x,L2x:L2x,L3x:L3x,ax:ax,scale:scale,margin:margin};
     // Draw principal axis
     optDash(ctx,10,ax,W-10,ax,'#1e293b',0.5);
+    if(!touchedT&&animT<9){
+      optLabel(ctx,'✋ גרור את העדשות — שנה fₒ ו-fₑ',W/2,H-14,'#fbbf24',10);
+    }
     // === OBJECT (far left, arrow pointing up) ===
     var objH=28,objX=margin*0.6;
     ctx.save();ctx.strokeStyle='#fbbf24';ctx.lineWidth=2;ctx.shadowColor='#fbbf24';ctx.shadowBlur=6;
@@ -13074,6 +13155,19 @@ function simOptThinFilm(canvas,id){
   var animT=0,last=null;
   function getT(){var e=document.getElementById('inp-tf-thick');return e?parseFloat(e.value):300;}
   function getN(){var e=document.getElementById('inp-tf-n');return e?parseFloat(e.value):1.33;}
+  // ── Direct manipulation: drag on the film — down = thicker ──
+  var dragFilm=false,touchedF=false;
+  function _fHit(p){return Math.abs(p.x-R.W*0.44)<70&&p.y>R.H*0.07&&p.y<R.H*0.72;}
+  function _tfDn(e){var p=simPointerXY(canvas,R.dpr,e);
+    if(_fHit(p)){dragFilm=true;touchedF=true;canvas.style.cursor='grabbing';
+      simSyncSlider('tf-thick',50+(p.y-R.H*0.07)/(R.H*0.65)*550,0);e.preventDefault();}}
+  function _tfMv(e){var p=simPointerXY(canvas,R.dpr,e);
+    if(dragFilm){simSyncSlider('tf-thick',50+(p.y-R.H*0.07)/(R.H*0.65)*550,0);e.preventDefault();}
+    else canvas.style.cursor=_fHit(p)?'ns-resize':'';}
+  function _tfUp(){dragFilm=false;canvas.style.cursor='';}
+  canvas.addEventListener('mousedown',_tfDn);canvas.addEventListener('touchstart',_tfDn,{passive:false});
+  canvas.addEventListener('mousemove',_tfMv);canvas.addEventListener('touchmove',_tfMv,{passive:false});
+  canvas.addEventListener('mouseup',_tfUp);canvas.addEventListener('touchend',_tfUp);
   // Reflected intensity: I ∝ sin²(2πnt/λ) (one phase flip at first surface)
   function iRefl(wl,t,n){var ph=2*Math.PI*n*t/wl;return Math.pow(Math.sin(ph),2);}
   // Get dominant reflected color RGB
@@ -13112,6 +13206,10 @@ function simOptThinFilm(canvas,id){
       draw._gKey=gKey;draw._grad=gf;
     }
     var gfilm=draw._grad;
+    if(!touchedF&&animT<9){
+      ctx.save();ctx.fillStyle='#fbbf24';ctx.font='bold 10px Heebo';ctx.textAlign='center';
+      ctx.fillText('✋ גרור על הקרום — למטה = עבה יותר',W*0.44,H*0.78);ctx.restore();
+    }
     // Film shadow/depth effect
     var filmGlow=ctx.createLinearGradient(filmX-filmW/2-5,0,filmX+filmW/2+5,0);
     filmGlow.addColorStop(0,'rgba(0,0,0,0)');
