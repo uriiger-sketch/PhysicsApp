@@ -2116,7 +2116,7 @@ const CONTENT={
      opts:['a=0, שיווי משקל','a=g','a=g/2','a=2g'],correct:0,
      explain:'כשm₁=m₂: a=(m₂-m₁)g/(m₁+m₂)=0. T=mg.'},
     {q:'אטווד: m₁=2, m₂=6, g=10. מתיחות T?',
-     opts:['30 N','20 N','15 N','60 N'],correct:2,
+     opts:['30 N','20 N','15 N','60 N'],correct:0,
      explain:M('T=\\frac{2\\cdot2\\cdot6\\cdot10}{2+6}=\\frac{240}{8}=30\\,\\text{N}')+'— שים לב: 30N!'},
   ],
   problem:{
@@ -4544,6 +4544,21 @@ function simFreefall(canvas){
 
   function getV0(){var el=document.getElementById('inp-v0');return el?parseFloat(el.value)||0:v0;}
   function getG() {var el=document.getElementById('inp-ff-g');return el?parseFloat(el.value)||9.8:g;}
+  // ── Slingshot: drag up from the launch point to set v₀, release to throw ──
+  var aimF=false,aimY=null,touchedF=false;
+  var BX=function(){return Math.floor(W/2);};
+  function _ffDn(e){var p=simPointerXY(canvas,dpr,e);
+    if(!ball&&Math.abs(p.x-BX())<70&&p.y>GND-150){aimF=true;touchedF=true;aimY=p.y;canvas.style.cursor='grabbing';e.preventDefault();}}
+  function _ffMv(e){var p=simPointerXY(canvas,dpr,e);
+    if(aimF){aimY=Math.max(GND-260,Math.min(GND,p.y));
+      // pull height → v₀ (0..30 m/s), synced to the slider
+      simSyncSlider('v0',(GND-aimY)/260*30,0);e.preventDefault();}
+    else if(!ball)canvas.style.cursor=(Math.abs(p.x-BX())<70&&p.y>GND-150)?'grab':'';}
+  function _ffUp(){if(aimF){aimF=false;aimY=null;canvas.style.cursor='';
+    v0=getV0();g=getG();if(v0>0.5)ball={ym:0,vy:v0,t:0};}}
+  canvas.addEventListener('mousedown',_ffDn);canvas.addEventListener('touchstart',_ffDn,{passive:false});
+  canvas.addEventListener('mousemove',_ffMv);canvas.addEventListener('touchmove',_ffMv,{passive:false});
+  canvas.addEventListener('mouseup',_ffUp);canvas.addEventListener('touchend',_ffUp);
 
   function draw(ts){
     if(_simStop[id])return;
@@ -4630,7 +4645,18 @@ function simFreefall(canvas){
       if(ekF<0.99){ctx.save(); ctx.fillStyle='#34d399'; ctx.fillRect(bL+bW*ekF,bBarY,bW*(1-ekF),10); ctx.restore();}
       simText(ctx,'Ek',bL+bW*ekF*0.5,bBarY+8,ekF>0.2?'#111827':'#f59e0b',7,'center');
       simText(ctx,'Ep',bL+bW*ekF+bW*(1-ekF)*0.5,bBarY+8,(1-ekF)>0.2?'#111827':'#34d399',7,'center');
+    } else if(aimF&&aimY!==null){
+      // Slingshot aim: pull-back band + live v₀ readout
+      var _bx=BX();
+      ctx.save();ctx.strokeStyle='#fbbf24';ctx.lineWidth=3;ctx.setLineDash([6,5]);
+      ctx.beginPath();ctx.moveTo(_bx,GND);ctx.lineTo(_bx,aimY);ctx.stroke();ctx.setLineDash([]);
+      simArrow(ctx,_bx,GND,_bx,aimY,'#fbbf24',3,14);
+      ctx.restore();
+      simCircle(ctx,_bx,GND-8,18,'rgba(99,102,241,.5)','#818cf8',2);
+      simText(ctx,'v₀ = '+getV0().toFixed(0)+' m/s',_bx+30,(GND+aimY)/2,'#fbbf24',12,'left');
+      simText(ctx,'שחרר לזריקה!',_bx,aimY-14,'#fbbf24',11,'center');
     } else {
+      if(!touchedF)simText(ctx,'✋ גרור מעלה מהקרקע כדי לזרוק',BX(),GND-30,'#fbbf24',10,'center');
       // Draw predicted parabola
       ctx.save(); ctx.strokeStyle='rgba(99,102,241,.3)'; ctx.lineWidth=2.5;
       ctx.setLineDash([5,6]); ctx.beginPath(); var _ps=false;
@@ -8006,6 +8032,19 @@ function simKineticFriction(canvas){
   function getM(){var e=document.getElementById('inp-kf-mass'); return e?parseFloat(e.value):m;}
   function getV0(){var e=document.getElementById('inp-kf-v0'); return e?parseFloat(e.value):v0;}
 
+  // ── Drag the block to the right to set v₀, release to launch ──
+  var aimK=false,aimKx=null,touchedK=false;
+  function _kfDn(e){var p=simPointerXY(canvas,dpr,e);
+    if(!running&&Math.abs(p.x-pos)<48&&Math.abs(p.y-FLOOR_Y)<52){aimK=true;touchedK=true;aimKx=p.x;canvas.style.cursor='grabbing';e.preventDefault();}}
+  function _kfMv(e){var p=simPointerXY(canvas,dpr,e);
+    if(aimK){aimKx=Math.max(pos,Math.min(pos+300,p.x));
+      simSyncSlider('kf-v0',(aimKx-pos)/300*18,0);e.preventDefault();}
+    else if(!running)canvas.style.cursor=(Math.abs(p.x-pos)<48&&Math.abs(p.y-FLOOR_Y)<52)?'grab':'';}
+  function _kfUp(){if(aimK){aimK=false;aimKx=null;canvas.style.cursor='';
+    var b=document.getElementById('btn-kf-launch');if(b)b.click();}}
+  canvas.addEventListener('mousedown',_kfDn);canvas.addEventListener('touchstart',_kfDn,{passive:false});
+  canvas.addEventListener('mousemove',_kfMv);canvas.addEventListener('touchmove',_kfMv,{passive:false});
+  canvas.addEventListener('mouseup',_kfUp);canvas.addEventListener('touchend',_kfUp);
   var launchBtn=document.getElementById('btn-kf-launch');
   var resetBtn=document.getElementById('btn-kf-reset');
   function launch(){mu_k=getMu();m=getM();v0=getV0();vel=v0;pos=80;dist=0;running=true;launched=true;vData=[];aData=[];tData=[];tClock=0;}
