@@ -16923,15 +16923,12 @@ runAnim('anim-em-spectrum',(canvas,ctx,W,H,t)=>{
   oBg(ctx,W,H);
   // Spectrum bar
   var barY=H*0.46,barH=22,barX=18,barW=W-36;
+  // Bar built from the same wavelength→colour map the cursor uses, so the
+  // colour under the cursor always matches the colour it reports.
   var grad=ctx.createLinearGradient(barX,0,barX+barW,0);
-  grad.addColorStop(0,'#9333ea');   // violet 380nm
-  grad.addColorStop(0.15,'#6366f1'); // indigo
-  grad.addColorStop(0.28,'#3b82f6'); // blue
-  grad.addColorStop(0.42,'#22d3ee'); // cyan
-  grad.addColorStop(0.55,'#22c55e'); // green
-  grad.addColorStop(0.70,'#eab308'); // yellow
-  grad.addColorStop(0.82,'#f97316'); // orange
-  grad.addColorStop(1,'#ef4444');   // red 700nm
+  for(var gs=0;gs<=32;gs++){
+    grad.addColorStop(gs/32,wavelengthToRGB(380+(gs/32)*320));
+  }
   ctx.save();ctx.shadowColor='rgba(255,255,200,.3)';ctx.shadowBlur=8;
   ctx.fillStyle=grad;
   var rr=barH/2;
@@ -16956,23 +16953,36 @@ runAnim('anim-em-spectrum',(canvas,ctx,W,H,t)=>{
   ctx.save();ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.globalAlpha=0.8;
   ctx.beginPath();ctx.moveTo(cx2,barY-2);ctx.lineTo(cx2,barY+barH+2);ctx.stroke();
   ctx.restore();
-  // Animated wave above cursor
-  var waveY=barY-35,waveW=50;
-  ctx.save();ctx.strokeStyle=curCol;ctx.lineWidth=1.5;
+  // Animated wave above the cursor.
+  // On-screen wavelength scales WITH the real one: cycles ∝ 1/λ, so violet
+  // (380nm) is drawn tightly packed and red (700nm) visibly stretched out.
+  var waveY=barY-34,waveW=76;
+  var cw=Math.max(barX+waveW/2+2,Math.min(barX+barW-waveW/2-2,cx2)); // keep on canvas
+  var cyc=3.8*380/wl;                    // number of cycles across the window
+  var k=Math.PI*2*cyc/waveW;             // spatial angular frequency ∝ 1/λ
+  ctx.save();ctx.strokeStyle=curCol;ctx.lineWidth=1.6;
   ctx.shadowColor=curCol;ctx.shadowBlur=6;
   ctx.beginPath();
   for(var ix=-waveW/2;ix<=waveW/2;ix++){
-    var freq=0.5+phase*0.4; // shorter = higher freq
-    var wy=waveY+Math.sin((ix/waveW)*Math.PI*2*freq*3+t*5)*10;
-    if(ix===-waveW/2)ctx.moveTo(cx2+ix,wy);else ctx.lineTo(cx2+ix,wy);
+    // ω = c·k — every colour travels at the same speed c; only λ and f differ
+    var wy=waveY+Math.sin(k*ix-k*40*t)*9.5;
+    if(ix===-waveW/2)ctx.moveTo(cw+ix,wy);else ctx.lineTo(cw+ix,wy);
   }
   ctx.stroke();ctx.restore();
-  // Label
-  oLbl(ctx,wl+'nm',cx2,barY-50,curCol,10);
+  // one-wavelength span marker, so the stretching is measurable, not just felt
+  var lamPx=waveW/cyc;
+  ctx.save();ctx.strokeStyle=curCol;ctx.globalAlpha=0.75;ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(cw-lamPx/2,waveY+15);ctx.lineTo(cw+lamPx/2,waveY+15);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(cw-lamPx/2,waveY+11);ctx.lineTo(cw-lamPx/2,waveY+19);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(cw+lamPx/2,waveY+11);ctx.lineTo(cw+lamPx/2,waveY+19);ctx.stroke();
+  ctx.restore();
+  oLbl(ctx,'λ',cw,waveY+24,curCol,8);
+  // Label: λ together with its frequency f=c/λ
+  oLbl(ctx,'\u200eλ='+wl+'nm  ·  f='+(3e5/wl).toFixed(0)+'THz',cw,barY-56,curCol,10);
   // Axis labels
   oLbl(ctx,'380nm',barX+12,barY+barH+12,'#9333ea',8);
   oLbl(ctx,'700nm',barX+barW-14,barY+barH+12,'#ef4444',8);
-  oLbl(ctx,'ספקטרום האור הנראה',W/2,H-8,'#64748b',9);
+  oLbl(ctx,'סגול = אורך גל קצר ותדירות גבוהה · אדום = אורך גל ארוך ותדירות נמוכה · כולם נעים במהירות c',W/2,H-8,'#64748b',9);
 });
 
 // ─── 2. Refraction speed comparison ─────────────────────────────────────────
