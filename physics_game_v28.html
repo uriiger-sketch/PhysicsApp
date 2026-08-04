@@ -106,6 +106,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 
 /* DEF BLOCK */
 .def-block{background:rgba(59,130,246,.07);border:1px solid rgba(59,130,246,.2);border-radius:10px;padding:14px 18px;margin:14px 0;}
+.mis-block{background:rgba(251,191,36,.06);border:1px solid rgba(251,191,36,.28);border-right:3px solid rgba(251,191,36,.6);border-radius:10px;padding:14px 18px;margin:14px 0;}
 .def-block .def-title{font-weight:700;color:#60a5fa;margin-bottom:6px;font-size:.95rem;}
 .def-block p{font-size:.9rem;color:#b8cfe0;line-height:1.75;margin:0;}
 
@@ -3943,11 +3944,14 @@ const ELECTRO_CONTENT={
     3️⃣ <b>קוונטיזציה</b> — כל מטען הוא כפולה שלמה של e. אין "חצי אלקטרון"!</p>
     <div class="def-block"><b>מוליכים ומבודדים:</b> במתכות (מוליכים) חלק מהאלקטרונים חופשיים לנוע בכל הגוף — מטען מתפזר מיד. במבודדים (זכוכית, פלסטיק, גומי) האלקטרונים כלואים באטומים — מטען שהושם נשאר במקומו.</div>
     <p><b>טעינה בהשראה (אינדוקציה):</b> מקרבים מוט טעון − לכדור מוליך <i>בלי לגעת</i> — האלקטרונים החופשיים בכדור נדחים לצד הרחוק, והצד הקרוב נעשה +. כך גוף נייטרלי נמשך למוט טעון! זה בדיוק מה שמדגים ה<b>אלקטרוסקופ</b>: קירוב מוט טעון גורם לעלים להיפרד — בלי מגע כלל.</p>
+    <div class="mis-block"><b>⚠️ טעות נפוצה:</b> "השפשוף מייצר חשמל". שום מטען לא נוצר! השפשוף רק <b>מעביר</b> אלקטרונים שכבר קיימים. וגוף שנטען + לא "קיבל פרוטונים" — הוא פשוט <b>איבד אלקטרונים</b>: הפרוטונים כלואים בגרעין ואינם זזים בתהליכים כאלה לעולם.</div>
+    <p><b>ולמה נייר נייטרלי נמשך למוט טעון?</b> קיטוב! במבודד האלקטרונים אינם עוזבים את המולקולה — אך כל מולקולה נמתחת מעט, וצדה הפונה למוט נטען הפוך ממנו. הצד ההפוך-בסימנו קרוב יותר, ולכן משיכתו (∝1/r²) גוברת על דחיית הצד הרחוק: <b>משיכה נטו — תמיד, לכל סימן של מוט</b>.</p>
+    <div class="theory-anim">${animCanvas('anim-elc-polar-t',170,'קיטוב: מולקולות המבודד נערכות — והנייר הנייטרלי נמשך')}</div>
     <div class="enrich-card"><div class="enrich-title">מהיכן המילה "חשמל"?</div>
       <p>היוונים גילו שענבר (ηλεκτρον — "אלקטרון") משופשף מושך נוצות — מכאן electricity. את המילה העברית "חשמל" שאל ועד הלשון מספר יחזקאל (א,ד). תאלס ממילטוס תיאר את התופעה כבר לפני 2,600 שנה; בנג'מין פרנקלין (1752) קבע את המוסכמה חיובי/שלילי — והיא שרירותית לחלוטין: האלקטרון קיבל את הסימן השלילי במקרה!</p></div>
     <div class="theory-anim">${animCanvas('anim-elc-charge-t',170,'שפשוף מעביר אלקטרונים — הזכוכית נטענת +, המשי −')}</div>`,
   },
-  sim:{type:'elc-scope',desc:'גרור את המוט הטעון אל האלקטרוסקופ — צפה בעלים נפרדים עוד לפני מגע (השראה!). שנה את סימן המוט וגודל המטען, וגע בכפתור כדי להטעין במגע.'},
+  sim:{type:'elc-scope',desc:'גרור את המוט הטעון אל האלקטרוסקופ — העלים נפרדים עוד לפני מגע (השראה!). לחץ "גע" והמטען יתחלק בין המוט לאלקטרוסקופ: עקוב אחר מאזן המטענים — הסכום נשמר תמיד. הארקה מעבירה את המטען לאדמה.'},
   example:{title:'כמה אלקטרונים בבלון?',text:'בלון משופשף בשיער קיבל מטען q=−8 nC.',steps:[
     {q:'כמה אלקטרונים עברו לבלון?',a:'n = |q|/e = 8×10⁻⁹/1.6×10⁻¹⁹ = 5×10¹⁰ אלקטרונים'},
     {q:'האם השיער נטען? בכמה?',a:'שימור המטען: השיער איבד בדיוק 5×10¹⁰ אלקטרונים → +8 nC'}]},
@@ -3956,6 +3960,8 @@ const ELECTRO_CONTENT={
     {q:'לגוף מטען q=−4.8×10⁻¹⁹ C. כמה אלקטרונים עודפים יש לו?',opts:['1','2','3','4'],correct:2,explain:'n=|q|/e=4.8×10⁻¹⁹/1.6×10⁻¹⁹=3 אלקטרונים בדיוק.',formula:'q=n·e'},
     {q:'מה מבדיל מוליך ממבודד?',opts:['למוליך יותר פרוטונים','במוליך יש אלקטרונים חופשיים לנוע','מבודד תמיד נייטרלי','מוליך כבד יותר'],correct:1,explain:'במתכות אלקטרוני הערכיות חופשיים לנוע בכל הגוף — לכן מטען מתפזר ומוליך זרם. במבודד האלקטרונים קשורים לאטומים.'},
     {q:'האם ייתכן גוף עם מטען 2.4×10⁻¹⁹ C?',opts:['כן, כל ערך אפשרי','לא — זו אינה כפולה שלמה של e','רק אם הגוף גדול','רק בטמפרטורה גבוהה'],correct:1,explain:'2.4/1.6=1.5 — לא מספר שלם של אלקטרונים. המטען מקוונטט: q=n·e בלבד.'},
+    {q:'מקרבים מוט טעון (בכל סימן) לפיסות נייר נייטרליות. הן:',opts:['נדחות','נמשכות','אינן מושפעות','נטענות מרחוק באותו סימן'],correct:1,explain:'קיטוב: כל מולקולה בנייר נמתחת כך שצדה הקרוב למוט טעון הפוך ממנו. הצד הקרוב נמשך חזק יותר משהרחוק נדחה (1/r²) — משיכה נטו, לכל סימן מוט.'},
+    {q:'כדור A טעון −8 nC נוגע בכדור מוליך זהה ונייטרלי B, ומופרד. המטען על A כעת:',opts:['−8 nC','−4 nC','0','+4 nC'],correct:1,explain:'מוליכים זהים במגע חולקים את המטען שווה בשווה: −8/2=−4 nC על כל אחד. בדיקת שימור: הסכום נשאר −8 nC.'},
   ],
   problem:{title:'טעינת כדור מוליך',text:'כדור מוליך קטן נטען במטען q=+3.2 nC. (e=1.6×10⁻¹⁹ C)',steps:[
     {q:'כמה אלקטרונים הוסרו מהכדור?',unit:'אלקטרונים',answer:'2e10',tolerance:1e9,explain:'n=q/e=3.2×10⁻⁹/1.6×10⁻¹⁹=2×10¹⁰ אלקטרונים הוסרו.',hint:'n=q/e'},
@@ -3969,19 +3975,23 @@ const ELECTRO_CONTENT={
     <p><b>כיוון הכוח:</b> לאורך הקו המחבר. מטענים זהים — דחייה; מנוגדים — משיכה. ולפי החוק השלישי של ניוטון: הכוח על q₁ שווה בגודלו וההפוך בכיוונו לכוח על q₂ — <b>גם אם מטען אחד ענק והשני זעיר!</b></p>
     <div class="def-block"><b>תלות ב-1/r²:</b> הכפלת המרחק → הכוח קטן פי 4. שילוש → פי 9. בדיוק כמו כבידה — אך חזק לאין ערוך: הדחייה החשמלית בין שני אלקטרונים חזקה פי ~4×10⁴² מהמשיכה הכבידתית ביניהם!</div>
     <p><b>סופרפוזיציה:</b> כשיש כמה מטענים, הכוח על מטען נתון הוא הסכום הווקטורי של הכוחות מכל אחד בנפרד. מחשבים כל זוג בנפרד — ומחברים וקטורית.</p>
+    <div class="mis-block"><b>⚠️ טעות נפוצה:</b> "המטען הגדול מפעיל כוח גדול יותר על הקטן". לעולם לא! F₁₂ ו-F₂₁ הם זוג פעולה-תגובה — שווים בגודל בדיוק, לכל צירוף מטענים ומרחקים. מה שכן נבדל: ה<b>תאוצות</b> — a=F/m, והגוף הקל מאיץ יותר. בדקו זאת בסימולציה: החיצים תמיד שווים.</div>
     <div class="enrich-card"><div class="enrich-title">למה החומר לא מתפוצץ?</div>
       <p>אם הדחייה החשמלית כה עצומה, איך גרעין עם עשרות פרוטונים מחזיק מעמד? הכוח הגרעיני החזק גובר בטווחים קצרים. ולמה אנחנו לא מרגישים כוחות חשמליים ענקיים בין גופים? כי חומר רגיל נייטרלי כמעט במושלם — עודף של 1% במטעני שני אנשים במרחק מטר היה מרים את משקל כדור הארץ!</p></div>
     <div class="theory-anim">${animCanvas('anim-elc-coulomb-t',170,'F∝1/r² — קירוב המטענים מזניק את הכוח')}</div>`,
   },
-  sim:{type:'elc-coulomb',desc:'גרור את המטענים על המסילה ושנה את גודלם וסימנם. צפה בחיצי הכוח — שווים והפוכים תמיד (ניוטון III)! הגרף מציג את F(r)∝1/r².'},
+  sim:{type:'elc-coulomb',desc:'גרור את המטענים על המסילה ושנה את גודלם וסימנם. צפה בחיצי הכוח — שווים והפוכים תמיד (ניוטון III)! הוסף מטען שלישי לתרגול סופרפוזיציה — שני כוחות וסכומם. הגרף מציג את F(r)∝1/r².'},
   example:{title:'כוח בין שני מטענים',text:'q₁=+2 μC ו-q₂=−3 μC במרחק r=30 cm.',steps:[
     {q:'מה גודל הכוח?',a:'F=9×10⁹·(2×10⁻⁶)(3×10⁻⁶)/(0.3)²=9×10⁹·6×10⁻¹²/0.09=0.6 N'},
-    {q:'משיכה או דחייה?',a:'סימנים מנוגדים → משיכה. הכוח על כל מטען: 0.6 N לכיוון השני.'}]},
+    {q:'משיכה או דחייה?',a:'סימנים מנוגדים → משיכה. הכוח על כל מטען: 0.6 N לכיוון השני.'},
+    {q:'סופרפוזיציה: מוסיפים q₃=+2 μC במרחק 30 cm מ-q₂, מצדו השני. מה הכוח השקול על q₂?',a:'מ-q₁: משיכה 0.6 N לכיוון q₁. מ-q₃: משיכה 0.6 N לכיוון q₃ — בדיוק הפוך. סכום וקטורי: 0.6−0.6=0. שקול אפס — q₂ בשיווי משקל!'}]},
   quiz:[
     {q:'מכפילים את המרחק בין שני מטענים. הכוח:',opts:['קטן פי 2','קטן פי 4','גדל פי 2','ללא שינוי'],correct:1,explain:'F∝1/r². הכפלת r → הכוח קטן פי 2²=4.',formula:'F=kq₁q₂/r²'},
     {q:'מכפילים את שני המטענים (כל אחד פי 2). הכוח:',opts:['×2','×4','×8','ללא שינוי'],correct:1,explain:'F∝q₁·q₂ → 2×2=4. הכוח גדל פי 4.'},
     {q:'מטען +5 μC ומטען −1 μC. הכוח ביניהם:',opts:['דחייה','משיכה','אפס','תלוי במרחק'],correct:1,explain:'סימנים מנוגדים → משיכה, תמיד, בכל מרחק.'},
     {q:'q₁=10 μC ו-q₂=1 μC. הכוח ש-q₁ מפעיל על q₂ לעומת הכוח ש-q₂ מפעיל על q₁:',opts:['גדול פי 10','קטן פי 10','שווה בגודל','אין כוח על q₁'],correct:2,explain:'החוק השלישי של ניוטון! F₁₂=−F₂₁ תמיד — שווים בגודל והפוכים בכיוון, בלי קשר לגודלי המטענים.'},
+    {q:'מטען q מונח בדיוק באמצע בין שני מטענים חיוביים שווים. הכוח השקול עליו:',opts:['אפס','לעבר אחד מהם','ניצב לקו המחבר','אינסופי'],correct:0,explain:'סופרפוזיציה: שני כוחות שווים בגודל והפוכים בכיוון — סכומם הווקטורי אפס. (שיווי משקל, אם כי לא יציב להזזה לאורך הקו.)'},
+    {q:'בין שני פרוטונים פועלים גם כוח חשמלי וגם כבידה. הכוח החשמלי:',opts:['חלש פי מיליון','דומה בגודלו לכבידה','חזק פי ~10³⁶ — ודוחה','חזק פי ~10³⁶ — ומושך'],correct:2,explain:'F_e/F_g=ke²/(Gm_p²)≈1.2×10³⁶, ושני חיוביים דוחים. הכבידה זניחה בעולם החלקיקים — היא שולטת ביקום רק כי גופים גדולים נייטרליים כמעט במושלם.'},
   ],
   problem:{title:'שני מטענים על שולחן',text:'שני מטענים זהים q=1 μC מוחזקים במרחק 10 cm זה מזה. (k=9×10⁹)',steps:[
     {q:'מה גודל הכוח על כל מטען? (N)',unit:'N',answer:'0.9',tolerance:0.02,explain:'F=9×10⁹·(10⁻⁶)²/(0.1)²=9×10⁹·10⁻¹²/0.01=0.9 N — דחייה.',hint:'F=kq²/r²'},
@@ -3996,11 +4006,14 @@ const ELECTRO_CONTENT={
     <p><b>הכוח על מטען בשדה:</b> ${M('\\vec{F}=q\\vec{E}')} — מטען חיובי נדחף בכיוון השדה, מטען שלילי <b>נגד</b> כיוון השדה.</p>
     <div class="def-block"><b>חוקי קווי שדה:</b> יוצאים ממטען + ונכנסים למטען −; צפיפות הקווים ∝ עוצמת השדה; קווים לעולם אינם נחתכים (לשדה כיוון יחיד בכל נקודה); משיק לקו = כיוון השדה.</div>
     <p><b>דיפול:</b> זוג מטענים +q ו-−q — קווי השדה יוצאים מהחיובי ומתעקלים אל השלילי. זו התמונה של מולקולת מים, אנטנה משדרת, ועוד.</p>
+    <div class="mis-block"><b>⚠️ טעות נפוצה:</b> "קו שדה הוא המסלול שמטען ינוע לאורכו". לא! הקו נותן את כיוון ה<b>כוח</b> (והתאוצה) — לא את כיוון המהירות. מטען שנכנס לשדה עם מהירות חוצה קווי שדה, בדיוק כמו קליע שאינו נופל לאורך "קווי הכבידה" האנכיים. רק מטען המשוחרר <b>ממנוחה</b> מתחיל לנוע לאורך הקו — וגם הוא סוטה ממנו היכן שהקו מתעקל.</div>
+    <p><b>מיסוך חשמלי (כלוב פאראדיי):</b> בתוך מוליך חלול — השדה תמיד אפס! האלקטרונים החופשיים של המוליך נערכים על פניו בדיוק כך שהשדה שהם יוצרים מבטל את החיצוני. לכן מכונית היא מקום בטוח בסופת ברקים, מטוס סופג פגיעת ברק בלי שהנוסעים ירגישו, והקליטה בטלפון "נעלמת" במעלית פלדה:</p>
+    <div class="theory-anim">${animCanvas('anim-elc-cage-t',170,'כלוב פאראדיי — המטענים המושרים מאפסים את השדה בפנים')}</div>
     <div class="enrich-card"><div class="enrich-title">רעיון השדה — מהפכה של פאראדיי</div>
       <p>ניוטון הניח "פעולה מרחוק" רגעית. מייקל פאראדיי — כורך ספרים ללא השכלה פורמלית — דמיין קווי כוח ממשיים הממלאים את החלל. מקסוול הלביש על החזון משוואות, וגילה שהשדות נושאים אנרגיה ונעים בגל — במהירות האור. האור עצמו התגלה כגל של שדות חשמליים ומגנטיים — וכך נפגשים הפרק הזה ופרק האופטיקה!</p></div>
     <div class="theory-anim">${animCanvas('anim-elc-field-t',170,'שדה רדיאלי של מטען נקודתי — מטען בוחן נדחף לאורך הקווים')}</div>`,
   },
-  sim:{type:'elc-field',desc:'גרור את המטען המרכזי ואת מטען הבוחן — רשת החצים מציגה את השדה בכל נקודה. הפעל "דיפול" לצפות בשדה של זוג מטענים, וצפה ב-F=qE על מטען הבוחן.'},
+  sim:{type:'elc-field',desc:'גרור את המטען המרכזי ואת מטען הבוחן — רשת החצים מציגה את השדה בכל נקודה, וכפתור "קווי שדה" עובר לקווים רציפים (שימו לב: קו שדה אינו מסלול!). הפעל "דיפול" לזוג מטענים, וצפה ב-F=qE על הבוחן.'},
   example:{title:'שדה וכוח',text:'מטען Q=+4 μC. נקודה A במרחק 20 cm ממנו.',steps:[
     {q:'מה עוצמת השדה ב-A?',a:'E=9×10⁹·4×10⁻⁶/(0.2)²=9×10⁹·4×10⁻⁶/0.04=9×10⁵ N/C'},
     {q:'מה הכוח על מטען בוחן q₀=+1 nC שם?',a:'F=q₀E=10⁻⁹·9×10⁵=9×10⁻⁴ N, בכיוון השדה (החוצה)'}]},
@@ -4009,6 +4022,8 @@ const ELECTRO_CONTENT={
     {q:'קווי שדה חשמלי:',opts:['נכנסים ל-+ ויוצאים מ-−','יוצאים מ-+ ונכנסים ל-−','מקבילים תמיד','מעגלים סגורים'],correct:1,explain:'לפי המוסכמה (כיוון הכוח על מטען בוחן חיובי): החוצה ממטען חיובי, פנימה אל שלילי.'},
     {q:'מכפילים את המרחק ממטען נקודתי. השדה:',opts:['×½','×¼','×2','×4'],correct:1,explain:'E∝1/r² בדיוק כמו הכוח: פי 4 חלש יותר.'},
     {q:'אלקטרון נמצא בשדה E הפונה ימינה. הכוח עליו:',opts:['ימינה','שמאלה','אפס','תלוי במהירותו'],correct:1,explain:'F=qE עם q שלילי → הכוח נגד כיוון השדה: שמאלה. (המהירות אינה משנה את הכוח החשמלי.)'},
+    {q:'תא מתכת סגור נמצא בשדה חשמלי חיצוני חזק. השדה בתוכו:',opts:['שווה לחיצוני','גדול מהחיצוני','אפס','תלוי בעובי הדופן'],correct:2,explain:'כלוב פאראדיי: המטענים החופשיים נערכים על פני המוליך עד שהשדה בפנים מתאפס במדויק. כך מכונית מגינה עליכם מברק — לא הצמיגים!'},
+    {q:'באזור מסוים קווי השדה מצוירים צפופים יותר. פירוש הדבר:',opts:['השדה חלש שם','השדה חזק שם','חייבים להיות שם מטענים','אין לכך משמעות'],correct:1,explain:'צפיפות הקווים מייצגת את עוצמת השדה — כך מגדירים ציור קווי שדה. קרוב למטען הקווים מתכנסים והשדה מתחזק.'},
   ],
   problem:{title:'אלקטרון בשדה',text:'אלקטרון (m=9.1×10⁻³¹ kg, e=1.6×10⁻¹⁹ C) נמצא בשדה אחיד E=2000 N/C.',steps:[
     {q:'מה גודל הכוח על האלקטרון? (N)',unit:'N',answer:'3.2e-16',tolerance:1e-17,explain:'F=eE=1.6×10⁻¹⁹×2000=3.2×10⁻¹⁶ N.',hint:'F=eE'},
@@ -4023,11 +4038,13 @@ const ELECTRO_CONTENT={
     <p><b>סקלר, לא וקטור!</b> פוטנציאלים מחברים כמספרים (עם סימן) — הרבה פשוט יותר מסכימת וקטורי שדה. מטען חיובי "זורם" מפוטנציאל גבוה לנמוך, כמו כדור במורד; מטען שלילי — במעלה הפוטנציאל!</p>
     <div class="def-block"><b>משטחים שווי-פוטנציאל:</b> סביב מטען נקודתי — ספירות. תמיד ניצבים לקווי השדה, והשדה מצביע במורד הפוטנציאל. תנועה על משטח שווה-פוטנציאל אינה דורשת עבודה (W=qΔV=0).</div>
     <p><b>אלקטרון-וולט:</b> אנרגיה נוחה לעולם הזעיר — ${M('1\\,\\text{eV}=1.6\\times10^{-19}\\,\\text{J}')} — האנרגיה שאלקטרון רוכש במעבר הפרש של וולט אחד.</p>
+    <div class="mis-block"><b>⚠️ טעות נפוצה:</b> "מתח גבוה = סכנה גדולה, תמיד". הניצוץ מהשטיח בחורף הוא ~20,000 V — ולא מזיק, כי המטען זעיר (ננו-קולון) והאנרגיה W=qΔV היא מיקרו-ג'אול בודדים. שקע ביתי של 230 V מסוכן לאין ערוך יותר, כי הוא מסוגל להזרים מטען רב <b>ברציפות</b>. הקובעים הם האנרגיה והזרם — לא המתח לבדו.</div>
+    <p><b>ציפור על כבל מתח גבוה</b> אינה מתחשמלת: שתי רגליה נוגעות כמעט באותה נקודה — אותו פוטנציאל, ΔV≈0 — ואין מטען שזורם דרכה. הסכנה נוצרת רק בגישור בין שני פוטנציאלים שונים (כבל וקרקע, שני כבלים).</p>
     <div class="enrich-card"><div class="enrich-title">ברק — הפוטנציאל הגדול בטבע</div>
       <p>בין ענן סערה לקרקע נבנה הפרש של ~100 מיליון וולט. כשהשדה חוצה את חוזק הפריצה של האוויר (~3×10⁶ V/m) — האוויר עצמו הופך מוליך, ו-20-30 קולון פורקים בהבזק של אלפית שנייה. פרנקלין הראה ב-1752 שזה בדיוק אותו חשמל מהמעבדה — וגם המציא את כליא הברק.</p></div>
     <div class="theory-anim">${animCanvas('anim-elc-potential-t',170,'מטען חיובי "מתגלגל" מפוטנציאל גבוה לנמוך — U הופכת ל-Ek')}</div>`,
   },
-  sim:{type:'elc-potential',desc:'גרור את הגשוש סביב המטען — קרא V=kQ/r בכל נקודה וראה את הטבעות שוות-הפוטנציאל. גרור את המטען עצמו ושנה את גודלו; עקוב אחר W=qΔV בין שתי נקודות.'},
+  sim:{type:'elc-potential',desc:'גרור את הגשוש סביב המטען — קרא V=kQ/r בכל נקודה וראה את הטבעות שוות-הפוטנציאל. גרור את המטען ושנה את גודלו וסימנו; עקוב אחר W=qΔV בין שתי נקודות, והשווה בגרף: V דועך כ-1/r — לאט מהשדה (1/r²).'},
   example:{title:'פוטנציאל ואנרגיה',text:'מטען Q=+2 μC. נקודה A במרחק 0.5 m.',steps:[
     {q:'מה הפוטנציאל ב-A?',a:'V=9×10⁹·2×10⁻⁶/0.5=36,000 V=36 kV'},
     {q:'מה האנרגיה הפוטנציאלית של q₀=+1 nC ב-A?',a:'U=q₀V=10⁻⁹·3.6×10⁴=3.6×10⁻⁵ J'}]},
@@ -4036,6 +4053,8 @@ const ELECTRO_CONTENT={
     {q:'מטען חיובי חופשי נע מעצמו:',opts:['מפוטנציאל נמוך לגבוה','מפוטנציאל גבוה לנמוך','על קו שווה-פוטנציאל','נשאר במקום תמיד'],correct:1,explain:'השדה מצביע במורד הפוטנציאל, ו-F=qE דוחף מטען חיובי לשם — כמו כדור במורד גבעה. (שלילי נע דווקא במעלה!)'},
     {q:'משטחים שווי-פוטנציאל ביחס לקווי השדה:',opts:['מקבילים להם','ניצבים להם','בזווית 45°','חופפים'],correct:1,explain:'תזוזה לאורך המשטח לא משנה V → אין רכיב שדה לאורכו → השדה כולו ניצב.'},
     {q:'1 eV שווה:',opts:['1.6×10⁻¹⁹ J','1 J','9×10⁹ J','1.6×10¹⁹ J'],correct:0,explain:'W=qΔV=e·(1V)=1.6×10⁻¹⁹ J. יחידת האנרגיה הטבעית של פיזיקת החלקיקים.'},
+    {q:'ציפור עומדת בשתי רגליה על כבל מתח גבוה ואינה נפגעת, כי:',opts:['גופה מבודד לחלוטין','שתי רגליה כמעט באותו פוטנציאל (ΔV≈0)','המתח בכבל נמוך','נוצותיה עוצרות זרם'],correct:1,explain:'W=qΔV: ללא הפרש פוטנציאלים אין עבודה ואין זרם דרך הגוף. נגיעה בו-זמנית בכבל ובעמוד מוארק — סיפור מסוכן לגמרי.'},
+    {q:'אלקטרון משוחרר ממנוחה בשדה חשמלי. הוא ינוע:',opts:['לעבר פוטנציאל נמוך','לעבר פוטנציאל גבוה','לאורך משטח שווה-פוטנציאל','לא ינוע כלל'],correct:1,explain:'מטען שלילי נדחף נגד כיוון השדה — במעלה הפוטנציאל! (האנרגיה U=qV עם q שלילי דווקא קטנה בכך.) חיובי — במורד; שלילי — במעלה.'},
   ],
   problem:{title:'עבודה על מטען',text:'מטען q=+2 μC מועבר מנקודה A (V_A=500 V) לנקודה B (V_B=100 V).',steps:[
     {q:'מה העבודה שמבצע הכוח החשמלי? (J)',unit:'J',answer:'8e-4',tolerance:2e-5,explain:'W=q(V_A−V_B)=2×10⁻⁶×400=8×10⁻⁴ J. חיובית — השדה "עוזר" למטען החיובי לרדת בפוטנציאל.',hint:'W=qΔV'},
@@ -4050,6 +4069,8 @@ const ELECTRO_CONTENT={
     ${fBox('a = \\dfrac{qE}{m} = \\dfrac{qV}{md}','תאוצת מטען בשדה אחיד')}
     <div class="def-block"><b>הקבלה מושלמת למכניקה:</b> כוח קבוע ⇒ בדיוק כמו כדור בשדה כבידה! אלקטרון הנכנס אופקית לשדה אנכי מבצע <b>מסלול פרבולי</b> — vₓ קבועה, v_y גדלה בקצב a=eE/m. כל מה שלמדתם בתנועה בליסטית תקף כאן, רק ש"g" הוא qE/m — ויכול להיות עצום.</p></div>
     <p><b>האצה דרך מתח:</b> מטען שעבר הפרש V רוכש אנרגיה ${M('E_k=qV')} — הבסיס לשפופרות מסך, מאיצי חלקיקים ומיקרוסקופ האלקטרונים מפרק האופטיקה.</p>
+    <div class="mis-block"><b>⚠️ טעות נפוצה:</b> "קרוב ללוח הטעון הכוח חזק יותר". בשדה אחיד הכוח על מטען <b>זהה בכל נקודה</b> בין הלוחות — זה כל היופי, וזה מה שהופך את המסלול לפרבולה מושלמת. (רק בקצוות הלוחות השדה מתעקם מעט — "אפקט שפה" שנהוג להזניח.)</div>
+    <p><b>ניסוי מיליקן במשפט אחד:</b> טיפת שמן טעונה מרחפת בין הלוחות כשהכוח החשמלי מאזן בדיוק את הכבידה — ${M('qE = mg')} — וממדידת E ו-m מחלצים את q. מיליקן (1909) מצא שכל הערכים כפולות של 1.6×10⁻¹⁹ C: קוונטיזציית המטען, היישר מהניסוי.</p>
     <div class="enrich-card"><div class="enrich-title">מדפסות, מסכים ומעבדות</div>
       <p>מדפסת הזרקה מטעינה טיפות דיו ומטה אותן בלוחות סטייה. שפופרת המסך הישנה (CRT) כיוונה קרן אלקטרונים בדיוק כזה. וניסוי הטיפה של מיליקן (1909) — איזון טיפת שמן טעונה בין לוחות (qE=mg) — מדד לראשונה את e עצמו, וזיכה אותו בנובל.</p></div>
     <div class="theory-anim">${animCanvas('anim-elc-plates-t',170,'אלקטרון בשדה אחיד — פרבולה, בדיוק כמו קליע')}</div>`,
@@ -4063,6 +4084,8 @@ const ELECTRO_CONTENT={
     {q:'מקטינים את d לחצי באותו מתח. השדה:',opts:['נחלש פי 2','מוכפל','ללא שינוי','מתאפס'],correct:1,explain:'E=V/d — חצי מרחק, כפול שדה.'},
     {q:'אלקטרון נכנס אופקית לשדה אנכי אחיד. מסלולו:',opts:['קו ישר','מעגל','פרבולה','ספירלה'],correct:2,explain:'כוח קבוע ניצב למהירות ההתחלתית — בדיוק כמו קליע בכבידה: פרבולה.'},
     {q:'פרוטון ואלקטרון באותו שדה E. מה נכון?',opts:['אותו כוח, אותה תאוצה','אותו כוח, לפרוטון תאוצה קטנה יותר','לפרוטון כוח גדול יותר','לאלקטרון אין כוח'],correct:1,explain:'|q| זהה → |F|=eE זהה. אך הפרוטון כבד פי ~1836 → תאוצתו קטנה פי 1836 (ובכיוון הפוך).'},
+    {q:'מטען נמצא בין הלוחות קרוב מאוד ללוח החיובי. הכוח עליו, לעומת מרכז התווך:',opts:['גדול יותר','קטן יותר','שווה בדיוק','אפס'],correct:2,explain:'השדה בין לוחות מקבילים אחיד — E=V/d בכל נקודה — ולכן F=qE זהה בכל מקום בין הלוחות. זו בדיוק ההקבלה ל-g הקבוע ליד פני הארץ.'},
+    {q:'בניסוי מיליקן טיפת שמן טעונה מרחפת במקומה כאשר:',opts:['qE=mg','qE=½mv²','qV=IR','E=mc²'],correct:0,explain:'ריחוף = שקול כוחות אפס: הכוח החשמלי מעלה מאזן בדיוק את המשקל. מכאן חולץ q — והתברר שהוא תמיד כפולה שלמה של e.'},
   ],
   problem:{title:'האצת אלקטרון',text:'לוחות במתח V=200 V ובמרחק d=4 mm. אלקטרון משוחרר ממנוחה מהלוח השלילי.',steps:[
     {q:'מה עוצמת השדה? (V/m)',unit:'V/m',answer:'50000',tolerance:500,explain:'E=V/d=200/0.004=50,000 V/m.',hint:'E=V/d'},
@@ -4079,11 +4102,13 @@ const ELECTRO_CONTENT={
     <p><b>אינטואיציה:</b> לוחות גדולים (A↑) אוגרים יותר מטען; מרווח קטן (d↓) מגביר את המשיכה בין המטענים ומאפשר לדחוס יותר — לכן C=ε₀A/d. פאראד אחד הוא ענק — קבלים אמיתיים נמדדים ב-pF עד mF.</p>
     <div class="def-block"><b>דיאלקטרן:</b> חומר מבודד בין הלוחות מקטב ומחליש את השדה הפנימי → הקיבול גדל פי κ (קבוע דיאלקטרי): C=κε₀A/d. נייר κ≈3.7, מים κ≈80.</div>
     <p><b>ניסוי מחשבתי:</b> טוענים קבל ומנתקים מהסוללה (Q קבוע!). מרחיקים את הלוחות — C קטן, ולכן V=Q/C <b>גדל</b>, וגם U=Q²/2C גדלה. מאיפה האנרגיה? מהעבודה שהשקעתם במשיכת הלוחות הנמשכים זה לזה!</p>
+    <div class="mis-block"><b>⚠️ טעות נפוצה:</b> "קבל טעון מכיל מטען". המטען הכולל הוא בדיוק <b>אפס</b>: +Q על לוח אחד, −Q על השני. הקבל אוגר <b>הפרדת מטען</b> — ואת האנרגיה שבשדה שביניהם. "מטען הקבל" Q מציין את גודל ההפרדה, לא סכום כלשהו. נסו את מצב "נתק מהסוללה" בסימולציה וצפו מה קורה ל-V ול-U כשמרחיקים לוחות ב-Q קבוע!</div>
+    <p><b>המסך שאתם נוגעים בו עכשיו</b> הוא רשת של קבלים זעירים: אצבע (מוליכה!) המתקרבת משנה את הקיבול המקומי בכמה פיקו-פאראד — והבקר מאתר את מקום המגע מהשינוי הזעיר. לכן כפפה רגילה לא עובדת: מבודד אינו משנה את C כמעט.</p>
     <div class="enrich-card"><div class="enrich-title">מהדפיברילטור ועד ה-DRAM</div>
       <p>דפיברילטור טוען קבל ~100 μF ל-2000V ‏(U=½CV²=200 J) ומשחרר בפעימה מדויקת. מבזק מצלמה — אותו רעיון בזעיר. וכל ביט בזיכרון DRAM של המחשב הוא קבל מיקרוסקופי: טעון=1, ריק=0 — טריליוני קבלים בכף ידכם.</p></div>
     <div class="theory-anim">${animCanvas('anim-elc-cap-t',170,'טעינת קבל — מטען מצטבר, שדה נבנה, אנרגיה נאגרת')}</div>`,
   },
-  sim:{type:'elc-cap',desc:'גרור את הלוח לשינוי המרווח d, שנה שטח ומתח, והכנס דיאלקטרן — צפה חי ב-C=κε₀A/d, במטען Q=CV, בשדה E=V/d ובאנרגיה U=½CV².'},
+  sim:{type:'elc-cap',desc:'גרור את הלוח לשינוי d, שנה שטח ומתח, והכנס דיאלקטרן — צפה חי ב-C=κε₀A/d, Q=CV, E=V/d ו-U=½CV². ואז נתק מהסוללה: Q ננעל, וגרירת הלוחות מעלה את V ואת U — בעוד E נשאר קבוע!'},
   example:{title:'קבל לוחות',text:'קבל עם A=0.02 m², d=1 mm, מחובר ל-9 V.',steps:[
     {q:'מה הקיבול?',a:'C=ε₀A/d=8.85×10⁻¹²·0.02/0.001=1.77×10⁻¹⁰ F=177 pF'},
     {q:'כמה מטען נאגר?',a:'Q=CV=1.77×10⁻¹⁰·9≈1.6×10⁻⁹ C=1.6 nC'}]},
@@ -4091,7 +4116,9 @@ const ELECTRO_CONTENT={
     {q:'קבל אוגר בעיקר:',opts:['זרם','אנרגיה בשדה החשמלי','התנגדות','מגנטיות'],correct:1,explain:'האנרגיה יושבת בשדה שבין הלוחות: U=½CV². (המטען הכולל נשאר אפס — +Q ו-−Q!)'},
     {q:'קבל טעון מנותק מהסוללה (Q קבוע). מרחיקים את הלוחות. המתח:',opts:['קטן','גדל','ללא שינוי','מתאפס'],correct:1,explain:'C=ε₀A/d קטן כש-d גדל; V=Q/C עם Q קבוע → V גדל. האנרגיה גדלה מהעבודה שהשקענו בהפרדה.'},
     {q:'מכניסים דיאלקטרן (κ=3) בין הלוחות. הקיבול:',opts:['קטן פי 3','גדל פי 3','ללא שינוי','מתאפס'],correct:1,explain:'C=κε₀A/d — הדיאלקטרן המקוטב מחליש את השדה הפנימי ומאפשר יותר מטען לאותו מתח.'},
-    {q:'מכפילים את המתח על קבל. האנרגיה האגורה:',opts:['×2','×4','×½','ללא שינוי'],correct:1,explain:'U=½CV² ∝ V² → פי 4.'},
+    {q:'מכפילים את המתח על קבל. האנרגיה האגורה:',opts:['×2','×4','×½','ללא שינוי'],correct:1,explain:'U=½CV² תלויה בריבוע המתח, ולכן הכפלת V מכפילה את U פי 2²=4. הסיבה: גם המטען וגם המתח גדלים פי 2 (Q=CV), ו-U≈½QV — מכפלה של שני גדלים שהוכפלו. זו הסיבה שדפיברילטור עובד ב-2000V ולא ב-20V.'},
+    {q:'המטען הכולל (נטו) על קבל טעון הוא:',opts:['Q','2Q','אפס','Q/2'],correct:2,explain:'+Q על לוח אחד ו-−Q על השני — הסכום אפס. הקבל אוגר הפרדת מטען ואנרגיית שדה, לא מטען נטו.'},
+    {q:'קבל מנותק מהסוללה (Q קבוע). מרחיקים את הלוחות. האנרגיה האגורה:',opts:['קטנה','גדלה','ללא שינוי','מתאפסת'],correct:1,explain:'U=Q²/2C, ו-C=ε₀A/d קטן כשמרחיקים → U גדלה. התוספת מגיעה מהעבודה המכנית שהשקעתם נגד משיכת הלוחות. בדקו במצב "מנותק" בסימולציה!'},
   ],
   problem:{title:'קבל של מבזק',text:'קבל C=100 μF נטען למתח V=12 V.',steps:[
     {q:'כמה מטען אגור בו? (C)',unit:'C',answer:'1.2e-3',tolerance:5e-5,explain:'Q=CV=100×10⁻⁶×12=1.2×10⁻³ C=1.2 mC.',hint:'Q=CV'},
@@ -18278,6 +18305,79 @@ runAnim('anim-elc-cap-t',(cv,ctx,W,H,t)=>{
   oLbl(ctx,'C=ε₀A/d — בין הלוחות נבנה שדה אחיד E=V/d',cx,H-8,'#a78bfa',10);
 });
 
+// ── 7. Polarization: a neutral insulator's molecules align, and it is attracted ──
+runAnim('anim-elc-polar-t',(cv,ctx,W,H,t)=>{
+  ctx.clearRect(0,0,W,H);
+  var cyc=t%6;
+  var align=Math.min(1,cyc/1.8);
+  var slide=cyc>2?Math.min(1,(cyc-2)/2)*26:0;
+  var rodX=W*0.15, rodY=H*0.55;
+  // charged rod (−)
+  ctx.save();ctx.fillStyle='#60a5fa';ctx.shadowColor='#60a5fa';ctx.shadowBlur=12;
+  ctx.beginPath();ctx.roundRect(rodX-13,rodY-54,26,108,13);ctx.fill();ctx.restore();
+  for(var i=0;i<4;i++)oLbl(ctx,'−',rodX,rodY-38+i*25,'#04101f',13);
+  oLbl(ctx,'מוט טעון −',rodX,rodY-70,'#60a5fa',10);
+  // neutral insulator block
+  var bx=W*0.46-slide, bw=W*0.36, by=H*0.24, bh=H*0.56;
+  ctx.save();ctx.fillStyle='rgba(148,163,184,.08)';ctx.strokeStyle='rgba(148,163,184,.35)';
+  ctx.beginPath();ctx.roundRect(bx,by,bw,bh,8);ctx.fill();ctx.stroke();ctx.restore();
+  oLbl(ctx,'מבודד נייטרלי (נייר)',bx+bw/2,by+bh+13,'#94a3b8',10);
+  // molecular dipoles rotating into alignment (+ end toward the − rod, i.e. left)
+  for(var r2=0;r2<3;r2++)for(var c2=0;c2<4;c2++){
+    var mx=bx+24+c2*(bw-48)/3, my=by+24+r2*(bh-48)/2;
+    var a0=((r2*4+c2)*2.4)%6.28;
+    var ang=a0+(Math.PI-a0)*align;
+    var dxm=Math.cos(ang)*9, dym=Math.sin(ang)*9;
+    ctx.save();ctx.strokeStyle='rgba(148,163,184,.5)';ctx.lineWidth=1;
+    ctx.beginPath();ctx.moveTo(mx-dxm,my-dym);ctx.lineTo(mx+dxm,my+dym);ctx.stroke();
+    ctx.fillStyle='#f87171';ctx.beginPath();ctx.arc(mx+dxm,my+dym,4.5,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#60a5fa';ctx.beginPath();ctx.arc(mx-dxm,my-dym,4.5,0,Math.PI*2);ctx.fill();
+    ctx.restore();
+  }
+  if(cyc>2){
+    simArrow(ctx,bx-4,rodY,bx-4-Math.min(34,12+slide),rodY,'#4ade80',3,10);
+    oLbl(ctx,'משיכה נטו',bx-28,rodY-18,'#4ade80',9);
+  }
+  oLbl(ctx,cyc<2?'השדה של המוט מקטב כל מולקולה — הקוטב החיובי פונה אל המוט':'הקטבים החיוביים קרובים יותר למוט — המשיכה גוברת על הדחייה והנייר נמשך!',W/2,13,'#94a3b8',10.5);
+});
+
+// ── 8. Faraday cage: induced surface charges cancel the external field inside ──
+runAnim('anim-elc-cage-t',(cv,ctx,W,H,t)=>{
+  ctx.clearRect(0,0,W,H);
+  var cyc=t%5, on=Math.min(1,cyc/1.4);
+  var bx=W*0.38,bw=W*0.24,by=H*0.22,bh=H*0.56;
+  // external field (left of and right of the box)
+  ctx.save();ctx.globalAlpha=0.25+on*0.55;
+  for(var r2=0;r2<4;r2++){
+    var yy=H*0.3+r2*H*0.14;
+    simArrow(ctx,22,yy,bx-10,yy,'#fbbf24',1.6,7);
+    simArrow(ctx,bx+bw+10,yy,W-22,yy,'#fbbf24',1.6,7);
+  }
+  ctx.restore();
+  oLbl(ctx,'שדה חיצוני E',W*0.13,H*0.22,'#fbbf24',10);
+  // conducting box
+  ctx.save();ctx.strokeStyle='#94a3b8';ctx.lineWidth=4;ctx.strokeRect(bx,by,bw,bh);ctx.restore();
+  // free electrons migrate against E → left wall −, right wall +
+  var nn=Math.max(1,Math.round(on*5));
+  for(var i2=0;i2<nn;i2++){
+    var yy2=by+16+i2*(bh-32)/4;
+    oLbl(ctx,'−',bx+7+(1-on)*bw*0.42,yy2,'#60a5fa',13);
+    oLbl(ctx,'+',bx+bw-7-(1-on)*bw*0.42,yy2,'#f87171',13);
+  }
+  // inside: external (fading) vs induced (growing) until they cancel
+  if(on<0.95){
+    simArrow(ctx,bx+18,by+bh*0.35,bx+bw-18,by+bh*0.35,'rgba(251,191,36,'+(0.15+0.5*(1-on)).toFixed(2)+')',1.5,7);
+    simArrow(ctx,bx+bw-18,by+bh*0.65,bx+18,by+bh*0.65,'rgba(34,211,238,'+(on*0.65).toFixed(2)+')',1.5,7);
+    oLbl(ctx,'מושרה',bx+bw/2,by+bh*0.65-11,'#22d3ee',8);
+  }else{
+    oLbl(ctx,'🛡️',bx+bw/2,by+bh/2-12,'#4ade80',20);
+    oLbl(ctx,'E = 0',bx+bw/2,by+bh/2+16,'#4ade80',13);
+  }
+  oLbl(ctx,'כלוב פאראדיי: מכונית בסופת ברקים, מטוס, מעלית פלדה',W/2,13,'#a78bfa',10.5);
+  oLbl(ctx,'האלקטרונים החופשיים נערכים על הדפנות — שדה המטענים המושרים מבטל בפנים את החיצוני',W/2,H-9,'#94a3b8',10);
+});
+
+
 }
 
 
@@ -18293,14 +18393,30 @@ function simElcScope(canvas){
   var rodX=W*0.22,rodY=120,rodSign=-1,scopeQ=0,dragRod=false,touched=false;
   var KX=W*0.68,KY=86,PIVY=270;
   function getQ(){var e=document.getElementById('inp-scope-q');return e?parseFloat(e.value):5;}
+  // The rod carries a real, signed charge. Slider/flip re-set it; contact shares it.
+  var rodQ=-5, lastSlider=5, lastSign=-1, evt='', evtT=-99, earthQ=0;
+  function syncRod(){
+    var s=getQ();
+    if(s!==lastSlider||rodSign!==lastSign){rodQ=s*rodSign;lastSlider=s;lastSign=rodSign;earthQ=0;}
+  }
   var fb=document.getElementById('btn-scope-flip');
   if(fb)fb.addEventListener('click',function(){rodSign*=-1;});
   var tb=document.getElementById('btn-scope-touch');
   if(tb)tb.addEventListener('click',function(){
     var r=Math.hypot(rodX-KX,rodY-KY);
-    if(r<160){scopeQ+=rodSign*getQ()*0.6;scopeQ=Math.max(-8,Math.min(8,scopeQ));}});
+    if(r<160){
+      // Conduction between two comparable conductors: the charge divides.
+      // Total is invariant — this is conservation of charge, not creation.
+      var tot=rodQ+scopeQ;
+      rodQ=tot/2; scopeQ=tot/2;
+      lastSlider=getQ(); lastSign=rodSign;      // don't let syncRod undo the transfer
+      evt='conduct'; evtT=animT;
+    } else { evt='far'; evtT=animT; }
+  });
   var gb=document.getElementById('btn-scope-ground');
-  if(gb)gb.addEventListener('click',function(){scopeQ=0;});
+  if(gb)gb.addEventListener('click',function(){
+    if(scopeQ!==0){evt='ground';evtT=animT;earthQ+=scopeQ;}
+    scopeQ=0;});
   function _dn(e){var p=simPointerXY(canvas,dpr,e);
     if(Math.hypot(p.x-rodX,p.y-rodY)<52){dragRod=true;touched=true;canvas.style.cursor='grabbing';e.preventDefault();}}
   function _mv(e){var p=simPointerXY(canvas,dpr,e);
@@ -18312,7 +18428,8 @@ function simElcScope(canvas){
   canvas.addEventListener('mouseup',_up);canvas.addEventListener('touchend',_up);
   function draw(){
     if(_simStop[id])return;animT+=0.03;
-    var q=getQ()*rodSign;
+    syncRod();
+    var q=rodQ;
     var r=Math.hypot(rodX-KX,rodY-KY);
     var induced=Math.abs(q)*26000/Math.max(r*r,1600);   // model: induced separation ∝ q/r²
     var leafAng=Math.min(58,Math.abs(scopeQ)*7+induced);
@@ -18348,22 +18465,49 @@ function simElcScope(canvas){
     }
     ctx.restore();
     // Rod
+    var rNeg=rodQ<0, rZero=Math.abs(rodQ)<0.05;
+    var rodCol=rZero?'#64748b':(rNeg?'#60a5fa':'#f87171');
     ctx.save();ctx.translate(rodX,rodY);ctx.rotate(-0.5);
-    ctx.fillStyle=rodSign<0?'rgba(96,165,250,.85)':'rgba(248,113,113,.85)';
-    optGlow(ctx,rodSign<0?'#60a5fa':'#f87171',14);
+    ctx.fillStyle=rZero?'rgba(100,116,139,.7)':(rNeg?'rgba(96,165,250,.85)':'rgba(248,113,113,.85)');
+    optGlow(ctx,rodCol,14);
     ctx.beginPath();ctx.roundRect(-70,-11,140,22,10);ctx.fill();optNoGlow(ctx);
     ctx.fillStyle='#0b1220';ctx.font='bold 14px Heebo';ctx.textAlign='center';
-    var gq=Math.min(6,Math.round(getQ()/1.7));
-    for(var i=0;i<gq;i++)ctx.fillText(rodSign<0?'−':'+',-50+i*20,5);
+    var gq=rZero?0:Math.max(1,Math.min(6,Math.round(Math.abs(rodQ)/1.7)));
+    for(var i=0;i<gq;i++)ctx.fillText(rNeg?'−':'+',-50+i*20,5);
     ctx.restore();
-    optLabel(ctx,'מוט '+(rodSign<0?'שלילי':'חיובי'),rodX,rodY+42,rodSign<0?'#60a5fa':'#f87171',10);
+    optLabel(ctx,rZero?'מוט נייטרלי':'מוט: q='+(rodQ>0?'+':'')+rodQ.toFixed(1)+' יח׳',rodX,rodY+42,rodCol,10);
     if(!touched&&animT<8)optLabel(ctx,'✋ גרור את המוט אל הכפתור',rodX+10,rodY-46+Math.sin(animT*4)*3,'#fbbf24',10);
     // Status
-    var msg=scopeQ!==0?'האלקטרוסקופ טעון ('+(scopeQ>0?'+':'−')+') — העלים נפרדים גם בלי המוט':
-      induced>3?'השראה! הפרדת מטענים ללא מגע — העלים נפרדים':'קרב את המוט כדי לראות השראה';
-    ctx.save();ctx.fillStyle='rgba(4,9,20,.88)';ctx.beginPath();ctx.roundRect(W/2-215,H-58,430,24,6);ctx.fill();ctx.restore();
-    optLabel(ctx,msg,W/2,H-43,induced>3||scopeQ!==0?'#34d399':'#94a3b8',10);
-    optInfoBox(ctx,8,8,186,['זווית עלים: '+leafAng.toFixed(0)+'°','מטען מושרה ∝ q/r²','מטען קבוע: '+scopeQ.toFixed(1)+' יח׳',(scopeQ!==0?'נטען במגע (הולכה)':'נייטרלי — השראה בלבד')]);
+    var fresh=animT-evtT<3.2;
+    var msg = fresh&&evt==='conduct' ? '⚡ הולכה במגע: המטען התחלק בין המוט לאלקטרוסקופ — הסכום נשמר!' :
+              fresh&&evt==='ground'  ? '⏚ הארקה: המטען זרם לאדמה — לא נעלם, רק עבר לגוף ענק' :
+              fresh&&evt==='far'     ? 'המוט רחוק מדי למגע — קרב אותו אל הכפתור' :
+              scopeQ!==0 ? 'האלקטרוסקופ טעון ('+(scopeQ>0?'+':'−')+') — העלים נפרדים גם בלי המוט' :
+              induced>3 ? 'השראה! הפרדת מטענים ללא מגע — העלים נפרדים, המטען הכולל עדיין אפס' :
+              'קרב את המוט כדי לראות השראה';
+    var msgCol = fresh&&evt==='far' ? '#f87171' : (fresh||induced>3||scopeQ!==0) ? '#34d399' : '#94a3b8';
+    ctx.save();ctx.fillStyle='rgba(4,9,20,.88)';ctx.beginPath();ctx.roundRect(W/2-238,H-58,476,24,6);ctx.fill();ctx.restore();
+    optLabel(ctx,msg,W/2,H-43,msgCol,10);
+    // ── Charge ledger: conservation made visible ──
+    var grounded=Math.abs(earthQ)>0.05;
+    var tot=rodQ+scopeQ+earthQ;
+    var lh=grounded?113:96;
+    var lx0=8,ly0=H-lh-72;
+    ctx.save();ctx.fillStyle='rgba(2,8,16,.82)';ctx.strokeStyle='rgba(74,222,128,.35)';ctx.lineWidth=1;
+    ctx.beginPath();ctx.roundRect(lx0,ly0,196,lh,8);ctx.fill();ctx.stroke();ctx.restore();
+    optLabel(ctx,'מאזן מטענים',lx0+98,ly0+15,'#4ade80',10);
+    function ledLine(lab,val,yy,col){
+      optLabel(ctx,lab,lx0+148,yy,'#94a3b8',9.5);
+      optLabel(ctx,(val>0?'+':'')+val.toFixed(1)+' יח׳',lx0+54,yy,col,9.5);
+    }
+    var qcol=function(v){return Math.abs(v)<0.05?'#64748b':(v<0?'#60a5fa':'#f87171');};
+    ledLine('מוט',rodQ,ly0+34,qcol(rodQ));
+    ledLine('אלקטרוסקופ',scopeQ,ly0+51,qcol(scopeQ));
+    if(grounded)ledLine('עבר לאדמה',earthQ,ly0+68,qcol(earthQ));
+    ctx.save();ctx.strokeStyle='rgba(148,163,184,.3)';ctx.lineWidth=1;
+    ctx.beginPath();ctx.moveTo(lx0+14,ly0+lh-36);ctx.lineTo(lx0+182,ly0+lh-36);ctx.stroke();ctx.restore();
+    ledLine('סה״כ — נשמר תמיד',tot,ly0+lh-20,'#4ade80');
+    optInfoBox(ctx,8,8,186,['זווית עלים: '+leafAng.toFixed(0)+'°','מטען מושרה ∝ q/r²','מטען האלקטרוסקופ: '+scopeQ.toFixed(1)+' יח׳',(scopeQ!==0?'נטען במגע (הולכה)':'נייטרלי — השראה בלבד')]);
     requestAnimationFrame(draw);
   }requestAnimationFrame(draw);
 }
@@ -18373,16 +18517,22 @@ function simElcCoulomb(canvas){
   const H=460;const{ctx,W,dpr}=setupCanvas(canvas,H);
   const id=canvas.id;var animT=0;
   var PXM=150,cy=140;
-  var x1=W/2-110,x2=W/2+110,dragC=null,touched=false;
+  var x1=W/2-110,x2=W/2+110,x3=W/2+230,on3=false,dragC=null,touched=false;
+  var Q3=2; // μC, fixed
+  var tb=document.getElementById('btn-clb-three');
+  if(tb)tb.addEventListener('click',function(){on3=!on3;
+    tb.textContent=on3?'⊖ הסר את q₃':'⊕ הוסף מטען q₃ (סופרפוזיציה)';});
   function q1(){var e=document.getElementById('inp-elc-q1');return e?parseFloat(e.value):2;}
   function q2(){var e=document.getElementById('inp-elc-q2');return e?parseFloat(e.value):-3;}
   function _dn(e){var p=simPointerXY(canvas,dpr,e);
     if(Math.hypot(p.x-x1,p.y-cy)<30)dragC=1;else if(Math.hypot(p.x-x2,p.y-cy)<30)dragC=2;
+    else if(on3&&Math.hypot(p.x-x3,p.y-cy)<30)dragC=3;
     if(dragC){touched=true;canvas.style.cursor='grabbing';e.preventDefault();}}
   function _mv(e){var p=simPointerXY(canvas,dpr,e);
     if(dragC===1){x1=Math.max(50,Math.min(x2-34,p.x));e.preventDefault();}
-    else if(dragC===2){x2=Math.max(x1+34,Math.min(W-50,p.x));e.preventDefault();}
-    else canvas.style.cursor=(Math.hypot(p.x-x1,p.y-cy)<30||Math.hypot(p.x-x2,p.y-cy)<30)?'grab':'';}
+    else if(dragC===2){x2=Math.max(x1+34,Math.min(on3?x3-34:W-50,p.x));e.preventDefault();}
+    else if(dragC===3){x3=Math.max(x2+34,Math.min(W-40,p.x));e.preventDefault();}
+    else canvas.style.cursor=(Math.hypot(p.x-x1,p.y-cy)<30||Math.hypot(p.x-x2,p.y-cy)<30||(on3&&Math.hypot(p.x-x3,p.y-cy)<30))?'grab':'';}
   function _up(){dragC=null;canvas.style.cursor='';}
   canvas.addEventListener('mousedown',_dn);canvas.addEventListener('touchstart',_dn,{passive:false});
   canvas.addEventListener('mousemove',_mv);canvas.addEventListener('touchmove',_mv,{passive:false});
@@ -18413,13 +18563,40 @@ function simElcCoulomb(canvas){
       ctx.fillText(cc[1]>0?'+':cc[1]<0?'−':'0',cc[0],cy+5);ctx.restore();
       optLabel(ctx,cc[2]+' = '+cc[1].toFixed(1)+' μC',cc[0],cy-rad-14,col,10);
     });
-    // Force arrows — ALWAYS equal & opposite
+    // Third charge (superposition mode)
+    if(on3){
+      ctx.save();ctx.fillStyle='#c084fc';optGlow(ctx,'#c084fc',16);
+      ctx.beginPath();ctx.arc(x3,cy,13+Q3*2.2,0,Math.PI*2);ctx.fill();optNoGlow(ctx);
+      ctx.fillStyle='#0b1220';ctx.font='bold 15px Heebo';ctx.textAlign='center';ctx.fillText('+',x3,cy+5);ctx.restore();
+      optLabel(ctx,'q₃ = +'+Q3.toFixed(1)+' μC',x3,cy-32,'#c084fc',10);
+    }
+    // Force arrows
     var aLen=Math.min(110,18+F*45);
     var d1=repel?-1:1, d2=repel?1:-1;
-    simArrow(ctx,x1,cy-54,x1+d1*aLen,cy-54,'#fbbf24',3.5,13);
-    simArrow(ctx,x2,cy-54,x2+d2*aLen,cy-54,'#fbbf24',3.5,13);
-    optLabel(ctx,'F='+ (F<0.01?F.toExponential(2):F.toFixed(2)) +' N',(x1+x2)/2,cy-74,'#fbbf24',11);
-    optLabel(ctx,repel?'דחייה':'משיכה — ניוטון III: שווים והפוכים!',(x1+x2)/2,cy+24,repel?'#f87171':'#34d399',9.5);
+    if(!on3){
+      // pair mode: ALWAYS equal & opposite (Newton III)
+      simArrow(ctx,x1,cy-54,x1+d1*aLen,cy-54,'#fbbf24',3.5,13);
+      simArrow(ctx,x2,cy-54,x2+d2*aLen,cy-54,'#fbbf24',3.5,13);
+      optLabel(ctx,'F='+ (F<0.01?F.toExponential(2):F.toFixed(2)) +' N',(x1+x2)/2,cy-74,'#fbbf24',11);
+      optLabel(ctx,repel?'דחייה':'משיכה — ניוטון III: שווים והפוכים!',(x1+x2)/2,cy+24,repel?'#f87171':'#34d399',9.5);
+    }else{
+      // superposition mode: the two contributions on q₂ and their vector sum
+      var F1s=(Q1*Q2>0?1:-1)*F;                     // from q₁ (+ = rightward)
+      var r23=(x3-x2)/PXM;
+      var F3m=ELC_K*Math.abs(Q2*Q3)*1e-12/(r23*r23);
+      var F3s=(Q2*Q3>0?-1:1)*F3m;                   // from q₃
+      var Fn=F1s+F3s;
+      function fArr(Fv,yy,col,lab){
+        if(Math.abs(Fv)<5e-4){optLabel(ctx,lab+' ≈ 0',x2,yy-12,col,9);return;}
+        var L2=Math.min(110,18+Math.abs(Fv)*45);
+        simArrow(ctx,x2,yy,x2+(Fv>0?L2:-L2),yy,col,Fv===Fn?3.5:2.2,Fv===Fn?13:9);
+        optLabel(ctx,lab+'='+(Math.abs(Fv)<0.01?Fv.toExponential(1):Fv.toFixed(2))+' N',x2+(Fv>0?L2/2:-L2/2),yy-13,col,9);
+      }
+      fArr(F1s,cy-96,'#fbbf24','F₁');
+      fArr(F3s,cy-72,'#c084fc','F₃');
+      fArr(Fn,cy-48,'#4ade80','ΣF');
+      optLabel(ctx,'סופרפוזיציה: הכוח השקול על q₂ = סכום (עם סימן) של שני הכוחות',(x1+x3)/2,cy+24,'#4ade80',9.5);
+    }
     if(!touched&&animT<8)optLabel(ctx,'✋ גרור את המטענים על המסילה',W/2,cy-90,'#fbbf24',10);
     // F(r) graph
     var gx=60,gy=H-190,gw=W-120,gh=150;
@@ -18453,6 +18630,10 @@ function simElcField(canvas){
   function Q(){var e=document.getElementById('inp-elc-Q');return e?parseFloat(e.value):4;}
   var db=document.getElementById('btn-field-dipole');
   if(db)db.addEventListener('click',function(){dip=!dip;db.textContent=dip?'⚪ מטען יחיד':'⇄ דיפול (הוסף −Q)';});
+  var lineMode=false;
+  var lmb=document.getElementById('btn-field-lines');
+  if(lmb)lmb.addEventListener('click',function(){lineMode=!lineMode;
+    lmb.textContent=lineMode?'▦ רשת וקטורים':'✒️ קווי שדה רציפים';});
   function Efield(px,py){
     var q=Q()*1e-6;
     var ex=0,ey=0;
@@ -18485,17 +18666,51 @@ function simElcField(canvas){
     if(_simStop[id])return;animT+=0.03;
     var bg=ctx.createLinearGradient(0,0,0,H);bg.addColorStop(0,'#020810');bg.addColorStop(1,'#04101e');
     ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);
-    // Field grid
-    for(var gx=30;gx<W-10;gx+=46){
-      for(var gy=30;gy<H-60;gy+=46){
-        var E=Efield(gx,gy);
-        if(E.m<1)continue;
-        var L=Math.min(17,4+Math.pow(E.m,0.3)*0.55);
-        var ux=E.x/E.m,uy=E.y/E.m;
-        var frac=Math.min(1,Math.pow(E.m,0.32)/28);
-        var col='rgba('+Math.round(80+175*frac)+','+Math.round(150+60*frac)+','+Math.round(250-160*frac)+',.75)';
-        simArrow(ctx,gx-ux*L/2,gy-uy*L/2,gx+ux*L/2,gy+uy*L/2,col,1.4,5);
+    if(!lineMode){
+      // Field grid
+      for(var gx=30;gx<W-10;gx+=46){
+        for(var gy=30;gy<H-60;gy+=46){
+          var E=Efield(gx,gy);
+          if(E.m<1)continue;
+          var L=Math.min(17,4+Math.pow(E.m,0.3)*0.55);
+          var ux=E.x/E.m,uy=E.y/E.m;
+          var frac=Math.min(1,Math.pow(E.m,0.32)/28);
+          var col='rgba('+Math.round(80+175*frac)+','+Math.round(150+60*frac)+','+Math.round(250-160*frac)+',.75)';
+          simArrow(ctx,gx-ux*L/2,gy-uy*L/2,gx+ux*L/2,gy+uy*L/2,col,1.4,5);
+        }
       }
+    }else{
+      // Continuous field lines, traced numerically along E
+      var qs=Q();
+      var ex0=(!dip||qs>0)?sx:dx2, ey0=(!dip||qs>0)?sy:dy2;
+      var rad0=16+Math.abs(qs);
+      for(var li=0;li<16;li++){
+        var a0=li*Math.PI/8+0.10;
+        var lx=ex0+Math.cos(a0)*rad0, ly=ey0+Math.sin(a0)*rad0;
+        var hp=null,hd=null;
+        ctx.save();ctx.strokeStyle='rgba(251,191,36,.5)';ctx.lineWidth=1.3;
+        ctx.beginPath();ctx.moveTo(lx,ly);
+        for(var st=0;st<240;st++){
+          var Ev=Efield(lx,ly);
+          if(Ev.m<0.5)break;
+          var dirx=Ev.x/Ev.m, diry=Ev.y/Ev.m;
+          if(qs<0&&!dip){dirx=-dirx;diry=-diry;}   // trace outward around a lone − charge
+          lx+=dirx*3; ly+=diry*3;
+          ctx.lineTo(lx,ly);
+          if(st===30){hp=[lx,ly];hd=[Ev.x/Ev.m,Ev.y/Ev.m];}
+          if(lx<8||lx>W-8||ly<8||ly>H-56)break;
+          if(dip){
+            var ox=(ex0===sx)?dx2:sx, oy=(ex0===sx)?dy2:sy;
+            if(Math.hypot(lx-ox,ly-oy)<rad0)break;
+          }
+        }
+        ctx.stroke();
+        if(hp){ctx.translate(hp[0],hp[1]);ctx.rotate(Math.atan2(hd[1],hd[0]));
+          ctx.fillStyle='rgba(251,191,36,.85)';
+          ctx.beginPath();ctx.moveTo(5,0);ctx.lineTo(-3,-3.5);ctx.lineTo(-3,3.5);ctx.closePath();ctx.fill();}
+        ctx.restore();
+      }
+      optLabel(ctx,'קו שדה = כיוון הכוח בכל נקודה — לא מסלול תנועה!',W/2,H-64,'#fbbf24',9.5);
     }
     // Sources
     var qv=Q();
@@ -18583,6 +18798,29 @@ function simElcPotential(canvas){
     ctx.beginPath();ctx.arc(px2,py2,9,0,Math.PI*2);ctx.fill();optNoGlow(ctx);ctx.restore();
     optLabel(ctx,'גשוש',px2,py2+24,'#fbbf24',8.5);
     if(!touched&&animT<8)optLabel(ctx,'✋ גרור את הגשוש בין הטבעות',W/2,20,'#fbbf24',10);
+    // V(r) ∝ 1/r vs E(r) ∝ 1/r² — potential falls off SLOWER
+    var g0x=W-250,g0y=H-152,g0w=228,g0h=92;
+    ctx.save();ctx.fillStyle='rgba(2,8,16,.72)';ctx.fillRect(g0x-8,g0y-16,g0w+16,g0h+38);
+    ctx.strokeStyle='rgba(100,116,139,.4)';ctx.lineWidth=1;
+    ctx.beginPath();ctx.moveTo(g0x,g0y);ctx.lineTo(g0x,g0y+g0h);ctx.lineTo(g0x+g0w,g0y+g0h);ctx.stroke();
+    var r0g=0.15,r1g=2.6;
+    ctx.strokeStyle='#22d3ee';ctx.lineWidth=2;ctx.beginPath();
+    for(var j2=0;j2<=46;j2++){var rg=r0g+(r1g-r0g)*j2/46;
+      var xx=g0x+(rg-r0g)/(r1g-r0g)*g0w, yy=g0y+g0h-(r0g/rg)*g0h*0.94;
+      if(j2===0)ctx.moveTo(xx,yy);else ctx.lineTo(xx,yy);}
+    ctx.stroke();
+    ctx.strokeStyle='rgba(148,163,184,.7)';ctx.lineWidth=1.4;ctx.setLineDash([4,4]);ctx.beginPath();
+    for(var j2=0;j2<=46;j2++){var rg=r0g+(r1g-r0g)*j2/46;
+      var xx=g0x+(rg-r0g)/(r1g-r0g)*g0w, yy=g0y+g0h-Math.pow(r0g/rg,2)*g0h*0.94;
+      if(j2===0)ctx.moveTo(xx,yy);else ctx.lineTo(xx,yy);}
+    ctx.stroke();ctx.setLineDash([]);
+    var rcl=Math.max(r0g,Math.min(r1g,r_m));
+    ctx.fillStyle='#fbbf24';ctx.beginPath();
+    ctx.arc(g0x+(rcl-r0g)/(r1g-r0g)*g0w,g0y+g0h-(r0g/rcl)*g0h*0.94,4.5,0,Math.PI*2);ctx.fill();
+    ctx.restore();
+    optLabel(ctx,'V ∝ 1/r',g0x+56,g0y-6,'#22d3ee',9);
+    optLabel(ctx,'E ∝ 1/r² (מקווקו)',g0x+160,g0y-6,'#94a3b8',9);
+    optLabel(ctx,'הפוטנציאל דועך לאט מהשדה — 1/r מול 1/r²',g0x+g0w/2,g0y+g0h+13,'#a78bfa',8.5);
     var lines=['V = kQ/r = '+(V/1000).toFixed(1)+' kV','U(q₀=1nC) = '+(qC===0?'0':(1e-9*V*1e6).toFixed(2))+' μJ'];
     if(markV!==null){
       lines.push('נקודה A: V_A='+(markV/1000).toFixed(1)+' kV');
@@ -18722,6 +18960,11 @@ function simElcCap(canvas){
   function dmm(){var e=document.getElementById('inp-elc-cd');return e?parseFloat(e.value):4;}
   var db=document.getElementById('btn-cap-diel');
   if(db)db.addEventListener('click',function(){kappa=kappa===1?3:1;db.textContent=kappa===3?'🚫 הוצא דיאלקטרן':'🧱 דיאלקטרן κ=3';});
+  var disc=false,Qfroz=0;
+  var xb=document.getElementById('btn-cap-disc');
+  if(xb)xb.addEventListener('click',function(){disc=!disc;
+    if(disc)Qfroz=kappa*ELC_EPS0*(Acm()*1e-4)/(dmm()*1e-3)*Vv();
+    xb.textContent=disc?'🔌 חבר חזרה לסוללה':'✂️ נתק מהסוללה (Q קבוע)';});
   function rx(){return LX+dmm()*18;}
   function _dn(e){var p=simPointerXY(canvas,dpr,e);
     if(Math.abs(p.x-rx())<18&&Math.abs(p.y-cy)<120){dragPlate=true;touched=true;canvas.style.cursor='grabbing';e.preventDefault();}}
@@ -18735,7 +18978,9 @@ function simElcCap(canvas){
   function draw(){
     if(_simStop[id])return;animT+=0.03;
     var Vx=Vv(),A=Acm()*1e-4,d=dmm()*1e-3;
-    var C=kappa*ELC_EPS0*A/d, Qc=C*Vx, U=0.5*C*Vx*Vx, E=Vx/d;
+    var C=kappa*ELC_EPS0*A/d, Qc, Vdisp;
+    if(disc){Qc=Qfroz;Vdisp=Qc/C;}else{Qc=C*Vx;Vdisp=Vx;}
+    var U=0.5*Qc*Vdisp, E=Vdisp/d;
     var RX=rx(),phH=90+Acm()*0.22;
     var bg=ctx.createLinearGradient(0,0,0,H);bg.addColorStop(0,'#020810');bg.addColorStop(1,'#04101e');
     ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);
@@ -18765,7 +19010,7 @@ function simElcCap(canvas){
       var yy=cy-phH/2+14+(phH-28)*i/Math.max(1,nA-1);
       simArrow(ctx,LX+4,yy,RX-6,yy,'rgba(251,191,36,.45)',1.5,6);
     }
-    optLabel(ctx,'d = '+dmm().toFixed(1)+' mm ↔ גרור',RX+56,cy,'#94a3b8',9);
+    optLabel(ctx,'d = '+dmm().toFixed(1)+' mm ↔ גרור',(LX+RX)/2,cy+phH/2+(kappa===3?30:16),'#94a3b8',9);
     if(!touched&&animT<8)optLabel(ctx,'✋ גרור את הלוח הכחול',RX+20,cy-phH/2-14,'#fbbf24',10);
     // Battery symbol
     ctx.save();ctx.strokeStyle='#64748b';ctx.lineWidth=1.5;
@@ -18773,11 +19018,13 @@ function simElcCap(canvas){
     ctx.beginPath();ctx.moveTo(RX+4,cy+phH/2);ctx.lineTo(RX+4,H-52);ctx.lineTo(W*0.5+14,H-52);ctx.stroke();
     ctx.beginPath();ctx.moveTo(W*0.5-14,H-62);ctx.lineTo(W*0.5-14,H-42);ctx.stroke();
     ctx.lineWidth=3.5;ctx.beginPath();ctx.moveTo(W*0.5+14,H-58);ctx.lineTo(W*0.5+14,H-46);ctx.stroke();ctx.restore();
-    optLabel(ctx,Vx+' V',W*0.5,H-70,'#e2e8f0',10);
+    optLabel(ctx,disc?'מנותק ✂ (Q קבוע)':Vx+' V',W*0.5,H-70,disc?'#f87171':'#e2e8f0',10);
+    if(disc)optLabel(ctx,'Q נעול: הרחקת לוחות מעלה את V ו-U — ושימו לב ש-E לא משתנה!',W/2,H-14,'#a78bfa',9.5);
     // Readout bars
     var Cref=3*ELC_EPS0*200e-4/4e-3;             // 3× the default C → defaults sit at ⅓ bar
     var bars=[['C',C/Cref,(C*1e12).toFixed(1)+' pF','#22d3ee'],
               ['Q',Qc/(Cref*12),(Qc*1e9).toFixed(2)+' nC','#34d399'],
+              ['V',Vdisp/36,Vdisp.toFixed(1)+' V','#f472b6'],
               ['U',U/(0.5*Cref*144),(U*1e9).toFixed(1)+' nJ','#fbbf24']];
     bars.forEach(function(b,i){
       var bx=W-190,by=30+i*54;
@@ -18787,7 +19034,7 @@ function simElcCap(canvas){
       ctx.fillRect(bx,by,150*Math.max(0.02,Math.min(1,b[1])),20);ctx.restore();
       optLabel(ctx,b[2],bx+75,by+34,b[3],9);
     });
-    optInfoBox(ctx,8,8,208,['C=κε₀A/d='+(C*1e12).toFixed(1)+' pF','Q=CV='+(Qc*1e9).toFixed(2)+' nC','E=V/d='+(E/1000).toFixed(1)+' kV/m','U=½CV²='+(U*1e9).toFixed(1)+' nJ']);
+    optInfoBox(ctx,8,8,208,['C=κε₀A/d='+(C*1e12).toFixed(1)+' pF',(disc?'Q קבוע = ':'Q=CV=')+(Qc*1e9).toFixed(2)+' nC',(disc?'V=Q/C=':'V=')+Vdisp.toFixed(1)+' V,  E='+(E/1000).toFixed(1)+' kV/m','U=½QV='+(U*1e9).toFixed(1)+' nJ'+(disc?' — גדל בהרחקה!':'')]);
     requestAnimationFrame(draw);
   }requestAnimationFrame(draw);
 }
@@ -19000,11 +19247,11 @@ function buildSim(sim){
   else if(sim.type==='opt-thin-film')extra=C(rng('tf-thick',50,600,300,5,'עובי קרום t','nm')+rng('tf-n',1.10,2.00,1.33,0.02,'מדד שבירה n',''));
   else if(sim.type==='opt-grating')extra=C(rng('gr-d',0.5,5.0,1.5,0.1,'מרווח סריג d','μm')+rng('gr-lambda',380,700,550,5,'אורך גל λ','nm')+btn('gr-white','🌈 אור לבן','btn-secondary'));
   else if(sim.type==='elc-scope')extra=C(rng('scope-q',1,10,5,1,'עוצמת מטען המוט','')+btn('scope-flip','↔ החלף סימן','btn-secondary')+btn('scope-touch','👆 גע — הולכה','btn-secondary')+btn('scope-ground','⏚ הארקה','btn-secondary'));
-  else if(sim.type==='elc-coulomb')extra=C(rng('elc-q1',-5,5,2,0.5,'q₁',' μC')+rng('elc-q2',-5,5,-3,0.5,'q₂',' μC'));
-  else if(sim.type==='elc-field')extra=C(rng('elc-Q',-6,6,4,0.5,'מטען המקור Q',' μC')+btn('field-dipole','⇄ דיפול (הוסף −Q)','btn-secondary'));
+  else if(sim.type==='elc-coulomb')extra=C(rng('elc-q1',-5,5,2,0.5,'q₁',' μC')+rng('elc-q2',-5,5,-3,0.5,'q₂',' μC')+btn('clb-three','⊕ הוסף מטען q₃ (סופרפוזיציה)','btn-secondary'));
+  else if(sim.type==='elc-field')extra=C(rng('elc-Q',-6,6,4,0.5,'מטען המקור Q',' μC')+btn('field-dipole','⇄ דיפול (הוסף −Q)','btn-secondary')+btn('field-lines','✒️ קווי שדה רציפים','btn-secondary'));
   else if(sim.type==='elc-potential')extra=C(rng('elc-Vq',-8,8,2,0.5,'מטען Q',' μC')+btn('pot-mark','📌 סמן נקודה A','btn-secondary'));
   else if(sim.type==='elc-plates')extra=C(rng('elc-V',50,400,200,10,'מתח V',' V')+rng('elc-d',2,8,4,0.5,'מרווח d',' cm')+rng('elc-v0',5,30,20,1,'v₀ כניסה','×10⁶')+btn('pl-launch','🚀 שגר','btn-primary')+btn('pl-flip','± הפוך קוטביות','btn-secondary')+btn('pl-part','🔁 החלף לפרוטון','btn-secondary'));
-  else if(sim.type==='elc-cap')extra=C(rng('elc-cV',1,24,12,1,'מתח V',' V')+rng('elc-cA',50,400,200,10,'שטח A',' cm²')+rng('elc-cd',1,10,4,0.5,'מרווח d',' mm')+btn('cap-diel','🧱 דיאלקטרן κ=3','btn-secondary'));
+  else if(sim.type==='elc-cap')extra=C(rng('elc-cV',1,24,12,1,'מתח V',' V')+rng('elc-cA',50,400,200,10,'שטח A',' cm²')+rng('elc-cd',1,10,4,0.5,'מרווח d',' mm')+btn('cap-diel','🧱 דיאלקטרן κ=3','btn-secondary')+btn('cap-disc','✂️ נתק מהסוללה (Q קבוע)','btn-secondary'));
   const simDone=isCompleted(state.chapter,state.section,'sim');
   return `<div class="sim-container">
     <div class="sim-canvas-wrap"><canvas id="sim-canvas" height="280"></canvas></div>
