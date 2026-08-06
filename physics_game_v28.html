@@ -3964,7 +3964,7 @@ const ELECTRO_CONTENT={
     <b>3. ומי בעצם זז?</b> B עלה מ-−4 ל-+4, כלומר איבד 8 nC של מטען שלילי: n = 8×10⁻⁹/1.6×10⁻¹⁹ = <b>5×10¹⁰ אלקטרונים</b> עברו מ-B ל-A. בדיקה: A ירד מ-+12 ל-+4 — בדיוק אותם 8 nC. שוב: שום מטען לא נוצר ולא נעלם.</p></div>
     <div class="theory-anim">${animCanvas('anim-elc-charge-t',170,'שפשוף ענבר בצמר: אלקטרונים עוברים אל הענבר — הוא נטען −, הצמר +')}</div>`,
   },
-  sim:{type:'elc-scope',desc:'גרור את המוט הטעון אל האלקטרוסקופ — העלים נפרדים עוד לפני מגע (השראה!). לחץ "גע" והמטען יתחלק בין המוט לאלקטרוסקופ: עקוב אחר מאזן המטענים — הסכום נשמר תמיד. הארקה מעבירה את המטען לאדמה.'},
+  sim:{type:'elc-scope',desc:'גרור את המוט הטעון אל האלקטרוסקופ — העלים נפרדים עוד לפני מגע (השראה!). "גע" מחלק את המטען בין המוט לאלקטרוסקופ (הולכה — אותו סימן). ובצעו את מתכון ההשראה שבפינה: קרבו → חברו הארקה → נתקו הארקה → הרחיקו — והאלקטרוסקופ יישאר טעון בסימן ה<b>הפוך</b> למוט, בלי שנגעתם בו. שנו את הסדר וראו שזה נכשל.'},
   example:{title:'כמה אלקטרונים בבלון?',text:'בלון משופשף בשיער קיבל מטען q=−8 nC.',steps:[
     {q:'כמה אלקטרונים עברו לבלון?',a:'n = |q|/e = 8×10⁻⁹/1.6×10⁻¹⁹ = 5×10¹⁰ אלקטרונים'},
     {q:'האם השיער נטען? בכמה?',a:'שימור המטען: השיער איבד בדיוק 5×10¹⁰ אלקטרונים → +8 nC'}]},
@@ -18556,10 +18556,16 @@ function simElcScope(canvas){
       evt='conduct'; evtT=animT;
     } else { evt='far'; evtT=animT; }
   });
+  // Grounding is a LATCH, not a momentary discharge. Order of operations is
+  // the entire lesson, and order only matters if the switch has state.
+  var grounded=false, KR=24;
+  var step=0, stepMsg='';      // induction recipe progress
   var gb=document.getElementById('btn-scope-ground');
   if(gb)gb.addEventListener('click',function(){
-    if(scopeQ!==0){evt='ground';evtT=animT;earthQ+=scopeQ;}
-    scopeQ=0;});
+    grounded=!grounded;
+    gb.textContent=grounded?'⏚ נתק הארקה':'⏚ חבר הארקה';
+    evt=grounded?'gnd-on':'gnd-off'; evtT=animT;
+  });
   function _dn(e){var p=simPointerXY(canvas,dpr,e);
     if(Math.hypot(p.x-rodX,p.y-rodY)<52){dragRod=true;touched=true;canvas.style.cursor='grabbing';e.preventDefault();}}
   function _mv(e){var p=simPointerXY(canvas,dpr,e);
@@ -18574,6 +18580,22 @@ function simElcScope(canvas){
     syncRod();
     var q=rodQ;
     var r=Math.hypot(rodX-KX,rodY-KY);
+    // While the earth wire is attached, electrons flow until the electroscope
+    // reaches the charge induced by the nearby rod: q_ind = −q·R/r for a
+    // grounded sphere. Whatever flows is booked to earth, so the ledger holds.
+    if(grounded){
+      var qEq=-rodQ*Math.min(0.85,KR/Math.max(r,KR));
+      var dQ=(qEq-scopeQ)*0.12;
+      scopeQ+=dQ; earthQ-=dQ;
+    }
+    // Recipe tracker: 1 rod near → 2 ground on → 3 ground off → 4 rod away
+    var near=r<150;
+    if(step===0&&near&&!grounded)step=1;
+    else if(step===1&&near&&grounded)step=2;
+    else if(step===2&&near&&!grounded)step=3;
+    else if(step===3&&!near)step=4;
+    if(step===3&&!near&&grounded)step=0;         // classic mistake: rod left last
+    if(step>=1&&step<4&&!near&&!grounded&&Math.abs(scopeQ)<0.05)step=0;
     var induced=Math.abs(q)*26000/Math.max(r*r,1600);   // model: induced separation ∝ q/r²
     var leafAng=Math.min(58,Math.abs(scopeQ)*7+induced);
     var bg=ctx.createLinearGradient(0,0,0,H);bg.addColorStop(0,'#020810');bg.addColorStop(1,'#04101e');
@@ -18623,6 +18645,8 @@ function simElcScope(canvas){
     // Status
     var fresh=animT-evtT<3.2;
     var msg = fresh&&evt==='conduct' ? '⚡ הולכה במגע: המטען התחלק בין המוט לאלקטרוסקופ — הסכום נשמר!' :
+              fresh&&evt==='gnd-on'  ? '⏚ הארקה חוברה: אלקטרונים זורמים אל/מן האדמה בעוד המוט קרוב' :
+              fresh&&evt==='gnd-off' ? '⏚ ההארקה נותקה — המטען נעול כעת על האלקטרוסקופ' :
               fresh&&evt==='ground'  ? '⏚ הארקה: המטען זרם לאדמה — לא נעלם, רק עבר לגוף ענק' :
               fresh&&evt==='far'     ? 'המוט רחוק מדי למגע — קרב אותו אל הכפתור' :
               scopeQ!==0 ? 'האלקטרוסקופ טעון ('+(scopeQ>0?'+':'−')+') — העלים נפרדים גם בלי המוט' :
@@ -18632,9 +18656,9 @@ function simElcScope(canvas){
     ctx.save();ctx.fillStyle='rgba(4,9,20,.88)';ctx.beginPath();ctx.roundRect(W/2-238,H-58,476,24,6);ctx.fill();ctx.restore();
     optLabel(ctx,msg,W/2,H-43,msgCol,10);
     // ── Charge ledger: conservation made visible ──
-    var grounded=Math.abs(earthQ)>0.05;
+    var hasEarth=Math.abs(earthQ)>0.05;   // NOTE: distinct from `grounded` (the switch)
     var tot=rodQ+scopeQ+earthQ;
-    var lh=grounded?113:96;
+    var lh=hasEarth?113:96;
     var lx0=8,ly0=H-lh-72;
     ctx.save();ctx.fillStyle='rgba(2,8,16,.82)';ctx.strokeStyle='rgba(74,222,128,.35)';ctx.lineWidth=1;
     ctx.beginPath();ctx.roundRect(lx0,ly0,196,lh,8);ctx.fill();ctx.stroke();ctx.restore();
@@ -18646,11 +18670,26 @@ function simElcScope(canvas){
     var qcol=function(v){return Math.abs(v)<0.05?'#64748b':(v<0?'#60a5fa':'#f87171');};
     ledLine('מוט',rodQ,ly0+34,qcol(rodQ));
     ledLine('אלקטרוסקופ',scopeQ,ly0+51,qcol(scopeQ));
-    if(grounded)ledLine('עבר לאדמה',earthQ,ly0+68,qcol(earthQ));
+    if(hasEarth)ledLine('עבר לאדמה',earthQ,ly0+68,qcol(earthQ));
     ctx.save();ctx.strokeStyle='rgba(148,163,184,.3)';ctx.lineWidth=1;
     ctx.beginPath();ctx.moveTo(lx0+14,ly0+lh-36);ctx.lineTo(lx0+182,ly0+lh-36);ctx.stroke();ctx.restore();
     ledLine('סה״כ — נשמר תמיד',tot,ly0+lh-20,'#4ade80');
-    optInfoBox(ctx,8,8,186,['זווית עלים: '+leafAng.toFixed(0)+'°','מטען מושרה ∝ q/r²','מטען האלקטרוסקופ: '+scopeQ.toFixed(1)+' יח׳',(scopeQ!==0?'נטען במגע (הולכה)':'נייטרלי — השראה בלבד')]);
+    optInfoBox(ctx,8,8,186,['זווית עלים: '+leafAng.toFixed(0)+'°','מטען מושרה ∝ q/r²','מטען האלקטרוסקופ: '+scopeQ.toFixed(1)+' יח׳',(Math.abs(scopeQ)>0.15?'טעון — נשאר גם בלי המוט':'נייטרלי — השראה בלבד')]);
+    // ── Induction recipe: ticks itself off as the learner performs it ──
+    var RSTEPS=['1. קרב את המוט (בלי מגע)','2. חבר הארקה ⏚','3. נתק הארקה','4. הרחק את המוט'];
+    var rx0=W-208, ry0=8;
+    ctx.save();ctx.fillStyle='rgba(4,9,20,.86)';ctx.strokeStyle='rgba(74,222,128,.3)';ctx.lineWidth=1;
+    ctx.beginPath();ctx.roundRect(rx0,ry0,200,RSTEPS.length*16+(step>=4?48:30),6);ctx.fill();ctx.stroke();ctx.restore();
+    optLabel(ctx,'📋 מתכון טעינה בהשראה',rx0+100,ry0+13,'#4ade80',9.5);
+    for(var si=0;si<RSTEPS.length;si++){
+      var done=step>si;
+      optLabel(ctx,(done?'✓ ':'• ')+RSTEPS[si],rx0+100,ry0+30+si*16,done?'#4ade80':'#64748b',9);
+    }
+    if(step>=4){
+      var opp=(rodQ<0&&scopeQ>0)||(rodQ>0&&scopeQ<0);
+      optLabel(ctx,opp?'✔ נטען בסימן ההפוך למוט — בלי מגע!':'האלקטרוסקופ נטען',rx0+100,ry0+RSTEPS.length*16+40,'#4ade80',9);
+    }
+    if(grounded)optLabel(ctx,'⏚ מחובר לאדמה — אלקטרונים חופשיים לזרום',W/2,H-72,'#22d3ee',9.5);
     requestAnimationFrame(draw);
   }requestAnimationFrame(draw);
 }
@@ -19502,7 +19541,7 @@ function buildSim(sim){
   else if(sim.type==='opt-telescope')extra=C(rng('tel-fo',30,300,150,5,'מוקד אובייקטיב fₒ','mm')+rng('tel-fe',5,60,25,5,'מוקד עדשת עין fₑ','mm'));
   else if(sim.type==='opt-thin-film')extra=C(rng('tf-thick',50,600,300,5,'עובי קרום t','nm')+rng('tf-n',1.10,2.00,1.33,0.02,'מדד שבירה n',''));
   else if(sim.type==='opt-grating')extra=C(rng('gr-d',0.5,5.0,1.5,0.1,'מרווח סריג d','μm')+rng('gr-lambda',380,700,550,5,'אורך גל λ','nm')+btn('gr-white','🌈 אור לבן','btn-secondary'));
-  else if(sim.type==='elc-scope')extra=C(rng('scope-q',1,10,5,1,'עוצמת מטען המוט','')+btn('scope-flip','↔ החלף סימן','btn-secondary')+btn('scope-touch','👆 גע — הולכה','btn-secondary')+btn('scope-ground','⏚ הארקה','btn-secondary'));
+  else if(sim.type==='elc-scope')extra=C(rng('scope-q',1,10,5,1,'עוצמת מטען המוט','')+btn('scope-flip','↔ החלף סימן','btn-secondary')+btn('scope-touch','👆 גע — הולכה','btn-secondary')+btn('scope-ground','⏚ חבר הארקה','btn-secondary'));
   else if(sim.type==='elc-coulomb')extra=C(rng('elc-q1',-5,5,2,0.5,'q₁',' μC')+rng('elc-q2',-5,5,-3,0.5,'q₂',' μC')+btn('clb-three','⊕ הוסף מטען q₃ (סופרפוזיציה)','btn-secondary'));
   else if(sim.type==='elc-field')extra=C(rng('elc-Q',-6,6,4,0.5,'מטען Q₁',' μC')+rng('elc-Q2',-6,6,-4,0.5,'מטען Q₂',' μC')+btn('field-dipole','⇄ שני מטענים','btn-secondary')+btn('field-lines','✒️ קווי שדה רציפים','btn-secondary'));
   else if(sim.type==='elc-potential')extra=C(rng('elc-Vq',-8,8,2,0.5,'מטען Q₁',' μC')+rng('elc-Vq2',-8,8,-3,0.5,'מטען Q₂',' μC')+rng('elc-q0',-5,5,1,0.5,'מטען בוחן q₀',' nC')+btn('pot-two','⊕ הוסף מטען שני','btn-secondary')+btn('pot-mark','📌 סמן נקודה A','btn-secondary'));
