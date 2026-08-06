@@ -4040,7 +4040,7 @@ const ELECTRO_CONTENT={
       <p>ניוטון הניח "פעולה מרחוק" רגעית. מייקל פאראדיי — כורך ספרים ללא השכלה פורמלית — דמיין קווי כוח ממשיים הממלאים את החלל. מקסוול הלביש על החזון משוואות, וגילה שהשדות נושאים אנרגיה ונעים בגל — במהירות האור. האור עצמו התגלה כגל של שדות חשמליים ומגנטיים — וכך נפגשים הפרק הזה ופרק האופטיקה!</p></div>
     <div class="theory-anim">${animCanvas('anim-elc-field-t',170,'מטען המשוחרר ממנוחה נע לאורך הקו — אך קו שדה אינו מסלול! (ראו את האזהרה למעלה)')}</div>`,
   },
-  sim:{type:'elc-field',desc:'גרור את המטען המרכזי ואת מטען הבוחן — רשת החצים מציגה את השדה בכל נקודה, וכפתור "קווי שדה" עובר לקווים רציפים (שימו לב: קו שדה אינו מסלול!). הפעל "דיפול" לזוג מטענים, וצפה ב-F=qE על הבוחן.'},
+  sim:{type:'elc-field',desc:'גרור את המטענים ואת מטען הבוחן — רשת החצים מציגה את השדה בכל נקודה, וכפתור "קווי שדה" עובר לקווים רציפים (קו שדה אינו מסלול!). הוסף מטען שני ושנה את סימנו: בשני מטענים חיוביים תופיע נקודת האיפוס E=0 בין השניים — קרובה יותר לקטן, בדיוק כמו בדוגמה הפתורה. בסימנים מנוגדים היא בורחת אל מחוץ לקטע.'},
   example:{title:'שדה וכוח',text:'מטען Q=+4 μC. נקודה A במרחק 20 cm ממנו.',steps:[
     {q:'מה עוצמת השדה ב-A?',a:'E=9×10⁹·4×10⁻⁶/(0.2)²=9×10⁹·4×10⁻⁶/0.04=9×10⁵ N/C'},
     {q:'מה הכוח על מטען בוחן q₀=+1 nC שם?',a:'F=q₀E=10⁻⁹·9×10⁵=9×10⁻⁴ N, בכיוון השדה (החוצה)'}]},
@@ -4080,7 +4080,7 @@ const ELECTRO_CONTENT={
       <p>בין ענן סערה לקרקע נבנה הפרש של ~100 מיליון וולט. כשהשדה חוצה את חוזק הפריצה של האוויר (~3×10⁶ V/m) — האוויר עצמו הופך מוליך, ו-20-30 קולון פורקים בהבזק של אלפית שנייה. פרנקלין הראה ב-1752 שזה בדיוק אותו חשמל מהמעבדה — וגם המציא את כליא הברק.</p></div>
     <div class="theory-anim">${animCanvas('anim-elc-potential-t',170,'מטען חיובי "מתגלגל" מפוטנציאל גבוה לנמוך — U הופכת ל-Ek')}</div>`,
   },
-  sim:{type:'elc-potential',desc:'גרור את הגשוש סביב המטען — קרא V=kQ/r בכל נקודה וראה את הטבעות שוות-הפוטנציאל. גרור את המטען ושנה את גודלו וסימנו; עקוב אחר W=qΔV בין שתי נקודות, והשווה בגרף: V דועך כ-1/r — לאט מהשדה (1/r²).'},
+  sim:{type:'elc-potential',desc:'גרור את הגשוש וקרא V בכל נקודה. הוסף מטען שני — והקריאה מתפצלת ל-V₁+V₂: פוטנציאלים מתחברים כמספרים עם סימן, בלי וקטורים. עם מטענים מנוגדים מופיע קו V=0 לבן — ושם דווקא השדה מקסימלי! שנה את סימן מטען הבוחן וראה את W מתהפך.'},
   example:{title:'פוטנציאל ואנרגיה',text:'מטען Q=+2 μC. נקודה A במרחק 0.5 m.',steps:[
     {q:'מה הפוטנציאל ב-A?',a:'V=9×10⁹·2×10⁻⁶/0.5=36,000 V=36 kV'},
     {q:'מה האנרגיה הפוטנציאלית של q₀=+1 nC ב-A?',a:'U=q₀V=10⁻⁹·3.6×10⁴=3.6×10⁻⁵ J'}]},
@@ -18744,20 +18744,37 @@ function simElcCoulomb(canvas){
     // F(r) graph
     var gx=60,gy=H-190,gw=W-120,gh=150;
     ctx.save();ctx.strokeStyle='rgba(100,116,139,.4)';ctx.lineWidth=1;ctx.strokeRect(gx,gy,gw,gh);ctx.restore();
+    // ABSOLUTE logarithmic force axis. The old version divided the curve by its
+    // own peak, so k|q₁q₂| cancelled and the plot was pixel-identical for every
+    // charge pair — sliding q₁ from +5 to −5 moved nothing at all.
     var rMax=(W-100)/PXM, Fref=ELC_K*Math.abs(Q1*Q2)*1e-12;
-    var Fmax=Fref/(0.23*0.23);
-    ctx.save();ctx.strokeStyle='rgba(34,211,238,.6)';ctx.lineWidth=2;ctx.beginPath();
-    var started=false;
-    for(var rr=0.23;rr<=rMax;rr+=0.02){
-      var Fv=Fref/(rr*rr);
-      var px=gx+(rr/rMax)*gw, py=gy+gh-Math.min(1,Fv/Fmax)*(gh-12);
-      started?ctx.lineTo(px,py):ctx.moveTo(px,py);started=true;
+    var LO=-4, HI=1;                      // 10⁻⁴ N … 10¹ N
+    function fy(Fv){
+      if(!(Fv>0))return gy+gh;
+      var L=Math.log(Fv)/Math.LN10;
+      return gy+gh-Math.max(0,Math.min(1,(L-LO)/(HI-LO)))*(gh-10);
     }
-    ctx.stroke();ctx.restore();
-    var cpx=gx+(r_m/rMax)*gw, cpy=gy+gh-Math.min(1,F/Fmax)*(gh-12);
-    ctx.save();ctx.fillStyle='#fbbf24';optGlow(ctx,'#fbbf24',10);
-    ctx.beginPath();ctx.arc(cpx,Math.max(gy+6,cpy),5,0,Math.PI*2);ctx.fill();optNoGlow(ctx);ctx.restore();
-    optLabel(ctx,'F(r) ∝ 1/r²',gx+46,gy+14,'#22d3ee',9);
+    ctx.save();ctx.strokeStyle='rgba(100,116,139,.22)';ctx.lineWidth=1;
+    for(var dcd=LO;dcd<=HI;dcd++){
+      var yy=fy(Math.pow(10,dcd));
+      ctx.beginPath();ctx.moveTo(gx,yy);ctx.lineTo(gx+gw,yy);ctx.stroke();
+      optLabel(ctx,(dcd<0?'10'+['⁻¹','⁻²','⁻³','⁻⁴'][-dcd-1]:dcd===0?'1':'10'),gx-15,yy,'#64748b',7.5);
+    }
+    ctx.restore();
+    if(Fref>0){
+      ctx.save();ctx.strokeStyle='rgba(34,211,238,.75)';ctx.lineWidth=2;ctx.beginPath();
+      var started=false;
+      for(var rr=0.23;rr<=rMax;rr+=0.02){
+        var px=gx+(rr/rMax)*gw, py=fy(Fref/(rr*rr));
+        started?ctx.lineTo(px,py):ctx.moveTo(px,py);started=true;
+      }
+      ctx.stroke();ctx.restore();
+      var cpx=gx+(r_m/rMax)*gw, cpy=fy(F);
+      ctx.save();ctx.fillStyle='#fbbf24';optGlow(ctx,'#fbbf24',10);
+      ctx.beginPath();ctx.arc(cpx,cpy,5,0,Math.PI*2);ctx.fill();optNoGlow(ctx);ctx.restore();
+    }
+    optLabel(ctx,'F [N] — סקאלה לוגריתמית',gx+64,gy+12,'#22d3ee',9);
+    optLabel(ctx,'שנו את המטענים: כל העקומה קופצת מעלה או מטה',gx+gw/2,gy-8,'#94a3b8',8.5);
     optLabel(ctx,'r →',gx+gw-14,gy+gh+12,'#64748b',8);
     optInfoBox(ctx,8,8,192,['F = k|q₁q₂|/r²','k=9×10⁹ N·m²/C²','r='+r_m.toFixed(2)+' m','F='+(F<0.01?F.toExponential(2):F.toFixed(3))+' N']);
     requestAnimationFrame(draw);
@@ -18771,8 +18788,9 @@ function simElcField(canvas){
   var sx=W*0.42,sy=H*0.5,tx=W*0.68,ty=H*0.3,dip=false,dx2=W*0.62,dy2=H*0.5;
   var dragW=null,touched=false;
   function Q(){var e=document.getElementById('inp-elc-Q');return e?parseFloat(e.value):4;}
+  function Q2(){var e=document.getElementById('inp-elc-Q2');return e?parseFloat(e.value):-4;}
   var db=document.getElementById('btn-field-dipole');
-  if(db)db.addEventListener('click',function(){dip=!dip;db.textContent=dip?'⚪ מטען יחיד':'⇄ דיפול (הוסף −Q)';});
+  if(db)db.addEventListener('click',function(){dip=!dip;db.textContent=dip?'⚪ מטען יחיד':'⇄ שני מטענים';});
   var lineMode=false;
   var lmb=document.getElementById('btn-field-lines');
   if(lmb)lmb.addEventListener('click',function(){lineMode=!lineMode;
@@ -18785,7 +18803,7 @@ function simElcField(canvas){
     ex+=m1*(px-sx)/(r1*100);ey+=m1*(py-sy)/(r1*100);
     if(dip){
       var r2=Math.max(18,Math.hypot(px-dx2,py-dy2))/100;
-      var m2=ELC_K*(-q)/(r2*r2);
+      var m2=ELC_K*(Q2()*1e-6)/(r2*r2);   // sign carried by Q₂ itself
       ex+=m2*(px-dx2)/(r2*100);ey+=m2*(py-dy2)/(r2*100);
     }
     return {x:ex,y:ey,m:Math.hypot(ex,ey)};
@@ -18861,11 +18879,35 @@ function simElcField(canvas){
     ctx.save();ctx.fillStyle=c1;optGlow(ctx,c1,18);
     ctx.beginPath();ctx.arc(sx,sy,15+Math.abs(qv),0,Math.PI*2);ctx.fill();optNoGlow(ctx);
     ctx.fillStyle='#0b1220';ctx.font='bold 16px Heebo';ctx.textAlign='center';ctx.fillText(qv>0?'+':'−',sx,sy+6);ctx.restore();
+    if(dip)optLabel(ctx,'Q₁='+qv.toFixed(1)+'μC',sx,sy-Math.abs(qv)-22,c1,9);
     if(dip){
-      var c2=qv>0?'#60a5fa':'#f87171';
+      var q2v=Q2();
+      var c2=q2v>0?'#f87171':q2v<0?'#60a5fa':'#64748b';
       ctx.save();ctx.fillStyle=c2;optGlow(ctx,c2,18);
-      ctx.beginPath();ctx.arc(dx2,dy2,15+Math.abs(qv),0,Math.PI*2);ctx.fill();optNoGlow(ctx);
-      ctx.fillStyle='#0b1220';ctx.font='bold 16px Heebo';ctx.textAlign='center';ctx.fillText(qv>0?'−':'+',dx2,dy2+6);ctx.restore();
+      ctx.beginPath();ctx.arc(dx2,dy2,15+Math.abs(q2v),0,Math.PI*2);ctx.fill();optNoGlow(ctx);
+      ctx.fillStyle='#0b1220';ctx.font='bold 16px Heebo';ctx.textAlign='center';
+      ctx.fillText(q2v>0?'+':q2v<0?'−':'0',dx2,dy2+6);ctx.restore();
+      optLabel(ctx,'Q₂='+q2v.toFixed(1)+'μC',dx2,dy2-Math.abs(q2v)-22,c2,9);
+      // ── Null point: where the two fields cancel. ──
+      // like signs   → between them,  d₁ = L√|Q₁|/(√|Q₁|+√|Q₂|)
+      // unlike signs → outside, beyond the weaker, d = L√|Q_w|/(√|Q_s|−√|Q_w|)
+      var L=Math.hypot(dx2-sx,dy2-sy);
+      var a1=Math.sqrt(Math.abs(qv)), a2=Math.sqrt(Math.abs(q2v));
+      var ux=(dx2-sx)/(L||1), uy=(dy2-sy)/(L||1), nd=null;
+      if(a1>0.02&&a2>0.02&&L>30){
+        if(qv*q2v>0){ nd=L*a1/(a1+a2); }
+        else if(Math.abs(a1-a2)>0.02){
+          nd = a1>a2 ? L*a2/(a1-a2)+L : -L*a1/(a2-a1);
+        }
+      }
+      if(nd!==null){
+        var nx=sx+ux*nd, ny=sy+uy*nd;
+        if(nx>6&&nx<W-6&&ny>6&&ny<H-60){
+          ctx.save();ctx.strokeStyle='#fff';ctx.lineWidth=2;
+          ctx.beginPath();ctx.arc(nx,ny,7,0,Math.PI*2);ctx.stroke();ctx.restore();
+          optLabel(ctx,'E = 0',nx,ny-15,'#fff',9);
+        }
+      }
     }
     // Test charge + F=qE
     var Et=Efield(tx,ty);
@@ -18888,23 +18930,36 @@ function simElcField(canvas){
 function simElcPotential(canvas){
   const H=460;const{ctx,W,dpr}=setupCanvas(canvas,H);
   const id=canvas.id;var animT=0;
-  var sx=W*0.42,sy=H*0.48,px2=W*0.66,py2=H*0.3;
-  var markV=null,dragW=null,touched=false;
+  var sx=W*0.34,sy=H*0.44,px2=W*0.70,py2=H*0.26;
+  var s2x=W*0.60,s2y=H*0.44;
+  var markV=null,dragW=null,touched=false,two=false;
   var PXM=110; // px per meter
   function Q(){var e=document.getElementById('inp-elc-Vq');return e?parseFloat(e.value):2;}
+  function Q2(){var e=document.getElementById('inp-elc-Vq2');return e?parseFloat(e.value):-3;}
+  function q0(){var e=document.getElementById('inp-elc-q0');return e?parseFloat(e.value):1;}
+  // V is a SCALAR sum — this is the whole point of the section
+  function Vat(px,py){
+    var r1=Math.max(0.12,Math.hypot(px-sx,py-sy)/PXM);
+    var v=ELC_K*Q()*1e-6/r1;
+    if(two){var r2=Math.max(0.12,Math.hypot(px-s2x,py-s2y)/PXM);v+=ELC_K*Q2()*1e-6/r2;}
+    return v;
+  }
+  var tb=document.getElementById('btn-pot-two');
+  if(tb)tb.addEventListener('click',function(){two=!two;
+    tb.textContent=two?'⊖ הסר מטען שני':'⊕ הוסף מטען שני';});
   var mb=document.getElementById('btn-pot-mark');
-  if(mb)mb.addEventListener('click',function(){
-    var r=Math.max(0.12,Math.hypot(px2-sx,py2-sy)/PXM);
-    markV=ELC_K*Q()*1e-6/r;});
+  if(mb)mb.addEventListener('click',function(){markV=Vat(px2,py2);});
   function _dn(e){var p=simPointerXY(canvas,dpr,e);
     if(Math.hypot(p.x-px2,p.y-py2)<24)dragW='probe';
     else if(Math.hypot(p.x-sx,p.y-sy)<28)dragW='src';
+    else if(two&&Math.hypot(p.x-s2x,p.y-s2y)<28)dragW='src2';
     if(dragW){touched=true;canvas.style.cursor='grabbing';e.preventDefault();}}
   function _mv(e){var p=simPointerXY(canvas,dpr,e);
     var cx=Math.max(30,Math.min(W-30,p.x)),cyy=Math.max(30,Math.min(H-70,p.y));
     if(dragW==='probe'){px2=cx;py2=cyy;e.preventDefault();}
     else if(dragW==='src'){sx=cx;sy=cyy;e.preventDefault();}
-    else canvas.style.cursor=(Math.hypot(p.x-px2,p.y-py2)<24||Math.hypot(p.x-sx,p.y-sy)<28)?'grab':'';}
+    else if(dragW==='src2'){s2x=cx;s2y=cyy;e.preventDefault();}
+    else canvas.style.cursor=(Math.hypot(p.x-px2,p.y-py2)<24||Math.hypot(p.x-sx,p.y-sy)<28||(two&&Math.hypot(p.x-s2x,p.y-s2y)<28))?'grab':'';}
   function _up(){dragW=null;canvas.style.cursor='';}
   canvas.addEventListener('mousedown',_dn);canvas.addEventListener('touchstart',_dn,{passive:false});
   canvas.addEventListener('mousemove',_mv);canvas.addEventListener('touchmove',_mv,{passive:false});
@@ -18914,34 +18969,81 @@ function simElcPotential(canvas){
     var qv=Q(),qC=qv*1e-6;
     var bg=ctx.createLinearGradient(0,0,0,H);bg.addColorStop(0,'#020810');bg.addColorStop(1,'#04101e');
     ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);
-    // Equipotential rings: V = kQ/r → r=kQ/V, for a ladder of V values
-    var Vbase=ELC_K*Math.abs(qC);
-    [1,1.5,2,3,4.5,7,11,18].forEach(function(mult,i){
-      var Vv=Vbase/2.2*mult/3;         // ring ladder
-      var r=Vbase/Vv;                  // meters
-      var rp=r*PXM;
-      if(rp<20||rp>W)return;
-      ctx.save();ctx.strokeStyle=qv>0?'rgba(248,113,113,'+(0.14+i*0.05)+')':'rgba(96,165,250,'+(0.14+i*0.05)+')';
-      ctx.lineWidth=1.4;ctx.setLineDash([5,5]);
-      ctx.beginPath();ctx.arc(sx,sy,rp,0,Math.PI*2);ctx.stroke();ctx.setLineDash([]);ctx.restore();
-      if(rp<W*0.5)optLabel(ctx,(qv>0?'+':'−')+(Vv/1000).toFixed(0)+'kV',sx+rp*0.71,sy-rp*0.71,'#94a3b8',8);
-    });
-    // Source
-    var c1=qv>0?'#f87171':'#60a5fa';
-    ctx.save();ctx.fillStyle=c1;optGlow(ctx,c1,18);
-    ctx.beginPath();ctx.arc(sx,sy,15+Math.abs(qv)*0.8,0,Math.PI*2);ctx.fill();optNoGlow(ctx);
-    ctx.fillStyle='#0b1220';ctx.font='bold 16px Heebo';ctx.textAlign='center';ctx.fillText(qv>0?'+':'−',sx,sy+6);ctx.restore();
+    // ── Equipotentials as REAL contours of V, on a FIXED voltage ladder. ──
+    // Radii are computed from the ladder (r=kQ/V), so raising |Q| pushes every
+    // surface outward. The old code let k|Q| cancel, freezing the geometry.
+    var GS=10, NX=Math.floor(W/GS), NY=Math.floor((H-96)/GS);
+    var grid=new Float32Array((NX+1)*(NY+1));
+    for(var gy2=0;gy2<=NY;gy2++)for(var gx2=0;gx2<=NX;gx2++)
+      grid[gy2*(NX+1)+gx2]=Vat(gx2*GS,gy2*GS);
+    function contour(level,style,lw,dash){
+      ctx.save();ctx.strokeStyle=style;ctx.lineWidth=lw;
+      if(dash)ctx.setLineDash(dash);
+      ctx.beginPath();
+      for(var cy2=0;cy2<NY;cy2++)for(var cx2=0;cx2<NX;cx2++){
+        var v0=grid[cy2*(NX+1)+cx2],v1=grid[cy2*(NX+1)+cx2+1],
+            v2=grid[(cy2+1)*(NX+1)+cx2+1],v3=grid[(cy2+1)*(NX+1)+cx2];
+        var idx=(v0>level?1:0)|(v1>level?2:0)|(v2>level?4:0)|(v3>level?8:0);
+        if(idx===0||idx===15)continue;
+        var X=cx2*GS,Y=cy2*GS;
+        function ip(a,b,pa,pb){var f=(level-a)/((b-a)||1e-9);return [pa[0]+(pb[0]-pa[0])*f,pa[1]+(pb[1]-pa[1])*f];}
+        var top=ip(v0,v1,[X,Y],[X+GS,Y]), right=ip(v1,v2,[X+GS,Y],[X+GS,Y+GS]),
+            bot=ip(v3,v2,[X,Y+GS],[X+GS,Y+GS]), left=ip(v0,v3,[X,Y],[X,Y+GS]);
+        var segs={1:[left,top],2:[top,right],3:[left,right],4:[right,bot],
+                  6:[top,bot],7:[left,bot],8:[left,bot],9:[top,bot],
+                  11:[right,bot],12:[left,right],13:[top,right],14:[left,top]};
+        var s=segs[idx];
+        if(idx===5){ctx.moveTo(left[0],left[1]);ctx.lineTo(top[0],top[1]);ctx.moveTo(right[0],right[1]);ctx.lineTo(bot[0],bot[1]);continue;}
+        if(idx===10){ctx.moveTo(top[0],top[1]);ctx.lineTo(right[0],right[1]);ctx.moveTo(left[0],left[1]);ctx.lineTo(bot[0],bot[1]);continue;}
+        if(s){ctx.moveTo(s[0][0],s[0][1]);ctx.lineTo(s[1][0],s[1][1]);}
+      }
+      ctx.stroke();ctx.setLineDash([]);ctx.restore();
+    }
+    var LAD=[2,5,10,20,50,100,200];
+    for(var li=0;li<LAD.length;li++){
+      var Vp=LAD[li]*1000, al=(0.46-li*0.045).toFixed(2);
+      contour( Vp,'rgba(248,113,113,'+al+')',1.3,[5,5]);
+      contour(-Vp,'rgba(96,165,250,'+al+')',1.3,[5,5]);
+    }
+    // With unlike charges a whole V=0 surface exists — and E is NOT zero on it
+    var mixed=two&&Q()*Q2()<0;
+    if(mixed)contour(0,'rgba(255,255,255,.85)',2,null);
+    // Sources
+    function drawSrc(X,Y,qq,lab){
+      var cc=qq>0?'#f87171':qq<0?'#60a5fa':'#64748b';
+      ctx.save();ctx.fillStyle=cc;optGlow(ctx,cc,18);
+      ctx.beginPath();ctx.arc(X,Y,14+Math.abs(qq)*0.7,0,Math.PI*2);ctx.fill();optNoGlow(ctx);
+      ctx.fillStyle='#0b1220';ctx.font='bold 15px Heebo';ctx.textAlign='center';
+      ctx.fillText(qq>0?'+':qq<0?'−':'0',X,Y+5);ctx.restore();
+      optLabel(ctx,lab,X,Y-Math.abs(qq)*0.7-22,cc,9);
+    }
+    drawSrc(sx,sy,qv,'Q₁='+qv.toFixed(1)+'μC');
+    if(two)drawSrc(s2x,s2y,Q2(),'Q₂='+Q2().toFixed(1)+'μC');
     // Probe
     var r_m=Math.max(0.12,Math.hypot(px2-sx,py2-sy)/PXM);
-    var V=ELC_K*qC/r_m;
-    ctx.save();ctx.strokeStyle='#fbbf24';ctx.lineWidth=1.2;ctx.setLineDash([4,5]);
+    var r2_m=Math.max(0.12,Math.hypot(px2-s2x,py2-s2y)/PXM);
+    var V1=ELC_K*qC/r_m, V2=two?ELC_K*Q2()*1e-6/r2_m:0;
+    var V=V1+V2;
+    ctx.save();ctx.strokeStyle='rgba(248,113,113,.5)';ctx.lineWidth=1.2;ctx.setLineDash([4,5]);
     ctx.beginPath();ctx.moveTo(sx,sy);ctx.lineTo(px2,py2);ctx.stroke();ctx.setLineDash([]);ctx.restore();
-    optLabel(ctx,'r='+r_m.toFixed(2)+'m',(sx+px2)/2+12,(sy+py2)/2,'#94a3b8',8.5);
-    ctx.save();ctx.fillStyle='#fbbf24';optGlow(ctx,'#fbbf24',12);
-    ctx.beginPath();ctx.arc(px2,py2,9,0,Math.PI*2);ctx.fill();optNoGlow(ctx);ctx.restore();
-    optLabel(ctx,'גשוש',px2,py2+24,'#fbbf24',8.5);
-    if(!touched&&animT<8)optLabel(ctx,'✋ גרור את הגשוש בין הטבעות',W/2,20,'#fbbf24',10);
-    // V(r) ∝ 1/r vs E(r) ∝ 1/r² — potential falls off SLOWER
+    optLabel(ctx,'r₁='+r_m.toFixed(2)+'m',(sx+px2)/2+10,(sy+py2)/2-6,'#f87171',8.5);
+    if(two){
+      ctx.save();ctx.strokeStyle='rgba(96,165,250,.5)';ctx.lineWidth=1.2;ctx.setLineDash([4,5]);
+      ctx.beginPath();ctx.moveTo(s2x,s2y);ctx.lineTo(px2,py2);ctx.stroke();ctx.setLineDash([]);ctx.restore();
+      optLabel(ctx,'r₂='+r2_m.toFixed(2)+'m',(s2x+px2)/2+10,(s2y+py2)/2+10,'#60a5fa',8.5);
+    }
+    var q0v=q0();
+    var pcol=q0v>0?'#fbbf24':q0v<0?'#38bdf8':'#64748b';
+    ctx.save();ctx.fillStyle=pcol;optGlow(ctx,pcol,12);
+    ctx.beginPath();ctx.arc(px2,py2,9,0,Math.PI*2);ctx.fill();optNoGlow(ctx);
+    ctx.fillStyle='#0b1220';ctx.font='bold 11px Heebo';ctx.textAlign='center';
+    ctx.fillText(q0v>0?'+':q0v<0?'−':'0',px2,py2+4);ctx.restore();
+    optLabel(ctx,'גשוש q₀='+q0v.toFixed(1)+'nC',px2,py2+25,pcol,8.5);
+    if(mixed)optLabel(ctx,'הקו הלבן: V=0 — אך E שם דווקא מקסימלי!',W/2,H-116,'#e2e8f0',9);
+    if(!touched&&animT<8)optLabel(ctx,'✋ גרור את הגשוש ואת המטענים',W/2,20,'#fbbf24',10);
+    // V(r) ∝ 1/r vs E(r) ∝ 1/r² — a SINGLE point-charge statement, so it is
+    // shown only when there is a single source.
+    if(!two){
     var g0x=W-250,g0y=H-152,g0w=228,g0h=92;
     ctx.save();ctx.fillStyle='rgba(2,8,16,.72)';ctx.fillRect(g0x-8,g0y-16,g0w+16,g0h+38);
     ctx.strokeStyle='rgba(100,116,139,.4)';ctx.lineWidth=1;
@@ -18964,12 +19066,23 @@ function simElcPotential(canvas){
     optLabel(ctx,'V ∝ 1/r',g0x+56,g0y-6,'#22d3ee',9);
     optLabel(ctx,'E ∝ 1/r² (מקווקו)',g0x+160,g0y-6,'#94a3b8',9);
     optLabel(ctx,'הפוטנציאל דועך לאט מהשדה — 1/r מול 1/r²',g0x+g0w/2,g0y+g0h+13,'#a78bfa',8.5);
-    var lines=['V = kQ/r = '+(V/1000).toFixed(1)+' kV','U(q₀=1nC) = '+(qC===0?'0':(1e-9*V*1e6).toFixed(2))+' μJ'];
+    }
+    // The decomposition IS the lesson: two signed numbers, added.
+    var lines=[];
+    if(two){
+      lines.push('V₁ = kQ₁/r₁ = '+(V1/1000).toFixed(1)+' kV');
+      lines.push('V₂ = kQ₂/r₂ = '+(V2/1000).toFixed(1)+' kV');
+      lines.push('V = V₁+V₂ = '+(V/1000).toFixed(1)+' kV  (חיבור אלגברי)');
+    } else {
+      lines.push('V = kQ/r = '+(V/1000).toFixed(1)+' kV');
+      lines.push('U = q₀V = '+(q0v*1e-9*V*1e6).toFixed(2)+' μJ');
+    }
     if(markV!==null){
+      var Wj=q0v*1e-9*(markV-V)*1e6;
       lines.push('נקודה A: V_A='+(markV/1000).toFixed(1)+' kV');
-      lines.push('W(A→כאן)=q₀ΔV='+((1e-9*(markV-V))*1e6).toFixed(2)+' μJ');
-    } else lines.push('📌 סמן נקודה A כדי למדוד W=qΔV');
-    optInfoBox(ctx,8,H-100,236,lines);
+      lines.push('W=q₀(V_A−V)='+Wj.toFixed(2)+' μJ  '+(Wj>0?'← השדה עוזר':Wj<0?'← נגד השדה':''));
+    } else lines.push('📌 סמן נקודה A כדי למדוד W=q₀ΔV');
+    optInfoBox(ctx,8,H-26-lines.length*16,250,lines);
     requestAnimationFrame(draw);
   }requestAnimationFrame(draw);
 }
@@ -19391,8 +19504,8 @@ function buildSim(sim){
   else if(sim.type==='opt-grating')extra=C(rng('gr-d',0.5,5.0,1.5,0.1,'מרווח סריג d','μm')+rng('gr-lambda',380,700,550,5,'אורך גל λ','nm')+btn('gr-white','🌈 אור לבן','btn-secondary'));
   else if(sim.type==='elc-scope')extra=C(rng('scope-q',1,10,5,1,'עוצמת מטען המוט','')+btn('scope-flip','↔ החלף סימן','btn-secondary')+btn('scope-touch','👆 גע — הולכה','btn-secondary')+btn('scope-ground','⏚ הארקה','btn-secondary'));
   else if(sim.type==='elc-coulomb')extra=C(rng('elc-q1',-5,5,2,0.5,'q₁',' μC')+rng('elc-q2',-5,5,-3,0.5,'q₂',' μC')+btn('clb-three','⊕ הוסף מטען q₃ (סופרפוזיציה)','btn-secondary'));
-  else if(sim.type==='elc-field')extra=C(rng('elc-Q',-6,6,4,0.5,'מטען המקור Q',' μC')+btn('field-dipole','⇄ דיפול (הוסף −Q)','btn-secondary')+btn('field-lines','✒️ קווי שדה רציפים','btn-secondary'));
-  else if(sim.type==='elc-potential')extra=C(rng('elc-Vq',-8,8,2,0.5,'מטען Q',' μC')+btn('pot-mark','📌 סמן נקודה A','btn-secondary'));
+  else if(sim.type==='elc-field')extra=C(rng('elc-Q',-6,6,4,0.5,'מטען Q₁',' μC')+rng('elc-Q2',-6,6,-4,0.5,'מטען Q₂',' μC')+btn('field-dipole','⇄ שני מטענים','btn-secondary')+btn('field-lines','✒️ קווי שדה רציפים','btn-secondary'));
+  else if(sim.type==='elc-potential')extra=C(rng('elc-Vq',-8,8,2,0.5,'מטען Q₁',' μC')+rng('elc-Vq2',-8,8,-3,0.5,'מטען Q₂',' μC')+rng('elc-q0',-5,5,1,0.5,'מטען בוחן q₀',' nC')+btn('pot-two','⊕ הוסף מטען שני','btn-secondary')+btn('pot-mark','📌 סמן נקודה A','btn-secondary'));
   else if(sim.type==='elc-plates')extra=C(rng('elc-V',50,400,200,10,'מתח V',' V')+rng('elc-d',2,8,4,0.5,'מרווח d',' cm')+rng('elc-v0',5,30,20,1,'v₀ כניסה','×10⁶')+btn('pl-launch','🚀 שגר','btn-primary')+btn('pl-flip','± הפוך קוטביות','btn-secondary')+btn('pl-part','🔁 החלף לפרוטון','btn-secondary'));
   else if(sim.type==='elc-cap')extra=C(rng('elc-cV',1,24,12,1,'מתח V',' V')+rng('elc-cA',50,400,200,10,'שטח A',' cm²')+rng('elc-cd',1,10,4,0.5,'מרווח d',' mm')+btn('cap-diel','🧱 דיאלקטרן κ=3','btn-secondary')+btn('cap-disc','✂️ נתק מהסוללה (Q קבוע)','btn-secondary'));
   const simDone=isCompleted(state.chapter,state.section,'sim');
