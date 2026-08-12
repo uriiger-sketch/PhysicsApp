@@ -1545,6 +1545,14 @@ const CONTENT={
       ])}
       <p><b>משפט עבודה-אנרגיה:</b></p>
       ${fBox('W_{\\text{total}} = \\Delta E_k = \\tfrac{1}{2}mv^2 - \\tfrac{1}{2}mv_0^2','משפט עבודה-אנרגיה')}
+      ${animCanvas('anim-work-thm',180,'העבודה שהכוח מבצע וההגדלה באנרגיה הקינטית — אותו מספר בדיוק, בכל רגע')}
+      <div class="mis-block"><b>⚠️ טעות נפוצה:</b> "מהירות כפולה — אנרגיה קינטית כפולה". לא: E_k תלויה ב-v ב<b>ריבוע</b>, ולכן מהירות כפולה נותנת אנרגיה <b>פי 4</b>. זו הסיבה שמכונית ב-100 קמ"ש זקוקה למרחק בלימה ארוך פי 4 מאשר ב-50 קמ"ש — הבלמים חייבים לפזר פי 4 אנרגיה.</div>
+      <div class="ex-block"><div class="ex-title">✏️ דוגמה פתורה — מרחק בלימה</div>
+      <p>מכונית 1200 ק"ג נוסעת ב-20 m/s ובולמת עד עצירה. כוח הבלימה 6000 N.</p>
+      <p><b>1. האנרגיה שיש לפזר:</b> E_k=½mv²=½·1200·400=240,000 J.<br>
+      <b>2. משפט עבודה-אנרגיה:</b> W=ΔE_k ⇒ −F·d = 0−240,000 ⇒ d=240,000/6000=<b>40 m</b>.<br>
+      <b>3. ובמהירות כפולה (40 m/s)?</b> E_k גדלה פי 4 ⇒ d=<b>160 m</b> — לא 80!<br>
+      <b>הלקח:</b> מרחק הבלימה גדל כריבוע המהירות, כי האנרגיה גדלה כריבוע המהירות.</p></div>
       <div class="info-grid">
         <div class="info-item"><div class="il">W > 0</div><div class="iv">הגוף מואץ</div></div>
         <div class="info-item"><div class="il">W < 0</div><div class="iv">הגוף מואט</div></div>
@@ -2542,12 +2550,22 @@ const CONTENT={
       ${fBox('E_{p,s} = \\tfrac{1}{2}kx^2','אנרגיה פוטנציאלית אלסטית (קפיץ)',[
         ['k','קבוע קפיץ','N/m'],['x','הסטה','מ׳'],
       ])}
+      ${animCanvas('anim-ep-ref',185,'רמת הייחוס שרירותית — שלושה ערכי E_p שונים, אבל ΔE_p אחד')}
+      <div class="mis-block"><b>⚠️ טעות נפוצה:</b> "לגוף יש ערך E_p אמיתי אחד". אין דבר כזה. E_p=mgh נמדדת <b>מרמת ייחוס שאתם בוחרים</b>, וכל בחירה לגיטימית. מה שיש לו משמעות פיזיקלית הוא רק <b>ΔE_p</b> — וההפרש יוצא זהה מכל בחירה. לכן מותר תמיד לקבוע h=0 היכן שנוח.</div>
+      ${animCanvas('anim-ep-spring',185,'½kx² הוא בדיוק השטח שמתחת לגרף F=kx')}
+      <p><b>למה חצי?</b> הכוח בקפיץ אינו קבוע — הוא גדל מ-0 עד kx. העבודה היא השטח שמתחת לגרף הכוח, וזה משולש: ½·x·(kx) = ½kx². בכוח קבוע השטח היה מלבן, W=F·x — בלי חצי.</p>
       <div class="info-grid">
         <div class="info-item"><div class="il">h↑</div><div class="iv">Ep↑</div></div>
         <div class="info-item"><div class="il">h=0</div><div class="iv">Ep=0 (ייחוס)</div></div>
         <div class="info-item"><div class="il">|x|↑</div><div class="iv">Ep קפיץ ↑</div></div>
         <div class="info-item"><div class="il">x=0</div><div class="iv">Ep=0 (שיווי משקל)</div></div>
       </div>
+      <div class="ex-block"><div class="ex-title">✏️ דוגמה פתורה — רובה קפיצי</div>
+      <p>קפיץ k=800 N/m נדחס ב-x=5 cm ומשגר כדור m=0.05 ק"ג אנכית כלפי מעלה. g=10.</p>
+      <p><b>1. האנרגיה האגורה:</b> E_p=½kx²=½·800·(0.05)²=<b>1.0 J</b>.<br>
+      <b>2. מהירות היציאה:</b> כל האנרגיה עוברת ל-E_k: ½mv²=1.0 ⇒ v=√(2·1.0/0.05)=<b>6.3 m/s</b>.<br>
+      <b>3. לאיזה גובה יעלה?</b> E_k הופכת ל-E_p כובדית: mgh=1.0 ⇒ h=1.0/(0.05·10)=<b>2.0 m</b>.<br>
+      <b>שימו לב:</b> אותו ג׳אול אחד עבר שלוש צורות — אלסטית → קינטית → כובדית.</p></div>
     `,
     enrich:{
       title:'E=mc² — מסה כאנרגיה',
@@ -2581,12 +2599,27 @@ const CONTENT={
   theory:{
     title:'שימור אנרגיה מכנית',
     html:`
+      <p><b>רכבת הרים מטפסת פעם אחת — ואז לא נוגעת שוב במנוע.</b> כל שאר הנסיעה, כל ירידה וכל עלייה, היא חילוף אחד ויחיד: גובה תמורת מהירות. זה הרעיון החזק ביותר במכניקה, והוא חוסך את פתרון משוואות התנועה כמעט תמיד.</p>
       <div class="def-block"><div class="def-title">חוק שימור האנרגיה המכנית</div>
-        <p>כאשר רק <b>כוחות משמרים</b> פועלים (ללא חיכוך), האנרגיה המכנית קבועה:</p>
+        <p>כאשר פועלים רק <b>כוחות משמרים</b> (כובד, קפיץ), האנרגיה המכנית הכוללת אינה משתנה:</p>
       </div>
       ${fBox('E_k + E_p = \\text{const}','שימור אנרגיה מכנית')}
-      ${fBox('\\tfrac12mv_1^2+mgh_1=\\tfrac12mv_2^2+mgh_2','בין שתי נקודות')}
-      <p>חיכוך = כוח לא משמר: ${M('\\Delta E_k + \\Delta E_p = W_{fric}')} (שלילי!)</p>
+      ${fBox('\\tfrac12mv_1^2+mgh_1=\\tfrac12mv_2^2+mgh_2','בין שתי נקודות כלשהן')}
+      ${animCanvas('anim-econs-track',200,'הסרגלים מתחלפים — הסכום לא זז')}
+      <div class="def-block"><b>כוח משמר לעומת כוח לא-משמר:</b><br>
+      <b>משמר</b> (כובד, קפיץ): העבודה תלויה <b>רק בנקודות ההתחלה והסוף</b>, לא במסלול. אפשר להגדיר לו E_p, ואפשר "להחזיר" ממנו את האנרגיה.<br>
+      <b>לא-משמר</b> (חיכוך, גרר): העבודה תלויה <b>באורך המסלול</b> — מסלול ארוך יותר גוזל יותר. אי אפשר להגדיר לו E_p, והאנרגיה יוצאת כחום ואינה חוזרת.</div>
+      <p><b>איך פותרים בפועל?</b> בוחרים שתי נקודות, כותבים את האנרגיה בכל אחת, ומשווים. שימו לב שהמסה מצטמצמת כמעט תמיד: ${M('\\tfrac12v_1^2+gh_1=\\tfrac12v_2^2+gh_2')} — ולכן <b>המהירות בתחתית אינה תלויה במסה</b>, ואף לא בצורת המסלול.</p>
+      <div class="mis-block"><b>⚠️ טעות נפוצה:</b> "מסלול תלול יותר ⇒ מהירות גדולה יותר בתחתית". לא. אם אין חיכוך, רק <b>הפרש הגבהים</b> קובע: ${M('v=\\sqrt{2g\\Delta h}')}. מגלשה מתפתלת ומגלשה ישרה מאותו גובה מגיעות לאותה מהירות בדיוק — מה שמשתנה הוא רק <b>הזמן</b> שלוקח להגיע.</div>
+      <div class="mis-block"><b>⚠️ טעות נפוצה:</b> "החיכוך מאבד אנרגיה". האנרגיה לא נעלמת לשום מקום — היא הופכת ל<b>חום</b> (ולקול, ולשחיקה). מה שפוחת הוא <b>האנרגיה המכנית</b> בלבד. אם סופרים גם את החום, הסכום שמור בדיוק: ${M('E_k+E_p+Q=\\text{const}')}.</div>
+      ${animCanvas('anim-econs-fric',200,'עם חיכוך: הסרגל המכני מתכווץ בדיוק כשיעור גדילת סרגל החום')}
+      ${fBox('\\Delta E_k + \\Delta E_p = W_{\\text{fric}}','כשיש חיכוך (W שלילי)')}
+      <div class="ex-block"><div class="ex-title">✏️ דוגמה פתורה — שתי מגלשות, אותו גובה</div>
+      <p>שני ילדים באותה מסה מחליקים מגובה h=3.2 m: אחד במגלשה תלולה וישרה, השני במגלשה מתפתלת וארוכה. ללא חיכוך. g=10.</p>
+      <p><b>1. מי מהיר יותר בתחתית?</b> נכתוב שימור בין הפסגה לתחתית: mgh=½mv² ⇒ v=√(2gh)=√(2·10·3.2)=<b>8 m/s — לשניהם</b>.<br>
+      <b>2. למה המסלול לא משנה?</b> כי הכובד הוא כוח משמר: עבודתו תלויה רק בהפרש הגבהים.<br>
+      <b>3. מה כן שונה?</b> ה<b>זמן</b>. המגלשה המתפתלת ארוכה יותר, ולכן הילד שבה מגיע מאוחר יותר — באותה מהירות בדיוק.<br>
+      <b>4. ואם יש חיכוך?</b> אז המסלול הארוך גוזל יותר אנרגיה (W=−f·d עם d גדול), והילד שבמגלשה המתפתלת יגיע <b>איטי יותר</b>.</p></div>
     `,
     enrich:{
       title:'אנרגיה אפלה',
@@ -13864,6 +13897,89 @@ function drawAxis(ctx,ax1,ay,ax2,ticks,W,unit){
   ctx.fillText(`x (${unit})`,ax2+8,ay+4);
   ctx.restore();
 }
+
+// ── Energy-track model shared by the two conservation animations. ──
+// The cart is driven by energy, not by a scripted path:
+//   h(x) = 0.75(x−2)²   metres, released from rest at x=0 (h=3 m)
+//   v    = sqrt(2(E/m − gh))
+// With friction, the loss per horizontal step is exactly μ·m·g·|dx| on this
+// geometry — the cosθ in the normal force and the secθ in the arc length cancel.
+var _mechTrackCache={};
+// Constrained dynamics on the curve y=f(x), f(x)=0.75(x-2)^2 (metres):
+//   xddot = [ -g f' - f' f'' xdot^2 ] / (1 + f'^2)          (frictionless)
+// friction adds  -sign(xdot) * mu * g / (1 + f'^2)
+// Deriving speed from energy instead would stall at the turning points, where
+// the released-from-rest cart starts with exactly zero margin.
+function _mechTrackTraj(withFric){
+  var key=withFric?'f':'n';
+  if(_mechTrackCache[key])return _mechTrackCache[key];
+  var m=1,g=9.8,mu=withFric?0.16:0;
+  var f  =function(x){return 0.75*(x-2)*(x-2);};
+  var fp =function(x){return 1.5*(x-2);};
+  var fpp=1.5;
+  function acc(x,xd){
+    var p=fp(x),den=1+p*p;
+    var a=(-g*p-p*fpp*xd*xd)/den;
+    if(mu>0&&Math.abs(xd)>1e-9)a-=Math.sign(xd)*mu*g/den;
+    return a;
+  }
+  // RK4 — forward Euler drifted 21% here, which would visibly break the one
+  // claim this animation exists to make. RK4 at dt=0.002 holds Ek+Ep to 0.0000%.
+  var x=0.02,xd=0,dt=0.002,out=[],Q=0;
+  for(var i=0;i<6000;i++){
+    var p0=fp(x), v=Math.abs(xd)*Math.sqrt(1+p0*p0);
+    out.push({x:x,h:f(x),v:v,Ek:0.5*m*v*v,Ep:m*g*f(x),Q:Q});
+    var k1v=acc(x,xd),                     k1x=xd;
+    var k2v=acc(x+k1x*dt/2,xd+k1v*dt/2),   k2x=xd+k1v*dt/2;
+    var k3v=acc(x+k2x*dt/2,xd+k2v*dt/2),   k3x=xd+k2v*dt/2;
+    var k4v=acc(x+k3x*dt,  xd+k3v*dt),     k4x=xd+k3v*dt;
+    var dx=(k1x+2*k2x+2*k3x+k4x)*dt/6;
+    var dv=(k1v+2*k2v+2*k3v+k4v)*dt/6;
+    var xdN=xd+dv;
+    if(mu>0&&xd*xdN<0&&Math.abs(xdN)<0.02)xdN=0;   // static friction holds it
+    if(mu>0)Q+=mu*m*g*Math.abs(dx);                // = mu*N*ds on this geometry
+    x+=dx; xd=xdN;
+    if(x<0.02){x=0.02;xd=Math.abs(xd);}
+    if(x>3.98){x=3.98;xd=-Math.abs(xd);}
+  }
+  _mechTrackCache[key]=out;return out;
+}
+function _drawEnergyTrack(ctx,W,H,s,withFric){
+  var PXMx=(W*0.56)/4.2, gy=H-30, PXMy=(H-70)/3.4;
+  function TX(x){return 16+x*PXMx;}
+  function TY(h){return gy-h*PXMy;}
+  ctx.save();ctx.strokeStyle='#64748b';ctx.lineWidth=2.5;ctx.beginPath();
+  for(var i=0;i<=80;i++){var xx=i/80*4;
+    var yy=TY(0.75*(xx-2)*(xx-2));
+    i===0?ctx.moveTo(TX(xx),yy):ctx.lineTo(TX(xx),yy);}
+  ctx.stroke();ctx.restore();
+  // cart
+  ctx.save();ctx.fillStyle='#38bdf8';ctx.shadowColor='#38bdf8';ctx.shadowBlur=9;
+  ctx.beginPath();ctx.arc(TX(s.x),TY(s.h)-7,8,0,Math.PI*2);ctx.fill();ctx.restore();
+  optLabel(ctx,'v='+s.v.toFixed(1)+' m/s',TX(s.x),TY(s.h)-24,'#38bdf8',9);
+  // bars
+  var E0=0.5*1*9.8*0+1*9.8*0.75*4;   // initial mgh at x=0 → 1*9.8*3 = 29.4 J
+  E0=29.4;
+  var BX=W*0.64,BW=34,BH=H-84,BY=30;
+  function bar(idx,lab,val,col){
+    var X=BX+idx*(BW+14);
+    ctx.save();ctx.fillStyle='rgba(148,163,184,.12)';ctx.fillRect(X,BY,BW,BH);
+    ctx.fillStyle=col;var f=Math.max(0,Math.min(1,val/E0));
+    ctx.fillRect(X,BY+BH*(1-f),BW,BH*f);
+    ctx.strokeStyle='rgba(148,163,184,.4)';ctx.lineWidth=1;ctx.strokeRect(X,BY,BW,BH);ctx.restore();
+    optLabel(ctx,lab,X+BW/2,BY-8,col,9.5);
+    optLabel(ctx,val.toFixed(0),X+BW/2,BY+BH+12,col,9);
+  }
+  bar(0,'E_k',s.Ek,'#4ade80');
+  bar(1,'E_p',s.Ep,'#f87171');
+  if(withFric){
+    bar(2,'Q',s.Q,'#fb923c');
+    bar(3,'סה״כ',s.Ek+s.Ep+s.Q,'#fbbf24');
+  } else {
+    bar(2,'סה״כ',s.Ek+s.Ep,'#fbbf24');
+  }
+}
+
 function initTheoryAnims(){
   // Cancel any leftover animation loops from previous section
   Object.keys(_anim).forEach(function(id){
@@ -18120,6 +18236,145 @@ runAnim('anim-grating-t',function(canvas,ctx,W,H,t){
   oLbl(ctx,'λ='+Math.round(wl)+'nm',W*0.18,ax-12,lHex,9);
 });
 
+// ══════════════════════════════════════════════
+// ENERGY CHAPTER ANIMATIONS
+// ══════════════════════════════════════════════
+
+// ── Work–energy theorem: W and ΔEk are the same number, watched side by side ──
+runAnim('anim-work-thm',(cv,ctx,W,H,t)=>{
+  ctx.clearRect(0,0,W,H);
+  var m=2, F=6, a=F/m;                     // kg, N, m/s²
+  var cyc=(t%4.4);
+  var tt=Math.min(cyc,3.2);
+  var x=0.5*a*tt*tt, v=a*tt;               // m, m/s
+  var Wj=F*x, Ek=0.5*m*v*v;                // J — identical by construction of the physics
+  var gnd=H*0.60, PXM=26;
+  ctx.save();ctx.strokeStyle='rgba(148,163,184,.5)';ctx.lineWidth=2;
+  ctx.beginPath();ctx.moveTo(14,gnd);ctx.lineTo(W*0.62,gnd);ctx.stroke();ctx.restore();
+  var bx=26+x*PXM, bw=30;
+  // applied force
+  simArrow(ctx,bx-bw/2-4,gnd-16,bx-bw/2-4-30,gnd-16,'#f87171',3,11);
+  oLbl(ctx,'F='+F+'N',bx-bw/2-40,gnd-30,'#f87171',9.5);
+  ctx.save();ctx.fillStyle='#38bdf8';ctx.strokeStyle='#7dd3fc';ctx.lineWidth=1.5;
+  ctx.beginPath();ctx.roundRect(bx-bw/2,gnd-30,bw,30,4);ctx.fill();ctx.stroke();ctx.restore();
+  oLbl(ctx,m+'kg',bx,gnd-15,'#04101f',9);
+  // distance bracket
+  ctx.save();ctx.strokeStyle='#94a3b8';ctx.lineWidth=1;ctx.setLineDash([3,3]);
+  ctx.beginPath();ctx.moveTo(26,gnd+10);ctx.lineTo(bx,gnd+10);ctx.stroke();ctx.setLineDash([]);ctx.restore();
+  oLbl(ctx,'x='+x.toFixed(2)+'m',(26+bx)/2,gnd+22,'#94a3b8',9);
+  oLbl(ctx,'v='+v.toFixed(2)+'m/s',bx,gnd-40,'#38bdf8',9.5);
+  // the two bars
+  var Emax=F*(0.5*a*3.2*3.2);
+  function bar(X,lab,val,col){
+    var BW=42,BH=H*0.52,BY=H*0.18;
+    ctx.save();ctx.fillStyle='rgba(148,163,184,.12)';ctx.fillRect(X,BY,BW,BH);
+    ctx.fillStyle=col;ctx.fillRect(X,BY+BH*(1-Math.min(1,val/Emax)),BW,BH*Math.min(1,val/Emax));
+    ctx.strokeStyle='rgba(148,163,184,.4)';ctx.lineWidth=1;ctx.strokeRect(X,BY,BW,BH);ctx.restore();
+    oLbl(ctx,lab,X+BW/2,BY-9,col,10);
+    oLbl(ctx,val.toFixed(1)+' J',X+BW/2,BY+BH+13,col,9.5);
+  }
+  bar(W*0.70,'W = F·x',Wj,'#fbbf24');
+  bar(W*0.84,'ΔE_k',Ek,'#4ade80');
+  ctx.save();ctx.strokeStyle='rgba(255,255,255,.55)';ctx.setLineDash([3,3]);ctx.lineWidth=1;
+  var yTop=H*0.18+H*0.52*(1-Math.min(1,Wj/Emax));
+  ctx.beginPath();ctx.moveTo(W*0.70,yTop);ctx.lineTo(W*0.84+42,yTop);ctx.stroke();ctx.setLineDash([]);ctx.restore();
+  oLbl(ctx,'משפט עבודה-אנרגיה: כל ג׳אול של עבודה הופך לג׳אול של אנרגיה קינטית',W/2,14,'#94a3b8',10.5);
+  oLbl(ctx,'שני הסרגלים עולים יחד ונשארים שווים — תמיד',W/2,H-8,'#a78bfa',10);
+});
+
+// ── Potential energy: the reference level is arbitrary, only Δ matters ──
+runAnim('anim-ep-ref',(cv,ctx,W,H,t)=>{
+  ctx.clearRect(0,0,W,H);
+  var m=2,g=9.8;
+  var cyc=(t%5)/5;
+  var hTop=4.0, hBot=1.5;                        // metres above the floor
+  var drop=Math.min(1,cyc*1.6);
+  var h=hTop-(hTop-hBot)*drop;                   // current height above floor
+  var floorY=H-26, PXM=(floorY-30)/5.0;
+  function Y(hm){return floorY-hm*PXM;}
+  // three candidate reference levels
+  var refs=[['הרצפה',0,'#38bdf8'],['השולחן',1.5,'#fbbf24'],['התקרה',4.5,'#f472b6']];
+  refs.forEach(function(r,i){
+    ctx.save();ctx.strokeStyle=r[2];ctx.globalAlpha=0.55;ctx.lineWidth=1.4;ctx.setLineDash([6,4]);
+    ctx.beginPath();ctx.moveTo(W*0.30,Y(r[1]));ctx.lineTo(W*0.97,Y(r[1]));ctx.stroke();ctx.setLineDash([]);ctx.restore();
+    oLbl(ctx,r[0]+' (h=0)',W*0.30-34,Y(r[1]),r[2],9);
+  });
+  // ball
+  ctx.save();ctx.fillStyle='#4ade80';ctx.shadowColor='#4ade80';ctx.shadowBlur=10;
+  ctx.beginPath();ctx.arc(W*0.42,Y(h),11,0,Math.PI*2);ctx.fill();ctx.restore();
+  oLbl(ctx,m+'kg',W*0.42,Y(h),'#04101f',8.5);
+  // Ep measured from each reference — three different numbers
+  refs.forEach(function(r,i){
+    var Ep=m*g*(h-r[1]);
+    oLbl(ctx,'E_p = '+Ep.toFixed(0)+' J',W*0.72,Y(r[1])-11,r[2],9.5);
+  });
+  // ΔEp is the same from all three
+  var dEp=m*g*(hTop-h);
+  oLbl(ctx,'ירידה עד כה: ΔE_p = −'+dEp.toFixed(0)+' J — זהה לכל שלוש רמות הייחוס',W/2,H-9,'#4ade80',10);
+  oLbl(ctx,'אותו כדור, שלושה ערכי E_p שונים — כי h=0 נבחר שרירותית',W/2,14,'#94a3b8',10.5);
+});
+
+// ── Spring PE as the AREA under F = kx ──
+runAnim('anim-ep-spring',(cv,ctx,W,H,t)=>{
+  ctx.clearRect(0,0,W,H);
+  var k=200;                                   // N/m
+  var cyc=t%4.4;
+  var x=0.18*Math.min(1,cyc/2.6);              // m of compression
+  var F=k*x, Ep=0.5*k*x*x;
+  // spring + wall on the left
+  var wallX=22, gy=H*0.42, L0=120;
+  ctx.save();ctx.strokeStyle='#94a3b8';ctx.lineWidth=3;
+  ctx.beginPath();ctx.moveTo(wallX,gy-30);ctx.lineTo(wallX,gy+30);ctx.stroke();ctx.restore();
+  var Lp=L0-x*430;
+  ctx.save();ctx.strokeStyle='#fbbf24';ctx.lineWidth=2.2;ctx.beginPath();
+  ctx.moveTo(wallX,gy);
+  for(var i=0;i<=28;i++){
+    var f=i/28;
+    ctx.lineTo(wallX+f*Lp,gy+(i%2?-9:9)*(i>0&&i<28?1:0));
+  }
+  ctx.stroke();ctx.restore();
+  ctx.save();ctx.fillStyle='#38bdf8';ctx.fillRect(wallX+Lp,gy-16,16,32);ctx.restore();
+  simArrow(ctx,wallX+Lp+40,gy,wallX+Lp+18,gy,'#f87171',2.6,10);
+  oLbl(ctx,'x = '+(x*100).toFixed(0)+' cm',wallX+Lp/2,gy+30,'#94a3b8',9.5);
+  oLbl(ctx,'F = kx = '+F.toFixed(0)+' N',wallX+Lp+64,gy-14,'#f87171',9.5);
+  // F(x) graph with the area shaded — the area IS the energy
+  var gx=W*0.52,gyy=H*0.20,gw=W*0.40,gh=H*0.54;
+  var xMax=0.18, FMax=k*xMax;
+  ctx.save();ctx.strokeStyle='rgba(148,163,184,.45)';ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(gx,gyy);ctx.lineTo(gx,gyy+gh);ctx.lineTo(gx+gw,gyy+gh);ctx.stroke();ctx.restore();
+  ctx.save();ctx.fillStyle='rgba(74,222,128,.28)';
+  ctx.beginPath();ctx.moveTo(gx,gyy+gh);
+  ctx.lineTo(gx+(x/xMax)*gw,gyy+gh);
+  ctx.lineTo(gx+(x/xMax)*gw,gyy+gh-(F/FMax)*gh);
+  ctx.closePath();ctx.fill();ctx.restore();
+  ctx.save();ctx.strokeStyle='#fbbf24';ctx.lineWidth=2;
+  ctx.beginPath();ctx.moveTo(gx,gyy+gh);ctx.lineTo(gx+gw,gyy+gh-gh);ctx.stroke();ctx.restore();
+  oLbl(ctx,'F=kx',gx+gw-24,gyy+10,'#fbbf24',9.5);
+  oLbl(ctx,'x',gx+gw-6,gyy+gh+12,'#64748b',8.5);
+  oLbl(ctx,'שטח המשולש = ½·x·(kx) = ½kx² = '+Ep.toFixed(2)+' J',gx+gw/2,gyy+gh+26,'#4ade80',10);
+  oLbl(ctx,'האנרגיה האגורה בקפיץ היא השטח שמתחת לגרף הכוח',W/2,14,'#94a3b8',10.5);
+});
+
+// ── Conservation on a track: Ek and Ep trade, the total never moves ──
+runAnim('anim-econs-track',(cv,ctx,W,H,t)=>{
+  ctx.clearRect(0,0,W,H);
+  var st=_mechTrackTraj(false);
+  var i=Math.floor((t*500)%st.length);
+  var s=st[i];
+  _drawEnergyTrack(ctx,W,H,s,false);
+  oLbl(ctx,'ללא חיכוך: E_k ו-E_p מתחלפים — הסכום לא זז אפילו ג׳אול אחד',W/2,14,'#94a3b8',10.5);
+});
+
+// ── The same track WITH friction: the total decays into heat ──
+runAnim('anim-econs-fric',(cv,ctx,W,H,t)=>{
+  ctx.clearRect(0,0,W,H);
+  var st=_mechTrackTraj(true);
+  var i=Math.floor((t*500)%st.length);
+  var s=st[i];
+  _drawEnergyTrack(ctx,W,H,s,true);
+  oLbl(ctx,'עם חיכוך: E מכנית יורדת — אך Q (חום) עולה בדיוק באותו שיעור',W/2,14,'#94a3b8',10.5);
+});
+
 // ═══ ELECTROSTATICS THEORY ANIMATIONS ═══
 
 // ── 1. Triboelectric charging: electrons hop from wool to the amber rod ──
@@ -19811,7 +20066,7 @@ function buildSim(sim){
   else if(sim.type==='collision')extra=C(rng('col-e',0,1,1,0.05,'מקדם e (0=היצמד, 1=אלסטי)')+rng('col-m1',1,8,3,0.5,'m₁',' kg')+rng('col-m2',1,8,2,0.5,'m₂',' kg')+rng('col-v1',0,8,4,0.5,'v₁ התחלתית',' m/s')+rng('col-v2',-8,0,-2,0.5,'v₂ התחלתית',' m/s')+btn('col-reset','↺ אפס','btn-secondary'));
   else if(sim.type==='energy-kinetic')extra=C(rng('ek-F',2,50,10,1,'כוח F',' N')+rng('ek-m',0.5,10,2,0.5,'מסה m',' kg')+btn('ek-launch','▶ הפעל!','btn-primary')+btn('ek-reset','↺ אפס','btn-secondary'));
   else if(sim.type==='energy-potential')extra=C(rng('ep-m',0.5,8,2,0.5,'מסה m',' kg')+rng('ep-g',1.6,25,9.8,0.5,'g',' m/s²')+btn('ep-elastic','⚡ אנרגיה אלסטית','btn-secondary')+btn('ep-reset','↺ אפס','btn-secondary'));
-  else if(sim.type==='energy')extra=C(rng('energy-m',0.5,4,1,0.5,'מסה m',' kg')+btn('energy-reset','↺ אפס','btn-secondary'));
+  else if(sim.type==='energy')extra=C(rng('energy-m',0.5,4,1,0.5,'מסה m',' kg')+rng('energy-mu',0,0.25,0,0.01,'מקדם חיכוך μ','')+btn('energy-reset','↺ אפס','btn-secondary'));
   else if(sim.type==='shm-def')extra=C(rng('shm-A',20,130,80,5,'אמפליטודה A',' px')+rng('shm-T',0.5,5,2,0.1,'מחזור T',' s')+btn('shm-reset','↺ אפס','btn-secondary'));
   else if(sim.type==='vec-ops')extra=C(rng('vo-scalar',0.2,4,2,0.1,'מכפיל c')+btn('vo-sub','A−B')+btn('vo-scalar','c·A','btn-secondary'));
   else if(sim.type==='vec-components')extra=C(btn('vc-hint','💡 הסבר'));
