@@ -4328,7 +4328,10 @@ function simBg(ctx,W,H){
 function simText(ctx,txt,x,y,col,sz,align,bold){
   if(col===undefined)col='#64748b'; if(sz===undefined)sz=11; if(align===undefined)align='center'; if(bold===undefined)bold=false;
   ctx.save(); ctx.fillStyle=col; ctx.font=(bold?'bold ':'')+sz+'px Heebo';
-  ctx.textAlign=align; ctx.fillText(txt,x,y); ctx.restore();
+  ctx.textAlign=align;
+  var fx=_fitLabel(ctx,txt,x,y,align,sz);
+  if(fx!==null)ctx.fillText(txt,fx,y);
+  ctx.restore();
 }
 function simCircle(ctx,x,y,r,fill,stroke,lw){
   if(lw===undefined)lw=2;
@@ -5700,7 +5703,10 @@ function simIncline(canvas){
     const CX=W*0.14, CY=H-72;
     const INCLINE_LEN=Math.min(W*0.70,320);
     const topX=CX+INCLINE_LEN*cosT, topY=CY-INCLINE_LEN*sinT;
-    const maxS=(INCLINE_LEN-36)/g*0.92;
+    // s is distance travelled DOWN-slope in metres, drawn at 60 px/m.
+    // The old limit divided pixels by 9.8 m/s², giving s_max ~ 27 m.
+    const PPM_I=60;
+    const maxS=(INCLINE_LEN-36)/PPM_I;
     if(s>maxS){ s=0; vel=0; }
 
     simBg(ctx,W,H);
@@ -5734,16 +5740,20 @@ function simIncline(canvas){
 
     // Block
     const bS=36;
-    const bDist=s*60+bS/2+6;
-    const bCX=CX+Math.min(bDist,INCLINE_LEN-bS/2-6)*cosT;
-    const bCY=CY-Math.min(bDist,INCLINE_LEN-bS/2-6)*sinT;
+    // Distance from the apex SHRINKS as it slides down. It used to grow, which
+    // sent the block up the ramp under gravity alone.
+    const bDist=Math.max(bS/2+6,(INCLINE_LEN-bS/2-6)-s*PPM_I);
+    const bCX=CX+bDist*cosT;
+    const bCY=CY-bDist*sinT;
 
     // Velocity arrow along slope
     if(vel>0.1){
+      // The block slides DOWN-slope, so v points down-slope too. This arrow
+      // used to point up the ramp, opposite to the motion beside it.
       const vLen=Math.min(vel*22,62);
-      simArrow(ctx,bCX+cosT*(bS/2+4),bCY-sinT*(bS/2+4),
-                   bCX+cosT*(bS/2+4+vLen),bCY-sinT*(bS/2+4+vLen),'#22d3ee',2.5,10);
-      simText(ctx,'v='+vel.toFixed(2)+'m/s',bCX+cosT*(bS/2+vLen+18),bCY-sinT*(bS/2+vLen+18)-8,'#22d3ee',9,undefined,true);
+      simArrow(ctx,bCX-cosT*(bS/2+4),bCY+sinT*(bS/2+4),
+                   bCX-cosT*(bS/2+4+vLen),bCY+sinT*(bS/2+4+vLen),'#22d3ee',2.5,10);
+      simText(ctx,'v='+vel.toFixed(2)+'m/s',bCX-cosT*(bS/2+vLen+18),bCY+sinT*(bS/2+vLen+18)-8,'#22d3ee',9,undefined,true);
     }
 
     // Block (rotated)
@@ -6894,6 +6904,11 @@ function simEnergy(canvas){
   var pT=null;
   var dragging=false;
   var E_total=null; // conserved total energy in Joules, set on release
+  var E_therm=0;                       // heat produced by friction, in joules
+  function getMu(){
+    var e=document.getElementById('inp-energy-mu');
+    return e?Math.max(0,parseFloat(e.value)||0):0;
+  }
   var graphPE=[], graphKE=[], graphBT=[]; // PE, KE, position
   var MAX_G=320;
 
@@ -6953,6 +6968,7 @@ function simEnergy(canvas){
     if(c.dist<36){
       dragging=true; bt=c.bt; trackVel=0;
       E_total=null; graphPE=[]; graphKE=[];
+    E_therm=0;
     }
   }
   function onMove(ev){
@@ -6968,6 +6984,7 @@ function simEnergy(canvas){
     m=getMass();
     E_total=m*g*heightAt(bt);
     trackVel=0; graphPE=[]; graphKE=[];
+    E_therm=0;
   }
   canvas.addEventListener('mousedown',onDown);
   canvas.addEventListener('touchstart',onDown,{passive:false});
@@ -6980,6 +6997,7 @@ function simEnergy(canvas){
   var resetBtn=document.getElementById('btn-energy-reset');
   if(resetBtn) resetBtn.addEventListener('click',function(){
     bt=0.80; trackVel=0; E_total=null; pT=null; graphPE=[]; graphKE=[];
+    E_therm=0;
     m=getMass(); E_total=m*g*heightAt(bt);
   });
 
@@ -7000,13 +7018,10 @@ function simEnergy(canvas){
     if(dragging || E_total===null) return;
 
     var m_new=getMass();
-    if(Math.abs(m_new-m)>0.001){
-      // Mass changed: rescale E_total to match new PE at current height
-      var h_now=heightAt(bt);
-      var KE_frac = E_total>0 ? Math.max(0,(E_total-m*9.8*h_now)/E_total) : 0;
-      E_total = m_new*9.8*h_now/(1-Math.min(0.99,KE_frac));
-      if(!isFinite(E_total)||E_total<0) E_total=m_new*9.8*h_now;
-    }
+    // A mass change scales EVERY energy term by m_new/m. The previous rescale
+    // divided by (1 − min(0.99, KE_frac)); at the bottom of a valley KE_frac→1
+    // so E_total collapsed to 0 and the ball froze forever.
+    if(m>0 && Math.abs(m_new-m)>1e-6){ E_total *= m_new/m; E_therm *= m_new/m; }
     m=m_new;
 
     var slope   = slopeAt(bt);
@@ -7021,6 +7036,16 @@ function simEnergy(canvas){
     if(bt <= 0){ bt=0.001; trackVel = Math.abs(trackVel)*0.98; }
     if(bt >= 1){ bt=0.999; trackVel = -Math.abs(trackVel)*0.98; }
 
+    // Friction (μ from the slider) removes dQ = μ·m·g·cosθ·ds from the
+    // mechanical budget and books it as heat, so E_k+E_p+Q stays constant.
+    var mu_f=getMu();
+    if(mu_f>0){
+      var ds_m=Math.abs(trackVel)*dt/PX_PER_M;
+      var dQ=mu_f*m*g*Math.cos(slope)*ds_m;
+      var PE_here=m*g*heightAt(bt);
+      if(E_total-dQ<PE_here) dQ=Math.max(0,E_total-PE_here);
+      E_total-=dQ; E_therm+=dQ;
+    }
     // Energy conservation correction: keep |trackVel| consistent with KE
     var PE_now = m * g * heightAt(bt);
     var KE_target = Math.max(0, E_total - PE_now);
@@ -7741,17 +7766,26 @@ function simNormalForce(canvas){
     var W_par=m*g*sinT;
     var W_grav=m*g;
     var fk=mu*N;
-    var a_net=W_par/m-mu*g*cosT;
-
-    if(theta>0.5){
+    // Static friction is now modelled, not just reported. While the block is at
+    // rest and mg·sinθ does not exceed μN, friction exactly balances W∥ and the
+    // block stays put — previously the panel printed f=μN regardless and the
+    // arrow was hidden at rest, so the FBD visibly violated ΣF=0.
+    var isStatic=(Math.abs(sVel)<0.02 && W_par<=fk+1e-9);
+    var f_show=isStatic?W_par:fk;
+    var a_net=isStatic?0:(W_par/m-mu*g*cosT);
+    var PPM_N=60;                       // px per metre — sPos is in METRES
+    var sMaxN=(INCL*0.88-34)/PPM_N;
+    if(theta>0.5&&!isStatic){
       sVel+=a_net*dt; sPos+=sVel*dt;
-      if(sPos>INCL*0.88){sPos=INCL*0.88;sVel*=-0.2;}
-      if(sPos<0){sPos=0;sVel=0;}
-    } else {sPos=0;sVel=0;}
+      if(sPos>=sMaxN){sPos=0;sVel=0;}   // restart from the top (the old code
+      if(sPos<0){sPos=0;sVel=0;}        // "bounced" with restitution 0.2)
+    } else if(isStatic){ sVel=0; }
+    else {sPos=0;sVel=0;}
 
     var topX=BASE_X+INCL*cosT, topY=BASE_Y-INCL*sinT;
     var bS=34;
-    var bCX=BASE_X+(sPos+bS/2)*cosT, bCY=BASE_Y-(sPos+bS/2)*sinT;
+    var dN=Math.max(0,Math.min(sPos,sMaxN));
+    var bCX=BASE_X+(INCL-bS/2-6-dN*PPM_N)*cosT, bCY=BASE_Y-(INCL-bS/2-6-dN*PPM_N)*sinT;
 
     simBg(ctx,W,H);
 
@@ -7808,11 +7842,13 @@ function simNormalForce(canvas){
     simText(ctx,'N='+N.toFixed(1)+'N',bCX+nnx*(nLen+5),bCY+nny*(nLen+5),'#a78bfa',9.5,'center');
 
     // Friction if any (up slope)
-    if(mu>0.01&&sVel>0.04){
-      var fLen=Math.min(46,fk*arSc);
+    if(mu>0.01&&f_show>0.3&&theta>0.5){
+      var fLen=Math.min(46,f_show*arSc);
       simArrow(ctx,bCX,bCY,bCX+cosT*fLen,bCY-sinT*fLen,'#f87171',2,8);
-      simText(ctx,'fk='+fk.toFixed(1)+'N',bCX+cosT*fLen/2+6,bCY-sinT*fLen/2-8,'#f87171',7.5,undefined,true);
+      simText(ctx,(isStatic?'f_s=mg·sinθ=':'f_k=μN=')+f_show.toFixed(1)+'N',
+              bCX+cosT*fLen/2+6,bCY-sinT*fLen/2-8,'#f87171',7.5,undefined,true);
     }
+    if(isStatic&&theta>0.5)simText(ctx,'סטטי — הגוש נשאר במקום (mg·sinθ ≤ μN)',W/2,H-10,'#4ade80',9.5,'center');
 
     // ── Right panel ────────────────────────────────────────
     var PX=topX+12, PW=W-PX-10, PY=8;
@@ -10618,11 +10654,39 @@ function optDash(ctx,x1,y1,x2,y2,col,op){
   ctx.setLineDash([5,5]);ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();
   ctx.setLineDash([]);ctx.restore();
 }
+// ── Keep canvas text inside the canvas. ──
+// Returns the adjusted x (clamped), or null when the label belongs to something
+// so far off-canvas that drawing it at the edge would only mislead.
+// Transform-aware: bails out unless the current transform is an axis-aligned
+// scale+translate, because under a rotation the raw x,y say nothing about where
+// the glyph actually lands (rod glyphs, rotated axis labels, ...).
+function _fitLabel(ctx,txt,x,y,align,sz){
+  var cv=ctx.canvas; if(!cv||!cv.width)return x;
+  var m; try{m=ctx.getTransform();}catch(e){return x;}
+  if(Math.abs(m.b)>1e-6||Math.abs(m.c)>1e-6)return x;      // rotated/skewed: leave alone
+  var sx=m.a, sy=m.d;
+  if(!(sx>0)||!(sy>0))return x;
+  var W=cv.width, H=cv.height;                              // device px
+  var DROP=46*sx;
+  var dy=y*sy+m.f;
+  if(dy<-DROP||dy>H+DROP)return null;
+  var w; try{w=ctx.measureText(String(txt)).width*sx;}catch(e){return x;}
+  var dx=x*sx+m.e;
+  var L=(align==='center'||!align)?dx-w/2:(align==='right'||align==='end')?dx-w:dx;
+  var R=L+w;
+  if(L<-DROP||R>W+DROP)return null;
+  var pad=3*sx, shift=0;
+  if(L<pad)        shift=pad-L;
+  else if(R>W-pad) shift=-(R-(W-pad));
+  return x+shift/sx;
+}
 function optLabel(ctx,txt,x,y,col,sz,align){
   ctx.save();ctx.fillStyle=col||'#94a3b8';ctx.font=(sz||11)+'px Heebo,sans-serif';
   ctx.textAlign=align||'center';ctx.textBaseline='middle';
   ctx.shadowColor='rgba(0,0,0,.7)';ctx.shadowBlur=4;
-  ctx.fillText(txt,x,y);ctx.restore();
+  var fx=_fitLabel(ctx,txt,x,y,align||'center',sz||11);
+  if(fx!==null)ctx.fillText(txt,fx,y);
+  ctx.restore();
 }
 function optInfoBox(ctx,x,y,w,lines){
   ctx.save();ctx.fillStyle='rgba(4,9,20,.88)';ctx.strokeStyle='rgba(59,130,246,.35)';ctx.lineWidth=1;
@@ -17125,7 +17189,9 @@ function oLbl(ctx,txt,x,y,col,sz){
   ctx.font=(sz||10)+'px Heebo,sans-serif';
   ctx.textAlign='center';ctx.textBaseline='middle';
   ctx.shadowColor='rgba(0,0,0,.8)';ctx.shadowBlur=3;
-  ctx.fillText(txt,x,y);ctx.restore();
+  var fx=_fitLabel(ctx,txt,x,y,'center',sz||10);
+  if(fx!==null)ctx.fillText(txt,fx,y);
+  ctx.restore();
 }
 function oPhoton(ctx,x,y,col,r){
   r=r||4;
