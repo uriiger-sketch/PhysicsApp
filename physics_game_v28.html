@@ -1685,7 +1685,7 @@ const CONTENT={
     enrich:{
       title:'תחושת משקל במעלית',
       html:`<p>כשאתם עומדים על מאזניים במעלית עולה, הרצפה דוחפת אתכם בכוח ${M('N=m(g+a) > mg')} — המאזניים מצביעות על "עודף משקל". בירידה ${M('N=m(g-a) < mg')} — "קל יותר". בנפילה חופשית — אפס!</p>
-      <div class="enrich-formula">${tex('N_{\text{נמדד}} = m(g + a)', true)}</div>`
+      <div class="enrich-formula">${tex('N_{\\text{נמדד}} = m(g + a)', true)}</div>`
     }
   },
   sim:{type:'tension',title:'מתיחות — גוף בחוט',desc:'שנה מסה ותאוצה של מעלית. ראה T=m(g+a). FBD חי.'},
@@ -1693,24 +1693,24 @@ const CONTENT={
   quiz:[
     {q:'גוף m=5 ק"ג תלוי בחוט בשיווי משקל. g=10. T=?',
      opts:['5 נ׳','50 נ׳','100 נ׳','0'],correct:1,
-     explain:M('T=mg=5\times10=50\,\text{N}')},
+     explain:M('T=mg=5\\times10=50\\,\\text{N}')},
     {q:'מעלית עולה a=3 מ/ש². m=60 ק"ג, g=10. כוח הרצפה?',
      opts:['600 נ׳','180 נ׳','780 נ׳','420 נ׳'],correct:2,
-     explain:M('N=m(g+a)=60\times13=780\,\text{N}')},
+     explain:M('N=m(g+a)=60\\times13=780\\,\\text{N}')},
     {q:'גוף בנפילה חופשית. T=?',
      opts:[M('mg'),M('2mg'),'0',M('mg/2')],correct:2,
-     explain:M('a=-g \Rightarrow T=m(g-g)=0')},
+     explain:M('a=-g \\Rightarrow T=m(g-g)=0')},
   ],
   problem:{
     title:'מתיחות בחוט',
     text:'גוף m=4 ק"ג תלוי בחוט. g=10 מ/ש².',
     steps:[
       {q:'מתיחות כשהגוף בשיווי משקל?',hint:M('T=mg'),answer:'40',unit:'נ׳',tolerance:0,
-       explain:M('T=4\times10=40\,\text{N}')},
-      {q:'מתיחות כשהגוף מואץ מעלה ב-5 מ/ש²?',hint:M('T=m(g+a)=4\times15'),answer:'60',unit:'נ׳',tolerance:0,
-       explain:M('T=4(10+5)=60\,\text{N}')},
-      {q:'מתיחות כשהגוף מואץ מטה ב-4 מ/ש²?',hint:M('T=m(g-a)=4\times6'),answer:'24',unit:'נ׳',tolerance:0,
-       explain:M('T=4(10-4)=24\,\text{N}')},
+       explain:M('T=4\\times10=40\\,\\text{N}')},
+      {q:'מתיחות כשהגוף מואץ מעלה ב-5 מ/ש²?',hint:M('T=m(g+a)=4\\times15'),answer:'60',unit:'נ׳',tolerance:0,
+       explain:M('T=4(10+5)=60\\,\\text{N}')},
+      {q:'מתיחות כשהגוף מואץ מטה ב-4 מ/ש²?',hint:M('T=m(g-a)=4\\times6'),answer:'24',unit:'נ׳',tolerance:0,
+       explain:M('T=4(10-4)=24\\,\\text{N}')},
     ]
   }
 },
@@ -1731,22 +1731,22 @@ const CONTENT={
         ['N','כוח נורמלי','נ׳ — אנכי למעלה'],
         ['m','מסה','ק"ג'],['g','9.8','מ/ש²'],
       ])}
-      <p>על <b>מדרון</b> בזווית ${M('\theta')} לאופק:</p>
-      ${fBox('N = mg\cos\theta','כוח נורמלי — מדרון',[
+      <p>על <b>מדרון</b> בזווית ${M('\\theta')} לאופק:</p>
+      ${fBox('N = mg\\cos\\theta','כוח נורמלי — מדרון',[
         ['\theta','זווית המדרון','° — מאופק'],
       ])}
       <div class="info-grid">
-        <div class="info-item"><div class="il">אופקי ${M('\theta=0')}</div><div class="iv">${M('N=mg')}</div></div>
-        <div class="info-item"><div class="il">מדרון 30°</div><div class="iv">${M('N=0.87\,mg')}</div></div>
-        <div class="info-item"><div class="il">מדרון 60°</div><div class="iv">${M('N=0.5\,mg')}</div></div>
+        <div class="info-item"><div class="il">אופקי ${M('\\theta=0')}</div><div class="iv">${M('N=mg')}</div></div>
+        <div class="info-item"><div class="il">מדרון 30°</div><div class="iv">${M('N=0.87\\,mg')}</div></div>
+        <div class="info-item"><div class="il">מדרון 60°</div><div class="iv">${M('N=0.5\\,mg')}</div></div>
         <div class="info-item"><div class="il">קיר אנכי 90°</div><div class="iv">${M('N=0')}</div></div>
       </div>
       <p>⚠️ <b>N לא תמיד שווה mg!</b> אם יש כוח חיצוני אנכי — N משתנה בהתאם.</p>
     `,
     enrich:{
       title:'נורמלי, חיכוך ומדרון',
-      html:`<p>כוח חיכוך תמיד פרופורציונלי לנורמלי: ${M('f=\mu N')}. על מדרון, ${M('N=mg\cos\theta')} קטן עם הזווית — לכן גם החיכוך קטן! מכאן: ${M('f=\mu m g\cos\theta')}. ו"כוח הדחיפה" לאורך המדרון: ${M('mg\sin\theta')}. כאשר ${M('\tan\theta > \mu_s')} — הגוף מחליק.</p>
-      <div class="enrich-formula">${tex('\tan\theta_{\text{מקסימלי}} = \mu_s', true)}</div>`
+      html:`<p>כוח חיכוך תמיד פרופורציונלי לנורמלי: ${M('f=\\mu N')}. על מדרון, ${M('N=mg\\cos\\theta')} קטן עם הזווית — לכן גם החיכוך קטן! מכאן: ${M('f=\\mu m g\\cos\\theta')}. ו"כוח הדחיפה" לאורך המדרון: ${M('mg\\sin\\theta')}. כאשר ${M('\\tan\\theta > \\mu_s')} — הגוף מחליק.</p>
+      <div class="enrich-formula">${tex('\\tan\\theta_{\\text{מקסימלי}} = \\mu_s', true)}</div>`
     }
   },
   sim:{type:'normal-force',title:'כוח נורמלי על מדרון',desc:'שנה זווית המדרון — ראה כיצד N ו-W_parallel משתנים. FBD בזמן אמת.'},
@@ -1754,10 +1754,10 @@ const CONTENT={
   quiz:[
     {q:'גוף m=5 ק"ג על משטח אופקי. g=10. N=?',
      opts:['5 נ׳','10 נ׳','50 נ׳','25 נ׳'],correct:2,
-     explain:M('N=mg=50\,\text{N}')},
+     explain:M('N=mg=50\\,\\text{N}')},
     {q:'מדרון 60°. N לעומת mg?',
      opts:['N=mg','N=0.87mg','N=0.5mg','N=0'],correct:2,
-     explain:M('N=mg\cos60°=0.5\,mg')},
+     explain:M('N=mg\\cos60°=0.5\\,mg')},
     {q:'כוח נורמלי מכוון תמיד:',
      opts:['אנכית למעלה','בכיוון הכובד','ניצב למשטח, החוצה','מקביל למשטח'],correct:2,
      explain:'N תמיד ⊥ למשטח ומכוון ממנו החוצה — לא בהכרח אנכי!'},
@@ -1766,10 +1766,10 @@ const CONTENT={
     title:'גוף על מדרון',
     text:'גוף m=6 ק"ג על מדרון 30°. g=10. cos30°=0.866, sin30°=0.5.',
     steps:[
-      {q:'כוח נורמלי?',hint:M('N=mg\cos30°=60\times0.866'),answer:'52',unit:'נ׳',tolerance:1,
-       explain:M('N=6\times10\times0.866\approx52\,\text{N}')},
-      {q:'רכיב הכובד לאורך המדרון?',hint:M('F_{\|}=mg\sin30°=30'),answer:'30',unit:'נ׳',tolerance:0,
-       explain:M('F_{\|}=6\times10\times0.5=30\,\text{N}')},
+      {q:'כוח נורמלי?',hint:M('N=mg\\cos30°=60\\times0.866'),answer:'52',unit:'נ׳',tolerance:1,
+       explain:M('N=6\\times10\\times0.866\\approx52\\,\\text{N}')},
+      {q:'רכיב הכובד לאורך המדרון?',hint:M('F_{\\|}=mg\\sin30°=30'),answer:'30',unit:'נ׳',tolerance:0,
+       explain:M('F_{\\|}=6\\times10\\times0.5=30\\,\\text{N}')},
     ]
   }
 },
@@ -1781,7 +1781,7 @@ const CONTENT={
       <div class="def-block"><div class="def-title">חוק ניוטון השלישי</div>
         <p>לכל כוח שגוף A מפעיל על גוף B, קיים כוח <b>שווה בגודל</b> ו<b>הפוך בכיוון</b> שגוף B מפעיל על A — בו-זמנית.</p>
       </div>
-      ${fBox('\vec{F}_{A\to B} = -\vec{F}_{B\to A}','חוק פעולה ותגובה',[
+      ${fBox('\\vec{F}_{A\\to B} = -\\vec{F}_{B\\to A}','חוק פעולה ותגובה',[
         ['\vec{F}_{A\to B}','כוח A על B',''],
         ['\vec{F}_{B\to A}','כוח B על A','שווה בגודל, הפוך בכיוון'],
       ])}
@@ -1798,8 +1798,8 @@ const CONTENT={
     `,
     enrich:{
       title:'רקטה בחלל — ניוטון 3 בפעולה',
-      html:`<p>רקטה יורה גז לאחור; הגז דוחף אותה קדימה. ללא אוויר ובלי משטח — רק חוק 3! דחף: ${M('F=\dot{m}\,v_e')} כאשר ${M('\dot{m}')} קצב שריפת דלק.</p>
-      <div class="enrich-formula">${tex('F_{\text{דחף}} = \dot{m}\cdot v_e', true)}</div>`
+      html:`<p>רקטה יורה גז לאחור; הגז דוחף אותה קדימה. ללא אוויר ובלי משטח — רק חוק 3! דחף: ${M('F=\\dot{m}\\,v_e')} כאשר ${M('\\dot{m}')} קצב שריפת דלק.</p>
+      <div class="enrich-formula">${tex('F_{\\text{דחף}} = \\dot{m}\\cdot v_e', true)}</div>`
     }
   },
   sim:{type:'newton3',title:'פעולה ותגובה',desc:'גרור כדי לדחוף — ראה כוחות שווים הפוכים ותאוצות הפוכות. שנה מסות.'},
@@ -1820,9 +1820,9 @@ const CONTENT={
     text:'כדור m₁=0.01 ק"ג יורה מאקדח m₂=0.8 ק"ג. מנוחה ראשונית. v₁=400 מ/ש.',
     steps:[
       {q:'תנע הכדור אחרי הירי?',hint:M('p_1=m_1 v_1'),answer:'4',unit:'ק"ג·מ/ש',tolerance:0,
-       explain:M('p_1=0.01\times400=4\,\text{kg·m/s}')},
+       explain:M('p_1=0.01\\times400=4\\,\\text{kg·m/s}')},
       {q:'מהירות רתיעת האקדח? (שימור תנע: p_tot=0)',hint:M('m_2 v_2=-p_1'),answer:'-5',unit:'מ/ש',tolerance:0.1,
-       explain:M('v_2=-4/0.8=-5\,\text{m/s}')+'(לאחור)'},
+       explain:M('v_2=-4/0.8=-5\\,\\text{m/s}')+'(לאחור)'},
     ]
   }
 },
@@ -2665,7 +2665,7 @@ const CONTENT={
           <li><b>תדירות זוויתית ω</b> — [rad/s]</li>
         </ul>
       </div>
-      ${fBox('T = \\dfrac{1}{f}\;,\\quad f = \\dfrac{1}{T}','קשר מחזור-תדירות',[
+      ${fBox('T = \\dfrac{1}{f}\\;,\\quad f = \\dfrac{1}{T}','קשר מחזור-תדירות',[
         ['T','מחזור','שניות'],
         ['f','תדירות','הרץ (Hz)'],
       ])}
@@ -3426,7 +3426,7 @@ const OPTICS_CONTENT={
       <div class="def-block"><div class="def-title">הפרעה מהרסת (Destructive)</div>
         <p>פסגה + שוקת (out of phase). <b>הפרש דרכים = (m+½)λ</b>. עצמה אפס.</p>
       </div>
-      ${fBox('\\Delta d = m\\lambda \;(\\text{בונה}),\\quad \\Delta d=(m+\\tfrac{1}{2})\\lambda \;(\\text{מהרסת})','תנאי הפרעה',[
+      ${fBox('\\Delta d = m\\lambda \\;(\\text{בונה}),\\quad \\Delta d=(m+\\tfrac{1}{2})\\lambda \\;(\\text{מהרסת})','תנאי הפרעה',[
         ['\\Delta d','הפרש דרכים','הפרש מרחקים משני המקורות לנקודה'],
         ['m','מספר סדר','0,\\pm1,\\pm2,\\ldots'],
         ['\\lambda','אורך גל','']
@@ -9605,11 +9605,13 @@ function simAtwood(canvas){
   function getM2(){var e=document.getElementById('inp-atw-m2'); return e?parseFloat(e.value):5;}
 
   function reset(){
-    var m1=getM1(), m2=getM2();
-    var heavier=Math.max(m1,m2);
-    var bH=Math.max(36,heavier*6);
-    // Start: both masses at top, just below pulley
-    y1=CEIL_Y+PR+6; y2=CEIL_Y+PR+6;
+    // Both masses used to start at CEIL_Y+PR+6 = 56 while topLimit is 54, so the
+    // rising mass had TWO pixels of headroom: at a=2.45 m/s² it hit the limit in
+    // 0.18 s and the sim halted before anything could be observed. Start
+    // mid-shaft instead, giving each side ~190 px ≈ 3.8 m of travel.
+    var bH1=Math.max(36,getM1()*6), bH2=Math.max(36,getM2()*6);
+    var mid=(CEIL_Y+PR+60+(maxY-Math.max(bH1,bH2)))/2;
+    y1=mid; y2=mid;
     vel=0; pT=null; running=false; started=false;
   }
 
@@ -9700,9 +9702,9 @@ function simAtwood(canvas){
     var W2_len=Math.min(m2*g*sc,75);
 
     // T arrows (up from top of each mass)
-    simArrow(ctx,rope1X,y1,rope1X,Math.max(CEIL_Y+PR+10,y1-T_len),'#34d399',2.5,11);
+    simArrow(ctx,rope1X,y1,rope1X,y1-T_len,'#34d399',2.5,11);
     simText(ctx,'T='+T.toFixed(1)+'N',x1L-6,y1-T_len-8,'#34d399',9,'right');
-    simArrow(ctx,rope2X,y2,rope2X,Math.max(CEIL_Y+PR+10,y2-T_len),'#34d399',2.5,11);
+    simArrow(ctx,rope2X,y2,rope2X,y2-T_len,'#34d399',2.5,11);
     simText(ctx,'T='+T.toFixed(1)+'N',x2L+bW2+6,y2-T_len-8,'#34d399',9,'left');
 
     // W arrows (down from bottom of each mass)
@@ -14366,6 +14368,8 @@ runAnim('anim-inertia',(canvas,ctx,W,H,t)=>{
   const PERIOD=8, tt=t%PERIOD;
   const v0=45;
   let bx, phase;
+  // The middle phase genuinely decelerates the body. Rather than claim ΣF=0
+  // throughout, the animation now draws the force that causes it.
   if(tt<3.5){ bx=(tt*v0)%(W+80)-40; phase=0; }
   else if(tt<4.5){ bx=(3.5*v0)%(W+80)-40+(tt-3.5)*v0*0.5; phase=1; }
   else { bx=(3.5*v0)%(W+80)-40+(1*v0*0.5)+(tt-4.5)*v0; phase=2; }
@@ -14393,14 +14397,18 @@ runAnim('anim-inertia',(canvas,ctx,W,H,t)=>{
   ctx.beginPath(); ctx.roundRect(bx-18,FLY-32,36,32,4); ctx.fill(); ctx.stroke(); ctx.restore();
 
   // Velocity arrow
-  const cv=phase===1?v0*0.5:v0;
+  const cv=phase===1?v0*0.5:v0;   // phase 1 really IS slower — say so below
   arrow(ctx,bx,FLY-38,bx+Math.min(cv*0.7,55),FLY-38,'#34d399',2.5,9);
-  label(ctx,'v='+cv.toFixed(0)+' (קבועה)',bx+Math.min(cv*0.35,28),FLY-48,'#34d399',8);
+  label(ctx,'v='+cv.toFixed(0)+(phase===1?' (משתנה!)':' (קבועה)'),bx+Math.min(cv*0.35,28),FLY-48,phase===1?'#f87171':'#34d399',8);
+  // During the slow phase a real retarding force acts — draw it instead of
+  // claiming ΣF=0 while the body visibly decelerates.
+  if(phase===1)arrow(ctx,bx-18,FLY-16,bx-18-26,FLY-16,'#f87171',2.5,9);
+  if(phase===1)label(ctx,'ΣF ≠ 0',bx-46,FLY-26,'#f87171',8);
 
   // No force label
   ctx.save(); ctx.fillStyle='rgba(6,14,28,.8)'; ctx.strokeStyle='rgba(52,211,153,.4)'; ctx.lineWidth=1;
   ctx.beginPath(); ctx.roundRect(W/2-110,4,220,18,4); ctx.fill(); ctx.stroke(); ctx.restore();
-  label(ctx,'ΣF = 0 → v = קבועה (חוק ראשון ✓)',W/2,14,'#34d399',8.5);
+  label(ctx,phase===1?'ΣF ≠ 0 → v משתנה (כוח בלימה פועל)':'ΣF = 0 → v = קבועה (חוק ראשון ✓)',W/2,14,phase===1?'#f87171':'#34d399',8.5);
   label(ctx,'גוף שאין עליו כוח נשאר בתנועה אחידה',W/2,H-5,'#334e68',7.5);
 });
 
@@ -14533,9 +14541,13 @@ runAnim('anim-ek',(canvas,ctx,W,H,t)=>{
 
   masses.forEach((m,i)=>{
     const a=F_app/m;
-    const v=Math.min(a*tt, a*(PERIOD*0.55));
+    // Stop the CLOCK, not the readouts: x used to keep growing as t² for the
+    // full period while v was capped, so the block accelerated across the screen
+    // beside a frozen arrow, a frozen v and a frozen Ek bar.
+    const tRun=Math.min(tt,PERIOD*0.55);
+    const v=a*tRun;
     const ek=0.5*m*v*v;
-    const bx=Math.min(20+0.5*a*tt*tt*2.2, W-28);
+    const bx=Math.min(20+0.5*a*tRun*tRun*2.2, W-28);
     const by=yPos[i];
     const col=cols[i];
 
@@ -16584,7 +16596,10 @@ runAnim('anim-tension2',(canvas,ctx,W,H,t)=>{
   var phase=Math.sin(t*0.7);
   var a=4*phase,m=70,g=9.8;
   var T_val=m*(g+a),W_val=m*g;
-  var elev_y=H*0.47-a*5,bW=80,bH=52;
+  // u''(t) must EQUAL the a we print. With a=4sin(0.7t), u=-(4/0.7²)sin(0.7t).
+  // Setting the position proportional to a itself put the car 180° out of phase.
+  var _w=0.7, u=-(4/(_w*_w))*Math.sin(_w*t);
+  var elev_y=H*0.47-u*4,bW=80,bH=52;
   ctx.save();ctx.strokeStyle='#94a3b8';ctx.lineWidth=2;
   ctx.beginPath();ctx.moveTo(CX,CEIL);ctx.lineTo(CX,elev_y-bH/2);ctx.stroke();ctx.restore();
   ctx.save();ctx.fillStyle='#1e3a52';ctx.fillRect(CX-20,CEIL-8,40,8);ctx.restore();
@@ -16595,10 +16610,11 @@ runAnim('anim-tension2',(canvas,ctx,W,H,t)=>{
   ctx.save();ctx.strokeStyle='#e2e8f0';ctx.lineWidth=2;
   ctx.beginPath();ctx.moveTo(CX,elev_y-2);ctx.lineTo(CX,elev_y+16);ctx.stroke();
   ctx.beginPath();ctx.moveTo(CX-12,elev_y+6);ctx.lineTo(CX+12,elev_y+6);ctx.stroke();ctx.restore();
-  var tLen=Math.min(52,T_val*0.35);
+  var _S=48/(m*(g+4));            // one px/N factor: both caps were saturated
+  var tLen=T_val*_S;
   arrow(ctx,CX,elev_y-bH/2,CX,elev_y-bH/2-tLen,'#34d399',2.5,10);
   label(ctx,'T='+T_val.toFixed(0)+'N',CX+6,elev_y-bH/2-tLen/2,'#34d399',8,'left');
-  var wLen=Math.min(42,W_val*0.35);
+  var wLen=W_val*_S;
   arrow(ctx,CX,elev_y+bH/2,CX,elev_y+bH/2+wLen,'#fbbf24',2.5,10);
   label(ctx,'W='+W_val.toFixed(0)+'N',CX+6,elev_y+bH/2+wLen/2,'#fbbf24',8,'left');
   if(Math.abs(a)>0.3){
