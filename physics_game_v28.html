@@ -9957,6 +9957,7 @@ function simEnergyPotential(canvas){
   var dragging=false;
   // Show elastic PE bar toggle
   var showElasticBar=false;
+  var _epScale=null;      // latched absolute joule scale for the bars
   // Brief contact animation: when ball hits floor, compress for ~60ms visually
   var contactTimer=0; // seconds since contact started, 0 = no contact
   var contactVelOut=0; // velocity magnitude going back up
@@ -10100,9 +10101,29 @@ function simEnergyPotential(canvas){
     ctx.beginPath();ctx.roundRect(BX-14,BY-32,panW,BH+72,7);ctx.fill();ctx.stroke();ctx.restore();
     simText(ctx,'אנרגיה (J)',BX+panW/2-14,BY-18,'#22d3ee',9,undefined,true);
 
-    // Emax: use initial drop height energy
-    var h_max=(FLOOR_POS-(BALL_R+8))/PX_PER_M;
-    var Emax=Math.max(m*g*h_max,E_tot_display,0.1);
+    // The bars used to be normalised by Emax=m*g*h_max, in which the mass
+    // cancels exactly (PE/Emax = h/h_max), so the mass slider could not move a
+    // single pixel and the white E line sat at a fixed height by construction —
+    // conservation was a normalisation artefact rather than an observation.
+    // A latched "nice" absolute joule scale fixes both: doubling the mass now
+    // visibly doubles the bars while the motion stays pixel-identical, which is
+    // itself the lesson (the trajectory is mass-independent, the energy is not).
+    function _niceMax(E){
+      var p=Math.pow(10,Math.floor(Math.log10(Math.max(E,0.1))));
+      var f=E/p; return (f<=1?1:f<=2?2:f<=5?5:10)*p;
+    }
+    if(_epScale===null||E_tot_display>_epScale||E_tot_display<0.35*_epScale)
+      _epScale=_niceMax(Math.max(E_tot_display,0.1));
+    var Emax=_epScale;
+    // joule gridlines, so the bars carry readable absolute values
+    ctx.save();ctx.strokeStyle='rgba(148,163,184,.22)';ctx.lineWidth=1;
+    ctx.font='7px Heebo';ctx.fillStyle='#64748b';ctx.textAlign='right';
+    for(var _gi=1;_gi<=4;_gi++){
+      var _gy=BY+BH-(_gi/4)*BH;
+      ctx.beginPath();ctx.moveTo(BX-3,_gy);ctx.lineTo(BX+panW-28,_gy);ctx.stroke();
+      ctx.fillText((Emax*_gi/4).toFixed(Emax<4?1:0),BX-5,_gy+3);
+    }
+    ctx.restore();
 
     function drawBar2(x,E,col,lbl){
       var bh=Math.min(BH,Math.max(0,(E/Emax)*BH));
@@ -19288,6 +19309,11 @@ function simElcField(canvas){
   function Q2(){var e=document.getElementById('inp-elc-Q2');return e?parseFloat(e.value):-4;}
   var db=document.getElementById('btn-field-dipole');
   if(db)db.addEventListener('click',function(){dip=!dip;db.textContent=dip?'⚪ מטען יחיד':'⇄ שני מטענים';});
+  // The Q₂ slider did nothing until the two-charge button was pressed, so it
+  // read as broken. Touching it now brings the second charge in.
+  var q2s=document.getElementById('inp-elc-Q2');
+  if(q2s)q2s.addEventListener('input',function(){
+    if(!dip){dip=true;if(db)db.textContent='⚪ מטען יחיד';}});
   var lineMode=false;
   var lmb=document.getElementById('btn-field-lines');
   if(lmb)lmb.addEventListener('click',function(){lineMode=!lineMode;
@@ -19444,6 +19470,9 @@ function simElcPotential(canvas){
   var tb=document.getElementById('btn-pot-two');
   if(tb)tb.addEventListener('click',function(){two=!two;
     tb.textContent=two?'⊖ הסר מטען שני':'⊕ הוסף מטען שני';});
+  var vq2=document.getElementById('inp-elc-Vq2');
+  if(vq2)vq2.addEventListener('input',function(){
+    if(!two){two=true;if(tb)tb.textContent='⊖ הסר מטען שני';}});
   var mb=document.getElementById('btn-pot-mark');
   if(mb)mb.addEventListener('click',function(){markV=Vat(px2,py2);});
   function _dn(e){var p=simPointerXY(canvas,dpr,e);
@@ -19838,7 +19867,10 @@ function simElcPlates(canvas){
     // entry launcher
     ctx.save();ctx.fillStyle='rgba(34,211,238,.25)';
     ctx.beginPath();ctx.arc(PL-30,cy,10,0,Math.PI*2);ctx.fill();ctx.restore();
-    simArrow(ctx,PL-52,cy,PL-14,cy,'rgba(34,211,238,.7)',2.5,10);
+    // Arrow length tracks v₀, so the slider shows an effect even before launch.
+    var _v0f=Math.max(0.25,Math.min(1,v06()/30));
+    simArrow(ctx,PL-14-38*_v0f,cy,PL-14,cy,'rgba(34,211,238,.7)',2.5,10);
+    optLabel(ctx,'v₀='+v06().toFixed(0)+'×10⁶',PL-30,cy-16,'#22d3ee',8.5);
     if(aimP&&aimX!==null){
       optDash(ctx,PL-30,cy,aimX,cy,'#22d3ee',0.8);
       optLabel(ctx,'v₀='+v06().toFixed(0)+'×10⁶ m/s — שחרר לשיגור!',PL+40,cy-dPx/2-44,'#22d3ee',10);
