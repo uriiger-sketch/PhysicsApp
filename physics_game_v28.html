@@ -4788,7 +4788,13 @@ function simAcceleration(canvas){
     if(_simStop[id])return;
     if(!pT)pT=ts; var dt=Math.min((ts-pT)/1000,.04); pT=ts;
     acc=getAcc(); t+=dt; vel+=acc*dt; ballX+=vel*dt*20;
-    if(ballX>GR-22||ballX<GL+22){ballX=ballX>GR-22?GR-22:GL+22;vel=-vel*0.25;}
+    // Reaching the edge used to reverse the velocity and destroy 75% of it
+    // (vel=-vel*0.25), which turned v(t) into a sawtooth in the one section
+    // whose caption reads "slope = a". A constant-acceleration run should show a
+    // straight line, so the run simply restarts cleanly instead.
+    if(ballX>GR-22||ballX<GL+22){
+      ballX=W/2; vel=getV0(); t=0; hist=[];
+    }
     var xm=(ballX-GL)/(GR-GL)*20-10;
     hist.push({t:t,v:vel,x:xm}); if(hist.length>400)hist.shift();
     simBg(ctx,W,H);
@@ -4835,7 +4841,10 @@ function simAcceleration(canvas){
     // v(t)
     var gl=GL, gr=gl+gW2;
     ctx.save(); var gbg=ctx.createLinearGradient(gl,GT,gl,GB); gbg.addColorStop(0,'rgba(12,26,50,.7)'); gbg.addColorStop(1,'rgba(6,14,28,.9)'); ctx.fillStyle=gbg; ctx.fillRect(gl,GT,gr-gl,gH); ctx.restore();
-    var vMax=Math.max(14,Math.max.apply(null,hist.map(function(h){return Math.abs(h.v);}).concat([1]))*1.2);
+    // Absolute axis. This used to be Math.max over the data, so the curve always
+    // filled the plot and the SLOPE — which IS the acceleration, the whole point
+    // of the section — looked the same for a=0.5 and a=10.
+    var vMax=26;
     var midV=(GT+GB)/2;
     ctx.save(); ctx.strokeStyle='#1a3a5c'; ctx.lineWidth=1.5; ctx.strokeRect(gl,GT,gr-gl,gH); ctx.restore();
     ctx.save(); ctx.strokeStyle='#1e3a52'; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(gl,midV); ctx.lineTo(gr,midV); ctx.stroke(); ctx.restore();
@@ -4853,7 +4862,7 @@ function simAcceleration(canvas){
     // x(t)
     var gl2=GL+gW2+16, gr2=GR;
     ctx.save(); var gbg2=ctx.createLinearGradient(gl2,GT,gl2,GB); gbg2.addColorStop(0,'rgba(12,26,50,.7)'); gbg2.addColorStop(1,'rgba(6,14,28,.9)'); ctx.fillStyle=gbg2; ctx.fillRect(gl2,GT,gr2-gl2,gH); ctx.restore();
-    var xMax=Math.max(12,Math.max.apply(null,hist.map(function(h){return Math.abs(h.x);}).concat([1]))*1.2);
+    var xMax=26;                     // absolute, for the same reason as vMax
     var midX=(GT+GB)/2;
     ctx.save(); ctx.strokeStyle='#1a3a5c'; ctx.lineWidth=1.5; ctx.strokeRect(gl2,GT,gr2-gl2,gH); ctx.restore();
     ctx.save(); ctx.strokeStyle='#1e3a52'; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(gl2,midX); ctx.lineTo(gr2,midX); ctx.stroke(); ctx.restore();
