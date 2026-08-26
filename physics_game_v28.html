@@ -106,6 +106,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 
 /* DEF BLOCK */
 .def-block{background:rgba(59,130,246,.07);border:1px solid rgba(59,130,246,.2);border-radius:10px;padding:14px 18px;margin:14px 0;}
+.unit-badge{display:inline-block;direction:ltr;unicode-bidi:isolate;background:rgba(52,211,153,.14);border:1px solid rgba(52,211,153,.35);color:#6ee7b7;border-radius:5px;padding:1px 6px;font-size:.72rem;font-weight:600;letter-spacing:.02em;}
 .mis-block{background:rgba(251,191,36,.06);border:1px solid rgba(251,191,36,.28);border-right:3px solid rgba(251,191,36,.6);border-radius:10px;padding:14px 18px;margin:14px 0;}
 .ex-block{background:rgba(52,211,153,.05);border:1px solid rgba(52,211,153,.25);border-right:3px solid rgba(52,211,153,.55);border-radius:10px;padding:14px 18px;margin:14px 0;}
 .ex-title{color:#34d399;font-weight:700;margin-bottom:6px;}
@@ -742,9 +743,87 @@ function tex(str, display){
 function M(str){ return `<span class="math-ltr">${tex(str,false)}</span>`; }
 
 function P(symbol, name, desc){
-  return `<span class="param-wrap"><span class="param-val math-ltr">${tex(symbol)}</span><span class="param-tip"><strong>${name}</strong>${desc}</span></span>`;
+  // Inline symbol chips carry the SI unit too, resolved by the same table the
+  // formula boxes use, so a unit is visible wherever a symbol is introduced.
+  var u=_siUnit(symbol,name,desc);
+  return `<span class="param-wrap"><span class="param-val math-ltr">${tex(symbol)}</span>${u?`<span class="unit-badge">${u}</span>`:''}<span class="param-tip"><strong>${name}</strong>${desc}</span></span>`;
 }
 
+// ── SI unit resolution for formula-box parameters. ──
+// Order: an explicit unit argument wins; otherwise the unit is extracted from
+// the description (many already begin with it); otherwise a curated map keyed on
+// the symbol, disambiguated by the parameter NAME where a symbol is overloaded
+// (T is tension in N but period in s; k is a spring constant or Coulomb's
+// constant; E is energy or field strength; and so on). Nothing is guessed: a
+// symbol that cannot be resolved gets no badge rather than a wrong one.
+var _UNIT_HE={'מ/ש²':'m/s²','מ/ש':'m/s','ק"ג':'kg','קמ"ש':'km/h','מטרים':'m','מטר':'m',
+  'מ׳':'m','ניוטון':'N','נ׳':'N','ג׳ול':'J',"ג'אול":'J','שניות':'s','שנ׳':'s',
+  'ואט':'W','קולון':'C','וולט':'V','פאראד':'F','מעלות':'°','רדיאן':'rad','הרץ':'Hz'};
+var _UNIT_OK={'m':1,'s':1,'kg':1,'N':1,'J':1,'W':1,'C':1,'V':1,'F':1,'Hz':1,'rad':1,
+  '°':1,'m/s':1,'m/s²':1,'km/h':1,'N/m':1,'N/C':1,'V/m':1,'kg·m/s':1,'N·m':1,'m²':1,'nm':1};
+function _siUnit(sym,nm,desc,unit){
+  if(unit)return unit;
+  var d=(desc||'').trim();
+  if(d){
+    var head=d.split(/[—(,]/)[0].trim();
+    if(_UNIT_HE[head])return _UNIT_HE[head];
+    if(_UNIT_OK[head])return head;
+  }
+  // Greek and subscripted symbols, resolved from the RAW LaTeX before stripping
+  var raw=(sym||'');
+  if(/\\theta/.test(raw)||/^θ/.test(raw))   return '°';
+  if(/\\omega/.test(raw)||/^ω/.test(raw))   return 'rad/s';
+  if(/\\lambda/.test(raw)||/^λ/.test(raw))  return 'nm';
+  if(/\\varepsilon_0|\\epsilon_0/.test(raw))return 'F/m';
+  if(/\\mathrm\{NA\}/.test(raw))            return '—';
+  if(/\\mu_[sk]|\\mu\b/.test(raw))          return '—';
+  if(/\\beta/.test(raw))                    return '—';
+  if(/\\vec\{F\}/.test(raw))                return 'N';
+  if(/\\vec\{v\}/.test(raw))                return 'm/s';
+  if(/\\vec\{a\}/.test(raw))                return 'm/s²';
+  if(/\\vec\{p\}/.test(raw))                return 'kg·m/s';
+  if(/^dx\/dt$/.test(raw))                  return 'm/s';
+  if(/^v\^2$/.test(raw))                    return 'm²/s²';
+  if(/^e(=|<|$)/.test(raw)&&/אלסטי|היצמדות|חלקית/.test((nm||'')))return '—';
+  if(/^n(_|,|$)/.test(raw)&&/שבירה|מדד|מספר/.test((nm||'')+(desc||'')))return '—';
+  if(/^n$/.test(raw)&&/מספר/.test(nm||''))  return '—';
+  if(/^e$/.test(raw)&&/מטען/.test(nm||''))  return 'C';
+  if(/^f(_o|_e)?$/.test(raw)&&/מוקד/.test((nm||'')+(desc||'')))return 'mm';
+  if(/^d'?$/.test(raw)&&/עומק|אורך|צינור/.test((nm||'')+(desc||'')))return 'mm';
+  if(/^0<e<1$/.test(raw))return '—';
+  if(/^A$/.test(raw)&&/אמפליטודה/.test(nm||''))return 'm';
+  if(/^A,B$|^A$|^B$/.test(raw)&&/וקטור/.test(nm||''))return '—';
+  if(/^E$/.test(raw)&&/פוטון/.test(nm||''))return 'J';
+  if(/\\sin|\\cos|\\tan/.test(raw))         return '—';
+  if(/^-$/.test(raw))                       return '—';
+  var n=(nm||'')+' '+(desc||'');
+  var s=(sym||'').replace(/\\[a-zA-Z]+|[{}\\]/g,'').replace(/_.*$/,'').trim();
+  // symbols whose meaning depends on the quantity name
+  if(s==='T')  return /מתיחות/.test(n)?'N':/מחזור/.test(n)?'s':'';
+  if(s==='k')  return /קפיץ/.test(n)?'N/m':/קולומב/.test(n)?'N·m²/C²':'';
+  if(s==='E')  return /שדה/.test(n)?'N/C':/אנרגיה/.test(n)?'J':'';
+  if(s==='V')  return /פוטנציאל|מתח/.test(n)?'V':'';
+  if(s==='f')  return /תדירות/.test(n)?'Hz':/חיכוך/.test(n)?'N':'';
+  if(s==='n')  return /שבירה/.test(n)?'':'';           // refractive index & counts: dimensionless
+  if(s==='p')  return /תנע/.test(n)?'kg·m/s':'';
+  if(s==='R'||s==='r') return /רדיוס|מרחק/.test(n)?'m':'';
+  if(s==='d')  return /מרחק|מרווח|עובי/.test(n)?'m':'';
+  if(s==='A')  return /שטח/.test(n)?'m²':'';
+  if(s==='c')  return /אור/.test(n)?'m/s':'m/s';
+  if(s==='N')  return /נורמלי|כוח/.test(n)?'N':'';
+  if(s==='W')  return /עבודה/.test(n)?'J':/משקל/.test(n)?'N':/הספק/.test(n)?'W':'J';
+  if(s==='f')  return /תדירות/.test(n)?'Hz':/חיכוך/.test(n)?'N':/מוקד/.test(n)?'cm':'';
+  if(s==='Q'||s==='q') return /מטען/.test(n)?'C':'';
+  if(s==='C')  return /קיבול/.test(n)?'F':'';
+  var MAP={x:'m',y:'m',h:'m',L:'m',s:'m',t:'s',v:'m/s',u:'m/s',a:'m/s²',g:'m/s²',
+           m:'kg',M:'kg',F:'N',W:'J',P:'W',I:'W/m²',lambda:'nm',theta:'°',omega:'rad/s'};
+  if(MAP[s])return MAP[s];
+  if(/^\\theta$|^θ$/.test(sym))return '°';
+  if(/^\\lambda$|^λ$/.test(sym))return 'nm';
+  if(/^\\mu$|^μ$/.test(sym))return '';                 // coefficient of friction: dimensionless
+  if(/^\\Delta/.test(sym||'')) return _siUnit((sym||'').replace(/^\\Delta\s*/,''),nm,desc,unit);
+  return '';
+}
 function fBox(latexStr, name, params){
   if(name===undefined)name=''; if(params===undefined)params=[];
   let html = `<div class="formula-box">${tex(latexStr, true)}`;
@@ -752,10 +831,12 @@ function fBox(latexStr, name, params){
   html += `</div>`;
   if(params.length){
     html += `<div style="direction:rtl;display:flex;flex-wrap:wrap;gap:8px;margin:-8px 0 16px;justify-content:center">`;
-    params.forEach(([sym,nm,desc])=>{
+    params.forEach(([sym,nm,desc,unit])=>{
+      const u = _siUnit(sym, nm, desc, unit);
       html += `<div class="param-wrap" style="background:rgba(59,130,246,.07);border:1px solid rgba(59,130,246,.15);border-radius:7px;padding:5px 12px;font-size:.8rem;display:flex;align-items:center;gap:5px;cursor:help">
         <span class="math-ltr">${tex(sym)}</span> <span style="color:var(--muted)">— ${nm}</span>
-        <span class="param-tip"><strong>${nm}</strong>${desc}</span>
+        ${u?`<span class="unit-badge">${u}</span>`:''}
+        <span class="param-tip"><strong>${nm}</strong>${desc||''}</span>
       </div>`;
     });
     html += `</div>`;
@@ -1027,7 +1108,7 @@ const CONTENT={
         <p>${P('\\Delta x','העתק','ההפרש בין מיקום סופי לראשוני, כולל כיוון')} ${tex('= x_2 - x_1')} — הפרש בין מיקום סופי לראשוני, <em>עם כיוון</em>. יכול להיות שלילי!</p>
       </div>
       ${animCanvas('anim-disp',156)}
-      <p style="margin-top:8px">⚠️ <b>הבחנה חשובה:</b> דרך ≠ העתק. אדם ההולך 5 מ׳ קדימה ו-3 מ׳ אחורה: <b>דרך = 8 מ׳</b>, <b>העתק = +2 מ׳</b>.</p>
+      <p style="margin-top:8px">⚠️ <b>הבחנה חשובה:</b> דרך ≠ העתק. אדם ההולך 5 m קדימה ו-3 m אחורה: <b>דרך = 8 m</b>, <b>העתק = +2 m</b>.</p>
     `,
     enrich:{
       title:'אודיסיאה קוסמית — מדידת אורך בחלל',
@@ -1102,7 +1183,7 @@ const CONTENT={
     }
   },
   sim:{type:'const-velocity',title:'תנועה שוות-מהירות',desc:'גרור את חץ המהירות ישירות על הגוף. גרף x(t) מצטייר בזמן אמת.'},
-  example:{title:'רכב בתנועה אחידה',text:'רכב נוסע בקצב 15 מ/ש. מה מרחקו לאחר 6 שניות?',steps:[{q:'כתוב את הנוסחה',a:'x = x₀ + v·t'},{q:'הצב נתונים',a:'x = 0 + 15×6 = 90 מ\''}]},
+  example:{title:'רכב בתנועה אחידה',text:'רכב נוסע בקצב 15 m/s. מה מרחקו לאחר 6 s?',steps:[{q:'כתוב את הנוסחה',a:'x = x₀ + v·t'},{q:'הצב נתונים',a:'x = 0 + 15×6 = 90 מ\''}]},
   quiz:[
     {q:'גוף ב-'+tex('x_0=3\\,\\text{m}')+' נע ב-'+tex('v=-2\\,\\text{m/s}')+'. מיקומו אחרי '+tex('t=4\\,\\text{s}')+'?',
      opts:[tex('x=11\\,\\text{m}'),tex('x=-5\\,\\text{m}'),tex('x=-2\\,\\text{m}'),tex('x=5\\,\\text{m}')],correct:1,
@@ -1119,7 +1200,7 @@ const CONTENT={
   ],
   problem:{
     title:'פגישת שתי מכוניות',
-    text:'משאית יוצאת מעיר A (x=0) לעיר B (x=290 ק"מ) במהירות 70 קמ"ש. חצי שעה אחרי, מונית יוצאת מ-B לכיוון A במהירות 100 קמ"ש. מתי ואיפה ייפגשו?',
+    text:'משאית יוצאת מעיר A (x=0) לעיר B (x=290 ק"מ) במהירות 70 km/h. חצי שעה אחרי, מונית יוצאת מ-B לכיוון A במהירות 100 km/h. מתי ואיפה ייפגשו?',
     steps:[
       {q:'כתוב נוסחת מקום-זמן של המשאית (x בק"מ, t בשעות, t=0 כשיצאה המשאית).',
        hint:tex('x = x_0 + vt = 0 + 70t'),answer:'70',unit:'x=70t',tolerance:-1,
@@ -1166,7 +1247,7 @@ const CONTENT={
     }
   },
   sim:{type:'avg-instant',title:'ממוצע מול רגעית',desc:'עקוב אחרי מיתר מתכווץ לעבר המשיק — כך נוצרת המהירות הרגעית.'},
-  example:{title:'מהירות ממוצעת לעומת רגעית',text:'גוף נע לפי x = 2t². חשב מהירויות ב-t=2 שניות.',steps:[{q:'מהירות ממוצעת בין t=2 לt=4',a:'v_avg = (2×16−2×4)/(4−2) = 24/2 = 12 מ/ש'},{q:'מהירות רגעית ב-t=2',a:'v_inst = dx/dt = 4t = 4×2 = 8 מ/ש'}]},
+  example:{title:'מהירות ממוצעת לעומת רגעית',text:'גוף נע לפי x = 2t². חשב מהירויות ב-t=2 s.',steps:[{q:'מהירות ממוצעת בין t=2 לt=4',a:'v_avg = (2×16−2×4)/(4−2) = 24/2 = 12 m/s'},{q:'מהירות רגעית ב-t=2',a:'v_inst = dx/dt = 4t = 4×2 = 8 m/s'}]},
   quiz:[
     {q:'גוף ב-'+tex('x=2\\,\\text{m}')+' ב-'+tex('t=0')+' וב-'+tex('x=8\\,\\text{m}')+' ב-'+tex('t=3\\,\\text{s}')+'. מהירות ממוצעת?',
      opts:[tex('2\\,\\text{m/s}'),tex('4\\,\\text{m/s}'),tex('2.67\\,\\text{m/s}'),tex('6\\,\\text{m/s}')],correct:0,
@@ -1182,11 +1263,11 @@ const CONTENT={
     title:'ניתוח גרף ומהירות רגעית',
     text:'גוף נע לפי '+tex('x = t^2')+'(מ׳, ש). חשב מהירויות ממוצעות המתכנסות לרגעית ב-t=1.',
     steps:[
-      {q:'מהירות ממוצעת בין t=1 ל-t=2:',hint:tex('\\bar{v} = (x(2)-x(1))/(2-1) = (4-1)/1'),answer:'3',unit:'מ/ש',tolerance:0,
+      {q:'מהירות ממוצעת בין t=1 ל-t=2:',hint:tex('\\bar{v} = (x(2)-x(1))/(2-1) = (4-1)/1'),answer:'3',unit:'m/s',tolerance:0,
        explain:tex('\\bar{v} = (4-1)/1 = 3\\,\\text{m/s}')},
-      {q:'מהירות ממוצעת בין t=1 ל-t=1.5:',hint:tex('x(1.5)=2.25;\\; \\bar{v}=(2.25-1)/0.5'),answer:'2.5',unit:'מ/ש',tolerance:0.05,
+      {q:'מהירות ממוצעת בין t=1 ל-t=1.5:',hint:tex('x(1.5)=2.25;\\; \\bar{v}=(2.25-1)/0.5'),answer:'2.5',unit:'m/s',tolerance:0.05,
        explain:tex('\\bar{v} = 1.25/0.5 = 2.5\\,\\text{m/s}')},
-      {q:'מהירות רגעית ב-t=1 (השתמש ב-'+tex('v=dx/dt=2t')+'):',hint:tex('v(1) = 2 \\cdot 1'),answer:'2',unit:'מ/ש',tolerance:0,
+      {q:'מהירות רגעית ב-t=1 (השתמש ב-'+tex('v=dx/dt=2t')+'):',hint:tex('v(1) = 2 \\cdot 1'),answer:'2',unit:'m/s',tolerance:0,
        explain:tex('v(1) = 2\\,\\text{m/s}')+'הממוצעות (3, 2.5...) מתקרבות ל-2!'},
     ]
   }
@@ -1214,13 +1295,13 @@ const CONTENT={
     `,
     enrich:{
       title:'האצה ואינרטיה — מה מגביל מכוניות ספורט?',
-      html:`<p>מכונית ספורט מודרנית יכולה להאיץ 0-100 קמ"ש ב-3 שניות. מהי התאוצה הממוצעת?</p>
+      html:`<p>מכונית ספורט מודרנית יכולה להאיץ 0-100 km/h ב-3 s. מהי התאוצה הממוצעת?</p>
       <div class="enrich-formula">${tex('a = \\frac{\\Delta v}{\\Delta t} = \\frac{27.8}{3} \\approx 9.3\\,\\text{m/s}^2 \\approx 0.95g', true)}</div>
       <p>כלומר כמעט 1g! הגבול הפיזיקלי הוא חיכוך הצמיגים עם הכביש — גבוה יותר מזה, הגלגלים מסתובבים במקום. מכוניות F1 מגיעות ל-5g בבלימה!</p>`
     }
   },
   sim:{type:'acceleration',title:'תאוצה אינטראקטיבית',desc:'גרור בשדה העליון לשנות תאוצה. גרף v(t) מצטייר. לחץ פעמיים לאיפוס.'},
-  example:{title:'תאוצה קבועה',text:'גוף מתחיל ממנוחה ומגיע ל-20 מ/ש תוך 4 שניות.',steps:[{q:'מה התאוצה?',a:'a = Δv/Δt = (20−0)/4 = 5 מ/ש²'},{q:'מה המרחק?',a:'x = ½at² = ½×5×16 = 40 מ\''}]},
+  example:{title:'תאוצה קבועה',text:'גוף מתחיל ממנוחה ומגיע ל-20 m/s תוך 4 s.',steps:[{q:'מה התאוצה?',a:'a = Δv/Δt = (20−0)/4 = 5 m/s²'},{q:'מה המרחק?',a:'x = ½at² = ½×5×16 = 40 מ\''}]},
   quiz:[
     {q:'רכב ממנוחה מגיע ל-'+tex('20\\,\\text{m/s}')+' ב-'+tex('5\\,\\text{s}')+'. תאוצה?',
      opts:[tex('4\\,\\text{m/s}^2'),tex('100\\,\\text{m/s}^2'),tex('0.25\\,\\text{m/s}^2'),tex('25\\,\\text{m/s}^2')],correct:0,
@@ -1237,13 +1318,13 @@ const CONTENT={
   ],
   problem:{
     title:'בלימת חירום',
-    text:'מכונית נוסעת 72 קמ"ש. הנהג בולם ומביא אותה לעצירה ב-4 שניות.',
+    text:'מכונית נוסעת 72 km/h. הנהג בולם ומביא אותה לעצירה ב-4 s.',
     steps:[
-      {q:'המר מהירות ראשונית לי מ/ש:',hint:tex('v_0 = 72/3.6'),answer:'20',unit:'מ/ש',tolerance:0.1,
+      {q:'המר מהירות ראשונית לי מ/ש:',hint:tex('v_0 = 72/3.6'),answer:'20',unit:'m/s',tolerance:0.1,
        explain:tex('72\\,\\text{km/h} \\div 3.6 = 20\\,\\text{m/s}')},
-      {q:'מהי תאוצת הבלימה? (כולל סימן)',hint:tex('a = (v_f - v_0)/t = (0-20)/4'),answer:'-5',unit:'מ/ש²',tolerance:0.1,
+      {q:'מהי תאוצת הבלימה? (כולל סימן)',hint:tex('a = (v_f - v_0)/t = (0-20)/4'),answer:'-5',unit:'m/s²',tolerance:0.1,
        explain:tex('a = (0-20)/4 = -5\\,\\text{m/s}^2')+'שלילי = כיוון בלימה.'},
-      {q:'מה מרחק הבלימה? השתמש ב-'+tex('v^2=v_0^2+2a\\Delta x'),hint:tex('0=400+2(-5)\\Delta x'),answer:'40',unit:'מ׳',tolerance:0.5,
+      {q:'מה מרחק הבלימה? השתמש ב-'+tex('v^2=v_0^2+2a\\Delta x'),hint:tex('0=400+2(-5)\\Delta x'),answer:'40',unit:'m',tolerance:0.5,
        explain:tex('\\Delta x = 400/10 = 40\\,\\text{m}')},
     ]
   }
@@ -1281,7 +1362,7 @@ const CONTENT={
     }
   },
   sim:{type:'freefall',title:'נפילה חופשית',desc:'לחץ "זרוק!" לשגר כדור. שים לב לסימטריה בין עלייה לירידה.'},
-  example:{title:'זריקה אנכית למעלה',text:'כדור נזרק מעלה במהירות 14.7 מ/ש.',steps:[{q:'זמן לפסגה',a:'t = v₀/g = 14.7/9.8 = 1.5 שניות'},{q:'גובה מרבי',a:'h = v₀²/(2g) = 216/19.6 = 11.03 מ\''}]},
+  example:{title:'זריקה אנכית למעלה',text:'כדור נזרק מעלה במהירות 14.7 m/s.',steps:[{q:'זמן לפסגה',a:'t = v₀/g = 14.7/9.8 = 1.5 s'},{q:'גובה מרבי',a:'h = v₀²/(2g) = 216/19.6 = 11.03 מ\''}]},
   quiz:[
     {q:'ברגע הפסגה של כדור שנזרק מעלה:',
      opts:['v=0 וגם a=0','v=0 אך a=-g','v≠0 ו-a=0','a=+g'],correct:1,
@@ -1289,22 +1370,22 @@ const CONTENT={
     {q:'כדור נופל '+tex('h=45\\,\\text{m}')+' ממנוחה ('+tex('g=10')+' m/s²). זמן הנפילה?',
      opts:[tex('3\\,\\text{s}'),tex('4.5\\,\\text{s}'),tex('\\sqrt{45}\\,\\text{s}'),tex('6.7\\,\\text{s}')],correct:0,
      explain:tex('h = \\tfrac12 g t^2 \\Rightarrow t = \\sqrt{2h/g} = \\sqrt{9} = 3\\,\\text{s}')},
-    {q:'שני כדורים — 10 ג׳ ו-10 ק"ג — נשמטים מאותו גובה ללא חיכוך אוויר. מי יגיע ראשון?',
+    {q:'שני כדורים — 10 ג׳ ו-10 kg — נשמטים מאותו גובה ללא חיכוך אוויר. מי יגיע ראשון?',
      opts:['הכבד','הקל','שניהם יחד','תלוי בצורה'],correct:2,
      explain:'גלילאו: '+tex('a = g')+'לכל הגופים. אין תלות במסה. שניהם יגיעו ביחד!'},
     {q:'כדור נזרק מעלה ב-'+tex('v_0=20\\,\\text{m/s}')+'('+tex('g=10\\,\\text{m/s}^2')+'}). גובה מרבי?',
-     opts:['10 מ׳','20 מ׳','40 מ׳','200 מ׳'],correct:1,
+     opts:['10 m','20 m','40 m','200 m'],correct:1,
      explain:tex('v^2=v_0^2-2gh \\Rightarrow 0=400-2\\cdot10\\cdot h \\Rightarrow h=20\\,\\text{m}')},
   ],
   problem:{
     title:'כדור מגג',
-    text:'כדור נזרק מגג בגובה H=80 מ׳ ישר מעלה ב-v₀=20 מ/ש. g=10 מ/ש². ציר y חיובי מעלה, y₀=80 מ׳.',
+    text:'כדור נזרק מגג בגובה H=80 m ישר מעלה ב-v₀=20 m/s. g=10 m/s². ציר y חיובי מעלה, y₀=80 m.',
     steps:[
-      {q:'גובה מרבי מעל הקרקע?',hint:tex('v=0 \\Rightarrow \\Delta y = v_0^2/(2g) = 400/20 = 20'),answer:'100',unit:'מ׳',tolerance:0.5,
+      {q:'גובה מרבי מעל הקרקע?',hint:tex('v=0 \\Rightarrow \\Delta y = v_0^2/(2g) = 400/20 = 20'),answer:'100',unit:'m',tolerance:0.5,
        explain:tex('y_{\\max} = 80 + 20 = 100\\,\\text{m}')},
       {q:'מתי מגיע לפסגה?',hint:tex('t = v_0/g = 20/10'),answer:'2',unit:'ש׳',tolerance:0.05,
        explain:tex('t = 20/10 = 2\\,\\text{s}')},
-      {q:'מהי מהירות הכדור כשמגיע לקרקע (y=0)?',hint:tex('v^2 = v_0^2 - 2g(0-80) = 400+1600'),answer:'45',unit:'מ/ש',tolerance:1,
+      {q:'מהי מהירות הכדור כשמגיע לקרקע (y=0)?',hint:tex('v^2 = v_0^2 - 2g(0-80) = 400+1600'),answer:'45',unit:'m/s',tolerance:1,
        explain:tex('v = \\sqrt{400+1600} = \\sqrt{2000} \\approx 44.7\\,\\text{m/s}')},
     ]
   }
@@ -1335,7 +1416,7 @@ const CONTENT={
     }
   },
   sim:{type:'vectors-basic',title:'וקטורים אינטראקטיביים',desc:'גרור את ראשי החצים לשנות גודל וכיוון. חיבור וקטורי (מקביל-פרוגרמה) בזמן אמת.'},
-  example:{title:'גודל וכיוון',text:'כוח של 5 N בכיוון 37° מהאופקי.',steps:[{q:'האם זה גודל וקטורי?',a:'כן — יש גודל (5 N) וכיוון (37°)'},{q:'מה ההבדל ממסה 5 ק"ג?',a:'מסה — סקלר (רק גודל, בלי כיוון)'}]},
+  example:{title:'גודל וכיוון',text:'כוח של 5 N בכיוון 37° מהאופקי.',steps:[{q:'האם זה גודל וקטורי?',a:'כן — יש גודל (5 N) וכיוון (37°)'},{q:'מה ההבדל ממסה 5 kg?',a:'מסה — סקלר (רק גודל, בלי כיוון)'}]},
   quiz:[
     {q:'איזה מהבאים הוא גודל וקטורי?',opts:['מסה','טמפרטורה','מהירות (velocity)','זמן'],correct:2,
      explain:'מהירות היא וקטורית — יש גודל וכיוון. מסה, טמפ׳ וזמן — סקלרים.'},
@@ -1350,11 +1431,11 @@ const CONTENT={
     title:'זיהוי גדלים פיזיקליים',
     text:'סווג כל גודל: סקלרי (S) או וקטורי (V).',
     steps:[
-      {q:'"מהירות 80 קמ"ש צפונה" — S או V?',hint:'האם נדרש כיוון? velocity = V',answer:'V',unit:'',tolerance:-1,
-       explain:'וקטורי — יש גודל (80 קמ"ש) וכיוון (צפון). זוהי velocity, לא speed.'},
-      {q:'"כוח 20 נ׳ כלפי מטה" — S או V?',hint:'כוח הוא וקטורי תמיד',answer:'V',unit:'',tolerance:-1,
+      {q:'"מהירות 80 km/h צפונה" — S או V?',hint:'האם נדרש כיוון? velocity = V',answer:'V',unit:'',tolerance:-1,
+       explain:'וקטורי — יש גודל (80 km/h) וכיוון (צפון). זוהי velocity, לא speed.'},
+      {q:'"כוח 20 N כלפי מטה" — S או V?',hint:'כוח הוא וקטורי תמיד',answer:'V',unit:'',tolerance:-1,
        explain:'וקטורי — כוח הוא גודל וקטורי מובהק.'},
-      {q:'"מסת הגוף 5 ק"ג" — S או V?',hint:'למסה אין כיוון',answer:'S',unit:'',tolerance:-1,
+      {q:'"מסת הגוף 5 kg" — S או V?',hint:'למסה אין כיוון',answer:'S',unit:'',tolerance:-1,
        explain:'סקלרי — מסה היא כמות חומר, ללא כיוון.'},
     ]
   }
@@ -1387,10 +1468,10 @@ const CONTENT={
     }
   },
   sim:{type:'inertia',title:'התמדה וחיכוך',desc:'לחץ "דחוף" כדי להפעיל כוח. שנה חיכוך. צפה כיצד הגוף ממשיך לנוע.'},
-  example:{title:'חוק ניוטון הראשון',text:'ספינת חלל זזה במהירות 200 מ/ש. מה קורה אם מנועים כבויים?',steps:[{q:'מה התאוצה?',a:'a = 0 (אין ΣF)'},{q:'מה המהירות אחרי שעה?',a:'v = 200 מ/ש — לא משתנה (התמדה)'}]},
+  example:{title:'חוק ניוטון הראשון',text:'ספינת חלל זזה במהירות 200 m/s. מה קורה אם מנועים כבויים?',steps:[{q:'מה התאוצה?',a:'a = 0 (אין ΣF)'},{q:'מה המהירות אחרי שעה?',a:'v = 200 m/s — לא משתנה (התמדה)'}]},
   quiz:[
-    {q:'ספינת חלל נעה 1000 מ/ש. מנועים כבויים. אין כוחות. מה יקרה?',
-     opts:['תאיץ','תאט ותעצור','תמשיך ב-1000 מ/ש','תשנה כיוון'],correct:2,
+    {q:'ספינת חלל נעה 1000 m/s. מנועים כבויים. אין כוחות. מה יקרה?',
+     opts:['תאיץ','תאט ותעצור','תמשיך ב-1000 m/s','תשנה כיוון'],correct:2,
      explain:'חוק ניוטון הראשון: ΣF=0 → v=const. בחלל (ללא חיכוך) — לנצח!'},
     {q:'מה מייצגת מסה בהקשר של חוק ניוטון הראשון?',
      opts:['כובד הגוף','נפח הגוף','מדד להתמדה','כוח הכבידה'],correct:2,
@@ -1401,12 +1482,12 @@ const CONTENT={
   ],
   problem:{
     title:'ניתוח כוחות על ספר',
-    text:'ספר (m=0.5 ק"ג) מונח בשקט על שולחן. כוח הכבידה = mg=4.9 נ׳ כלפי מטה.',
+    text:'ספר (m=0.5 kg) מונח בשקט על שולחן. כוח הכבידה = mg=4.9 N כלפי מטה.',
     steps:[
-      {q:'מה גודל כוח השולחן על הספר? (ΣF=0)',hint:'ΣF=0 → כוח שולחן = כוח כבידה',answer:'4.9',unit:'נ׳',tolerance:0.1,
-       explain:'ΣF=0 → N = mg = 4.9 נ׳ כלפי מעלה.'},
-      {q:'כעת מנסים לרסק את הספר ב-6 נ׳ נוסף כלפי מטה. מה כוח השולחן עכשיו?',hint:'הספר עדיין עומד → ΣF=0 → N = 4.9+6',answer:'10.9',unit:'נ׳',tolerance:0.1,
-       explain:'ΣF=0 → N = 4.9+6 = 10.9 נ׳.'},
+      {q:'מה גודל כוח השולחן על הספר? (ΣF=0)',hint:'ΣF=0 → כוח שולחן = כוח כבידה',answer:'4.9',unit:'N',tolerance:0.1,
+       explain:'ΣF=0 → N = mg = 4.9 N כלפי מעלה.'},
+      {q:'כעת מנסים לרסק את הספר ב-6 N נוסף כלפי מטה. מה כוח השולחן עכשיו?',hint:'הספר עדיין עומד → ΣF=0 → N = 4.9+6',answer:'10.9',unit:'N',tolerance:0.1,
+       explain:'ΣF=0 → N = 4.9+6 = 10.9 N.'},
     ]
   }
 },
@@ -1425,7 +1506,7 @@ const CONTENT={
       <p class="anim-note">אותו כוח על מסה פי 4 גדולה — התאוצה קטנה פי 4. <b>a = F/m</b> קובע: ככבד יותר הגוף, כקשה יותר לזיזו.</p>
       ${animCanvas('anim-n2-2',198,'a = F/m')}
       <div class="def-block"><div class="def-title">יחידת כוח — ניוטון (N)</div>
-        <p>${tex('1\\,\\text{N} = 1\\,\\text{kg}\\cdot\\text{m/s}^2')} — הכוח הנדרש להאיץ 1 ק"ג ב-1 מ/ש².</p>
+        <p>${tex('1\\,\\text{N} = 1\\,\\text{kg}\\cdot\\text{m/s}^2')} — הכוח הנדרש להאיץ 1 kg ב-1 m/s².</p>
       </div>
       <p>חוק ניוטון הראשון הוא מקרה פרטי: כאשר ${tex('\\sum F = 0 \\Rightarrow a = 0')} (v=const).</p>
       <div class="info-grid">
@@ -1443,15 +1524,15 @@ const CONTENT={
     }
   },
   sim:{type:'newton2',title:'F = ma אינטראקטיבי',desc:'גרור בחלק העליון לשנות כוח. שנה מסה בסליידר. ראה כיצד a=F/m משתנה.'},
-  example:{title:'F=ma — חישוב תאוצה',text:'גוש 8 ק"ג. F_מופעל=40 N, f_חיכוך=16 N.',steps:[{q:'ΣF = ?',a:'ΣF = 40 − 16 = 24 N'},{q:'a = ?',a:'a = ΣF/m = 24/8 = 3 מ/ש²'}]},
+  example:{title:'F=ma — חישוב תאוצה',text:'גוש 8 kg. F_מופעל=40 N, f_חיכוך=16 N.',steps:[{q:'ΣF = ?',a:'ΣF = 40 − 16 = 24 N'},{q:'a = ?',a:'a = ΣF/m = 24/8 = 3 m/s²'}]},
   quiz:[
     {q:tex('F=30\\,\\text{N},\\; m=5\\,\\text{kg}')+'. תאוצה?',
      opts:[tex('6\\,\\text{m/s}^2'),tex('150\\,\\text{m/s}^2'),tex('0.17\\,\\text{m/s}^2'),tex('35\\,\\text{m/s}^2')],correct:0,
      explain:tex('a = F/m = 30/5 = 6\\,\\text{m/s}^2')},
     {q:'גוף מאיץ '+tex('4\\,\\text{m/s}^2')+'. כוח '+tex('20\\,\\text{N}')+'. מסה?',
-     opts:['80 ק"ג','5 ק"ג','0.2 ק"ג','24 ק"ג'],correct:1,
+     opts:['80 kg','5 kg','0.2 kg','24 kg'],correct:1,
      explain:tex('m = F/a = 20/4 = 5\\,\\text{kg}')},
-    {q:'כוחות: 10 נ׳ ימינה, 4 נ׳ שמאלה, 6 נ׳ שמאלה. גוף '+tex('m=5\\,\\text{kg}')+'. תאוצה?',
+    {q:'כוחות: 10 N ימינה, 4 N שמאלה, 6 N שמאלה. גוף '+tex('m=5\\,\\text{kg}')+'. תאוצה?',
      opts:[tex('0'),tex('4\\,\\text{m/s}^2 \\mathrm{ ימ}'),tex('4\\,\\text{m/s}^2 \\mathrm{ שמ}'),tex('2\\,\\text{m/s}^2')],correct:0,
      explain:tex('\\sum F = 10-4-6 = 0 \\Rightarrow a=0')},
     {q:'רכטה שורפת דלק ומאבדת מסה. מה נכון?',
@@ -1460,13 +1541,13 @@ const CONTENT={
   ],
   problem:{
     title:'גוף על משטח עם חיכוך',
-    text:'גוף m=10 ק"ג. כוח F=50 נ׳ אופקי. כוח חיכוך f=20 נ׳.',
+    text:'גוף m=10 kg. כוח F=50 N אופקי. כוח חיכוך f=20 N.',
     steps:[
-      {q:'מה הכוח הנטו ΣF?',hint:'ΣF = F - f = 50 - 20',answer:'30',unit:'נ׳',tolerance:0,
+      {q:'מה הכוח הנטו ΣF?',hint:'ΣF = F - f = 50 - 20',answer:'30',unit:'N',tolerance:0,
        explain:tex('\\sum F = 50-20 = 30\\,\\text{N}')},
-      {q:'מהי תאוצת הגוף?',hint:'a = ΣF/m',answer:'3',unit:'מ/ש²',tolerance:0,
+      {q:'מהי תאוצת הגוף?',hint:'a = ΣF/m',answer:'3',unit:'m/s²',tolerance:0,
        explain:tex('a = 30/10 = 3\\,\\text{m/s}^2')},
-      {q:'אם התחיל ממנוחה, מהירות אחרי 5 ש׳?',hint:'v = v₀ + at = 0 + 3·5',answer:'15',unit:'מ/ש',tolerance:0,
+      {q:'אם התחיל ממנוחה, מהירות אחרי 5 ש׳?',hint:'v = v₀ + at = 0 + 3·5',answer:'15',unit:'m/s',tolerance:0,
        explain:tex('v = 0 + 3\\cdot5 = 15\\,\\text{m/s}')},
     ]
   }
@@ -1509,23 +1590,23 @@ const CONTENT={
     }
   },
   sim:{type:'momentum',title:'תנע',desc:'שנה מסה ומהירות. ראה את התנע p=mv בזמן אמת.'},
-  example:{title:'תנע ומתקף',text:'כדור 0.5 ק"ג מגיע ב-20 מ/ש ועוצר תוך 0.1 שניות.',steps:[{q:'תנע התחלתי',a:'p₀ = mv = 0.5×20 = 10 ק"ג·מ/ש'},{q:'מתקף J = ?',a:'J = Δp = 0−10 = −10 ק"ג·מ/ש'},{q:'כוח ממוצע',a:'F = J/Δt = −10/0.1 = −100 N'}]},
+  example:{title:'תנע ומתקף',text:'כדור 0.5 kg מגיע ב-20 m/s ועוצר תוך 0.1 s.',steps:[{q:'תנע התחלתי',a:'p₀ = mv = 0.5×20 = 10 kg·מ/ש'},{q:'מתקף J = ?',a:'J = Δp = 0−10 = −10 kg·מ/ש'},{q:'כוח ממוצע',a:'F = J/Δt = −10/0.1 = −100 N'}]},
   quiz:[
     {q:'תנע כדור '+tex('m=0.5\\,\\text{kg}, v=20\\,\\text{m/s}')+':',
      opts:['40 kg·m/s','10 kg·m/s','0.025 kg·m/s','20.5 kg·m/s'],correct:1,
      explain:tex('p = mv = 0.5\\cdot20 = 10\\,\\text{kg·m/s}')},
-    {q:'כוח 100 נ׳ פועל 0.5 ש׳. מתקף?',
-     opts:['200 נ׳·ש׳','50 נ׳·ש׳','0.005','100'],correct:1,
+    {q:'כוח 100 N פועל 0.5 ש׳. מתקף?',
+     opts:['200 N·ש׳','50 N·ש׳','0.005','100'],correct:1,
      explain:tex('J = F\\Delta t = 100\\cdot0.5 = 50\\,\\text{N·s}')},
   ],
   problem:{
     title:'מחבט ומתקף',
-    text:'כדור טניס m=0.06 ק"ג נע ב-v₁=40 מ/ש. מחבט מחזירו ב-v₂=-50 מ/ש. זמן מגע: Δt=0.005 ש.',
+    text:'כדור טניס m=0.06 kg נע ב-v₁=40 m/s. מחבט מחזירו ב-v₂=-50 m/s. זמן מגע: Δt=0.005 ש.',
     steps:[
       {q:'שינוי תנע הכדור ('+tex('\\Delta p = p_f - p_i')+'):',hint:tex('\\Delta p = m v_f - m v_i = 0.06(-50)-0.06(40)'),answer:'-5.4',unit:'kg·m/s',tolerance:0.1,
        explain:tex('\\Delta p = -3-2.4 = -5.4\\,\\text{kg·m/s}')},
-      {q:'כוח ממוצע של המחבט:',hint:tex('F = \\Delta p/\\Delta t'),answer:'-1080',unit:'נ׳',tolerance:10,
-       explain:tex('F = -5.4/0.005 = -1080\\,\\text{N}')+'גודלו 1080 נ׳ — גדול, אך לזמן קצר מאד!'},
+      {q:'כוח ממוצע של המחבט:',hint:tex('F = \\Delta p/\\Delta t'),answer:'-1080',unit:'N',tolerance:10,
+       explain:tex('F = -5.4/0.005 = -1080\\,\\text{N}')+'גודלו 1080 N — גדול, אך לזמן קצר מאד!'},
     ]
   }
 },
@@ -1546,9 +1627,9 @@ const CONTENT={
       <p><b>משפט עבודה-אנרגיה:</b></p>
       ${fBox('W_{\\text{total}} = \\Delta E_k = \\tfrac{1}{2}mv^2 - \\tfrac{1}{2}mv_0^2','משפט עבודה-אנרגיה')}
       ${animCanvas('anim-work-thm',180,'העבודה שהכוח מבצע וההגדלה באנרגיה הקינטית — אותו מספר בדיוק, בכל רגע')}
-      <div class="mis-block"><b>⚠️ טעות נפוצה:</b> "מהירות כפולה — אנרגיה קינטית כפולה". לא: E_k תלויה ב-v ב<b>ריבוע</b>, ולכן מהירות כפולה נותנת אנרגיה <b>פי 4</b>. זו הסיבה שמכונית ב-100 קמ"ש זקוקה למרחק בלימה ארוך פי 4 מאשר ב-50 קמ"ש — הבלמים חייבים לפזר פי 4 אנרגיה.</div>
+      <div class="mis-block"><b>⚠️ טעות נפוצה:</b> "מהירות כפולה — אנרגיה קינטית כפולה". לא: E_k תלויה ב-v ב<b>ריבוע</b>, ולכן מהירות כפולה נותנת אנרגיה <b>פי 4</b>. זו הסיבה שמכונית ב-100 km/h זקוקה למרחק בלימה ארוך פי 4 מאשר ב-50 km/h — הבלמים חייבים לפזר פי 4 אנרגיה.</div>
       <div class="ex-block"><div class="ex-title">✏️ דוגמה פתורה — מרחק בלימה</div>
-      <p>מכונית 1200 ק"ג נוסעת ב-20 m/s ובולמת עד עצירה. כוח הבלימה 6000 N.</p>
+      <p>מכונית 1200 kg נוסעת ב-20 m/s ובולמת עד עצירה. כוח הבלימה 6000 N.</p>
       <p><b>1. האנרגיה שיש לפזר:</b> E_k=½mv²=½·1200·400=240,000 J.<br>
       <b>2. משפט עבודה-אנרגיה:</b> W=ΔE_k ⇒ −F·d = 0−240,000 ⇒ d=240,000/6000=<b>40 m</b>.<br>
       <b>3. ובמהירות כפולה (40 m/s)?</b> E_k גדלה פי 4 ⇒ d=<b>160 m</b> — לא 80!<br>
@@ -1568,12 +1649,12 @@ const CONTENT={
     }
   },
   sim:{type:'energy-kinetic',title:'שימור אנרגיה',desc:'הפעל כוח על גוף — ראה W=F·d = ΔKE בזמן אמת. גרף KE(d) נבנה.'},
-  example:{title:'EK ועבודה',text:'גוש 3 ק"ג מואץ מ-4 מ/ש ל-10 מ/ש. F=18 N.',steps:[{q:'ΔKE = ?',a:'ΔKE = ½×3×(100−16) = ½×3×84 = 126 J'},{q:'d = W/F = ΔKE/F',a:'d = 126/18 = 7 מ\''}]},
+  example:{title:'EK ועבודה',text:'גוש 3 kg מואץ מ-4 m/s ל-10 m/s. F=18 N.',steps:[{q:'ΔKE = ?',a:'ΔKE = ½×3×(100−16) = ½×3×84 = 126 J'},{q:'d = W/F = ΔKE/F',a:'d = 126/18 = 7 מ\''}]},
   quiz:[
     {q:'אנרגיה קינטית רכב '+tex('m=1000\\,\\text{kg},\\; v=20\\,\\text{m/s}')+':',
      opts:['200,000 J','10,000 J','20,000 J','400,000 J'],correct:0,
      explain:tex('E_k = \\tfrac12 \\cdot 1000 \\cdot 400 = 200{,}000\\,\\text{J}')},
-    {q:'כוח 50 נ׳ מזיז גוף 10 מ׳ בכיוון הכוח. עבודה?',
+    {q:'כוח 50 N מזיז גוף 10 m בכיוון הכוח. עבודה?',
      opts:['5 J','500 J','60 J','0.2 J'],correct:1,
      explain:tex('W = 50\\cdot10\\cdot\\cos 0^\\circ = 500\\,\\text{J}')},
     {q:'כוח ניצב לתנועה (θ=90°) עושה עבודה:',
@@ -1582,13 +1663,13 @@ const CONTENT={
   ],
   problem:{
     title:'עבודה, אנרגיה ומהירות',
-    text:'גוף m=2 ק"ג, v₀=3 מ/ש. כוח F=10 נ׳ פועל d=5 מ׳.',
+    text:'גוף m=2 kg, v₀=3 m/s. כוח F=10 N פועל d=5 m.',
     steps:[
       {q:'אנרגיה קינטית ראשונית?',hint:tex('E_{k0} = \\tfrac12 mv_0^2'),answer:'9',unit:'J',tolerance:0,
        explain:tex('E_{k0} = \\tfrac12\\cdot2\\cdot9 = 9\\,\\text{J}')},
       {q:'עבודה שנעשתה?',hint:tex('W = F\\cdot d'),answer:'50',unit:'J',tolerance:0,
        explain:tex('W = 10\\cdot5 = 50\\,\\text{J}')},
-      {q:'מהירות סופית?',hint:tex('E_{kf} = E_{k0}+W = 59\\,\\text{J};\\; v=\\sqrt{2E_k/m}'),answer:'7.68',unit:'מ/ש',tolerance:0.15,
+      {q:'מהירות סופית?',hint:tex('E_{kf} = E_{k0}+W = 59\\,\\text{J};\\; v=\\sqrt{2E_k/m}'),answer:'7.68',unit:'m/s',tolerance:0.15,
        explain:tex('v = \\sqrt{2\\cdot59/2} = \\sqrt{59} \\approx 7.68\\,\\text{m/s}')},
     ]
   }
@@ -1630,7 +1711,7 @@ const CONTENT={
     }
   },
   sim:{type:'spring',title:'קפיץ-מסה',desc:'גרור את המסה להגדיר אמפליטודה. שנה k ו-m לראות את השפעתם על T.'},
-  example:{title:'קפיץ-מסה',text:'קפיץ k=400 N/m עם מסה m=1 ק"ג.',steps:[{q:'T = ?',a:'T = 2π√(m/k) = 2π√(0.0025) = 2π×0.05 = 0.314 שניות'},{q:'f = ?',a:'f = 1/T = 3.18 Hz'}]},
+  example:{title:'קפיץ-מסה',text:'קפיץ k=400 N/m עם מסה m=1 kg.',steps:[{q:'T = ?',a:'T = 2π√(m/k) = 2π√(0.0025) = 2π×0.05 = 0.314 s'},{q:'f = ?',a:'f = 1/T = 3.18 Hz'}]},
   quiz:[
     {q:tex('k=400\\,\\text{N/m},\\; m=1\\,\\text{kg}')+'. מחזור?',
      opts:[tex('\\pi/10\\,\\text{s}'),tex('\\pi/5\\,\\text{s}'),tex('2\\pi\\,\\text{s}'),tex('0.1\\,\\text{s}')],correct:0,
@@ -1644,13 +1725,13 @@ const CONTENT={
   ],
   problem:{
     title:'קפיץ-מסה',
-    text:'m=0.5 ק"ג, k=200 N/m. מושכים A=0.1 מ׳ ומשחררים.',
+    text:'m=0.5 kg, k=200 N/m. מושכים A=0.1 m ומשחררים.',
     steps:[
       {q:'מחזור T?',hint:tex('T=2\\pi\\sqrt{m/k}'),answer:'0.314',unit:'ש׳',tolerance:0.01,
        explain:tex('T = 2\\pi\\sqrt{0.5/200} = 2\\pi\\cdot0.05 \\approx 0.314\\,\\text{s}')},
       {q:'אנרגיה פוטנציאלית מרבית ('+tex('E_p=\\tfrac12kA^2')+'):',hint:tex('E_p=\\tfrac12\\cdot200\\cdot0.01'),answer:'1',unit:'J',tolerance:0.05,
        explain:tex('E_p = \\tfrac12\\cdot200\\cdot0.01 = 1\\,\\text{J}')},
-      {q:'מהירות מרבית (בשיווי משקל): השתמש ב-'+tex('E_k = E_p'),hint:tex('\\tfrac12mv_{\\max}^2=1 \\Rightarrow v_{\\max}=\\sqrt{2/m}'),answer:'2',unit:'מ/ש',tolerance:0.05,
+      {q:'מהירות מרבית (בשיווי משקל): השתמש ב-'+tex('E_k = E_p'),hint:tex('\\tfrac12mv_{\\max}^2=1 \\Rightarrow v_{\\max}=\\sqrt{2/m}'),answer:'2',unit:'m/s',tolerance:0.05,
        explain:tex('v_{\\max} = \\sqrt{2\\cdot1/0.5} = \\sqrt{4} = 2\\,\\text{m/s}')},
     ]
   }
@@ -1689,13 +1770,13 @@ const CONTENT={
     }
   },
   sim:{type:'tension',title:'מתיחות — גוף בחוט',desc:'שנה מסה ותאוצה של מעלית. ראה T=m(g+a). FBD חי.'},
-  example:{title:'מתיחות בחוט',text:'גוף 5 ק"ג מחובר לחוט ומאוץ כלפי מעלה ב-2 מ/ש².',steps:[{q:'T = ?',a:'T = m(g+a) = 5×(9.8+2) = 5×11.8 = 59 N'},{q:'למה T > W?',a:'החוט מוסיף כוח להאצה — T > mg תמיד בעליה'}]},
+  example:{title:'מתיחות בחוט',text:'גוף 5 kg מחובר לחוט ומאוץ כלפי מעלה ב-2 m/s².',steps:[{q:'T = ?',a:'T = m(g+a) = 5×(9.8+2) = 5×11.8 = 59 N'},{q:'למה T > W?',a:'החוט מוסיף כוח להאצה — T > mg תמיד בעליה'}]},
   quiz:[
-    {q:'גוף m=5 ק"ג תלוי בחוט בשיווי משקל. g=10. T=?',
-     opts:['5 נ׳','50 נ׳','100 נ׳','0'],correct:1,
+    {q:'גוף m=5 kg תלוי בחוט בשיווי משקל. g=10. T=?',
+     opts:['5 N','50 N','100 N','0'],correct:1,
      explain:M('T=mg=5\\times10=50\\,\\text{N}')},
-    {q:'מעלית עולה a=3 מ/ש². m=60 ק"ג, g=10. כוח הרצפה?',
-     opts:['600 נ׳','180 נ׳','780 נ׳','420 נ׳'],correct:2,
+    {q:'מעלית עולה a=3 m/s². m=60 kg, g=10. כוח הרצפה?',
+     opts:['600 N','180 N','780 N','420 N'],correct:2,
      explain:M('N=m(g+a)=60\\times13=780\\,\\text{N}')},
     {q:'גוף בנפילה חופשית. T=?',
      opts:[M('mg'),M('2mg'),'0',M('mg/2')],correct:2,
@@ -1703,13 +1784,13 @@ const CONTENT={
   ],
   problem:{
     title:'מתיחות בחוט',
-    text:'גוף m=4 ק"ג תלוי בחוט. g=10 מ/ש².',
+    text:'גוף m=4 kg תלוי בחוט. g=10 m/s².',
     steps:[
-      {q:'מתיחות כשהגוף בשיווי משקל?',hint:M('T=mg'),answer:'40',unit:'נ׳',tolerance:0,
+      {q:'מתיחות כשהגוף בשיווי משקל?',hint:M('T=mg'),answer:'40',unit:'N',tolerance:0,
        explain:M('T=4\\times10=40\\,\\text{N}')},
-      {q:'מתיחות כשהגוף מואץ מעלה ב-5 מ/ש²?',hint:M('T=m(g+a)=4\\times15'),answer:'60',unit:'נ׳',tolerance:0,
+      {q:'מתיחות כשהגוף מואץ מעלה ב-5 m/s²?',hint:M('T=m(g+a)=4\\times15'),answer:'60',unit:'N',tolerance:0,
        explain:M('T=4(10+5)=60\\,\\text{N}')},
-      {q:'מתיחות כשהגוף מואץ מטה ב-4 מ/ש²?',hint:M('T=m(g-a)=4\\times6'),answer:'24',unit:'נ׳',tolerance:0,
+      {q:'מתיחות כשהגוף מואץ מטה ב-4 m/s²?',hint:M('T=m(g-a)=4\\times6'),answer:'24',unit:'N',tolerance:0,
        explain:M('T=4(10-4)=24\\,\\text{N}')},
     ]
   }
@@ -1733,7 +1814,7 @@ const CONTENT={
       ])}
       <p>על <b>מדרון</b> בזווית ${M('\\theta')} לאופק:</p>
       ${fBox('N = mg\\cos\\theta','כוח נורמלי — מדרון',[
-        ['\theta','זווית המדרון','° — מאופק'],
+        ['\\theta','זווית המדרון','° — מאופק'],
       ])}
       <div class="info-grid">
         <div class="info-item"><div class="il">אופקי ${M('\\theta=0')}</div><div class="iv">${M('N=mg')}</div></div>
@@ -1750,10 +1831,10 @@ const CONTENT={
     }
   },
   sim:{type:'normal-force',title:'כוח נורמלי על מדרון',desc:'שנה זווית המדרון — ראה כיצד N ו-W_parallel משתנים. FBD בזמן אמת.'},
-  example:{title:'כוח נורמלי על מדרון',text:'גוש 4 ק"ג על מדרון בזווית 30°.',steps:[{q:'N = ?',a:'N = mg·cos30° = 4×9.8×0.866 = 33.9 N'},{q:'למה N < mg?',a:'כי רק הרכיב הניצב למשטח מאוזן ע"י N'}]},
+  example:{title:'כוח נורמלי על מדרון',text:'גוש 4 kg על מדרון בזווית 30°.',steps:[{q:'N = ?',a:'N = mg·cos30° = 4×9.8×0.866 = 33.9 N'},{q:'למה N < mg?',a:'כי רק הרכיב הניצב למשטח מאוזן ע"י N'}]},
   quiz:[
-    {q:'גוף m=5 ק"ג על משטח אופקי. g=10. N=?',
-     opts:['5 נ׳','10 נ׳','50 נ׳','25 נ׳'],correct:2,
+    {q:'גוף m=5 kg על משטח אופקי. g=10. N=?',
+     opts:['5 N','10 N','50 N','25 N'],correct:2,
      explain:M('N=mg=50\\,\\text{N}')},
     {q:'מדרון 60°. N לעומת mg?',
      opts:['N=mg','N=0.87mg','N=0.5mg','N=0'],correct:2,
@@ -1764,11 +1845,11 @@ const CONTENT={
   ],
   problem:{
     title:'גוף על מדרון',
-    text:'גוף m=6 ק"ג על מדרון 30°. g=10. cos30°=0.866, sin30°=0.5.',
+    text:'גוף m=6 kg על מדרון 30°. g=10. cos30°=0.866, sin30°=0.5.',
     steps:[
-      {q:'כוח נורמלי?',hint:M('N=mg\\cos30°=60\\times0.866'),answer:'52',unit:'נ׳',tolerance:1,
+      {q:'כוח נורמלי?',hint:M('N=mg\\cos30°=60\\times0.866'),answer:'52',unit:'N',tolerance:1,
        explain:M('N=6\\times10\\times0.866\\approx52\\,\\text{N}')},
-      {q:'רכיב הכובד לאורך המדרון?',hint:M('F_{\\|}=mg\\sin30°=30'),answer:'30',unit:'נ׳',tolerance:0,
+      {q:'רכיב הכובד לאורך המדרון?',hint:M('F_{\\|}=mg\\sin30°=30'),answer:'30',unit:'N',tolerance:0,
        explain:M('F_{\\|}=6\\times10\\times0.5=30\\,\\text{N}')},
     ]
   }
@@ -1782,8 +1863,8 @@ const CONTENT={
         <p>לכל כוח שגוף A מפעיל על גוף B, קיים כוח <b>שווה בגודל</b> ו<b>הפוך בכיוון</b> שגוף B מפעיל על A — בו-זמנית.</p>
       </div>
       ${fBox('\\vec{F}_{A\\to B} = -\\vec{F}_{B\\to A}','חוק פעולה ותגובה',[
-        ['\vec{F}_{A\to B}','כוח A על B',''],
-        ['\vec{F}_{B\to A}','כוח B על A','שווה בגודל, הפוך בכיוון'],
+        ['\\vec{F}_{A\\to B}','כוח A על B',''],
+        ['\\vec{F}_{B\\to A}','כוח B על A','שווה בגודל, הפוך בכיוון'],
       ])}
       ${animCanvas('anim-n3',182,'כוחות פ"ת — גודל שווה, כיוון הפוך')}
       <p class="anim-note">דג דוחף מים אחורה (כוח מכוח) — מים דוחפים את הדג קדימה (כוח תגובה). זוג כוחות שלישי <b>תמיד שווה בגודל, הפוך בכיוון</b>.</p>
@@ -1817,11 +1898,11 @@ const CONTENT={
   ],
   problem:{
     title:'רתיעת אקדח',
-    text:'כדור m₁=0.01 ק"ג יורה מאקדח m₂=0.8 ק"ג. מנוחה ראשונית. v₁=400 מ/ש.',
+    text:'כדור m₁=0.01 kg יורה מאקדח m₂=0.8 kg. מנוחה ראשונית. v₁=400 m/s.',
     steps:[
       {q:'תנע הכדור אחרי הירי?',hint:M('p_1=m_1 v_1'),answer:'4',unit:'ק"ג·מ/ש',tolerance:0,
        explain:M('p_1=0.01\\times400=4\\,\\text{kg·m/s}')},
-      {q:'מהירות רתיעת האקדח? (שימור תנע: p_tot=0)',hint:M('m_2 v_2=-p_1'),answer:'-5',unit:'מ/ש',tolerance:0.1,
+      {q:'מהירות רתיעת האקדח? (שימור תנע: p_tot=0)',hint:M('m_2 v_2=-p_1'),answer:'-5',unit:'m/s',tolerance:0.1,
        explain:M('v_2=-4/0.8=-5\\,\\text{m/s}')+'(לאחור)'},
     ]
   }
@@ -1852,14 +1933,14 @@ const CONTENT={
     `,
     enrich:{
       title:'ניווט — חיבור וקטורי בחיים',
-      html:`<p>מטוס טס 500 קמ"ש מזרחה. רוח 60 קמ"ש דרומה. מהירות אמיתית = ${M('\\sqrt{500^2+60^2}\\approx503\\,\\text{km/h}')} בזווית קטנה דרום-מזרח. טייסים חייבים לחשב זאת בכל טיסה!</p>`
+      html:`<p>מטוס טס 500 km/h מזרחה. רוח 60 km/h דרומה. מהירות אמיתית = ${M('\\sqrt{500^2+60^2}\\approx503\\,\\text{km/h}')} בזווית קטנה דרום-מזרח. טייסים חייבים לחשב זאת בכל טיסה!</p>`
     }
   },
   sim:{type:'vec-ops',title:'חיבור וקטורים',desc:'בחר: חיסור, כפל סקלרי, או מכפלה סקלרית. גרור חצים.'},
   example:{title:'חיבור וקטורים',text:'A=(3,4), B=(1,−2). חשב A+B ו-|A+B|.',steps:[{q:'A+B',a:'(3+1, 4+(−2)) = (4, 2)'},{q:'|A+B|',a:'√(4²+2²) = √20 = 4.47'}]},
   quiz:[
-    {q:'3 נ׳ מזרחה + 4 נ׳ צפונה (90°). גודל הסכום?',
-     opts:['7 נ׳','5 נ׳','1 נ׳','√7 נ׳'],correct:1,
+    {q:'3 N מזרחה + 4 N צפונה (90°). גודל הסכום?',
+     opts:['7 N','5 N','1 N','√7 N'],correct:1,
      explain:M('|R|=\\sqrt{9+16}=5\\,\\text{N}')},
     {q:'שני וקטורים שווים בגודל בזווית 180°. גודל הסכום?',
      opts:['2A','A','0','√2·A'],correct:2,
@@ -1874,7 +1955,7 @@ const CONTENT={
     title:'כוחות על גוף',
     text:M('\\vec{F_1}=6\\,\\text{N}')+' מזרחה, '+M('\\vec{F_2}=8\\,\\text{N}')+' צפונה.',
     steps:[
-      {q:'גודל הכוח הכולל?',hint:M('R=\\sqrt{36+64}'),answer:'10',unit:'נ׳',tolerance:0,
+      {q:'גודל הכוח הכולל?',hint:M('R=\\sqrt{36+64}'),answer:'10',unit:'N',tolerance:0,
        explain:M('R=\\sqrt{100}=10\\,\\text{N}')},
       {q:'זווית הכוח הכולל מהמזרח (arctan(8/6)):',hint:'arctan(8/6)≈53°',answer:'53',unit:'°',tolerance:2,
        explain:M('\\theta=\\arctan(8/6)\\approx53°')},
@@ -1914,12 +1995,12 @@ const CONTENT={
   sim:{type:'vec-components',title:'רכיבים',desc:'גרור קצה הוקטור — ראה רכיבי x,y ומעגל יחידה.'},
   example:{title:'פירוק וקטור לרכיבים',text:'כוח F=50 N בזווית 30° מהאופקי.',steps:[{q:'רכיב אופקי',a:'Fx = 50·cos30° = 50×0.866 = 43.3 N'},{q:'רכיב אנכי',a:'Fy = 50·sin30° = 50×0.5 = 25 N'}]},
   quiz:[
-    {q:'וקטור 10 מ/ש ב-30°. vx=?',
+    {q:'וקטור 10 m/s ב-30°. vx=?',
      opts:['10','8.66','5','0'],correct:1,
      explain:M('v_x=10\\cos30°\\approx8.66\\,\\text{m/s}')},
     {q:M('v_x=3,\\; v_y=4')+'. גודל?',opts:['7','5','3.5','1'],correct:1,
      explain:M('v=\\sqrt{9+16}=5')},
-    {q:'וקטור 20 מ/ש ב-90°. מה vx?',opts:['20','0','10','14.1'],correct:1,
+    {q:'וקטור 20 m/s ב-90°. מה vx?',opts:['20','0','10','14.1'],correct:1,
      explain:M('v_x=20\\cos90°=0')},
     {q:'לחיבור '+M('\\vec{A}+\\vec{B}')+' עם רכיבים:',
      opts:[M('R=\\sqrt{|A|^2+|B|^2}'),M('R_x=A_x+B_x'),M('R_y=A_x+B_x'),'תלוי בכיוון'],correct:1,
@@ -1929,11 +2010,11 @@ const CONTENT={
     title:'פירוק כוח ורכיבים',
     text:M('\\vec{F}=50\\,\\text{N}')+' בזווית 37° מעל האופק. sin37°=0.6, cos37°=0.8.',
     steps:[
-      {q:'רכיב אופקי?',hint:M('F_x=F\\cos37°=40'),answer:'40',unit:'נ׳',tolerance:0,
+      {q:'רכיב אופקי?',hint:M('F_x=F\\cos37°=40'),answer:'40',unit:'N',tolerance:0,
        explain:M('F_x=50\\times0.8=40\\,\\text{N}')},
-      {q:'רכיב אנכי?',hint:M('F_y=F\\sin37°=30'),answer:'30',unit:'נ׳',tolerance:0,
+      {q:'רכיב אנכי?',hint:M('F_y=F\\sin37°=30'),answer:'30',unit:'N',tolerance:0,
        explain:M('F_y=50\\times0.6=30\\,\\text{N}')},
-      {q:'כוח נוסף '+M('\\vec{G}=50\\,\\text{N}')+' אופקי. Rx=?',hint:M('R_x=40+50=90'),answer:'90',unit:'נ׳',tolerance:0,
+      {q:'כוח נוסף '+M('\\vec{G}=50\\,\\text{N}')+' אופקי. Rx=?',hint:M('R_x=40+50=90'),answer:'90',unit:'N',tolerance:0,
        explain:M('R_x=F_x+G_x=40+50=90\\,\\text{N}')},
     ]
   }
@@ -1947,7 +2028,7 @@ const CONTENT={
       <div class="def-block"><div class="def-title">כוח ${P('F','כוח','גודל וקטורי — גודל וכיוון. יחידה: נ׳יוטון (N)')}</div>
         <p>כוח הוא <b>פעולת גומלין</b> בין שני גופים — גורם לשינוי מהירות, כיוון, או עיוות. כוח הוא גודל <b>וקטורי</b>.</p>
       </div>
-      <p>יחידת הכוח: <b>נ׳יוטון [N]</b>. הגדרה: הכוח הנדרש לתת לגוף מסה 1 ק"ג תאוצה 1 מ/ש².</p>
+      <p>יחידת הכוח: <b>נ׳יוטון [N]</b>. הגדרה: הכוח הנדרש לתת לגוף מסה 1 kg תאוצה 1 m/s².</p>
       ${fBox('1\\,\\text{N} = 1\\,\\text{kg} \\cdot \\text{m/s}^2','הגדרת נ׳יוטון')}
       <div class="def-block"><div class="def-title">מד-כוח (דינמומטר)</div>
         <p>קפיץ עם סקאלה. כוח מושך קפיץ → קפיץ מתמשש → קריאת הסקאלה. מבוסס על חוק הוק: מתיחה פרופורציונלית לכוח.</p>
@@ -1969,7 +2050,7 @@ const CONTENT={
     }
   },
   sim:{type:'fbd',title:'דיאגרמת כוחות חופשית',desc:'גרור וקטורי כוח — ראה FBD ו-ΣF. בחן שיווי-משקל.'},
-  example:{title:'מדידת כוח',text:'גוף 2 ק"ג תלוי על קפיץ עם k=100 N/m.',steps:[{q:'מה המשקל?',a:'W = mg = 2×9.8 = 19.6 N'},{q:'מה מתיחת הקפיץ?',a:'x = F/k = 19.6/100 = 0.196 מ\''}]},
+  example:{title:'מדידת כוח',text:'גוף 2 kg תלוי על קפיץ עם k=100 N/m.',steps:[{q:'מה המשקל?',a:'W = mg = 2×9.8 = 19.6 N'},{q:'מה מתיחת הקפיץ?',a:'x = F/k = 19.6/100 = 0.196 מ\''}]},
   quiz:[
     {q:'יחידת הכוח היא:',opts:['kg','m/s²','N=kg·m/s²','J'],correct:2,
      explain:'N = kg·m/s² — מהגדרה: F=ma.'},
@@ -1980,13 +2061,13 @@ const CONTENT={
   ],
   problem:{
     title:'FBD — גוף על שולחן',
-    text:'גוף m=5 ק"ג על שולחן אופקי. כוח F=20 נ׳ אופקי. g=10.',
+    text:'גוף m=5 kg על שולחן אופקי. כוח F=20 N אופקי. g=10.',
     steps:[
-      {q:'כוח הכובד (מטה)?',hint:M('W=mg=50'),answer:'50',unit:'נ׳',tolerance:0,
+      {q:'כוח הכובד (מטה)?',hint:M('W=mg=50'),answer:'50',unit:'N',tolerance:0,
        explain:M('W=5\\times10=50\\,\\text{N}')},
-      {q:'כוח נורמלי (מעלה) בשיווי משקל אנכי?',hint:'ΣFy=0 → N=W',answer:'50',unit:'נ׳',tolerance:0,
+      {q:'כוח נורמלי (מעלה) בשיווי משקל אנכי?',hint:'ΣFy=0 → N=W',answer:'50',unit:'N',tolerance:0,
        explain:'N=W=50 N — אין תאוצה אנכית.'},
-      {q:'ΣFx על הגוף (כוח נטו)?',hint:'F=20 N, ללא חיכוך',answer:'20',unit:'נ׳',tolerance:0,
+      {q:'ΣFx על הגוף (כוח נטו)?',hint:'F=20 N, ללא חיכוך',answer:'20',unit:'N',tolerance:0,
        explain:'ΣFx=F=20 N לאופק.'},
     ]
   }
@@ -2025,26 +2106,26 @@ const CONTENT={
     }
   },
   sim:{type:'force-types',title:'FBD — כוחות על גוף',desc:'גוף על משטח עם חיכוך — ראה כל הכוחות: W, N, f, F.'},
-  example:{title:'ארבעת הכוחות על גוש',text:'גוש 3 ק"ג על משטח. μ=0.2, F_מופעל=12 N.',steps:[{q:'N = ?',a:'N = mg = 3×9.8 = 29.4 N (↑)'},{q:'f = ?',a:'f = μN = 0.2×29.4 = 5.88 N (←)'},{q:'ΣF ו-a = ?',a:'ΣF = 12−5.88 = 6.12 N, a = 6.12/3 = 2.04 מ/ש²'}]},
+  example:{title:'ארבעת הכוחות על גוש',text:'גוש 3 kg על משטח. μ=0.2, F_מופעל=12 N.',steps:[{q:'N = ?',a:'N = mg = 3×9.8 = 29.4 N (↑)'},{q:'f = ?',a:'f = μN = 0.2×29.4 = 5.88 N (←)'},{q:'ΣF ו-a = ?',a:'ΣF = 12−5.88 = 6.12 N, a = 6.12/3 = 2.04 m/s²'}]},
   quiz:[
-    {q:'כוח הכובד על m=4 ק"ג (g=10):',opts:['4 נ׳','10 נ׳','40 נ׳','14 נ׳'],correct:2,
+    {q:'כוח הכובד על m=4 kg (g=10):',opts:['4 N','10 N','40 N','14 N'],correct:2,
      explain:M('W=mg=40\\,\\text{N}')},
     {q:'כוח נורמלי מכוון תמיד:',
      opts:['אנכית מעלה','ניצב למשטח החוצה','מקביל למשטח','בכיוון הכובד'],correct:1,
      explain:'N ⊥ למשטח — לא בהכרח אנכי!'},
-    {q:'מקדם חיכוך קינטי 0.3, N=100 נ׳. fk=?',
-     opts:['3 נ׳','30 נ׳','300 נ׳','0.3 נ׳'],correct:1,
+    {q:'מקדם חיכוך קינטי 0.3, N=100 N. fk=?',
+     opts:['3 N','30 N','300 N','0.3 N'],correct:1,
      explain:M('f_k=0.3\\times100=30\\,\\text{N}')},
   ],
   problem:{
     title:'גוף על משטח עם חיכוך',
-    text:'m=4 ק"ג, F=20 נ׳ אופקי, μk=0.25, g=10.',
+    text:'m=4 kg, F=20 N אופקי, μk=0.25, g=10.',
     steps:[
-      {q:'כוח נורמלי?',hint:M('N=mg=40'),answer:'40',unit:'נ׳',tolerance:0,
+      {q:'כוח נורמלי?',hint:M('N=mg=40'),answer:'40',unit:'N',tolerance:0,
        explain:M('N=40\\,\\text{N}')},
-      {q:'כוח חיכוך קינטי?',hint:M('f_k=0.25\\times40=10'),answer:'10',unit:'נ׳',tolerance:0,
+      {q:'כוח חיכוך קינטי?',hint:M('f_k=0.25\\times40=10'),answer:'10',unit:'N',tolerance:0,
        explain:M('f_k=10\\,\\text{N}')},
-      {q:'תאוצה? (ΣF=F-fk)',hint:M('a=(20-10)/4'),answer:'2.5',unit:'מ/ש²',tolerance:0.1,
+      {q:'תאוצה? (ΣF=F-fk)',hint:M('a=(20-10)/4'),answer:'2.5',unit:'m/s²',tolerance:0.1,
        explain:M('a=10/4=2.5\\,\\text{m/s}^2')},
     ]
   }
@@ -2065,14 +2146,14 @@ const CONTENT={
     `,
     enrich:{
       title:'מדרון — ישומים מעשיים',
-      html:`<p>מדרון שימושי: ב<b>גלישה</b> (עם חיכוך) a=g(sinθ−μcosθ). ב<b>עיגון</b>: כוח מינימלי להחזקת גוף = mgsinθ. כבדרגת חיכוך μ=tanθ — גוף נמצא בשיווי משקל בכל θ. דוגמה: מגלשה ב-30°, μ=0.2 → a=9.8×(0.5−0.2×0.866)=3.2 מ/ש².</p>`
+      html:`<p>מדרון שימושי: ב<b>גלישה</b> (עם חיכוך) a=g(sinθ−μcosθ). ב<b>עיגון</b>: כוח מינימלי להחזקת גוף = mgsinθ. כבדרגת חיכוך μ=tanθ — גוף נמצא בשיווי משקל בכל θ. דוגמה: מגלשה ב-30°, μ=0.2 → a=9.8×(0.5−0.2×0.866)=3.2 m/s².</p>`
     }
   },
   sim:{type:'incline',title:'גוף על מדרון עם חיכוך',desc:'שנה זווית המדרון וחיכוך. ראה FBD, חשב N, a=g(sinθ-μcosθ) ומתקף.'},
-  example:{title:'גוף על מדרון',text:'גוש 5 ק"ג על מדרון 37°, μ=0.25.',steps:[{q:'כוחות לאורך המדרון',a:'W∥ = mg·sin37° = 29.4 N (↓), f = μmg·cos37° = 9.8 N (↑)'},{q:'a = ?',a:'a = g(sin37°−μcos37°) = 9.8(0.6−0.2) = 3.92 מ/ש²'}]},
+  example:{title:'גוף על מדרון',text:'גוש 5 kg על מדרון 37°, μ=0.25.',steps:[{q:'כוחות לאורך המדרון',a:'W∥ = mg·sin37° = 29.4 N (↓), f = μmg·cos37° = 9.8 N (↑)'},{q:'a = ?',a:'a = g(sin37°−μcos37°) = 9.8(0.6−0.2) = 3.92 m/s²'}]},
   quiz:[
     {q:'מדרון 30°, חלק, g=10. תאוצה?',
-     opts:['5 מ/ש²','8.66 מ/ש²','10 מ/ש²','0'],correct:0,
+     opts:['5 m/s²','8.66 m/s²','10 m/s²','0'],correct:0,
      explain:M('a=g\\sin30°=5\\,\\text{m/s}^2')},
 
     {q:'על מדרון N=?',opts:[M('mg'),M('mg\\sin\\theta'),M('mg\\cos\\theta'),M('mg\\tan\\theta')],correct:2,
@@ -2080,13 +2161,13 @@ const CONTENT={
   ],
   problem:{
     title:'גוף על מדרון עם חיכוך',
-    text:'m=5 ק"ג, מדרון 37°, μk=0.2, g=10. sin37°=0.6, cos37°=0.8.',
+    text:'m=5 kg, מדרון 37°, μk=0.2, g=10. sin37°=0.6, cos37°=0.8.',
     steps:[
-      {q:'N?',hint:M('N=mg\\cos37°=40'),answer:'40',unit:'נ׳',tolerance:0,
+      {q:'N?',hint:M('N=mg\\cos37°=40'),answer:'40',unit:'N',tolerance:0,
        explain:M('N=5\\times10\\times0.8=40\\,\\text{N}')},
-      {q:'fk?',hint:M('f_k=0.2\\times40'),answer:'8',unit:'נ׳',tolerance:0,
+      {q:'fk?',hint:M('f_k=0.2\\times40'),answer:'8',unit:'N',tolerance:0,
        explain:M('f_k=8\\,\\text{N}')},
-      {q:'תאוצה לאורך המדרון?',hint:M('a=g\\sin37°-f_k/m=30/5-8/5'),answer:'4.4',unit:'מ/ש²',tolerance:0.2,
+      {q:'תאוצה לאורך המדרון?',hint:M('a=g\\sin37°-f_k/m=30/5-8/5'),answer:'4.4',unit:'m/s²',tolerance:0.2,
        explain:M('a=mg\\sin\\theta-f_k)/m=(30-8)/5=4.4\\,\\text{m/s}^2')},
     ]
   }
@@ -2103,7 +2184,7 @@ const CONTENT={
         <p>m₁ ו-m₂ תלויות על גלגלת חסרת-חיכוך. חוט דיל מסה. אם m₂ > m₁ — m₂ יורד, m₁ עולה.</p>
       </div>
       ${fBox('a = \\dfrac{(m_2-m_1)\\,g}{m_1+m_2}','תאוצת מכונת אטווד',[
-        ['m_1,m_2','שתי המסות','ק"ג'],['g','תאוצת כבידה','9.8 מ/ש²'],
+        ['m_1,m_2','שתי המסות','ק"ג'],['g','תאוצת כבידה','9.8 m/s²'],
         ['a','תאוצה','מ/ש² — זהה לשתי המסות בגודל'],
       ])}
       ${fBox('T = \\dfrac{2m_1 m_2\\,g}{m_1+m_2}','מתיחות החוט',[
@@ -2118,12 +2199,12 @@ const CONTENT={
     }
   },
   sim:{type:'atwood',title:'מכונת אטווד',desc:'שנה m₁ ו-m₂ — ראה תאוצה, מתיחות T, וכיוון תנועה בזמן אמת.'},
-  example:{title:'מכונת אטווד',text:'m₁=3 ק"ג, m₂=5 ק"ג.',steps:[{q:'a = ?',a:'a = (m₂−m₁)g/(m₁+m₂) = 2×9.8/8 = 2.45 מ/ש²'},{q:'T = ?',a:'T = 2m₁m₂g/(m₁+m₂) = 2×15×9.8/8 = 36.75 N'}]},
+  example:{title:'מכונת אטווד',text:'m₁=3 kg, m₂=5 kg.',steps:[{q:'a = ?',a:'a = (m₂−m₁)g/(m₁+m₂) = 2×9.8/8 = 2.45 m/s²'},{q:'T = ?',a:'T = 2m₁m₂g/(m₁+m₂) = 2×15×9.8/8 = 36.75 N'}]},
   quiz:[
     {q:'אטווד: m₁=3, m₂=5, g=10. תאוצה?',
-     opts:['2.5 מ/ש²','5 מ/ש²','10 מ/ש²','1 מ/ש²'],correct:0,
+     opts:['2.5 m/s²','5 m/s²','10 m/s²','1 m/s²'],correct:0,
      explain:M('a=\\frac{(5-3)\\cdot10}{3+5}=\\frac{20}{8}=2.5\\,\\text{m/s}^2')},
-    {q:'אטווד: m₁=m₂=4 ק"ג. מה קורה?',
+    {q:'אטווד: m₁=m₂=4 kg. מה קורה?',
      opts:['a=0, שיווי משקל','a=g','a=g/2','a=2g'],correct:0,
      explain:'כשm₁=m₂: a=(m₂-m₁)g/(m₁+m₂)=0. T=mg.'},
     {q:'אטווד: m₁=2, m₂=6, g=10. מתיחות T?',
@@ -2132,13 +2213,13 @@ const CONTENT={
   ],
   problem:{
     title:'מכונת אטווד',
-    text:'m₁=4 ק"ג, m₂=6 ק"ג, g=10 מ/ש².',
+    text:'m₁=4 kg, m₂=6 kg, g=10 m/s².',
     steps:[
-      {q:'תאוצת המערכת a?',hint:M('a=\\frac{(m_2-m_1)g}{m_1+m_2}'),answer:'2',unit:'מ/ש²',tolerance:0.05,
+      {q:'תאוצת המערכת a?',hint:M('a=\\frac{(m_2-m_1)g}{m_1+m_2}'),answer:'2',unit:'m/s²',tolerance:0.05,
        explain:M('a=\\frac{2\\cdot10}{10}=2\\,\\text{m/s}^2')},
       {q:'מתיחות החוט T?',hint:M('T=\\frac{2m_1m_2 g}{m_1+m_2}'),answer:'48',unit:'N',tolerance:0.5,
        explain:M('T=\\frac{2\\cdot4\\cdot6\\cdot10}{10}=48\\,\\text{N}')},
-      {q:'m₂ ירדה 2 מ. מהירותה?',hint:M('v^2=2a\\cdot d'),answer:'2.83',unit:'מ/ש',tolerance:0.1,
+      {q:'m₂ ירדה 2 מ. מהירותה?',hint:M('v^2=2a\\cdot d'),answer:'2.83',unit:'m/s',tolerance:0.1,
        explain:M('v=\\sqrt{2\\cdot2\\cdot2}=2\\sqrt{2}\\approx2.83\\,\\text{m/s}')},
     ]
   }
@@ -2159,7 +2240,7 @@ const CONTENT={
         ['g','תאוצת כבידה','9.8 m/s² על כדה"א'],
       ])}
       ${animCanvas('anim-gravity',192,'כוח הכובד — תמיד מטה')}
-      <p class="anim-note">מסה זהה של 70 ק"ג שוקלת 686 N בכדור הארץ, 113 N בירח, 687 N במאדים. <b>המסה קבועה; המשקל משתנה עם g.</b></p>
+      <p class="anim-note">מסה זהה של 70 kg שוקלת 686 N בכדור הארץ, 113 N בירח, 687 N במאדים. <b>המסה קבועה; המשקל משתנה עם g.</b></p>
       ${animCanvas('anim-gravity2',258,'W על כוכבים שונים')}
       <p>⚠️ <b>הבחנה:</b> <em>מסה</em> היא כמות חומר (ק"ג) — קבועה בכל מקום. <em>משקל</em> הוא כוח (נ׳) — תלוי ב-g.</p>
       <div class="info-grid">
@@ -2176,11 +2257,11 @@ const CONTENT={
     }
   },
   sim:{type:'gravity-force',title:'כוח הכובד',desc:'שלושה גופים שונים נופלים יחד. שנה g (כוכבים שונים). כולם מגיעים יחד!'},
-  example:{title:'W=mg על כוכבים שונים',text:'אדם שמשקלו 700 N על כדור הארץ (g=9.8).',steps:[{q:'מסתו?',a:'m = W/g = 700/9.8 = 71.4 ק"ג'},{q:'משקלו על הירח (g=1.62)?',a:'W_ירח = 71.4×1.62 = 115.7 N'}]},
+  example:{title:'W=mg על כוכבים שונים',text:'אדם שמשקלו 700 N על כדור הארץ (g=9.8).',steps:[{q:'מסתו?',a:'m = W/g = 700/9.8 = 71.4 kg'},{q:'משקלו על הירח (g=1.62)?',a:'W_ירח = 71.4×1.62 = 115.7 N'}]},
   quiz:[
-    {q:'m=10 ק"ג, g=9.8. W=?',opts:['10 נ׳','9.8 נ׳','98 נ׳','980 נ׳'],correct:2,
+    {q:'m=10 kg, g=9.8. W=?',opts:['10 N','9.8 N','98 N','980 N'],correct:2,
      explain:M('W=10\\times9.8=98\\,\\text{N}')},
-    {q:'על הירח (g=1.6), m=70 ק"ג. W=?',opts:['70 נ׳','686 נ׳','112 נ׳','43.75 נ׳'],correct:2,
+    {q:'על הירח (g=1.6), m=70 kg. W=?',opts:['70 N','686 N','112 N','43.75 N'],correct:2,
      explain:M('W=70\\times1.6=112\\,\\text{N}')},
     {q:'הבדל בין מסה למשקל:',
      opts:['אין הבדל','מסה ב-ק"ג, משקל ב-נ׳ (תלוי ב-g)','משקל קבוע, מסה משתנה','שניהם בנ׳'],correct:1,
@@ -2188,11 +2269,11 @@ const CONTENT={
   ],
   problem:{
     title:'משקל בכמה גרמי שמיים',
-    text:'אדם m=70 ק"ג.',
+    text:'אדם m=70 kg.',
     steps:[
-      {q:'משקלו על כדה"א (g=9.8)?',hint:M('W=mg=686'),answer:'686',unit:'נ׳',tolerance:2,
+      {q:'משקלו על כדה"א (g=9.8)?',hint:M('W=mg=686'),answer:'686',unit:'N',tolerance:2,
        explain:M('W=70\\times9.8=686\\,\\text{N}')},
-      {q:'משקלו על הירח (g=1.62)?',hint:M('W=70\\times1.62'),answer:'113',unit:'נ׳',tolerance:2,
+      {q:'משקלו על הירח (g=1.62)?',hint:M('W=70\\times1.62'),answer:'113',unit:'N',tolerance:2,
        explain:M('W\\approx113\\,\\text{N}')},
       {q:'האם מסתו משתנה בחלל?',hint:'מסה = כמות חומר',answer:'לא',unit:'',tolerance:-1,
        explain:'מסה קבועה — תכונה של הגוף. משקל משתנה — תלוי ב-g.'},
@@ -2234,7 +2315,7 @@ const CONTENT={
   sim:{type:'spring-force',title:'כוח אלסטי F=-kx',desc:'גרור את המסה לאמפליטודה. ראה F=-kx ואנרגיה. שנה k.'},
   example:{title:'חוק הוק',text:'קפיץ עם k=200 N/m נמתח 0.15 מ\'.',steps:[{q:'|F| = ?',a:'|F| = k|x| = 200×0.15 = 30 N'},{q:'כיוון הכוח?',a:'תמיד לכיוון שיווי המשקל — כוח משחזר'}]},
   quiz:[
-    {q:'k=200 N/m, x=0.1 מ׳. |F|=?',opts:['2 נ׳','20 נ׳','200 נ׳','2000 נ׳'],correct:1,
+    {q:'k=200 N/m, x=0.1 m. |F|=?',opts:['2 N','20 N','200 N','2000 N'],correct:1,
      explain:M('|F|=kx=200\\times0.1=20\\,\\text{N}')},
     {q:'הכוח בשיווי משקל (x=0):',opts:['F=k','F=0','F=kx₀','F=-k'],correct:1,
      explain:M('F=-k\\cdot0=0')},
@@ -2245,7 +2326,7 @@ const CONTENT={
     title:'קפיץ ומסה',
     text:'קפיץ k=500 N/m. מסה תלויה עליו ומובאת לשיווי משקל.',
     steps:[
-      {q:'m=2 ק"ג, g=10. הסטה x בשיווי משקל?',hint:M('kx=mg \\Rightarrow x=mg/k'),answer:'0.04',unit:'מ׳',tolerance:0.002,
+      {q:'m=2 kg, g=10. הסטה x בשיווי משקל?',hint:M('kx=mg \\Rightarrow x=mg/k'),answer:'0.04',unit:'m',tolerance:0.002,
        explain:M('x=20/500=0.04\\,\\text{m}=4\\,\\text{cm}')},
       {q:'אנרגיה פוטנציאלית בנקודה זו?',hint:M('E_p=\\frac{1}{2}kx^2=\\frac{1}{2}\\times500\\times0.0016'),answer:'0.4',unit:'J',tolerance:0.02,
        explain:M('E_p=0.5\\times500\\times0.04^2=0.4\\,\\text{J}')},
@@ -2284,26 +2365,26 @@ const CONTENT={
     }
   },
   sim:{type:'static-friction',title:'חיכוך סטטי',desc:'הגדל כוח מיישום בהדרגה — ראה f_s=F עד f_max, אז תנועה.'},
-  example:{title:'חיכוך סטטי מרבי',text:'גוש 6 ק"ג, μₛ=0.4.',steps:[{q:'N = ?',a:'N = mg = 6×9.8 = 58.8 N'},{q:'f_s(max) = ?',a:'f_s(max) = μₛN = 0.4×58.8 = 23.5 N'},{q:'אם F=20 N — האם הגוף זז?',a:'לא! F < f_s(max) → f_s = F = 20 N'}]},
+  example:{title:'חיכוך סטטי מרבי',text:'גוש 6 kg, μₛ=0.4.',steps:[{q:'N = ?',a:'N = mg = 6×9.8 = 58.8 N'},{q:'f_s(max) = ?',a:'f_s(max) = μₛN = 0.4×58.8 = 23.5 N'},{q:'אם F=20 N — האם הגוף זז?',a:'לא! F < f_s(max) → f_s = F = 20 N'}]},
   quiz:[
-    {q:'m=5 ק"ג, μs=0.4, g=10. כוח מרבי לפני שהגוף זז?',
-     opts:['4 נ׳','20 נ׳','50 נ׳','2 נ׳'],correct:1,
+    {q:'m=5 kg, μs=0.4, g=10. כוח מרבי לפני שהגוף זז?',
+     opts:['4 N','20 N','50 N','2 N'],correct:1,
      explain:M('f_{s,\\max}=\\mu_s N=0.4\\times50=20\\,\\text{N}')},
-    {q:'כוח 15 נ׳ מופעל, μsN=20. מה קורה?',
+    {q:'כוח 15 N מופעל, μsN=20. מה קורה?',
      opts:['הגוף זז','הגוף נח, fs=15','הגוף נח, fs=20','הגוף מסתובב'],correct:1,
-     explain:'F<μsN — הגוף נח. fs=F=15 נ׳ בדיוק.'},
+     explain:'F<μsN — הגוף נח. fs=F=15 N בדיוק.'},
     {q:'μs vs μk:',opts:['μs<μk','μs=μk','μs>μk','אין קשר'],correct:2,
      explain:'תמיד μs>μk — קשה יותר לשבור מנוחה.'},
   ],
   problem:{
     title:'חיכוך סטטי — תנאי תנועה',
-    text:'קופסה m=8 ק"ג, μs=0.45, g=10.',
+    text:'קופסה m=8 kg, μs=0.45, g=10.',
     steps:[
-      {q:'כוח נורמלי?',hint:M('N=mg=80'),answer:'80',unit:'נ׳',tolerance:0,
+      {q:'כוח נורמלי?',hint:M('N=mg=80'),answer:'80',unit:'N',tolerance:0,
        explain:M('N=80\\,\\text{N}')},
-      {q:'כוח חיכוך מרבי?',hint:M('f_{s,\\max}=\\mu_s N=0.45\\times80'),answer:'36',unit:'נ׳',tolerance:0,
+      {q:'כוח חיכוך מרבי?',hint:M('f_{s,\\max}=\\mu_s N=0.45\\times80'),answer:'36',unit:'N',tolerance:0,
        explain:M('f_{s,\\max}=36\\,\\text{N}')},
-      {q:'כוח 30 נ׳ מופעל — האם הגוף זז?',hint:'השווה F ל-fmax',answer:'לא',unit:'',tolerance:-1,
+      {q:'כוח 30 N מופעל — האם הגוף זז?',hint:'השווה F ל-fmax',answer:'לא',unit:'',tolerance:-1,
        explain:'F=30<fmax=36 → הגוף נח.'},
     ]
   }
@@ -2335,15 +2416,15 @@ const CONTENT={
     `,
     enrich:{
       title:'חיכוך וחום — אנרגיה לאן?',
-      html:`<p>עבודת חיכוך קינטי: ${M('W_f = -f_k \\cdot d = -\\mu_k mg d')}. האנרגיה הולכת לחום! כוח בלימה ב-100 קמ"ש: ${M('W_k=\\tfrac12mv^2\\approx\\tfrac12\\cdot1000\\cdot770\\approx385\\,\\text{kJ}')} — כולו נהפך לחום בגלגלים ובכביש.</p>`
+      html:`<p>עבודת חיכוך קינטי: ${M('W_f = -f_k \\cdot d = -\\mu_k mg d')}. האנרגיה הולכת לחום! כוח בלימה ב-100 km/h: ${M('W_k=\\tfrac12mv^2\\approx\\tfrac12\\cdot1000\\cdot770\\approx385\\,\\text{kJ}')} — כולו נהפך לחום בגלגלים ובכביש.</p>`
     }
   },
   sim:{type:'kinetic-friction',title:'חיכוך קינטי',desc:'גוף דוחף ← — f_k קבוע מאט אותו. שנה μk וראה שינוי בתאוצה.'},
-  example:{title:'האטה בחיכוך קינטי',text:'גוש 4 ק"ג זז ב-10 מ/ש. μₖ=0.3.',steps:[{q:'fₖ = ?',a:'fₖ = μₖmg = 0.3×4×9.8 = 11.76 N'},{q:'a = ?',a:'a = −fₖ/m = −11.76/4 = −2.94 מ/ש²'},{q:'d_עצירה = ?',a:'d = v₀²/(2|a|) = 100/5.88 = 17 מ\''}]},
+  example:{title:'האטה בחיכוך קינטי',text:'גוש 4 kg זז ב-10 m/s. μₖ=0.3.',steps:[{q:'fₖ = ?',a:'fₖ = μₖmg = 0.3×4×9.8 = 11.76 N'},{q:'a = ?',a:'a = −fₖ/m = −11.76/4 = −2.94 m/s²'},{q:'d_עצירה = ?',a:'d = v₀²/(2|a|) = 100/5.88 = 17 מ\''}]},
   quiz:[
-    {q:'m=3 ק"ג, μk=0.3, g=10. fk=?',opts:['3 נ׳','9 נ׳','30 נ׳','0.3 נ׳'],correct:1,
+    {q:'m=3 kg, μk=0.3, g=10. fk=?',opts:['3 N','9 N','30 N','0.3 N'],correct:1,
      explain:M('f_k=\\mu_k mg=0.3\\times30=9\\,\\text{N}')},
-    {q:'גוף נע ב-10 מ/ש עם fk. האם fk משתנה?',
+    {q:'גוף נע ב-10 m/s עם fk. האם fk משתנה?',
      opts:['כן — גדל עם v','כן — פוחת','לא, fk קבוע','רק אם a≠0'],correct:2,
      explain:'חיכוך קינטי אינו תלוי במהירות — קבוע לפי μkN.'},
     {q:'מה המהירות שבה fk פועל?',
@@ -2352,13 +2433,13 @@ const CONTENT={
   ],
   problem:{
     title:'גוף נע ומאט',
-    text:'גוש m=5 ק"ג נע ב-v₀=12 מ/ש. μk=0.4, g=10.',
+    text:'גוש m=5 kg נע ב-v₀=12 m/s. μk=0.4, g=10.',
     steps:[
-      {q:'כוח חיכוך קינטי?',hint:M('f_k=\\mu_k mg=0.4\\times50'),answer:'20',unit:'נ׳',tolerance:0,
+      {q:'כוח חיכוך קינטי?',hint:M('f_k=\\mu_k mg=0.4\\times50'),answer:'20',unit:'N',tolerance:0,
        explain:M('f_k=20\\,\\text{N}')},
-      {q:'תאוצה (שלילית)?',hint:M('a=-f_k/m=-20/5'),answer:'-4',unit:'מ/ש²',tolerance:0.1,
+      {q:'תאוצה (שלילית)?',hint:M('a=-f_k/m=-20/5'),answer:'-4',unit:'m/s²',tolerance:0.1,
        explain:M('a=-4\\,\\text{m/s}^2')},
-      {q:'מרחק עד עצירה?',hint:M('v^2=v_0^2+2a\\Delta x \\Rightarrow 0=144-8\\Delta x'),answer:'18',unit:'מ׳',tolerance:0.5,
+      {q:'מרחק עד עצירה?',hint:M('v^2=v_0^2+2a\\Delta x \\Rightarrow 0=144-8\\Delta x'),answer:'18',unit:'m',tolerance:0.5,
        explain:M('\\Delta x=144/8=18\\,\\text{m}')},
     ]
   }
@@ -2393,13 +2474,13 @@ const CONTENT={
     }
   },
   sim:{type:'friction-combined',title:'חיכוך — סטטי ← קינטי',desc:'הגדל כוח עד שהגוף נע. ראה גרף f(F) בזמן אמת.'},
-  example:{title:'בעיה משולבת: מדרון+חיכוך',text:'גוש על מדרון 25°, μ=0.4, m=3 ק"ג.',steps:[{q:'N = ?',a:'N = mg·cos25° = 26.6 N'},{q:'f_s(max) = ?',a:'f_s(max) = μN = 0.4×26.6 = 10.64 N'},{q:'W∥ = ? גולש?',a:'W∥ = mg·sin25° = 12.4 N > 10.64 N → גולש!'}]},
+  example:{title:'בעיה משולבת: מדרון+חיכוך',text:'גוש על מדרון 25°, μ=0.4, m=3 kg.',steps:[{q:'N = ?',a:'N = mg·cos25° = 26.6 N'},{q:'f_s(max) = ?',a:'f_s(max) = μN = 0.4×26.6 = 10.64 N'},{q:'W∥ = ? גולש?',a:'W∥ = mg·sin25° = 12.4 N > 10.64 N → גולש!'}]},
   quiz:[
-    {q:'m=10 ק"ג, μs=0.5, μk=0.35, g=10, F=45. מה קורה?',
-     opts:['גוף נח','גוף מתחיל לנוע','גוף מאיץ ב-1 מ/ש²','גוף מאיץ ב-4 מ/ש²'],correct:0,
+    {q:'m=10 kg, μs=0.5, μk=0.35, g=10, F=45. מה קורה?',
+     opts:['גוף נח','גוף מתחיל לנוע','גוף מאיץ ב-1 m/s²','גוף מאיץ ב-4 m/s²'],correct:0,
      explain:M('f_{s,\\max}=50>45')+'— גוף נח.'},
     {q:'אותו גוף, F=55. a=?',
-     opts:['0.5 מ/ש²','1.5 מ/ש²','2 מ/ש²','5.5 מ/ש²'],correct:2,
+     opts:['0.5 m/s²','1.5 m/s²','2 m/s²','5.5 m/s²'],correct:2,
      explain:M('a=(55-0.35\\times100)/10=(55-35)/10=2\\,\\text{m/s}^2')},
     {q:'למה fk < fs,max?',
      opts:['טעות בספר','מגע דינמי = פחות adhesion','fk תלוי במהירות','אין קשר'],correct:1,
@@ -2407,13 +2488,13 @@ const CONTENT={
   ],
   problem:{
     title:'מעבר ממנוחה לתנועה',
-    text:'m=6 ק"ג, μs=0.5, μk=0.3, g=10.',
+    text:'m=6 kg, μs=0.5, μk=0.3, g=10.',
     steps:[
-      {q:'fs,max?',hint:M('\\mu_s mg=0.5\\times60'),answer:'30',unit:'נ׳',tolerance:0,
+      {q:'fs,max?',hint:M('\\mu_s mg=0.5\\times60'),answer:'30',unit:'N',tolerance:0,
        explain:M('f_{s,\\max}=30\\,\\text{N}')},
-      {q:'F=28 נ׳ — האם זז? מה fs?',hint:'F<fs,max',answer:'28',unit:'נ׳',tolerance:0,
-       explain:'גוף נח. fs=F=28 נ׳.'},
-      {q:'F=40 נ׳ — תאוצה?',hint:M('a=(F-\\mu_k mg)/m=(40-18)/6'),answer:'3.67',unit:'מ/ש²',tolerance:0.2,
+      {q:'F=28 N — האם זז? מה fs?',hint:'F<fs,max',answer:'28',unit:'N',tolerance:0,
+       explain:'גוף נח. fs=F=28 N.'},
+      {q:'F=40 N — תאוצה?',hint:M('a=(F-\\mu_k mg)/m=(40-18)/6'),answer:'3.67',unit:'m/s²',tolerance:0.2,
        explain:M('fk=0.3\\times60=18,\\; a=(40-18)/6\\approx3.67\\,\\text{m/s}^2')},
     ]
   }
@@ -2452,10 +2533,10 @@ const CONTENT={
     }
   },
   sim:{type:'momentum-cons',title:'שימור תנע',desc:'שני גופים מתנגשים — p_כולל נשמר לפני ואחרי. שנה מסות ומהירויות ראשוניות.'},
-  example:{title:'שימור תנע',text:'רובה 4 ק"ג יורה כדור 0.02 ק"ג במהירות 400 מ/ש.',steps:[{q:'תנע לפני הירייה',a:'p_כולל = 0 (שניהם במנוחה)'},{q:'מהירות הרובה אחרי',a:'0 = 0.02×400 + 4×V_רובה → V = −2 מ/ש (לאחור)'}]},
+  example:{title:'שימור תנע',text:'רובה 4 kg יורה כדור 0.02 kg במהירות 400 m/s.',steps:[{q:'תנע לפני הירייה',a:'p_כולל = 0 (שניהם במנוחה)'},{q:'מהירות הרובה אחרי',a:'0 = 0.02×400 + 4×V_רובה → V = −2 m/s (לאחור)'}]},
   quiz:[
-    {q:'2 ק"ג ב-3 מ/ש מתנגש ב-1 ק"ג עומד — מתאחדים. v=?',
-     opts:['1 מ/ש','2 מ/ש','3 מ/ש','6 מ/ש'],correct:1,
+    {q:'2 kg ב-3 m/s מתנגש ב-1 kg עומד — מתאחדים. v=?',
+     opts:['1 m/s','2 m/s','3 m/s','6 m/s'],correct:1,
      explain:M('2\\times3=(2+1)v \\Rightarrow v=2\\,\\text{m/s}')},
     {q:'שימור תנע מתקיים כאשר:',
      opts:['אין שום כוחות','פנימיים=0',M('\\sum F_{ext}=0'),'כולם עומדים'],correct:2,
@@ -2466,11 +2547,11 @@ const CONTENT={
   ],
   problem:{
     title:'התנגשות עגלות',
-    text:'עגלה 4 ק"ג ב-5 מ/ש מתנגשת בעגלה 2 ק"ג עומדת — מתאחדות.',
+    text:'עגלה 4 kg ב-5 m/s מתנגשת בעגלה 2 kg עומדת — מתאחדות.',
     steps:[
       {q:'תנע לפני?',hint:M('p=4\\times5+2\\times0'),answer:'20',unit:'ק"ג·מ/ש',tolerance:0,
        explain:M('p_i=20\\,\\text{kg·m/s}')},
-      {q:'מהירות משותפת?',hint:M('20=(4+2)v_f'),answer:'3.33',unit:'מ/ש',tolerance:0.1,
+      {q:'מהירות משותפת?',hint:M('20=(4+2)v_f'),answer:'3.33',unit:'m/s',tolerance:0.1,
        explain:M('v_f=20/6\\approx3.33\\,\\text{m/s}')},
     ]
   }
@@ -2512,7 +2593,7 @@ const CONTENT={
     }
   },
   sim:{type:'collision',title:'התנגשויות',desc:'שנה מסות ומהירויות. בחר אלסטית/אי-אלסטית. ראה p_לפני = p_אחרי.'},
-  example:{title:'התנגשות אלסטית',text:'כדור m₁=2 ק"ג, v₁=6 מ/ש, פוגע בכדור m₂=2 ק"ג במנוחה.',steps:[{q:'e=1 (אלסטית). v₁\' = ?',a:'v₁\' = 0 מ/ש (עצר)'},{q:'v₂\' = ?',a:'v₂\' = 6 מ/ש (קיבל את כל האנרגיה)'}]},
+  example:{title:'התנגשות אלסטית',text:'כדור m₁=2 kg, v₁=6 m/s, פוגע בכדור m₂=2 kg במנוחה.',steps:[{q:'e=1 (אלסטית). v₁\' = ?',a:'v₁\' = 0 m/s (עצר)'},{q:'v₂\' = ?',a:'v₂\' = 6 m/s (קיבל את כל האנרגיה)'}]},
   quiz:[
     {q:'בהתנגשות אי-אלסטית לחלוטין — מה נשמר?',
      opts:['רק Ek','שניהם','רק תנע','כלום'],correct:2,
@@ -2525,7 +2606,7 @@ const CONTENT={
   ],
   problem:{
     title:'בדיקת סוג התנגשות',
-    text:'4 ק"ג ב-6 מ/ש פוגע ב-2 ק"ג עומד. אחרי: v₁=2 מ/ש, v₂=8 מ/ש.',
+    text:'4 kg ב-6 m/s פוגע ב-2 kg עומד. אחרי: v₁=2 m/s, v₂=8 m/s.',
     steps:[
       {q:'תנע לפני?',hint:M('4\\times6'),answer:'24',unit:'ק"ג·מ/ש',tolerance:0,
        explain:M('p_i=24')},
@@ -2561,7 +2642,7 @@ const CONTENT={
         <div class="info-item"><div class="il">x=0</div><div class="iv">Ep=0 (שיווי משקל)</div></div>
       </div>
       <div class="ex-block"><div class="ex-title">✏️ דוגמה פתורה — רובה קפיצי</div>
-      <p>קפיץ k=800 N/m נדחס ב-x=5 cm ומשגר כדור m=0.05 ק"ג אנכית כלפי מעלה. g=10.</p>
+      <p>קפיץ k=800 N/m נדחס ב-x=5 cm ומשגר כדור m=0.05 kg אנכית כלפי מעלה. g=10.</p>
       <p><b>1. האנרגיה האגורה:</b> E_p=½kx²=½·800·(0.05)²=<b>1.0 J</b>.<br>
       <b>2. מהירות היציאה:</b> כל האנרגיה עוברת ל-E_k: ½mv²=1.0 ⇒ v=√(2·1.0/0.05)=<b>6.3 m/s</b>.<br>
       <b>3. לאיזה גובה יעלה?</b> E_k הופכת ל-E_p כובדית: mgh=1.0 ⇒ h=1.0/(0.05·10)=<b>2.0 m</b>.<br>
@@ -2569,26 +2650,26 @@ const CONTENT={
     `,
     enrich:{
       title:'E=mc² — מסה כאנרגיה',
-      html:`<p>אינשטיין: ${M('E=mc^2\\approx9\\times10^{16}\\,\\text{J/kg}')}. ביקוע גרעיני ממיר <1% מסה לאנרגיה — ועדיין עצום! פצצה גרעינית 1 ק"ג = 9×10¹³ ג׳ול.</p>`
+      html:`<p>אינשטיין: ${M('E=mc^2\\approx9\\times10^{16}\\,\\text{J/kg}')}. ביקוע גרעיני ממיר <1% מסה לאנרגיה — ועדיין עצום! פצצה גרעינית 1 kg = 9×10¹³ ג׳ול.</p>`
     }
   },
   sim:{type:'energy-potential',title:'אנרגיה פוטנציאלית',desc:'גרור גוף למעלה/מטה — ראה EP=mgh. סרגלי EP ו-EK.'},
-  example:{title:'EP כובדית',text:'גוש 5 ק"ג עולה 3 מ\'.',steps:[{q:'ΔEP = ?',a:'ΔEP = mgh = 5×9.8×3 = 147 J'},{q:'מאיפה מגיעה האנרגיה?',a:'EK → EP (שימור אנרגיה)'}]},
+  example:{title:'EP כובדית',text:'גוש 5 kg עולה 3 מ\'.',steps:[{q:'ΔEP = ?',a:'ΔEP = mgh = 5×9.8×3 = 147 J'},{q:'מאיפה מגיעה האנרגיה?',a:'EK → EP (שימור אנרגיה)'}]},
   quiz:[
-    {q:'m=2 ק"ג, h=5 מ׳, g=10. Ep=?',opts:['10','100','50','1'],correct:1,
+    {q:'m=2 kg, h=5 m, g=10. Ep=?',opts:['10','100','50','1'],correct:1,
      explain:M('E_p=2\\times10\\times5=100\\,\\text{J}')},
-    {q:'k=400, x=0.1 מ׳. Ep קפיץ=?',opts:['2','40','0.2','200'],correct:0,
+    {q:'k=400, x=0.1 m. Ep קפיץ=?',opts:['2','40','0.2','200'],correct:0,
      explain:M('E_p=\\tfrac12\\times400\\times0.01=2\\,\\text{J}')},
     {q:'גוף ב-h=10 ירד ל-h=0. Ep:',opts:['גדלה','לא השתנה','קטנה','הפכה לשלילי'],correct:2,
      explain:'h↓ → Ep↓ (הלכה ל-Ek).'},
   ],
   problem:{
     title:'נפילה מגובה',
-    text:'m=3 ק"ג, h=8 מ׳, g=10.',
+    text:'m=3 kg, h=8 m, g=10.',
     steps:[
       {q:'Ep ראשונית?',hint:M('mgh=240'),answer:'240',unit:'J',tolerance:0,
        explain:M('E_p=240\\,\\text{J}')},
-      {q:'מהירות בתחתית?',hint:M('v=\\sqrt{2gh}'),answer:'12.65',unit:'מ/ש',tolerance:0.3,
+      {q:'מהירות בתחתית?',hint:M('v=\\sqrt{2gh}'),answer:'12.65',unit:'m/s',tolerance:0.3,
        explain:M('v=\\sqrt{160}\\approx12.65\\,\\text{m/s}')},
     ]
   }
@@ -2627,7 +2708,7 @@ const CONTENT={
     }
   },
   sim:{type:'energy',title:'שימור אנרגיה',desc:'כדור על מסלול — Ek+Ep=const.'},
-  example:{title:'שימור אנרגיה',text:'כדור 1 ק"ג מגובה 5 מ\' (ללא חיכוך).',steps:[{q:'E_total = ?',a:'E = mgh = 1×9.8×5 = 49 J'},{q:'מהירות בתחתית',a:'½mv² = 49 → v = √98 = 9.9 מ/ש'}]},
+  example:{title:'שימור אנרגיה',text:'כדור 1 kg מגובה 5 מ\' (ללא חיכוך).',steps:[{q:'E_total = ?',a:'E = mgh = 1×9.8×5 = 49 J'},{q:'מהירות בתחתית',a:'½mv² = 49 → v = √98 = 9.9 m/s'}]},
   quiz:[
     {q:'בנקודה הגבוהה ביותר, Ek:',opts:['מרבית','מינימלית','שווה Ep','אפסית תמיד'],correct:1,
      explain:'Ep מרבית → Ek מינימלית.'},
@@ -2639,13 +2720,13 @@ const CONTENT={
   ],
   problem:{
     title:'גלשן',
-    text:'גוש m=5 ק"ג, h=4 מ׳, μk=0.2, מסלול אופקי L=6 מ׳, g=10.',
+    text:'גוש m=5 kg, h=4 m, μk=0.2, מסלול אופקי L=6 m, g=10.',
     steps:[
       {q:'Ep ראשונית?',hint:M('mgh=200'),answer:'200',unit:'J',tolerance:0,
        explain:M('E_{p0}=200\\,\\text{J}')},
       {q:'עבודת חיכוך (מסלול אופקי בלבד)?',hint:M('W_f=-f_k d=-\\mu_k mg L=-60'),answer:'-60',unit:'J',tolerance:1,
        explain:M('W_f=-0.2\\times50\\times6=-60\\,\\text{J}')},
-      {q:'מהירות בתחתית (Ek=Ep+Wf)?',hint:M('\\tfrac12mv^2=200-60=140'),answer:'7.48',unit:'מ/ש',tolerance:0.2,
+      {q:'מהירות בתחתית (Ek=Ep+Wf)?',hint:M('\\tfrac12mv^2=200-60=140'),answer:'7.48',unit:'m/s',tolerance:0.2,
        explain:M('v=\\sqrt{2\\times140/5}=\\sqrt{56}\\approx7.48\\,\\text{m/s}')},
     ]
   }
@@ -2691,7 +2772,7 @@ const CONTENT={
     }
   },
   sim:{type:'shm-def',title:'תנועה מחזורית',desc:'שנה A ו-T — ראה x(t)=A·sin(ωt). מהירות ותאוצה בזמן אמת.'},
-  example:{title:'תנועה הרמונית — מחזור ותדירות',text:'גוף מתנדד 3 הרץ עם אמפליטודה 0.1 מ\'.',steps:[{q:'T = ?',a:'T = 1/f = 1/3 = 0.33 שניות'},{q:'ω = ?',a:'ω = 2πf = 2π×3 = 18.85 rad/s'}]},
+  example:{title:'תנועה הרמונית — מחזור ותדירות',text:'גוף מתנדד 3 Hz עם אמפליטודה 0.1 מ\'.',steps:[{q:'T = ?',a:'T = 1/f = 1/3 = 0.33 s'},{q:'ω = ?',a:'ω = 2πf = 2π×3 = 18.85 rad/s'}]},
   quiz:[
     {q:'T=0.5 ש. f=?',opts:['0.5 Hz','2 Hz','5 Hz','0.2 Hz'],correct:1,
      explain:M('f=1/T=2\\,\\text{Hz}')},
@@ -2702,7 +2783,7 @@ const CONTENT={
   ],
   problem:{
     title:'תנודה בסיסית',
-    text:'T=0.2 ש, A=0.05 מ׳.',
+    text:'T=0.2 ש, A=0.05 m.',
     steps:[
       {q:'f?',hint:M('f=1/T'),answer:'5',unit:'Hz',tolerance:0,explain:M('f=5\\,\\text{Hz}')},
       {q:'ω?',hint:M('\\omega=2\\pi f'),answer:'31.4',unit:'rad/s',tolerance:0.5,
@@ -2740,9 +2821,9 @@ const CONTENT={
     }
   },
   sim:{type:'pendulum',title:'מטוטלת',desc:'שנה אורך L וזווית ראשונית. ראה T=2π√(L/g). הנע מחדש.'},
-  example:{title:'מטוטלת פשוטה',text:'מטוטלת אורך 1 מ\' על כדור הארץ.',steps:[{q:'T = ?',a:'T = 2π√(L/g) = 2π√(1/9.8) = 2π×0.319 = 2.006 שניות'},{q:'מה קורה אם מכפילים את האורך ב-4?',a:'T × 2 (T תלוי ב-√L)'}]},
+  example:{title:'מטוטלת פשוטה',text:'מטוטלת אורך 1 מ\' על כדור הארץ.',steps:[{q:'T = ?',a:'T = 2π√(L/g) = 2π√(1/9.8) = 2π×0.319 = 2.006 s'},{q:'מה קורה אם מכפילים את האורך ב-4?',a:'T × 2 (T תלוי ב-√L)'}]},
   quiz:[
-    {q:'L=1 מ׳, g=10. T≈?',opts:['2π×0.316 s≈2 s',M('\\pi s'),'4π s','1 s'],correct:0,
+    {q:'L=1 m, g=10. T≈?',opts:['2π×0.316 s≈2 s',M('\\pi s'),'4π s','1 s'],correct:0,
      explain:M('T=2\\pi\\sqrt{0.1}\\approx2\\,\\text{s}')},
     {q:'L×4. T:',opts:['T×4','T×2','T×√2','ללא שינוי'],correct:1,
      explain:M('T\\propto\\sqrt{L}')+'— L×4→T×2.'},
@@ -2751,7 +2832,7 @@ const CONTENT={
   ],
   problem:{
     title:'מטוטלת',
-    text:'L=2.5 מ׳, g=10.',
+    text:'L=2.5 m, g=10.',
     steps:[
       {q:'T?',hint:M('T=2\\pi\\sqrt{0.25}=\\pi'),answer:'3.14',unit:'ש',tolerance:0.05,
        explain:M('T\\approx3.14\\,\\text{s}')},
@@ -2799,7 +2880,7 @@ const CONTENT={
     }
   },
   sim:{type:'projectile',title:'מקצוע קליעים',desc:'גרור מהתותח כמו רוגטקה — כיוון הגרירה קובע את הזווית, אורכה את v₀ — ושחרר לירי. פגע במטרה! שים לב: vₓ קבוע (חצים ירוקים), v_y משתנה (אדומים).'},
-  example:{title:'שלכת בזווית 45°',text:'כדור נזרק במהירות 20 מ/ש בזווית 45°.',steps:[{q:'v₀x, v₀y',a:'v₀x = 20·cos45° = 14.14, v₀y = 20·sin45° = 14.14 מ/ש'},{q:'טווח מרבי R',a:'R = v₀²sin(90°)/g = 400/9.8 = 40.8 מ\''}]},
+  example:{title:'שלכת בזווית 45°',text:'כדור נזרק במהירות 20 m/s בזווית 45°.',steps:[{q:'v₀x, v₀y',a:'v₀x = 20·cos45° = 14.14, v₀y = 20·sin45° = 14.14 m/s'},{q:'טווח מרבי R',a:'R = v₀²sin(90°)/g = 400/9.8 = 40.8 מ\''}]},
   quiz:[
     {q:'קליע נזרק ב-'+M('\\theta=45°')+'. מתי הטווח האופקי מרבי?',
      opts:['θ=30°','θ=45°','θ=60°','θ=90°'],correct:1,
@@ -2813,7 +2894,7 @@ const CONTENT={
   ],
   problem:{
     title:'קליע מגג',
-    text:'קליע נזרק מגג בגובה H=20 מ׳, במהירות v₀=25 מ/ש, בזווית θ=37° מעל האופק. g=10.',
+    text:'קליע נזרק מגג בגובה H=20 m, במהירות v₀=25 m/s, בזווית θ=37° מעל האופק. g=10.',
     steps:[
       {q:'v₀ₓ?',hint:'v₀ cos37°=25×0.8',answer:'20',unit:'m/s',tolerance:0.5,
        explain:M('v_{0x}=25\\cos37°=20\\,\\text{m/s}')},
@@ -2861,7 +2942,7 @@ const CONTENT={
     }
   },
   sim:{type:'circular',title:'תנועה מעגלית אינטראקטיבית',desc:'גרור את הגוף עצמו כדי לשנות את הרדיוס, או שנה מהירות בסליידר. ראה את v המשיקית ואת a הצנטריפטלית — תמיד אל המרכז.'},
-  example:{title:'תאוצה צנטריפטלית',text:'מכונית בפנייה ברדיוס 50 מ\', מהירות 20 מ/ש.',steps:[{q:'aᶜ = ?',a:'aᶜ = v²/r = 400/50 = 8 מ/ש²'},{q:'כוח הנדרש (m=1000 ק"ג)?',a:'Fᶜ = maᶜ = 1000×8 = 8000 N'}]},
+  example:{title:'תאוצה צנטריפטלית',text:'מכונית בפנייה ברדיוס 50 מ\', מהירות 20 m/s.',steps:[{q:'aᶜ = ?',a:'aᶜ = v²/r = 400/50 = 8 m/s²'},{q:'כוח הנדרש (m=1000 kg)?',a:'Fᶜ = maᶜ = 1000×8 = 8000 N'}]},
   quiz:[
     {q:'v כפול, R קבוע. Fc:',
      opts:['×2','×4','×½','ללא שינוי'],correct:1,
@@ -2875,7 +2956,7 @@ const CONTENT={
   ],
   problem:{
     title:'רכב בפנייה',
-    text:'רכב m=1000 kg נוסע בעיגול רדיוס R=50 מ׳ במהירות v=20 מ/ש.',
+    text:'רכב m=1000 kg נוסע בעיגול רדיוס R=50 m במהירות v=20 m/s.',
     steps:[
       {q:'תאוצה צנטריפטלית?',hint:M('a_c=v^2/R=400/50'),answer:'8',unit:'m/s²',tolerance:0.2,
        explain:M('a_c=20^2/50=8\\,\\text{m/s}^2')},
@@ -2948,7 +3029,7 @@ const OPTICS_CONTENT={
           <li><b>אולה רומר (1676)</b> — אסטרונום דני שמדד את מסלול ירח הצדק (איו). שם לב שמחזור ההסתרה קצר כשהארץ מתקרבת לצדק וארוך כשמתרחקת — כי האור עובר מרחק שונה. חישב c≈220,000 ק"מ/ש (26% שגוי בגלל מרחק לצדק לא מדויק) — אך הוכיח ש-c סופי!</li>
           <li><b>ארמן פיזו (1849)</b> — ניסוי מעבדה ראשון: גלגל שיניים מסתובב חוסם קרן אור. כויל מהירות הגלגל עד שהאור חזר בדיוק בפתח הבא. c≈313,000 ק"מ/ש (שגיאה 4.7% בלבד).</li>
           <li><b>אלברט מייקלסון (1879–1926)</b> — שיפר את הניסוי שוב ושוב. מדידת 1926: c=299,796 ק"מ/ש. זכה בפרס נובל (1907).</li>
-          <li><b>ערך מודרני (1983)</b> — c <em>מוגדר</em> כ-299,792,458 מ/ש בדיוק. כיום המטר מוגדר על בסיס c!</li>
+          <li><b>ערך מודרני (1983)</b> — c <em>מוגדר</em> כ-299,792,458 m/s בדיוק. כיום המטר מוגדר על בסיס c!</li>
         </ul>
       </div>
       ${fBox('n = \\dfrac{c}{v}','מדד השבירה — יחס המהירויות',[
@@ -2965,7 +3046,7 @@ const OPTICS_CONTENT={
         <div class="info-item"><div class="il">מי מלח</div><div class="iv">n ≈ 1.38</div></div>
       </div>
       <div class="enrich-card"><div class="enrich-title">האור מגיע מהשמש ב-8 דקות</div>
-        <p>השמש רחוקה ~150 מיליון ק"מ. 1.5×10¹¹ m / 3×10⁸ m/s ≈ 500 שניות = <b>8.3 דקות</b>. כשמסתכלים על השמש, רואים אותה כפי שהיתה לפני 8 דקות. כוכב הצפון נמצא 432 שנות אור.</p>
+        <p>השמש רחוקה ~150 מיליון ק"מ. 1.5×10¹¹ m / 3×10⁸ m/s ≈ 500 s = <b>8.3 דקות</b>. כשמסתכלים על השמש, רואים אותה כפי שהיתה לפני 8 דקות. כוכב הצפון נמצא 432 שנות אור.</p>
       </div>
       <div class="theory-anim">${animCanvas('anim-refr-speed',138,'האור מאט בחומר — n=c/v')}</div>`,
   },
@@ -4153,7 +4234,7 @@ const ELECTRO_CONTENT={
     <div class="mis-block"><b>⚠️ טעות נפוצה:</b> "מתח גבוה = סכנה גדולה, תמיד". הניצוץ מהשטיח בחורף הוא ~20,000 V — ולא מזיק, כי המטען זעיר (ננו-קולון) והאנרגיה W=qΔV היא מיקרו-ג'אול בודדים. שקע ביתי של 230 V מסוכן לאין ערוך יותר, כי הוא מסוגל להזרים מטען רב <b>ברציפות</b>. הקובעים הם האנרגיה והזרם — לא המתח לבדו.</div>
     <p><b>ציפור על כבל מתח גבוה</b> אינה מתחשמלת: שתי רגליה נוגעות כמעט באותה נקודה — אותו פוטנציאל, ΔV≈0 — ואין מטען שזורם דרכה. הסכנה נוצרת רק בגישור בין שני פוטנציאלים שונים (כבל וקרקע, שני כבלים).</p>
     <div class="enrich-card"><div class="enrich-title">ברק — הפוטנציאל הגדול בטבע</div>
-      <p>בין ענן סערה לקרקע נבנה הפרש של ~100 מיליון וולט. כשהשדה חוצה את חוזק הפריצה של האוויר (~3×10⁶ V/m) — האוויר עצמו הופך מוליך, ו-20-30 קולון פורקים בהבזק של אלפית שנייה. פרנקלין הראה ב-1752 שזה בדיוק אותו חשמל מהמעבדה — וגם המציא את כליא הברק.</p></div>
+      <p>בין ענן סערה לקרקע נבנה הפרש של ~100 מיליון וולט. כשהשדה חוצה את חוזק הפריצה של האוויר (~3×10⁶ V/m) — האוויר עצמו הופך מוליך, ו-20-30 C פורקים בהבזק של אלפית שנייה. פרנקלין הראה ב-1752 שזה בדיוק אותו חשמל מהמעבדה — וגם המציא את כליא הברק.</p></div>
     <div class="theory-anim">${animCanvas('anim-elc-potential-t',170,'מטען חיובי "מתגלגל" מפוטנציאל גבוה לנמוך — U הופכת ל-Ek')}</div>`,
   },
   sim:{type:'elc-potential',desc:'גרור את הגשוש וקרא V בכל נקודה. הוסף מטען שני — והקריאה מתפצלת ל-V₁+V₂: פוטנציאלים מתחברים כמספרים עם סימן, בלי וקטורים. עם מטענים מנוגדים מופיע קו V=0 לבן — ושם דווקא השדה מקסימלי! שנה את סימן מטען הבוחן וראה את W מתהפך.'},
