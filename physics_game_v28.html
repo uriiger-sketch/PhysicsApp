@@ -4046,6 +4046,7 @@ const ELECTRO_CHAPTERS=[
   ]},
   {id:'elc-energy',icon:'🔋',title:'פרק ב: פוטנציאל וקבלים',sections:[
     {id:'elc-potential',title:'פוטנציאל חשמלי',sub:'V=kQ/r, עבודה ואנרגיה, קווים שווי-פוטנציאל'},
+    {id:'elc-upair',title:'אנרגיה של מערכת מטענים',sub:'U=kq₁q₂/r — עם סימן, וחזקה אחת של r'},
     {id:'elc-plates',title:'שדה אחיד — לוחות מקבילים',sub:'E=V/d, תנועת מטען בשדה'},
     {id:'elc-capacitor',title:'הקבל',sub:'C=Q/V, C=ε₀A/d, אנרגיה אגורה'},
     {id:'elc-network',title:'קבלים בטור ובמקביל',sub:'C_eq, מה משותף — מתח או מטען'},
@@ -4291,6 +4292,47 @@ const ELECTRO_CONTENT={
   problem:{title:'עבודה על מטען',text:'מטען q=+2 μC מועבר מנקודה A (V_A=500 V) לנקודה B (V_B=100 V).',steps:[
     {q:'מה העבודה שמבצע הכוח החשמלי? (J)',unit:'J',answer:'8e-4',tolerance:2e-5,explain:'W=q(V_A−V_B)=2×10⁻⁶×400=8×10⁻⁴ J. חיובית — השדה "עוזר" למטען החיובי לרדת בפוטנציאל.',hint:'W=qΔV'},
     {q:'אם המטען שוחרר ממנוחה ב-A ורק הכוח החשמלי פועל — מה האנרגיה הקינטית שלו ב-B? (J)',unit:'J',answer:'8e-4',tolerance:2e-5,explain:'משפט עבודה-אנרגיה: כל העבודה הפכה ל-Ek=8×10⁻⁴ J. חיבור ישיר למכניקה!',hint:'W=ΔEk'},
+  ]},
+},
+'elc-energy.elc-upair':{
+  theory:{html:`
+    <p><b>מחזיקים שני מטענים חיוביים קרובים זה לזה ומשחררים.</b> הם מתעופפים החוצה וצוברים מהירות. מאיפה הגיעה האנרגיה הקינטית? היא הייתה אגורה כל הזמן ב<b>אנרגיה הפוטנציאלית של הזוג</b> — בדיוק כמו קפיץ דחוס.</p>
+    ${fBox('U = k\\dfrac{q_1 q_2}{r}','אנרגיה פוטנציאלית של זוג מטענים',[['U','האנרגיה האגורה בזוג','J'],['q_1,q_2','המטענים — <b>עם הסימן</b>','C'],['r','המרחק ביניהם','m'],['k','קבוע קולומב','N·m²/C²']])}
+    <div class="def-block"><b>שתי נקודות שקובעות הכול:</b><br>
+    1️⃣ <b>הסימן נכנס לנוסחה.</b> בניגוד לכוח F=k|q₁q₂|/r² שמשתמש בערכים מוחלטים, כאן מציבים את המטענים <b>עם הסימן שלהם</b>. מטענים זהים ⇒ U חיובית; מנוגדים ⇒ U <b>שלילית</b>.<br>
+    2️⃣ <b>חזקה אחת של r, לא שתיים.</b> הכוח דועך כ-1/r², האנרגיה כ-1/r. חצי מרחק ⇒ הכוח פי 4, האנרגיה רק פי 2.</div>
+    <div class="mis-block"><b>⚠️ טעות נפוצה:</b> "U = kq₁q₂/r²". זו הנוסחה של ה<b>כוח</b> (ובערך מוחלט). האנרגיה היא kq₁q₂/<b>r</b> — חזקה אחת. בדיקה מהירה ביחידות: k·C·C/m נותן J ✓, ואילו k·C·C/m² נותן N — ניוטון, לא ג׳אול.</div>
+    <p><b>מה המשמעות של סימן U?</b> נקודת האפס נבחרת ב-r→∞ (שני המטענים רחוקים אינסופית), וזו בחירה טבעית ולא שרירותית כאן.</p>
+    <div class="def-block"><b>U &gt; 0 (מטענים זהים):</b> הזוג "טעון כמו קפיץ" — שחרור ייתן אנרגיה קינטית. צריך להשקיע עבודה כדי לקרב אותם.<br>
+    <b>U &lt; 0 (מטענים מנוגדים):</b> מצב <b>קשור</b>. כדי להפריד אותם לאינסוף חייבים להשקיע עבודה של |U|. זה בדיוק מה שמחזיק אלקטרון סביב גרעין.</div>
+    <p><b>הקשר לפוטנציאל:</b> ${M('U = q_2 V_1')} — האנרגיה היא המטען כפול הפוטנציאל שיוצר בשבילו השני. שתי הדרכים נותנות אותו מספר: ${M('q_2 \\cdot k q_1/r = k q_1 q_2 / r')}.</p>
+    ${animCanvas('anim-elc-upair-t',195,'שחרור זוג מטענים: U הופכת ל-E_k, והסכום נשאר קבוע')}
+    <p><b>יותר משני מטענים?</b> סוכמים על כל ה<b>זוגות</b>, לא על המטענים. לשלושה מטענים יש שלושה זוגות (1-2, 1-3, 2-3), לארבעה כבר שישה.</p>
+    <div class="ex-block"><div class="ex-title">✏️ דוגמה פתורה — לשחרר או להפריד</div>
+    <p>q₁=+2 μC ו-q₂=+3 μC מוחזקים במרחק r=30 cm.</p>
+    <p><b>1. האנרגיה האגורה:</b> U = 9×10⁹·(2×10⁻⁶)(3×10⁻⁶)/0.3 = 5.4×10⁻²/0.3 = <b>+0.18 J</b>.<br>
+    <b>2. משחררים — מה המהירות בסוף?</b> באינסוף U=0, ולכן <b>כל</b> ה-0.18 J הופכים לאנרגיה קינטית של שני המטענים יחד.<br>
+    <b>3. ואם q₂ היה −3 μC?</b> U = <b>−0.18 J</b>. הזוג קשור: כדי להפריד אותו לאינסוף צריך להשקיע 0.18 J מבחוץ, ומשחרור לא נקבל כלום — הם רק יתקרבו.<br>
+    <b>4. שלושה מטענים של +2 μC בקודקודי משולש שווה-צלעות בעל צלע 20 cm:</b> כל זוג תורם 9×10⁹·4×10⁻¹²/0.2 = 0.18 J, ויש <b>שלושה</b> זוגות ⇒ U_total = <b>0.54 J</b>.</p></div>
+    <div class="enrich-card"><div class="enrich-title">אותה נוסחה, מהאטום ועד הכוכבים</div>
+      <p>U שלילית פירושה מערכת קשורה — וזו אותה מתמטיקה שמתארת אלקטרון הקשור לגרעין, יון בגביש מלח, ואפילו כוכב לכת במסלול (שם U=−Gm₁m₂/r, אותה צורה בדיוק). "אנרגיית קשר" היא פשוט |U|: כמה צריך להשקיע כדי לפרק את המערכת.</p></div>`,
+  },
+  sim:{type:'elc-upair',desc:'גררו את המטענים וקראו את U — עם הסימן. שנו סימן ותראו את U הופכת לשלילית (מצב קשור). לחצו "שחרר" וצפו ב-U הופכת לאנרגיה קינטית בעוד הסכום U+E_k נשאר קבוע.'},
+  example:{title:'אנרגיה של זוג',text:'q₁=+1 μC ו-q₂=+4 μC במרחק 0.2 m.',steps:[
+    {q:'מה U של הזוג?',a:'U=9×10⁹·1×10⁻⁶·4×10⁻⁶/0.2=3.6×10⁻²/0.2=0.18 J'},
+    {q:'מה קורה ל-U אם מקרבים ל-0.1 m?',a:'r נחצה ⇒ U מוכפלת (חזקה אחת!): U=0.36 J. הכוח לעומת זאת גדל פי 4.'}]},
+  quiz:[
+    {q:'האנרגיה הפוטנציאלית של זוג מטענים תלויה במרחק כ:',opts:['1/r²','1/r','r','r²'],correct:1,explain:'U=kq₁q₂/r — חזקה אחת של r. הכוח הוא שדועך כ-1/r². חצי מרחק מכפיל את U אך מרבע את F.'},
+    {q:'שני מטענים מנוגדים בסימנם. האנרגיה U שלהם:',opts:['חיובית','שלילית','אפס','תלוי בגודלם'],correct:1,explain:'מציבים את המטענים עם הסימן: מכפלה של + ו-− נותנת U שלילית. משמעותה מצב קשור — צריך להשקיע עבודה כדי להפריד.'},
+    {q:'מה המשמעות הפיזיקלית של U שלילית?',opts:['אנרגיה שלילית ממש','המערכת קשורה — צריך להשקיע עבודה כדי להפריד','שגיאה בחישוב','המטענים נחים'],correct:1,explain:'הסימן נמדד ביחס לאפס שנבחר באינסוף. U<0 פירושו שהמערכת נמצאת מתחת לאפס הזה, כלומר קשורה: הפרדה לאינסוף דורשת השקעה של |U|.'},
+    {q:'משחררים ממנוחה שני מטענים חיוביים. האנרגיה הקינטית שהם צוברים בסך הכול עד אינסוף:',opts:['אפס','U ההתחלתית','חצי מ-U','אינסופית'],correct:1,explain:'שימור אנרגיה: U_i+0 = 0+E_k ⇒ כל האנרגיה הפוטנציאלית ההתחלתית הופכת לקינטית, כי באינסוף U=0.'},
+    {q:'לשלושה מטענים, כמה איברים יש בסכום האנרגיה?',opts:['2','3','4','6'],correct:1,explain:'סוכמים על זוגות ולא על מטענים: (1,2), (1,3), (2,3) — שלושה זוגות. לארבעה מטענים כבר שישה.'},
+    {q:'מקרבים שני מטענים חיוביים זה לזה. העבודה שצריך להשקיע:',opts:['שלילית','חיובית','אפס','תלוי במסה'],correct:1,explain:'U גדלה כשמקרבים מטענים זהים (U=kq₁q₂/r עם r קטן יותר), ולכן צריך להשקיע עבודה חיובית מבחוץ — בדיוק כמו דחיסת קפיץ.'},
+  ],
+  problem:{title:'זוג קשור',text:'q₁=+4 μC בראשית ו-q₂=−2 μC במרחק 40 cm ממנו. (k=9×10⁹)',steps:[
+    {q:'מה האנרגיה U של הזוג? (J)',unit:'J',answer:'-0.18',tolerance:0.01,explain:'U=kq₁q₂/r=9×10⁹·(4×10⁻⁶)(−2×10⁻⁶)/0.4=−7.2×10⁻²/0.4=−0.18 J. שלילית — מצב קשור.',hint:'הציבו את המטענים עם הסימן שלהם'},
+    {q:'כמה עבודה נדרשת כדי להרחיק אותם לאינסוף? (J)',unit:'J',answer:'0.18',tolerance:0.01,explain:'W=U_סופי−U_התחלתי=0−(−0.18)=+0.18 J. זו בדיוק אנרגיית הקשר של הזוג.',hint:'באינסוף U=0'},
+    {q:'ואם q₂ היה +2 μC במקום −2 μC, מה הייתה U? (J)',unit:'J',answer:'0.18',tolerance:0.01,explain:'אותו גודל אך סימן הפוך: U=+0.18 J. עכשיו שחרור ייתן אנרגיה קינטית במקום לדרוש השקעה.',hint:'רק הסימן משתנה'},
   ]},
 },
 'elc-energy.elc-plates':{
@@ -4558,6 +4600,7 @@ function initSim(id,type){
     'elc-plates':simElcPlates,
     'elc-cap':simElcCap,
     'elc-network':simElcNetwork,
+    'elc-upair':simElcUpair,
   }[type]||simPlaceholder)(canvas,type);
   },50);
 }
@@ -19022,6 +19065,48 @@ runAnim('anim-elc-cond-t',(cv,ctx,W,H,t)=>{
   }
 });
 
+// ── Releasing a charge pair: U becomes kinetic energy, the sum stays flat ──
+runAnim('anim-elc-upair-t',(cv,ctx,W,H,t)=>{
+  ctx.clearRect(0,0,W,H);
+  var k=9e9,q1=2e-6,q2=3e-6,m=0.002;      // kg — light enough to move visibly
+  var r0=0.30, rInf=1.20;
+  var U0=k*q1*q2/r0;
+  var cyc=(t%6)/6;
+  // speed comes straight from energy, so U+K is conserved by construction
+  var r=r0+(rInf-r0)*Math.pow(cyc,0.62);
+  var U=k*q1*q2/r, K=U0-U;
+  var cx=W*0.34, cy=H*0.46, PX=190;        // px per metre
+  var half=(r*PX)/2;
+  function ch(x,lab,col){
+    ctx.save();ctx.fillStyle=col;ctx.shadowColor=col;ctx.shadowBlur=12;
+    ctx.beginPath();ctx.arc(x,cy,14,0,Math.PI*2);ctx.fill();ctx.restore();
+    oLbl(ctx,'+',x,cy+1,'#0b1220',14);
+    oLbl(ctx,lab,x,cy-24,col,9.5);
+  }
+  ch(cx-half,'q₁=2μC','#f87171');
+  ch(cx+half,'q₂=3μC','#f87171');
+  ctx.save();ctx.strokeStyle='rgba(148,163,184,.35)';ctx.setLineDash([4,4]);ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(cx-half,cy+26);ctx.lineTo(cx+half,cy+26);ctx.stroke();ctx.setLineDash([]);ctx.restore();
+  oLbl(ctx,'‎r = '+r.toFixed(2)+' m',cx,cy+38,'#94a3b8',9.5);
+  // they fly apart: repulsion arrows shrink as 1/r²
+  var F=k*q1*q2/(r*r), FL=Math.min(46,F*70);
+  simArrow(ctx,cx-half-16,cy,cx-half-16-FL,cy,'#fbbf24',2.4,9);
+  simArrow(ctx,cx+half+16,cy,cx+half+16+FL,cy,'#fbbf24',2.4,9);
+  // energy bars, read off the same r
+  var BX=W*0.72,BW=34,BH=H*0.54,BY=H*0.20;
+  function bar(i,lab,val,col){
+    var X=BX+i*(BW+16), f=Math.max(0,Math.min(1,val/U0));
+    ctx.save();ctx.fillStyle='rgba(148,163,184,.12)';ctx.fillRect(X,BY,BW,BH);
+    ctx.fillStyle=col;ctx.fillRect(X,BY+BH*(1-f),BW,BH*f);
+    ctx.strokeStyle='rgba(148,163,184,.4)';ctx.lineWidth=1;ctx.strokeRect(X,BY,BW,BH);ctx.restore();
+    oLbl(ctx,lab,X+BW/2,BY-9,col,10);
+    oLbl(ctx,val.toFixed(3),X+BW/2,BY+BH+13,col,9);
+  }
+  bar(0,'U',U,'#f87171'); bar(1,'E_k',K,'#4ade80'); bar(2,'סה״כ',U+K,'#fbbf24');
+  oLbl(ctx,'‎U = k·q₁q₂/r  —  חזקה אחת של r',W*0.30,15,'#94a3b8',10.5);
+  oLbl(ctx,'האנרגיה האגורה בזוג הופכת לתנועה — והסכום לא זז',W/2,H-9,'#a78bfa',10);
+});
+
 // ── What a dielectric does: polarisation → bound charge → weaker field ──
 runAnim('anim-elc-diel-t',(cv,ctx,W,H,t)=>{
   ctx.clearRect(0,0,W,H);
@@ -20120,6 +20205,108 @@ function simElcConductor(canvas){
   }requestAnimationFrame(draw);
 }
 
+// ─── PAIR ENERGY U = k q1 q2 / r — with its sign ───────────────────
+function simElcUpair(canvas){
+  const H=460;const{ctx,W,dpr}=setupCanvas(canvas,H);
+  const id=canvas.id;var animT=0;
+  var PXM=150, cy=H*0.34;
+  var x1=W*0.30, x2=W*0.66, dragC=null, touched=false;
+  var released=false, rRel=0, U0=0, mkg=0.002;
+  function Q1(){var e=document.getElementById('inp-up-q1');return e?parseFloat(e.value):2;}
+  function Q2(){var e=document.getElementById('inp-up-q2');return e?parseFloat(e.value):3;}
+  function Uof(r){return ELC_K*Q1()*Q2()*1e-12/Math.max(0.05,r);}
+  var rb=document.getElementById('btn-up-release');
+  if(rb)rb.addEventListener('click',function(){
+    if(Q1()*Q2()<=0){released=false;return;}      // attraction: nothing to release
+    released=true; rRel=Math.abs(x2-x1)/PXM; U0=Uof(rRel);
+  });
+  function _dn(e){var p=simPointerXY(canvas,dpr,e);
+    if(Math.hypot(p.x-x1,p.y-cy)<28)dragC=1;else if(Math.hypot(p.x-x2,p.y-cy)<28)dragC=2;
+    if(dragC){touched=true;released=false;canvas.style.cursor='grabbing';e.preventDefault();}}
+  function _mv(e){var p=simPointerXY(canvas,dpr,e);
+    if(dragC===1){x1=Math.max(40,Math.min(x2-40,p.x));e.preventDefault();}
+    else if(dragC===2){x2=Math.max(x1+40,Math.min(W-40,p.x));e.preventDefault();}
+    else canvas.style.cursor=(Math.hypot(p.x-x1,p.y-cy)<28||Math.hypot(p.x-x2,p.y-cy)<28)?'grab':'';}
+  function _up(){dragC=null;canvas.style.cursor='';}
+  canvas.addEventListener('mousedown',_dn);canvas.addEventListener('touchstart',_dn,{passive:false});
+  canvas.addEventListener('mousemove',_mv);canvas.addEventListener('touchmove',_mv,{passive:false});
+  canvas.addEventListener('mouseup',_up);canvas.addEventListener('touchend',_up);
+  function draw(){
+    if(_simStop[id])return;animT+=0.03;
+    var q1=Q1(),q2=Q2();
+    // While released, speed is derived from energy: v=sqrt(2(E-U)/m). Conservation
+    // is then exact by construction rather than accumulated by an integrator.
+    if(released){
+      var r=Math.abs(x2-x1)/PXM;
+      var K=Math.max(0,U0-Uof(r));
+      var v=Math.sqrt(2*K/mkg);
+      var dx=v*0.016*PXM/2;
+      x1-=dx; x2+=dx;
+      if(x1<30||x2>W-30){released=false;}
+    }
+    var r_m=Math.max(0.05,Math.abs(x2-x1)/PXM);
+    var U=Uof(r_m), F=ELC_K*Math.abs(q1*q2)*1e-12/(r_m*r_m);
+    var bg=ctx.createLinearGradient(0,0,0,H);bg.addColorStop(0,'#020810');bg.addColorStop(1,'#04101e');
+    ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);
+    optDash(ctx,30,cy,W-30,cy,'#1e3a5f',0.6);
+    function ch(x,q,lab){
+      var col=q>0?'#f87171':q<0?'#60a5fa':'#64748b';
+      ctx.save();ctx.fillStyle=col;optGlow(ctx,col,16);
+      ctx.beginPath();ctx.arc(x,cy,13+Math.abs(q)*1.6,0,Math.PI*2);ctx.fill();optNoGlow(ctx);
+      ctx.fillStyle='#0b1220';ctx.font='bold 15px Heebo';ctx.textAlign='center';
+      ctx.fillText(q>0?'+':q<0?'−':'0',x,cy+5);ctx.restore();
+      optLabel(ctx,'‎'+lab+' = '+q.toFixed(1)+' μC',x,cy-30,col,9.5);
+    }
+    ch(x1,q1,'q₁'); ch(x2,q2,'q₂');
+    ctx.save();ctx.strokeStyle='#64748b';ctx.lineWidth=1;
+    ctx.beginPath();ctx.moveTo(x1,cy+34);ctx.lineTo(x2,cy+34);ctx.stroke();ctx.restore();
+    optLabel(ctx,'‎r = '+r_m.toFixed(2)+' m',(x1+x2)/2,cy+46,'#94a3b8',9.5);
+    var attract=q1*q2<0;
+    optLabel(ctx,attract?'מטענים מנוגדים — מצב קשור (U<0)':'מטענים זהים — אנרגיה אגורה (U>0)',
+             (x1+x2)/2,cy+62,attract?'#60a5fa':'#f87171',9.5);
+    // U(r) curve with the sign made visual: positive above the axis, negative below
+    var gx=W*0.08,gy=H*0.56,gw=W*0.52,gh=H*0.34, mid=gy+gh/2;
+    ctx.save();ctx.strokeStyle='rgba(100,116,139,.45)';ctx.lineWidth=1;
+    ctx.beginPath();ctx.moveTo(gx,gy);ctx.lineTo(gx,gy+gh);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(gx,mid);ctx.lineTo(gx+gw,mid);ctx.stroke();ctx.restore();
+    optLabel(ctx,'‎U = 0  (r → ∞)',gx+gw-46,mid-9,'#64748b',8);
+    var rMaxG=(W-70)/PXM, Uref=Math.abs(ELC_K*q1*q2*1e-12/0.12)||1;
+    ctx.save();ctx.strokeStyle=attract?'#60a5fa':'#f87171';ctx.lineWidth=2;ctx.beginPath();
+    for(var i=0;i<=60;i++){
+      var rr=0.12+(rMaxG-0.12)*i/60;
+      var Uv=ELC_K*q1*q2*1e-12/rr;
+      var X=gx+(rr/rMaxG)*gw, Y=mid-Math.max(-1,Math.min(1,Uv/Uref))*(gh/2-6);
+      i===0?ctx.moveTo(X,Y):ctx.lineTo(X,Y);
+    }
+    ctx.stroke();ctx.restore();
+    var cpx=gx+Math.min(1,r_m/rMaxG)*gw, cpy=mid-Math.max(-1,Math.min(1,U/Uref))*(gh/2-6);
+    ctx.save();ctx.fillStyle='#fbbf24';optGlow(ctx,'#fbbf24',9);
+    ctx.beginPath();ctx.arc(cpx,cpy,5,0,Math.PI*2);ctx.fill();optNoGlow(ctx);ctx.restore();
+    optLabel(ctx,'‎U(r) ∝ 1/r  —  לא 1/r²',gx+gw/2,gy-8,'#a78bfa',9);
+    // energy bars while a release is in progress
+    if(released||U0>0){
+      var K=Math.max(0,U0-U);
+      var BX=W*0.68,BW=30,BH=H*0.30,BY=H*0.58;
+      function bar(i,lab,val,col){
+        var X=BX+i*(BW+14), f=Math.max(0,Math.min(1,val/(U0||1)));
+        ctx.save();ctx.fillStyle='rgba(148,163,184,.12)';ctx.fillRect(X,BY,BW,BH);
+        ctx.fillStyle=col;ctx.fillRect(X,BY+BH*(1-f),BW,BH*f);
+        ctx.strokeStyle='rgba(148,163,184,.4)';ctx.lineWidth=1;ctx.strokeRect(X,BY,BW,BH);ctx.restore();
+        optLabel(ctx,lab,X+BW/2,BY-8,col,9);
+        optLabel(ctx,val.toFixed(3),X+BW/2,BY+BH+12,col,8.5);
+      }
+      bar(0,'U',U,'#f87171'); bar(1,'E_k',K,'#4ade80'); bar(2,'סה״כ',U+K,'#fbbf24');
+    }
+    if(!touched&&animT<8)optLabel(ctx,'✋ גררו את המטענים, ואז שחררו',W*0.34,H-12,'#fbbf24',10);
+    optInfoBox(ctx,W-236,10,228,[
+      '‎U = k·q₁q₂/r',
+      '‎U = '+(U>=0?'+':'')+U.toFixed(3)+' J',
+      '‎F = '+F.toFixed(3)+' N   (∝ 1/r²)',
+      attract?'הפרדה לאינסוף עולה '+Math.abs(U).toFixed(3)+' J':'שחרור ייתן '+U.toFixed(3)+' J']);
+    requestAnimationFrame(draw);
+  }requestAnimationFrame(draw);
+}
+
 // ─── CAPACITOR NETWORK — series vs parallel ────────────────────────
 function simElcNetwork(canvas){
   const H=460;const{ctx,W,dpr}=setupCanvas(canvas,H);
@@ -20629,6 +20816,7 @@ function buildSim(sim){
   else if(sim.type==='elc-conductor')extra=C(rng('cnd-Q',-8,8,4,0.5,'מטען המוליך Q',' μC')+rng('cnd-R',30,70,50,2,'רדיוס R',' px')+btn('cnd-mode','📐 חוד ופריקה','btn-secondary')+btn('cnd-ext','⚡ שדה חיצוני','btn-secondary'));
   else if(sim.type==='elc-potential')extra=C(rng('elc-Vq',-8,8,2,0.5,'מטען Q₁',' μC')+rng('elc-Vq2',-8,8,-3,0.5,'מטען Q₂',' μC')+rng('elc-q0',-5,5,1,0.5,'מטען בוחן q₀',' nC')+btn('pot-two','⊕ הוסף מטען שני','btn-secondary')+btn('pot-mark','📌 סמן נקודה A','btn-secondary'));
   else if(sim.type==='elc-plates')extra=C(rng('elc-V',50,400,200,10,'מתח V',' V')+rng('elc-d',2,8,4,0.5,'מרווח d',' cm')+rng('elc-v0',5,30,20,1,'v₀ כניסה','×10⁶')+btn('pl-launch','🚀 שגר','btn-primary')+btn('pl-flip','± הפוך קוטביות','btn-secondary')+btn('pl-part','🔁 החלף לפרוטון','btn-secondary'));
+  else if(sim.type==='elc-upair')extra=C(rng('up-q1',-5,5,2,0.5,'מטען q₁',' μC')+rng('up-q2',-5,5,3,0.5,'מטען q₂',' μC')+btn('up-release','🚀 שחרר','btn-primary'));
   else if(sim.type==='elc-network')extra=C(rng('net-c1',1,12,2,0.5,'קיבול C₁',' μF')+rng('net-c2',1,12,3,0.5,'קיבול C₂',' μF')+rng('net-v',1,24,12,1,'מתח הסוללה V',' V')+btn('net-mode','⇶ עבור לטור','btn-secondary'));
   else if(sim.type==='elc-cap')extra=C(rng('elc-cV',1,24,12,1,'מתח V',' V')+rng('elc-cA',50,400,200,10,'שטח A',' cm²')+rng('elc-cd',1,10,4,0.5,'מרווח d',' mm')+btn('cap-diel','🧱 דיאלקטרן κ=3','btn-secondary')+btn('cap-disc','✂️ נתק מהסוללה (Q קבוע)','btn-secondary'));
   const simDone=isCompleted(state.chapter,state.section,'sim');
