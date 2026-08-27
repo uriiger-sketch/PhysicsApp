@@ -4068,6 +4068,7 @@ const ELECTRO_CONTENT={
     2️⃣ מאריקים את הכדור — האלקטרונים העודפים בורחים לאדמה.<br>
     3️⃣ מנתקים את ההארקה, ורק <b>אחר כך</b> מרחיקים את המוט — הכדור נשאר <b>חיובי</b>, בסימן הפוך למוט, מבלי שנגענו בו מעולם.<br>
     הסדר קריטי: אם מרחיקים את המוט לפני ניתוק ההארקה, האלקטרונים פשוט חוזרים והכדור נשאר נייטרלי.</div>
+    ${animCanvas('anim-elc-induct-t',195,'ארבעת שלבי הטעינה בהשראה — והסיבה שהסדר קובע')}
     <div class="mis-block"><b>⚠️ טעות נפוצה:</b> "השפשוף מייצר חשמל". שום מטען לא נוצר! השפשוף רק <b>מעביר</b> אלקטרונים שכבר קיימים. וגוף שנטען + לא "קיבל פרוטונים" — הוא פשוט <b>איבד אלקטרונים</b>: הפרוטונים כלואים בגרעין ואינם זזים בתהליכים כאלה לעולם.</div>
     <p><b>ולמה נייר נייטרלי נמשך למוט טעון?</b> קיטוב! במבודד האלקטרונים אינם עוזבים את המולקולה — אך כל מולקולה נמתחת מעט, וצדה הפונה למוט נטען הפוך ממנו. הצד ההפוך-בסימנו קרוב יותר, ולכן משיכתו (∝1/r²) גוברת על דחיית הצד הרחוק: <b>משיכה נטו — תמיד, לכל סימן של מוט</b>.</p>
     <div class="theory-anim">${animCanvas('anim-elc-polar-t',170,'קיטוב: מולקולות המבודד נערכות — והנייר הנייטרלי נמשך')}</div>
@@ -4343,6 +4344,7 @@ const ELECTRO_CONTENT={
     <p><b>אינטואיציה:</b> לוחות גדולים (A↑) אוגרים יותר מטען; מרווח קטן (d↓) מגביר את המשיכה בין המטענים ומאפשר לדחוס יותר — לכן C=ε₀A/d. פאראד אחד הוא ענק — קבלים אמיתיים נמדדים ב-pF עד mF.</p>
     <div class="mis-block"><b>⚠️ טעות נפוצה:</b> "אם אעלה את המתח, הקיבול יגדל — הרי C=Q/V". לא: העלאת V מעלה את Q בדיוק באותו יחס, והמנה נשארת קבועה. C נקבע <b>אך ורק מהגאומטריה ומהחומר</b> — C=κε₀A/d. הנוסחה C=Q/V מלמדת <b>איך מודדים</b> את הקיבול, לא <b>ממה</b> הוא נקבע. בדיוק אותו היגיון כמו E=F/q₀ בפרק השדה: המנה קבועה, המונה והמכנה משתנים יחד.</div>
     <div class="def-block"><b>דיאלקטרן:</b> חומר מבודד בין הלוחות מקטב ומחליש את השדה הפנימי → הקיבול גדל פי κ (קבוע דיאלקטרי): C=κε₀A/d. נייר κ≈3.7, מים κ≈80.</div>
+    ${animCanvas('anim-elc-diel-t',200,'קיטוב → מטען כבול על הפָּנים → שדה מנוגד → E קטן פי κ ולכן C גדל פי κ')}
     <div class="def-block"><b>שני תרחישים — אל תבלבלו ביניהם:</b><br>
     <b>מחובר לסוללה (V קבוע):</b> משנים גאומטריה ⇒ C משתנה ⇒ Q=CV משתנה באותו יחס, וגם U=½CV². מטען זורם אל הסוללה או ממנה.<br>
     <b>מנותק מהסוללה (Q קבוע):</b> C משתנה ⇒ V=Q/C משתנה ב<b>יחס הפוך</b>, וגם U=Q²/2C. המטען כלוא על הלוחות — אין לאן ללכת.<br>
@@ -19018,6 +19020,135 @@ runAnim('anim-elc-cond-t',(cv,ctx,W,H,t)=>{
     oLbl(ctx,'אותו מטען כולל — אך בחוד הוא נדחס, ושם E עצום',W/2,14,'#94a3b8',10.5);
     oLbl(ctx,'σ גדולה ברדיוס עקמומיות קטן ⇒ E=σ/ε₀ חוצה את חוזק הפריצה של האוויר',W/2,H-10,'#a78bfa',9.5);
   }
+});
+
+// ── What a dielectric does: polarisation → bound charge → weaker field ──
+runAnim('anim-elc-diel-t',(cv,ctx,W,H,t)=>{
+  ctx.clearRect(0,0,W,H);
+  var KAPPA=3;
+  var cyc=t%11;
+  var slid=cyc<2?0:Math.min(1,(cyc-2)/2);      // slab sliding in
+  var align=cyc<4.2?0:Math.min(1,(cyc-4.2)/1.6); // dipoles turning
+  var bound=cyc<6?0:Math.min(1,(cyc-6)/1.4);     // bound charge revealed
+  var pxL=W*0.30, pxR=W*0.66, py0=H*0.24, py1=H*0.74;
+  // plates hold a FIXED charge (battery disconnected) — that is the clean case
+  ctx.save();ctx.fillStyle='#f87171';ctx.fillRect(pxL-7,py0,7,py1-py0);
+  ctx.fillStyle='#60a5fa';ctx.fillRect(pxR,py0,7,py1-py0);ctx.restore();
+  for(var i=0;i<6;i++){
+    var gy=py0+12+i*(py1-py0-24)/5;
+    oLbl(ctx,'+',pxL-11,gy,'#fecaca',11);
+    oLbl(ctx,'−',pxR+11,gy,'#bfdbfe',11);
+  }
+  oLbl(ctx,'Q קבוע — הסוללה מנותקת',(pxL+pxR)/2,H-9,'#94a3b8',9.5);
+  // slab
+  var sw=(pxR-pxL)*0.62, sx=pxL+((pxR-pxL)-sw)/2;
+  var sxNow=sx+(1-slid)*(W*0.98-sx);
+  if(slid>0){
+    ctx.save();ctx.fillStyle='rgba(167,139,250,.12)';ctx.strokeStyle='rgba(167,139,250,.55)';ctx.lineWidth=1.5;
+    ctx.fillRect(sxNow,py0+6,sw,py1-py0-12);ctx.strokeRect(sxNow,py0+6,sw,py1-py0-12);ctx.restore();
+    oLbl(ctx,'κ = '+KAPPA,sxNow+sw/2,py0-8,'#a78bfa',10);
+    // molecular dipoles: random, then aligned against the external field
+    for(var r2=0;r2<3;r2++)for(var c2=0;c2<4;c2++){
+      var mx=sxNow+16+c2*(sw-32)/3, my=py0+26+r2*(py1-py0-52)/2;
+      var a0=((r2*4+c2)*2.3)%6.28;
+      // E₀ points from the + plate (left) to the − plate (right), so each
+      // molecule's POSITIVE end shifts RIGHT. Target angle 0, not π — with π the
+      // dipoles pointed the opposite way to the bound surface charge drawn below,
+      // which is the very thing they are supposed to produce.
+      var ang=a0*(1-align);
+      var dx=Math.cos(ang)*8, dy=Math.sin(ang)*8;
+      ctx.save();ctx.strokeStyle='rgba(148,163,184,.45)';ctx.lineWidth=1;
+      ctx.beginPath();ctx.moveTo(mx-dx,my-dy);ctx.lineTo(mx+dx,my+dy);ctx.stroke();
+      ctx.fillStyle='#60a5fa';ctx.beginPath();ctx.arc(mx-dx,my-dy,3.6,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle='#f87171';ctx.beginPath();ctx.arc(mx+dx,my+dy,3.6,0,Math.PI*2);ctx.fill();
+      ctx.restore();
+    }
+    // bound surface charge — the interior stays neutral, only the faces charge
+    if(bound>0){
+      ctx.save();ctx.globalAlpha=bound;
+      for(var i=0;i<5;i++){
+        var by=py0+22+i*(py1-py0-44)/4;
+        oLbl(ctx,'−',sxNow+5,by,'#60a5fa',11);
+        oLbl(ctx,'+',sxNow+sw-5,by,'#f87171',11);
+      }
+      ctx.restore();
+      oLbl(ctx,'מטען כבול',sxNow+sw/2,py1+4,'#a78bfa',9);
+    }
+  }
+  // fields: free-charge field constant, bound field opposing, net = E0/kappa
+  var netFrac=1-bound*(1-1/KAPPA);
+  for(var i=0;i<3;i++){
+    var fy=py0+30+i*(py1-py0-60)/2;
+    // E0 always at full strength outside the slab
+    simArrow(ctx,pxL+8,fy,sxNow>pxL+20?sxNow-4:pxL+22,fy,'rgba(251,191,36,.85)',1.6,7);
+    if(slid>0.9){
+      // inside: the surviving net field
+      simArrow(ctx,sxNow+8,fy,sxNow+8+(sw-16)*netFrac,fy,'#fbbf24',1.6+netFrac,7);
+      if(bound>0.15)simArrow(ctx,sxNow+sw-8,fy+11,sxNow+sw-8-(sw-16)*bound*(1-1/KAPPA),fy+11,'rgba(96,165,250,.8)',1.4,6);
+    }
+  }
+  if(slid>0.9&&bound>0.15)oLbl(ctx,'שדה המטען הכבול — הפוך בכיוונו',(pxL+pxR)/2,py1-14,'#60a5fa',8.5);
+  var msg = cyc<2  ? 'קבל טעון, בלי דיאלקטרן: השדה בין הלוחות הוא E₀' :
+            cyc<4.2? 'מכניסים לוח דיאלקטרן — המולקולות עדיין מבולגנות' :
+            cyc<6  ? 'השדה מסובב כל מולקולה: הקוטב + פונה אל הלוח השלילי' :
+            cyc<8  ? 'בפנים הכול מתקזז — נשאר מטען כבול על שני הפָּנים בלבד' :
+                     'שדה המטען הכבול מחסר מ-E₀:  E = E₀/κ  ⇒  V=E·d קטן פי κ  ⇒  C=Q/V גדל פי κ';
+  oLbl(ctx,msg,W/2,14,cyc<8?'#94a3b8':'#4ade80',10.5);
+});
+
+// ── Charging by induction: the four steps, and why the order matters ──
+runAnim('anim-elc-induct-t',(cv,ctx,W,H,t)=>{
+  ctx.clearRect(0,0,W,H);
+  var cyc=t%14, step=cyc<3?1:cyc<6.5?2:cyc<9?3:4;
+  var cx=W*0.60, cy=H*0.50, R=Math.min(46,H*0.26);
+  // the rod: present for steps 1-3, withdrawn in step 4
+  var rodX = step<4 ? cx-R-58 : cx-R-58-(Math.min(1,(cyc-9)/2))*W*0.42;
+  ctx.save();ctx.fillStyle='#60a5fa';ctx.shadowColor='#60a5fa';ctx.shadowBlur=10;
+  ctx.beginPath();ctx.roundRect(rodX-52,cy-11,104,22,11);ctx.fill();ctx.restore();
+  for(var i=0;i<4;i++)oLbl(ctx,'−',rodX-34+i*23,cy,'#04101f',12);
+  oLbl(ctx,'מוט שלילי',rodX,cy-24,'#60a5fa',9.5);
+  // the sphere
+  // During grounding the sphere is actively becoming positive, so the readout
+  // ramps instead of sitting at 0 while electrons visibly drain away.
+  var qSphere = step<=1 ? 0 : step===2 ? 3*Math.min(1,(cyc-3)/3.5) : 3;
+  ctx.save();ctx.fillStyle='rgba(148,163,184,.10)';ctx.strokeStyle='#94a3b8';ctx.lineWidth=2.5;
+  ctx.beginPath();ctx.arc(cx,cy,R,0,Math.PI*2);ctx.fill();ctx.stroke();ctx.restore();
+  // charge layout: separated while the rod is near, uniform + once charged
+  if(step<=2){
+    for(var i=0;i<4;i++){
+      var a=-0.6+i*0.4;
+      oLbl(ctx,'+',cx-Math.cos(a)*R*0.82,cy+Math.sin(a)*R*0.82,'#f87171',12);
+      if(step===1)oLbl(ctx,'−',cx+Math.cos(a)*R*0.82,cy+Math.sin(a)*R*0.82,'#60a5fa',12);
+    }
+  } else {
+    for(var i=0;i<6;i++){
+      var a2=i*Math.PI/3+0.3;
+      oLbl(ctx,'+',cx+Math.cos(a2)*R*0.78,cy+Math.sin(a2)*R*0.78,'#f87171',12);
+    }
+  }
+  // the earth wire, attached only during step 2
+  var gy=cy+R+6, gyEnd=H-26;
+  if(step===2){
+    ctx.save();ctx.strokeStyle='#22d3ee';ctx.lineWidth=2.2;
+    ctx.beginPath();ctx.moveTo(cx,gy);ctx.lineTo(cx,gyEnd);ctx.stroke();
+    for(var i=0;i<3;i++){ctx.beginPath();ctx.moveTo(cx-14+i*4,gyEnd+i*4);ctx.lineTo(cx+14-i*4,gyEnd+i*4);ctx.stroke();}
+    ctx.restore();
+    // electrons leaving down the wire
+    var f=((t*1.6)%1);
+    ctx.save();ctx.fillStyle='#60a5fa';
+    for(var k=0;k<3;k++){var u=(f+k/3)%1;
+      ctx.beginPath();ctx.arc(cx,gy+u*(gyEnd-gy),3.4,0,Math.PI*2);ctx.fill();}
+    ctx.restore();
+    oLbl(ctx,'האלקטרונים בורחים לאדמה',cx+92,gyEnd-14,'#22d3ee',9);
+  }
+  var titles=['','1. מקרבים את המוט — המטענים נפרדים, הסך עדיין 0',
+                 '2. מאריקים בזמן שהמוט קרוב — האלקטרונים יורדים לאדמה',
+                 '3. מנתקים את ההארקה — המטען החיובי נעול על הכדור',
+                 '4. רק עכשיו מרחיקים את המוט — הכדור נשאר טעון +'];
+  oLbl(ctx,titles[step],W/2,15,step===4?'#4ade80':'#94a3b8',10.5);
+  oLbl(ctx,'\u200eמטען הכדור: '+(qSphere<0.05?'0':'+'+qSphere.toFixed(1))+' יח׳',W*0.16,cy+R+30,qSphere>0.05?'#f87171':'#94a3b8',10);
+  if(step===4)oLbl(ctx,'✔ נטען בסימן ההפוך למוט — בלי לגעת בו',W/2,H-9,'#4ade80',10);
+  else oLbl(ctx,'הסדר קריטי: הארקה תחילה, ורק אחר כך מרחיקים את המוט',W/2,H-9,'#a78bfa',9.5);
 });
 
 // ── Capacitor networks: what is SHARED decides everything ──
