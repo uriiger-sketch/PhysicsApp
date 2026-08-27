@@ -4048,6 +4048,7 @@ const ELECTRO_CHAPTERS=[
     {id:'elc-potential',title:'פוטנציאל חשמלי',sub:'V=kQ/r, עבודה ואנרגיה, קווים שווי-פוטנציאל'},
     {id:'elc-plates',title:'שדה אחיד — לוחות מקבילים',sub:'E=V/d, תנועת מטען בשדה'},
     {id:'elc-capacitor',title:'הקבל',sub:'C=Q/V, C=ε₀A/d, אנרגיה אגורה'},
+    {id:'elc-network',title:'קבלים בטור ובמקביל',sub:'C_eq, מה משותף — מתח או מטען'},
   ]},
 ];
 const ELECTRO_CONTENT={
@@ -4212,6 +4213,43 @@ const ELECTRO_CONTENT={
     {q:'מה הפוטנציאל על פני הכדור? (V)',unit:'V',answer:'180000',tolerance:2000,explain:'V=kQ/R=9×10⁹·2×10⁻⁶/0.1=1.8×10⁵ V.',hint:'V=kQ/R'},
     {q:'מה עוצמת השדה במרחק 20 cm מהמרכז? (V/m)',unit:'V/m',answer:'450000',tolerance:5000,explain:'מחוץ לכדור E=kQ/r²=9×10⁹·2×10⁻⁶/(0.2)²=4.5×10⁵ V/m.',hint:'מבחוץ — כמו מטען נקודתי'},
     {q:'מה עוצמת השדה במרחק 5 cm מהמרכז? (V/m)',unit:'V/m',answer:'0',tolerance:0.1,explain:'5 cm הוא בתוך חומר המוליך ⇒ E=0 בדיוק. שימו לב ש-V שם עדיין 1.8×10⁵ V.',hint:'שיווי משקל אלקטרוסטטי'},
+  ]},
+},
+'elc-energy.elc-network':{
+  theory:{html:`
+    <p>במעגל אמיתי כמעט אף פעם אין קבל אחד. השאלה היחידה שצריך לשאול על כל חיבור היא: <b>מה משותף לשני הקבלים?</b> התשובה קובעת את כל השאר.</p>
+    <div class="def-block"><b>שני חיבורים, שני "משותפים":</b><br>
+    <b>במקביל</b> — שני הקבלים מחוברים לאותן שתי נקודות ⇒ <b>המתח משותף</b>, והמטענים מצטברים.<br>
+    <b>בטור</b> — הקבלים משורשרים זה אחרי זה ⇒ <b>המטען משותף</b> (אותם אלקטרונים עוברים בשניהם!), והמתחים מתחלקים.</div>
+    ${fBox('C_{eq} = C_1 + C_2','חיבור במקביל — הקיבולים מתחברים',[['C_{eq}','הקיבול השקול','F'],['C_1','קיבול ראשון','F'],['C_2','קיבול שני','F']])}
+    ${fBox('\\dfrac{1}{C_{eq}} = \\dfrac{1}{C_1} + \\dfrac{1}{C_2}','חיבור בטור — ההופכיים מתחברים',[['C_{eq}','הקיבול השקול','F'],['C_1','קיבול ראשון','F'],['C_2','קיבול שני','F']])}
+    <p><b>למה זה הגיוני?</b> חיבור <b>במקביל</b> שקול להגדלת שטח הלוחות — יותר מקום לאחסן מטען, ולכן C גדל. חיבור <b>בטור</b> שקול להגדלת המרווח d — ולכן C <b>קטן</b>. מכאן כלל בדיקה מהיר: בטור הקיבול השקול <b>תמיד קטן מהקטן שבשניהם</b>, ובמקביל <b>תמיד גדול מהגדול שבשניהם</b>.</p>
+    <div class="mis-block"><b>⚠️ טעות נפוצה:</b> "בטור המטען מתחלק בין הקבלים". ההפך: בטור המטען <b>זהה</b> בשניהם. הלוח הפנימי של הקבל הראשון והלוח הפנימי של השני מחוברים בחוט מבודד משאר המעגל — כל אלקטרון שעוזב לוח אחד מגיע בדיוק אל השני. מה שמתחלק שם הוא ה<b>מתח</b>: V₁+V₂=V.</div>
+    ${animCanvas('anim-elc-net-t',195,'במקביל המתח משותף והמטענים מתחברים; בטור המטען משותף והמתחים מתחברים')}
+    <div class="ex-block"><div class="ex-title">✏️ דוגמה פתורה — אותם שני קבלים, שני חיבורים</div>
+    <p>C₁=2 μF ו-C₂=3 μF, סוללה V=12 V.</p>
+    <p><b>מקביל:</b> C_eq=2+3=<b>5 μF</b>. המתח משותף ⇒ Q₁=C₁V=24 μC, Q₂=C₂V=36 μC, וסך המטען 60 μC. האנרגיה U=½C_eq V²=<b>360 μJ</b>.<br>
+    <b>טור:</b> C_eq=(2·3)/(2+3)=<b>1.2 μF</b>. המטען משותף ⇒ Q=C_eq·V=14.4 μC <b>בשניהם</b>. המתחים: V₁=Q/C₁=7.2 V, V₂=Q/C₂=4.8 V — וסכומם 12 V בדיוק ✓. האנרגיה U=½C_eq V²=<b>86.4 μJ</b>.<br>
+    <b>המסקנה:</b> אותם רכיבים בדיוק, אך במקביל אגרנו פי 4 יותר אנרגיה. הטופולוגיה היא חלק מהפיזיקה.</p></div>
+    <div class="enrich-card"><div class="enrich-title">למה במצלמה יש בנק קבלים?</div>
+      <p>מבזק מצלמה זקוק להרבה אנרגיה בזמן קצר, ולכן משתמשים ב<b>מקביל</b> — הקיבולים מתחברים והמטען הזמין גדל. לעומת זאת, כשצריך לעמוד במתח גבוה מזה שקבל בודד סובל, מחברים <b>בטור</b>: כל קבל נושא רק חלק מהמתח. זו אותה תמורה שמופיעה בכל תכנון: קיבול גדול מול עמידות במתח.</p></div>`,
+  },
+  sim:{type:'elc-network',desc:'החליפו בין טור למקביל וראו את המעגל מתחבר מחדש. הסימון "=" מראה מה משותף: במקביל המתח, בטור המטען. עקבו אחר C_eq, Q ו-V בכל קבל, ואחר האנרגיה האגורה.'},
+  example:{title:'קיבול שקול',text:'C₁=6 μF ו-C₂=3 μF.',steps:[
+    {q:'מה הקיבול השקול במקביל?',a:'C_eq=6+3=9 μF — גדול מהגדול שבשניהם'},
+    {q:'ומה בטור?',a:'C_eq=(6·3)/(6+3)=18/9=2 μF — קטן מהקטן שבשניהם'}]},
+  quiz:[
+    {q:'שני קבלים מחוברים במקביל. מה משותף להם?',opts:['המטען','המתח','האנרגיה','הקיבול'],correct:1,explain:'במקביל שני הקבלים מחוברים לאותן שתי נקודות, ולכן הפרש הפוטנציאלים עליהם זהה. המטענים מצטברים: Q=Q₁+Q₂.'},
+    {q:'שני קבלים מחוברים בטור. מה משותף להם?',opts:['המתח','המטען','הקיבול','שום דבר'],correct:1,explain:'בטור אותם אלקטרונים עוברים בשני הקבלים, ולכן המטען זהה. המתחים מתחלקים: V₁+V₂=V.'},
+    {q:'C₁=2 μF ו-C₂=3 μF במקביל. הקיבול השקול:',opts:['1.2 μF','5 μF','6 μF','0.6 μF'],correct:1,explain:'במקביל הקיבולים פשוט מתחברים: C_eq=2+3=5 μF.'},
+    {q:'שני קבלים זהים של 6 μF מחוברים בטור. הקיבול השקול:',opts:['12 μF','6 μF','3 μF','1.5 μF'],correct:2,explain:'1/C_eq=1/6+1/6=2/6 ⇒ C_eq=3 μF. לשני קבלים זהים בטור הקיבול נחצה.'},
+    {q:'בחיבור בטור, הקיבול השקול הוא תמיד:',opts:['גדול מהגדול שבשניהם','קטן מהקטן שבשניהם','ממוצע השניים','שווה לגדול'],correct:1,explain:'בטור זה כמו להגדיל את המרווח d, ולכן C יורד — תמיד מתחת לקטן שבין השניים. זו בדיקת שפיות מהירה לכל תרגיל.'},
+    {q:'מדוע חיבור במקביל מגדיל את הקיבול?',opts:['המתח גדל','זה שקול להגדלת שטח הלוחות','המרווח קטן','הדיאלקטרן משתנה'],correct:1,explain:'שני קבלים במקביל הם למעשה לוח אחד גדול יותר — שטח גדול יותר לאחסון מטען באותו מתח, ולכן C=Q/V גדל.'},
+  ],
+  problem:{title:'רשת קבלים',text:'C₁=4 μF ו-C₂=12 μF מחוברים לסוללה של V=24 V.',steps:[
+    {q:'מה הקיבול השקול בחיבור מקביל? (μF)',unit:'μF',answer:'16',tolerance:0.2,explain:'C_eq=C₁+C₂=4+12=16 μF.',hint:'במקביל הקיבולים מתחברים'},
+    {q:'מה הקיבול השקול בחיבור טור? (μF)',unit:'μF',answer:'3',tolerance:0.1,explain:'1/C_eq=1/4+1/12=3/12+1/12=4/12 ⇒ C_eq=3 μF — קטן מ-4, כמצופה.',hint:'1/C_eq=1/C₁+1/C₂'},
+    {q:'בחיבור הטור, מה המתח על C₁? (V)',unit:'V',answer:'18',tolerance:0.5,explain:'בטור המטען משותף: Q=C_eq·V=3×24=72 μC. לכן V₁=Q/C₁=72/4=18 V (ו-V₂=72/12=6 V, יחד 24 V ✓).',hint:'חשבו קודם את המטען המשותף'},
   ]},
 },
 'elc-energy.elc-potential':{
@@ -4517,6 +4555,7 @@ function initSim(id,type){
     'elc-potential':simElcPotential,
     'elc-plates':simElcPlates,
     'elc-cap':simElcCap,
+    'elc-network':simElcNetwork,
   }[type]||simPlaceholder)(canvas,type);
   },50);
 }
@@ -18981,6 +19020,61 @@ runAnim('anim-elc-cond-t',(cv,ctx,W,H,t)=>{
   }
 });
 
+// ── Capacitor networks: what is SHARED decides everything ──
+runAnim('anim-elc-net-t',(cv,ctx,W,H,t)=>{
+  ctx.clearRect(0,0,W,H);
+  var cyc=t%10, par=cyc<5;                 // 5 s parallel, 5 s series
+  var C1=2,C2=3,V=12;                      // µF, µF, V
+  var Ceq=par?(C1+C2):(C1*C2/(C1+C2));
+  var bx=W*0.12, byC=H*0.5;
+  // battery
+  ctx.save();ctx.strokeStyle='#fbbf24';ctx.lineWidth=3;
+  ctx.beginPath();ctx.moveTo(bx-13,byC-9);ctx.lineTo(bx+13,byC-9);ctx.stroke();
+  ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(bx-7,byC+9);ctx.lineTo(bx+7,byC+9);ctx.stroke();ctx.restore();
+  oLbl(ctx,V+' V',bx-26,byC,'#fbbf24',10);
+  function cap(x,y,lab,Cv,Qv,Vv,col){
+    ctx.save();ctx.strokeStyle=col;ctx.lineWidth=3.5;
+    ctx.beginPath();ctx.moveTo(x-4,y-15);ctx.lineTo(x-4,y+15);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(x+4,y-15);ctx.lineTo(x+4,y+15);ctx.stroke();ctx.restore();
+    oLbl(ctx,lab+'='+Cv+' μF',x,y-27,col,9.5);
+    oLbl(ctx,'Q='+Qv.toFixed(1)+' μC',x,y+28,'#38bdf8',9);
+    oLbl(ctx,'V='+Vv.toFixed(1)+' V',x,y+41,'#f472b6',9);
+  }
+  ctx.save();ctx.strokeStyle='#64748b';ctx.lineWidth=2;
+  if(par){
+    // two branches between the same two nodes
+    var xL=W*0.34, xR=W*0.74, yA=H*0.30, yB=H*0.70;
+    ctx.beginPath();
+    ctx.moveTo(bx,byC-9);ctx.lineTo(bx,yA);ctx.lineTo(xL,yA);
+    ctx.moveTo(bx,byC+9);ctx.lineTo(bx,yB);ctx.lineTo(xL,yB);
+    ctx.moveTo(xL,yA);ctx.lineTo(xR,yA);
+    ctx.moveTo(xL,yB);ctx.lineTo(xR,yB);
+    ctx.moveTo(xR,yA);ctx.lineTo(xR,yB);
+    ctx.stroke();ctx.restore();
+    cap(W*0.50,yA,'C₁',C1,C1*V,V,'#f87171');
+    cap(W*0.50,yB,'C₂',C2,C2*V,V,'#60a5fa');
+    oLbl(ctx,'מקביל — המתח משותף',W/2,16,'#4ade80',11);
+    oLbl(ctx,'= אותו V על שניהם',W*0.86,yA,'#4ade80',9);
+    oLbl(ctx,'= אותו V',W*0.86,yB,'#4ade80',9);
+    oLbl(ctx,'C_eq = C₁+C₂ = '+Ceq.toFixed(1)+' μF   ·   Q_כולל = '+((C1+C2)*V).toFixed(0)+' μC',W/2,H-10,'#fbbf24',10);
+  } else {
+    // one loop, both in the same path
+    var yT=H*0.28, yB2=H*0.72;
+    ctx.beginPath();
+    ctx.moveTo(bx,byC-9);ctx.lineTo(bx,yT);ctx.lineTo(W*0.40,yT);
+    ctx.moveTo(W*0.40,yT);ctx.lineTo(W*0.62,yT);
+    ctx.moveTo(W*0.62,yT);ctx.lineTo(W*0.86,yT);ctx.lineTo(W*0.86,yB2);
+    ctx.lineTo(bx,yB2);ctx.lineTo(bx,byC+9);
+    ctx.stroke();ctx.restore();
+    var Q=Ceq*V;
+    cap(W*0.40,yT,'C₁',C1,Q,Q/C1,'#f87171');
+    cap(W*0.62,yT,'C₂',C2,Q,Q/C2,'#60a5fa');
+    oLbl(ctx,'טור — המטען משותף',W/2,16,'#4ade80',11);
+    oLbl(ctx,'= אותו Q עובר בשניהם',W/2,yT-46,'#4ade80',9.5);
+    oLbl(ctx,'1/C_eq = 1/C₁+1/C₂ ⇒ C_eq = '+Ceq.toFixed(2)+' μF   ·   V₁+V₂ = '+(Q/C1).toFixed(1)+'+'+(Q/C2).toFixed(1)+' = '+V+' V',W/2,H-10,'#fbbf24',10);
+  }
+});
+
 // ── 7. Polarization: a neutral insulator's molecules align, and it is attracted ──
 runAnim('anim-elc-polar-t',(cv,ctx,W,H,t)=>{
   ctx.clearRect(0,0,W,H);
@@ -19895,6 +19989,91 @@ function simElcConductor(canvas){
   }requestAnimationFrame(draw);
 }
 
+// ─── CAPACITOR NETWORK — series vs parallel ────────────────────────
+function simElcNetwork(canvas){
+  const H=460;const{ctx,W,dpr}=setupCanvas(canvas,H);
+  const id=canvas.id;var animT=0;var series=false;
+  function C1(){var e=document.getElementById('inp-net-c1');return e?parseFloat(e.value):2;}
+  function C2(){var e=document.getElementById('inp-net-c2');return e?parseFloat(e.value):3;}
+  function Vb(){var e=document.getElementById('inp-net-v');return e?parseFloat(e.value):12;}
+  var tb=document.getElementById('btn-net-mode');
+  if(tb)tb.addEventListener('click',function(){series=!series;
+    tb.textContent=series?'⇉ עבור למקביל':'⇶ עבור לטור';});
+  function draw(){
+    if(_simStop[id])return;animT+=0.03;
+    var c1=C1(),c2=C2(),V=Vb();
+    var Ceq=series?(c1*c2/(c1+c2)):(c1+c2);
+    var Q1,Q2,V1,V2;
+    if(series){ var Q=Ceq*V; Q1=Q2=Q; V1=Q/c1; V2=Q/c2; }
+    else      { V1=V2=V; Q1=c1*V; Q2=c2*V; }
+    var U=0.5*Ceq*V*V;                       // µJ when C in µF and V in V
+    var bg=ctx.createLinearGradient(0,0,0,H);bg.addColorStop(0,'#020810');bg.addColorStop(1,'#04101e');
+    ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);
+    var bx=W*0.10, byC=H*0.44;
+    ctx.save();ctx.strokeStyle='#fbbf24';ctx.lineWidth=3.5;
+    ctx.beginPath();ctx.moveTo(bx-14,byC-10);ctx.lineTo(bx+14,byC-10);ctx.stroke();
+    ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(bx-8,byC+10);ctx.lineTo(bx+8,byC+10);ctx.stroke();ctx.restore();
+    optLabel(ctx,'‎'+V.toFixed(0)+' V',bx,byC+30,'#fbbf24',10);
+    function capSym(x,y,lab,Cv,Qv,Vv,col){
+      ctx.save();ctx.strokeStyle=col;ctx.lineWidth=4;optGlow(ctx,col,8);
+      ctx.beginPath();ctx.moveTo(x-5,y-18);ctx.lineTo(x-5,y+18);ctx.stroke();
+      ctx.beginPath();ctx.moveTo(x+5,y-18);ctx.lineTo(x+5,y+18);ctx.stroke();optNoGlow(ctx);ctx.restore();
+      optLabel(ctx,'‎'+lab+' = '+Cv.toFixed(1)+' μF',x,y-30,col,10);
+      optLabel(ctx,'‎Q = '+Qv.toFixed(1)+' μC',x,y+32,'#38bdf8',9.5);
+      optLabel(ctx,'‎V = '+Vv.toFixed(2)+' V',x,y+46,'#f472b6',9.5);
+    }
+    ctx.save();ctx.strokeStyle='#64748b';ctx.lineWidth=2.2;
+    if(!series){
+      var xL=W*0.30,xR=W*0.72,yA=H*0.24,yB=H*0.64;
+      ctx.beginPath();
+      ctx.moveTo(bx,byC-10);ctx.lineTo(bx,yA);ctx.lineTo(xL,yA);
+      ctx.moveTo(bx,byC+10);ctx.lineTo(bx,yB);ctx.lineTo(xL,yB);
+      ctx.moveTo(xL,yA);ctx.lineTo(xR,yA);
+      ctx.moveTo(xL,yB);ctx.lineTo(xR,yB);
+      ctx.moveTo(xR,yA);ctx.lineTo(xR,yB);
+      ctx.stroke();ctx.restore();
+      capSym(W*0.50,yA,'C₁',c1,Q1,V1,'#f87171');
+      capSym(W*0.50,yB,'C₂',c2,Q2,V2,'#60a5fa');
+      optLabel(ctx,'= אותו מתח',W*0.86,yA,'#4ade80',9.5);
+      optLabel(ctx,'= אותו מתח',W*0.86,yB,'#4ade80',9.5);
+      optLabel(ctx,'מקביל — המתח משותף, המטענים מתחברים',W/2,18,'#4ade80',11);
+    } else {
+      var yT=H*0.26,yB2=H*0.66;
+      ctx.beginPath();
+      ctx.moveTo(bx,byC-10);ctx.lineTo(bx,yT);ctx.lineTo(W*0.36,yT);
+      ctx.moveTo(W*0.36,yT);ctx.lineTo(W*0.62,yT);
+      ctx.moveTo(W*0.62,yT);ctx.lineTo(W*0.88,yT);ctx.lineTo(W*0.88,yB2);
+      ctx.lineTo(bx,yB2);ctx.lineTo(bx,byC+10);
+      ctx.stroke();ctx.restore();
+      capSym(W*0.36,yT,'C₁',c1,Q1,V1,'#f87171');
+      capSym(W*0.62,yT,'C₂',c2,Q2,V2,'#60a5fa');
+      optLabel(ctx,'= אותו מטען עובר בשניהם',W*0.49,yT-52,'#4ade80',9.5);
+      optLabel(ctx,'טור — המטען משותף, המתחים מתחלקים',W/2,18,'#4ade80',11);
+    }
+    // comparison bars: C_eq against both inputs, so the rule of thumb is visible
+    var BX=W*0.06,BY=H*0.80,BW=W*0.52,BH=15;
+    var scale=Math.max(c1,c2,Ceq)*1.15;
+    function bar(i,lab,val,col){
+      var y=BY+i*20;
+      ctx.save();ctx.fillStyle='rgba(148,163,184,.12)';ctx.fillRect(BX,y,BW,BH);
+      ctx.fillStyle=col;ctx.fillRect(BX,y,BW*Math.min(1,val/scale),BH);
+      ctx.strokeStyle='rgba(148,163,184,.35)';ctx.lineWidth=1;ctx.strokeRect(BX,y,BW,BH);ctx.restore();
+      optLabel(ctx,'‎'+lab+' = '+val.toFixed(2)+' μF',BX+78,y+BH/2,col,9);
+    }
+    bar(0,'C₁',c1,'#f87171'); bar(1,'C₂',c2,'#60a5fa'); bar(2,'C_eq',Ceq,'#fbbf24');
+    optLabel(ctx,series?'בטור: C_eq קטן מהקטן שבשניהם':'במקביל: C_eq גדול מהגדול שבשניהם',
+             BX+BW/2,BY+68,'#a78bfa',9.5);
+    // Panel moved to the free right-hand column: at H-150 it sat on top of the
+    // comparison bars. LTR marks keep "1/C_eq" from being reordered by bidi.
+    optInfoBox(ctx,W-232,H*0.30,224,[
+      series?'‎1/C_eq = 1/C₁ + 1/C₂':'‎C_eq = C₁ + C₂',
+      '‎C_eq = '+Ceq.toFixed(2)+' μF',
+      series?('‎Q = '+Q1.toFixed(1)+' μC  (משותף)'):('‎Q = '+(Q1+Q2).toFixed(1)+' μC  (כולל)'),
+      '‎U = ½C_eq·V² = '+U.toFixed(1)+' μJ']);
+    requestAnimationFrame(draw);
+  }requestAnimationFrame(draw);
+}
+
 // ─── PARALLEL PLATES — uniform field, electron ballistics ──────────
 function simElcPlates(canvas){
   const H=460;const{ctx,W,dpr}=setupCanvas(canvas,H);
@@ -20319,6 +20498,7 @@ function buildSim(sim){
   else if(sim.type==='elc-conductor')extra=C(rng('cnd-Q',-8,8,4,0.5,'מטען המוליך Q',' μC')+rng('cnd-R',30,70,50,2,'רדיוס R',' px')+btn('cnd-mode','📐 חוד ופריקה','btn-secondary')+btn('cnd-ext','⚡ שדה חיצוני','btn-secondary'));
   else if(sim.type==='elc-potential')extra=C(rng('elc-Vq',-8,8,2,0.5,'מטען Q₁',' μC')+rng('elc-Vq2',-8,8,-3,0.5,'מטען Q₂',' μC')+rng('elc-q0',-5,5,1,0.5,'מטען בוחן q₀',' nC')+btn('pot-two','⊕ הוסף מטען שני','btn-secondary')+btn('pot-mark','📌 סמן נקודה A','btn-secondary'));
   else if(sim.type==='elc-plates')extra=C(rng('elc-V',50,400,200,10,'מתח V',' V')+rng('elc-d',2,8,4,0.5,'מרווח d',' cm')+rng('elc-v0',5,30,20,1,'v₀ כניסה','×10⁶')+btn('pl-launch','🚀 שגר','btn-primary')+btn('pl-flip','± הפוך קוטביות','btn-secondary')+btn('pl-part','🔁 החלף לפרוטון','btn-secondary'));
+  else if(sim.type==='elc-network')extra=C(rng('net-c1',1,12,2,0.5,'קיבול C₁',' μF')+rng('net-c2',1,12,3,0.5,'קיבול C₂',' μF')+rng('net-v',1,24,12,1,'מתח הסוללה V',' V')+btn('net-mode','⇶ עבור לטור','btn-secondary'));
   else if(sim.type==='elc-cap')extra=C(rng('elc-cV',1,24,12,1,'מתח V',' V')+rng('elc-cA',50,400,200,10,'שטח A',' cm²')+rng('elc-cd',1,10,4,0.5,'מרווח d',' mm')+btn('cap-diel','🧱 דיאלקטרן κ=3','btn-secondary')+btn('cap-disc','✂️ נתק מהסוללה (Q קבוע)','btn-secondary'));
   const simDone=isCompleted(state.chapter,state.section,'sim');
   return `<div class="sim-container">
