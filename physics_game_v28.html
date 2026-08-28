@@ -14833,7 +14833,12 @@ runAnim('anim-ek',(canvas,ctx,W,H,t)=>{
   const PERIOD=5.5, tt=t%PERIOD;
   const masses=[1,3,6], cols=['#ef4444','#f59e0b','#3b82f6'], F_app=20;
   const yPos=[H*0.22,H*0.50,H*0.78];
-  const vMax=F_app/masses[0]*PERIOD*0.55;
+  // ONE full scale for all three bars. Each row used to divide by ½·m·v_ref²,
+  // a normaliser that grows with that row's own mass, so energies really in the
+  // ratio 1 : ⅓ : ⅙ were drawn as 1 : 0.11 : 0.028 — in the one figure whose
+  // purpose is comparing E_k between the rows.
+  const tMax=PERIOD*0.55;
+  const ekFull=F_app*F_app*tMax*tMax/(2*masses[0]);   // lightest block, end of run
 
   masses.forEach((m,i)=>{
     const a=F_app/m;
@@ -14861,8 +14866,7 @@ runAnim('anim-ek',(canvas,ctx,W,H,t)=>{
     if(v>0.5){ arrow(ctx,bx+16,by,Math.min(bx+16+v*3.5,W-6),by,col,2,8); }
 
     // Ek bar
-    const ekMax=0.5*m*Math.pow(F_app/masses[0]*PERIOD*0.55,2);
-    const barW=Math.min((ek/Math.max(ekMax,1))*(W-32),W-32);
+    const barW=Math.min((ek/ekFull)*(W-32),W-32);
     const barY=by+13;
     ctx.save(); ctx.fillStyle=col+'33'; ctx.fillRect(16,barY,W-32,7); ctx.restore();
     ctx.save(); ctx.fillStyle=col+'88'; ctx.fillRect(16,barY,Math.max(0,barW),7); ctx.restore();
@@ -14888,7 +14892,12 @@ runAnim('anim-force-intro',(canvas,ctx,W,H,t)=>{
   const x_push=0.5*a_push*t_push*t_push;
 
   let bx, bv, inPush=false, inSlide=false;
-  const scl=0.55;
+  // Scale derived from the full run. At the old fixed 0.55 px/m a 28 N push on a
+  // 4 kg block advanced it about 11 px in 2.75 s while the velocity arrow beside
+  // it read 15 m/s — a block visibly at rest, labelled as moving fast.
+  const t_slide=PERIOD*0.3, a_slide0=-mu*g;
+  const x_total=x_push+v_end*t_slide+0.5*a_slide0*t_slide*t_slide;
+  const scl=(W*0.66)/Math.max(1,x_total);
   if(tt<PERIOD*0.15){ bx=W*0.18; bv=0; }
   else if(tt<PERIOD*0.7){
     const tp=tt-PERIOD*0.15; inPush=true;
@@ -14918,19 +14927,22 @@ runAnim('anim-force-intro',(canvas,ctx,W,H,t)=>{
   label(ctx,m+'kg',bx,FLY-bS/2+4,'#bfdbfe',9);
 
   // Force arrow
+  // ONE scale for both arrows. F used 1.4 px/N and friction 1.1 px/N, so a
+  // 4.8:1 force ratio was drawn as 6:1 and the arrows could not be compared.
+  const ARR=1.4, f_fric=mu*m*g;
   if(inPush){
-    arrow(ctx,bx-bS/2-8-F*1.4,FLY-bS/2,bx-bS/2-8,FLY-bS/2,'#f59e0b',3,11);
-    label(ctx,'F='+F+'N',bx-bS/2-F*0.7-8,FLY-bS/2-13,'#fbbf24',9);
+    arrow(ctx,bx-bS/2-8-F*ARR,FLY-bS/2,bx-bS/2-8,FLY-bS/2,'#f59e0b',3,11);
+    label(ctx,'F='+F+' N',bx-bS/2-F*ARR/2-8,FLY-bS/2-13,'#fbbf24',9);
   }
   // Friction
   if((inPush||inSlide)&&bv>0.1){
-    const fLen=mu*g*m*1.1;
+    const fLen=f_fric*ARR;
     arrow(ctx,bx+bS/2+3+fLen,FLY-bS*0.3,bx+bS/2+3,FLY-bS*0.3,'#a78bfa',2.5,9);
-    label(ctx,'f',bx+bS/2+fLen+10,FLY-bS*0.3,'#c4b5fd',9,'left');
+    label(ctx,'f='+f_fric.toFixed(1)+' N',bx+bS/2+fLen+10,FLY-bS*0.3,'#c4b5fd',8.5,'left');
   }
   // Velocity arrow
   if(bv>0.2){
-    const vLen=Math.min(bv*11,52);
+    const vLen=Math.min(bv*3.2,54);   // bv reaches ~15 m/s; at 11 px per m/s this pinned at the cap almost at once
     arrow(ctx,bx,FLY-bS-10,bx+vLen,FLY-bS-10,'#34d399',2.5,9);
     label(ctx,'v='+bv.toFixed(1),bx+vLen+4,FLY-bS-10,'#34d399',8,'left');
   }
@@ -14943,7 +14955,14 @@ runAnim('anim-force-intro',(canvas,ctx,W,H,t)=>{
   label(ctx,phaseText,W/2,14,phaseCol,8.5);
 
   // Formula
-  label(ctx,'a = F/m = '+F+'/'+m+' = '+(F/m).toFixed(1)+' m/s²  |  ΣF=ma',W/2,H-6,'#334e68',8);
+  // This used to print a = F/m = 7.0 m/s² unconditionally, while the block was
+  // integrated with a = F/m − μg = 5.5 m/s² and a friction arrow was drawn on it
+  // in the same frame. ΣF is the sum that is actually acting.
+  const _fTxt = inPush
+    ? '\u200eΣF = F − f = '+F+' − '+f_fric.toFixed(1)+' = '+(F-f_fric).toFixed(1)+' N   →   a = ΣF/m = '+((F-f_fric)/m).toFixed(1)+' m/s²'
+    : (bv>0.1 ? '\u200eΣF = −f = −'+f_fric.toFixed(1)+' N   →   a = '+(-f_fric/m).toFixed(1)+' m/s²  (מאט)'
+              : '\u200eΣF = 0   →   a = 0');
+  label(ctx,_fTxt,W/2,H-6,inPush?'#94a3b8':'#64748b',8);
 });
 
 // CH2 ANIM: חוק ניוטון הראשון — אינרציה (block, no friction)
@@ -15114,12 +15133,18 @@ runAnim('anim-n3',(canvas,ctx,W,H,t)=>{
   const mA=3, mB=6;
   const FMag=20;
   // Animate separation
-  let xA=W/2-30, xB=W/2+30;
+  // The push is a CONTACT force: it exists only while they touch. This used to
+  // accelerate both blocks for the whole 4-second flight, so they kept gaining
+  // speed — and kept being drawn pushing each other — while half a canvas apart.
+  const T_PUSH=0.5, PPM=8;
+  const inContact=(tt>1&&tt<=1+T_PUSH);
+  let xA=W/2-30, xB=W/2+30, vA=0, vB=0;
   if(tt>1){
-    const tc=tt-1; const a_sys=FMag/(mA+mB);
-    const aA_actual=FMag/mA, aB_actual=FMag/mB;
-    xA=W/2-30-0.5*(FMag/mA)*tc*tc*5;
-    xB=W/2+30+0.5*(FMag/mB)*tc*tc*5;
+    const tc=Math.min(tt-1,T_PUSH), tf=Math.max(0,(tt-1)-T_PUSH);
+    const aA=FMag/mA, aB=FMag/mB;
+    vA=aA*tc; vB=aB*tc;
+    xA=W/2-30-(0.5*aA*tc*tc+vA*tf)*PPM;
+    xB=W/2+30+(0.5*aB*tc*tc+vB*tf)*PPM;
   }
   xA=Math.max(18,xA); xB=Math.min(W-18,xB);
 
@@ -15151,20 +15176,31 @@ runAnim('anim-n3',(canvas,ctx,W,H,t)=>{
     ctx.save(); ctx.fillStyle='rgba(251,191,36,.3)'; ctx.beginPath(); ctx.arc(contactX,ay,14,0,Math.PI*2); ctx.fill(); ctx.restore();
     label(ctx,'מגע!',contactX,ay-20,'#fbbf24',9);
   }
-  if(tt>1){
+  if(inContact){
     const fLen=Math.min(FMag*1.3,50);
-    arrow(ctx,xA+bWA/2,ay-10,xA+bWA/2+fLen,ay-10,'#3b82f6',3,10);
-    label(ctx,'F_AB=+'+FMag+'N',xA+bWA/2+fLen/2,ay-20,'#93c5fd',8);
-    arrow(ctx,xB-bWB/2,ay+10,xB-bWB/2-fLen,ay+10,'#ef4444',3,10);
-    label(ctx,'F_BA=-'+FMag+'N',xB-bWB/2-fLen/2,ay+22,'#fca5a5',8);
+    // F_AB is the force A exerts ON B, so it is drawn on B and points the way B
+    // accelerates; F_BA acts on A and points left. Each arrow used to be
+    // anchored on the OTHER block, pointing opposite to that block's own
+    // acceleration — in the figure whose caption says third-law forces act on
+    // different bodies.
+    arrow(ctx,xB-bWB/2,ay-10,xB-bWB/2+fLen,ay-10,'#ef4444',3,10);
+    label(ctx,'F_AB=+'+FMag+'N  (A על B)',xB-bWB/2+fLen/2+22,ay-20,'#fca5a5',8);
+    arrow(ctx,xA+bWA/2,ay+10,xA+bWA/2-fLen,ay+10,'#3b82f6',3,10);
+    label(ctx,'F_BA=−'+FMag+'N  (B על A)',xA+bWA/2-fLen/2-22,ay+22,'#93c5fd',8);
   }
 
-  // Acceleration labels
+  // Acceleration while touching; constant velocity once they part.
   if(tt>1){
-    const tc=tt-1;
-    const aA=(FMag/mA).toFixed(1), aB=(FMag/mB).toFixed(1);
-    label(ctx,'aₐ='+aA+' m/s² ←',xA,ay-bH/2-10,'#fca5a5',8);
-    label(ctx,'a_b='+aB+' m/s² →',xB,ay-bH/2-10,'#93c5fd',8);
+    if(inContact){
+      label(ctx,'aₐ='+(FMag/mA).toFixed(1)+' m/s² ←',xA,ay-bH/2-10,'#fca5a5',8);
+      label(ctx,'a_b='+(FMag/mB).toFixed(1)+' m/s² →',xB,ay-bH/2-10,'#93c5fd',8);
+    } else {
+      label(ctx,'v='+vA.toFixed(1)+' m/s ←  (a=0)',xA,ay-bH/2-10,'#fca5a5',8);
+      label(ctx,'v='+vB.toFixed(1)+' m/s →  (a=0)',xB,ay-bH/2-10,'#93c5fd',8);
+      // equal and opposite impulses ⇒ the pair's momentum never left zero
+      label(ctx,'\u200ep = '+(mA*vA).toFixed(1)+' + (−'+(mB*vB).toFixed(1)+') = 0 kg·m/s',
+            W/2,ay+bH/2+24,'#fbbf24',8.5);
+    }
   }
 
   ctx.save(); ctx.fillStyle='rgba(6,14,28,.88)'; ctx.strokeStyle='rgba(251,191,36,.4)'; ctx.lineWidth=1;
@@ -15360,19 +15396,23 @@ runAnim('anim-gravity',(canvas,ctx,W,H,t)=>{
     {m:10,  col:'#ef4444', x:W*0.82, r:16, lbl:'10 kg'},
   ];
 
+  // ONE span for every ball. The fall distance used to be (GND−topY−2r), so
+  // each mass covered a different distance in the same time — three different
+  // accelerations, under a banner reading "a = g for all masses".
+  const rMax=16, SPAN=GND-topY-rMax*2;
   balls.forEach(b=>{
     let by;
     if(!bouncing){
-      by = topY+b.r + (GND-topY-b.r*2)*yFrac;
+      by = topY+rMax + SPAN*yFrac;
     } else {
       // tiny bounce
       const bf=Math.sin(bounceFrac*Math.PI)*0.12;
-      by = GND - b.r - (GND-topY-b.r*2)*bf;
+      by = topY+rMax+SPAN - SPAN*bf;
     }
     // ghost trails
     for(let i=1;i<=4;i++){
       const gf=Math.max(0,yFrac-i*0.1);
-      const gy=topY+b.r+(GND-topY-b.r*2)*gf;
+      const gy=topY+rMax+SPAN*gf;
       if(gy>=by-2)continue;
       ctx.save();ctx.globalAlpha=(4-i)*0.05;
       ctx.beginPath();ctx.arc(b.x,gy,b.r,0,Math.PI*2);ctx.fillStyle=b.col;ctx.fill();ctx.restore();
@@ -15388,7 +15428,7 @@ runAnim('anim-gravity',(canvas,ctx,W,H,t)=>{
     // velocity arrow
     const vy=g*(tt<tFall?tt:tFall);
     if(vy>1&&!bouncing){
-      const aLen=Math.min(vy*1.4,22);
+      const aLen=Math.min(vy*1.15,26);   // v reaches ~17 m/s; at 1.4 px per m/s the arrow froze before landing
       arrow(ctx,b.x,by+b.r+2,b.x,by+b.r+2+aLen,b.col,1.8,6);
     }
   });
@@ -15787,20 +15827,35 @@ runAnim('anim-mcons',(canvas,ctx,W,H,t)=>{
   const p_total=m1*v1i+m2*v2i;
   const v1f=((m1-m2)*v1i+2*m2*v2i)/(m1+m2);
   const v2f=(2*m1*v1i+(m2-m1)*v2i)/(m1+m2);
-  const tC=2.2;
   const r1=14, r2=11;
   const ay=H*0.46;
   const GND=ay+Math.max(r1,r2)+6;
 
+  // The collision used to fire at a fixed tC = 2.2 s while the balls, drawn at
+  // 1.1 px per m/s, were still ~550 px apart; closing at 37 px/s they would have
+  // needed 17 s, and the cycle is 7. They never touched, yet both reversed and
+  // the banner declared "after the collision". Solve the px-per-metre scale so
+  // that the collision instant IS the instant the surfaces meet, and so the
+  // outgoing balls still fit on the canvas.
+  const xL0=32, xR0=W-32;
+  const K=((xR0-xL0)-(r1+r2))/(v1i-v2i);      // K = tC · SPX
+  const x1c=xL0+v1i*K, x2c=x1c+r1+r2;         // positions at contact
+  const TA=PERIOD-0.4;
+  const sp1=x1c-(r1+8), sp2=(W-r2-8)-x2c;     // room each ball has afterwards
+  const SPX=Math.max(0.4,Math.min(
+      (sp1/Math.max(0.1,Math.abs(v1f))+K)/TA,
+      (sp2/Math.max(0.1,Math.abs(v2f))+K)/TA));
+  const tC=K/SPX;
+
   let x1,x2,v1c,v2c;
   if(tt<tC){
-    x1=32+v1i*tt*1.1;
-    x2=W-32+v2i*tt*1.1;
+    x1=xL0+v1i*tt*SPX;
+    x2=xR0+v2i*tt*SPX;
     v1c=v1i; v2c=v2i;
   } else {
     const dt2=tt-tC;
-    x1=32+v1i*tC*1.1+v1f*dt2*1.1;
-    x2=W-32+v2i*tC*1.1+v2f*dt2*1.1;
+    x1=x1c+v1f*dt2*SPX;
+    x2=x2c+v2f*dt2*SPX;
     v1c=v1f; v2c=v2f;
   }
   x1=Math.max(r1+8,Math.min(W-r1-8,x1));
@@ -16006,22 +16061,27 @@ runAnim('anim-tension',(canvas,ctx,W,H,t)=>{
   ctx.beginPath();ctx.roundRect(bX,bY,bW,bH,5);ctx.fill();ctx.stroke();ctx.restore();
   label(ctx,m+' kg',ropeX,bY+bH/2+2,'#fff',9,'center');
 
-  // Tension arrow (up from block top)
-  const T_scale=0.018;
-  arrow(ctx,ropeX,bY,ropeX,bY-T*T_scale*18,'#34d399',3,11);
-  label(ctx,'T='+T.toFixed(1)+' N',ropeX+6,bY-T*T_scale*10,'#6ee7b7',9.5,'left');
+  // ONE px-per-newton scale for every arrow in this diagram. T was drawn at
+  // 0.324 px/N, W at 0.288 and F_net at 0.9, so in the equilibrium scene the
+  // panel announced "T = W" beside arrows of 15.9 px and 14.1 px — the figure
+  // contradicting its own conclusion. On a shared scale, T − W IS the net-force
+  // arrow, which is the whole reading.
+  const FSC=0.62;
+  arrow(ctx,ropeX,bY,ropeX,bY-T*FSC,'#34d399',3,11);
+  label(ctx,'T='+T.toFixed(1)+' N',ropeX+6,bY-T*FSC*0.55,'#6ee7b7',9.5,'left');
 
   // Weight arrow (down from block bottom)
   const W_grav=m*g;
-  arrow(ctx,ropeX,bY+bH,ropeX,bY+bH+W_grav*T_scale*16,'#ef4444',3,11);
-  label(ctx,'W='+W_grav.toFixed(0)+' N',ropeX+6,bY+bH+W_grav*T_scale*9,'#fca5a5',9.5,'left');
+  arrow(ctx,ropeX,bY+bH,ropeX,bY+bH+W_grav*FSC,'#ef4444',3,11);
+  label(ctx,'W='+W_grav.toFixed(0)+' N',ropeX+6,bY+bH+W_grav*FSC*0.55,'#fca5a5',9.5,'left');
 
   // Net force / acceleration arrow
   if(Math.abs(a)>0.1){
     const netF=m*a;
     const acol=a>0?'#fbbf24':'#f97316';
-    arrow(ctx,ropeX-28,bY+bH/2,ropeX-28,bY+bH/2-(netF)*0.9,acol,2.5,10);
-    label(ctx,'F_net='+netF.toFixed(0)+'N',ropeX-32,bY+bH/2-netF*0.45,'#fbbf24',8,'right');
+    arrow(ctx,ropeX-30,bY+bH/2,ropeX-30,bY+bH/2-netF*FSC,acol,2.5,10);
+    label(ctx,'\u200eF_net = T−W = '+netF.toFixed(0)+' N',ropeX-34,bY+bH/2-netF*FSC*0.5-6,'#fbbf24',8,'right');
+    label(ctx,'\u200ea = '+a+' m/s²',ropeX-34,bY+bH/2-netF*FSC*0.5+6,acol,8,'right');
   }
 
   // Info panel
@@ -16130,7 +16190,11 @@ runAnim('anim-force-types',(canvas,ctx,W,H,t)=>{
   // Animate block position
   const PERIOD=5, tt=t%PERIOD;
   const bX_start=W*0.25, bW=40, bH=28;
-  const dist=Math.min(0.5*a_net*tt*tt*18, W*0.42);
+  // Derived so the run exactly fills the cycle. At a fixed 18 px/m the block hit
+  // the clamp at t ≈ 3.6 s and then sat still for the rest of the period while
+  // F, f and "a = 2.56 m/s²" carried on being drawn on a stationary block.
+  const PPM_FT=(W*0.42)/(0.5*a_net*PERIOD*PERIOD);
+  const dist=0.5*a_net*tt*tt*PPM_FT;
   const bCX=bX_start+dist;
   const bY=GND-bH;
 
@@ -16141,30 +16205,36 @@ runAnim('anim-force-types',(canvas,ctx,W,H,t)=>{
   ctx.beginPath();ctx.roundRect(bCX-bW/2,bY,bW,bH,5);ctx.fill();ctx.stroke();ctx.restore();
   label(ctx,m+'kg',bCX,bY+bH/2+2,'#fff',8.5,'center');
 
-  const FSCALE=1.8;
+  // ONE px-per-newton scale. The vertical pair used to be drawn at 0.54 px/N
+  // and the horizontal pair at 1.8 px/N, so the 22 N push came out 39.6 px long
+  // and the 39.2 N weight only 21.2 px — in a figure captioned "the four forces"
+  // whose entire purpose is comparing them side by side.
+  const FSCALE=1.0;
+  const bMY=bY+bH/2;                 // weight acts at the centre of mass
 
-  // W — Weight (down)
-  arrow(ctx,bCX,bY+bH,bCX,bY+bH+N_f*FSCALE*0.3,'#ef4444',2.5,10);
-  label(ctx,'W=mg',bCX+4,bY+bH+N_f*FSCALE*0.16,'#fca5a5',8.5,'left');
-  label(ctx,N_f.toFixed(0)+'N ↓',bCX+4,bY+bH+N_f*FSCALE*0.28,'#fca5a5',7.5,'left');
+  // W — Weight (down, from the centre of mass)
+  arrow(ctx,bCX,bMY,bCX,bMY+N_f*FSCALE,'#ef4444',2.5,10);
+  label(ctx,'W=mg',bCX+5,bMY+N_f*FSCALE*0.55,'#fca5a5',8.5,'left');
+  label(ctx,'\u200e'+N_f.toFixed(0)+' N ↓',bCX+5,bMY+N_f*FSCALE*0.8,'#fca5a5',7.5,'left');
 
-  // N — Normal force (up)
-  arrow(ctx,bCX,bY,bCX,bY-N_f*FSCALE*0.3,'#34d399',2.5,10);
-  label(ctx,'N=mg',bCX-4,bY-N_f*FSCALE*0.16,'#34d399',8.5,'right');
-  label(ctx,N_f.toFixed(0)+'N ↑',bCX-4,bY-N_f*FSCALE*0.28,'#6ee7b7',7.5,'right');
+  // N — Normal force (up, from the surface)
+  arrow(ctx,bCX,bY,bCX,bY-N_f*FSCALE,'#34d399',2.5,10);
+  label(ctx,'N=mg',bCX-5,bY-N_f*FSCALE*0.55,'#34d399',8.5,'right');
+  label(ctx,'\u200e'+N_f.toFixed(0)+' N ↑',bCX-5,bY-N_f*FSCALE*0.8,'#6ee7b7',7.5,'right');
 
   // F_applied (right)
-  arrow(ctx,bCX+bW/2,bY+bH/2,bCX+bW/2+F_app*FSCALE,bY+bH/2,'#fbbf24',3,11);
-  label(ctx,'F='+F_app+'N →',bCX+bW/2+F_app*FSCALE/2,bY+bH/2-12,'#fbbf24',8.5,'center');
+  arrow(ctx,bCX+bW/2,bMY,bCX+bW/2+F_app*FSCALE,bMY,'#fbbf24',3,11);
+  label(ctx,'\u200eF = '+F_app+' N →',bCX+bW/2+F_app*FSCALE/2,bMY-12,'#fbbf24',8.5,'center');
 
   // Friction (left)
-  arrow(ctx,bCX-bW/2,bY+bH/2,bCX-bW/2-f_k*FSCALE,bY+bH/2,'#a78bfa',2.5,10);
-  label(ctx,'f=μN='+f_k.toFixed(0)+'N ←',bCX-bW/2-f_k*FSCALE/2,bY+bH/2-12,'#a78bfa',8,'center');
+  arrow(ctx,bCX-bW/2,bMY,bCX-bW/2-f_k*FSCALE,bMY,'#a78bfa',2.5,10);
+  label(ctx,'\u200ef = μN = '+f_k.toFixed(0)+' N ←',bCX-bW/2-f_k*FSCALE/2-14,bMY-12,'#a78bfa',8,'center');
 
-  // Net force label
+  // Net force — same scale, so ΣF is F minus f by inspection
   const net=F_app-f_k;
-  arrow(ctx,bCX,bY-N_f*FSCALE*0.36,bCX+(net>0?1:-1)*Math.min(Math.abs(net)*FSCALE,50),bY-N_f*FSCALE*0.36,'#f59e0b',2,9);
-  label(ctx,'ΣF='+net.toFixed(0)+'N → a='+a_net.toFixed(2)+' m/s²',bCX,bY-N_f*FSCALE*0.36-10,'#f59e0b',8.5,'center');
+  const netY=bY-N_f*FSCALE-16;
+  arrow(ctx,bCX,netY,bCX+(net>0?1:-1)*Math.abs(net)*FSCALE,netY,'#f59e0b',2,9);
+  label(ctx,'\u200eΣF = '+net.toFixed(1)+' N   →   a = '+a_net.toFixed(2)+' m/s²',bCX,netY-9,'#f59e0b',8.5,'center');
 
   // Legend panel
   ctx.save();ctx.fillStyle='rgba(6,14,28,.88)';ctx.strokeStyle='#1e3a52';ctx.lineWidth=1;
@@ -16226,7 +16296,10 @@ runAnim('anim-impulse',(canvas,ctx,W,H,t)=>{
     ctx.save();ctx.fillStyle='rgba(15,30,55,.7)';
     ctx.beginPath();ctx.roundRect(dpX,panelY+18,dpW,12,3);ctx.fill();ctx.restore();
     // Animated fill
-    const fillFrac=Math.min(tt/PERIOD*2*(idx===0?1:0.5),1);
+    // Δt differs by 10:1 between the panels (0.1 s against 1.0 s) but the
+    // meters used to fill at 2:1, flattening the very contrast the figure is
+    // built on. Real ratio: the hard, brief hit is over almost at once.
+    const fillFrac=Math.min(1,(tt/(PERIOD*0.6))/sc.dt);
     ctx.save();ctx.fillStyle=sc.col+'cc';
     ctx.beginPath();ctx.roundRect(dpX,panelY+18,dpW*fillFrac,12,3);ctx.fill();ctx.restore();
 
@@ -16252,8 +16325,11 @@ runAnim('anim-rocket',(canvas,ctx,W,H,t)=>{
   const PERIOD=5, tt=t%PERIOD;
   const phase=tt/PERIOD;
 
-  // Rocket moves right, gas jet left
-  const rocketX=W*0.25+phase*(W*0.52);
+  // Thrust acts throughout, so the motion is accelerated: x ∝ t². This used to
+  // be linear in t — constant velocity — while the velocity arrow beside it grew
+  // linearly, so the arrow asserted an acceleration the motion did not have.
+  const rocketAt=function(ph){var p=Math.max(0,ph);return W*0.25+p*p*(W*0.52);};
+  const rocketX=rocketAt(phase);
   const rocketY=H*0.42;
 
   // Stars background
@@ -16265,12 +16341,17 @@ runAnim('anim-rocket',(canvas,ctx,W,H,t)=>{
   ctx.restore();
 
   // Gas trail (particles ejected left)
+  // Ejected gas keeps its own velocity: each puff is emitted where the rocket
+  // WAS and drifts backwards from there. The plume used to sit at a fixed offset
+  // from rocketX, so it travelled along with the rocket, glued to the nozzle —
+  // the opposite of the mechanism the animation is about.
   const nGas=12;
   for(let i=0;i<nGas;i++){
-    const gx=rocketX-32-i*14-phase*8;
-    const gy=rocketY+(Math.sin(i*2.3+t*4)*6);
-    const alpha=(1-i/nGas)*0.7;
-    const r=4-i*0.25;
+    const age=((t*1.4+i/nGas)%1);
+    const gx=rocketAt(phase-age*0.30)-30-age*W*0.26;
+    const gy=rocketY+6+(Math.sin(i*2.3+t*4)*6);
+    const alpha=(1-age)*0.7;
+    const r=4-age*3;
     if(r>0.5){
       ctx.save();ctx.globalAlpha=alpha;
       const gc=ctx.createRadialGradient(gx,gy,0,gx,gy,r*2);
@@ -16310,7 +16391,11 @@ runAnim('anim-rocket',(canvas,ctx,W,H,t)=>{
   // Momentum conservation labels
   ctx.save();ctx.fillStyle='rgba(6,14,28,.88)';ctx.strokeStyle='rgba(251,191,36,.3)';ctx.lineWidth=1;
   ctx.beginPath();ctx.roundRect(10,H-46,W-20,40,5);ctx.fill();ctx.stroke();ctx.restore();
-  label(ctx,'תנע ראשוני = 0 (מנוחה)',W/2,H-33,'#94a3b8',8,'center');
+  // The caption below asserts m_r·v_r = −m_g·v_g while two velocity arrows of
+  // very different lengths sit above it. Say what the momenta actually are.
+  const _mR=800, _vR=phase*12, _mG=_mR*_vR/80;
+  label(ctx,'\u200ep_רקטה = '+(_mR*_vR).toFixed(0)+'   |   p_גז = −'+(_mG*80).toFixed(0)+
+            '   |   סכום = 0 kg·m/s',W/2,H-33,'#94a3b8',8,'center');
   label(ctx,'p_רקטה + p_גז = 0   →   m_רקטה·v_רקטה = −m_גז·v_גז',W/2,H-18,'#fbbf24',8.5,'center',true);
 
   // Phase progress bar
@@ -16338,14 +16423,19 @@ runAnim('anim-collision-types',(canvas,ctx,W,H,t)=>{
 
   // Each row: approach → collide → separate, then pause, repeat
   var CYCLE=4.5; // seconds per cycle
-  var tC=1.8;    // collision time within cycle
   var phase=(t%CYCLE);
 
   var r1=14, r2=11;
-  var SCENE_W=W-32;
-  // Start positions: m1 at left+r1+5, m2 at center+30
   var m1_start=r1+8, m2_pos=W*0.60;
-  var SPX=3.5; // pixels per second scaling
+  // The collision used to fire at a fixed tC = 1.8 s, by which time the striker
+  // had covered 31 px from the left edge while the target sat at 0.60·W. All
+  // three targets started moving untouched and the impact flash was drawn a
+  // canvas-width away from the impact. Solve the scale instead: contact happens
+  // exactly when the surfaces meet, and the fastest outgoing ball still fits.
+  var vfMax=Math.max(v2f_e,v2f_s,vf_in);
+  var K=(m2_pos-(r1+r2)-m1_start)/v1i;          // K = tC · SPX
+  var SPX=Math.max(0.5,(((W-r2-8)-m2_pos)/vfMax+K)/(CYCLE-0.4));
+  var tC=K/SPX;
 
   var rows=[
     {label:'התנגשות אלסטית (e=1) — Ek נשמרת',
@@ -16406,7 +16496,7 @@ runAnim('anim-collision-types',(canvas,ctx,W,H,t)=>{
       label(ctx,(m1+m2)+'kg',mx2,rowY+4,'#fff',7.5);
       if(Math.abs(v1c)>0.2){
         arrow(ctx,mx2,rowY-r1-8,mx2+v1c*3.5,rowY-r1-8,row.col1,2,7);
-        label(ctx,'v='+v1c.toFixed(2),mx2+v1c*3.5+(v1c>0?4:-4),rowY-r1-8,row.col1,7.5,v1c>0?'left':'right');
+        label(ctx,'v='+v1c.toFixed(2)+' m/s',mx2+v1c*3.5+(v1c>0?4:-4),rowY-r1-8,row.col1,7.5,v1c>0?'left':'right');
       }
     } else {
       // Ball 1
@@ -16416,7 +16506,7 @@ runAnim('anim-collision-types',(canvas,ctx,W,H,t)=>{
       label(ctx,m1+'kg',x1,rowY+4,'#fff',7);
       if(Math.abs(v1c)>0.2){
         arrow(ctx,x1,rowY-r1-7,x1+v1c*3.5,rowY-r1-7,row.col1,2,7);
-        label(ctx,v1c.toFixed(1),x1+v1c*3.5+(v1c>0?4:-4),rowY-r1-8,row.col1,7.5,v1c>0?'left':'right');
+        label(ctx,v1c.toFixed(1)+' m/s',x1+v1c*3.5+(v1c>0?4:-4),rowY-r1-8,row.col1,7.5,v1c>0?'left':'right');
       }
       // Ball 2
       var g2=ctx.createRadialGradient(x2-r2*0.35,rowY-r2*0.35,r2*0.08,x2,rowY,r2);
@@ -16425,12 +16515,12 @@ runAnim('anim-collision-types',(canvas,ctx,W,H,t)=>{
       label(ctx,m2+'kg',x2,rowY+3,'#fff',7);
       if(Math.abs(v2c)>0.2){
         arrow(ctx,x2,rowY-r2-7,x2+v2c*3.5,rowY-r2-7,row.col2,2,7);
-        label(ctx,v2c.toFixed(1),x2+v2c*3.5+(v2c>0?4:-4),rowY-r2-8,row.col2,7.5,v2c>0?'left':'right');
+        label(ctx,v2c.toFixed(1)+' m/s',x2+v2c*3.5+(v2c>0?4:-4),rowY-r2-8,row.col2,7.5,v2c>0?'left':'right');
       }
     }
 
     // Collision flash
-    var collX=m1_start+v1i*tC*SPX;
+    var collX=m2_pos-r2;   // the surfaces touch here, not where the old timing put it
     if(phase>=tC && phase<tC+0.45){
       var al=(0.45-(phase-tC))/0.45;
       ctx.save();ctx.globalAlpha=al*0.6;ctx.fillStyle='#fbbf24';
@@ -16718,7 +16808,7 @@ runAnim('anim-circular-force',(canvas,ctx,W,H,t)=>{
 
   const titles=['חוט מסתובב','כביש מעוקל','לוויין במסלול'];
   const cols=['#60a5fa','#34d399','#a78bfa'];
-  const descs=['T מספק Fc = mv²/R','N − mg cos θ = mv²/R','כבידה מספקת Fc = GMm/R²'];
+  const descs=['T מספק Fc = mv²/R','חיכוך סטטי מספק Fc = mv²/R','כבידה מספקת Fc = GMm/R²'];
 
   // Title
   ctx.save();ctx.fillStyle='rgba(6,14,28,.85)';ctx.strokeStyle='#1e3a52';ctx.lineWidth=1;
@@ -16748,12 +16838,15 @@ runAnim('anim-circular-force',(canvas,ctx,W,H,t)=>{
     // Road — car on curved road
     ctx.save();ctx.fillStyle='#1a3a26';
     ctx.beginPath();ctx.arc(CX,CY,R+10,0,Math.PI*2);ctx.arc(CX,CY,R-10,0,Math.PI*2,true);ctx.fill();ctx.restore();
-    // Normal arrow up
-    const nx=(px-CX)/R, ny=(py-CY)/R;
-    arrow(ctx,px,py,px+nx*36,py+ny*36,'#34d399',2,9);
-    label(ctx,'N',px+nx*44,py+ny*44,'#34d399',10);
-    arrow(ctx,px,py,px,py+28,'#ef4444',2,9);
-    label(ctx,'mg',px+10,py+22,'#ef4444',9);
+    // Seen from ABOVE. The centripetal force on a flat curve is STATIC FRICTION
+    // and it points at the centre. This used to draw N radially OUTWARD — in the
+    // animation about centripetal force, the only surface force shown pointed
+    // away from the centre — and mg down the page, where in a top view gravity
+    // is perpendicular to it and cancels against N.
+    const nx=(CX-px)/R, ny=(CY-py)/R;
+    arrow(ctx,px,py,px+nx*36,py+ny*36,'#34d399',2.5,9);
+    label(ctx,'f_s',px+nx*46,py+ny*46,'#34d399',10);
+    label(ctx,'מבט מלמעלה: N ו-mg מאונכים לדף ומתקזזים',CX,H-7,'#64748b',7.5);
     // Car box
     ctx.save();ctx.fillStyle='#0f2d1a';ctx.strokeStyle='#34d399';ctx.lineWidth=1.5;
     ctx.beginPath();ctx.roundRect(px-9,py-9,18,14,3);ctx.fill();ctx.stroke();ctx.restore();
@@ -16938,7 +17031,14 @@ runAnim('anim-tension2',(canvas,ctx,W,H,t)=>{
 runAnim('anim-normal2',(canvas,ctx,W,H,t)=>{
   bg(ctx,W,H);
   var R=Math.min(65,H*0.28),g=9.8,v=12;
-  var ac=v*v/R;
+  // R is the DRAWING radius in pixels. Computing v²/R from it gave a centripetal
+  // acceleration with no physical meaning that changed with the canvas height,
+  // and both N arrows were then hard-coded (20 px and 44 px against a 30 px
+  // weight) — chosen to look right rather than derived from the formula printed
+  // at the bottom of the same figure.
+  var R_m=40, m_car=1;              // 40 m radius, 1 kg → W = 9.8 N
+  var ac=v*v/R_m;                   // 3.6 m/s²
+  var Wn=m_car*g, PXN=30/Wn;        // W is drawn 30 px long ⇒ px per newton
   var carW=30,carH=16;
   var swing=Math.sin(t*0.9)*0.55; // car slides back and forth over the curve
   // ── Hill (crest): N = m(g − v²/R) < W ──
@@ -16951,12 +17051,13 @@ runAnim('anim-normal2',(canvas,ctx,W,H,t)=>{
   ctx.save();ctx.translate(hcx,hcy);ctx.rotate(hAng+Math.PI/2);
   ctx.fillStyle='#3b82f6';ctx.strokeStyle='#60a5fa';ctx.lineWidth=1.5;
   ctx.beginPath();ctx.roundRect(-carW/2,-carH-2,carW,carH,3);ctx.fill();ctx.stroke();ctx.restore();
-  var nLenH=20; // N shorter than W on the crest
+  // N = m(g·cosφ − v²/R): it depends on WHERE the car is, and the car swings.
+  var Nh=Math.max(0,m_car*(g*Math.cos(swing)-ac)), nLenH=Nh*PXN;
   arrow(ctx,hcx,hcy-carH/2,hcx+hnx*nLenH,hcy-carH/2+hny*nLenH,'#a78bfa',2,8);
   label(ctx,'N',hcx+hnx*(nLenH+9),hcy-carH/2+hny*(nLenH+9),'#a78bfa',8);
   arrow(ctx,hcx,hcy-carH/2,hcx,hcy-carH/2+30,'#fbbf24',2,9);
   label(ctx,'W',hcx+8,hcy-carH/2+22,'#fbbf24',8,'left');
-  label(ctx,'N < W',hx,hy-R-26,'#f87171',7.5);
+  label(ctx,'\u200eN = '+Nh.toFixed(1)+' N  <  W = '+Wn.toFixed(1)+' N',hx,hy-R-26,'#f87171',7.5);
   label(ctx,'גבעה',hx,hy+R+14,'#64748b',8);
   // ── Valley (dip): N = m(g + v²/R) > W ──
   var vx=W*0.72,vy=H*0.42;
@@ -16968,12 +17069,12 @@ runAnim('anim-normal2',(canvas,ctx,W,H,t)=>{
   ctx.save();ctx.translate(vcx,vcy);ctx.rotate(vAng-Math.PI/2);
   ctx.fillStyle='#3b82f6';ctx.strokeStyle='#60a5fa';ctx.lineWidth=1.5;
   ctx.beginPath();ctx.roundRect(-carW/2,-carH-2,carW,carH,3);ctx.fill();ctx.stroke();ctx.restore();
-  var nLenV=44; // N longer than W in the dip
+  var Nv=m_car*(g*Math.cos(swing)+ac), nLenV=Nv*PXN;
   arrow(ctx,vcx,vcy-carH/2,vcx+vnx*nLenV,vcy-carH/2+vny*nLenV,'#a78bfa',2,9);
   label(ctx,'N',vcx+vnx*(nLenV+9),vcy-carH/2+vny*(nLenV+9),'#a78bfa',8);
   arrow(ctx,vcx,vcy-carH/2,vcx,vcy-carH/2+30,'#fbbf24',2,9);
   label(ctx,'W',vcx+8,vcy-carH/2+22,'#fbbf24',8,'left');
-  label(ctx,'N > W',vx,vy-2*R-14,'#34d399',7.5);
+  label(ctx,'\u200eN = '+Nv.toFixed(1)+' N  >  W = '+Wn.toFixed(1)+' N',vx,vy-2*R-14,'#34d399',7.5);
   label(ctx,'עמק',vx,vy+14,'#64748b',8);
   ctx.save();ctx.fillStyle='rgba(6,14,28,.9)';ctx.strokeStyle='#1e4060';ctx.lineWidth=1;
   ctx.beginPath();ctx.roundRect(4,H-22,W-8,18,3);ctx.fill();ctx.stroke();ctx.restore();
@@ -17869,12 +17970,17 @@ runAnim('anim-snell',(canvas,ctx,W,H,t)=>{
   // Refracted ray
   oRay(ctx,cx,my,cx+L*Math.sin(th2),my+L*Math.cos(th2),'#34d399',2.5);
   // Animated photon
-  var pr=(t*1.1)%2;
-  if(pr<1){
-    var ppx=cx-L*Math.sin(th1)+pr*(L*Math.sin(th1)),ppy=my-L*Math.cos(th1)+pr*(L*Math.cos(th1));
+  // Both legs are L px long, but the glass leg must take n₂/n₁ = 1.5 times as
+  // long: v = c/n is the reason this law exists, and the previous animation in
+  // the chapter is a bar chart of exactly that. The photon used to cross both in
+  // equal time, i.e. at the same speed in air and in glass.
+  var _n1=1.0,_n2=1.5, _T1=_n1/(_n1+_n2), _pr=(t*0.55)%1;
+  if(_pr<_T1){
+    var _u=_pr/_T1;
+    var ppx=cx-L*Math.sin(th1)*(1-_u),ppy=my-L*Math.cos(th1)*(1-_u);
     oPhoton(ctx,ppx,ppy,'#fbbf24',3.5);
   } else {
-    var pr2=pr-1;
+    var pr2=(_pr-_T1)/(1-_T1);
     var ppx2=cx+pr2*L*Math.sin(th2),ppy2=my+pr2*L*Math.cos(th2);
     oPhoton(ctx,ppx2,ppy2,'#34d399',3.5);
   }
@@ -17958,8 +18064,11 @@ runAnim('anim-prism',(canvas,ctx,W,H,t)=>{
     {wl:640,spread:-0.11},
     {wl:680,spread:-0.16},
   ];
-  // Exit point on right face
-  var exitX=(px[1]+px[2])/2,exitY=(py[1]+py[2])/2;
+  // n depends on wavelength at the FIRST surface too, so the colours are already
+  // separated INSIDE the glass and each meets the second face at its own point.
+  // A single shared internal path showed dispersion as something that happens on
+  // the way out, which is not where it begins.
+  var apX=px[2],apY=py[2],brX=px[1],brY=py[1];
   cols.forEach(function(c){
     var r,g,b;
     var wl=c.wl;
@@ -17970,7 +18079,10 @@ runAnim('anim-prism',(canvas,ctx,W,H,t)=>{
     else if(wl<645){r=1;g=(645-wl)/65;b=0;}
     else{r=1;g=0;b=0;}
     var col='rgba('+Math.round(r*255)+','+Math.round(g*255)+','+Math.round(b*255)+',.9)';
-    // Ray inside prism
+    // Ray inside the prism — violet bends most at entry, so it runs lower and
+    // meets the exit face further down (u=0 is the apex, u=1 the base corner).
+    var u=0.5+c.spread*1.15;
+    var exitX=apX+(brX-apX)*u, exitY=apY+(brY-apY)*u;
     ctx.save();ctx.strokeStyle=col;ctx.lineWidth=1.5;ctx.shadowColor=col;ctx.shadowBlur=5;
     ctx.beginPath();ctx.moveTo(entX,entY);ctx.lineTo(exitX,exitY);ctx.stroke();ctx.restore();
     // Ray exiting
@@ -18040,9 +18152,13 @@ runAnim('anim-convex-lens-t',(canvas,ctx,W,H,t)=>{
     oRay(ctx,lx,tipY,imgX,cy+imgH,'#f97316',1.5);
     // Ray 2: through center
     oRay(ctx,objX,tipY,imgX,cy+imgH,'#a78bfa',1.5);
-    // Ray 3: through F then parallel
-    oRay(ctx,objX,tipY,lx,cy,'#22d3ee',1.5);
-    oRay(ctx,lx,cy,imgX,cy+imgH,'#22d3ee',1.5);
+    // Ray 3: through the FRONT focus, then parallel to the axis. This used to
+    // draw objTip → (lx,cy) → image, but (lx,cy) is the optical centre, so that
+    // was ray 2 split in two and recoloured — and neither half was parallel.
+    // Through F the ray crosses the lens at exactly cy+imgH (since
+    // objH·dO/(dO−f) = objH + imgH), so the parallel leg lands on the image tip.
+    oRay(ctx,objX,tipY,lx,cy+imgH,'#22d3ee',1.5);
+    oRay(ctx,lx,cy+imgH,imgX,cy+imgH,'#22d3ee',1.5);
   }
   oLbl(ctx,'עדשה מרכזת — תמונה ממשית הפוכה',W/2,H-5,'#e2e8f0',9);
 });
@@ -18099,10 +18215,19 @@ runAnim('anim-concave-lens-t',(canvas,ctx,W,H,t)=>{
   oRay(ctx,objX,tipY,lx,tipY,'#f97316',1.5);
   // After lens diverges
   oDash(ctx,lx,tipY,lx-f,cy,'#f97316');
-  var slope=(tipY-cy)/(-f);
+  // The exit ray's backward extension must pass through the NEAR focus
+  // (lx−f, cy), which fixes its slope at (tipY−cy)/f. Dividing by −f flipped the
+  // sign and carried the ray down across the axis: in the animation that defines
+  // the diverging lens, the marquee ray converged.
+  var slope=(tipY-cy)/f;
   oRay(ctx,lx,tipY,W-8,tipY+slope*(W-8-lx),'#f97316',1.5);
+  // The ray through the optical CENTRE is by definition undeviated, so it keeps
+  // its incoming slope; it used to arrive at slope objH/dO and leave horizontally.
+  // Continued straight it passes through the virtual image tip, which is what
+  // makes the dashed image a construction rather than an assertion.
+  var slopeC=(cy-tipY)/(lx-objX);
   oRay(ctx,objX,tipY,lx,cy,'#a78bfa',1.5);
-  oRay(ctx,lx,cy,W-8,cy,'#a78bfa',1.5);
+  oRay(ctx,lx,cy,W-8,cy+slopeC*(W-8-lx),'#a78bfa',1.5);
   // Traveling photon: incident parallel ray, then the diverging exit ray
   var LA2=lx-objX,LB2=Math.hypot(W-8-lx,slope*(W-8-lx)),LT2=LA2+LB2;
   var pp2=(t*60)%LT2;
@@ -18245,7 +18370,10 @@ runAnim('anim-youngs-t',(canvas,ctx,W,H,t)=>{
   var numW=4;
   [cy-slitD,cy+slitD].forEach(function(sy,si){
     for(var w=1;w<=numW;w++){
-      var r=(w*lam*1.8+(t*28)%( lam*1.8));
+      // Spacing must BE lam: the pattern below is computed with lam, so drawing
+      // the wavefronts 1.8·lam apart made the measured wavelength disagree with
+      // the fringe spacing it produces.
+      var r=(w*lam+(t*28)%lam);
       ctx.save();ctx.strokeStyle='rgba(251,191,36,'+((numW-w+1)/numW*0.35).toFixed(2)+')';
       ctx.lineWidth=0.8;ctx.shadowColor='#fbbf24';ctx.shadowBlur=2;
       ctx.beginPath();ctx.arc(slitX,sy,r,0,Math.PI*2);ctx.stroke();
@@ -18259,7 +18387,14 @@ runAnim('anim-youngs-t',(canvas,ctx,W,H,t)=>{
 // ─── 15. Diffraction ─────────────────────────────────────────────────────────
 runAnim('anim-diffraction-t',(canvas,ctx,W,H,t)=>{
   oBg(ctx,W,H);
-  var slitX=W*0.3,slitHalf=16,screenX=W-12,cy=H/2;
+  // One wavelength for the whole figure. The incoming plane wave was drawn at
+  // 22 px spacing, the Huygens wavelets at 14 px and the pattern computed with
+  // λ = 10 px — three different wavelengths for one beam of light. The slit was
+  // also narrow enough that the first minimum, at y = λL/a ≈ 149 px, fell off a
+  // canvas half-height of ~110: the "diffraction pattern" had no minima on
+  // screen at all. a = 64 px brings them into view.
+  var lam=12;
+  var slitX=W*0.3,slitHalf=32,screenX=W-12,cy=H/2;
   // Barrier
   ctx.save();ctx.fillStyle='#1e293b';
   ctx.fillRect(slitX-4,0,8,cy-slitHalf);
@@ -18269,9 +18404,9 @@ runAnim('anim-diffraction-t',(canvas,ctx,W,H,t)=>{
   ctx.beginPath();ctx.moveTo(slitX,cy-slitHalf);ctx.lineTo(slitX,cy+slitHalf);ctx.stroke();
   ctx.restore();
   // Incoming plane wave
-  var phase=(t*25)%40;
-  for(var i=0;i<3;i++){
-    var wx=slitX-20-i*22+phase;
+  var phase=(t*25)%lam;
+  for(var i=0;i<6;i++){
+    var wx=slitX-20-i*lam+phase;
     if(wx<4)continue;
     ctx.save();ctx.strokeStyle='rgba(96,165,250,.5)';ctx.lineWidth=1;
     ctx.beginPath();ctx.moveTo(wx,0);ctx.lineTo(wx,H);ctx.stroke();
@@ -18280,7 +18415,7 @@ runAnim('anim-diffraction-t',(canvas,ctx,W,H,t)=>{
   // Huygens wavelets from slit
   var numW=5;
   for(var w=1;w<=numW;w++){
-    var r=(w*14+(t*28)%(14));
+    var r=(w*lam+(t*28)%lam);
     ctx.save();ctx.strokeStyle='rgba(251,191,36,'+((numW-w+1)/numW*0.4).toFixed(2)+')';
     ctx.lineWidth=0.9;ctx.shadowColor='#fbbf24';ctx.shadowBlur=2;
     ctx.beginPath();ctx.arc(slitX,cy,r,0,Math.PI*2);ctx.stroke();
@@ -18290,7 +18425,7 @@ runAnim('anim-diffraction-t',(canvas,ctx,W,H,t)=>{
   ctx.save();ctx.fillStyle='#1e293b';ctx.fillRect(screenX,0,8,H);ctx.restore();
   for(var iy=0;iy<H;iy++){
     var y=iy-cy;
-    var u=Math.PI*slitHalf*2*y/(10*(screenX-slitX));
+    var u=Math.PI*slitHalf*2*y/(lam*(screenX-slitX));
     var I2=u!==0?Math.pow(Math.sin(u)/u,2):1;
     if(I2>0.05){
       ctx.save();ctx.fillStyle='rgba(251,191,36,'+I2.toFixed(2)+')';
@@ -18405,13 +18540,21 @@ runAnim('anim-doppler-t',function(canvas,ctx,W,H,t){
   // Observers
   ctx.save();ctx.font='16px sans-serif';ctx.textAlign='center';
   ctx.fillText('👤',20,cy+10);ctx.fillText('👤',W-20,cy+10);ctx.restore();
-  // Labels
-  oLbl(ctx,'כחלול',20,cy-28,'#60a5fa',9);
-  oLbl(ctx,'אדמדום',W-20,cy-28,'#f87171',9);
-  // Arrow
+  // The star oscillates, so which observer is approached REVERSES every half
+  // cycle. These labels used to be nailed to the canvas — blue on the left, red
+  // on the right — so for half of every cycle the figure contradicted its own
+  // (correctly drawn) wavefronts. movingRight was already computed for the arrow
+  // below and then ignored.
   var movingRight=Math.cos(t*Math.PI/4)>0;
+  oLbl(ctx,movingRight?'אדמדום':'כחלול',20,cy-28,movingRight?'#f87171':'#60a5fa',9);
+  oLbl(ctx,movingRight?'\u200eλ ארוך יותר':'\u200eλ קצר יותר',20,cy-16,'#64748b',7.5);
+  oLbl(ctx,movingRight?'כחלול':'אדמדום',W-20,cy-28,movingRight?'#60a5fa':'#f87171',9);
+  oLbl(ctx,movingRight?'\u200eλ קצר יותר':'\u200eλ ארוך יותר',W-20,cy-16,'#64748b',7.5);
+  oLbl(ctx,'הכוכב מתקרב אל '+(movingRight?'הצופה הימני':'הצופה השמאלי')+' — שם החזיתות נדחסות',
+       W/2,H-6,'#94a3b8',8.5);
+  // Arrow
   var ax=srcX+(movingRight?20:-20);
-  oRay(ctx,srcX,cy-16,ax,cy-16,(movingRight?'#94a3b8':'#94a3b8'),2);
+  oRay(ctx,srcX,cy-16,ax,cy-16,'#94a3b8',2);
 });
 
 // ─── Laser theory anim ──────────────────────────────────────
@@ -18909,13 +19052,16 @@ runAnim('anim-elc-field-t',(cv,ctx,W,H,t)=>{
   ctx.strokeStyle='#fbbf24';ctx.lineWidth=2;ctx.beginPath();
   for(var j=0;j<=40;j++){
     var xr=0.15+j/40*0.85;
-    var yv=Math.min(1,0.035/(xr*xr));
+    // Scaled to touch the top exactly at the left edge. min(1, .035/r²) clamped
+    // over the first third of the range, drawing the steepest part of a 1/r²
+    // curve — the entire point of the panel — as a flat plateau.
+    var yv=(0.15/xr)*(0.15/xr);
     var px=gx0+xr*gw, py=gy0+gh-yv*gh;
     if(j===0)ctx.moveTo(px,py);else ctx.lineTo(px,py);
   }
   ctx.stroke();
   var xr2=Math.max(0.15,Math.min(1,rr/_ELC_FLD_R1));
-  var yv2=Math.min(1,0.035/(xr2*xr2));
+  var yv2=(0.15/xr2)*(0.15/xr2);
   ctx.fillStyle='#38bdf8';ctx.beginPath();ctx.arc(gx0+xr2*gw,gy0+gh-yv2*gh,4,0,Math.PI*2);ctx.fill();
   ctx.restore();
   oLbl(ctx,'E(r)=kQ/r²',gx0+gw/2,gy0-10,'#fbbf24',10);
@@ -18928,7 +19074,9 @@ runAnim('anim-elc-potential-t',(cv,ctx,W,H,t)=>{
   var cx=W*0.30, cy=H*0.55;
   // Equal-ΔV rings: r=kQ/V, so equal potential steps sit at radii that spread
   // out fast. Evenly spaced rings would be the signature of a UNIFORM field.
-  var _lv=[120,90,60,45];
+  // Steps of 25 V exactly. These used to be 120/90/60/45 — steps of 30, 30 and
+  // 15 — while the comment and the caption both promised EQUAL potential steps.
+  var _lv=[125,100,75,50];    // → r = 50, 62, 83, 125 px: equal ΔV, spreading r
   for(var i=0;i<_lv.length;i++){
     var rq=6240/_lv[i];
     ctx.save();ctx.strokeStyle='rgba(56,189,248,'+(0.55-i*0.09).toFixed(2)+')';ctx.setLineDash([5,4]);
@@ -19052,12 +19200,27 @@ runAnim('anim-elc-cap-t',(cv,ctx,W,H,t)=>{
   ctx.moveTo(bx,byC-16);ctx.lineTo(bx,topY);ctx.lineTo(pxL-3,topY);ctx.lineTo(pxL-3,py0);
   ctx.moveTo(bx,byC+16);ctx.lineTo(bx,botY);ctx.lineTo(pxR+3,botY);ctx.lineTo(pxR+3,py1);
   ctx.stroke();
+  // The battery is switched OUT for the discharge. Previously it stayed wired in
+  // and the electrons were drawn running backwards through a source held at
+  // constant emf, which is not a circuit that can discharge a capacitor.
+  ctx.globalAlpha=dis?0.22:1;
   ctx.strokeStyle='#fbbf24';ctx.lineWidth=3;
   ctx.beginPath();ctx.moveTo(bx-14,byC-8);ctx.lineTo(bx+14,byC-8);ctx.stroke();
   ctx.lineWidth=2;
   ctx.beginPath();ctx.moveTo(bx-7,byC+8);ctx.lineTo(bx+7,byC+8);ctx.stroke();
+  ctx.globalAlpha=1;
   ctx.restore();
-  oLbl(ctx,'V',bx-26,byC,'#fbbf24',12);
+  oLbl(ctx,'V',bx-26,byC,dis?'rgba(251,191,36,.3)':'#fbbf24',12);
+  // the bypass branch, closed only while discharging
+  ctx.save();ctx.strokeStyle=dis?'#4ade80':'rgba(100,116,139,.55)';ctx.lineWidth=2;
+  ctx.beginPath();ctx.moveTo(bx-34,byC-16);ctx.lineTo(bx-34,byC+16);
+  if(dis){ctx.moveTo(bx-34,byC-16);ctx.lineTo(bx,byC-16);ctx.moveTo(bx-34,byC+16);ctx.lineTo(bx,byC+16);}
+  ctx.stroke();
+  // the switch blade: open (tilted) while charging, closed (flat) on discharge
+  ctx.beginPath();ctx.moveTo(bx-46,byC);
+  if(dis)ctx.lineTo(bx-34,byC);else ctx.lineTo(bx-37,byC-13);
+  ctx.stroke();ctx.restore();
+  oLbl(ctx,dis?'מפסק סגור':'מפסק פתוח',bx-52,byC+24,dis?'#4ade80':'#64748b',8.5);
   // electrons: leave the + plate through the top wire, pumped onto the − plate below
   function wirePoint(u,pts){
     var lens=[],tot=0;
@@ -19108,14 +19271,20 @@ runAnim('anim-elc-cond-t',(cv,ctx,W,H,t)=>{
   var phase2=cyc>5.5;                    // the sharp-tip panel
   var bx=W*0.34,bw=W*0.30,by=H*0.26,bh=H*0.44;
   // external field, unchanged throughout — it is NOT absorbed
-  ctx.save();ctx.globalAlpha=0.75;
-  for(var i=0;i<3;i++){
-    var yy=by+12+i*(bh-24)/2;
-    simArrow(ctx,18,yy,bx-8,yy,'#fbbf24',1.5,7);
-    simArrow(ctx,bx+bw+8,yy,W*0.96,yy,'#fbbf24',1.5,7);
+  // Only in the slab panel. The sharp-tip panel shows an ISOLATED charged
+  // conductor, whose charge crowds by curvature; leaving a uniform external
+  // field drawn around it advertised a situation that would have produced a
+  // completely different distribution from the one on screen.
+  if(!phase2){
+    ctx.save();ctx.globalAlpha=0.75;
+    for(var i=0;i<3;i++){
+      var yy=by+12+i*(bh-24)/2;
+      simArrow(ctx,18,yy,bx-8,yy,'#fbbf24',1.5,7);
+      simArrow(ctx,bx+bw+8,yy,W*0.96,yy,'#fbbf24',1.5,7);
+    }
+    ctx.restore();
+    oLbl(ctx,'שדה חיצוני',W*0.11,by-12,'#fbbf24',9.5);
   }
-  ctx.restore();
-  oLbl(ctx,'שדה חיצוני',W*0.11,by-12,'#fbbf24',9.5);
   if(!phase2){
     // conductor slab
     ctx.save();ctx.fillStyle='rgba(148,163,184,.10)';ctx.strokeStyle='#94a3b8';ctx.lineWidth=3;
@@ -19129,9 +19298,11 @@ runAnim('anim-elc-cond-t',(cv,ctx,W,H,t)=>{
     // interior field dies as the electrons arrive
     var inA=(1-on);
     if(inA>0.04){
+      // Full span, fading. Shortening the arrow said the field had RETREATED to
+      // part of the slab; it weakens uniformly everywhere inside instead.
       for(var i=0;i<2;i++){
         var yy3=by+bh*0.34+i*bh*0.32;
-        simArrow(ctx,bx+16,yy3,bx+16+(bw-32)*inA,yy3,'rgba(251,191,36,'+(0.25+0.5*inA).toFixed(2)+')',1.4,6);
+        simArrow(ctx,bx+16,yy3,bx+bw-16,yy3,'rgba(251,191,36,'+(0.15+0.75*inA).toFixed(2)+')',0.8+2.2*inA,6);
       }
       oLbl(ctx,'עדיין יש שדה — האלקטרונים ממשיכים לזוז',bx+bw/2,by+bh+16,'#fbbf24',9);
     }else{
@@ -19181,12 +19352,14 @@ runAnim('anim-elc-cond-t',(cv,ctx,W,H,t)=>{
 runAnim('anim-elc-upair-t',(cv,ctx,W,H,t)=>{
   ctx.clearRect(0,0,W,H);
   var k=9e9,q1=2e-6,q2=3e-6,m=0.002;      // kg — light enough to move visibly
-  var r0=0.30, rInf=1.20;
+  var r0=_ELC_PAIR_R0, rInf=_ELC_PAIR_R1;
   var U0=k*q1*q2/r0;
   var cyc=(t%6)/6;
-  // speed comes straight from energy, so U+K is conserved by construction
-  var r=r0+(rInf-r0)*Math.pow(cyc,0.62);
-  var U=k*q1*q2/r, K=U0-U;
+  // r comes off the integrated flight: at rest at r0, fastest at the far end.
+  var _pi=Math.min(_elcPairTraj.length-1,Math.floor(cyc*_elcPairTraj.length));
+  var r=_elcPairTraj[_pi][0], vRel=_elcPairTraj[_pi][1];
+  // K is read off the SPEED, not from U0−U, so the flat total is a measurement.
+  var U=k*q1*q2/r, K=0.5*m*vRel*vRel;
   var cx=W*0.34, cy=H*0.46, PX=190;        // px per metre
   var half=(r*PX)/2;
   function ch(x,lab,col){
@@ -19199,7 +19372,7 @@ runAnim('anim-elc-upair-t',(cv,ctx,W,H,t)=>{
   ch(cx+half,'q₂=3μC','#f87171');
   ctx.save();ctx.strokeStyle='rgba(148,163,184,.35)';ctx.setLineDash([4,4]);ctx.lineWidth=1;
   ctx.beginPath();ctx.moveTo(cx-half,cy+26);ctx.lineTo(cx+half,cy+26);ctx.stroke();ctx.setLineDash([]);ctx.restore();
-  oLbl(ctx,'‎r = '+r.toFixed(2)+' m',cx,cy+38,'#94a3b8',9.5);
+  oLbl(ctx,'‎r = '+r.toFixed(2)+' m    v = '+vRel.toFixed(1)+' m/s',cx,cy+38,'#94a3b8',9.5);
   // they fly apart: repulsion arrows shrink as 1/r²
   var F=k*q1*q2/(r*r), FL=Math.min(46,F*70);
   simArrow(ctx,cx-half-16,cy,cx-half-16-FL,cy,'#fbbf24',2.4,9);
@@ -19318,10 +19491,27 @@ runAnim('anim-elc-induct-t',(cv,ctx,W,H,t)=>{
       if(step===1)oLbl(ctx,'−',cx+Math.cos(a)*R*0.82,cy+Math.sin(a)*R*0.82,'#60a5fa',12);
     }
   } else {
-    for(var i=0;i<6;i++){
-      var a2=i*Math.PI/3+0.3;
-      oLbl(ctx,'+',cx+Math.cos(a2)*R*0.78,cy+Math.sin(a2)*R*0.78,'#f87171',12);
+    // The rod is STILL adjacent at step 3. Its field holds the sphere's net
+    // positive charge bunched on the near face; the charge becomes uniform only
+    // as the rod is taken away in step 4, and it does so GRADUALLY. This used to
+    // draw a uniform ring the instant the earth wire was cut, which showed the
+    // final state one whole step too early and skipped the redistribution.
+    var gap=Math.max(0,(cx-R)-(rodX+52));      // rod end -> sphere surface, px
+    var pol=0.92/(1+Math.pow(gap/42,2));       // influence falls off with distance
+    // Place the charges so the surface density goes like (1 + pol*cos t), t
+    // measured from the rod's direction: invert t + pol*sin t = u by Newton.
+    // f'(t) = 1 + pol*cos t >= 1 - pol > 0, so this always converges.
+    var nQ=6;
+    for(var i=0;i<nQ;i++){
+      var u=(i+0.5)/nQ*Math.PI*2, th=u;
+      for(var it=0;it<6;it++) th-=(th+pol*Math.sin(th)-u)/(1+pol*Math.cos(th));
+      var ph=Math.PI+th;                       // th=0 points at the rod (left)
+      oLbl(ctx,'+',cx+Math.cos(ph)*R*0.78,cy+Math.sin(ph)*R*0.78,'#f87171',12);
     }
+    oLbl(ctx, pol>0.45?'המטען נעול — אבל עדיין נמשך לצד הקרוב למוט'
+                      :pol>0.12?'המוט מתרחק — המטען מתחיל להתפזר…'
+                               :'עכשיו המטען אחיד על פני הכדור',
+         cx, cy+R+17, pol>0.45?'#fbbf24':pol>0.12?'#a78bfa':'#4ade80', 9);
   }
   // the earth wire, attached only during step 2
   var gy=cy+R+6, gyEnd=H-26;
@@ -19424,8 +19614,15 @@ runAnim('anim-elc-polar-t',(cv,ctx,W,H,t)=>{
   for(var r2=0;r2<3;r2++)for(var c2=0;c2<4;c2++){
     var mx=bx+24+c2*(bw-48)/3, my=by+24+r2*(bh-48)/2;
     var a0=((r2*4+c2)*2.4)%6.28;
-    var ang=a0+(Math.PI-a0)*align;
-    var dxm=Math.cos(ang)*9, dym=Math.sin(ang)*9;
+    // The rod's field falls off with distance, so molecules near the rod turn
+    // further and stretch more than those at the far face. This used to polarise
+    // every molecule identically, flattening the very gradient that makes the
+    // section's argument — near poles dominate ⇒ net attraction — true.
+    var _dRod=Math.max(1,mx-rodX);
+    var _loc=Math.min(1,Math.pow(90/_dRod,1.4));
+    var _al=align*_loc;
+    var ang=a0+(Math.PI-a0)*_al;
+    var dxm=Math.cos(ang)*(5+4*_loc), dym=Math.sin(ang)*(5+4*_loc);
     ctx.save();ctx.strokeStyle='rgba(148,163,184,.5)';ctx.lineWidth=1;
     ctx.beginPath();ctx.moveTo(mx-dxm,my-dym);ctx.lineTo(mx+dxm,my+dym);ctx.stroke();
     ctx.fillStyle='#f87171';ctx.beginPath();ctx.arc(mx+dxm,my+dym,4.5,0,Math.PI*2);ctx.fill();
@@ -19474,7 +19671,10 @@ runAnim('anim-elc-cage-t',(cv,ctx,W,H,t)=>{
   oLbl(ctx,'חיצוני',bx+20+Lext*0.5,midY-9,'#fbbf24',8);
   oLbl(ctx,'מושרה',bx+bw-20-Lext*0.5,midY+10,'#22d3ee',8);
   // row 2: the running sum
-  var sumY=by+bh*0.78, sumL=(1-on)*Lext*2;
+  // The two contributions above are Lext and on*Lext, so their sum is
+  // (1−on)*Lext. This used to draw twice that, making the one figure built to
+  // demonstrate E_ext + E_ind = 0 fail its own arithmetic at every frame.
+  var sumY=by+bh*0.78, sumL=(1-on)*Lext;
   if(on<0.95){
     simArrow(ctx,bx+20,sumY,bx+20+Math.max(3,sumL),sumY,'#4ade80',2,8);
     oLbl(ctx,'סכום',bx+20+Math.max(16,sumL)+22,sumY,'#4ade80',8);
@@ -19485,7 +19685,9 @@ runAnim('anim-elc-cage-t',(cv,ctx,W,H,t)=>{
   // Demonstration instead of a shield emoji: identical test charges in and out.
   // The outside one drifts along the field; the inside one never moves.
   var demoY=by+bh+20;
-  var tOut=26+((t%5)/5)*70;
+  // A free charge in a uniform field ACCELERATES; this used to slide it along
+  // at constant velocity, which is the motion of a charge feeling no force.
+  var _tu=(t%5)/5, tOut=26+_tu*_tu*70;
   ctx.save();ctx.fillStyle='#fbbf24';ctx.beginPath();ctx.arc(tOut,demoY,5,0,Math.PI*2);ctx.fill();ctx.restore();
   oLbl(ctx,'בחוץ — נסחף',122,demoY,'#fbbf24',8.5);
   ctx.save();ctx.fillStyle='#4ade80';ctx.beginPath();ctx.arc(bx+bw*0.5,demoY,5,0,Math.PI*2);ctx.fill();ctx.restore();
@@ -19511,6 +19713,26 @@ var _ELC_FLD_A=60000, _ELC_FLD_R0=26, _ELC_FLD_R1=190;
 var _elcRadTraj=(function(){
   var a=[],r=_ELC_FLD_R0,v=0,dt=0.004;
   for(var i=0;i<4000;i++){a.push([r,v]);v+=(_ELC_FLD_A/(r*r))*dt;r+=v*dt;if(r>_ELC_FLD_R1)break;}
+  return a;
+})();
+// Two charges released FROM REST and let go. The animation used to draw
+// r = r0 + dr*cyc^0.62, whose speed is INFINITE at t=0 and falls from there —
+// exactly backwards, and in direct contradiction of the kinetic-energy bar drawn
+// beside it, which correctly read zero at that instant. Integrating
+// v = sqrt(2(U0-U)/m) makes the picture and the bars the same physics.
+var _ELC_PAIR_K=9e9, _ELC_PAIR_Q=6e-12, _ELC_PAIR_M=0.002;
+var _ELC_PAIR_R0=0.30, _ELC_PAIR_R1=1.20;
+var _elcPairTraj=(function(){
+  var U0=_ELC_PAIR_K*_ELC_PAIR_Q/_ELC_PAIR_R0;
+  var a=[],r=_ELC_PAIR_R0,dt=0.0002;
+  for(var i=0;i<40000;i++){
+    var U=_ELC_PAIR_K*_ELC_PAIR_Q/r;
+    var v=Math.sqrt(Math.max(0,2*(U0-U)/_ELC_PAIR_M));   // exact, from energy
+    var acc=_ELC_PAIR_K*_ELC_PAIR_Q/(_ELC_PAIR_M*r*r);
+    a.push([r,v]);
+    r+=v*dt+0.5*acc*dt*dt;   // the ½a·dt² term is what gets it off the mark:
+    if(r>=_ELC_PAIR_R1)break; // released from rest, v=0 alone never advances r
+  }
   return a;
 })();
 var _ELC_POT_A=45000, _ELC_POT_R0=32, _ELC_POT_R1=150;
