@@ -4621,7 +4621,11 @@ function simPositionTime(canvas){
   let hist=[];
   const id=canvas.id;
 
-  const getXm=function(){ return (ballX-GL)/SCALE-XRANGE/2; };
+  // Clamped here so the readout, the ball, the path accumulator and the graph
+  // all agree; previously only the DRAWN ball was clamped, so dragging past the
+  // end climbed the readout past ±10 m and silently broke the graph line.
+  const getXm=function(){ return Math.max(-10,Math.min(10,(ballX-GL)/SCALE-XRANGE/2)); };
+  var sPath=0, lastXm=null, xStart=0, recording=false, tRec0=null;
   const toCanvasX=function(xm){ return GL+(xm+XRANGE/2)*SCALE; };
 
   function drawAxis(){
@@ -4654,6 +4658,15 @@ function simPositionTime(canvas){
 
   function drawBall(){
     var xm=getXm();
+    // The section's whole subject: s (path, never decreases) versus Δx (signed).
+    if(recording){
+      var _dx=xm-xStart;
+      simText(ctx,'‎s = '+sPath.toFixed(2)+' m   (דרך)',W*0.28,30,'#fbbf24',11,'center',true);
+      simText(ctx,'‎Δx = '+(_dx>=0?'+':'')+_dx.toFixed(2)+' m   (העתק)',W*0.62,30,'#4ade80',11,'center',true);
+      simText(ctx,'‎s − |Δx| = '+(sPath-Math.abs(_dx)).toFixed(2)+' m',W*0.88,30,'#94a3b8',9.5,'center');
+    } else {
+      simText(ctx,'גררו את הגוף — s ו-Δx יימדדו',W/2,30,'#64748b',10,'center');
+    }
     var bx=Math.max(GL+18,Math.min(GR-18,toCanvasX(Math.max(-10,Math.min(10,xm)))));
     var col=xm>0?'#34d399':xm<0?'#f87171':'#94a3b8';
     var ox=toCanvasX(0);
@@ -4712,7 +4725,15 @@ function simPositionTime(canvas){
 
   function draw(ts){
     if(_simStop[id])return;
-    if(drag&&startT!==null){ hist.push({t:(ts-startT)/1000, x:getXm()}); if(hist.length>1200)hist.shift(); }
+    // Recording is decoupled from dragging: a STATIONARY interval — the flat
+    // segment of x(t), the most important reading of the graph — was impossible
+    // to record while sampling only happened with the pointer down.
+    if(recording&&tRec0!==null){
+      var _x=getXm();
+      if(lastXm!==null)sPath+=Math.abs(_x-lastXm);
+      lastXm=_x;
+      hist.push({t:(ts-tRec0)/1000, x:_x}); if(hist.length>1800)hist.shift();
+    }
     simBg(ctx,W,H);
     drawAxis(); drawBall(); drawGraph();
     ctx.save(); ctx.fillStyle='rgba(8,18,36,.7)'; ctx.strokeStyle='#1a3252'; ctx.lineWidth=1;
@@ -4721,10 +4742,14 @@ function simPositionTime(canvas){
     requestAnimationFrame(draw);
   }
   function getXE(e){ var r=canvas.getBoundingClientRect(); return ((e.touches?e.touches[0].clientX:e.clientX)-r.left)*(canvas.width/r.width)/dpr; }
-  canvas.addEventListener('mousedown',function(e){drag=true;ballX=getXE(e);startT=performance.now();hist=[];});
+  function _ptStart(px){
+    drag=true; ballX=px;
+    if(!recording){ recording=true; tRec0=performance.now(); hist=[]; sPath=0; lastXm=null; xStart=getXm(); }
+  }
+  canvas.addEventListener('mousedown',function(e){_ptStart(getXE(e));});
   canvas.addEventListener('mousemove',function(e){if(drag)ballX=getXE(e);});
   canvas.addEventListener('mouseup',function(){drag=false;});
-  canvas.addEventListener('touchstart',function(e){e.preventDefault();drag=true;ballX=getXE(e);startT=performance.now();hist=[];},{passive:false});
+  canvas.addEventListener('touchstart',function(e){e.preventDefault();_ptStart(getXE(e));},{passive:false});
   canvas.addEventListener('touchmove',function(e){e.preventDefault();if(drag)ballX=getXE(e);},{passive:false});
   canvas.addEventListener('touchend',function(){drag=false;});
   var rb=document.getElementById('btn-pt-reset'); if(rb)rb.addEventListener('click',function(){hist=[];ballX=W/2;});
@@ -4747,6 +4772,9 @@ function simConstVelocity(canvas){
     var dt=Math.min((ts-pT)/1000,.05); pT=ts;
     vel=getVel(); x0=getX0(); t+=dt;
     var xm=x0+vel*t;
+    // The body used to leave the axis permanently and the sim sat inert until
+    // reset was found. Re-run cleanly when it exits.
+    if(xm>10.5||xm<-10.5){ t=0; hist=[]; xm=x0; }
     hist.push({t:t,x:xm}); if(hist.length>800)hist.shift();
     simBg(ctx,W,H);
     // Axis
@@ -4826,6 +4854,13 @@ function simConstVelocity(canvas){
     requestAnimationFrame(draw);
   }
   var rb=document.getElementById('btn-cv-reset'); if(rb)rb.addEventListener('click',function(){t=0;hist=[];});
+  // x₀ and v are INITIAL conditions. Changing them mid-run left hist holding
+  // points computed from the old values, producing a jump or kink in x(t) with
+  // no physical meaning, after which the derived slope box was simply wrong.
+  ['inp-cv-x0','inp-cv-v'].forEach(function(idc){
+    var el=document.getElementById(idc);
+    if(el)el.addEventListener('input',function(){t=0;hist=[];});
+  });
   requestAnimationFrame(draw);
 }
 
@@ -4838,14 +4873,24 @@ function simAvgInstant(canvas){
   var xAt=function(tv){return A*tv*tv;};
   var vInstAt=function(tv){return 2*A*tv;};
   var toGx=function(tv){return GL+(tv/TMax)*(GR-GL);};
-  var toGy=function(xv){return GB-(xv/xAt(TMax))*(GB-GT)*0.9;};
-  var t0=1.2, dt=2.0, dragging=null, autoShrink=true, pT=null;
-  function getA(){var el=document.getElementById('inp-ai-a');return el?parseFloat(el.value)||1.5:A;}
+  // Absolute vertical scale in metres. Dividing by xAt(TMax)=A·T² cancelled A,
+  // so the parabola was pixel-identical for every value of the slider and the
+  // tangent angle was independent of it too.
+  var XVIEW=40;
+  var toGy=function(xv){return GB-(xv/XVIEW)*(GB-GT)*0.9;};
+  var t0=1.2, dt=2.0, dragging=null, autoShrink=true, pT=null, holdT=0;
+  function getA(){var el=document.getElementById('inp-ai-k');return el?parseFloat(el.value)||1.5:A;}
   function draw(ts){
     if(_simStop[id])return;
     if(!pT)pT=ts; var elapsed=Math.min((ts-pT)/1000,.05); pT=ts;
     A=getA();
-    if(autoShrink){dt=Math.max(0.025,dt-elapsed*0.32); if(dt<0.04)dt=2.2;}
+    // Linear shrink spent ~2% of the cycle in the converged window. Geometric
+    // decay gives equal screen time per decade, and the hold keeps the punchline
+    // on screen long enough to read.
+    if(autoShrink){
+      if(dt>0.021){ dt=Math.max(0.02,dt*Math.pow(0.22,elapsed)); holdT=0; }
+      else { holdT+=elapsed; if(holdT>2.5){ dt=2.2; holdT=0; } }
+    }
     var t1=Math.min(TMax-0.01,t0+dt);
     var x0v=xAt(t0), x1v=xAt(t1);
     var vavg=(x1v-x0v)/Math.max(dt,0.0001);
@@ -4933,11 +4978,11 @@ function simAvgInstant(canvas){
     else dt=Math.max(0.025,tv2-t0);
     e.preventDefault();
   }
-  function _aiUp(){dragging=null;autoShrink=true;}
+  function _aiUp(){dragging=null;}   // auto-shrink is re-armed only by the reset button
   canvas.addEventListener('mousedown',_aiDn);canvas.addEventListener('touchstart',_aiDn,{passive:false});
   canvas.addEventListener('mousemove',_aiMv);canvas.addEventListener('touchmove',_aiMv,{passive:false});
   canvas.addEventListener('mouseup',_aiUp);canvas.addEventListener('touchend',_aiUp);
-  var rb=document.getElementById('btn-ai-reset'); if(rb)rb.addEventListener('click',function(){dt=2.2;autoShrink=true;t0=1.2;});
+  var rb=document.getElementById('btn-ai-reset'); if(rb)rb.addEventListener('click',function(){dt=2.2;autoShrink=true;t0=1.2;holdT=0;});
   requestAnimationFrame(draw);
 }
 
@@ -4946,24 +4991,36 @@ function simAcceleration(canvas){
   const H=470; const {ctx,W,dpr}=setupCanvas(canvas,H);
   const AXISY=108, GL=56, GR=W-34, GT=184, GB=H-24;
   const AMAX=10; const id=canvas.id;
-  var acc=3, vel=0, ballX=W/2, t=0, pT=null, dragging=false, hist=[];
+  var acc=3, vel=0, xm=0, ballX=W/2, t=0, pT=null, dragging=false, hist=[];
   function getAcc(){var el=document.getElementById('inp-acc-a');return el?parseFloat(el.value)||0:acc;}
   function getV0() {var el=document.getElementById('inp-acc-v0');return el?parseFloat(el.value)||0:0;}
   function draw(ts){
     if(_simStop[id])return;
     if(!pT)pT=ts; var dt=Math.min((ts-pT)/1000,.04); pT=ts;
-    acc=getAcc(); t+=dt; vel+=acc*dt; ballX+=vel*dt*20;
+    // Metres are the single source of truth. This used to integrate position in
+    // PIXELS at a hard-coded 20 px/m while the axis mapped 20 m onto (GR-GL) px
+    // and the readout converted back with that other scale, so the drawn motion
+    // disagreed with the v and a printed beside it.
+    const PPM_A=(GR-GL)/20;
+    acc=getAcc(); t+=dt; vel+=acc*dt; xm+=vel*dt;
     // Reaching the edge used to reverse the velocity and destroy 75% of it
     // (vel=-vel*0.25), which turned v(t) into a sawtooth in the one section
     // whose caption reads "slope = a". A constant-acceleration run should show a
     // straight line, so the run simply restarts cleanly instead.
-    if(ballX>GR-22||ballX<GL+22){
-      ballX=W/2; vel=getV0(); t=0; hist=[];
-    }
-    var xm=(ballX-GL)/(GR-GL)*20-10;
+    if(xm>10||xm<-10){ xm=0; vel=getV0(); t=0; hist=[]; }
+    ballX=GL+(xm+10)/20*(GR-GL);
+    // (xm is integrated above; no reverse conversion needed)
     hist.push({t:t,v:vel,x:xm}); if(hist.length>400)hist.shift();
     simBg(ctx,W,H);
     // Accel control zone
+    // The theory carries a misconception box about negative acceleration not
+    // always meaning slowing down; name the case the learner is actually in.
+    var _same=vel*acc>0;
+    var _verdict = Math.abs(acc)<0.05 ? 'a = 0  →  v קבועה' :
+                   Math.abs(vel)<0.06 ? 'רגע ההיפוך: v = 0 אבל a ≠ 0' :
+                   _same ? 'v ו-a באותו סימן  →  הגוף מאיץ'
+                         : 'v ו-a בסימנים מנוגדים  →  הגוף מאט';
+    simText(ctx,_verdict,W/2,AXISY+52,_same?'#4ade80':'#fbbf24',10,'center',true);
     var midDrag=(GL+GR)/2, aScale=(GR-GL-80)/(2*AMAX);
     ctx.save(); ctx.fillStyle='rgba(8,18,40,.85)'; ctx.strokeStyle='#1e3a52'; ctx.lineWidth=1.5;
     ctx.beginPath(); ctx.roundRect(GL,4,GR-GL,58,7); ctx.fill(); ctx.stroke(); ctx.restore();
@@ -5076,7 +5133,11 @@ function simFreefall(canvas){
 
   // ball state: {ym (meters), vy (m/s, positive=up), t (s)}
   var hMaxM=function(){return v0*v0/(2*Math.max(g,0.01));};
-  var yScale=function(){return (GND-26)/Math.max(hMaxM()+2,20);}; // px per meter
+  // FIXED world height. This used to rescale to the current trajectory, so a
+  // 16.5 m Earth throw and a 101 m Moon throw filled the track identically and
+  // the g slider could not change the picture at all.
+  var VIEW_H=60;
+  var yScale=function(){return (GND-26)/VIEW_H;}; // px per metre, constant
   var toY=function(ym){return GND-ym*yScale();};
 
   function getV0(){var el=document.getElementById('inp-v0');return el?parseFloat(el.value)||0:v0;}
@@ -5084,7 +5145,8 @@ function simFreefall(canvas){
   // ── Slingshot: drag up from the launch point to set v₀, release to throw ──
   var aimF=false,aimY=null,touchedF=false;
   var BX=function(){return Math.floor(W/2);};
-  function _ffDn(e){var p=simPointerXY(canvas,dpr,e);
+  function _ffDn(e){if(ball&&ball.landed)ball=null;   // re-arm: landing used to leave the sim dead
+    var p=simPointerXY(canvas,dpr,e);
     if(!ball&&Math.abs(p.x-BX())<70&&p.y>GND-150){aimF=true;touchedF=true;aimY=p.y;canvas.style.cursor='grabbing';e.preventDefault();}}
   function _ffMv(e){var p=simPointerXY(canvas,dpr,e);
     if(aimF){aimY=Math.max(GND-260,Math.min(GND,p.y));
@@ -5106,7 +5168,13 @@ function simFreefall(canvas){
       ball.vy-=g*dt; // gravity decelerates upward velocity
       ball.ym+=ball.vy*dt;
       ball.t+=dt;
-      if(ball.ym<=0){ball.ym=0;ball.vy=0;}
+      // Never zero vy: the section's punchline is that the ball returns with
+      // speed exactly −v₀ and that rise time equals fall time. Capture both.
+      if(ball.ym<=0&&ball.vy<0&&!ball.landed){
+        ball.ym=0; ball.vLand=ball.vy; ball.tTotal=ball.t; ball.landed=true;
+      }
+      if(ball.prevVy>0&&ball.vy<=0&&ball.tUp===undefined)ball.tUp=ball.t;
+      ball.prevVy=ball.vy;
     }
     var hm=hMaxM(), ys=yScale();
     simBg(ctx,W,H);
@@ -20750,7 +20818,7 @@ function buildSim(sim){
   const C=(s)=>`<div class="sim-controls">${s}</div>`;
   if(sim.type==='position-time')extra=C(btn('pt-reset','↺ אפס מסלול','btn-secondary'));
   else if(sim.type==='const-velocity')extra=C(rng('cv-v',-10,10,2.5,0.5,'מהירות v',' m/s')+rng('cv-x0',-8,8,0,1,'מיקום x₀',' m')+btn('cv-reset','↺ אפס','btn-secondary'));
-  else if(sim.type==='avg-instant')extra=C(rng('ai-a',0.5,4,1.5,0.25,'מקדם a (x=at²)')+btn('ai-reset','↺ אפס Δt','btn-secondary'));
+  else if(sim.type==='avg-instant')extra=C(rng('ai-k',0.5,4,1.5,0.25,'מקדם k  (x = k·t²)')+btn('ai-reset','▶ הרץ Δt→0','btn-secondary'));
   else if(sim.type==='acceleration')extra=C(rng('acc-a',-10,10,3,0.5,'תאוצה a',' m/s²')+rng('acc-v0',-8,8,0,1,'v₀ ראשונית',' m/s')+btn('acc-reset','↺ אפס','btn-secondary'));
   else if(sim.type==='freefall')extra=C(rng('v0',0,30,18,1,'v₀ ראשונית',' m/s')+rng('ff-g',1.6,25,9.8,0.2,'g כבידה',' m/s²')+btn('throw','🎯 זרוק!','btn-primary'));
   else if(sim.type==='multi-freefall')extra=C(rng('g-mff',1.6,25,9.8,0.1,'g (כבידה)',' m/s²')+rng('mff-h',5,40,20,1,'גובה h',' m'));
