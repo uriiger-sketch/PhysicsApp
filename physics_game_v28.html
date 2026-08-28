@@ -10586,6 +10586,19 @@ function simVecOps(canvas){
   function getScalar(){var e=document.getElementById('inp-vo-scalar'); return e?parseFloat(e.value):scalar;}
 
   // Op buttons
+  // 40 px on the canvas is one unit. Readouts used to be raw pixels, which are
+  // meaningless and change with the window width.
+  const PPU=40;
+  var _voR=document.getElementById('btn-vo-reset');
+  if(_voR)_voR.addEventListener('click',function(){vA={x:90,y:-40};vB={x:60,y:50};});
+  // Keep both tips inside the reachable disc: once a tip left the canvas the
+  // 16-px hit test could never find it again and the sim was stuck for good.
+  function _voClamp(v){
+    var R=Math.min(CX-16,CY-16,W-CX-16,H-CY-16), m=Math.hypot(v.x,v.y);
+    if(m>R){v.x*=R/m;v.y*=R/m;}
+    if(m<14){var s=14/(m||1);v.x*=s;v.y*=s;}
+    return v;
+  }
   ['btn-vo-sub','btn-vo-scalar','btn-vo-dot'].forEach(function(bid){
     var btn=document.getElementById(bid);
     if(btn) btn.addEventListener('click',function(){
@@ -10609,7 +10622,7 @@ function simVecOps(canvas){
     if(!dragging)return; e.preventDefault();
     var p=getXY(e);
     var dx=p.x-dragStart.x, dy=p.y-dragStart.y;
-    if(dragging==='A'){vA.x=vecStart.x+dx;vA.y=vecStart.y+dy;}
+    if(dragging==='A'){vA.x=vecStart.x+dx;vA.y=vecStart.y+dy;_voClamp(vA);}
     else{vB.x=vecStart.x+dx;vB.y=vecStart.y+dy;}
   }
   function onUp(){dragging=null;}
@@ -10662,9 +10675,9 @@ function simVecOps(canvas){
       ctx.save(); ctx.fillStyle='rgba(6,14,28,.92)'; ctx.strokeStyle='#1e4060'; ctx.lineWidth=1.5;
       ctx.beginPath(); ctx.roundRect(8,6,W-16,54,6); ctx.fill(); ctx.stroke(); ctx.restore();
       simText(ctx,'חיסור וקטורים: A − B = A + (−B)',W/2,18,'#22d3ee',10.5,undefined,true);
-      simText(ctx,'A = ('+vA.x.toFixed(0)+', '+(-vA.y).toFixed(0)+')',W/3,34,'#ef4444',9,undefined,true);
-      simText(ctx,'B = ('+vB.x.toFixed(0)+', '+(-vB.y).toFixed(0)+')',W*2/3,34,'#3b82f6',9,undefined,true);
-      simText(ctx,'A−B = ('+R.x.toFixed(0)+', '+(-R.y).toFixed(0)+')  |R|='+Math.sqrt(R.x*R.x+R.y*R.y).toFixed(1),W/2,48,'#a78bfa',9,undefined,true);
+      simText(ctx,'\u200eA = ('+(vA.x/PPU).toFixed(2)+', '+(-vA.y/PPU).toFixed(2)+')',W/3,34,'#ef4444',9,undefined,true);
+      simText(ctx,'\u200eB = ('+(vB.x/PPU).toFixed(2)+', '+(-vB.y/PPU).toFixed(2)+')',W*2/3,34,'#3b82f6',9,undefined,true);
+      simText(ctx,'\u200eA−B = ('+(R.x/PPU).toFixed(2)+', '+(-R.y/PPU).toFixed(2)+')   |R| = '+(Math.sqrt(R.x*R.x+R.y*R.y)/PPU).toFixed(2),W/2,48,'#a78bfa',9,undefined,true);
     } else if(op==='scalar'){
       // c·A
       var cA={x:scalar*vA.x,y:scalar*vA.y};
@@ -10677,8 +10690,8 @@ function simVecOps(canvas){
       ctx.save(); ctx.fillStyle='rgba(6,14,28,.92)'; ctx.strokeStyle='#1e4060'; ctx.lineWidth=1.5;
       ctx.beginPath(); ctx.roundRect(8,6,W-16,54,6); ctx.fill(); ctx.stroke(); ctx.restore();
       simText(ctx,'כפל סקלרי: c·A',W/2,18,'#22d3ee',10.5,undefined,true);
-      simText(ctx,'A = ('+vA.x.toFixed(0)+', '+(-vA.y).toFixed(0)+')  |A| = '+magA.toFixed(1),W/2,32,'#ef4444',9,undefined,true);
-      simText(ctx,scalar.toFixed(1)+'·A = ('+cA.x.toFixed(0)+', '+(-cA.y).toFixed(0)+')  |c·A| = '+(scalar*magA).toFixed(1)+' [כיוון '+(scalar>=0?'נשמר':'מתהפך')+']',W/2,46,'#f97316',9,undefined,true);
+      simText(ctx,'\u200eA = ('+(vA.x/PPU).toFixed(2)+', '+(-vA.y/PPU).toFixed(2)+')   |A| = '+(magA/PPU).toFixed(2),W/2,32,'#ef4444',9,undefined,true);
+      simText(ctx,'\u200e'+scalar.toFixed(1)+'·A = ('+(cA.x/PPU).toFixed(2)+', '+(-cA.y/PPU).toFixed(2)+')   |c·A| = '+(Math.abs(scalar)*magA/PPU).toFixed(2)+'   [כיוון '+(scalar>=0?'נשמר':'מתהפך')+']',W/2,46,'#f97316',9,undefined,true);
     } else { // dot product
       var dot=vA.x*vB.x+vA.y*vB.y; // screen y: need to negate y components
       var dot_physics=vA.x*vB.x+(-vA.y)*(-vB.y);
@@ -10691,7 +10704,8 @@ function simVecOps(canvas){
       // Angle arc
       ctx.save(); ctx.strokeStyle='rgba(251,191,36,.5)'; ctx.lineWidth=1.5;
       var angA2=Math.atan2(vA.y,vA.x), angB2=Math.atan2(vB.y,vB.x);
-      ctx.beginPath(); ctx.arc(CX,CY,38,Math.min(angA2,angB2),Math.max(angA2,angB2)); ctx.stroke(); ctx.restore();
+      var _d=angB2-angA2; while(_d>Math.PI)_d-=2*Math.PI; while(_d<-Math.PI)_d+=2*Math.PI;
+      ctx.beginPath(); ctx.arc(CX,CY,38,angA2,angA2+_d,_d<0); ctx.stroke(); ctx.restore();
       simText(ctx,angBetween.toFixed(0)+'°',CX+48*Math.cos((angA2+angB2)/2),CY+48*Math.sin((angA2+angB2)/2),'#fbbf24',9,undefined,true);
       // Projection line
       if(magA>5&&magB>5){
@@ -10706,8 +10720,8 @@ function simVecOps(canvas){
       ctx.save(); ctx.fillStyle='rgba(6,14,28,.92)'; ctx.strokeStyle='#1e4060'; ctx.lineWidth=1.5;
       ctx.beginPath(); ctx.roundRect(8,6,W-16,62,6); ctx.fill(); ctx.stroke(); ctx.restore();
       simText(ctx,'מכפלה סקלרית (דוט): A·B = |A||B|cosθ',W/2,18,'#22d3ee',10.5,undefined,true);
-      simText(ctx,'|A|='+magA.toFixed(1)+'  |B|='+magB.toFixed(1)+'  θ='+angBetween.toFixed(1)+'°',W/2,32,'#94a3b8',9,undefined,true);
-      simText(ctx,'A·B = '+magA.toFixed(1)+'×'+magB.toFixed(1)+'×cos'+angBetween.toFixed(0)+'° = '+dot_physics.toFixed(1),W/2,46,'#fbbf24',10,undefined,true);
+      simText(ctx,'\u200e|A| = '+(magA/PPU).toFixed(2)+'    |B| = '+(magB/PPU).toFixed(2)+'    θ = '+angBetween.toFixed(1)+'°',W/2,32,'#94a3b8',9,undefined,true);
+      simText(ctx,'\u200eA·B = '+(magA/PPU).toFixed(2)+' × '+(magB/PPU).toFixed(2)+' × cos'+angBetween.toFixed(0)+'° = '+(dot_physics/(PPU*PPU)).toFixed(2),W/2,46,'#fbbf24',10,undefined,true);
       simText(ctx,dot_physics>0?'A·B > 0 (זווית חדה)':dot_physics<0?'A·B < 0 (זווית קהה)':'A·B = 0 (ניצבים!)',W/2,60,dot_physics===0?'#34d399':dot_physics>0?'#22d3ee':'#f87171',9,undefined,true);
     }
 
@@ -10728,6 +10742,19 @@ function simVecComponents(canvas){
   let pT=null, t=0;
   var CX=W*0.36, CY=H*0.55;
   var vx=110, vy=-70; // vector tip relative to origin (screen coords)
+  const PPU_C=40;                       // 40 px = 1 unit, matching the drawn grid
+  var _vcLast=null;
+  function _vcSliders(){                // sliders set the vector unless it is being dragged
+    var me=document.getElementById('inp-vc-mag'), ae=document.getElementById('inp-vc-ang');
+    if(!me||!ae)return;
+    var key=me.value+'|'+ae.value;
+    if(key===_vcLast)return;            // untouched since last frame: leave the drag alone
+    _vcLast=key;
+    var m=parseFloat(me.value)*PPU_C, a=parseFloat(ae.value)*Math.PI/180;
+    vx=m*Math.cos(a); vy=-m*Math.sin(a);
+  }
+  var _vcR=document.getElementById('btn-vc-reset');
+  if(_vcR)_vcR.addEventListener('click',function(){vx=110;vy=-70;_vcLast=null;});
   var dragging=false;
 
   function getXY(evt){
@@ -10747,6 +10774,11 @@ function simVecComponents(canvas){
     vx=p.x-CX; vy=p.y-CY;
     var mag=Math.sqrt(vx*vx+vy*vy);
     if(mag>160){vx=vx/mag*160; vy=vy/mag*160;}
+    // keep the sliders in step so the two input routes never disagree
+    var _m=Math.hypot(vx,vy)/PPU_C, _a=(Math.atan2(-vy,vx)*180/Math.PI+360)%360;
+    simSyncSlider('vc-mag',_m,1); simSyncSlider('vc-ang',_a,0);
+    var me=document.getElementById('inp-vc-mag'), ae=document.getElementById('inp-vc-ang');
+    if(me&&ae)_vcLast=me.value+'|'+ae.value;
     if(mag<20){vx=vx/mag*20; vy=vy/mag*20;}
   }
   function onUp(){dragging=false;}
@@ -10758,8 +10790,9 @@ function simVecComponents(canvas){
     if(_simStop[id])return;
     if(!pT)pT=ts; var dt=Math.min((ts-pT)/1000,0.04); pT=ts;
     t+=dt;
+    if(!dragging)_vcSliders();          // sliders take effect unless a drag is in progress
     var mag=Math.sqrt(vx*vx+vy*vy);
-    var Ax=vx, Ay=-vy; // physics coords (y up)
+    var Ax=vx/PPU_C, Ay=-vy/PPU_C;   // physics coords (y up), in UNITS not pixels
     var mag_phys=Math.sqrt(Ax*Ax+Ay*Ay);
     var theta=Math.atan2(Ay,Ax)*180/Math.PI;
     if(theta<0) theta+=360;
@@ -10792,10 +10825,10 @@ function simVecComponents(canvas){
     ctx.beginPath(); ctx.moveTo(CX+vx,CY); ctx.lineTo(CX+vx,CY+vy); ctx.stroke(); ctx.setLineDash([]); ctx.restore();
     // Ax arrow (x-axis)
     simArrow(ctx,CX,CY,CX+vx,CY,'#34d399',3,11);
-    simText(ctx,'Ax='+Ax.toFixed(0),CX+vx/2,CY+16,'#34d399',9.5,undefined,true);
+    simText(ctx,'\u200eAx = '+Ax.toFixed(2),CX+vx/2,CY+16,'#34d399',9.5,undefined,true);
     // Ay arrow (y-axis)
     simArrow(ctx,CX,CY,CX,CY+vy,'#fbbf24',3,11);
-    simText(ctx,'Ay='+Ay.toFixed(0),CX+14,CY+vy/2,'#fbbf24',9.5,'left');
+    simText(ctx,'\u200eAy = '+Ay.toFixed(2),CX+14,CY+vy/2,'#fbbf24',9.5,'left');
     // Corner square
     ctx.save(); ctx.strokeStyle='rgba(100,116,139,.5)'; ctx.lineWidth=1;
     ctx.beginPath(); ctx.moveTo(CX+vx-Math.sign(vx)*10,CY); ctx.lineTo(CX+vx-Math.sign(vx)*10,CY+vy); ctx.lineTo(CX+vx,CY+vy); ctx.stroke(); ctx.restore();
@@ -15153,6 +15186,10 @@ runAnim('anim-vecadd',(canvas,ctx,W,H,t)=>{
   const Ax=magA*Math.cos(angA), Ay=-magA*Math.sin(angA);
   const Bx=magB*Math.cos(angB), By=-magB*Math.sin(angB);
   const Rx=Ax+Bx, Ry=Ay+By;
+  // Ay/By/Ry above are SCREEN values, used by the arrow and dash-path calls.
+  // Every READOUT must use the physics components, or an upward resultant gets
+  // reported as negative.
+  const Ayp=magA*Math.sin(angA), Byp=magB*Math.sin(angB), Ryp=Ayp+Byp;
   const Rmag=Math.sqrt(Rx*Rx+Ry*Ry);
 
   // Grid dots
@@ -15188,7 +15225,7 @@ runAnim('anim-vecadd',(canvas,ctx,W,H,t)=>{
   ctx.beginPath(); ctx.moveTo(cx,cy); ctx.lineTo(cx+Rx,cy); ctx.lineTo(cx+Rx,cy+Ry); ctx.stroke();
   ctx.setLineDash([]); ctx.restore();
   label(ctx,'Rx='+Rx.toFixed(1),cx+Rx/2,cy+12,'rgba(52,211,153,.6)',8);
-  label(ctx,'Ry='+Math.abs(Ry).toFixed(1),cx+Rx+6,cy+Ry/2,'rgba(52,211,153,.6)',8,'left');
+  label(ctx,'Ry='+(Ryp>=0?'+':'')+Ryp.toFixed(1),cx+Rx+6,cy+Ry/2,'rgba(52,211,153,.6)',8,'left');
 
   // Angle indicator
   ctx.save(); ctx.strokeStyle='rgba(251,191,36,.5)'; ctx.lineWidth=1.5;
@@ -15205,8 +15242,8 @@ runAnim('anim-vecadd',(canvas,ctx,W,H,t)=>{
   label(ctx,'='+Ax.toFixed(1)+'+'+Bx.toFixed(1),px,py+30,'#34d399',8);
   label(ctx,'='+Rx.toFixed(1),px,py+44,'#34d399',9);
   label(ctx,'Ry=Ay+By',px,py+64,'#34d399',8.5);
-  label(ctx,'='+Ay.toFixed(1)+'+'+By.toFixed(1),px,py+78,'#34d399',8);
-  label(ctx,'='+Ry.toFixed(1),px,py+92,'#34d399',9);
+  label(ctx,'='+Ayp.toFixed(1)+'+'+Byp.toFixed(1),px,py+78,'#34d399',8);
+  label(ctx,'='+Ryp.toFixed(1),px,py+92,'#34d399',9);
   label(ctx,'|R|=√(Rx²+Ry²)',px,py+112,'#22d3ee',8.5);
   label(ctx,'='+Rmag.toFixed(2),px,py+126,'#22d3ee',9);
 
@@ -15933,7 +15970,9 @@ runAnim('anim-vec',(canvas,ctx,W,H,t)=>{
   ctx.beginPath();ctx.moveTo(CCX,CCY+vy);ctx.lineTo(CCX+vx,CCY+vy);ctx.stroke();
   ctx.setLineDash([]);ctx.restore();
   label(ctx,'vₓ='+vx.toFixed(0),CCX+vx/2,CCY+8,'#60a5fa',7.5,'center');
-  label(ctx,'vᵧ='+vy.toFixed(0),CCX+vx+(vx>0?5:-20),CCY+vy/2,'#f87171',7.5);
+  // vy is a SCREEN component (canvas y grows downward). Negate for the label
+  // only — the draw calls above must keep using CCY+vy.
+  label(ctx,'vᵧ='+(-vy).toFixed(0),CCX+vx+(vx>0?5:-20),CCY+vy/2,'#f87171',7.5);
 
   // Origin dot
   circle(ctx,CCX,CCY,3,'#fff','#94a3b8',1.5);
@@ -16771,7 +16810,12 @@ runAnim('anim-vecscale',(canvas,ctx,W,H,t)=>{
   ctx.save();ctx.fillStyle='rgba(6,14,28,.85)';ctx.strokeStyle='#1e4060';ctx.lineWidth=1;
   ctx.beginPath();ctx.roundRect(W*0.5-52,4,104,20,3);ctx.fill();ctx.stroke();ctx.restore();
   label(ctx,'c = '+c.toFixed(2),W*0.5,13,col2,8.5);
-  label(ctx,'\u05db\u05e4\u05dc \u05e1\u05e7\u05dc\u05e8\u05d9: \u05db\u05d9\u05d5\u05d5\u05df \u05e0\u05e9\u05de\u05e8, \u05d2\u05d5\u05d3\u05dc \u05de\u05d5\u05db\u05e4\u05dc \u05d1-c',W/2,H-6,'#64748b',7.5);
+  // c goes negative for part of every cycle and the arrow visibly flips, so the
+  // caption cannot claim unconditionally that the direction is preserved.
+  label(ctx, Math.abs(c)<0.06 ? 'c = 0  →  הוקטור האפס'
+           : c>0 ? 'c > 0:  הכיוון נשמר, הגודל ×c'
+                 : 'c < 0:  הכיוון מתהפך! הגודל ×|c|',
+        W/2,H-6, Math.abs(c)<0.06?'#94a3b8':(c>0?'#34d399':'#f97316'),7.5);
 });
 
 runAnim('anim-vecdiff',(canvas,ctx,W,H,t)=>{
@@ -20837,8 +20881,8 @@ function buildSim(sim){
   else if(sim.type==='energy-potential')extra=C(rng('ep-m',0.5,8,2,0.5,'מסה m',' kg')+rng('ep-g',1.6,25,9.8,0.5,'g',' m/s²')+btn('ep-elastic','⚡ אנרגיה אלסטית','btn-secondary')+btn('ep-reset','↺ אפס','btn-secondary'));
   else if(sim.type==='energy')extra=C(rng('energy-m',0.5,4,1,0.5,'מסה m',' kg')+rng('energy-mu',0,0.25,0,0.01,'מקדם חיכוך μ','')+btn('energy-reset','↺ אפס','btn-secondary'));
   else if(sim.type==='shm-def')extra=C(rng('shm-A',20,130,80,5,'אמפליטודה A',' px')+rng('shm-T',0.5,5,2,0.1,'מחזור T',' s')+btn('shm-reset','↺ אפס','btn-secondary'));
-  else if(sim.type==='vec-ops')extra=C(rng('vo-scalar',0.2,4,2,0.1,'מכפיל c')+btn('vo-sub','A−B')+btn('vo-scalar','c·A','btn-secondary'));
-  else if(sim.type==='vec-components')extra=C(btn('vc-hint','💡 הסבר'));
+  else if(sim.type==='vec-ops')extra=C(rng('vo-scalar',-3,3,2,0.1,'מכפיל c')+btn('vo-sub','A−B')+btn('vo-scalar','c·A','btn-secondary')+btn('vo-dot','A·B','btn-secondary')+btn('vo-reset','↺ אפס','btn-secondary'));
+  else if(sim.type==='vec-components')extra=C(rng('vc-mag',0.5,4,2.8,0.1,'גודל |A|')+rng('vc-ang',0,360,32,1,'זווית θ','°')+btn('vc-reset','↺ אפס','btn-secondary'));
   else if(sim.type==='spring')extra=C(rng('spring-k',0.1,25,2,0.1,'k (N/m)')+rng('spring-m',0.1,2,0.5,0.1,'מסה',' kg'));
   else if(sim.type==='gravity-force')extra=C(rng('gf-m',1,200,70,1,'מסה m',' kg'));
   else if(sim.type==='spring-force')extra=C(rng('sf-k',5,200,40,5,'k קשיחות',' N/m')+rng('sf-m',0.1,2,0.4,0.05,'מסה m',' kg')+rng('sf-damp',0,2,0.8,0.1,'ריסון b')+btn('sf-reset','↺ אפס','btn-secondary')+btn('sf-fmode','📐 הצג |F|=k|x|','btn-secondary'));
