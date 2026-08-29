@@ -6725,10 +6725,22 @@ function simMomentumDisplay(canvas){
     var mFrac=Math.min(mass/10,1);
     var vFrac=Math.min(Math.abs(vel)/12,1);
     ctx.save();ctx.fillStyle='rgba(15,30,55,.7)';ctx.beginPath();ctx.roundRect(20,barY,barTotal,10,3);ctx.fill();ctx.restore();
-    ctx.save();ctx.fillStyle='#3b82f6cc';ctx.beginPath();ctx.roundRect(20,barY,barTotal*mFrac,10,3);ctx.fill();ctx.restore();
-    ctx.save();ctx.fillStyle='#34d399cc';ctx.beginPath();ctx.roundRect(20+barTotal*mFrac,barY,barTotal*vFrac*(1-mFrac),10,3);ctx.fill();ctx.restore();
-    simText(ctx,'m='+mass+'kg',22,barY+8,'#93c5fd',7.5,undefined,false);
-    simText(ctx,'v='+Math.abs(vel).toFixed(1)+' m/s',W-22,barY+8,'#6ee7b7',7.5,'right',false);
+    // The two segments used to total mFrac + vFrac − mFrac·vFrac — the union
+    // formula, not a product — so at m=5 kg and v=6 m/s the bar read 75% full
+    // while p was 30 of a possible 120, a quarter. This strip sits directly
+    // under the caption "p = m × v", so it has to be the product.
+    var pFrac=mFrac*vFrac;                        // = p / p_max
+    var pg=ctx.createLinearGradient(20,0,20+barTotal,0);
+    pg.addColorStop(0,'#3b82f6cc');pg.addColorStop(1,'#34d399cc');
+    ctx.save();ctx.fillStyle=pg;ctx.beginPath();ctx.roundRect(20,barY,barTotal*pFrac,10,3);ctx.fill();ctx.restore();
+    // the two inputs, kept visible as ticks on the same strip
+    ctx.save();ctx.strokeStyle='#93c5fd';ctx.lineWidth=1.5;
+    ctx.beginPath();ctx.moveTo(20+barTotal*mFrac,barY-3);ctx.lineTo(20+barTotal*mFrac,barY+13);ctx.stroke();
+    ctx.strokeStyle='#6ee7b7';
+    ctx.beginPath();ctx.moveTo(20+barTotal*vFrac,barY-3);ctx.lineTo(20+barTotal*vFrac,barY+13);ctx.stroke();ctx.restore();
+    simText(ctx,'\u200em='+mass+' kg',22,barY+8,'#93c5fd',7.5,undefined,false);
+    simText(ctx,'\u200ev='+Math.abs(vel).toFixed(1)+' m/s',W-22,barY+8,'#6ee7b7',7.5,'right',false);
+    simText(ctx,'\u200eסקאלה מלאה: 120 kg·m/s',W/2,barY+20,'#475569',7,'center',true);
 
     // ── p graph (bottom)
     ctx.save();ctx.fillStyle='rgba(6,14,28,.75)';ctx.strokeStyle='#1e3a52';ctx.lineWidth=1;
@@ -8572,6 +8584,10 @@ function simStaticFriction(canvas){
   var mu_s=0.55, m=5, F=0;
   var vel=0, pos=null, state='static';
   var graphData=[]; // {F_applied, fs_actual}
+  // Keyed by applied force. A point used to be pushed every frame, so the buffer
+  // filled with duplicates at the current F and five seconds of idling flushed
+  // out the curve the learner had just swept.
+  var _fsMap={}, _lastMu=null, _lastM=null;
   var FLOOR_Y=H*0.52;
 
   function getF(){var e=document.getElementById('inp-sft-F'); return e?parseFloat(e.value):F;}
@@ -8579,7 +8595,7 @@ function simStaticFriction(canvas){
   function getM(){var e=document.getElementById('inp-sft-mass'); return e?parseFloat(e.value):m;}
 
   var resetBtn=document.getElementById('btn-sft-reset');
-  if(resetBtn)resetBtn.addEventListener('click',function(){vel=0;pos=null;state='static';graphData=[];
+  if(resetBtn)resetBtn.addEventListener('click',function(){vel=0;pos=null;state='static';graphData=[];_fsMap={};
     var fe=document.getElementById('inp-sft-F');if(fe){fe.value=0;var rv=document.getElementById('rv-sft-F');if(rv)rv.textContent='0';}});
 
   function draw(ts){
@@ -8597,11 +8613,19 @@ function simStaticFriction(canvas){
       vel=Math.max(0,vel+(F-fk)/m*dt);
       if(vel<0.01&&F<=fk){vel=0;state='static';}
       pos+=vel*dt*60;
-      if(pos>W-72){pos=W-72;vel=0;state='static';}
+      // Setting state back to 'static' at the wall while F was still above
+      // fs_max made the next frame break it away again with the block pinned:
+      // the state and the friction readout flickered every frame.
+      if(pos>W-72){pos=W*0.40;vel=0;state='static';}
     }
     var fs_actual=state==='static'?Math.min(F,fs_max):(fk*Math.sign(vel||1));
-    graphData.push({x:F,y:fs_actual});
-    if(graphData.length>300)graphData.shift();
+    // Changing μ or m is a NEW experiment: keeping the old points would plot two
+    // different fs_max on one curve.
+    if(_lastMu!==null&&(Math.abs(_lastMu-mu_s)>1e-9||Math.abs(_lastM-m)>1e-9))_fsMap={};
+    _lastMu=mu_s; _lastM=m;
+    _fsMap[Math.round(F*2)/2]=fs_actual;
+    graphData=Object.keys(_fsMap).map(function(kk){return {x:parseFloat(kk),y:_fsMap[kk]};})
+                                 .sort(function(p,q){return p.x-q.x;});
 
     simBg(ctx,W,H);
 
@@ -8695,15 +8719,23 @@ function simStaticFriction(canvas){
     ctx.save(); ctx.strokeStyle='#1e3a52'; ctx.lineWidth=1;
     ctx.beginPath(); ctx.moveTo(gAX,gAY-gAH); ctx.lineTo(gAX,gAY); ctx.lineTo(gAX+gAW,gAY); ctx.stroke(); ctx.restore();
     // Max F scale
-    var fScaleMax=fs_max*1.6;
+    // The axis used to be fs_max·1.6, which μ and m both move — so the axes
+    // rescaled under data already recorded. At μ=0.1, m=1 kg it topped out at
+    // 1.6 N while the F slider reaches 80, piling 98% of the range against the
+    // right edge. Fixed to the slider's own range: the breakaway point now
+    // slides along a stationary axis as μ and m change, which is the lesson.
+    var fScaleMax=80;
     // Theoretical line: f=F up to max, then flat (kinetic)
     ctx.save(); ctx.strokeStyle='rgba(100,116,139,.3)'; ctx.lineWidth=1; ctx.setLineDash([3,4]);
     // y=x slope until fs_max
-    var bp=fs_max/fScaleMax;
+    var bp=Math.min(1,fs_max/fScaleMax);
     ctx.beginPath();
     ctx.moveTo(gAX,gAY);
     ctx.lineTo(gAX+bp*gAW,gAY-bp*gAH);
-    ctx.lineTo(gAX+gAW,gAY-bp*gAH*(mu_s*0.72/mu_s));
+    // Past breakaway friction drops to the kinetic value and stays flat. If
+    // fs_max is beyond the slider's reach the block never breaks away and the
+    // whole visible graph is the f = F line.
+    if(bp<1)ctx.lineTo(gAX+gAW,gAY-(fk/fScaleMax)*gAH);
     ctx.stroke(); ctx.setLineDash([]); ctx.restore();
     // Data
     if(graphData.length>2){
@@ -8787,8 +8819,19 @@ function simKineticFriction(canvas){
 
     if(running){
       tClock+=dt;
-      vel+=a*dt; if(vel<0){vel=0;running=false;}
-      var dx=vel*dt;
+      // The panel prints d = v₀²/(2μg) beside the distance actually travelled.
+      // Advancing on the POST-update velocity undershoots, and snapping v to 0
+      // dropped the final partial step altogether, so the two never matched.
+      // Trapezoid, plus an exact last step, makes them identical.
+      var _v0k=vel;
+      vel+=a*dt;
+      var dx;
+      if(vel<0){
+        dx=0.5*_v0k*(_v0k/(-a));        // = v₀²/(2|a|) for the remaining stretch
+        vel=0; running=false;
+      } else {
+        dx=0.5*(_v0k+vel)*dt;
+      }
       dist+=dx; pos+=dx*55;
       if(pos>W-72){pos=W-72;vel=0;running=false;}
       vData.push(vel); aData.push(running?a:0); tData.push(tClock);
