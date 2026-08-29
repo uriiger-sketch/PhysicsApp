@@ -11556,6 +11556,11 @@ function simOptConcaveMirror(canvas){
     if(_simStop[id])return;
     animT+=0.025;
     f=getF();var doMult=getObj(),doPx=doMult*f;
+    // The DRAWN object used to be clamped to x ≥ 16 while dₒ stayed unclamped in
+    // the mirror equation, so past that point the picture and the numbers were
+    // describing different objects and the rays no longer met the image.
+    var _maxDoM=mx-26;
+    if(doPx>_maxDoM){ doPx=_maxDoM; simSyncSlider('cm-do',doPx/f,2); }
     var wl=getWl(),wlHex=wavelengthToHex(wl);
     var _cr=wavelengthToRGB(wl).match(/\d+/g);
     function wlA(a){return 'rgba('+_cr[0]+','+_cr[1]+','+_cr[2]+','+a+')';}
@@ -11588,9 +11593,7 @@ function simOptConcaveMirror(canvas){
       optLabel(ctx,p.l,p.x,cy+20,p.c,10);
     });
     // Object arrow
-    var objX=mx-doPx,objH=60;
-    // Keep object visible on screen
-    objX=Math.max(16,objX);
+    var objX=mx-doPx,objH=60;   // dₒ is clamped above, so this is always on-canvas
     ctx.save();ctx.strokeStyle='#60a5fa';ctx.lineWidth=3;optGlow(ctx,'#60a5fa',10);
     ctx.beginPath();ctx.moveTo(objX,cy);ctx.lineTo(objX,cy-objH);ctx.stroke();
     ctx.fillStyle='#93c5fd';ctx.beginPath();ctx.moveTo(objX,cy-objH);ctx.lineTo(objX-8,cy-objH+15);ctx.lineTo(objX+8,cy-objH+15);ctx.closePath();ctx.fill();
@@ -11689,7 +11692,11 @@ function simOptConcaveMirror(canvas){
     var mS=isFinite(diVal)?(-diVal/doPx).toFixed(2):'∞';
     var _cn2=wl<430?'UV':wl<470?'סגול':wl<500?'כחול':wl<560?'ירוק':wl<590?'צהוב':wl<625?'כתום':'אדום';
     ctx.save();ctx.fillStyle=wlHex;optGlow(ctx,wlHex,8);ctx.beginPath();ctx.arc(W-20,H-20,8,0,Math.PI*2);ctx.fill();optNoGlow(ctx);ctx.restore();
-    optInfoBox(ctx,8,8,172,['f='+f+'px','dₒ='+Math.round(doPx)+'px','dᵢ='+diS,'הגדלה m='+mS,'λ='+Math.round(wl)+'nm '+_cn2]);
+    // A mirror REFLECTS, and reflection does not depend on wavelength, so f is
+    // identical for every colour. The λ slider genuinely changes nothing here —
+    // and that is the lesson, not an omission: it is why big telescopes use
+    // mirrors. Sweep it here, then sweep the lens's and watch the focus travel.
+    optInfoBox(ctx,8,8,186,['\u200ef = '+f+' px  (לכל צבע!)','\u200edₒ = '+Math.round(doPx)+' px','\u200edᵢ = '+diS,'\u200eהגדלה m = '+mS,'\u200eλ = '+Math.round(wl)+' nm '+_cn2,'מראה: אין אבירציה כרומטית']);
     if(dragObj){
       var _mm=Math.abs(doPx-f)<7?'dₒ = f — הקרניים יוצאות מקבילות: אין תמונה!':Math.abs(doPx-2*f)<9?'dₒ = 2f (במרכז העקמומיות C) — תמונה הפוכה בגודל שווה!':doPx<f?'dₒ < f — מראת איפור: מדומה, ישרה ומוגדלת':'';
       if(_mm){ctx.save();ctx.fillStyle='rgba(4,9,20,.88)';ctx.strokeStyle='#fbbf24';ctx.lineWidth=1;
@@ -11979,8 +11986,13 @@ function simOptTIR(canvas){
   function draw(){
     if(_simStop[id])return;
     animT+=0.03;
-    var v=getVals(),th=v.th,n1=v.n1,n2=v.n2;
+    var v=getVals(),th=v.th;
     var wl=getWl(),wlHex=wavelengthToHex(wl);
+    // θ_c = arcsin(n₂/n₁) depends on n, and n depends on λ — so a beam a hair
+    // past critical for red can still be refracting for violet. Without
+    // dispersion the wavelength slider could not show that at all.
+    function _nD(n0){ return n0+4241*(1/(wl*wl)-1/(550*550))*(n0-1)/0.5; }
+    var n1=_nD(v.n1), n2=_nD(v.n2);
     var _tr=wavelengthToRGB(wl).match(/\d+/g);
     function wlA(a){return 'rgba('+_tr[0]+','+_tr[1]+','+_tr[2]+','+a+')';}
     var thCritDeg=n2>=n1?90:Math.asin(n2/n1)*180/Math.PI;
@@ -12037,7 +12049,7 @@ function simOptTIR(canvas){
     optGlow(ctx,'#f59e0b',6);
     ctx.beginPath();ctx.moveTo(cx,MY);ctx.lineTo(cx-L*Math.sin(thCritR),MY-L*Math.cos(thCritR));ctx.stroke();
     ctx.setLineDash([]);optNoGlow(ctx);ctx.restore();
-    optLabel(ctx,'θ_c='+thCritDeg.toFixed(1)+'°',cx-L*Math.sin(thCritR)-24,MY-L*Math.cos(thCritR)-8,'#f59e0b',9);
+    optLabel(ctx,'\u200eθ_c(λ) = '+thCritDeg.toFixed(2)+'°',cx-L*Math.sin(thCritR)-24,MY-L*Math.cos(thCritR)-8,'#f59e0b',9);
     // Fiber optic visualization at bottom
     if(tir){
       var fy=MY+70,fw=W-60,fh=20;
@@ -12283,8 +12295,19 @@ function simOptConvexLens(canvas){
   function draw(){
     if(_simStop[id])return;
     animT+=0.025;
-    f=getF();var doMult=getObj(),doPx=doMult*f,diVal=1/(1/f-1/doPx);
     var wl=getWl(),wlHex=wavelengthToHex(wl);
+    // CHROMATIC ABERRATION. A lens refracts, so 1/f = (n−1)(1/R₁ − 1/R₂) and
+    // f(λ) = f₀(n₀−1)/(n(λ)−1) with Cauchy's n = A + B/λ². Violet focuses about
+    // 3% nearer than red. Without this the λ slider only recoloured the beam —
+    // in the section about the one defect that distinguishes lenses from mirrors.
+    var _f0=getF(), _n0=1.5, _nl=_n0+4241*(1/(wl*wl)-1/(550*550));
+    f=_f0*(_n0-1)/(_nl-1);
+    var doMult=getObj(),doPx=doMult*_f0;
+    // Keep the object on the canvas AND in the arithmetic: it used to be drawn
+    // off-screen entirely once dₒ exceeded the space to the left of the lens.
+    var _maxDo=lx-26;
+    if(doPx>_maxDo){ doPx=_maxDo; simSyncSlider('cl-do',doPx/_f0,2); }
+    var diVal=1/(1/f-1/doPx);
     var bg=ctx.createLinearGradient(0,0,0,H);bg.addColorStop(0,'#020810');bg.addColorStop(1,'#030d1a');
     ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);
     optDash(ctx,20,cy,W-20,cy,'#1e3a5f',0.5);
@@ -12398,7 +12421,7 @@ function simOptConvexLens(canvas){
       optLabel(ctx,'תמונה מדומה — לא ניתן להקרין על מסך!',scrPos,H-83,'#34d399',9);
     }
     if(!touchedScr&&animT<10)optLabel(ctx,'✋ גרור את המסך למוקד',scrPos,18+Math.sin(animT*4)*3,'#fbbf24',10);
-    optInfoBox(ctx,8,8,180,['dₒ='+Math.round(doPx)+'px','dᵢ='+diS,'m='+m_,diVal<0?'מדומה, ישרה':'ממשית, '+(parseFloat(m_)<0?'הפוכה':'ישרה'),'λ='+Math.round(wl)+'nm '+_ln]);
+    optInfoBox(ctx,8,8,190,['\u200edₒ = '+Math.round(doPx)+' px','\u200edᵢ = '+diS,'\u200em = '+m_,diVal<0?'מדומה, ישרה':'ממשית, '+(parseFloat(m_)<0?'הפוכה':'ישרה'),'\u200eλ = '+Math.round(wl)+' nm '+_ln,'\u200ef(λ) = '+f.toFixed(1)+' px  (f₅₅₀='+_f0+')','אבירציה כרומטית: סגול מתמקד קרוב יותר']);
     if(dragObj){
       var _mm=Math.abs(doPx-f)<7?'dₒ = f — הקרניים יוצאות מקבילות: אין תמונה!':Math.abs(doPx-2*f)<9?'dₒ = 2f — תמונה ממשית הפוכה בגודל שווה!':doPx<f?'dₒ < f — זכוכית מגדלת: מדומה, ישרה ומוגדלת':'';
       if(_mm){ctx.save();ctx.fillStyle='rgba(4,9,20,.88)';ctx.strokeStyle='#fbbf24';ctx.lineWidth=1;
@@ -12439,8 +12462,14 @@ function simOptConcaveLens(canvas){
   function draw(){
     if(_simStop[id])return;
     animT+=0.025;
-    f=getF();var doMult=getObj(),doPx=doMult*f;
-    var wl=getWl(),wlHex=wavelengthToHex(wl);
+    // Same chromatic aberration as the converging lens: a diverging lens
+    // refracts too, so its focal length is shorter for violet than for red.
+    var _wl0=getWl(), _f0d=getF(), _n0d=1.5, _nld=_n0d+4241*(1/(_wl0*_wl0)-1/(550*550));
+    f=_f0d*(_n0d-1)/(_nld-1);
+    var doMult=getObj(),doPx=doMult*_f0d;
+    var _maxDoD=lx-26;
+    if(doPx>_maxDoD){ doPx=_maxDoD; simSyncSlider('dcl-do',doPx/_f0d,2); }
+    var wl=_wl0,wlHex=wavelengthToHex(wl);
     // Concave lens: f_eff = -f  →  di = -f*do/(do+f)  [always negative = virtual]
     var diVal=-f*doPx/(doPx+f);
     var m_mag=-diVal/doPx; // = f/(f+do) > 0, <1 (upright, smaller)
@@ -12837,9 +12866,18 @@ function simOptYoungs(canvas){
     var lam_m=v.lambda*1e-9,d_m=v.d*1e-3,L_m=v.L;
     var Dy_m=lam_m*L_m/d_m;
     var SCALE_PX=(H*0.17)/(500e-9*1.0/0.3e-3);
+    // No upper cap. DyPx used to be clamped at 0.38·H while the measuring bar
+    // beside it was labelled with the UNCLAMPED Δy in mm — so wherever the cap
+    // bound (λ=500 nm, L=1 m, d=0.1 mm already exceeds it) the learner measured
+    // fringes that disagreed with the formula printed next to them, in the
+    // simulation built to verify Δy = λL/d. On a fixed scale a wide separation
+    // just gives wide fringes, which is the right answer.
+    // dScale likewise: clamp(d·88,14,88) pinned the drawn separation at 14 px
+    // for every d below 0.159 mm — a sixth of the slider — while the drag
+    // handler inverted the unclamped map, so grabbing a slit there jumped it.
     return{v:v,lam_m:lam_m,d_m:d_m,L_m:L_m,Dy_m:Dy_m,S:SCALE_PX,
-      DyPx:Math.max(6,Math.min(H*0.38,Dy_m*SCALE_PX)),
-      scrX:LtoX(v.L),dScale:Math.max(14,Math.min(88,v.d*88))};
+      DyPx:Math.max(4,Dy_m*SCALE_PX),
+      scrX:LtoX(v.L),dScale:14+(v.d-0.1)/0.9*74};
   }
   // ── Direct manipulation: detector probe, screen distance, slit separation ──
   var detY=null,dragWhat=null,hasDragged=false;
@@ -12855,7 +12893,7 @@ function simOptYoungs(canvas){
     var p=simPointerXY(canvas,dpr,e);
     if(dragWhat==='det'){detY=Math.max(12,Math.min(H-12,p.y));e.preventDefault();}
     else if(dragWhat==='screen'){simSyncSlider('ys-L',XtoL(p.x),2);e.preventDefault();}
-    else if(dragWhat==='slit'){simSyncSlider('ys-d',Math.abs(p.y-cy)/88,2);e.preventDefault();}
+    else if(dragWhat==='slit'){simSyncSlider('ys-d',0.1+(Math.abs(p.y-cy)-14)/74*0.9,2);e.preventDefault();}
     else{
       var c=calc();var dy0=detY===null?cy-c.DyPx:detY;
       canvas.style.cursor=((Math.abs(p.x-(c.scrX+16))<22&&Math.abs(p.y-dy0)<20)||Math.abs(p.x-c.scrX)<14||(Math.abs(p.x-slitX)<18&&Math.abs(Math.abs(p.y-cy)-c.dScale)<18))?'grab':'';
@@ -12931,7 +12969,10 @@ function simOptYoungs(canvas){
     ctx.strokeRect(scrX-8,6,16,H-12);ctx.restore();
     optLabel(ctx,'מסך ↔ L='+v.L.toFixed(2)+'m',scrX,H-10,'#94a3b8',9);
     // Δy bracket
-    if(DyPx>12){
+    if(DyPx>H*0.44){
+      optLabel(ctx,'\u200eΔy = '+(c.Dy_m*1000).toFixed(2)+' mm — רחב מהמסך',scrX-92,cy-H*0.30,'#fbbf24',8.5);
+    }
+    if(DyPx>12&&DyPx<=H*0.44){
       ctx.save();ctx.strokeStyle='#fbbf24';ctx.lineWidth=1;ctx.setLineDash([3,4]);
       ctx.beginPath();ctx.moveTo(scrX-64,cy);ctx.lineTo(scrX-64,cy-DyPx);ctx.stroke();
       ctx.setLineDash([]);ctx.restore();
@@ -14259,9 +14300,12 @@ function simOptGrating(canvas,id){
     var grX=W*0.28,scrX=W*0.85;
     var scrH=H*0.85,scrTop=(H-scrH)/2;
     // === GRATING (vertical lines) ===
+    // The rulings used to sit at a fixed 3 px pitch no matter what d was, so the
+    // one control the grating equation depends on changed nothing in the picture.
     ctx.save();ctx.strokeStyle='#475569';ctx.lineWidth=1;
-    for(var i=0;i<8;i++){
-      var lx=grX-6+i*3;
+    var _pitch=Math.max(2,Math.min(9,dNm/1000*2.6));
+    for(var i=-7;i<=7;i++){
+      var lx=grX+i*_pitch;
       ctx.beginPath();ctx.moveTo(lx,H*0.1);ctx.lineTo(lx,H*0.9);ctx.stroke();
     }
     ctx.strokeStyle='#64748b';ctx.lineWidth=2;
@@ -14321,7 +14365,11 @@ function simOptGrating(canvas,id){
       var alpha=m===0?0.9:0.8;
       ctx.save();
       if(m!==0){optGlow(ctx,'rgb('+lRGB[0]+','+lRGB[1]+','+lRGB[2]+')',m===0?4:8);}
-      ctx.strokeStyle=m===0?'rgba(255,255,255,0.85)':'rgba('+lRGB[0]+','+lRGB[1]+','+lRGB[2]+','+alpha+')';
+      // In MONOCHROMATIC mode there is only one wavelength present, so m=0 is
+      // the colour of the source. It used to be drawn white — the signature the
+      // white-light mode next door uses for every wavelength overlapping, so the
+      // two modes contradicted each other.
+      ctx.strokeStyle='rgba('+lRGB[0]+','+lRGB[1]+','+lRGB[2]+','+alpha+')';
       ctx.lineWidth=m===0?3:2.5;ctx.lineCap='round';
       ctx.beginPath();ctx.moveTo(grX,ax);ctx.lineTo(scrX,hitY);ctx.stroke();
       if(m!==0)optNoGlow(ctx);
