@@ -20708,11 +20708,16 @@ function simElcConductor(canvas){
       ctx.save();ctx.fillStyle='rgba(148,163,184,.10)';ctx.strokeStyle='#94a3b8';ctx.lineWidth=2.5;
       ctx.beginPath();ctx.arc(cx,cy,Rp,0,Math.PI*2);ctx.fill();ctx.stroke();ctx.restore();
       // charge lives on the surface only
-      var nS=Math.max(6,Math.min(20,Math.round(Math.abs(Qv())*3)));
+      // The floor of 6 was never escaped, so a NEUTRAL conductor was drawn
+      // carrying six charges — and since the glyph is picked by Q>0 they came
+      // out as minus signs. The count also only responded between 2 and 6.67 μC
+      // of an 8 μC slider. Proportional across the whole range, and zero at zero.
+      var nS=Math.min(20,Math.round(Math.abs(Qv())*2.5));
       for(var i=0;i<nS;i++){
         var th=i/nS*Math.PI*2+0.2;
         optLabel(ctx,Q>0?'+':'−',cx+Math.cos(th)*Rp,cy+Math.sin(th)*Rp,qcol,11);
       }
+      if(nS===0)optLabel(ctx,'מוליך ניטרלי — אין מטען עודף',cx,cy-Rp-14,'#64748b',9);
       if(ext){
         // induced charge: − on the face the field points from, + on the far face
         for(var i=0;i<4;i++){
