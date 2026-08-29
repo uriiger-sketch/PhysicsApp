@@ -7786,6 +7786,15 @@ function simSpringForce(canvas){
 
   var resetBtn=document.getElementById('btn-sf-reset');
   if(resetBtn)resetBtn.addEventListener('click',function(){x=0;vel=0;dataPoints=[];});
+  // The mass starts at equilibrium and at rest, so the scene is frozen and none
+  // of k, m or b changes anything until the learner discovers the mass can be
+  // dragged. Touching any of them releases it from a standard displacement.
+  ['inp-sf-k','inp-sf-m','inp-sf-damp'].forEach(function(sid){
+    var el=document.getElementById(sid);
+    if(el)el.addEventListener('input',function(){
+      if(!dragging&&Math.abs(x)<0.004&&Math.abs(vel)<0.02){x=0.14;vel=0;dataPoints=[];}
+    });
+  });
   var fmodeBtn=document.getElementById('btn-sf-fmode');
   if(fmodeBtn) fmodeBtn.addEventListener('click',function(){
     window._springForceModeAbs=!window._springForceModeAbs;
@@ -7832,6 +7841,10 @@ function simSpringForce(canvas){
       vel+=a2*dt; x+=vel*dt;
     }
     var F=-k*x;
+    // What k, m and b actually determine — true even while the mass sits still,
+    // so the panel is informative before anything is dragged.
+    var _w0=Math.sqrt(k/m), _Tsp=2*Math.PI/_w0, _bc=2*Math.sqrt(k*m);
+    var _regime=b<_bc*0.999?'תת-ריסון (מתנדד)':b>_bc*1.001?'על-ריסון (בלי תנודה)':'ריסון קריטי';
     // Record data point every 3 frames
     if(dataPoints.length===0||Math.abs(x-(dataPoints[dataPoints.length-1]||{x:999}).x)>0.005){
       dataPoints.push({x:x,F:F});
@@ -7841,6 +7854,9 @@ function simSpringForce(canvas){
     var massPx=EQ_X+x*PX_PER_M;
     simBg(ctx,W,H);
 
+    simText(ctx,'\u200eω₀ = √(k/m) = '+_w0.toFixed(2)+' rad/s    T = '+_Tsp.toFixed(2)+' s',W/2,16,'#94a3b8',9.5,'center',true);
+    simText(ctx,'\u200eב_קריטי = 2√(km) = '+_bc.toFixed(2)+'    b = '+b.toFixed(2)+'  →  '+_regime,
+            W/2,29,b>_bc*0.999?'#fbbf24':'#4ade80',9,'center',true);
     // ── WALL ─────────────────────────────────────────────
     ctx.save(); ctx.fillStyle='#1e3a52'; ctx.fillRect(WALL_X-16,SPRING_Y-60,16,120); ctx.restore();
     for(var yi=SPRING_Y-60;yi<SPRING_Y+60;yi+=14){
@@ -8132,6 +8148,17 @@ function simNormalForce(canvas){
               bCX+cosT*fLen/2+6,bCY-sinT*fLen/2-8,'#f87171',7.5,undefined,true);
     }
     if(isStatic&&theta>0.5)simText(ctx,'סטטי — הגוש נשאר במקום (mg·sinθ ≤ μN)',W/2,H-10,'#4ade80',9.5,'center');
+    // μ used to matter only while the block was sliding, and this section opens
+    // at θ=0 where nothing slides — so the friction slider was inert exactly
+    // where a learner first meets it. State what μ determines at any angle: the
+    // static friction available, and the angle of repose at which it gives way.
+    if(mu>0.001){
+      var _slip=Math.atan(mu)*180/Math.PI;
+      simText(ctx,'\u200eחיכוך סטטי מרבי: f_max = μN = '+(mu*N).toFixed(1)+' N',W/2,H-36,'#a78bfa',9,'center',true);
+      simText(ctx,'\u200eזווית ההחלקה: θ_slip = arctan μ = '+_slip.toFixed(1)+'°'+
+                  (theta>_slip?'  ←  כבר עברנו אותה, הגוש מחליק':'  ←  העלו את θ מעליה כדי להחליק'),
+              W/2,H-24,theta>_slip?'#fbbf24':'#4ade80',9,'center',true);
+    }
 
     // ── Right panel ────────────────────────────────────────
     var PX=topX+12, PW=W-PX-10, PY=8;
@@ -8216,6 +8243,13 @@ function simForceTypes(canvas){
   // Applied force slider
   function getF(){var e=document.getElementById('inp-ft-F'); return e?parseFloat(e.value):20;}
   function getX(){var e=document.getElementById('inp-ft-x'); return e?parseFloat(e.value):0.08;}
+  // Both sliders scale forces that start switched OFF and are toggled only by
+  // buttons drawn inside the canvas, so on arrival they changed nothing at all
+  // and read as broken. Touching one switches on the force it scales.
+  var _ftF=document.getElementById('inp-ft-F');
+  if(_ftF)_ftF.addEventListener('input',function(){forces.applied.on=true;});
+  var _ftX=document.getElementById('inp-ft-x');
+  if(_ftX)_ftX.addEventListener('input',function(){forces.spring.on=true;});
 
   // Block
   const BLK_CX=W*0.50, BLK_CY=H*0.50, BLK_S=56;
