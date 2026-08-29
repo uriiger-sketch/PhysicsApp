@@ -2049,7 +2049,7 @@ const CONTENT={
       html:`<p>כל הכוחות ביקום נובעים מ-4 אינטראקציות: <b>כבידה</b> (קצרה/ארוכת טווח), <b>אלקטרומגנטי</b> (מקור החיכוך, הנורמלי, הקפיץ), <b>גרעיני חזק</b>, <b>גרעיני חלש</b>. פיזיקה ניוטונית עוסקת בעיקר בשני הראשונים.</p>`
     }
   },
-  sim:{type:'fbd',title:'דיאגרמת כוחות חופשית',desc:'גרור וקטורי כוח — ראה FBD ו-ΣF. בחן שיווי-משקל.'},
+  sim:{type:'fbd',title:'מד-כוח: שוקלים גופים',desc:'גרור גוף אל מד-הכוח וקרא W=mg. הוסף כוח נוסף — וראה שהמד מודד את המתיחות T, לא את המשקל.'},
   example:{title:'מדידת כוח',text:'גוף 2 kg תלוי על קפיץ עם k=100 N/m.',steps:[{q:'מה המשקל?',a:'W = mg = 2×9.8 = 19.6 N'},{q:'מה מתיחת הקפיץ?',a:'x = F/k = 19.6/100 = 0.196 מ\''}]},
   quiz:[
     {q:'יחידת הכוח היא:',opts:['kg','m/s²','N=kg·m/s²','J'],correct:2,
@@ -5716,6 +5716,9 @@ function simNewton2(canvas){
     if(!drag)return;
     const p=simPointerXY(canvas,dpr,e);
     dragF=Math.max(-60,Math.min(60,(p.x-W/2)/1.4));
+    // Sync the slider, so releasing keeps the force the learner just set. It
+    // used to snap back to the slider's stale value the moment they let go.
+    simSyncSlider('n2-F',dragF,1);
     e.preventDefault();
   }
   function _n2Up(){ drag=false; dragF=null; }
@@ -5743,7 +5746,12 @@ function simNewton2(canvas){
     else f_fric=-F; // static: cancels applied force
     const netF=F+f_fric;
     const a=netF/mass;
-    vel+=a*dt; vel=Math.max(-35,Math.min(35,vel));
+    // The cap used to be ±35 m/s, reachable with F = 60 N on a 1 kg block:
+    // past it the block moved at constant velocity while the panel and the a(t)
+    // graph kept reporting a = ΣF/m ≠ 0 — a net force with no acceleration, in
+    // the simulation of ΣF = ma. The wall stop already bounds the motion, so the
+    // limit only needs to be out of reach for numerical safety.
+    vel+=a*dt; vel=Math.max(-200,Math.min(200,vel));
     // Stop if static friction holds
     if(Math.abs(vel)<0.02&&Math.abs(netF)<0.02) vel=0;
     pos+=vel*dt*22;
@@ -6074,9 +6082,11 @@ function simIncline(canvas){
     const m1=getM1(), m2=getM2();
     const a_at=(m2-m1)*g/(m1+m2);
     const T_at=2*m1*m2*g/(m1+m2);
+    var _vAt0=velAt;
     velAt+=a_at*dt;
+    var _vAtM=0.5*(_vAt0+velAt);                  // trapezoid: exact for constant a
     // m2 heavier → y2 increases (goes down), y1 decreases (goes up)
-    y1-=velAt*dt*44; y2+=velAt*dt*44;
+    y1-=_vAtM*dt*44; y2+=_vAtM*dt*44;
     const CEIL_Y=28, PX=W/2;
     const maxY=H-90;
     // Soft boundary — clamp and reverse velocity instead of hard reset
@@ -6184,7 +6194,7 @@ function simIncline(canvas){
     pT=null; pTAt=null;
     resetIncline(); resetAtwood();
     // Toggle slider visibility
-    ['inc-theta','inc-mu','inc-mass'].forEach(sid=>{
+    ['inc-theta','inc-mu','inc-m'].forEach(sid=>{   // the row emits inc-m, not inc-mass
       const e=document.getElementById('inp-'+sid);
       if(e){ const w=e.closest('.range-wrap'); if(w)w.style.display=atwoodMode?'none':'flex'; }
     });
@@ -6260,16 +6270,21 @@ function simTension(canvas){
     if(running){
       var a=(m2-m1)/(m1+m2)*g;
       var T=2*m1*m2/(m1+m2)*g;
+      var _v0t=vel;
       vel+=a*dt;
-      pos2+=vel*dt*55; pos1-=vel*dt*55;
+      var _vm=0.5*(_v0t+vel);                     // trapezoid: exact for constant a
+      pos2+=_vm*dt*55; pos1-=_vm*dt*55;
       var maxPos=H-100, minPos=80;
       if(pos2>maxPos||pos1>maxPos){running=false;}
       pos2=Math.min(pos2,maxPos); pos1=Math.min(pos1,maxPos);
       pos2=Math.max(pos2,minPos); pos1=Math.max(pos1,minPos);
     }
     // Elevator physics
+    // It used to accelerate into a position clamp and then sit there with a
+    // non-zero velocity, while the panel went on printing T = m(g+a) for an
+    // acceleration nothing was undergoing.
     boxVel+=aEl*dt; boxY+=boxVel*dt*36;
-    boxY=Math.max(ELV_CEIL+50,Math.min(H-60,boxY));
+    if(boxY<=ELV_CEIL+50||boxY>=H-60){ boxY=(ELV_CEIL+50+H-60)/2; boxVel=0; }
 
     var a_atw=(m2-m1)/(m1+m2)*g;
     var T_atw=2*m1*m2/(m1+m2)*g;
@@ -6441,7 +6456,7 @@ function simFBD(canvas){
     if(Math.abs(dragObj.x-SCALE_X)<65&&dragObj.y>SCALE_CY&&dragObj.y<H-40){
       dragObj.onScale=true; dragObj.x=SCALE_X; dragObj.y=SCALE_CY+SCALE_H/2+50;
       if(activeObj&&activeObj!==dragObj){activeObj.onScale=false;activeObj.x=activeObj.ox;activeObj.y=activeObj.oy;}
-      activeObj=dragObj; scaleTarget=activeObj.m*g;
+      activeObj=dragObj;   // scaleTarget is recomputed every frame from W and the extra force
     }
     dragObj=null;
   }
@@ -6472,6 +6487,15 @@ function simFBD(canvas){
     if(_simStop[id])return;
     if(!pT)pT=ts; const dt=Math.min((ts-pT)/1000,.04); pT=ts;
     t+=dt;
+    // A spring scale reads the TENSION in its hook. That equals the weight only
+    // when nothing else pulls on the body — the source comment here always said
+    // an extra force was intended ("Then can apply an additional push force to
+    // see net force concept") and it was never built, leaving the simulation
+    // unable to show ΣF at all.
+    var _fEl=document.getElementById('inp-fbd-F');
+    var Fextra=_fEl?parseFloat(_fEl.value)||0:0;
+    scaleTarget=activeObj?Math.max(0,activeObj.m*g-Fextra):0;
+    var liftedOff=!!activeObj&&Fextra>=activeObj.m*g;
     scaleReading+=(scaleTarget-scaleReading)*Math.min(1,dt*5);
 
     simBg(ctx,W,H);
@@ -6588,8 +6612,25 @@ function simFBD(canvas){
       simText(ctx,'m='+activeObj.m+' kg',PC,PY+62,'#60a5fa',9,undefined,true);
       simText(ctx,'W=',PC,PY+76,'#94a3b8',9,undefined,true);
       simText(ctx,( activeObj.m*g).toFixed(2)+' N',PC,PY+92,'#fbbf24',12,undefined,true);
-      simText(ctx,'מד קורא:',PC,PY+108,'#94a3b8',8,undefined,true);
-      simText(ctx,scaleReading.toFixed(2)+' N',PC,PY+122,'#ef4444',11,undefined,true);
+      simText(ctx,'\u200eכוח נוסף: '+(Fextra>=0?'+':'')+Fextra.toFixed(1)+' N',PC,PY+106,'#4ade80',8.5,undefined,true);
+      simText(ctx,'מד קורא T:',PC,PY+119,'#94a3b8',8,undefined,true);
+      simText(ctx,'\u200e'+scaleReading.toFixed(2)+' N',PC,PY+132,'#ef4444',11,undefined,true);
+      // ΣF on the hanging body: T up, W down, and the extra force.
+      var _sum=scaleTarget+Fextra-activeObj.m*g;
+      simText(ctx,'\u200eΣF = T + F − W = '+_sum.toFixed(1)+' N',PC,PY+148,
+              Math.abs(_sum)<0.05?'#4ade80':'#fbbf24',8,undefined,true);
+      simText(ctx,liftedOff?'הגוף התרומם — המד מתאפס':'שיווי משקל: T = W − F',PC,PY+160,
+              liftedOff?'#f87171':'#4ade80',8,undefined,true);
+      // The FBD itself, drawn on the hanging object.
+      var _ox=activeObj.x, _oy=activeObj.y;
+      simArrow(ctx,_ox,_oy-24,_ox,_oy-24-scaleReading*3.2,'#22d3ee',2.5,9);
+      simText(ctx,'\u200eT='+scaleReading.toFixed(1)+' N',_ox-30,_oy-30-scaleReading*1.6,'#22d3ee',8.5,'right');
+      simArrow(ctx,_ox,_oy+24,_ox,_oy+24+activeObj.m*g*3.2,'#ef4444',2.5,9);
+      simText(ctx,'\u200eW='+(activeObj.m*g).toFixed(1)+' N',_ox+30,_oy+30+activeObj.m*g*1.6,'#fca5a5',8.5,'left');
+      if(Math.abs(Fextra)>0.05){
+        simArrow(ctx,_ox+16,_oy,_ox+16,_oy-Fextra*3.2,'#4ade80',2.5,9);
+        simText(ctx,'\u200eF='+Fextra.toFixed(1)+' N',_ox+46,_oy-Fextra*1.6,'#4ade80',8.5,'left');
+      }
     } else {
       simText(ctx,'גרור גוף',PC,PY+68,'#fbbf24',9.5,undefined,true);
       simText(ctx,'→ מד-כוח',PC,PY+82,'#fbbf24',9.5,undefined,true);
@@ -9059,21 +9100,55 @@ function simNewton3(canvas){
     var totW=Math.max(30,mA*0.45)+Math.max(30,mB*0.45);
     posA=W/2-totW/2-4; posB=W/2+totW/2+4;
     velA=0; velB=0; histA=[]; histB=[]; pushed=false; pushPhase=0; contactForce=0;
+    // pushTimer was never cleared here. After the first push it stayed above
+    // pushDuration forever, so every later press ran phase 1 for a single frame
+    // and jumped to phase 2 with contactForce=0: no push, no arrows, no motion.
+    pushTimer=0; gaugeA=0; gaugeB=0;
     if(pushBtn)pushBtn.textContent='▶ דחוף!';
   }
   reset();
 
   if(pushBtn)pushBtn.addEventListener('click',function(){
     if(pushPhase===0){
-      pushed=true; pushPhase=1;
+      pushed=true; pushPhase=1; pushTimer=0;
       pushBtn.textContent='⏹ אפס';
     } else { reset(); }
   });
   if(resetBtn)resetBtn.addEventListener('click',reset);
 
+  // The section blurb reads "גרור כדי לדחוף" and there was no pointer handler
+  // anywhere in this simulation. Dragging sideways compresses a spring between
+  // the skaters, setting the push force live; releasing it fires the push.
+  var dragN3=false, dragX0=0, dragF=300;
+  function _n3Down(e){
+    if(pushPhase!==0)return;
+    e.preventDefault();
+    var p=simPointerXY(canvas,dpr,e);
+    if(p.y>FLOOR_Y+10)return;              // keep the gauge strip clickable
+    dragN3=true; dragX0=p.x; dragF=getForce();
+  }
+  function _n3Move(e){
+    if(!dragN3)return; e.preventDefault();
+    var p=simPointerXY(canvas,dpr,e);
+    dragF=Math.max(50,Math.min(600,50+Math.abs(p.x-dragX0)*7));
+    simSyncSlider('n3-F',dragF,0);
+  }
+  function _n3Up(){
+    if(!dragN3)return; dragN3=false;
+    if(dragF>70){ pushed=true; pushPhase=1; pushTimer=0;
+                  if(pushBtn)pushBtn.textContent='⏹ אפס'; }
+  }
+  canvas.addEventListener('mousedown',_n3Down); canvas.addEventListener('touchstart',_n3Down,{passive:false});
+  canvas.addEventListener('mousemove',_n3Move); canvas.addEventListener('touchmove',_n3Move,{passive:false});
+  window.addEventListener('mouseup',_n3Up); canvas.addEventListener('touchend',_n3Up);
+
   var FLOOR_Y=H*0.60;
   var pushDuration=0.3; // seconds of push
   var pushTimer=0;
+  // Each gauge is measured from ITS OWN body's momentum change. Both bars used
+  // to read the same contactForce variable, so the equality the section exists
+  // to demonstrate was true by construction and proved nothing.
+  var gaugeA=0, gaugeB=0;
 
   function draw(ts){
     if(_simStop[id])return;
@@ -9087,10 +9162,13 @@ function simNewton3(canvas){
       pushTimer+=dt;
       // Impulsive force during contact
       contactForce=F;
+      var vA0=velA, vB0=velB;
       velA-=(F/mA)*dt; // A goes left
       velB+=(F/mB)*dt; // B goes right
-      posA+=velA*dt*55; posB+=velB*dt*55;
-      if(pushTimer>=pushDuration){pushPhase=2; contactForce=0;}
+      // F = Δp/Δt, read off each body separately.
+      if(dt>0){ gaugeA=Math.abs(mA*(velA-vA0)/dt); gaugeB=Math.abs(mB*(velB-vB0)/dt); }
+      posA+=0.5*(vA0+velA)*dt*55; posB+=0.5*(vB0+velB)*dt*55;   // trapezoid
+      if(pushTimer>=pushDuration){pushPhase=2; contactForce=0; gaugeA=0; gaugeB=0;}
     } else if(pushPhase===2){
       contactForce=0;
       // Coast with no friction
@@ -9098,8 +9176,10 @@ function simNewton3(canvas){
       // Wall bounce
       var widA=Math.max(30,mA*0.45);
       var widB=Math.max(30,mB*0.45);
-      if(posA-widA/2<10){posA=10+widA/2;velA=Math.abs(velA)*0.5;}
-      if(posB+widB/2>W-10){posB=W-10-widB/2;velB=-Math.abs(velB)*0.5;}
+      // They used to bounce with restitution 0.5 off invisible walls, creating
+      // an impulse out of nothing in a momentum demonstration.
+      if(posA-widA/2<10){posA=10+widA/2;velA=0;}
+      if(posB+widB/2>W-10){posB=W-10-widB/2;velB=0;}
     }
     histA.push(posA); if(histA.length>60)histA.shift();
     histB.push(posB); if(histB.length>60)histB.shift();
@@ -9158,6 +9238,16 @@ function simNewton3(canvas){
     drawPerson(posA,FLOOR_Y,'#ef4444','A',mA,velA,pushPhase===1?contactForce:0,-1);
     drawPerson(posB,FLOOR_Y,'#3b82f6','B',mB,velB,pushPhase===1?contactForce:0,1);
 
+    // Live spring while the learner is charging the push by dragging
+    if(dragN3&&pushPhase===0){
+      var sx1=posA+Math.max(30,mA*0.45)/2, sx2=posB-Math.max(30,mB*0.45)/2, sy=FLOOR_Y-28;
+      ctx.save(); ctx.strokeStyle='#fbbf24'; ctx.lineWidth=2.5; ctx.beginPath();
+      ctx.moveTo(sx1,sy);
+      for(var ci=0;ci<8;ci++){var fq=(ci+0.5)/8, fm=(ci+1)/8;
+        ctx.lineTo(sx1+(sx2-sx1)*fq,sy+(ci%2?7:-7)); ctx.lineTo(sx1+(sx2-sx1)*fm,sy);}
+      ctx.stroke(); ctx.restore();
+      simText(ctx,'\u200eמשוך והרפה —  F = '+dragF.toFixed(0)+' N',(sx1+sx2)/2,sy-16,'#fbbf24',10,undefined,true);
+    }
     // Push zone indicator
     if(pushPhase===1){
       var cx2=(posA+posB)/2;
@@ -9175,19 +9265,26 @@ function simNewton3(canvas){
     var gAW=(GW/2-20), gAX=GX+6;
     ctx.save(); ctx.fillStyle='rgba(15,28,48,.8)'; ctx.strokeStyle='#1e3a52'; ctx.lineWidth=1;
     ctx.beginPath(); ctx.roundRect(gAX,GY+18,gAW,22,3); ctx.fill(); ctx.stroke(); ctx.restore();
-    var fillA=contactForce>0?(contactForce/getForce())*gAW:0;
+    // Normalising by getForce() — the number being displayed — pinned both bars
+    // at 100% for every slider position. Read against the slider's full scale.
+    var _fMax=600;
+    var fillA=(gaugeA/_fMax)*gAW;
     ctx.save(); ctx.fillStyle='rgba(239,68,68,.7)';
     ctx.beginPath(); ctx.roundRect(gAX+gAW-fillA,GY+20,fillA,18,2); ctx.fill(); ctx.restore();
-    simText(ctx,'A: '+contactForce.toFixed(0)+' N',gAX+gAW/2,GY+32,'#fca5a5',9,undefined,true);
+    simText(ctx,'\u200eA: '+gaugeA.toFixed(0)+' N',gAX+gAW/2,GY+32,'#fca5a5',9,undefined,true);
     // Gauge B (right)
     var gBX=GX+GW/2+14;
     ctx.save(); ctx.fillStyle='rgba(15,28,48,.8)'; ctx.strokeStyle='#1e3a52'; ctx.lineWidth=1;
     ctx.beginPath(); ctx.roundRect(gBX,GY+18,gAW,22,3); ctx.fill(); ctx.stroke(); ctx.restore();
-    var fillB=contactForce>0?(contactForce/getForce())*gAW:0;
+    var fillB=(gaugeB/_fMax)*gAW;
     ctx.save(); ctx.fillStyle='rgba(59,130,246,.7)';
     ctx.beginPath(); ctx.roundRect(gBX,GY+20,fillB,18,2); ctx.fill(); ctx.restore();
-    simText(ctx,'B: '+contactForce.toFixed(0)+' N',gBX+gAW/2,GY+32,'#93c5fd',9,undefined,true);
-    simText(ctx,'|F_AB| = |F_BA|',GX+GW/2,GY+54,'#fbbf24',9,undefined,true);
+    simText(ctx,'\u200eB: '+gaugeB.toFixed(0)+' N',gBX+gAW/2,GY+32,'#93c5fd',9,undefined,true);
+    simText(ctx, pushPhase===1
+        ? '\u200e|F_AB| = '+gaugeA.toFixed(0)+' N   =   |F_BA| = '+gaugeB.toFixed(0)+' N   ✓ נמדד בנפרד'
+        : '\u200ep_כולל = '+(mA*velA).toFixed(1)+' + '+(mB*velB).toFixed(1)+' = '+
+          (mA*velA+mB*velB).toFixed(1)+' kg·m/s  — התחיל ב-0 ונשאר 0',
+      GX+GW/2,GY+54,'#fbbf24',9,undefined,true);
 
     // ── Top info panel ─────────────────────────────────────
     ctx.save(); ctx.fillStyle='rgba(6,14,28,.92)'; ctx.strokeStyle='#1e4060'; ctx.lineWidth=1.5;
@@ -9224,6 +9321,9 @@ function simPendulum(canvas){
   var dragging=false, dragStartY=0, dragStartTheta=0;
   var thetaHist=[], timeHist=[], clock=0;
   var maxHist=300;
+  // Energy reference, captured at release. It used to be a hard-coded amplitude
+  // of 0.5 rad, so the bars were correct at exactly one release angle.
+  var Eref=null, lastL=null, lastG=null;
 
   // Pivot position
   var PIV_X=W*0.38, PIV_Y=72;
@@ -9260,20 +9360,23 @@ function simPendulum(canvas){
     theta=Math.max(-1.4,Math.min(1.4,theta));
     omega=0;
   }
-  function onUp(){dragging=false;}
+  function onUp(){dragging=false;Eref=null;}   // recapture E at the release angle
   canvas.addEventListener('mousedown',onDown); canvas.addEventListener('touchstart',onDown,{passive:false});
   canvas.addEventListener('mousemove',onMove); canvas.addEventListener('touchmove',onMove,{passive:false});
   canvas.addEventListener('mouseup',onUp); canvas.addEventListener('touchend',onUp);
 
   var resetBtn=document.getElementById('btn-pend-reset');
   var trailP=[];
-  if(resetBtn)resetBtn.addEventListener('click',function(){theta=0.5;omega=0;thetaHist=[];timeHist=[];clock=0;trailP=[];});
+  if(resetBtn)resetBtn.addEventListener('click',function(){theta=0.5;omega=0;thetaHist=[];timeHist=[];clock=0;trailP=[];Eref=null;});
 
   function draw(ts){
     if(_simStop[id])return;
     if(!pT)pT=ts; var dt=Math.min((ts-pT)/1000,0.04); pT=ts;
     t+=dt;
     L=getL(); g=getG(); b=getB();
+    // Changing L or g changes the system's energy, so the reference must follow.
+    if(lastL!==null&&(Math.abs(lastL-L)>1e-9||Math.abs(lastG-g)>1e-9))Eref=null;
+    lastL=L; lastG=g;
 
     if(!dragging){
       // Pendulum ODE: θ'' = -(g/L)sinθ - b*θ'
@@ -9294,7 +9397,10 @@ function simPendulum(canvas){
     var h=L*(1-Math.cos(theta));
     var KE=0.5*(L*L*omega*omega)*1; // proportional (mass=1)
     var PE=g*L*(1-Math.cos(theta));
-    var E0=g*L*(1-Math.cos(0.5)); // reference max PE
+    // Referenced to the energy this pendulum actually has. With damping on, the
+    // total then visibly decays — which is what a damping control should show.
+    if(Eref===null||!isFinite(Eref)||Eref<1e-6)Eref=Math.max(1e-6,KE+PE);
+    var E0=Eref;
 
     simBg(ctx,W,H);
 
@@ -9343,7 +9449,10 @@ function simPendulum(canvas){
     // Velocity arrow
     if(Math.abs(omega)>0.05&&!dragging){
       var vDir=Math.sign(omega);
-      var vLen=Math.min(60,Math.abs(omega)*L*PX_PER_M*0.4);
+      // |ω|·L is the bob's speed in m/s; multiplying it by pixels-per-metre-of-
+      // STRING-LENGTH mixed two different scales and pinned the arrow at its cap
+      // for every amplitude above about 0.25 rad. 15 px per m/s covers the range.
+      var vLen=Math.min(64,Math.abs(omega)*L*15);
       // velocity is tangential = perpendicular to rope
       var tx=Math.cos(theta)*vDir, ty=-Math.sin(theta)*vDir;
       simArrow(ctx,bx,by,bx+tx*vLen,by+ty*vLen,'#22d3ee',2.5,9);
@@ -9381,7 +9490,17 @@ function simPendulum(canvas){
     ctx.save(); ctx.fillStyle='rgba(6,14,28,.92)'; ctx.strokeStyle='#1e4060'; ctx.lineWidth=1.5;
     ctx.beginPath(); ctx.roundRect(8,6,W*0.60,44,6); ctx.fill(); ctx.stroke(); ctx.restore();
     simText(ctx,'מטוטלת פשוטה: T = 2π√(L/g)',W*0.30,18,'#22d3ee',11,undefined,true);
-    simText(ctx,'T = '+T.toFixed(3)+' s  |  f = '+(1/T).toFixed(3)+' Hz  |  θ = '+(theta*180/Math.PI).toFixed(1)+'°',W*0.30,34,'#94a3b8',9,undefined,true);
+    // T = 2π√(L/g) is the SMALL-ANGLE period, and this simulation swings to 80°,
+    // where the real period is ~13% longer. Recover the amplitude from the energy
+    // (so it follows the damping) and show both, with the discrepancy.
+    var _cs=1-(KE+PE)/(g*L);
+    var amp=Math.acos(Math.max(-1,Math.min(1,_cs)));
+    var Ttrue=T*(1+amp*amp/16+11*Math.pow(amp,4)/3072);
+    var _dev=(Ttrue/T-1)*100;
+    simText(ctx,'\u200eT₀ = 2π√(L/g) = '+T.toFixed(3)+' s   |   f = '+(1/T).toFixed(3)+' Hz   |   θ = '+(theta*180/Math.PI).toFixed(1)+'°',W*0.30,34,'#94a3b8',9,undefined,true);
+    simText(ctx,'\u200eמשרעת θ₀ = '+(amp*180/Math.PI).toFixed(1)+'°  →  T אמיתי = '+Ttrue.toFixed(3)+' s  ('+(_dev>=0?'+':'')+_dev.toFixed(1)+'%)'+
+                (_dev>1.5?'  ⚠ קירוב הזווית הקטנה כבר לא מדויק':'  ✓ קירוב הזווית הקטנה תקף'),
+            W*0.30,46,_dev>1.5?'#fbbf24':'#4ade80',8.5,undefined,true);
 
     // ── θ(t) graph ────────────────────────────────────
     var GX=8, GY=H-110, GW=W*0.60, GH=96;
@@ -9772,16 +9891,36 @@ function simCircular(canvas){
     ctx.shadowBlur=0; ctx.restore();
 
     // ── Velocity vector (tangential) ──────────────────
-    var vscale=12;
-    var ve=Math.min(100,v*vscale);
+    // v runs to 15 m/s on the slider; at 12 px per m/s the arrow pinned at its
+    // 100 px cap from 8.3 m/s upward, so most of the slider changed nothing.
+    var vscale=100/15;
+    var ve=v*vscale;
     simArrow(ctx,px,py,px+vx_dir*ve,py+vy_dir*ve,'#34d399',3,11);
     simText(ctx,'v='+v.toFixed(1)+'m/s',px+vx_dir*ve+vx_dir*8,py+vy_dir*ve+vy_dir*8,'#34d399',9,undefined,true);
 
     // ── Centripetal acceleration (toward center) ──────
-    var ascale=8;
-    var ae=Math.min(80,ac*ascale);
+    // a_c = v²/r spans 1.3 to 450 m/s² across the sliders. At 8 px per m/s² the
+    // arrow clipped above 10 m/s² — and the DEFAULT slider position gives 30, so
+    // it was pinned at full length before the learner touched anything, hiding
+    // the v²/r relationship the panel beside it is explaining. Drawn to scale to
+    // 60 m/s², and honestly marked past that instead of silently saturating.
+    var ascale=1.5, aeRaw=ac*ascale, ae=Math.min(90,aeRaw), acClip=aeRaw>90;
     simArrow(ctx,px,py,px+ax_dir*ae,py+ay_dir*ae,'#f87171',3,11);
-    simText(ctx,'ac='+ac.toFixed(1)+'m/s²',px+ax_dir*(ae+8),py+ay_dir*(ae+8),'#f87171',9,undefined,true);
+    if(acClip){
+      // two slashes across the shaft: the standard "drawn shortened" mark
+      var _mx=px+ax_dir*ae*0.72, _my=py+ay_dir*ae*0.72;
+      ctx.save(); ctx.strokeStyle='#f87171'; ctx.lineWidth=2;
+      for(var _k=0;_k<2;_k++){
+        var _o=_k*6-3;
+        ctx.beginPath();
+        ctx.moveTo(_mx-ay_dir*6+ax_dir*_o-ax_dir*3,_my+ax_dir*6+ay_dir*_o-ay_dir*3);
+        ctx.lineTo(_mx+ay_dir*6+ax_dir*_o+ax_dir*3,_my-ax_dir*6+ay_dir*_o+ay_dir*3);
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+    simText(ctx,'\u200ea_c = '+ac.toFixed(1)+' m/s²'+(acClip?'  (החץ מקוצר)':''),
+            px+ax_dir*(ae+8),py+ay_dir*(ae+8),'#f87171',9,undefined,true);
 
     // ── Right panel ───────────────────────────────────
     var PX2=W*0.70, PW2=W-PX2-10, PY2=10;
@@ -9876,11 +10015,13 @@ function simAtwood(canvas){
 
     if(running && pT!==null){
       var dt=Math.min((ts-pT)/1000,0.04);
+      var _v0a=vel;
       vel+=a*dt;
+      var _vMid=0.5*(_v0a+vel);                   // trapezoid: exact for constant a
       // a>0: m2 heavier → y2 increases (down), y1 decreases (up)
       // a<0: m1 heavier → y1 increases (down), y2 decreases (up)
-      y2+=vel*dt*50;
-      y1-=vel*dt*50;
+      y2+=_vMid*dt*50;
+      y1-=_vMid*dt*50;
 
       // Clamp and bounce/reset at limits
       var topLimit=CEIL_Y+PR+4;
@@ -10041,9 +10182,13 @@ function simEnergyKinetic(canvas){
 
     if(launched && !stopped){
       // F = const, a = F/m, frictionless
+      // Trapezoid: exact for constant a. Advancing with the POST-update velocity
+      // made d larger than ½at² by ½a·dt² per step, so W = F·d ran about 1.6%
+      // above ΔKE — and this section plots the two against each other.
       var a=F_val/m;
+      var _v0=vel;
       vel+=a*dt;
-      bx+=vel*dt*PX_PER_M;
+      bx+=0.5*(_v0+vel)*dt*PX_PER_M;
       var d=(bx-START_X)/PX_PER_M;
       var KE_now=0.5*m*vel*vel;
       var W_now=F_val*d;
@@ -11718,8 +11863,15 @@ function simOptSnell(canvas){
   function draw(){
     if(_simStop[id])return;
     animT+=0.03;
-    var v=getVals(),th1=v.th1*Math.PI/180,n1=v.n1,n2=v.n2;
+    var v=getVals(),th1=v.th1*Math.PI/180;
     var wl=getWl(),wlHex=wavelengthToHex(wl);
+    // n depends on WAVELENGTH — that is why a prism makes a spectrum. Without
+    // this the λ slider only recoloured the beam: θ₂ came out identical for deep
+    // violet and deep red, in the chapter whose next sections are dispersion and
+    // the prism. Cauchy's n = A + B/λ², with B anchored so the slider value is n
+    // at 550 nm, scaled by (n−1) so vacuum stays dispersionless.
+    function nDisp(n0){ return n0+4241*(1/(wl*wl)-1/(550*550))*(n0-1)/0.5; }
+    var n1=nDisp(v.n1), n2=nDisp(v.n2);
     var _sr=wavelengthToRGB(wl).match(/\d+/g);
     function wlA(a){return 'rgba('+_sr[0]+','+_sr[1]+','+_sr[2]+','+a+')';}
     var sinTh2=(n1/n2)*Math.sin(th1),tir=sinTh2>=1,th2=tir?Math.PI/2:Math.asin(sinTh2);
@@ -11739,11 +11891,11 @@ function simOptSnell(canvas){
     ctx.strokeStyle=iGrad;ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(0,MY);ctx.lineTo(W,MY);ctx.stroke();ctx.restore();
     // Medium labels
     ctx.save();ctx.fillStyle='rgba(4,9,20,.6)';ctx.beginPath();ctx.roundRect(8,8,120,36,5);ctx.fill();ctx.restore();
-    optLabel(ctx,'n₁ = '+n1.toFixed(2),68,22,'#93c5fd',10);
-    optLabel(ctx,'v₁ = '+(3e8/n1/1e8).toFixed(2)+'×10⁸',68,36,'#64748b',8);
+    optLabel(ctx,'\u200en₁(λ) = '+n1.toFixed(3),68,22,'#93c5fd',10);
+    optLabel(ctx,'\u200ev₁ = c/n₁ = '+(3e8/n1/1e8).toFixed(2)+'×10⁸ m/s',68,36,'#64748b',8);
     ctx.save();ctx.fillStyle='rgba(4,9,20,.6)';ctx.beginPath();ctx.roundRect(8,MY+6,120,36,5);ctx.fill();ctx.restore();
-    optLabel(ctx,'n₂ = '+n2.toFixed(2),68,MY+20,'#22d3ee',10);
-    optLabel(ctx,'v₂ = '+(3e8/n2/1e8).toFixed(2)+'×10⁸',68,MY+34,'#64748b',8);
+    optLabel(ctx,'\u200en₂(λ) = '+n2.toFixed(3),68,MY+20,'#22d3ee',10);
+    optLabel(ctx,'\u200ev₂ = c/n₂ = '+(3e8/n2/1e8).toFixed(2)+'×10⁸ m/s',68,MY+34,'#64748b',8);
     // Normal
     optDash(ctx,cx,MY-170,cx,MY+130,'#334155',0.7);
     optLabel(ctx,'נורמל',cx+22,MY-150,'#475569',9);
@@ -11753,7 +11905,9 @@ function simOptSnell(canvas){
     optRay(ctx,ix,iy,cx,MY,wlHex,2.5,false);
     ctx.save();ctx.fillStyle='#ffffff';optGlow(ctx,wlHex,18);
     for(var _s=0;_s<3;_s++){
-      var segFrac=(animT*0.6+_s/3)%1;
+      // Rate ∝ 1/n. Both trains used to run at 0.6 over equal-length segments,
+      // i.e. the same speed in both media — beside two printed speeds that differ.
+      var segFrac=(animT*0.6/n1+_s/3)%1;
       ctx.beginPath();ctx.arc(ix+(cx-ix)*segFrac,iy+(MY-iy)*segFrac,3.2,0,Math.PI*2);ctx.fill();
     }
     optNoGlow(ctx);ctx.restore();
@@ -11767,7 +11921,7 @@ function simOptSnell(canvas){
       optRay(ctx,cx,MY,refX,refY,wlHex,2.8,true);
       ctx.save();ctx.fillStyle='#ffffff';optGlow(ctx,wlHex,18);
       for(var _s2=0;_s2<3;_s2++){
-        var tirSeg=(animT*0.6+0.5+_s2/3)%1;
+        var tirSeg=(animT*0.6/n1+0.5+_s2/3)%1;   // reflected ray is still in medium 1
         ctx.beginPath();ctx.arc(cx+(refX-cx)*tirSeg,MY+(refY-MY)*tirSeg,3.2,0,Math.PI*2);ctx.fill();
       }
       optNoGlow(ctx);ctx.restore();
@@ -11778,7 +11932,7 @@ function simOptSnell(canvas){
       optRay(ctx,cx,MY,refractX,refractY,wlHex,2.8,true);
       ctx.save();ctx.fillStyle='#ffffff';optGlow(ctx,wlHex,18);
       for(var _s3=0;_s3<3;_s3++){
-        var rSeg=(animT*0.6+0.5+_s3/3)%1;
+        var rSeg=(animT*0.6/n2+0.5+_s3/3)%1;
         ctx.beginPath();ctx.arc(cx+(refractX-cx)*rSeg,MY+(refractY-MY)*rSeg,3.2,0,Math.PI*2);ctx.fill();
       }
       optNoGlow(ctx);ctx.restore();
@@ -11791,9 +11945,9 @@ function simOptSnell(canvas){
     optLabel(ctx,'θ₁='+Math.round(v.th1)+'°',cx-56,MY-41,wlHex,10);
     if(!tir){
       ctx.save();ctx.fillStyle='rgba(4,9,20,.8)';ctx.beginPath();ctx.roundRect(cx+34,MY+30,44,18,3);ctx.fill();ctx.restore();
-      optLabel(ctx,'θ₂='+Math.round(th2*180/Math.PI)+'°',cx+56,MY+39,wlHex,10);
+      optLabel(ctx,'\u200eθ₂ = '+(th2*180/Math.PI).toFixed(1)+'°',cx+56,MY+39,wlHex,10);
     }
-    optInfoBox(ctx,W-160,8,150,['n₁sinθ₁=n₂sinθ₂',tir?'TIR! θ > θ_c':'θ₂='+Math.round(th2*180/Math.PI)+'°']);
+    optInfoBox(ctx,W-160,8,150,['n₁sinθ₁=n₂sinθ₂',tir?'TIR! θ > θ_c':'\u200eθ₂ = '+(th2*180/Math.PI).toFixed(1)+'°','נַפֶּץ: n תלוי ב-λ']);
     requestAnimationFrame(draw);
   }
   function poll(){if(_simStop[id])return;requestAnimationFrame(draw);}poll();
@@ -19966,13 +20120,16 @@ function simElcCoulomb(canvas){
       optLabel(ctx,'q₃ = +'+Q3.toFixed(1)+' μC',x3,cy-32,'#c084fc',10);
     }
     // Force arrows
-    var aLen=Math.min(110,18+F*45);
+    // Strictly proportional: no additive offset. With '18 +' the arrow was
+    // proportional to nothing, and in superposition mode below the offset was
+    // applied to each contribution AND to their sum, so the lengths did not add.
+    var _FSC=70, aRaw=F*_FSC, aLen=Math.min(110,aRaw);
     var d1=repel?-1:1, d2=repel?1:-1;
     if(!on3){
       // pair mode: ALWAYS equal & opposite (Newton III)
       simArrow(ctx,x1,cy-54,x1+d1*aLen,cy-54,'#fbbf24',3.5,13);
       simArrow(ctx,x2,cy-54,x2+d2*aLen,cy-54,'#fbbf24',3.5,13);
-      optLabel(ctx,'F='+ (F<0.01?F.toExponential(2):F.toFixed(2)) +' N',(x1+x2)/2,cy-74,'#fbbf24',11);
+      optLabel(ctx,'\u200eF = '+ (F<0.01?F.toExponential(2):F.toFixed(2)) +' N'+(aRaw>110?'  (החץ מקוצר)':''),(x1+x2)/2,cy-74,'#fbbf24',11);
       optLabel(ctx,repel?'דחייה':'משיכה — ניוטון III: שווים והפוכים!',(x1+x2)/2,cy+24,repel?'#f87171':'#34d399',9.5);
     }else{
       // superposition mode: the two contributions on q₂ and their vector sum
@@ -19983,7 +20140,7 @@ function simElcCoulomb(canvas){
       var Fn=F1s+F3s;
       function fArr(Fv,yy,col,lab){
         if(Math.abs(Fv)<5e-4){optLabel(ctx,lab+' ≈ 0',x2,yy-12,col,9);return;}
-        var L2=Math.min(110,18+Math.abs(Fv)*45);
+        var L2=Math.min(110,Math.abs(Fv)*_FSC);   // same scale, no offset ⇒ lengths add
         simArrow(ctx,x2,yy,x2+(Fv>0?L2:-L2),yy,col,Fv===Fn?3.5:2.2,Fv===Fn?13:9);
         optLabel(ctx,lab+'='+(Math.abs(Fv)<0.01?Fv.toExponential(1):Fv.toFixed(2))+' N',x2+(Fv>0?L2/2:-L2/2),yy-13,col,9);
       }
@@ -20090,7 +20247,7 @@ function simElcField(canvas){
         for(var gy=30;gy<H-60;gy+=46){
           var E=Efield(gx,gy);
           if(E.m<1)continue;
-          var L=Math.min(17,4+Math.pow(E.m,0.3)*0.55);
+          var L=Math.min(18,Math.pow(E.m,0.34)*0.62);   // no additive offset
           var ux=E.x/E.m,uy=E.y/E.m;
           var frac=Math.min(1,Math.pow(E.m,0.32)/28);
           var col='rgba('+Math.round(80+175*frac)+','+Math.round(150+60*frac)+','+Math.round(250-160*frac)+',.75)';
@@ -20172,13 +20329,20 @@ function simElcField(canvas){
     ctx.beginPath();ctx.arc(tx,ty,9,0,Math.PI*2);ctx.fill();optNoGlow(ctx);
     ctx.fillStyle='#0b1220';ctx.font='bold 11px Heebo';ctx.textAlign='center';ctx.fillText('+',tx,ty+4);ctx.restore();
     if(Et.m>1){
-      var FL=Math.min(80,10+Math.pow(Et.m,0.33)*1.4);
+      // No additive offset. With '10 +' a vanishing field still drew a 10 px
+      // force on the test charge and the arrow was proportional to nothing.
+      var FLraw=0.6*Math.sqrt(Et.m), FL=Math.min(84,FLraw);
       simArrow(ctx,tx,ty,tx+Et.x/Et.m*FL,ty+Et.y/Et.m*FL,'#34d399',3,11);
-      optLabel(ctx,'F=q₀E',tx+Et.x/Et.m*FL+16,ty+Et.y/Et.m*FL,'#34d399',9);
+      optLabel(ctx,'F=q₀E'+(FLraw>84?' (החץ מקוצר)':''),
+               tx+Et.x/Et.m*FL+16,ty+Et.y/Et.m*FL,'#34d399',9);
     }
     optLabel(ctx,'מטען בוחן',tx,ty+24,'#fbbf24',8.5);
     if(!touched&&animT<8)optLabel(ctx,'✋ גרור את המטענים ואת מטען הבוחן',W/2,20,'#fbbf24',10);
-    optInfoBox(ctx,8,H-88,206,['E בנקודת הבוחן:','|E| = '+(Et.m>1e4?Et.m.toExponential(2):Et.m.toFixed(0))+' N/C',dip?'דיפול: E=E₊+E₋ (וקטורית)':'E=kQ/r² — רדיאלי','צפיפות חצים ∝ עוצמה']);
+    // The grid is a fixed 46 px lattice — its density is the same everywhere
+    // and never changes. It was labelled 'צפיפות חצים ∝ עוצמה', the encoding
+    // the chapter uses for FIELD LINES, which would teach a learner to read
+    // this figure exactly wrong.
+    optInfoBox(ctx,8,H-88,206,['E בנקודת הבוחן:','\u200e|E| = '+(Et.m>1e4?Et.m.toExponential(2):Et.m.toFixed(0))+' N/C',dip?'דיפול: E=E₊+E₋ (וקטורית)':'E=kQ/r² — רדיאלי',lineMode?'צפיפות הקווים ∝ עוצמת השדה':'אורך וצבע החץ ∝ עוצמת השדה']);
     requestAnimationFrame(draw);
   }requestAnimationFrame(draw);
 }
@@ -20779,7 +20943,11 @@ function simElcPlates(canvas){
     }
     ctx.restore();
     // Field arrows (down when top +)
-    var nA=Math.max(3,Math.min(9,Math.round(E/12000)));
+    // E = V/d spans 625 V/m to 20 000 V/m across the two sliders, and
+    // round(E/12000) is 0 at the bottom and 2 at the top — so the clamp pinned
+    // the line count at 3 for EVERY setting of both controls. The one thing this
+    // figure encodes by density never moved.
+    var nA=Math.max(3,Math.min(9,Math.round(3+E/3500)));
     for(var i=0;i<nA;i++){
       var ax=PL+24+(PR-PL-48)*i/(nA-1);
       simArrow(ctx,ax,pol>0?topY+8:botY-8,ax,pol>0?botY-8:topY+8,'rgba(251,191,36,.4)',1.6,7);
@@ -20803,8 +20971,9 @@ function simElcPlates(canvas){
       var dt=(LP_m/elec.vx)/560;                  // time-warped: crossing ≈ 2.3s real time
       for(var s2=0;s2<4;s2++){
         elec.t+=dt;elec.x+=elec.vx*dt;
+        var _vy0=elec.vy;
         if(elec.x<LP_m)elec.vy+=a*dt;             // the field acts only between the plates
-        elec.y+=elec.vy*dt;
+        elec.y+=0.5*(_vy0+elec.vy)*dt;            // trapezoid ⇒ y = ½at² exactly
       }
       if(elec.x<LP_m&&Math.abs(elec.y)>d_m/2)elec.hit=true;
       if(PL+elec.x*sxp>W-16)elec.done=true;       // freeze at the edge, keep exit values on screen
@@ -21087,15 +21256,15 @@ function buildSim(sim){
   else if(sim.type==='avg-instant')extra=C(rng('ai-k',0.5,4,1.5,0.25,'מקדם k  (x = k·t²)')+btn('ai-reset','▶ הרץ Δt→0','btn-secondary'));
   else if(sim.type==='acceleration')extra=C(rng('acc-a',-10,10,3,0.5,'תאוצה a',' m/s²')+rng('acc-v0',-8,8,0,1,'v₀ ראשונית',' m/s')+btn('acc-reset','↺ אפס','btn-secondary'));
   else if(sim.type==='freefall')extra=C(rng('v0',0,30,18,1,'v₀ ראשונית',' m/s')+rng('ff-g',1.6,25,9.8,0.2,'g כבידה',' m/s²')+btn('throw','🎯 זרוק!','btn-primary'));
-  else if(sim.type==='multi-freefall')extra=C(rng('g-mff',1.6,25,9.8,0.1,'g (כבידה)',' m/s²')+rng('mff-h',5,40,20,1,'גובה h',' m'));
+  else if(sim.type==='multi-freefall')extra=C(rng('g-mff',1.6,25,9.8,0.1,'g (כבידה)',' m/s²')+rng('mff-h',5,40,20,1,'גובה h',' m')+btn('mff-reset','↺ שחרר שוב','btn-secondary'));
   else if(sim.type==='force-types')extra=C(rng('ft-F',0,60,20,2,'כוח מופעל F',' N')+rng('ft-x',0.01,0.20,0.08,0.01,'מתיחת קפיץ x',' m'));
   else if(sim.type==='inertia')extra=C(rng('friction',0,0.8,0.4,0.05,'חיכוך μ')+rng('mass-in',1,15,5,0.5,'מסה m',' kg')+btn('push-right','💨 דחוף ימינה','btn-primary')+btn('push-left','דחוף שמאלה 💨','btn-secondary'));
-  else if(sim.type==='newton2')extra=C(rng('mass',1,20,5,0.5,'מסה m',' kg')+rng('n2-F',-60,60,20,1,'כוח F',' N')+rng('n2-mu',0,0.8,0,0.05,'חיכוך μ'));
-  else if(sim.type==='newton3')extra=C(rng('n3-mA',1,15,3,0.5,'m_A',' kg')+rng('n3-mB',1,15,6,0.5,'m_B',' kg')+rng('n3-F',50,600,300,10,'כוח דחיפה',' N')+btn('n3-push','💥 דחוף!'));
-  else if(sim.type==='normal-force')extra=C(rng('nf-theta',0,70,0,1,'זווית θ','°')+rng('nf-mass',1,12,4,0.5,'מסה m',' kg')+rng('nf-mu',0,0.7,0,0.05,'חיכוך μ'));
-  else if(sim.type==='incline')extra=C(rng('inc-theta',5,75,30,1,'זווית θ','°')+rng('inc-mu',0,0.8,0,0.05,'חיכוך μ')+rng('inc-m',0.5,10,3,0.5,'מסה m',' kg'));
-  else if(sim.type==='tension')extra=C(rng('ten-m1',0.5,12,3,0.5,'m₁ אטווד',' kg')+rng('ten-m2',0.5,12,5,0.5,'m₂ אטווד',' kg')+rng('ten-el',0.5,5,3,0.5,'מסת מעלית',' kg')+rng('ten-ea',-5,5,0,0.5,'תאוצת מעלית',' m/s²')+btn('ten-launch','▶ שחרר!'));
-  else if(sim.type==='fbd')extra=C(btn('fbd-reset','↺ נקה הכל','btn-secondary'));
+  else if(sim.type==='newton2')extra=C(rng('mass',1,20,5,0.5,'מסה m',' kg')+rng('n2-F',-60,60,20,1,'כוח F',' N')+rng('n2-mu',0,0.8,0,0.05,'חיכוך μ')+btn('n2-reset','↺ אפס','btn-secondary'));
+  else if(sim.type==='newton3')extra=C(rng('n3-mA',1,15,3,0.5,'m_A',' kg')+rng('n3-mB',1,15,6,0.5,'m_B',' kg')+rng('n3-F',50,600,300,10,'כוח דחיפה',' N')+btn('n3-push','💥 דחוף!')+btn('n3-reset','↺ אפס','btn-secondary'));
+  else if(sim.type==='normal-force')extra=C(rng('nf-theta',0,70,0,1,'זווית θ','°')+rng('nf-mass',1,12,4,0.5,'מסה m',' kg')+rng('nf-mu',0,0.7,0,0.05,'חיכוך μ')+btn('nf-reset','↺ אפס','btn-secondary'));
+  else if(sim.type==='incline')extra=C(rng('inc-theta',5,75,30,1,'זווית θ','°')+rng('inc-mu',0,0.8,0,0.05,'חיכוך μ')+rng('inc-m',0.5,10,3,0.5,'מסה m',' kg')+rng('inc-m1',0.5,10,3,0.5,'m₁ אטווד',' kg')+rng('inc-m2',0.5,10,5,0.5,'m₂ אטווד',' kg')+btn('inc-atwood','⚖️ מכונת אטווד','btn-secondary')+btn('inc-reset','↺ אפס','btn-secondary'));
+  else if(sim.type==='tension')extra=C(rng('ten-m1',0.5,12,3,0.5,'m₁ אטווד',' kg')+rng('ten-m2',0.5,12,5,0.5,'m₂ אטווד',' kg')+rng('ten-el',0.5,5,3,0.5,'מסת מעלית',' kg')+rng('ten-ea',-5,5,0,0.5,'תאוצת מעלית',' m/s²')+btn('ten-launch','▶ שחרר!')+btn('ten-reset','↺ אפס','btn-secondary'));
+  else if(sim.type==='fbd')extra=C(rng('fbd-F',-10,25,0,0.5,'כוח נוסף על הגוף (+ מעלה)',' N')+btn('fbd-reset','↺ נקה הכל','btn-secondary'));
   else if(sim.type==='momentum')extra=C(rng('mom-mass',0.5,8,2,0.5,'מסה',' kg')+rng('mom-vel',-10,10,4,1,'מהירות',' m/s'));
   else if(sim.type==='momentum-cons')extra=C(rng('mc-m1',1,8,3,0.5,'m₁',' kg')+rng('mc-m2',1,8,2,0.5,'m₂',' kg')+rng('mc-v1',-8,8,4,1,'v₁',' m/s')+rng('mc-v2',-8,8,-2,1,'v₂',' m/s')+btn('mc-reset','↺ אפס','btn-secondary'));
   else if(sim.type==='collision')extra=C(rng('col-e',0,1,1,0.05,'מקדם e (0=היצמד, 1=אלסטי)')+rng('col-m1',1,8,3,0.5,'m₁',' kg')+rng('col-m2',1,8,2,0.5,'m₂',' kg')+rng('col-v1',0,8,4,0.5,'v₁ התחלתית',' m/s')+rng('col-v2',-8,0,-2,0.5,'v₂ התחלתית',' m/s')+btn('col-reset','↺ אפס','btn-secondary'));
@@ -21110,7 +21279,7 @@ function buildSim(sim){
   else if(sim.type==='spring-force')extra=C(rng('sf-k',5,200,40,5,'k קשיחות',' N/m')+rng('sf-m',0.1,2,0.4,0.05,'מסה m',' kg')+rng('sf-damp',0,2,0.8,0.1,'ריסון b')+btn('sf-reset','↺ אפס','btn-secondary')+btn('sf-fmode','📐 הצג |F|=k|x|','btn-secondary'));
   else if(sim.type==='static-friction')extra=C(rng('sft-mu',0.1,0.9,0.55,0.05,'μ_s')+rng('sft-mass',1,15,3,0.5,'מסה m',' kg')+rng('sft-F',0,80,0,1,'כוח F',' N')+btn('sft-reset','↺ אפס','btn-secondary'));
   else if(sim.type==='kinetic-friction')extra=C(rng('kf-v0',2,20,10,1,'מהירות v₀',' m/s')+rng('kf-mass',1,15,5,0.5,'מסה m',' kg')+rng('kf-mu',0.1,0.8,0.38,0.02,'μ_k')+btn('kf-launch','▶ שגר!','btn-primary')+btn('kf-reset','↺ אפס','btn-secondary'));
-  else if(sim.type==='friction-combined')extra=C(rng('fc-theta',5,70,20,1,'זווית θ','°')+rng('fc-F',0,80,0,2,'כוח F',' N')+rng('fc-mu',0.05,0.8,0.45,0.05,'μ')+rng('fc-m',0.5,10,5,0.5,'מסה m',' kg'));
+  else if(sim.type==='friction-combined')extra=C(rng('fc-theta',5,70,20,1,'זווית θ','°')+rng('fc-F',0,80,0,2,'כוח F',' N')+rng('fc-mu',0.05,0.8,0.45,0.05,'μ')+rng('fc-m',0.5,10,5,0.5,'מסה m',' kg')+btn('fc-reset','↺ אפס','btn-secondary'));
   else if(sim.type==='pendulum')extra=C(rng('pend-L',0.3,3,1,0.1,'אורך L',' m')+rng('pend-g',1.6,25,9.8,0.5,'g',' m/s²')+rng('pend-damp',0,0.1,0.02,0.005,'ריסון b','')+btn('pend-reset','↺ אפס','btn-secondary'));
   else if(sim.type==='projectile')extra=C(rng('proj-angle',10,80,45,1,'זווית θ','°')+rng('proj-v0',5,35,20,1,'מהירות v₀',' m/s')+btn('proj-launch','▶ שגר!','btn-primary')+btn('proj-reset','↺ אפס','btn-secondary'));
   else if(sim.type==='circular')extra=C(rng('circ-r',0.5,3,1.2,0.1,'רדיוס r',' m')+rng('circ-v',2,15,6,0.5,'מהירות v',' m/s')+btn('circ-pause','⏸ השהה/המשך','btn-secondary'));
@@ -21149,7 +21318,7 @@ function buildSim(sim){
   else if(sim.type==='elc-field')extra=C(rng('elc-Q',-6,6,4,0.5,'מטען Q₁',' μC')+rng('elc-Q2',-6,6,-4,0.5,'מטען Q₂',' μC')+btn('field-dipole','⇄ שני מטענים','btn-secondary')+btn('field-lines','✒️ קווי שדה רציפים','btn-secondary'));
   else if(sim.type==='elc-conductor')extra=C(rng('cnd-Q',-8,8,4,0.5,'מטען המוליך Q',' μC')+rng('cnd-R',30,70,50,2,'רדיוס R',' px')+btn('cnd-mode','📐 חוד ופריקה','btn-secondary')+btn('cnd-ext','⚡ שדה חיצוני','btn-secondary'));
   else if(sim.type==='elc-potential')extra=C(rng('elc-Vq',-8,8,2,0.5,'מטען Q₁',' μC')+rng('elc-Vq2',-8,8,-3,0.5,'מטען Q₂',' μC')+rng('elc-q0',-5,5,1,0.5,'מטען בוחן q₀',' nC')+btn('pot-two','⊕ הוסף מטען שני','btn-secondary')+btn('pot-mark','📌 סמן נקודה A','btn-secondary'));
-  else if(sim.type==='elc-plates')extra=C(rng('elc-V',50,400,200,10,'מתח V',' V')+rng('elc-d',2,8,4,0.5,'מרווח d',' cm')+rng('elc-v0',5,30,20,1,'v₀ כניסה','×10⁶')+btn('pl-launch','🚀 שגר','btn-primary')+btn('pl-flip','± הפוך קוטביות','btn-secondary')+btn('pl-part','🔁 החלף לפרוטון','btn-secondary'));
+  else if(sim.type==='elc-plates')extra=C(rng('elc-V',50,400,200,10,'מתח V',' V')+rng('elc-d',2,8,4,0.5,'מרווח d',' cm')+rng('elc-v0',5,30,20,1,'v₀ כניסה',' ×10⁶ m/s')+btn('pl-launch','🚀 שגר','btn-primary')+btn('pl-flip','± הפוך קוטביות','btn-secondary')+btn('pl-part','🔁 החלף לפרוטון','btn-secondary'));
   else if(sim.type==='elc-upair')extra=C(rng('up-q1',-5,5,2,0.5,'מטען q₁',' μC')+rng('up-q2',-5,5,3,0.5,'מטען q₂',' μC')+btn('up-release','🚀 שחרר','btn-primary'));
   else if(sim.type==='elc-network')extra=C(rng('net-c1',1,12,2,0.5,'קיבול C₁',' μF')+rng('net-c2',1,12,3,0.5,'קיבול C₂',' μF')+rng('net-v',1,24,12,1,'מתח הסוללה V',' V')+btn('net-mode','⇶ עבור לטור','btn-secondary'));
   else if(sim.type==='elc-cap')extra=C(rng('elc-cV',1,24,12,1,'מתח V',' V')+rng('elc-cA',50,400,200,10,'שטח A',' cm²')+rng('elc-cd',1,10,4,0.5,'מרווח d',' mm')+btn('cap-diel','🧱 דיאלקטרן κ=3','btn-secondary')+btn('cap-disc','✂️ נתק מהסוללה (Q קבוע)','btn-secondary'));
