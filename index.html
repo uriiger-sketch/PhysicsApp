@@ -8463,7 +8463,7 @@ function simGravityForce(canvas){
     ctx.save(); ctx.fillStyle='rgba(6,14,28,.92)'; ctx.strokeStyle='#1e4060'; ctx.lineWidth=1.5;
     ctx.beginPath(); ctx.roundRect(8,6,W-16,38,6); ctx.fill(); ctx.stroke(); ctx.restore();
     simText(ctx,'כוח הכובד: W = m × g  (מסה = '+m+' ק"ג)',W/2,20,'#22d3ee',11,undefined,true);
-    simText(ctx,'המסה קבועה — המשקל משתנה עם כוח הכבידה!',W/2,34,'#94a3b8',9,undefined,true);
+    simText(ctx,'\u200eהמסה קבועה — המשקל משתנה עם כוח הכבידה!   (סקאלה מלאה: '+(m*24.8).toFixed(0)+' N)',W/2,34,'#94a3b8',9,undefined,true);
 
     PLANETS.forEach(function(pl,i){
       var W_force=m*pl.g;
@@ -8491,7 +8491,12 @@ function simGravityForce(canvas){
       // Spring scale
       var scaleCY=PY+100;
       var scaleW2=Math.min(colW-8,28), scaleH2=72;
-      var maxF=Math.max(1200,PLANETS.reduce(function(acc,p){return Math.max(acc,m*p.g);},0));
+      // One shared full scale across all six columns — correct, since comparing
+      // planets is the point. But it used to be max(1200 N, m·g_max), and the
+      // mass slider starts at 1 kg: below ~48 kg the 1200 N floor dominated and
+      // every bar collapsed to a sliver (at 1 kg, Jupiter 2.07% against the
+      // Moon's 0.13% — the 15× contrast the figure exists to show, invisible).
+      var maxF=PLANETS.reduce(function(acc,p){return Math.max(acc,m*p.g);},0)||1;
       var fillH=(Math.min(reading,maxF)/maxF)*scaleH2*0.9;
       // Scale body
       ctx.save(); ctx.fillStyle='rgba(15,28,48,.85)'; ctx.strokeStyle=pl.col+'55'; ctx.lineWidth=1.5;
@@ -12189,7 +12194,7 @@ function simOptPrism(canvas){
     ctx.beginPath();ctx.moveTo(pw[0],ph[0]);ctx.lineTo(pw[1],ph[1]);ctx.lineTo(pw[2],ph[2]);ctx.closePath();ctx.fill();
     ctx.strokeStyle='rgba(147,197,253,.55)';ctx.lineWidth=2;optGlow(ctx,'#93c5fd',8);ctx.stroke();optNoGlow(ctx);
     ctx.restore();
-    optLabel(ctx,'n≈1.52',W/2,H*0.62,'rgba(147,197,253,.45)',9);
+    optLabel(ctx,'\u200en(400nm)='+prismN(400).toFixed(3)+'  →  n(700nm)='+prismN(700).toFixed(3),W/2,H*0.62,'rgba(147,197,253,.55)',8.5);
     // Entry point on left face
     // Left face: from (pw[0],ph[0]) to (pw[2],ph[2])
     // Entry ~60% up the left face
@@ -21166,7 +21171,15 @@ function simElcCap(canvas){
     ctx.fillStyle='rgba(96,165,250,.9)';ctx.fillRect(RX,cy-phH/2,8,phH);
     ctx.restore();
     // Charges on plates ∝ Q
-    var nQ=Math.max(2,Math.min(14,Math.round(Qc/2e-11)));
+    // Q = κε₀AV/d spans 4.4 pC to 25.5 nC over the four sliders — a factor of
+    // 5761 — so Q/2e-11 hit the cap of 14 at 280 pC and stayed there: at the
+    // DEFAULT settings it was already 26.5. The plates showed 14 symbols before
+    // the learner touched anything, and for almost every setting after.
+    // Logarithmic across the real domain instead: the count is an ordering, not
+    // a proportion (nothing linear can span 5761:1), and the exact charge is
+    // printed beside it in nC.
+    var _Qlo=4.425e-12, _Qhi=2.5488e-8;
+    var nQ=Math.max(2,Math.min(14,Math.round(2+12*Math.log(Math.max(1,Qc/_Qlo))/Math.log(_Qhi/_Qlo))));
     ctx.save();ctx.font='bold 11px Heebo';ctx.textAlign='center';
     for(var i=0;i<nQ;i++){
       var yy=cy-phH/2+8+ (phH-16)*i/Math.max(1,nQ-1);
@@ -21175,7 +21188,10 @@ function simElcCap(canvas){
     }
     ctx.restore();
     // Field arrows density ∝ E
-    var nA=Math.max(2,Math.min(9,Math.round(E/1200)));
+    // E = V/d spans 100 to 24 000 V/m; round(E/1200) only responded between
+    // 2400 and 10 800 and sat against a stop outside that.
+    var _Elo=100, _Ehi=24000;
+    var nA=Math.max(2,Math.min(9,Math.round(2+7*Math.log(Math.max(1,E/_Elo))/Math.log(_Ehi/_Elo))));
     for(var i=0;i<nA;i++){
       var yy=cy-phH/2+14+(phH-28)*i/Math.max(1,nA-1);
       simArrow(ctx,LX+4,yy,RX-6,yy,'rgba(251,191,36,.45)',1.5,6);
