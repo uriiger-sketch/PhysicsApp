@@ -9642,9 +9642,18 @@ function simProjectile(canvas){
     // Recompute scale based on current settings
     var rad2=angle*Math.PI/180;
     var maxRange=v0*v0*Math.sin(2*rad2)/g;
-    SCALE=Math.min(22,Math.max(4,(W-80)/Math.max(1,maxRange)));
+    // Keyed to the TARGET, which only moves when it is hit — not to the current
+    // trajectory. Recomputing it from maxRange every frame made the arc fill the
+    // canvas at every setting, so a 2.55 m throw and a 125 m throw were drawn the
+    // same size and the v₀² dependence of the range — the content of the section
+    // — could not be seen; and it slid the target across the screen while the
+    // learner was aiming at it.
     var maxH2=v0*v0*Math.sin(rad2)*Math.sin(rad2)/(2*g);
-    var scaleY=Math.min(22,Math.max(4,(GND_Y-60)/Math.max(1,maxH2)));
+    var _tRef=targetX>0?targetX*1.35:Math.max(6,maxRange);
+    SCALE=Math.max(3,Math.min(26,(W-80)/Math.max(1,_tRef)));
+    // Only concession: keep a very steep, very fast shot's apex on screen,
+    // otherwise the arc leaves the canvas entirely.
+    var scaleY=Math.max(3,(GND_Y-60)/Math.max(1,maxH2));
     SCALE=Math.min(SCALE,scaleY);
 
     if(running){
@@ -10418,8 +10427,13 @@ function simEnergyPotential(canvas){
     if(!dragging){
       if(contactTimer<=0){
         // Free motion (gravity only)
+        // Trapezoid: exact for constant g. Advancing with the post-update
+        // velocity loses ½g²·dt² per step — ~6% of the energy of a 2 m drop
+        // every second at dt=0.025 — while the panel plots PE, KE and their sum
+        // for the learner to watch stay flat.
+        var _v0e=vel;
         vel+=g*PX_PER_M*dt;
-        objY+=vel*dt;
+        objY+=0.5*(_v0e+vel)*dt;
         // Hit floor
         if(objY>=FLOOR_POS){
           objY=FLOOR_POS;
@@ -10449,7 +10463,8 @@ function simEnergyPotential(canvas){
     // Elastic PE: during contact phase, treat as energy stored in floor spring
     // E_elastic = total_E - PE - KE at contact start = total mechanical energy
     // We fake it cleanly: contact fraction goes from 0→1→0 as a cosine
-    var totalE=m*g*Math.max(0,FLOOR_POS-(H*0.22))/PX_PER_M; // conserved total
+    // (a second 'conserved total' from a fixed drop height used to be computed
+    //  here and never used; E_tot_display below is the one that is drawn)
     // Better: E_elastic = kinetic energy transferred to floor spring (goes from KE_impact→0→KE_impact)
     var contactFrac=contactTimer>0?Math.sin(Math.PI*contactTimer/CONTACT_DUR):0;
     var E_elastic=contactTimer>0?0.5*m*Math.pow(contactVelOut/PX_PER_M,2)*contactFrac*contactFrac:0;
@@ -10670,14 +10685,20 @@ function simSHMDef(canvas){
     // Velocity arrow
     if(Math.abs(v_m)>2){
       var vDir=Math.sign(v_m);
-      var vLen=Math.min(55,Math.abs(v_m)*0.4);
+      // Scaled to |v|_max = Aω for the CURRENT settings. At a fixed 0.4 px per
+      // px/s the arrow clamped at 55 px for |v| > 137 px/s, and |v|_max reaches
+      // 1634 px/s — so it sat at full length through the whole oscillation while
+      // the sim printed "v=0" at the turning points. Per-cycle normalisation is
+      // the right choice here: this section teaches the PHASE relation between
+      // x, v and a within one cycle, not magnitudes across settings.
+      var vLen=55*Math.abs(v_m)/Math.max(1e-6,A*omega);
       simArrow(ctx,DOT_X+26,dotY,DOT_X+26,dotY+vDir*vLen,'#22d3ee',2.5,9);
       simText(ctx,'v',DOT_X+38,dotY+vDir*vLen/2,'#22d3ee',8.5,'left');
     }
     // Acceleration arrow  
     if(Math.abs(a_m)>2){
       var aDir=Math.sign(a_m);
-      var aLen=Math.min(45,Math.abs(a_m)*0.12);
+      var aLen=45*Math.abs(a_m)/Math.max(1e-6,A*omega*omega);   // |a|_max = Aω²
       simArrow(ctx,DOT_X-28,dotY,DOT_X-28,dotY+aDir*aLen,'#f87171',2.5,9);
       simText(ctx,'a',DOT_X-42,dotY+aDir*aLen/2,'#f87171',8.5,'right');
     }
