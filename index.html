@@ -4442,6 +4442,67 @@ Object.assign(CONTENT, ELECTRO_CONTENT);
 // QUIZ / PROBLEM STATE
 // ══════════════════════════════════════════════
 function getQS(c,s){const k=`${c}.${s}`;if(!state.quizState[k])state.quizState[k]={cur:0,ans:[],done:false};return state.quizState[k];}
+
+// ── Option order ────────────────────────────────────────────────────────────
+// The AUTHORED position of the correct option, measured over all 259 items,
+// was 12.7% / 58.3% / 26.3% / 2.7% across the four slots. A learner who ignored
+// every question and always pressed the second option scored 58%; one who never
+// pressed the fourth lost almost nothing. Position was a stronger signal than
+// physics, and it is the kind of pattern a student finds within a chapter.
+//
+// The displayed order is derived from a hash of the question text: stable for a
+// given question, so the layout never jumps between renders and a returning
+// learner sees what they saw before, but uncorrelated with correctness. The
+// correct option moves to slot hash%n and the rest keep their relative order,
+// so authored orderings (e.g. ascending numeric distractors) are disturbed as
+// little as possible. Over the real question set this gives
+// 23.6 / 25.5 / 25.9 / 25.1 percent — chi-square 0.32 on 3 df.
+var _qvCache=new Map(), _qvSlots=null;
+function _qvHash(s){var h=2166136261;for(var i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619);}return h>>>0;}
+// Key on the question AND its options: two sections ask the identical question
+// text ("כוח נורמלי מכוון תמיד:") with different option wording, and keying on
+// the text alone handed the second one the first one's options.
+function _qvKey(q){return String(q.q)+'\u0000'+q.opts.join('\u0001');}
+// Deal the slots ONCE across every item in the app, so the counts are exactly
+// equal instead of merely probably equal. Hashing alone gave chi-square 8.50 on
+// this question set — past p=0.05. The deal order is hash-shuffled rather than
+// document order, because dealing in document order would put every section's
+// first answer in slot 0: a different rule, just as exploitable.
+function _qvBuild(){
+  _qvSlots=new Map();
+  var items=[];
+  try{
+    for(var k in CONTENT){
+      var qs=CONTENT[k]&&CONTENT[k].quiz;
+      if(!qs||!qs.length)continue;
+      for(var i=0;i<qs.length;i++){
+        var qq=qs[i];
+        if(!qq||!qq.opts||!qq.opts.length)continue;
+        var kk=_qvKey(qq);
+        items.push({k:kk,h:_qvHash(kk),n:qq.opts.length});
+      }
+    }
+  }catch(e){ /* fall back to the hash below */ }
+  items.sort(function(a,b){return (a.h-b.h)||(a.k<b.k?-1:a.k>b.k?1:0);});
+  var c=0;
+  items.forEach(function(it){ _qvSlots.set(it.k, c++ % it.n); });
+}
+function quizView(q){
+  if(!q||!q.opts||!q.opts.length)return{opts:[],correct:0,n:0};
+  var key=_qvKey(q);
+  var hit=_qvCache.get(key);
+  if(hit&&hit.n===q.opts.length)return hit;
+  if(_qvSlots===null)_qvBuild();
+  var n=q.opts.length, ci=(typeof q.correct==='number'&&q.correct>=0&&q.correct<n)?q.correct:0;
+  var slot=_qvSlots.get(key);
+  var tgt=(typeof slot==='number')?slot%n:_qvHash(key)%n;
+  var rest=[], out=[];
+  for(var i=0;i<n;i++)if(i!==ci)rest.push(q.opts[i]);
+  for(var j=0,r=0;j<n;j++)out.push(j===tgt?q.opts[ci]:rest[r++]);
+  var v={opts:out,correct:tgt,n:n};
+  _qvCache.set(key,v);
+  return v;
+}
 function getPS(c,s){const k=`${c}.${s}`;if(!state.problemState[k])state.problemState[k]={idx:0,inputs:[],solved:[],hints:[],feedback:[],done:false,attempts:0};return state.problemState[k];}
 
 // ══════════════════════════════════════════════
@@ -21538,7 +21599,7 @@ function buildQuiz(qs){
   if(!qs||!qs.length)return'';
   const st=getQS(state.chapter,state.section);
   if(st.done){
-    const ok=st.ans.filter(function(a,i){return a===qs[i].correct;}).length;
+    const ok=st.ans.filter(function(a,i){return a===quizView(qs[i]).correct;}).length;
     const perfect=ok===qs.length;
     var nextSec=null;
     var _chs=getChapters();
@@ -21564,9 +21625,10 @@ function buildQuiz(qs){
     </div>`;
   }
   const qi=st.cur;const q=qs[qi];const ans=st.ans[qi]!==undefined;
-  const prog=`<div class="quiz-progress">${qs.map((_,i)=>`<div class="qp-dot${i<qi?(st.ans[i]===qs[i].correct?' done':' wrong'):i===qi?' active':''}"></div>`).join('')}</div>`;
+  const prog=`<div class="quiz-progress">${qs.map((_,i)=>`<div class="qp-dot${i<qi?(st.ans[i]===quizView(qs[i]).correct?' done':' wrong'):i===qi?' active':''}"></div>`).join('')}</div>`;
   const lets=['א','ב','ג','ד'];
-  const opts=q.opts.map((o,oi)=>{let cls='';if(ans){if(oi===q.correct)cls='correct';else if(oi===st.ans[qi])cls='wrong';}
+  const qv=quizView(q);
+  const opts=qv.opts.map((o,oi)=>{let cls='';if(ans){if(oi===qv.correct)cls='correct';else if(oi===st.ans[qi])cls='wrong';}
     return`<button class="quiz-opt${cls?' '+cls:''}"${ans?' disabled':''} onclick="answerQuiz(${oi})"><span class="quiz-opt-letter">${lets[oi]}</span>${o}</button>`;
   }).join('');
   // Hint button (if question has a hint and not answered yet, costs 5 XP)
@@ -21579,10 +21641,10 @@ function buildQuiz(qs){
   if(q.hint&&hintShown){
     hintHTML='<div class="quiz-hint-box">💡 '+q.hint+'</div>';
   }
-  const fb=ans?`<div class="quiz-feedback${st.ans[qi]===q.correct?' fb-ok':' fb-err'}">
-    <div style="font-size:1rem;margin-bottom:4px">${st.ans[qi]===q.correct?'✅ נכון!':'❌ לא נכון.'}</div>
+  const fb=ans?`<div class="quiz-feedback${st.ans[qi]===qv.correct?' fb-ok':' fb-err'}">
+    <div style="font-size:1rem;margin-bottom:4px">${st.ans[qi]===qv.correct?'✅ נכון!':'❌ לא נכון.'}</div>
     <div style="font-size:.88rem;color:var(--muted)">${q.explain||''}</div>
-    ${q.formula&&st.ans[qi]!==q.correct?`<div style="margin-top:8px;padding:6px 10px;background:rgba(0,0,0,.2);border-radius:6px;font-family:monospace;color:var(--accent);font-size:.9rem">${q.formula}</div>`:''}
+    ${q.formula&&st.ans[qi]!==qv.correct?`<div style="margin-top:8px;padding:6px 10px;background:rgba(0,0,0,.2);border-radius:6px;font-family:monospace;color:var(--accent);font-size:.9rem">${q.formula}</div>`:''}
   </div>`:'';
   const nxt=ans?(qi<qs.length-1?`<button class="btn btn-primary" onclick="nextQ()" style="margin-top:12px">הבאה ← <kbd style="font-size:.75em;opacity:.6">Enter</kbd></button>`:`<button class="btn btn-green" onclick="finishQuiz()" style="margin-top:12px">סיום החידון ✓</button>`):'';
   return`<div class="quiz-card">${prog}<div class="quiz-q"><span class="quiz-q-num">${qi+1}</span>${q.q}</div><div class="quiz-opts">${opts}</div>${hintHTML}${fb}${nxt}</div>`;
