@@ -1226,12 +1226,12 @@ const CONTENT={
     title:'פגישת שתי מכוניות',
     text:'משאית יוצאת מעיר A (x=0) לעיר B (x=290 ק"מ) במהירות 70 km/h. חצי שעה אחרי, מונית יוצאת מ-B לכיוון A במהירות 100 km/h. מתי ואיפה ייפגשו?',
     steps:[
-      {q:'כתוב נוסחת מקום-זמן של המשאית (x בק"מ, t בשעות, t=0 כשיצאה המשאית).',
-       hint:tex('x = x_0 + vt = 0 + 70t'),answer:'70',unit:'x=70t',tolerance:-1,
-       explain:tex('x_{\\mathrm{משא}} = 70t')},
-      {q:'המונית יוצאת ב-t=0.5 שעות. מה נוסחת x(t) שלה?',
-       hint:tex('x = 290 - 100(t-0.5)'),answer:'340',unit:'x=340-100t',tolerance:-1,
-       explain:tex('x_{\\mathrm{מונ}} = 290 - 100(t-0.5) = 340 - 100t')},
+      {q:'נוסחת המשאית היא '+tex('x = x_0 + v\\,t')+'. המשאית יוצאת מ-'+tex('x_0=0')+'. מהו המקדם של '+tex('t')+' — כלומר מהירותה?',
+       hint:'המהירות נתונה בשאלה, ו-'+tex('x_0=0')+' כי היא יוצאת מהראשית',answer:'70',unit:'km/h',tolerance:0,
+       explain:tex('x_{\\mathrm{משא}} = 0 + 70t = 70t')+' — המקדם של '+tex('t')+' בנוסחת מקום-זמן הוא תמיד המהירות.'},
+      {q:'המונית יוצאת מ-B ('+tex('x=290')+') ב-'+tex('t=0.5')+' לכיוון A. נוסחתה נכתבת בצורה '+tex('x = A - 100t')+'. מהו '+tex('A')+'?',
+       hint:tex('x = 290 - 100(t-0.5)')+' — פתחו את הסוגריים ואספו את האיבר החופשי',answer:'340',unit:'km',tolerance:0,
+       explain:tex('290 - 100(t-0.5) = 290 - 100t + 50 = 340 - 100t')+', ולכן '+tex('A=340\\,\\text{km}')+'. שימו לב ש-340 אינו מיקום שהמונית נמצאת בו אי פעם — הוא המיקום שבו <b>הייתה</b> אילו יצאה כבר ב-'+tex('t=0')+'.'},
       {q:'מתי ייפגשו? (הגדר x₁=x₂ ופתור)',
        hint:tex('70t = 340 - 100t \\Rightarrow 170t = 340'),answer:'2',unit:'שעות',tolerance:0.05,
        explain:tex('170t = 340 \\Rightarrow t = 2\\,\\text{h}')+'מנקודת יציאת המשאית. '+tex('x = 70 \\cdot 2 = 140\\,\\text{km}')+' מ-A.'},
@@ -1426,7 +1426,7 @@ const CONTENT={
     title:'כדור מגג',
     text:'כדור נזרק מגג בגובה H=80 m ישר מעלה ב-v₀=20 m/s. g=10 m/s². ציר y חיובי מעלה, y₀=80 m.',
     steps:[
-      {q:'גובה מרבי מעל הקרקע?',hint:tex('v=0 \\Rightarrow \\Delta y = v_0^2/(2g) = 400/20 = 20'),answer:'100',unit:'m',tolerance:0.5,
+      {q:'גובה מרבי מעל הקרקע?',hint:tex('\\Delta y = v_0^2/(2g) = 400/20 = 20\\,\\text{m}')+' — זו העלייה <b>מעל נקודת השחרור</b>. השאלה מבקשת גובה מעל הקרקע, אז הוסיפו את גובה המגדל.',answer:'100',unit:'m',tolerance:0.5,
        explain:tex('y_{\\max} = 80 + 20 = 100\\,\\text{m}')},
       {q:'מתי מגיע לפסגה?',hint:tex('t = v_0/g = 20/10'),answer:'2',unit:'ש׳',tolerance:0.05,
        explain:tex('t = 20/10 = 2\\,\\text{s}')},
@@ -1485,11 +1485,11 @@ const CONTENT={
     title:'זיהוי גדלים פיזיקליים',
     text:'סווג כל גודל: סקלרי (S) או וקטורי (V).',
     steps:[
-      {q:'"מהירות 80 km/h צפונה" — S או V?',hint:'האם נדרש כיוון? velocity = V',answer:'V',unit:'',tolerance:-1,
+      {q:'"מהירות 80 km/h צפונה" — S או V?',hint:'האם נדרש כיוון? velocity = V',answer:'V',unit:'S / V',tolerance:-1,
        explain:'וקטורי — יש גודל (80 km/h) וכיוון (צפון). זוהי velocity, לא speed.'},
-      {q:'"כוח 20 N כלפי מטה" — S או V?',hint:'כוח הוא וקטורי תמיד',answer:'V',unit:'',tolerance:-1,
+      {q:'"כוח 20 N כלפי מטה" — S או V?',hint:'כוח הוא וקטורי תמיד',answer:'V',unit:'S / V',tolerance:-1,
        explain:'וקטורי — כוח הוא גודל וקטורי מובהק.'},
-      {q:'"מסת הגוף 5 kg" — S או V?',hint:'למסה אין כיוון',answer:'S',unit:'',tolerance:-1,
+      {q:'"מסת הגוף 5 kg" — S או V?',hint:'למסה אין כיוון',answer:'S',unit:'S / V',tolerance:-1,
        explain:'סקלרי — מסה היא כמות חומר, ללא כיוון.'},
     ]
   }
@@ -2463,7 +2463,7 @@ const CONTENT={
        explain:M('W=70\\times9.8=686\\,\\text{N}')},
       {q:'משקלו על הירח (g=1.62)?',hint:M('W=70\\times1.62'),answer:'113',unit:'N',tolerance:2,
        explain:M('W\\approx113\\,\\text{N}')},
-      {q:'האם מסתו משתנה בחלל?',hint:'מסה = כמות חומר',answer:'לא',unit:'',tolerance:-1,
+      {q:'האם מסתו משתנה בחלל?',hint:'מסה = כמות חומר, ואינה תלויה במקום',answer:'לא',unit:'כן / לא',tolerance:-1,
        explain:'מסה קבועה — תכונה של הגוף. משקל משתנה — תלוי ב-g.'},
     ]
   }
@@ -2590,7 +2590,7 @@ const CONTENT={
        explain:M('N=80\\,\\text{N}')},
       {q:'כוח חיכוך מרבי?',hint:M('f_{s,\\max}=\\mu_s N=0.45\\times80'),answer:'36',unit:'N',tolerance:0,
        explain:M('f_{s,\\max}=36\\,\\text{N}')},
-      {q:'כוח 30 N מופעל — האם הגוף זז?',hint:'השווה F ל-fmax',answer:'לא',unit:'',tolerance:-1,
+      {q:'כוח 30 N מופעל — האם הגוף זז?',hint:'השוו את F ל-'+tex('f_{s,\\max}')+' שחישבתם בשלב הקודם',answer:'לא',unit:'כן / לא',tolerance:-1,
        explain:'F=30<fmax=36 → הגוף נח.'},
     ]
   }
@@ -4939,7 +4939,12 @@ function quizView(q){
   _qvCache.set(key,v);
   return v;
 }
-function getPS(c,s){const k=`${c}.${s}`;if(!state.problemState[k])state.problemState[k]={idx:0,inputs:[],solved:[],hints:[],feedback:[],done:false,attempts:0};return state.problemState[k];}
+// attempts is an ARRAY, one entry per step. It used to be a single counter for
+// the whole problem that was never reset, so three misses anywhere caused every
+// later step to reveal its hint on the learner's first wrong answer.
+function getPS(c,s){const k=`${c}.${s}`;if(!state.problemState[k])state.problemState[k]={idx:0,inputs:[],solved:[],hints:[],feedback:[],done:false,attempts:[]};
+  if(!Array.isArray(state.problemState[k].attempts))state.problemState[k].attempts=[];
+  return state.problemState[k];}
 
 // ══════════════════════════════════════════════
 // SIMULATION REGISTRY
@@ -22192,6 +22197,15 @@ document.addEventListener('keydown',function(e){
 }, false);;
 window.upInp=(si,v)=>{getPS(state.chapter,state.section).inputs[si]=v;};
 window.showHint=(si)=>{const ps=getPS(state.chapter,state.section);ps.hints[si]=true;state.xp=Math.max(0,state.xp-5);render();};
+// Accepts the forms a student actually types for a power of ten:
+//   3.2e-16 · 3.2E-16 · 3.2*10^-16 · 3.2x10^-16 · 3.2×10^-16 · 10^-16
+function _numIn(s){
+  let t=String(s==null?'':s).replace(/,/g,'.').replace(/\s+/g,'');
+  t=t.replace(/[×xX*·]10\^?/g,'e');   // 3.2×10^-16 / 3.2*10^-16 -> 3.2e-16
+  t=t.replace(/^10\^/,'1e');          // a bare 10^-16 -> 1e-16
+  t=t.replace(/[^0-9.eE+\-]/g,'');    // now safe: the exponent survives
+  return parseFloat(t);
+}
 window.chkStep=(si)=>{
   const ps=getPS(state.chapter,state.section);
   const content=CONTENT[`${state.chapter}.${state.section}`];
@@ -22202,14 +22216,24 @@ window.chkStep=(si)=>{
     if(ok){ps.solved[si]=true;ps.feedback[si]='correct';ps.idx=Math.max(ps.idx,si+1);if(ps.idx>=content.problem.steps.length){ps.done=true;markCompleted(state.chapter,state.section,'problem',150);}else render();}
     else{ps.feedback[si]='❌ לא נכון. נסה שוב.';render();}return;
   }
-  const num=parseFloat(inp.replace(',','.').replace(/[^0-9.\-]/g,''));
+  // The old sanitiser kept only [0-9.-], which DELETED the 'e' of an exponent:
+  // "3.2e-16" became "3.2-16" and parsed as 3.2, "2e10" became 210. Twelve
+  // steps have answers in scientific notation — all of electrostatics and part
+  // of modern optics — and none of them could be answered correctly.
+  const num=_numIn(inp);
   const ans=parseFloat(step.answer);
   const tol=step.tolerance||0;
   const ok=isNaN(ans)?inp.toLowerCase().includes(step.answer.toLowerCase()):Math.abs(num-ans)<=Math.max(tol,Math.abs(ans)*.04+.01);
-  if(ok){ps.solved[si]=true;ps.feedback[si]='correct';ps.idx=Math.max(ps.idx,si+1);if(ps.idx>=content.problem.steps.length){ps.done=true;markCompleted(state.chapter,state.section,'problem',150);}else render();}
-  else{ps.attempts=(ps.attempts||0)+1;if(ps.attempts>=3){ps.feedback[si]=`❌ נסיון ${ps.attempts}. רמז: ${step.hint}`;ps.hints[si]=true;}else ps.feedback[si]=`❌ לא מדויק (נסיון ${ps.attempts}/3). נסה שוב.`;render();}
+  if(ok){ps.attempts[si]=0;ps.solved[si]=true;ps.feedback[si]='correct';ps.idx=Math.max(ps.idx,si+1);if(ps.idx>=content.problem.steps.length){ps.done=true;markCompleted(state.chapter,state.section,'problem',150);}else render();}
+  else{
+    // Per step: a stumble on an earlier step must not hand out this step's hint,
+    // and solving a step clears its own tally.
+    const a=(ps.attempts[si]||0)+1; ps.attempts[si]=a;
+    if(a>=3){ps.feedback[si]=`❌ נסיון ${a}. רמז: ${step.hint}`;ps.hints[si]=true;}
+    else ps.feedback[si]=`❌ לא מדויק (נסיון ${a}/3). נסה שוב.`;
+    render();}
 };
-window.resetProblem=()=>{state.problemState[`${state.chapter}.${state.section}`]={idx:0,inputs:[],solved:[],hints:[],feedback:[],done:false,attempts:0};render();};
+window.resetProblem=()=>{state.problemState[`${state.chapter}.${state.section}`]={idx:0,inputs:[],solved:[],hints:[],feedback:[],done:false,attempts:[]};render();};
 
 // ── BOOTSTRAP ────────────────────────────────────────
 
