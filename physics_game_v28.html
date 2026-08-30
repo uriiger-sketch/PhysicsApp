@@ -4939,6 +4939,15 @@ function quizView(q){
   _qvCache.set(key,v);
   return v;
 }
+// ── Two-tier hints ──────────────────────────────────────────────────────────
+// ps.hints[si] is a LEVEL, not a boolean: 0 none, 1 nudge, 2 worked solution.
+// Old saved progress stored `true`; treat that as level 2 so a learner who had
+// already revealed a hint sees no regression.
+function hintLvl(ps,si){var v=ps.hints[si];return v===true?2:(v||0);}
+// A step with no `nudge` tops out at level 1 and shows its `hint` on the first
+// press — today's behaviour — so steps can be converted one chapter at a time.
+function hintMax(step){return (step&&step.nudge)?2:1;}
+
 // attempts is an ARRAY, one entry per step. It used to be a single counter for
 // the whole problem that was never reset, so three misses anywhere caused every
 // later step to reveal its hint on the learner's first wrong answer.
@@ -22095,14 +22104,20 @@ function buildProblem(prob){
   const ps=getPS(state.chapter,state.section);
   if(ps.done)return`<div class="done-banner"><div class="big-icon trophy-anim">🎓</div><h2>בעיה הושלמה!</h2><p>כל השלבים נפתרו!</p><button class="btn btn-secondary" onclick="resetProblem()" style="margin-top:14px">🔄 פתור שוב</button></div>`;
   const steps=prob.steps.map((st2,si)=>{
-    const locked=si>ps.idx,solved=ps.solved[si],inp=ps.inputs[si]||'',fb=ps.feedback[si],hint=ps.hints[si];
+    const locked=si>ps.idx,solved=ps.solved[si],inp=ps.inputs[si]||'',fb=ps.feedback[si];
+    const lvl=hintLvl(ps,si), maxLvl=hintMax(st2);
+    // level 1 shows the nudge (or, for a step without one, the hint itself);
+    // level 2 adds the worked hint below it.
+    const tier1=st2.nudge||st2.hint, showBtn=!locked&&lvl<maxLvl;
+    const hintHTML=(lvl>=1?`<div class="hint-box">💡 ${tier1}</div>`:'')
+                 +(lvl>=2&&st2.nudge?`<div class="hint-box">✏️ ${st2.hint}</div>`:'');
     return`<div class="step-card${locked?' locked-step':''}${solved?' solved':''}">
       <div class="step-hdr"><div class="step-num${solved?' done':''}">${solved?'✓':si+1}</div><div class="step-q">${st2.q}</div></div>
-      ${!solved?`${hint?`<div class="hint-box">💡 ${st2.hint}</div>`:''}
+      ${!solved?`${hintHTML}
         <div class="step-inp-row">
           <input class="step-inp${fb==='correct'?' ok':fb?' err':''}" type="text" id="si${si}" value="${inp}" placeholder="תשובה..." oninput="upInp(${si},this.value)" onkeydown="if(event.key==='Enter')chkStep(${si})" ${locked?'disabled':''}>
           ${st2.unit?`<span class="unit-lbl">${st2.unit}</span>`:''}
-          ${!locked&&!hint?`<button class="hint-btn" onclick="showHint(${si})">💡 רמז</button>`:''}
+          ${showBtn?`<button class="hint-btn" onclick="showHint(${si})">${lvl===0?'💡 רמז':'✏️ פתרון מלא'} (−5 XP)</button>`:''}
           ${!locked?`<button class="btn btn-primary" style="padding:7px 14px" onclick="chkStep(${si})">בדוק</button>`:''}
         </div>
         ${fb&&fb!=='correct'?`<div class="step-fb err">${fb}</div>`:''}`
@@ -22196,7 +22211,13 @@ document.addEventListener('keydown',function(e){
   }
 }, false);;
 window.upInp=(si,v)=>{getPS(state.chapter,state.section).inputs[si]=v;};
-window.showHint=(si)=>{const ps=getPS(state.chapter,state.section);ps.hints[si]=true;state.xp=Math.max(0,state.xp-5);render();};
+window.showHint=(si)=>{
+  const ps=getPS(state.chapter,state.section);
+  const step=CONTENT[`${state.chapter}.${state.section}`].problem.steps[si];
+  const lvl=hintLvl(ps,si);
+  if(lvl>=hintMax(step))return;
+  ps.hints[si]=lvl+1; state.xp=Math.max(0,state.xp-5); render();
+};
 // Accepts the forms a student actually types for a power of ten:
 //   3.2e-16 · 3.2E-16 · 3.2*10^-16 · 3.2x10^-16 · 3.2×10^-16 · 10^-16
 function _numIn(s){
@@ -22229,7 +22250,7 @@ window.chkStep=(si)=>{
     // Per step: a stumble on an earlier step must not hand out this step's hint,
     // and solving a step clears its own tally.
     const a=(ps.attempts[si]||0)+1; ps.attempts[si]=a;
-    if(a>=3){ps.feedback[si]=`❌ נסיון ${a}. רמז: ${step.hint}`;ps.hints[si]=true;}
+    if(a>=3){ps.feedback[si]=`❌ נסיון ${a}. רמז: ${step.hint}`;ps.hints[si]=2;}
     else ps.feedback[si]=`❌ לא מדויק (נסיון ${a}/3). נסה שוב.`;
     render();}
 };
