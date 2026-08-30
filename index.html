@@ -46,6 +46,13 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 .sec-dot{width:7px;height:7px;border-radius:50%;background:var(--border);border:1.5px solid var(--muted);flex-shrink:0;transition:all .2s;}
 .sec-dot.done{background:var(--green);border-color:var(--green);}
 .sec-dot.active{background:var(--accent);border-color:var(--accent);}
+/* sections carrying a phone-sensor experiment */
+.sec-lab{margin-inline-start:auto;font-size:.72rem;line-height:1;opacity:.85;flex-shrink:0;
+  filter:saturate(1.2);}
+.sec-btn.active .sec-lab{opacity:1;}
+.lab-flag{display:inline-flex;align-items:center;gap:6px;margin:10px 0 0;padding:7px 12px;
+  border-radius:9px;font-size:.8rem;font-weight:600;color:var(--accent2);
+  background:rgba(6,182,212,.10);border:1px solid var(--accent2);}
 
 /* MAIN */
 .main{flex:1;padding:28px 32px;max-width:920px;overflow-y:auto;}
@@ -1056,7 +1063,7 @@ const MECH_CHAPTERS=[
     {id:'spring-force',title:'כוח הקפיץ',sub:'חוק הוק F=-kx'},
   ]},
   {id:'statics',icon:'⚖️',title:'פרק ה: מומנטים ושיווי משקל',sections:[
-    {id:'torque',title:'רגע כוח',sub:'τ = F·d, זרוע המומנט, כיוון הסיבוב'},
+    {id:'torque',title:'מומנט כוח',sub:'τ = F·d, זרוע המומנט, כיוון הסיבוב'},
     {id:'equilibrium',title:'שיווי משקל של גוף קשיח',sub:'ΣF=0 וגם Στ=0, כוחות משען'},
     {id:'center-mass',title:'מרכז מסה ויציבות',sub:'x_cm, מתי גוף מתהפך ומתי מחליק'},
   ]},
@@ -3481,11 +3488,11 @@ const CONTENT={
 },
 'statics.torque':{
   theory:{
-    title:'רגע כוח',
+    title:'מומנט כוח',
     html:`
       <p>עד כה שאלנו רק <b>לאן</b> כוח מזיז גוף. אבל אותו כוח בדיוק, מופעל במקום אחר, יכול גם <b>לסובב</b> אותו — ודלת נפתחת בקלות מהידית ובקושי רב ליד הצירים, אף שהכוח זהה.</p>
-      <div class="def-block"><div class="def-title">רגע כוח (מומנט)</div><p>מידת יכולתו של כוח לסובב גוף סביב ציר נתון. תלוי בגודל הכוח, במרחק מהציר, <b>ובכיוון הכוח</b>.</p></div>
-      ${fBox('\\tau = r\\,F\\sin\\theta = F\\cdot d','רגע כוח',[['\\tau','רגע הכוח','N·m'],['r','המרחק מהציר לנקודת ההפעלה','m'],['F','גודל הכוח','N'],['\\theta','הזווית בין '+'r'+' לכוח','°'],['d','זרוע המומנט','m']])}
+      <div class="def-block"><div class="def-title">מומנט כוח</div><p>מידת יכולתו של כוח לסובב גוף סביב ציר נתון. תלוי בגודל הכוח, במרחק מהציר, <b>ובכיוון הכוח</b>.</p></div>
+      ${fBox('\\tau = r\\,F\\sin\\theta = F\\cdot d','מומנט כוח',[['\\tau','מומנט הכוח','N·m'],['r','המרחק מהציר לנקודת ההפעלה','m'],['F','גודל הכוח','N'],['\\theta','הזווית בין '+'r'+' לכוח','°'],['d','זרוע המומנט','m']])}
       <p><b>זרוע המומנט</b> 
       <b>d = r·sinθ</b> היא המרחק ה<b>ניצב</b> מהציר אל <b>קו הפעולה</b> של הכוח — לא אל נקודת ההפעלה. זו ההגדרה השימושית: מאריכים את חץ הכוח לשני הכיוונים, ומודדים ממנו אנך אל הציר.</p>
       <div class="theory-anim">${animCanvas('anim-torque-arm',180,'אותו כוח, אותו מרחק — רק הזווית משתנה. הזרוע d היא האנך אל קו הפעולה')}</div>
@@ -3493,40 +3500,40 @@ const CONTENT={
       <div class="ex-block"><div class="ex-title">✏️ דוגמה פתורה — מפתח ברגים</div>
       <p>מפעילים כוח F=40 N בקצה מפתח באורך r=0.25 m, בזווית θ=60° לידית.</p>
       <p><b>1. זרוע המומנט:</b> d = r·sin60° = 0.25 × 0.866 = 0.217 m — קטנה מ-0.25 m, כי הכוח אינו ניצב.<br>
-      <b>2. הרגע:</b> τ = F·d = 40 × 0.217 = <b>8.66 N·m</b>.<br>
-      <b>3. מה היה קורה ב-90°?</b> d = 0.25 m ו-τ = 10 N·m — הרגע המרבי האפשרי לכוח ולמרחק האלה.<br>
-      <b>הלקח:</b> אותו כוח, אותו מרחק, ורגע קטן ב-13% — רק בגלל הזווית. לכן מושכים מפתח ברגים ניצב לידית.</p></div>
+      <b>2. המומנט:</b> τ = F·d = 40 × 0.217 = <b>8.66 N·m</b>.<br>
+      <b>3. מה היה קורה ב-90°?</b> d = 0.25 m ו-τ = 10 N·m — המומנט המרבי האפשרי לכוח ולמרחק האלה.<br>
+      <b>הלקח:</b> אותו כוח, אותו מרחק, ומומנט קטן ב-13% — רק בגלל הזווית. לכן מושכים מפתח ברגים ניצב לידית.</p></div>
       <div class="mis-block"><b>⚠️ טעות נפוצה:</b> "כוח גדול יותר תמיד מסובב יותר". לא — כוח שקו הפעולה שלו <b>עובר דרך הציר</b> נותן 
-      ${M('d=0')} ולכן רגע אפס, יהיה גדול ככל שיהיה. דחיפת דלת בדיוק לכיוון הציר לא תפתח אותה לעולם, גם בכל הכוח.</div>
+      ${M('d=0')} ולכן מומנט אפס, יהיה גדול ככל שיהיה. דחיפת דלת בדיוק לכיוון הציר לא תפתח אותה לעולם, גם בכל הכוח.</div>
       <div class="mis-block"><b>⚠️ טעות נפוצה שנייה:</b> להשתמש ב-r במקום ב-d. 
       ${M('r')} הוא המרחק לנקודת ההפעלה; ${M('d')} הוא המרחק לקו הפעולה. הם שווים רק כשהכוח ניצב.</div>`,
-    enrich:{title:'למה ידית הדלת רחוקה מהציר?',html:`<p>ידית במרחק 80 ס״מ מהצירים דורשת כוח קטן פי שמונה מידית במרחק 10 ס״מ — לאותו רגע בדיוק. אותו רעיון מסביר את אורכו של מפתח צנרת, את הגלגל של ההגה, ואת הסיבה שבורג תקוע נכנע ל"מאריך" על הידית. ארכימדס ניסח זאת בחדות: "תנו לי נקודת משען, ואניע את העולם".</p>`},
+    enrich:{title:'למה ידית הדלת רחוקה מהציר?',html:`<p>ידית במרחק 80 ס״מ מהצירים דורשת כוח קטן פי שמונה מידית במרחק 10 ס״מ — לאותו מומנט בדיוק. אותו רעיון מסביר את אורכו של מפתח צנרת, את הגלגל של ההגה, ואת הסיבה שבורג תקוע נכנע ל"מאריך" על הידית. ארכימדס ניסח זאת בחדות: "תנו לי נקודת משען, ואניע את העולם".</p>`},
   },
   sim:{type:'statics-torque',desc:'גררו את נקודת ההפעלה לאורך המוט ואת קצה החץ כדי לשנות את הזווית. הקו המקווקו הוא זרוע המומנט d — האנך מהציר אל קו הפעולה. שימו לב מתי τ מתאפס.'},
-  example:{title:'רגע כוח על מוט',text:'מוט מחובר לציר. כוח F=30 N מופעל במרחק r=0.40 m מהציר.',steps:[
-    {q:'הכוח ניצב למוט. מה הרגע?',a:'θ=90° ⇒ d=r=0.40 m ⇒ τ=30×0.40=12 N·m'},
-    {q:'עכשיו הכוח בזווית 30° למוט. מה הרגע?',a:'d=0.40×sin30°=0.20 m ⇒ τ=30×0.20=6 N·m — מחצית, אף שהכוח לא השתנה'},
+  example:{title:'מומנט כוח על מוט',text:'מוט מחובר לציר. כוח F=30 N מופעל במרחק r=0.40 m מהציר.',steps:[
+    {q:'הכוח ניצב למוט. מה המומנט?',a:'θ=90° ⇒ d=r=0.40 m ⇒ τ=30×0.40=12 N·m'},
+    {q:'עכשיו הכוח בזווית 30° למוט. מה המומנט?',a:'d=0.40×sin30°=0.20 m ⇒ τ=30×0.20=6 N·m — מחצית, אף שהכוח לא השתנה'},
     {q:'ואם הכוח מכוון בדיוק לאורך המוט?',a:'θ=0 ⇒ sinθ=0 ⇒ d=0 ⇒ τ=0. קו הפעולה עובר דרך הציר, ואין סיבוב כלל.'},
   ]},
   quiz:[
-    {q:'כוח 20 N מופעל ניצב למוט, במרחק 0.3 m מהציר. הרגע הוא:',
+    {q:'כוח 20 N מופעל ניצב למוט, במרחק 0.3 m מהציר. המומנט הוא:',
      opts:['6 N·m','60 N·m','0.015 N·m','20 N·m'],correct:0,
      explain:tex('\\tau = F\\cdot d = 20\\times0.3 = 6\\,\\text{N·m}')+'. כשהכוח ניצב, זרוע המומנט שווה למרחק עצמו.'},
-    {q:'מכפילים את המרחק מהציר ומשאירים את הכוח. הרגע:',
+    {q:'מכפילים את המרחק מהציר ומשאירים את הכוח. המומנט:',
      opts:['גדל פי 2','גדל פי 4','אינו משתנה','קטן פי 2'],correct:0,
      explain:tex('\\tau \\propto r')+' — תלות <b>ליניארית</b>, בניגוד לחוקי ריבוע הפוך שפגשנו בכבידה ובקולומב. לכן מפתח כפול באורכו חוסך בדיוק מחצית מהכוח.'},
-    {q:'כוח שקו הפעולה שלו עובר דרך ציר הסיבוב יוצר רגע:',
+    {q:'כוח שקו הפעולה שלו עובר דרך ציר הסיבוב יוצר מומנט:',
      opts:['מרבי','אפס','שווה ל-F·r','תלוי בגודל הכוח'],correct:1,
      explain:'אפס, ולא משנה כמה הכוח גדול: '+tex('d=0')+' כי המרחק הניצב מהציר אל קו הפעולה מתאפס. זו הסיבה שדחיפת דלת לכיוון הצירים לא תפתח אותה.'},
     {q:'זרוע המומנט '+tex('d')+' מוגדרת כמרחק מהציר אל:',
      opts:['נקודת הפעלת הכוח','קו הפעולה של הכוח, במאונך','מרכז המסה','קצה הגוף'],correct:1,
      explain:'אל <b>קו הפעולה</b>, ובמאונך. '+tex('d=r\\sin\\theta')+' שווה ל-'+tex('r')+' רק במקרה הפרטי שהכוח ניצב. בלבול בין השניים הוא מקור הטעויות השכיח ביותר בנושא.'},
-    {q:'על מוט פועלים 10 N במרחק 0.4 m (נגד כיוון השעון) ו-20 N במרחק 0.2 m (עם כיוון השעון), שניהם ניצבים. הרגע השקול:',
+    {q:'על מוט פועלים 10 N במרחק 0.4 m (נגד כיוון השעון) ו-20 N במרחק 0.2 m (עם כיוון השעון), שניהם ניצבים. המומנט השקול:',
      opts:['+4 N·m','−4 N·m','0','+8 N·m'],correct:2,
-     explain:tex('+10\\times0.4 - 20\\times0.2 = 4-4 = 0')+' — שני הרגעים מתקזזים והמוט אינו מתחיל להסתובב. שימו לב שסכום ה<b>כוחות</b> כאן דווקא אינו אפס.'},
-    {q:'אותו כוח ואותו מרחק, פעם בזווית 90° ופעם בזווית 30°. יחס הרגעים הוא:',
+     explain:tex('+10\\times0.4 - 20\\times0.2 = 4-4 = 0')+' — שני המומנטים מתקזזים והמוט אינו מתחיל להסתובב. שימו לב שסכום ה<b>כוחות</b> כאן דווקא אינו אפס.'},
+    {q:'אותו כוח ואותו מרחק, פעם בזווית 90° ופעם בזווית 30°. יחס המומנטים הוא:',
      opts:['1 : 1','2 : 1','3 : 1','1 : 2'],correct:1,
-     explain:tex('\\sin90°/\\sin30° = 1/0.5 = 2')+' — הרגע בזווית ישרה כפול. זו הסיבה שתמיד מושכים מפתח ברגים ניצב לידית ולא באלכסון.'},
+     explain:tex('\\sin90°/\\sin30° = 1/0.5 = 2')+' — המומנט בזווית ישרה כפול. זו הסיבה שתמיד מושכים מפתח ברגים ניצב לידית ולא באלכסון.'},
   ],
   problem:{
     title:'מפתח ברגים',
@@ -3535,13 +3542,13 @@ const CONTENT={
       {q:'מהי זרוע המומנט '+tex('d')+'?',
        nudge:'זרוע המומנט היא המרחק ה<b>ניצב</b> מהציר אל קו הפעולה. שרטטו את המשולש ישר-הזווית שבו '+tex('r')+' הוא היתר.',
        hint:tex('d = r\\sin\\theta = 0.30\\times\\sin30°'),answer:'0.15',unit:'m',tolerance:0.005,
-       explain:tex('d = r\\sin\\theta = 0.30\\times0.5 = 0.15\\,\\text{m}')+' — מחצית מהמרחק לנקודת ההפעלה, כי הזווית 30°. שימו לב שאילו הצבתם 0.30 היה יוצא רגע כפול מהאמיתי.'},
-      {q:'מהו רגע הכוח '+tex('\\tau')+' על הבורג?',
-       nudge:'רגע הוא כוח כפול זרוע. יש לכם את שניהם.',
+       explain:tex('d = r\\sin\\theta = 0.30\\times0.5 = 0.15\\,\\text{m}')+' — מחצית מהמרחק לנקודת ההפעלה, כי הזווית 30°. שימו לב שאילו הצבתם 0.30 היה יוצא מומנט כפול מהאמיתי.'},
+      {q:'מהו מומנט הכוח '+tex('\\tau')+' על הבורג?',
+       nudge:'מומנט הוא כוח כפול זרוע. יש לכם את שניהם.',
        hint:tex('\\tau = F\\cdot d = 50\\times0.15'),answer:'7.5',unit:'N·m',tolerance:0.1,
        explain:tex('\\tau = 50\\times0.15 = 7.5\\,\\text{N·m}')+'. אילו היה הכוח ניצב לידית היינו מקבלים '+tex('50\\times0.30=15\\,\\text{N·m}')+' — פי שניים, מאותו כוח בדיוק.'},
-      {q:'איזה כוח '+tex('F')+' היה נדרש כדי לקבל את אותו רגע, אילו הופעל <b>ניצב</b> לידית?',
-       nudge:'בזווית ישרה הזרוע שווה למרחק המלא. הציבו את הרגע שכבר חישבתם ובודדו את הכוח.',
+      {q:'איזה כוח '+tex('F')+' היה נדרש כדי לקבל את אותו מומנט, אילו הופעל <b>ניצב</b> לידית?',
+       nudge:'בזווית ישרה הזרוע שווה למרחק המלא. הציבו את המומנט שכבר חישבתם ובודדו את הכוח.',
        hint:tex('F = \\tau/r = 7.5/0.30'),answer:'25',unit:'N',tolerance:0.5,
        explain:tex('F = \\tau/r = 7.5/0.30 = 25\\,\\text{N}')+' — מחצית מהכוח המקורי. זהו כל הרעיון של "למשוך נכון": הכיוון חוסך כוח בדיוק כמו שהארכת הידית חוסכת אותו.'},
     ]},
@@ -3555,7 +3562,7 @@ const CONTENT={
       <div class="def-block"><div class="def-title">שני תנאי שיווי המשקל</div><p>גוף קשיח נמצא בשיווי משקל אם ורק אם <b>שניהם</b> מתקיימים:<br>
       <b>1. ${M('\\Sigma \\vec F = 0')}</b> — אינו מתחיל לנוע (שיווי משקל של הזזה).<br>
       <b>2. ${M('\\Sigma \\tau = 0')}</b> — אינו מתחיל להסתובב (שיווי משקל של סיבוב).</p></div>
-      <div class="theory-anim">${animCanvas('anim-eq-couple',175,'זוג כוחות: הסכום אפס — והגוף בכל זאת מסתובב')}</div>
+      <div class="theory-anim">${animCanvas('anim-eq-couple',200,'זוג כוחות: הסכום אפס — והגוף בכל זאת מסתובב')}</div>
       <p><b>הכלי החזק ביותר בנושא:</b> כשהגוף בשיווי משקל, ${M('\\Sigma\\tau=0')} סביב <b>כל</b> ציר שנבחר — לא רק סביב ציר אמיתי. לכן בוחרים את הציר במקום החכם ביותר: <b>על אחד הכוחות הלא-ידועים</b>, וכך הוא נעלם מהמשוואה ונשאר נעלם אחד בלבד.</p>
       <div class="ex-block"><div class="ex-title">✏️ דוגמה פתורה — קורה על שני משענים</div>
       <p>קורה אחידה באורך 4 m ומשקל 200 N מונחת על שני משענים, A בקצה השמאלי (x=0) ו-B בקצה הימני (x=4 m). מניחים עומס 300 N בנקודה x=3 m. מה כוחות המשען?</p>
@@ -3563,17 +3570,17 @@ const CONTENT={
       <b>2. בוחרים ציר ב-A</b> — וכך ${M('N_A')} נעלם (זרועו אפס):<br>
       ${M('N_B\\cdot 4 = 200\\cdot 2 + 300\\cdot 3 = 400+900 = 1300')}<br>
       <b>3.</b> ${M('N_B = 1300/4 = 325\\,\\text{N}')}, ולכן ${M('N_A = 500-325 = 175\\,\\text{N}')}.<br>
-      <b>4. בדיקה:</b> רגעים סביב B: ${M('175\\cdot4 = 700')} מול ${M('200\\cdot2+300\\cdot1 = 700')} ✓. הציר האחר נותן את אותה תשובה — כפי שהוא חייב.<br>
+      <b>4. בדיקה:</b> מומנטים סביב B: ${M('175\\cdot4 = 700')} מול ${M('200\\cdot2+300\\cdot1 = 700')} ✓. הציר האחר נותן את אותה תשובה — כפי שהוא חייב.<br>
       <b>הלקח:</b> משקל הקורה פועל במרכזה, והעומס קרוב יותר ל-B — ולכן B נושא יותר.</p></div>
-      <div class="mis-block"><b>⚠️ טעות נפוצה:</b> "מותר לקחת רגעים רק סביב ציר אמיתי". לא. בשיווי משקל סכום הרגעים אפס סביב כל נקודה במרחב, גם נקודה מחוץ לגוף. זהו חופש בחירה, ובו כל הכוח של השיטה.</div>
+      <div class="mis-block"><b>⚠️ טעות נפוצה:</b> "מותר לקחת מומנטים רק סביב ציר אמיתי". לא. בשיווי משקל סכום המומנטים אפס סביב כל נקודה במרחב, גם נקודה מחוץ לגוף. זהו חופש בחירה, ובו כל הכוח של השיטה.</div>
       <div class="mis-block"><b>⚠️ טעות נפוצה שנייה:</b> לשכוח את משקל הקורה עצמה. גוף אחיד נחשב כאילו כל משקלו מרוכז ב<b>מרכזו</b>, וזרועו נמדדת משם.</div>`,
     enrich:{title:'למה מנוף עובד',html:`<p>מנוף בניין מחזיק עשרות טונות בקצה זרוע ארוכה — ואינו מתהפך, כי בקצה הנגדי יושבת מסת נגד על זרוע קצרה. המכפלה ${M('F\\cdot d')} משני הצדדים שווה. אותו חשבון בדיוק קובע היכן ילד כבד ישב על נדנדה כדי לאזן ילד קל, ומדוע משאית עם עומס לא מאוזן מתהפכת בפנייה.</p>`},
   },
-  sim:{type:'statics-beam',desc:'גררו את העומס לאורך הקורה ושנו את מיקום המשען הימני. חצי כוחות המשען מתעדכנים בזמן אמת, ומשוואת הרגעים סביב A מוצגת במלואה. הזיזו את העומס אל מעבר למשען וראו מה קורה כשכוח משען יוצא שלילי.'},
+  sim:{type:'statics-beam',desc:'גררו את העומס לאורך הקורה ושנו את מיקום המשען הימני. חצי כוחות המשען מתעדכנים בזמן אמת, ומשוואת המומנטים סביב A מוצגת במלואה. הזיזו את העומס אל מעבר למשען וראו מה קורה כשכוח משען יוצא שלילי.'},
   example:{title:'נדנדה',text:'ילד במשקל 300 N יושב 1.2 m משמאל לציר הנדנדה.',steps:[
-    {q:'מה הרגע שהוא מפעיל?',a:'τ=300×1.2=360 N·m נגד כיוון השעון'},
+    {q:'מה המומנט שהוא מפעיל?',a:'τ=300×1.2=360 N·m נגד כיוון השעון'},
     {q:'ילדה במשקל 450 N רוצה לאזן. באיזה מרחק תשב?',a:'450·d=360 ⇒ d=0.8 m מימין לציר — קרוב יותר, כי היא כבדה יותר'},
-    {q:'מה כוח המשען מהציר?',a:'ΣF=0 ⇒ N=300+450=750 N כלפי מעלה. שימו לב שהוא לא נכנס למשוואת הרגעים — זרועו סביב הציר היא אפס.'},
+    {q:'מה כוח המשען מהציר?',a:'ΣF=0 ⇒ N=300+450=750 N כלפי מעלה. שימו לב שהוא לא נכנס למשוואת המומנטים — זרועו סביב הציר היא אפס.'},
   ]},
   quiz:[
     {q:'גוף קשיח בשיווי משקל מקיים:',
@@ -3581,17 +3588,17 @@ const CONTENT={
      explain:'שניהם. '+tex('\\Sigma F=0')+' מונע התחלת תנועה, '+tex('\\Sigma\\tau=0')+' מונע התחלת סיבוב. גוף יכול לקיים את הראשון ולהפר את השני — וזה בדיוק מה שעושה זוג כוחות.'},
     {q:'שני כוחות שווים בגודלם והפוכים בכיוונם, הפועלים בקווי פעולה שונים ("זוג כוחות"):',
      opts:['משאירים את הגוף בשיווי משקל','מסובבים את הגוף בלי להזיז את מרכזו','מזיזים את הגוף בלי לסובבו','מבטלים זה את זה לגמרי'],correct:1,
-     explain:'סכום הכוחות אפס, ולכן מרכז המסה אינו מאיץ — אבל סכום הרגעים אינו אפס והגוף מתחיל להסתובב. זו ההוכחה שהתנאי הראשון לבדו אינו מספיק.'},
-    {q:'בחישוב רגעים לגוף בשיווי משקל, את הציר מותר לבחור:',
+     explain:'סכום הכוחות אפס, ולכן מרכז המסה אינו מאיץ — אבל סכום המומנטים אינו אפס והגוף מתחיל להסתובב. זו ההוכחה שהתנאי הראשון לבדו אינו מספיק.'},
+    {q:'בחישוב מומנטים לגוף בשיווי משקל, את הציר מותר לבחור:',
      opts:['רק בציר סיבוב פיזי','רק במרכז המסה','בכל נקודה שנוחה לנו','רק בקצה הגוף'],correct:2,
-     explain:'בכל נקודה — גם מחוץ לגוף. בשיווי משקל סכום הרגעים מתאפס סביב כולן. בוחרים לרוב נקודה שעל אחד הנעלמים, כדי שזרועו תתאפס והוא ייעלם מהמשוואה.'},
+     explain:'בכל נקודה — גם מחוץ לגוף. בשיווי משקל סכום המומנטים מתאפס סביב כולן. בוחרים לרוב נקודה שעל אחד הנעלמים, כדי שזרועו תתאפס והוא ייעלם מהמשוואה.'},
     {q:'קורה אחידה באורך 4 m ומשקל 200 N נשענת על שני משענים בקצותיה. כוח כל משען:',
      opts:['200 N','100 N','50 N','400 N'],correct:1,
      explain:'הסימטריה מכריעה: המשקל פועל במרכז, במרחק שווה משני המשענים, ולכן כל אחד נושא '+tex('200/2 = 100\\,\\text{N}')+'.'},
     {q:'מזיזים עומס על קורה קרוב יותר למשען הימני. כוח המשען הימני:',
      opts:['גדל','קטן','אינו משתנה','מתאפס'],correct:0,
      explain:'המשען הקרוב לעומס נושא יותר. בגבול, כשהעומס יושב בדיוק מעל המשען הימני, הוא נושא את כולו והשמאלי אינו נושא ממנו דבר.'},
-    {q:'בחישוב רגעים על קורה אחידה, את משקל הקורה מציבים:',
+    {q:'בחישוב מומנטים על קורה אחידה, את משקל הקורה מציבים:',
      opts:['בקצה הקורה','במרכז הקורה','במשען','מתעלמים ממנו'],correct:1,
      explain:'במרכז. לגוף אחיד מרכז המסה נמצא במרכזו הגאומטרי, וכל המשקל שקול לכוח יחיד הפועל שם. השמטתו היא הטעות השכיחה ביותר בבעיות קורה.'},
   ],
@@ -3602,15 +3609,15 @@ const CONTENT={
       {q:'מהו סכום הכוחות כלפי מעלה '+tex('N_A+N_B')+' שהמשענים מספקים?',
        nudge:'התנאי הראשון של שיווי משקל: סכום הכוחות אפס. מה סך הכוחות כלפי מטה?',
        hint:tex('N_A+N_B = 200+300'),answer:'500',unit:'N',tolerance:1,
-       explain:tex('N_A+N_B = W_{\\text{קורה}}+P = 200+300 = 500\\,\\text{N}')+'. משוואה זו לבדה אינה מספיקה — יש בה שני נעלמים, ולכן דרוש גם תנאי הרגעים.'},
-      {q:'קחו רגעים סביב '+tex('A')+' ומצאו את '+tex('N_B')+'.',
+       explain:tex('N_A+N_B = W_{\\text{קורה}}+P = 200+300 = 500\\,\\text{N}')+'. משוואה זו לבדה אינה מספיקה — יש בה שני נעלמים, ולכן דרוש גם תנאי המומנטים.'},
+      {q:'קחו מומנטים סביב '+tex('A')+' ומצאו את '+tex('N_B')+'.',
        nudge:'הציר ב-A נבחר בכוונה: זרועו של '+tex('N_A')+' שם היא אפס, והוא נעלם מהמשוואה. משקל הקורה פועל במרכזה.',
        hint:tex('N_B\\cdot4 = 200\\cdot2 + 300\\cdot3'),answer:'325',unit:'N',tolerance:2,
        explain:tex('N_B = (400+900)/4 = 1300/4 = 325\\,\\text{N}')+'. שימו לב שמשקל הקורה נכנס עם זרוע 2 m — מרכזה — ולא עם 4 m.'},
       {q:'ומהו '+tex('N_A')+'?',
        nudge:'חזרו למשוואת הכוחות מהשלב הראשון, שבה נשאר עכשיו נעלם אחד בלבד.',
        hint:tex('N_A = 500 - 325'),answer:'175',unit:'N',tolerance:2,
-       explain:tex('N_A = 500-325 = 175\\,\\text{N}')+'. בדיקה עצמאית: רגעים סביב B נותנים '+tex('175\\cdot4 = 700')+' מול '+tex('200\\cdot2+300\\cdot1 = 700')+' ✓. שני הצירים חייבים להסכים, וזו הבדיקה הטובה ביותר לתשובה.'},
+       explain:tex('N_A = 500-325 = 175\\,\\text{N}')+'. בדיקה עצמאית: מומנטים סביב B נותנים '+tex('175\\cdot4 = 700')+' מול '+tex('200\\cdot2+300\\cdot1 = 700')+' ✓. שני הצירים חייבים להסכים, וזו הבדיקה הטובה ביותר לתשובה.'},
     ]},
 },
 
@@ -3620,7 +3627,7 @@ const CONTENT={
     html:`
       <p>כשזרקנו גוף באוויר התייחסנו אליו כנקודה. עכשיו אפשר לומר במדויק <b>איזו</b> נקודה: מרכז המסה הוא הנקודה שנעה כאילו כל המסה מרוכזת בה וכל הכוחות פועלים עליה. פטיש שנזרק מסתחרר בפראות — ומרכז המסה שלו מצייר פרבולה מושלמת.</p>
       ${fBox('x_{cm} = \\dfrac{\\Sigma m_i x_i}{\\Sigma m_i}','מרכז מסה',[['x_{cm}','מיקום מרכז המסה','m'],['m_i','המסה '+'i','kg'],['x_i','מיקומה','m']])}
-      <div class="theory-anim">${animCanvas('anim-com-throw',185,'הגוף מסתחרר — ומרכז המסה שלו נע בפרבולה חלקה')}</div>
+      <div class="theory-anim">${animCanvas('anim-com-throw',210,'הגוף מסתחרר — ומרכז המסה שלו נע בפרבולה חלקה')}</div>
       <p>מרכז המסה נמשך תמיד אל הצד הכבד, ואינו חייב להימצא בתוך החומר כלל: מרכז המסה של טבעת נמצא בחור שבמרכזה.</p>
       <div class="def-block"><div class="def-title">תנאי היציבות</div><p>גוף עומד יציב כל עוד ה<b>אנך מטה ממרכז המסה</b> נופל בתוך <b>בסיס התמיכה</b>. ברגע שהוא יוצא ממנו — המשקל מתחיל לסובב את הגוף החוצה, והוא מתהפך.</p></div>
       <div class="ex-block"><div class="ex-title">✏️ דוגמה פתורה — מתי הקופסה תתהפך?</div>
@@ -3637,7 +3644,7 @@ const CONTENT={
   example:{title:'מרכז מסה של שתי מסות',text:'שתי מסות על מוט חסר משקל: m₁=2 kg ב-x=0 ו-m₂=6 kg ב-x=0.8 m.',steps:[
     {q:'איפה מרכז המסה?',a:'x_cm=(2·0+6·0.8)/(2+6)=4.8/8=0.6 m'},
     {q:'למה הוא קרוב ל-m₂?',a:'כי היא כבדה פי שלוש. המרחקים מתחלקים ביחס הפוך למסות: 0.6 מ-m₁ ורק 0.2 מ-m₂.'},
-    {q:'איפה יש לתמוך במוט כדי שיישאר מאוזן?',a:'בדיוק ב-x_cm=0.6 m. שם רגעי שתי המסות מתאזנים: 2·9.8·0.6 = 6·9.8·0.2.'},
+    {q:'איפה יש לתמוך במוט כדי שיישאר מאוזן?',a:'בדיוק ב-x_cm=0.6 m. שם מומנטי שתי המסות מתאזנים: 2·9.8·0.6 = 6·9.8·0.2.'},
   ]},
   quiz:[
     {q:'שתי מסות: 2 kg ב-x=0 ו-6 kg ב-x=0.8 m. מרכז המסה נמצא ב:',
@@ -3666,7 +3673,7 @@ const CONTENT={
       {q:'היכן נמצא מרכז המסה '+tex('x_{cm}')+' של שתי המסות?',
        nudge:'ממוצע משוקלל: כל מיקום נכנס עם המסה שלו כמשקל, והכל מחולק במסה הכוללת.',
        hint:tex('x_{cm} = (3\\cdot0 + 5\\cdot2.4)/(3+5)'),answer:'1.5',unit:'m',tolerance:0.05,
-       explain:tex('x_{cm} = 12/8 = 1.5\\,\\text{m}')+' — קרוב יותר ל-'+tex('m_2')+' הכבדה. בדיקה: המרחקים 1.5 ו-0.9 עומדים ביחס הפוך למסות (3:5), וזה בדיוק מה שמאזן את הרגעים.'},
+       explain:tex('x_{cm} = 12/8 = 1.5\\,\\text{m}')+' — קרוב יותר ל-'+tex('m_2')+' הכבדה. בדיקה: המרחקים 1.5 ו-0.9 עומדים ביחס הפוך למסות (3:5), וזה בדיוק מה שמאזן את המומנטים.'},
       {q:'מהי זווית ההיפוך '+tex('\\theta_{\\text{היפוך}}')+' של הקופסה על המדרון?',
        nudge:'ההיפוך מתחיל כשהאנך ממרכז המסה חוצה את הקצה התחתון. שרטטו והשוו את חצי הרוחב לחצי הגובה.',
        hint:tex('\\tan\\theta = w/h = 0.40/0.80'),answer:'26.6',unit:'°',tolerance:1,
@@ -11226,8 +11233,10 @@ function simElcDielectric(canvas){
       var cols=Math.max(1,Math.floor(sw/26));
       for(var a=0;a<cols;a++)for(var b2=0;b2<3;b2++){
         var mx=PR-sw+13+a*26, my=PT+16+b2*((PB-PT-32)/2);
-        ctx.fillStyle='#ef4444';ctx.beginPath();ctx.arc(mx,my-5,3.5,0,6.2832);ctx.fill();
-        ctx.fillStyle='#3b82f6';ctx.beginPath();ctx.arc(mx,my+5,3.5,0,6.2832);ctx.fill();
+        // the upper plate is positive, so the field points down and each dipole
+        // turns its negative end upward -- which is what weakens the field
+        ctx.fillStyle='#3b82f6';ctx.beginPath();ctx.arc(mx,my-5,3.5,0,6.2832);ctx.fill();
+        ctx.fillStyle='#ef4444';ctx.beginPath();ctx.arc(mx,my+5,3.5,0,6.2832);ctx.fill();
         ctx.strokeStyle='#64748b';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(mx,my-5);ctx.lineTo(mx,my+5);ctx.stroke();
       }
       simText(ctx,'κ = '+k.toFixed(1),PR-sw/2,PB+30,'#8b5cf6',12.5,'center',true);
@@ -11498,8 +11507,8 @@ function simStaticsTorque(canvas){
       W/2,by+24,'#dde6f0',15,'center',true);
     var maxT=0.5*60;
     simText(ctx,thd<3||thd>177?'קו הפעולה עובר דרך הציר — אין סיבוב כלל':
-      (Math.abs(thd-90)<3?'זווית ישרה: d = r, והרגע מרבי למרחק הזה':
-      'הזרוע קטנה מ-r, ולכן הרגע קטן מהמרבי ('+(F*r).toFixed(2)+' N·m)'),
+      (Math.abs(thd-90)<3?'זווית ישרה: d = r, והמומנט מרבי למרחק הזה':
+      'הזרוע קטנה מ-r, ולכן המומנט קטן מהמרבי ('+(F*r).toFixed(2)+' N·m)'),
       W/2,by+48,thd<3||thd>177?'#ef4444':(Math.abs(thd-90)<3?'#10b981':'#94a3b8'),11.5,'center',
       thd<3||thd>177||Math.abs(thd-90)<3);
     requestAnimationFrame(draw);
@@ -11567,7 +11576,7 @@ function simStaticsBeam(canvas){
       slTxt(ctx,m+' m',x,BY+88,'#475569',9.5,'center');}
     // the moment equation, term by term
     var by=H-96;
-    simText(ctx,'רגעים סביב המשען A',W/2,by-14,'#94a3b8',11.5,'center',true);
+    simText(ctx,'מומנטים סביב המשען A',W/2,by-14,'#94a3b8',11.5,'center',true);
     slTxt(ctx,'N_B · x_B  =  W · (L/2)  +  P · x_P',W/2,by+4,'#94a3b8',12.5,'center',true);
     slTxt(ctx,'N_B × '+xb.toFixed(1)+' = '+Wb.toFixed(0)+'×2.0 + '+P.toFixed(0)+'×'+xp.toFixed(1)+
       ' = '+(Wb*2+P*xp).toFixed(0)+' N·m',W/2,by+26,'#dde6f0',13.5,'center',true);
@@ -11627,15 +11636,18 @@ function simStaticsCom(canvas){
     slTxt(ctx,thd.toFixed(0)+'°',BX+42,BY-12,'#94a3b8',12,'left',true);
     // block, sitting on the ramp
     var PPM=W*0.34;
-    var f=0.40+slide*0.42;
+    var f=0.62-slide*0.36;      // f is measured up from the base, so sliding lowers it
     var cx=BX+RL*f*Math.cos(th), cy=BY-RL*f*Math.sin(th);
     var bw=w*PPM, bh=h*PPM, tip=tipA*0.9;
     // Local block coordinates: base along y=0 from -bw/2 to +bw/2, top at -bh.
     // While tipping the block also turns about its lower edge at (+bw/2, 0).
+    // Local +X maps to (cos th, -sin th), i.e. UP the slope, so the downhill
+    // base corner is local (-bw/2, 0) -- the edge the plumb line crosses first
+    // and therefore the edge the block turns over.
     function toWorld(X,Y){
       var x=X,y=Y;
-      if(tip>0){var ca=Math.cos(-tip),sa=Math.sin(-tip),dx=X-bw/2,dy=Y;
-        x=bw/2+dx*ca-dy*sa; y=dx*sa+dy*ca;}
+      if(tip>0){var ca=Math.cos(-tip),sa=Math.sin(-tip),dx=X+bw/2,dy=Y;
+        x=-bw/2+dx*ca-dy*sa; y=dx*sa+dy*ca;}
       var cr=Math.cos(-th),sr=Math.sin(-th);
       return {x:cx+x*cr-y*sr, y:cy+x*sr+y*cr};
     }
@@ -16466,8 +16478,8 @@ runAnim('anim-dielectric',(canvas,ctx,W,H,t)=>{
     const cols=Math.max(1,Math.floor(sw/24));
     for(let a=0;a<cols;a++)for(let b2=0;b2<2;b2++){
       const mx=R-sw+12+a*24,my=T+18+b2*(B-T-36);
-      ctx.fillStyle='#f87171';ctx.beginPath();ctx.arc(mx,my-4,3,0,6.2832);ctx.fill();
-      ctx.fillStyle='#60a5fa';ctx.beginPath();ctx.arc(mx,my+4,3,0,6.2832);ctx.fill();}
+      ctx.fillStyle='#60a5fa';ctx.beginPath();ctx.arc(mx,my-4,3,0,6.2832);ctx.fill();
+      ctx.fillStyle='#f87171';ctx.beginPath();ctx.arc(mx,my+4,3,0,6.2832);ctx.fill();}
   }
   label(ctx,'בתוך הדיאלקטרי השדה חלש יותר',W/2,H-10,'#a78bfa',11);
 });
@@ -16478,7 +16490,7 @@ runAnim('anim-elc-deflect',(canvas,ctx,W,H,t)=>{
   const X0=W*0.10,PW=W*0.42,CY=H*0.50,GAP=H*0.30;
   ctx.save();ctx.fillStyle='#f87171';ctx.fillRect(X0,CY-GAP/2-7,PW,7);
   ctx.fillStyle='#60a5fa';ctx.fillRect(X0,CY+GAP/2,PW,7);ctx.restore();
-  const K=GAP*0.42/(PW*PW);
+  const K=GAP*0.30/(PW*PW);
   ctx.save();ctx.strokeStyle='#fbbf24';ctx.lineWidth=2.2;ctx.beginPath();
   for(let i=0;i<=50;i++){const x=PW*i/50;if(i===0)ctx.moveTo(X0+x,CY);else ctx.lineTo(X0+x,CY-K*x*x);}
   ctx.stroke();ctx.restore();
@@ -16499,10 +16511,11 @@ runAnim('anim-millikan',(canvas,ctx,W,H,t)=>{
   ctx.save();ctx.fillStyle='#f87171';ctx.fillRect(L,T-8,R-L,8);
   ctx.fillStyle='#60a5fa';ctx.fillRect(L,B,R-L,8);ctx.restore();
   const V=0.5+0.5*Math.sin(t*0.5);                 // 0..1, the "voltage" knob
-  const net=(V-0.5)*2;                             // <0 falls, 0 hovers, >0 rises
-  const y=B-24-(B-T-48)*(0.5+0.42*net);
+  const net=(V-0.5)*1.4;                           // <0 falls, 0 hovers, >0 rises
+  // the longest arrow occurs at the highest position, so bound both together
+  const Fg=Math.min(30,(B-T)*0.20), Fe=Fg*(1+net);
+  const y=B-Fg-10-(B-T-Fg-Fg*1.7-24)*(0.5+0.4*net);
   const cx=(L+R)/2;
-  const Fg=34, Fe=34*(1+net);
   arrow(ctx,cx-22,y,cx-22,y+Fg,'#f87171',2.2,8);
   arrow(ctx,cx+22,y,cx+22,y-Fe,'#34d399',2.2,8);
   ctx.fillStyle='#fbbf24';ctx.beginPath();ctx.arc(cx,y,8,0,6.2832);ctx.fill();
@@ -16544,30 +16557,34 @@ runAnim('anim-torque-arm',(canvas,ctx,W,H,t)=>{
 // STATICS ANIM 2: a couple -- forces sum to zero, torques do not
 runAnim('anim-eq-couple',(canvas,ctx,W,H,t)=>{
   bg(ctx,W,H);
-  const cx=W*0.38, cy=H*0.52, L=W*0.22, a=t*0.9;
+  // A bar that turns needs vertical room equal to its half-length plus the
+  // arrow, so both are measured against H rather than W.
+  const cy=H*0.42, AR=H*0.17, L=Math.min(W*0.18,H*0.22), cx=W*0.34, a=t*0.9;
   ctx.save();ctx.translate(cx,cy);ctx.rotate(a);
   ctx.strokeStyle='#475569';ctx.lineWidth=7;ctx.lineCap='round';
   ctx.beginPath();ctx.moveTo(-L,0);ctx.lineTo(L,0);ctx.stroke();
   ctx.fillStyle='#94a3b8';ctx.beginPath();ctx.arc(0,0,4,0,6.2832);ctx.fill();
-  arrow(ctx,L,0,L,-46,'#34d399',3,11);
-  arrow(ctx,-L,0,-L,46,'#34d399',3,11);
+  arrow(ctx,L,0,L,-AR,'#34d399',3,11);
+  arrow(ctx,-L,0,-L,AR,'#34d399',3,11);
   ctx.restore();
-  label(ctx,'ΣF = 0',cx,H-30,'#34d399',12);
-  label(ctx,'Στ ≠ 0  →  מסתובב',cx,H-13,'#f87171',12);
+  label(ctx,'ΣF = 0',cx,H-32,'#34d399',12);
+  label(ctx,'Στ ≠ 0  →  מסתובב',cx,H-14,'#f87171',12);
   // the counter-example: same two forces on one line, and nothing happens
-  const sx=W*0.80;
+  const sx=W*0.74;
   ctx.save();ctx.strokeStyle='#475569';ctx.lineWidth=7;ctx.lineCap='round';
-  ctx.beginPath();ctx.moveTo(sx-L*0.7,cy);ctx.lineTo(sx+L*0.7,cy);ctx.stroke();ctx.restore();
-  arrow(ctx,sx-L*0.7,cy,sx-L*0.7-40,cy,'#60a5fa',3,11);
-  arrow(ctx,sx+L*0.7,cy,sx+L*0.7+40,cy,'#60a5fa',3,11);
-  label(ctx,'אותו קו פעולה',sx,H-30,'#60a5fa',12);
-  label(ctx,'Στ = 0  →  נשאר במקום',sx,H-13,'#94a3b8',12);
+  ctx.beginPath();ctx.moveTo(sx-L,cy);ctx.lineTo(sx+L,cy);ctx.stroke();ctx.restore();
+  arrow(ctx,sx-L,cy,sx-L-AR,cy,'#60a5fa',3,11);
+  arrow(ctx,sx+L,cy,sx+L+AR,cy,'#60a5fa',3,11);
+  label(ctx,'אותו קו פעולה',sx,H-32,'#60a5fa',12);
+  label(ctx,'Στ = 0  →  נשאר במקום',sx,H-14,'#94a3b8',12);
 });
 
 // STATICS ANIM 3: a tumbling body, its centre of mass on a clean parabola
 runAnim('anim-com-throw',(canvas,ctx,W,H,t)=>{
   bg(ctx,W,H);
-  const T=3.0, tt=(t%T), g=2.0*H;
+  // apex of the flight is g*T^2/8; picking g = 0.5H puts it 0.56H above the
+  // launch, so the whole arc stays inside a canvas of height H.
+  const T=3.0, tt=(t%T), g=0.42*H;
   const x0=W*0.10, vx=W*0.80/T, v0=g*T/2;
   const cx=x0+vx*tt, cy=H*0.86-(v0*tt-0.5*g*tt*tt);
   // the parabola the centre of mass follows
@@ -16577,17 +16594,26 @@ runAnim('anim-com-throw',(canvas,ctx,W,H,t)=>{
     if(k===0)ctx.moveTo(px,py);else ctx.lineTo(px,py);}
   ctx.stroke();ctx.restore();
   // a dumbbell: two unequal masses, tumbling about their centre of mass
-  const a=tt*7.5, r1=W*0.055, m1=1, m2=3;
-  const d1=r1*m2/(m1+m2)*2, d2=r1*m1/(m1+m2)*2;   // distances in inverse ratio
+  // A dumbbell of m and 3m. The centre of mass divides the rod in the inverse
+  // ratio of the masses, so the light end is three times as far out. Radii go
+  // as the square root of the mass (equal areal density) and the separation is
+  // held to at least 1.9 heavy-radii, so no marker ever sits inside a sphere.
+  const a=tt*7.5;
+  // The rod sweeps every orientation, so the binding constraint is the room
+  // above the apex, not the canvas width. Long arm first, then the short arm
+  // at a third of it (inverse mass ratio), then radii capped by the short arm.
+  const apexY=H*0.86-g*T*T/8;
+  const d1=Math.max(22,Math.min(H*0.30,apexY-16)), d2=d1/3;
+  const rS=Math.min(6.5,d2*0.34), rB=rS*Math.sqrt(3);
   const p1={x:cx-Math.cos(a)*d1,y:cy-Math.sin(a)*d1};
   const p2={x:cx+Math.cos(a)*d2,y:cy+Math.sin(a)*d2};
   ctx.save();ctx.strokeStyle='#64748b';ctx.lineWidth=3;
   ctx.beginPath();ctx.moveTo(p1.x,p1.y);ctx.lineTo(p2.x,p2.y);ctx.stroke();ctx.restore();
-  ctx.fillStyle='#60a5fa';ctx.beginPath();ctx.arc(p1.x,p1.y,7,0,6.2832);ctx.fill();
-  ctx.fillStyle='#3b82f6';ctx.beginPath();ctx.arc(p2.x,p2.y,12,0,6.2832);ctx.fill();
-  ctx.fillStyle='#fbbf24';ctx.beginPath();ctx.arc(cx,cy,5,0,6.2832);ctx.fill();
-  label(ctx,'m',p1.x,p1.y-13,'#60a5fa',10);
-  label(ctx,'3m',p2.x,p2.y-18,'#3b82f6',10);
+  ctx.fillStyle='#60a5fa';ctx.beginPath();ctx.arc(p1.x,p1.y,rS,0,6.2832);ctx.fill();
+  ctx.fillStyle='#3b82f6';ctx.beginPath();ctx.arc(p2.x,p2.y,rB,0,6.2832);ctx.fill();
+  ctx.fillStyle='#fbbf24';ctx.beginPath();ctx.arc(cx,cy,4.5,0,6.2832);ctx.fill();
+  label(ctx,'m',p1.x,p1.y-rS-7,'#60a5fa',10);
+  label(ctx,'3m',p2.x,p2.y-rB-7,'#3b82f6',10);
   label(ctx,'מרכז המסה נע בפרבולה — הסחרור סביבו אינו משנה זאת',W/2,H-11,'#fbbf24',11);
 });
 
@@ -23306,8 +23332,11 @@ function buildSidebar(){
       const anyDone=theoryDone||simDone;
       const active=state.chapter===ch.id&&state.section===sec.id;
       const dotCls=quizDone?'done':active?'active':anyDone?'partial':'';
-      return `<button class="sec-btn${active?' active':''}" onclick="navigate('${ch.id}','${sec.id}')">
-        <span class="sec-dot${dotCls?' '+dotCls:''}"></span>${sec.title}</button>`;
+      // six sections carry a phone-sensor experiment; flag them so they can be
+      // found without opening every section in turn
+      const hasLab=(typeof SENSOR_LABS!=='undefined')&&!!SENSOR_LABS[ch.id+'.'+sec.id];
+      return `<button class="sec-btn${active?' active':''}" onclick="navigate('${ch.id}','${sec.id}')"${hasLab?' title="בסעיף זה יש ניסוי עם חיישני הטלפון"':''}>
+        <span class="sec-dot${dotCls?' '+dotCls:''}"></span>${sec.title}${hasLab?'<span class="sec-lab">📱</span>':''}</button>`;
     }).join('');
   }).join('');
 }
@@ -23958,7 +23987,13 @@ function initSensorLab(key){
 
 function buildTheory(th){
   if(!th)return '';
-  let html=`<div class="theory-card"><h3>${th.title}</h3>${th.html}</div>`;
+  // The sensor lab is the last card on the page, so say up front that it is
+  // there -- otherwise it is only found by scrolling to the end of a section
+  // the learner had no reason to think was different from the other 67.
+  const _labKey=`${state.chapter}.${state.section}`;
+  const _hasLab=(typeof SENSOR_LABS!=='undefined')&&!!SENSOR_LABS[_labKey];
+  const _flag=_hasLab?`<div class="lab-flag">📱 בסעיף זה יש <b>מעבדת חיישנים</b> בסוף הדף — ${SENSOR_LABS[_labKey].ttl}</div>`:'';
+  let html=`<div class="theory-card"><h3>${th.title}</h3>${_flag}${th.html}</div>`;
   if(th.enrich){
     html+=`<div class="enrich-card"><div class="enrich-title">${th.enrich.title}</div>${th.enrich.html}</div>`;
   }
