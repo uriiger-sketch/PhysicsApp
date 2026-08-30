@@ -153,6 +153,9 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 .sl-chip u{text-decoration:none;font-size:.72rem;color:var(--muted);}
 .sensor-lab canvas{display:block;width:100%;background:var(--bg);border-top:1px solid var(--border);
   border-bottom:1px solid var(--border);}
+.sl-pred{margin:0 15px 11px;padding:9px 13px;border-radius:10px;font-size:.82rem;line-height:1.6;
+  background:rgba(245,158,11,.09);border:1px solid rgba(245,158,11,.3);color:var(--gold);}
+.sl-pred b{color:var(--gold);}
 .sl-note{padding:10px 15px;font-size:.78rem;line-height:1.6;color:var(--muted);}
 .sl-note b{color:var(--text);}
 .sl-err{padding:10px 15px;font-size:.82rem;color:var(--red);}
@@ -22301,22 +22304,30 @@ function sensorRequest(){
   catch(e){return Promise.resolve('error');}
 }
 
-var _sensor={stop:null,got:0};
+var _sensor={stop:null,got:0,bad:0,hz:0};
 
 // One normalised sample stream. `acceleration` (gravity already removed) is
 // the good signal but is null on a number of Android builds, so when it is
 // missing gravity is estimated with a low-pass filter and subtracted --
 // the standard fallback, and the reason the lab says which one it is using.
-function sensorStart(cb){
+function sensorStart(cb,ev0){
   sensorStop();
-  var g=null,last=null,tsum=0,hasLin=false;
+  if(ev0===undefined)ev0=0;
+  var g=null,last=null,tsum=0,hasLin=false,nom=(ev0>1&&ev0<200)?ev0/1000:1/60,hzN=0,hzT=0;
   function onMotion(ev){
     var now=(window.performance&&performance.now?performance.now():Date.now())/1000;
-    var dt;
-    if(ev.interval>1&&ev.interval<200) dt=ev.interval/1000;      // the sensor's own rate
-    else dt=(last===null)?1/60:Math.min(Math.max(now-last,1/240),0.25);
+    if(ev.interval>1&&ev.interval<200)nom=ev.interval/1000;
+    // Real elapsed time is what an integral needs. `interval` is only the
+    // nominal period, so it is the fallback: first sample, or a delta the
+    // clock could not plausibly have produced (a throttled or resumed tab).
+    var dt=nom;
+    if(last!==null){var w=now-last; if(w>0.002&&w<0.25)dt=w;}
     last=now; tsum+=dt; _sensor.got++;
-    var G=ev.accelerationIncludingGravity||{};
+    hzT+=dt; hzN++; if(hzT>0.75){_sensor.hz=hzN/hzT;hzN=0;hzT=0;}
+    var G=ev.accelerationIncludingGravity;
+    // An event with no payload is not a reading of zero, it is the absence of
+    // a reading. Forwarding it put a |a| = 0 sample into the g average.
+    if(!G||typeof G.x!=='number'||!isFinite(G.x)||(!G.x&&!G.y&&!G.z)){_sensor.bad++;return;}
     var gx=G.x||0,gy=G.y||0,gz=G.z||0;
     if(g===null)g=[gx,gy,gz];
     else{var k=Math.min(1,dt/0.5);g[0]+=k*(gx-g[0]);g[1]+=k*(gy-g[1]);g[2]+=k*(gz-g[2]);}
@@ -22330,20 +22341,42 @@ function sensorStart(cb){
         ax:lx,ay:ly,az:lz,                 // linear acceleration, gravity removed
         gx:gx,gy:gy,gz:gz,                 // raw, gravity included
         Gx:g[0],Gy:g[1],Gz:g[2],           // the gravity estimate itself
-        ra:(R.alpha||0),rb:(R.beta||0),rg:(R.gamma||0)});   // rotation, deg/s
+        ra:(R.alpha||0),rb:(R.beta||0),rg:(R.gamma||0),   // rotation, deg/s
+        hz:_sensor.hz});
   }
+  _sensor.bad=0;_sensor.hz=0;
   window.addEventListener('devicemotion',onMotion);
   _sensor.stop=function(){window.removeEventListener('devicemotion',onMotion);};
 }
 function sensorStop(){if(_sensor.stop){try{_sensor.stop();}catch(e){}_sensor.stop=null;}}
 
 // ── shared lab plumbing ──────────────────────────────────────────────────
-var _sl={raf:null,run:false,st:null};
-function slStopAll(){
-  sensorStop();
-  if(_sl.raf){cancelAnimationFrame(_sl.raf);_sl.raf=null;}
-  _sl.run=false;_sl.st=null;
+var _sl={raf:null,run:false,st:null,onResize:null,stopFn:null};
+
+// Keep the screen alive for the length of a measurement; a screen that sleeps
+// mid-trial takes the sample stream with it.
+var _slWake=null;
+function slWakeOn(){
+  try{ if(navigator.wakeLock&&navigator.wakeLock.request)
+    navigator.wakeLock.request('screen').then(function(w){_slWake=w;},function(){}); }catch(e){}
 }
+function slWakeOff(){ if(_slWake){try{_slWake.release();}catch(e){}_slWake=null;} }
+
+function slStopAll(){
+  sensorStop(); slWakeOff();
+  if(_sl.raf){cancelAnimationFrame(_sl.raf);_sl.raf=null;}
+  _sl.run=false;_sl.st=null;_sl.onResize=null;_sl.stopFn=null;
+}
+
+// Registered once, for whichever lab happens to be on screen.
+window.addEventListener('resize',function(){
+  if(_sl.onResize&&document.getElementById('sl-canvas'))_sl.onResize();
+});
+document.addEventListener('visibilitychange',function(){
+  // No events arrive while hidden, so resuming would stitch across a gap of
+  // unknown length. Stop, and let the learner start a fresh run.
+  if(document.hidden&&_sl.run&&_sl.stopFn)_sl.stopFn();
+});
 // A fixed-length rolling window of samples.
 function slTrace(n){return {n:n,d:[],push:function(v){this.d.push(v);if(this.d.length>this.n)this.d.shift();},
                             clear:function(){this.d=[];},last:function(){return this.d.length?this.d[this.d.length-1]:0;}};}
@@ -22354,6 +22387,49 @@ function slTxt(ctx,txt,x,y,col,sz,align,bold){
 function slSet(id,txt){var e=document.getElementById(id);if(e)e.textContent=txt;}
 function slChip(id,lbl,unit){return '<span class="sl-chip"><i>'+lbl+'</i><b id="slv-'+id+'">—</b><u>'+unit+'</u></span>';}
 function slCss(v,f){try{var c=getComputedStyle(document.documentElement).getPropertyValue(v).trim();return c||f;}catch(e){return f;}}
+
+// Median is the right average for a set of measured intervals: one mistimed
+// swing shifts a mean, but leaves a median alone.
+function slMedian(a){if(!a.length)return 0;var b=a.slice().sort(function(x,y){return x-y;});
+  var m=b.length>>1;return b.length%2?b[m]:(b[m-1]+b[m])/2;}
+
+// Least squares through the origin, y = s·x. Both fitting labs test a law of
+// the form "y is proportional to x", where the slope is the physical constant
+// being measured, so the line must be forced through (0,0) -- a free intercept
+// would let a systematic error hide there instead of showing up in the slope.
+function slFitOrigin(pts){var sxx=0,sxy=0,i;
+  for(i=0;i<pts.length;i++){sxx+=pts[i][0]*pts[i][0];sxy+=pts[i][0]*pts[i][1];}
+  return sxx>0?sxy/sxx:0;}
+// Fraction of the spread in y that the proportional law accounts for.
+function slR2(pts,s){var i,m=0,ss=0,tt=0;if(pts.length<2)return 0;
+  for(i=0;i<pts.length;i++)m+=pts[i][1];m/=pts.length;
+  for(i=0;i<pts.length;i++){var e=pts[i][1]-s*pts[i][0];ss+=e*e;tt+=(pts[i][1]-m)*(pts[i][1]-m);}
+  return tt>0?Math.max(0,Math.min(1,1-ss/tt)):0;}
+
+// Scatter of measured points with the fitted proportional line through them.
+function slScatter(ctx,x,y,w,h,pts,s,opt){
+  opt=opt||{};
+  var bd=slCss('--border','#2a3d55'),mu=slCss('--muted','#64748b'),
+      ac=slCss('--accent','#3b82f6'),gd=slCss('--gold','#f59e0b');
+  ctx.save();ctx.strokeStyle=bd;ctx.lineWidth=1;ctx.strokeRect(x+.5,y+.5,w-1,h-1);
+  var mx=opt.xmin||0.001,my=opt.ymin||0.001,i;
+  for(i=0;i<pts.length;i++){if(pts[i][0]>mx)mx=pts[i][0];if(pts[i][1]>my)my=pts[i][1];}
+  mx*=1.15;my=Math.max(my,s*mx)*1.15;
+  var X=function(v){return x+34+(w-44)*(v/mx);},Y=function(v){return y+h-24-(h-36)*(v/my);};
+  ctx.strokeStyle=bd;ctx.beginPath();ctx.moveTo(X(0),y+6);ctx.lineTo(X(0),Y(0));ctx.lineTo(x+w-6,Y(0));ctx.stroke();
+  if(s>0){ctx.strokeStyle=gd;ctx.lineWidth=2;ctx.setLineDash([6,4]);ctx.beginPath();
+    ctx.moveTo(X(0),Y(0));ctx.lineTo(X(mx),Y(Math.min(s*mx,my)));ctx.stroke();ctx.setLineDash([]);}
+  ctx.fillStyle=ac;
+  for(i=0;i<pts.length;i++){ctx.beginPath();ctx.arc(X(pts[i][0]),Y(pts[i][1]),opt.r||3,0,6.2832);ctx.fill();}
+  ctx.restore();
+  // top-right: a line through the origin never reaches that corner, and the
+  // top-left is where the axis title lives
+  slTxt(ctx,my.toFixed(my<10?1:0),x+w-8,y+14,mu,9,'right');
+  slTxt(ctx,mx.toFixed(mx<10?1:0),x+w-8,y+h-9,mu,9,'right');
+  if(opt.xl)slTxt(ctx,opt.xl,X(mx/2),y+h-9,mu,10,'center');
+  if(opt.yl)slTxt(ctx,opt.yl,x+4,y+13,mu,10,'left',true);
+  return {X:X,Y:Y};
+}
 
 // A strip chart. Autoscale is symmetric about zero and only ever grows
 // within a frame, then decays slowly, so the axis does not jitter while the
@@ -22400,10 +22476,13 @@ function slPeriod(){
       if(!this.armed&&s<-thr)this.armed=true;
       else if(this.armed&&s>thr){
         this.armed=false;
-        if(this.prev){var T=t-this.prev;if(T>0.12&&T<6){this.per.push(T);if(this.per.length>6)this.per.shift();}}
+        if(this.prev){var T=t-this.prev;if(T>0.12&&T<6){this.per.push(T);if(this.per.length>8)this.per.shift();}}
         this.prev=t;
-        var q=0;for(i=0;i<this.per.length;i++)q+=this.per[i];
-        this.mean=this.per.length?q/this.per.length:0;
+        // median, not mean: one mistimed swing must not drag the estimate
+        this.mean=slMedian(this.per);
+        if(this.per.length>2){var lo=1e9,hi=-1e9;
+          for(i=0;i<this.per.length;i++){if(this.per[i]<lo)lo=this.per[i];if(this.per[i]>hi)hi=this.per[i];}
+          this.spread=hi-lo;}else this.spread=0;
         return true;
       }
       return false;
@@ -22414,73 +22493,70 @@ function slPeriod(){
 // ── which sections a phone can actually measure ──────────────────────────
 // Only sections where the phone measures the very quantity being taught; a
 // lab that merely decorates the page would cost attention without teaching.
+// ── which sections a phone can honestly measure ──────────────────────────
+// Kept only where the phone measures the quantity the section teaches, and
+// where the measurement survives contact with a real device.
 var SENSOR_LABS={
- 'kinematics.acceleration':{t:'motion-integrate',h:322,
-   ttl:'מ-a לגרפים של v ו-x',
-   how:'הניחו את הטלפון על שולחן חלק, לחצו <b>אפס</b> בזמן שהוא במנוחה, ואז <b>החליקו אותו הלוך ושוב</b> לאורך הציר הנבחר. הגרף העליון הוא מה שהחיישן מודד; שני הגרפים שמתחתיו מחושבים ממנו באינטגרציה.',
-   note:'החיישן מודד <b>רק תאוצה</b>. המהירות והמקום אינם נמדדים אלא מחושבים — ולכן כל רעש קטן ב-a מצטבר, ו-v "נסחפת" גם כשהטלפון עומד. זו בדיוק הסיבה שניווט אינרציאלי דורש תיקון חיצוני. כפתור <b>ZUPT</b> מאפס את המהירות כשהטלפון שקט — טכניקה אמיתית בשם zero-velocity update.',
-   chips:[['a','a','m/s²'],['v','v','m/s'],['x','x','m'],['dr','סחיפה','m/s']],
-   ctrl:'<button class="sl-sec" id="sl-axx">X</button><button class="sl-sec" id="sl-axy">Y</button><button class="sl-sec" id="sl-axz">Z</button><button class="sl-sec" id="sl-zupt">ZUPT ✔</button>'},
 
- 'vectors.vec-components':{t:'tilt-components',h:262,
+ 'kinematics.acceleration':{t:'motion-trial',h:338,
+   ttl:'ניסוי מדוד: מ-a אל v ואל x',
+   how:'הניחו את הטלפון על שולחן חלק ואל תזיזו אותו — הוא <b>מכייל</b> את עצמו כשנייה. כשייכתב "מוכן", <b>החליקו אותו לאורך הציר הנבחר והעצרו אותו</b>. הניסוי נסגר מעצמו כשהטלפון שוקט.',
+   pred:'לפני שמחליקים: הניחו סרגל על השולחן והחליטו לכמה ס״מ אתם מתכוונים להזיז את הטלפון. בסוף הניסוי השוו למה שהאינטגרל חישב.',
+   note:'הטלפון מודד <b>אך ורק תאוצה</b>; v ו-x אינם נמדדים אלא מחושבים ממנה. הניסוי מתחיל ונגמר במנוחה, ולכן אנחנו <b>יודעים</b> שהמהירות האמיתית בסוף היא אפס — וכל מה שנשאר באינטגרל הוא שגיאה מצטברת. זהו מד הסחיפה, וממנו גם מתקנים את ההעתק. משום כך ניווט אינרציאלי מדויק לדקות בלבד וזקוק ל-GPS שיאפס אותו.',
+   chips:[['ph','מצב',''],['x','Δx מתוקן','m'],['vm','v מרבי','m/s'],['dr','סחיפה','m/s']],
+   ctrl:'<button class="sl-sec" id="sl-axx">X</button><button class="sl-sec" id="sl-axy">Y</button><button class="sl-sec" id="sl-axz">Z</button>'},
+
+ 'vectors.vec-components':{t:'tilt-components',h:272,
    ttl:'פירוק וקטור הכובד לרכיבים',
-   how:'החזיקו את הטלפון במאונך והטו אותו לאט <b>במישור המסך</b>. וקטור הכובד נשאר מכוון מטה — מה שמסתובב הם צירי הטלפון, ואיתם הרכיבים.',
-   note:'שימו לב שסכום ריבועי הרכיבים נשאר '+M('\\approx 9.8')+' בכל זווית: הפירוק לרכיבים אינו משנה את הווקטור, רק את הדרך שבה אנו מתארים אותו. ב-0° כל הכובד על ציר אחד, וב-45° שני הרכיבים שווים.',
-   chips:[['th','θ','°'],['gx','g·sinθ','m/s²'],['gy','g·cosθ','m/s²'],['gm','|g|','m/s²']],ctrl:''},
+   how:'החזיקו את הטלפון במאונך והטו אותו לאט <b>במישור המסך</b>. וקטור הכובד ממשיך להצביע מטה — מה שמסתובב הם צירי הטלפון, ואיתם הרכיבים.',
+   pred:'לפני שמטים: באיזו זווית יהיו שני הרכיבים <b>שווים</b> זה לזה? ובאיזו זווית ייעלם אחד מהם לגמרי? נחשו, ואז בדקו.',
+   note:'סכום ריבועי הרכיבים נשאר '+M('9.81')+' בכל זווית — הפירוק אינו משנה את הווקטור, רק את הדרך לתאר אותו. השורה התחתונה בתרשים היא בדיקת פיתגורס על המדידה עצמה: הסטייה שלה מ-9.81 היא <b>רעש המכשיר</b>, ולא שגיאה בפיזיקה.',
+   chips:[['th','θ','°'],['gx','g·sinθ','m/s²'],['gy','g·cosθ','m/s²'],['rs','שארית פיתגורס','m/s²']],ctrl:''},
 
- 'forces.normal-force':{t:'incline-forces',h:280,
+ 'forces.normal-force':{t:'incline-forces',h:292,
    ttl:'N ו-F∥ על מדרון אמיתי',
-   how:'הניחו את הטלפון <b>שטוח על ספר</b> והרימו לאט את קצה הספר. הטלפון מודד את זווית המדרון, והתרשים מציג את הכוחות על גוף במסה שתבחרו.',
-   note:'עקבו אחרי הרגע שבו שני החצים מתחלפים בגודלם — הוא קורה ב-45° בדיוק, כי שם '+M('\\sin\\theta=\\cos\\theta')+'. שימו לב ש-'+M('N')+' <b>קטן</b> מהמשקל בכל זווית שאינה אפס: המדרון נושא רק את הרכיב הניצב אליו.',
-   chips:[['th','θ','°'],['N','N','N'],['Fp','F∥','N'],['W','mg','N']],
+   how:'הניחו את הטלפון <b>שטוח על ספר</b> והרימו לאט את קצה הספר. הטלפון מודד את זווית המדרון מכיוון הכובד, והתרשים מציג את הכוחות על גוף במסה שתבחרו.',
+   pred:'לפני שמרימים: בזווית 30°, איזה משני הכוחות יהיה גדול יותר — N או F∥? ופי כמה? ובאיזו זווית הם יתחלפו?',
+   note:'שימו לב ש-'+M('N')+' <b>קטן</b> מהמשקל בכל זווית שאינה אפס: המדרון נושא רק את הרכיב הניצב אליו. השורה '+M('N/mg')+' ו-'+M('F_\\parallel/mg')+' היא הטריגונומטריה עצמה — אלה בדיוק '+M('\\cos\\theta')+' ו-'+M('\\sin\\theta')+', ולכן הם מתחלפים ב-45° ולא באמצע הטווח.',
+   chips:[['th','θ','°'],['N','N','N'],['Fp','F∥','N'],['rt','N/mg · F∥/mg','']],
    ctrl:'<span class="sl-slider">מסה <input id="sl-m" type="range" min="0.5" max="10" step="0.5" value="2"><span id="sl-mv">2.0 kg</span></span>'},
 
- 'forces2.gravity-force':{t:'measure-g',h:212,
-   ttl:'מדדו את g בעצמכם',
-   how:'הניחו את הטלפון <b>בשקט מוחלט</b> על שולחן וחכו כמה שניות. המספר הממוצע שמצטבר הוא תאוצת הכובד במקומכם.',
-   note:'מד-התאוצה אינו מודד כבידה אלא את <b>כוח המשען</b> ליחידת מסה. במנוחה השולחן דוחף מעלה ב-'+M('mg')+' והמדידה יוצאת 9.8; בנפילה חופשית אין משען, והקריאה צונחת לאפס — וזו אותה "חוסר משקל" של אסטרונאוט במסלול, שנופל סביב כדור הארץ בלי הפסקה.',
-   chips:[['g','g נוכחי','m/s²'],['gm','ממוצע','m/s²'],['sd','פיזור','m/s²'],['er','סטייה מ-9.81','%']],ctrl:''},
+ 'forces2.gravity-force':{t:'measure-g',h:246,
+   ttl:'מדדו את g — ואת דיוק המדידה',
+   how:'הניחו את הטלפון <b>בשקט מוחלט</b> על שולחן וחכו. ככל שנאספות יותר דגימות, אי-הוודאות של הממוצע קטנה.',
+   pred:'לפני שמסתכלים: כמה ספרות אחרי הנקודה אתם מצפים לקבל נכונות? האם מד-תאוצה של טלפון יכול להתחרות במטוטלת?',
+   note:'מד-התאוצה אינו מודד כבידה אלא את <b>כוח המשען</b> ליחידת מסה: במנוחה השולחן דוחף מעלה ב-'+M('mg')+' והקריאה 9.8, ובנפילה חופשית אין משען והקריאה צונחת לאפס — זו "חוסר המשקל" של אסטרונאוט. שימו לב להבדל בין <b>פיזור</b> (רעש, קטן עם ממוצע) לבין <b>סטייה</b> קבועה מ-9.81 (שגיאת כיול של המכשיר, שממוצע לא יתקן לעולם).',
+   chips:[['g','נוכחי','m/s²'],['gm','ממוצע','m/s²'],['se','אי-ודאות ±','m/s²'],['er','סטייה','%']],ctrl:''},
 
- 'newton2.n2-law':{t:'newton-force',h:212,
-   ttl:'ΣF = ma עם מספרים שלכם',
-   how:'בחרו מסה, אחזו היטב בטלפון והניעו אותו בתנופה. הגרף מציג את הכוח השקול הדרוש כדי לייצר את התאוצה הנמדדת ברגע זה.',
-   note:'הגרף אינו מציג "כוח שנמדד" — כוח אינו נמדד ישירות. נמדדת התאוצה, והכוח <b>מוסק</b> ממנה דרך החוק השני. נסו את אותה תנועה עם מסה כפולה: התאוצה שלכם לא תשתנה, אך הכוח הנדרש יוכפל.',
-   chips:[['a','|a|','m/s²'],['F','F=ma','N'],['pk','שיא','N'],['g0','ביחס למשקל','×']],
-   ctrl:'<span class="sl-slider">מסה <input id="sl-m" type="range" min="0.1" max="5" step="0.1" value="1"><span id="sl-mv">1.0 kg</span></span>'},
+ 'planar.circular':{t:'spin-fit',h:306,
+   ttl:'מדדו את '+M('a_c=\\omega^2 r')+' — והוציאו את r מהשיפוע',
+   how:'הניחו את הטלפון על <b>כיסא משרדי מסתובב</b> (או סחררו אותו על שולחן חלק), סובבו חזק — ותנו לו להאט מעצמו. תוך כדי ההאטה נאספות נקודות בכל קצב סיבוב, מהמהיר עד לאיטי.',
+   pred:'לפני הסיבוב: מדדו בסרגל את המרחק מציר הסיבוב עד לטלפון. השיפוע שהגרף ימצא אמור לצאת בדיוק המספר הזה.',
+   note:'ההאטה היא היתרון, לא מטרד: היא סורקת עבורכם טווח שלם של '+M('\\omega')+'. אם הנקודות יושבות על ישר במערכת '+M('a_c')+' מול '+M('\\omega^2')+' — אישרתם שהתאוצה הולכת כ<b>ריבוע</b> ולא ליניארית, והשיפוע הוא הרדיוס. שימו לב שאיננו קוראים את התאוצה מהערוץ "ללא כובד": סיבוב יציב הוא תאוצה מתמדת, וכל מסנן כובד בולע אותה תוך שנייה. במקום זה '+M('a_c=\\sqrt{|G|^2-g_0^2}')+', שאינו תלוי כלל בכיוון שבו מונח הטלפון.',
+   chips:[['w','ω','rad/s'],['ac','a_c','m/s²'],['r','r מהשיפוע','m'],['n','נקודות','']],ctrl:''},
 
- 'planar.circular':{t:'circular-motion',h:242,
-   ttl:'האם באמת '+M('a_c=\\omega^2 r')+'?',
-   how:'הניחו את הטלפון על כיסא משרדי מסתובב, או אחזו בו היטב וסובבו אותו במעגל אופקי. הגירוסקופ מודד את '+M('\\omega')+', מד-התאוצה מודד את '+M('a_c')+' — והגרף משווה ביניהם.',
-   note:'הזינו את הרדיוס האמיתי שבו הטלפון נע. אם שני העקומים נצמדים — אישרתם ניסויית את '+M('a_c=\\omega^2r')+'. הכפילו את קצב הסיבוב ותראו את התאוצה גדלה פי <b>ארבעה</b>, לא פי שניים.',
-   chips:[['w','ω','rad/s'],['ac','a_c נמדד','m/s²'],['ap','ω²r צפוי','m/s²'],['rp','סל״ד','rpm']],
-   ctrl:'<span class="sl-slider">רדיוס <input id="sl-r" type="range" min="0.05" max="1" step="0.05" value="0.3"><span id="sl-rv">0.30 m</span></span>'},
-
- 'shm.shm-def':{t:'oscillation-period',h:222,
-   ttl:'מדדו T, f ו-ω של תנודה',
-   how:'אחזו בטלפון ונדנדו אותו <b>בקצב אחיד</b> הלוך ושוב. האפליקציה מזהה את המעברים דרך המרכז וסופרת מהם את זמן המחזור.',
-   note:'נסו לשנות את <b>המשרעת</b> — לנדנד רחב יותר באותו קצב. הזמן שבין מעבר למעבר כמעט לא ישתנה, וזו התכונה שהופכת תנודה הרמונית לשעון. שנו את הקצב, ותראו את '+M('T')+' ו-'+M('f')+' זזים בכיוונים הפוכים.',
-   chips:[['T','T','s'],['f','f','Hz'],['w','ω','rad/s'],['nn','מחזורים','']],ctrl:''},
-
- 'shm.pendulum':{t:'pendulum-timer',h:242,
-   ttl:'מטוטלת: מדוד מול '+M('2\\pi\\sqrt{L/g}'),
-   how:'הכניסו את הטלפון לתיק קטן, תלו אותו על חוט באורך ידוע, הזינו את האורך והניעו אותו בתנודה <b>קטנה</b>. אפשר גם פשוט לנדנד את היד המושטת ולהזין את אורכה.',
-   note:'הנוסחה '+M('T=2\\pi\\sqrt{L/g}')+' נכונה רק לזוויות קטנות. הרחיבו את התנודה מעבר לכ-20° ותראו את '+M('T')+' הנמדד מתחיל לחרוג מעל הצפוי — התיקון הראשון הוא כ-'+M('(1+\\theta_0^2/16)')+'.',
-   chips:[['T','T נמדד','s'],['Tp','T צפוי','s'],['df','הפרש','%'],['nn','מחזורים','']],
-   ctrl:'<span class="sl-slider">אורך <input id="sl-L" type="range" min="0.1" max="2" step="0.05" value="0.5"><span id="sl-Lv">0.50 m</span></span>'}
+ 'shm.pendulum':{t:'pendulum-fit',h:312,
+   ttl:'מטוטלת: מדדו את g מהשיפוע',
+   how:'הכניסו את הטלפון לשקית ותלו אותה על חוט. מדדו את <b>L</b> עד מרכז הטלפון, הזינו אותו, הניעו בתנודה קטנה, המתינו שה-T יתייצב ולחצו <b>רשום נקודה</b>. חזרו על כך ב-3–4 אורכים שונים.',
+   pred:'לפני המדידה השנייה: אם תכפילו את אורך החוט, פי כמה יגדל זמן המחזור? (רמז: לא פי שניים)',
+   note:'נקודה בודדת אינה ניסוי — היא לא יכולה להבחין בין חוק נכון לבין שגיאה שיטתית. אבל '+M('T^2=(4\\pi^2/g)L')+' הוא <b>ישר דרך הראשית</b>, ולכן כמה אורכים שונים בודקים גם את צורת החוק וגם נותנים את '+M('g')+' מהשיפוע. אם קיבלתם ישר יפה אך '+M('g')+' רחוק מ-9.81, כנראה מדדתם את L לא עד מרכז המסה. הנוסחה תקפה לזוויות קטנות; מעל כ-20° המחזור מתחיל להתארך.',
+   chips:[['T','T נמדד','s'],['g','g מהשיפוע','m/s²'],['r2','R²',''],['n','נקודות','']],
+   ctrl:'<span class="sl-slider">L <input id="sl-L" type="range" min="0.1" max="2" step="0.01" value="0.50"><span id="sl-Lv">0.50 m</span></span><button class="sl-sec" id="sl-rec">➕ רשום נקודה</button><button class="sl-sec" id="sl-clr">🗑 נקה</button>'}
 };
 
 function sensorLabCard(key){
   var L=SENSOR_LABS[key];if(!L)return '';
   if(!phoneHasMotion()){
-    return '<div class="sl-desk">📱 <b>מעבדת חיישנים</b> — לסעיף זה יש ניסוי שמשתמש במד-התאוצה של הטלפון: '+
+    return '<div class="sl-desk">📱 <b>מעבדת חיישנים</b> — לסעיף זה יש ניסוי שמשתמש בחיישני הטלפון: '+
            L.ttl+'. פתחו את האפליקציה <b>בטלפון</b> כדי לבצע אותו בעצמכם.</div>';
   }
-  var chips='';for(var i=0;i<L.chips.length;i++)chips+=slChip(L.chips[i][0],L.chips[i][1],L.chips[i][2]);
+  var chips='',i;for(i=0;i<L.chips.length;i++)chips+=slChip(L.chips[i][0],L.chips[i][1],L.chips[i][2]);
   return '<div class="sensor-lab">'+
     '<div class="sl-head">📱 מעבדת חיישנים <small>— '+L.ttl+'</small></div>'+
     '<div class="sl-how">'+L.how+'</div>'+
+    (L.pred?'<div class="sl-pred">🔮 <b>נחשו קודם:</b> '+L.pred+'</div>':'')+
     '<div class="sl-ctrl"><button id="sl-start">▶ הפעל חיישן</button>'+
-      '<button class="sl-sec" id="sl-zero">⊘ אפס</button>'+L.ctrl+'</div>'+
+      '<button class="sl-sec" id="sl-zero">↺ אתחל</button>'+L.ctrl+'</div>'+
     '<div class="sl-read">'+chips+'</div>'+
     '<canvas id="sl-canvas" height="'+L.h+'"></canvas>'+
     '<div class="sl-err" id="sl-err" style="display:none"></div>'+
@@ -22490,42 +22566,88 @@ function sensorLabCard(key){
 // ── per-lab behaviour: init / reset / sample / draw ──────────────────────
 var SL_IMPL={
 
-'motion-integrate':{
-  init:function(st){st.ax=1;st.zupt=true;st.tr=[slTrace(200),slTrace(200),slTrace(200)];
-    st.h=[{v:.5},{v:.2},{v:.1}];st.bias=[0,0,0];st.cal=0;st.calS=[0,0,0];st.reset(st);},
-  reset:function(st){st.v=0;st.x=0;st.ap=0;st.still=0;st.drift=0;st.cal=0;st.calS=[0,0,0];
+// A bounded trial. Free-running double integration drifts without bound, but
+// a run that starts and ends at rest has a known answer for the final
+// velocity -- zero -- so the leftover is a measurement of the error itself.
+'motion-trial':{
+  init:function(st){st.ax=1;st.tr=[slTrace(220),slTrace(220),slTrace(220)];
+    st.h=[{v:.5},{v:.2},{v:.1}];st.reset(st);},
+  reset:function(st){st.ph='cal';st.calN=0;st.calS=0;st.bias=0;st.gref=null;st.tilt=0;
+    st.v=0;st.x=0;st.ap=0;st.still=0;st.dur=0;st.rec=[];st.res=null;
     if(st.tr)for(var i=0;i<3;i++)st.tr[i].clear();},
   sample:function(s,st){
-    var raw=[s.ax,s.ay,s.az][st.ax];
-    if(st.cal<40){st.cal++;st.calS[st.ax]+=raw;st.bias[st.ax]=st.calS[st.ax]/st.cal;return;}
-    var a=raw-st.bias[st.ax];
-    if(Math.abs(a)<0.05)a=0;                        // deadband: sensor quantisation
-    st.still=Math.abs(a)<0.12?st.still+s.dt:0;
-    st.v+=(st.ap+a)/2*s.dt;                         // trapezoid: exact for linear a
-    var vp=st.v;
-    if(st.zupt&&st.still>0.3){st.drift=Math.abs(st.v);st.v=0;}
-    st.x+=(vp+st.v)/2*s.dt; st.ap=a;
+    var raw=[s.ax,s.ay,s.az][st.ax],lin=Math.hypot(s.ax,s.ay,s.az);
+    var gm=Math.hypot(s.Gx,s.Gy,s.Gz)||9.81,gu=[s.Gx/gm,s.Gy/gm,s.Gz/gm];
+    if(st.ph==='cal'){
+      // Calibration is only valid while genuinely still, so any movement
+      // restarts it rather than baking a wrong bias into the whole trial.
+      if(lin>0.16){st.calN=0;st.calS=0;return;}
+      st.calN++;st.calS+=raw;st.gref=gu;
+      if(st.calN>=55){st.bias=st.calS/st.calN;st.ph='armed';}
+      return;
+    }
+    var a=raw-st.bias;
+    if(st.ph==='armed'){if(Math.abs(a)>0.3){st.ph='run';st.ap=a;}else return;}
+    if(st.ph!=='run')return;
+    // Tilt leaks gravity into the measured axis: one degree is 0.17 m/s², an
+    // order of magnitude above the noise, so the trial is flagged if it moved.
+    if(st.gref){var d=gu[0]*st.gref[0]+gu[1]*st.gref[1]+gu[2]*st.gref[2];
+      var tl=Math.acos(Math.max(-1,Math.min(1,d)));if(tl>st.tilt)st.tilt=tl;}
+    st.dur+=s.dt;st.rec.push([s.dt,a]);
+    var vp=st.v;st.v+=(st.ap+a)/2*s.dt;st.x+=(vp+st.v)/2*s.dt;st.ap=a;
     st.tr[0].push(a);st.tr[1].push(st.v);st.tr[2].push(st.x);
-    slSet('slv-a',a.toFixed(2));slSet('slv-v',st.v.toFixed(2));
-    slSet('slv-x',st.x.toFixed(2));slSet('slv-dr',st.drift.toFixed(2));},
+    st.still=(Math.abs(a)<0.12)?st.still+s.dt:0;
+    if((st.still>0.45&&st.dur>0.6)||st.dur>8)SL_IMPL['motion-trial'].finish(st);},
+  finish:function(st){
+    st.ph='done';
+    var r=st.rec,i,T=0;for(i=0;i<r.length;i++)T+=r[i][0];
+    var v=0,ap=0;for(i=0;i<r.length;i++){v+=(ap+r[i][1])/2*r[i][0];ap=r[i][1];}
+    // It began and ended at rest, so the true v here is 0 and this leftover is
+    // the accumulated drift. Removing it as a constant bias de-trends x.
+    var vend=v,b=T>0?vend/T:0,v2=0,x2=0,ap2=0,vmax=0;
+    for(i=0;i<r.length;i++){var a=r[i][1]-b,dt=r[i][0],vp=v2;
+      v2+=(ap2+a)/2*dt;ap2=a;x2+=(vp+v2)/2*dt;if(Math.abs(v2)>vmax)vmax=Math.abs(v2);}
+    st.res={T:T,xr:st.x,xc:x2,drift:vend,vmax:vmax,tilt:st.tilt*180/Math.PI};},
   draw:function(ctx,W,H,st){
-    var pad=8,ph=(H-pad*4)/3,c1=slCss('--accent','#3b82f6'),c2=slCss('--green','#10b981'),c3=slCss('--gold','#f59e0b');
+    var pad=7,ph=(H-pad*4-46)/3,c1=slCss('--accent','#3b82f6'),c2=slCss('--green','#10b981'),
+        c3=slCss('--gold','#f59e0b'),mu=slCss('--muted','#889'),tx=slCss('--text','#dde');
     slPlot(ctx,pad,pad,W-pad*2,ph,[{tr:st.tr[0],c:c1}],{title:'a  (m/s²)',floor:.5,hold:st.h[0]});
     slPlot(ctx,pad,pad*2+ph,W-pad*2,ph,[{tr:st.tr[1],c:c2}],{title:'v = ∫a dt  (m/s)',floor:.2,hold:st.h[1]});
     slPlot(ctx,pad,pad*3+ph*2,W-pad*2,ph,[{tr:st.tr[2],c:c3}],{title:'x = ∫v dt  (m)',floor:.1,hold:st.h[2]});
-    if(st.cal<40)simText(ctx,'מכייל… החזיקו במנוחה',W/2,H/2,slCss('--muted','#889'),12,'center',true);}},
+    var y=H-30,r=st.res;
+    if(st.ph==='cal')simText(ctx,'⏳ מכייל — אל תזיזו ('+Math.round(st.calN/55*100)+'%)',W/2,y,c3,12.5,'center',true);
+    else if(st.ph==='armed')simText(ctx,'✅ מוכן — החליקו את הטלפון ואז עצרו אותו',W/2,y,c2,12.5,'center',true);
+    else if(st.ph==='run')simText(ctx,'🔴 מודד… ('+st.dur.toFixed(1)+' ש)',W/2,y,slCss('--red','#ef4444'),12.5,'center',true);
+    else if(r){
+      slTxt(ctx,'Δx = '+(r.xc*100).toFixed(1)+' cm   (גולמי '+(r.xr*100).toFixed(1)+')',W/2,y-13,tx,11.5,'center',true);
+      var bad=r.tilt>2.5;
+      simText(ctx,bad?('⚠ הטלפון הוטה ב-'+r.tilt.toFixed(1)+'° — הכובד דלף לציר; נסו שוב שטוח')
+                    :('סחיפה '+Math.abs(r.drift).toFixed(3)+' m/s על פני '+r.T.toFixed(1)+' ש — זו שגיאת המדידה'),
+        W/2,y+5,bad?c3:mu,11,'center',bad);}
+    if(st.ph!=='done'&&st.ph!=='cal'&&st.ph!=='armed'&&st.ph!=='run')
+      simText(ctx,'לחצו ▶ כדי להתחיל',W/2,y,mu,12,'center',true);},
+  chips:function(st){
+    var L={cal:'מכייל',armed:'מוכן',run:'מודד',done:'הושלם'};
+    slSet('slv-ph',L[st.ph]||'—');
+    var r=st.res;
+    slSet('slv-x',r?(r.xc).toFixed(3):(st.ph==='run'?st.x.toFixed(3):'—'));
+    slSet('slv-vm',r?r.vmax.toFixed(2):(st.ph==='run'?Math.abs(st.v).toFixed(2):'—'));
+    slSet('slv-dr',r?Math.abs(r.drift).toFixed(3):'—');}},
 
 'tilt-components':{
-  init:function(st){st.th=0;st.gp=9.8;},reset:function(){},
+  init:function(st){st.reset(st);},
+  reset:function(st){st.th=0;st.gp=9.81;st.gx=0;st.gy=0;st.gm=0;st.res=0;},
   sample:function(s,st){
     var gx=s.Gx,gy=s.Gy,gp=Math.hypot(gx,gy);
     st.gp=gp;st.th=Math.atan2(gx,Math.abs(gy)||1e-9);
     st.gx=Math.abs(gp*Math.sin(st.th));st.gy=Math.abs(gp*Math.cos(st.th));
     st.gm=Math.hypot(s.Gx,s.Gy,s.Gz);
-    slSet('slv-th',(st.th*180/Math.PI).toFixed(1));slSet('slv-gx',st.gx.toFixed(2));
-    slSet('slv-gy',st.gy.toFixed(2));slSet('slv-gm',st.gm.toFixed(2));},
+    st.res=Math.hypot(st.gx,st.gy)-gp;},
+  chips:function(st){
+    slSet('slv-th',(st.th*180/Math.PI).toFixed(1));slSet('slv-gx',(st.gx||0).toFixed(2));
+    slSet('slv-gy',(st.gy||0).toFixed(2));slSet('slv-rs',((st.gm||0)-9.81).toFixed(3));},
   draw:function(ctx,W,H,st){
-    var cx=W/2,cy=H/2,ph=Math.min(W*0.17,52),pv=ph*1.9,th=st.th||0;
+    var cx=W/2,cy=H/2-8,ph=Math.min(W*0.17,52),pv=ph*1.9,th=st.th||0;
     var c1=slCss('--accent','#3b82f6'),c2=slCss('--green','#10b981'),c3=slCss('--red','#ef4444'),mu=slCss('--muted','#889');
     ctx.save();ctx.translate(cx,cy);ctx.rotate(-th);
     ctx.strokeStyle=mu;ctx.lineWidth=2;ctx.beginPath();
@@ -22535,182 +22657,174 @@ var SL_IMPL={
     ctx.strokeStyle=mu;ctx.setLineDash([3,3]);ctx.lineWidth=1;
     ctx.beginPath();ctx.moveTo(0,-pv-4);ctx.lineTo(0,pv+4);ctx.moveTo(-ph-8,0);ctx.lineTo(ph+8,0);ctx.stroke();
     ctx.setLineDash([]);ctx.restore();
-    var sc=(Math.min(W,H)*0.30)/9.81,gL=(st.gp||9.8)*sc;
-    // Gravity points straight down the screen; it is the phone's axes that turn.
-    // Projecting g onto each axis makes the two arrows close on g's tip exactly.
-    var ux=Math.sin(th),uy=-Math.cos(th);            // phone +y, screen coords
-    var vx=Math.cos(th),vy=Math.sin(th);             // phone +x, screen coords
-    var ky=gL*uy,kx=gL*vy;                           // g·ŷ and g·x̂
-    var Ax=ky*ux,Ay=ky*uy,Bx=kx*vx,By=kx*vy;
+    var sc=(Math.min(W,H)*0.29)/9.81,gL=(st.gp||9.8)*sc;
+    var ux=Math.sin(th),uy=-Math.cos(th),vx=Math.cos(th),vy=Math.sin(th);
+    var ky=gL*uy,kx=gL*vy,Ax=ky*ux,Ay=ky*uy,Bx=kx*vx,By=kx*vy;
     ctx.save();ctx.strokeStyle=mu;ctx.setLineDash([2,4]);ctx.lineWidth=1;
     ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(cx+Bx,cy+By);
     ctx.lineTo(cx+Ax+Bx,cy+Ay+By);ctx.stroke();ctx.setLineDash([]);ctx.restore();
     simArrow(ctx,cx,cy,cx,cy+gL,c3,3,11);
     slTxt(ctx,'g',cx+13,cy+gL-4,c3,12,'left',true);
-    simArrow(ctx,cx,cy,cx+Ax,cy+Ay,c2,2.5,9);                        // along the phone's y
-    simArrow(ctx,cx+Ax,cy+Ay,cx+Ax+Bx,cy+Ay+By,c1,2.5,9);            // along the phone's x
+    simArrow(ctx,cx,cy,cx+Ax,cy+Ay,c2,2.5,9);
+    simArrow(ctx,cx+Ax,cy+Ay,cx+Ax+Bx,cy+Ay+By,c1,2.5,9);
     slTxt(ctx,'g·cosθ = '+(st.gy||0).toFixed(2),12,20,c2,11,'left',true);
     slTxt(ctx,'g·sinθ = '+(st.gx||0).toFixed(2),12,37,c1,11,'left',true);
     slTxt(ctx,'θ = '+((th*180/Math.PI)||0).toFixed(1)+'°',12,54,mu,11,'left',true);
-    // one left-to-right expression: mixing scripts here gets bidi-reordered
+    var eq=Math.abs(Math.abs(st.gx-st.gy))<0.25;
+    if(eq)simText(ctx,'⇦ כאן הרכיבים שווים — 45°',W-12,20,slCss('--gold','#f59e0b'),11,'right',true);
     slTxt(ctx,'√('+(st.gx||0).toFixed(2)+'² + '+(st.gy||0).toFixed(2)+'²) = '+
       Math.hypot(st.gx||0,st.gy||0).toFixed(2)+' m/s²',W/2,H-9,mu,10.5,'center');}},
 
 'incline-forces':{
-  init:function(st){st.th=0;st.m=2;},reset:function(){},
+  init:function(st){st.reset(st);},
+  reset:function(st){st.th=0;st.m=2;st.N=0;st.Fp=0;st.W=0;},
   sample:function(s,st){
-    var g=Math.hypot(s.Gx,s.Gy,s.Gz)||9.81;
-    var c=Math.min(1,Math.abs(s.Gz)/g);
-    st.th=Math.acos(c);st.g=g;
+    var g=Math.hypot(s.Gx,s.Gy,s.Gz)||9.81,c=Math.min(1,Math.abs(s.Gz)/g);
+    st.th=Math.acos(c);
     var e=document.getElementById('sl-m');st.m=e?parseFloat(e.value):2;
-    st.N=st.m*9.81*Math.cos(st.th);st.Fp=st.m*9.81*Math.sin(st.th);st.W=st.m*9.81;
-    slSet('slv-th',(st.th*180/Math.PI).toFixed(1));slSet('slv-N',st.N.toFixed(1));
-    slSet('slv-Fp',st.Fp.toFixed(1));slSet('slv-W',st.W.toFixed(1));},
+    st.N=st.m*9.81*Math.cos(st.th);st.Fp=st.m*9.81*Math.sin(st.th);st.W=st.m*9.81;},
+  chips:function(st){
+    slSet('slv-th',((st.th||0)*180/Math.PI).toFixed(1));slSet('slv-N',(st.N||0).toFixed(1));
+    slSet('slv-Fp',(st.Fp||0).toFixed(1));
+    slSet('slv-rt',st.W?((st.N/st.W).toFixed(2)+' · '+(st.Fp/st.W).toFixed(2)):'—');},
   draw:function(ctx,W,H,st){
     var th=st.th||0,mu=slCss('--muted','#889'),c1=slCss('--accent','#3b82f6'),
-        c2=slCss('--green','#10b981'),c3=slCss('--red','#ef4444');
-    var bx=W*0.09,by=H-28,len=W*0.78,ex=bx+len*Math.cos(th),ey=by-len*Math.sin(th);
+        c2=slCss('--green','#10b981'),c3=slCss('--red','#ef4444'),gd=slCss('--gold','#f59e0b');
+    var bx=W*0.09,by=H-30,len=W*0.78,ex=bx+len*Math.cos(th),ey=by-len*Math.sin(th);
     ctx.save();ctx.strokeStyle=mu;ctx.lineWidth=2;ctx.beginPath();
     ctx.moveTo(bx,by);ctx.lineTo(ex,ey);ctx.lineTo(ex,by);ctx.closePath();ctx.stroke();
-    // theta belongs at the base vertex, between ground and slope. Screen y
-    // grows downward, so the slope leaves (bx,by) at angle -theta.
     ctx.beginPath();ctx.arc(bx,by,30,-th,0);ctx.lineWidth=1;ctx.stroke();ctx.restore();
     slTxt(ctx,(th*180/Math.PI).toFixed(1)+'°',bx+37,by-10,mu,11,'left',true);
-    var nx=-Math.sin(th),ny=-Math.cos(th),bs=14;      // outward normal of a slope rising to the right
+    var nx=-Math.sin(th),ny=-Math.cos(th),bs=14;
     var mx=bx+len*0.50*Math.cos(th),my=by-len*0.50*Math.sin(th);
-    var ax_=mx+nx*bs*1.1,ay_=my+ny*bs*1.1;                 // block centre, on the slope
+    var ax_=mx+nx*bs*1.1,ay_=my+ny*bs*1.1;
     ctx.save();ctx.translate(mx,my);ctx.rotate(-th);
     ctx.fillStyle=slCss('--panel2','#223');ctx.strokeStyle=c1;ctx.lineWidth=2;
     ctx.beginPath();ctx.rect(-bs,-bs*2.2,bs*2,bs*2.2);ctx.fill();ctx.stroke();
     ctx.restore();
-    // keep the weight arrow a readable length whatever the mass
     var sc=Math.min(7,58/Math.max(st.W||20,1));
     simArrow(ctx,ax_,ay_,ax_+nx*(st.N||0)*sc,ay_+ny*(st.N||0)*sc,c2,2.5,10);
     simArrow(ctx,ax_,ay_,ax_-Math.cos(th)*(st.Fp||0)*sc,ay_+Math.sin(th)*(st.Fp||0)*sc,c1,2.5,10);
     simArrow(ctx,ax_,ay_,ax_,ay_+(st.W||0)*sc,c3,2,9);
-    // below the slope, where the triangle's interior is empty, so the three
-    // force vectors never cross it
     slTxt(ctx,st.m.toFixed(1)+' kg',mx+12,my+20,slCss('--text','#dde'),11,'left',true);
     slTxt(ctx,'N = mg·cosθ = '+(st.N||0).toFixed(1)+' N',10,18,c2,11,'left',true);
     slTxt(ctx,'F∥ = mg·sinθ = '+(st.Fp||0).toFixed(1)+' N',10,35,c1,11,'left',true);
-    slTxt(ctx,'mg = '+(st.W||0).toFixed(1)+' N',10,52,c3,11,'left',true);}},
+    slTxt(ctx,'mg = '+(st.W||0).toFixed(1)+' N',10,52,c3,11,'left',true);
+    if(Math.abs((st.N||0)-(st.Fp||0))<0.4*(st.m||2))
+      simText(ctx,'⇦ הכוחות שווים — זו הזווית 45°',W-10,18,gd,11,'right',true);}},
 
 'measure-g':{
-  init:function(st){st.tr=slTrace(200);st.buf=[];st.h={v:.4};},
-  reset:function(st){st.buf=[];if(st.tr)st.tr.clear();},
+  init:function(st){st.tr=slTrace(200);st.h={v:.2};st.reset(st);},
+  reset:function(st){st.buf=[];st.n=0;st.mean=0;st.sd=0;st.se=0;st.cur=0;st.hz=0;st.still=false;
+    if(st.tr)st.tr.clear();},
   sample:function(s,st){
     var g=Math.hypot(s.gx,s.gy,s.gz),lin=Math.hypot(s.ax,s.ay,s.az);
-    st.tr.push(g-9.81);st.still=lin<0.25;
-    if(st.still){st.buf.push(g);if(st.buf.length>150)st.buf.shift();}
-    var m=0,i;for(i=0;i<st.buf.length;i++)m+=st.buf[i];m=st.buf.length?m/st.buf.length:0;
-    var sd=0;for(i=0;i<st.buf.length;i++)sd+=(st.buf[i]-m)*(st.buf[i]-m);
-    sd=st.buf.length>1?Math.sqrt(sd/(st.buf.length-1)):0;
-    st.mean=m;st.sd=sd;st.n=st.buf.length;
-    slSet('slv-g',g.toFixed(3));slSet('slv-gm',m?m.toFixed(3):'—');
-    slSet('slv-sd',m?sd.toFixed(3):'—');slSet('slv-er',m?((m-9.81)/9.81*100).toFixed(2):'—');},
+    st.cur=g;st.hz=s.hz;st.tr.push(g-9.81);st.still=lin<0.25;
+    if(st.still){st.buf.push(g);if(st.buf.length>400)st.buf.shift();}
+    var m=0,i,N=st.buf.length;for(i=0;i<N;i++)m+=st.buf[i];m=N?m/N:0;
+    var sd=0;for(i=0;i<N;i++)sd+=(st.buf[i]-m)*(st.buf[i]-m);
+    sd=N>1?Math.sqrt(sd/(N-1)):0;
+    // the mean of N samples is sqrt(N) times better known than one sample
+    st.mean=m;st.sd=sd;st.n=N;st.se=N>1?sd/Math.sqrt(N):0;},
+  chips:function(st){
+    slSet('slv-g',(st.cur||0).toFixed(3));slSet('slv-gm',st.mean?st.mean.toFixed(3):'—');
+    slSet('slv-se',st.mean?st.se.toFixed(4):'—');
+    slSet('slv-er',st.mean?((st.mean-9.81)/9.81*100).toFixed(2):'—');},
   draw:function(ctx,W,H,st){
-    var mu=slCss('--muted','#889'),c1=slCss('--accent','#3b82f6');
-    slPlot(ctx,8,8,W-16,H-58,[{tr:st.tr,c:c1}],{title:'|a| − 9.81  (m/s²)',floor:.4,hold:st.h});
-    var ok=st.still,col=ok?slCss('--green','#10b981'):slCss('--gold','#f59e0b');
-    simText(ctx,ok?'● במנוחה — נאסף':'● זז — לא נאסף',W/2,H-32,col,11.5,'center',true);
-    simText(ctx,'דגימות שנאספו: '+(st.n||0)+'   ·   ממוצע '+((st.mean||0).toFixed(3))+' m/s²',W/2,H-13,mu,11,'center');}},
+    var mu=slCss('--muted','#889'),c1=slCss('--accent','#3b82f6'),
+        gr=slCss('--green','#10b981'),gd=slCss('--gold','#f59e0b');
+    slPlot(ctx,8,8,W-16,H-72,[{tr:st.tr,c:c1}],{title:'|a| − 9.81  (m/s²)',floor:.2,hold:st.h});
+    var ok=st.still;
+    simText(ctx,ok?'● במנוחה — נאסף':'● זז — לא נאסף',W/2,H-52,ok?gr:gd,11.5,'center',true);
+    if(st.mean)slTxt(ctx,'g = '+st.mean.toFixed(3)+' ± '+st.se.toFixed(4)+' m/s²   (N = '+st.n+')',
+      W/2,H-32,slCss('--text','#dde'),12,'center',true);
+    simText(ctx,'רעש דגימה בודדת '+(st.sd||0).toFixed(3)+' m/s²  ·  קצב דגימה '+
+      Math.round(st.hz||0)+' Hz',W/2,H-12,mu,10.5,'center');}},
 
-'newton-force':{
-  init:function(st){st.tr=slTrace(200);st.pk=0;st.h={v:1};},
-  reset:function(st){st.pk=0;if(st.tr)st.tr.clear();},
+// a_c from |G|, which no gravity filter can eat, and r read off the slope
+'spin-fit':{
+  init:function(st){st.pts=[];st.r=0;st.r2=0;st.g0=0;st.calN=0;st.calS=0;st.acc=0;st.accN=0;st.wS=0;st.reset(st);},
+  reset:function(st){st.pts=[];st.r=0;st.r2=0;st.g0=0;st.calN=0;st.calS=0;st.ph='cal';
+    st.w=0;st.ac=0;st.acc=0;st.accN=0;st.wS=0;st.wLast=0;},
   sample:function(s,st){
-    var e=document.getElementById('sl-m');st.m=e?parseFloat(e.value):1;
-    var a=Math.hypot(s.ax,s.ay,s.az),F=st.m*a;
-    st.tr.push(F);st.pk=Math.max(st.pk*0.999,F);
-    slSet('slv-a',a.toFixed(2));slSet('slv-F',F.toFixed(2));
-    slSet('slv-pk',st.pk.toFixed(2));slSet('slv-g0',(a/9.81).toFixed(2));},
+    var G=Math.hypot(s.gx,s.gy,s.gz),lin=Math.hypot(s.ax,s.ay,s.az);
+    if(st.ph==='cal'){
+      if(lin>0.3){st.calN=0;st.calS=0;return;}
+      st.calN++;st.calS+=G;
+      if(st.calN>=55){st.g0=st.calS/st.calN;st.ph='run';}
+      return;
+    }
+    // |G|² = g² + a_c² for a horizontal circle, whatever the phone's attitude
+    var ac=Math.sqrt(Math.max(0,G*G-st.g0*st.g0));
+    var w=Math.hypot(s.ra,s.rb,s.rg)*Math.PI/180;      // magnitude: attitude-free
+    var k=Math.min(1,s.dt/0.12);
+    st.w+=k*(w-st.w);st.ac+=k*(ac-st.ac);
+    st.acc+=s.dt;st.wS+=s.dt;
+    if(st.wS>0.25){st.wS=0;
+      // a_c = omega^2 r describes a steady circle, so a point is only taken
+      // once the filters have settled and while the rate is barely changing.
+      // Spin-up points sit far off the law and, being the fastest, would carry
+      // the most weight of any point in a fit through the origin.
+      var settled=st.acc>1.0, steady=(st.wLast>0)&&(Math.abs(st.w-st.wLast)<0.12*st.w);
+      if(settled&&steady&&st.w>0.8&&st.ac>0.05&&st.pts.length<200){
+        st.pts.push([st.w*st.w,st.ac]);
+        st.r=slFitOrigin(st.pts);st.r2=slR2(st.pts,st.r);}
+      st.wLast=st.w;}},
+  chips:function(st){
+    slSet('slv-w',(st.w||0).toFixed(2));slSet('slv-ac',(st.ac||0).toFixed(2));
+    slSet('slv-r',st.pts.length>3?st.r.toFixed(3):'—');slSet('slv-n',String(st.pts.length));},
   draw:function(ctx,W,H,st){
-    var mu=slCss('--muted','#889'),c1=slCss('--red','#ef4444');
-    var p=slPlot(ctx,8,8,W-16,H-40,[{tr:st.tr,c:c1}],{title:'F = m·|a|   (N)',floor:1,hold:st.h,positive:true});
-    var wy=p.cy-(st.m||1)*9.81*p.sc;
-    if(wy>10&&wy<H-46){ctx.save();ctx.strokeStyle=slCss('--gold','#f59e0b');ctx.setLineDash([5,4]);ctx.lineWidth=1.5;
-      ctx.beginPath();ctx.moveTo(9,wy);ctx.lineTo(W-9,wy);ctx.stroke();ctx.setLineDash([]);ctx.restore();
-      simText(ctx,'משקל הגוף mg',W-13,wy-5,slCss('--gold','#f59e0b'),10,'right',true);}
-    simText(ctx,'מסה '+(st.m||1).toFixed(1)+' kg  ·  שיא '+(st.pk||0).toFixed(2)+' N',W/2,H-13,mu,11,'center');}},
+    var mu=slCss('--muted','#889'),tx=slCss('--text','#dde'),gd=slCss('--gold','#f59e0b'),c3=slCss('--green','#10b981');
+    if(st.ph==='cal'){
+      simText(ctx,'⏳ מכייל בשקט ('+Math.round(st.calN/55*100)+'%) — אל תזיזו',W/2,H/2,gd,13,'center',true);
+      simText(ctx,'אחר כך סובבו חזק ותנו להאט',W/2,H/2+22,mu,11.5,'center');return;}
+    slScatter(ctx,8,8,W-16,H-52,st.pts,st.r,{xl:'ω²  (rad²/s²)',yl:'a_c  (m/s²)',xmin:1,ymin:.5});
+    if(st.pts.length>3){
+      slTxt(ctx,'a_c = '+st.r.toFixed(3)+' · ω²    →    r = '+st.r.toFixed(3)+' m',W/2,H-31,tx,12,'center',true);
+      simText(ctx,'התאמה R² = '+st.r2.toFixed(3)+(st.r2>0.9?'  ✓ הנקודות על ישר — התאוצה אכן כ-ω²':'  — סובבו עוד כדי לפרוש טווח רחב'),
+        W/2,H-11,st.r2>0.9?c3:mu,11,'center',st.r2>0.9);
+    }else simText(ctx,'סובבו את הטלפון — '+st.pts.length+' נקודות נאספו עד כה',W/2,H-20,mu,12,'center',true);}},
 
-'circular-motion':{
-  init:function(st){st.tm=slTrace(180);st.tp=slTrace(180);st.w=0;st.h={v:1};},
-  reset:function(st){st.w=0;if(st.tm){st.tm.clear();st.tp.clear();}},
-  sample:function(s,st){
-    var e=document.getElementById('sl-r');st.r=e?parseFloat(e.value):0.3;
-    var w=Math.max(Math.abs(s.ra),Math.abs(s.rb),Math.abs(s.rg))*Math.PI/180;
-    st.w+=Math.min(1,s.dt/0.25)*(w-st.w);                    // smooth the gyro
-    var ac=Math.hypot(s.ax,s.ay,s.az),ap=st.w*st.w*st.r;
-    st.ac=ac;st.ap=ap;st.tm.push(ac);st.tp.push(ap);
-    slSet('slv-w',st.w.toFixed(2));slSet('slv-ac',ac.toFixed(2));
-    slSet('slv-ap',ap.toFixed(2));slSet('slv-rp',(st.w*60/(2*Math.PI)).toFixed(0));},
-  draw:function(ctx,W,H,st){
-    var c1=slCss('--accent','#3b82f6'),c2=slCss('--gold','#f59e0b'),mu=slCss('--muted','#889');
-    slPlot(ctx,8,8,W-16,H-52,[{tr:st.tm,c:c1},{tr:st.tp,c:c2,lw:2}],{floor:1,hold:st.h,positive:true});
-    simText(ctx,'— a_c נמדד',12,20,c1,10.5,'left',true);
-    simText(ctx,'— ω²r צפוי',12,35,c2,10.5,'left',true);
-    slTxt(ctx,'ω = '+(st.w||0).toFixed(2)+' rad/s   ·   r = '+((st.r||0.3).toFixed(2))+' m',W/2,H-30,mu,11,'center');
-    var d=(st.ap>0.2)?Math.abs((st.ac-st.ap)/st.ap*100):null;
-    simText(ctx,d===null?'סובבו את הטלפון כדי להשוות':'פער בין נמדד לצפוי: '+d.toFixed(0)+'%',
-      W/2,H-12,d!==null&&d<25?slCss('--green','#10b981'):mu,11,'center',true);}},
-
-'oscillation-period':{
-  init:function(st){st.tr=slTrace(220);st.pd=slPeriod();st.va=[0,0,0];st.mk=[];st.h={v:1};st.nn=0;},
-  reset:function(st){if(st.pd)st.pd.reset();if(st.tr)st.tr.clear();st.mk=[];st.nn=0;},
-  sample:function(s,st){
-    var a=[s.ax,s.ay,s.az],i;
-    for(i=0;i<3;i++)st.va[i]+=Math.min(1,s.dt/1.5)*(a[i]*a[i]-st.va[i]);
-    var k=(st.va[0]>=st.va[1]&&st.va[0]>=st.va[2])?0:(st.va[1]>=st.va[2]?1:2);
-    st.axis='XYZ'[k];
-    var v=a[k],rms=Math.sqrt(st.va[k]);
-    st.tr.push(v);
-    if(st.pd.push(v,s.t,Math.max(0.15,rms*0.35))){st.mk.push(st.tr.d.length-1);st.nn++;}
-    for(i=0;i<st.mk.length;i++)st.mk[i]--;
-    while(st.mk.length&&st.mk[0]<0)st.mk.shift();
-    var T=st.pd.mean;
-    slSet('slv-T',T?T.toFixed(3):'—');slSet('slv-f',T?(1/T).toFixed(2):'—');
-    slSet('slv-w',T?(2*Math.PI/T).toFixed(2):'—');slSet('slv-nn',String(st.nn));},
-  draw:function(ctx,W,H,st){
-    var c1=slCss('--accent2','#06b6d4'),mu=slCss('--muted','#889'),gr=slCss('--green','#10b981');
-    slPlot(ctx,8,8,W-16,H-46,[{tr:st.tr,c:c1}],{title:'a'+(st.axis||'Y')+'  (m/s²)',floor:.5,hold:st.h});
-    var pw=W-16,i;ctx.save();ctx.strokeStyle=gr;ctx.lineWidth=1.2;ctx.globalAlpha=.75;
-    for(i=0;i<st.mk.length;i++){var px=10+(pw-4)*(st.mk[i]/(st.tr.n-1));
-      ctx.beginPath();ctx.moveTo(px,10);ctx.lineTo(px,H-40);ctx.stroke();}
-    ctx.restore();
-    var T=st.pd?st.pd.mean:0;
-    if(T)slTxt(ctx,'T = '+T.toFixed(3)+' s    f = '+(1/T).toFixed(2)+' Hz    ω = '+(2*Math.PI/T).toFixed(2)+' rad/s',
-      W/2,H-14,slCss('--text','#dde'),12,'center',true);
-    else simText(ctx,'נדנדו את הטלפון בקצב אחיד…',W/2,H-14,mu,12,'center',true);}},
-
-'pendulum-timer':{
-  init:function(st){st.tr=slTrace(220);st.pd=slPeriod();st.va=[0,0,0];st.nn=0;st.h={v:1};},
-  reset:function(st){if(st.pd)st.pd.reset();if(st.tr)st.tr.clear();st.nn=0;},
+// T from crossings, then T² against L, and g off the slope
+'pendulum-fit':{
+  init:function(st){st.tr=slTrace(220);st.pd=slPeriod();st.h={v:1};st.pts=[];st.g=0;st.r2=0;st.reset(st);},
+  reset:function(st){if(st.pd)st.pd.reset();if(st.tr)st.tr.clear();
+    st.T=0;st.sp=0;st.va=[0,0,0];st.L=0.5;},
+  clear:function(st){st.pts=[];st.g=0;st.r2=0;},
+  record:function(st){
+    if(!st.T)return false;
+    var e=document.getElementById('sl-L'),L=e?parseFloat(e.value):0.5;
+    st.pts.push([L,st.T*st.T]);
+    var s=slFitOrigin(st.pts);st.g=s>0?4*Math.PI*Math.PI/s:0;st.r2=slR2(st.pts,s);
+    st.pd.reset();st.T=0;return true;},
   sample:function(s,st){
     var e=document.getElementById('sl-L');st.L=e?parseFloat(e.value):0.5;
     var a=[s.ax,s.ay,s.az],i;
     for(i=0;i<3;i++)st.va[i]+=Math.min(1,s.dt/1.5)*(a[i]*a[i]-st.va[i]);
     var k=(st.va[0]>=st.va[1]&&st.va[0]>=st.va[2])?0:(st.va[1]>=st.va[2]?1:2);
     var v=a[k],rms=Math.sqrt(st.va[k]);
-    st.tr.push(v);
-    if(st.pd.push(v,s.t,Math.max(0.15,rms*0.35)))st.nn++;
-    var T=st.pd.mean,Tp=2*Math.PI*Math.sqrt(st.L/9.81);
-    st.T=T;st.Tp=Tp;
-    slSet('slv-T',T?T.toFixed(3):'—');slSet('slv-Tp',Tp.toFixed(3));
-    slSet('slv-df',T?((T-Tp)/Tp*100).toFixed(1):'—');slSet('slv-nn',String(st.nn));},
+    st.tr.push(v);st.pd.push(v,s.t,Math.max(0.15,rms*0.35));
+    st.T=st.pd.mean;st.sp=st.pd.spread||0;},
+  chips:function(st){
+    slSet('slv-T',st.T?st.T.toFixed(3):'—');
+    slSet('slv-g',st.pts.length>1?st.g.toFixed(2):'—');
+    slSet('slv-r2',st.pts.length>1?st.r2.toFixed(3):'—');
+    slSet('slv-n',String(st.pts.length));},
   draw:function(ctx,W,H,st){
-    var c1=slCss('--accent2','#06b6d4'),c2=slCss('--gold','#f59e0b'),mu=slCss('--muted','#889');
-    slPlot(ctx,8,8,W-16,H-74,[{tr:st.tr,c:c1}],{title:'a  (m/s²)',floor:.5,hold:st.h});
-    var y0=H-58,bw=W-120,mx=Math.max(st.T||0,st.Tp||1)*1.15;
-    ctx.save();
-    ctx.fillStyle=c2;ctx.fillRect(70,y0,bw*((st.Tp||0)/mx),13);
-    ctx.fillStyle=c1;ctx.fillRect(70,y0+18,bw*((st.T||0)/mx),13);
-    ctx.restore();
-    simText(ctx,'צפוי',64,y0+11,c2,10.5,'right',true);
-    simText(ctx,'נמדד',64,y0+29,c1,10.5,'right',true);
-    slTxt(ctx,(st.Tp||0).toFixed(3)+'s',74+bw*((st.Tp||0)/mx),y0+11,mu,10,'left');
-    if(st.T)slTxt(ctx,st.T.toFixed(3)+'s',74+bw*(st.T/mx),y0+29,mu,10,'left');
-    simText(ctx,'L = '+((st.L||0.5).toFixed(2))+' m   ·   '+
-      (st.T?('הפרש '+((st.T-st.Tp)/st.Tp*100).toFixed(1)+'%'):'נדנדו בתנודה קטנה…'),W/2,H-9,mu,11,'center');}}
+    var c1=slCss('--accent2','#06b6d4'),mu=slCss('--muted','#889'),tx=slCss('--text','#dde'),
+        gr=slCss('--green','#10b981'),gd=slCss('--gold','#f59e0b');
+    var hp=Math.round(H*0.30);
+    slPlot(ctx,8,6,W-16,hp,[{tr:st.tr,c:c1}],{title:'a  (m/s²)',floor:.5,hold:st.h});
+    var s=st.pts.length?slFitOrigin(st.pts):0;
+    slScatter(ctx,8,hp+12,W-16,H-hp-56,st.pts,s,{xl:'L  (m)',yl:'T²  (s²)',xmin:.4,ymin:.4});
+    var Tp=2*Math.PI*Math.sqrt((st.L||0.5)/9.81);
+    slTxt(ctx,'L = '+((st.L||0.5).toFixed(2))+' m    T = '+(st.T?st.T.toFixed(3):'—')+' s'+
+      (st.T?('    (2π√(L/g) = '+Tp.toFixed(3)+')'):''),W/2,H-27,tx,11.5,'center',true);
+    if(st.pts.length>1)
+      simText(ctx,'שיפוע → g = '+st.g.toFixed(2)+' m/s²   ·   R² = '+st.r2.toFixed(3),
+        W/2,H-9,Math.abs(st.g-9.81)<0.5?gr:gd,11.5,'center',true);
+    else simText(ctx,st.T?'ה-T התייצב — לחצו "רשום נקודה", ואז שנו את L':'נדנדו בתנודה קטנה…',
+      W/2,H-9,mu,11.5,'center',true);}}
 };
 
 // ── boot one lab into the theory tab ─────────────────────────────────────
@@ -22724,29 +22838,42 @@ function initSensorLab(key){
   var btn=document.getElementById('sl-start'),err=document.getElementById('sl-err');
   function say(m){if(err){err.style.display=m?'':'none';err.innerHTML=m||'';}}
 
-  // live labels for the sliders
-  [['sl-m','sl-mv',' kg',1],['sl-r','sl-rv',' m',2],['sl-L','sl-Lv',' m',2]].forEach(function(a){
+  // The canvas is sized once from its CSS width, so a rotation to landscape
+  // would otherwise leave it drawing into the old, narrower bitmap.
+  function resize(){
+    var s2=setupCanvas(cv,L.h);ctx=s2.ctx;W=s2.W;H=s2.H;
+    if(!_sl.run){ctx.clearRect(0,0,W,H);impl.draw(ctx,W,H,st);}
+  }
+  _sl.onResize=resize;
+
+  [['sl-m','sl-mv',' kg',1],['sl-L','sl-Lv',' m',2]].forEach(function(a){
     var i=document.getElementById(a[0]),o=document.getElementById(a[1]);
     if(i&&o)i.addEventListener('input',function(){o.textContent=parseFloat(i.value).toFixed(a[3])+a[2];});});
 
-  if(L.t==='motion-integrate'){
-    function mark(){['x','y','z'].forEach(function(c,i){
-      var b=document.getElementById('sl-ax'+c);if(b)b.className='sl-sec'+(st.ax===i?' on':'');});
-      var z=document.getElementById('sl-zupt');if(z)z.className='sl-sec'+(st.zupt?' on':'');
-      if(z)z.textContent='ZUPT '+(st.zupt?'✔':'✘');}
+  if(L.t==='motion-trial'){
+    var mark=function(){['x','y','z'].forEach(function(c,i){
+      var b=document.getElementById('sl-ax'+c);if(b)b.className='sl-sec'+(st.ax===i?' on':'');});};
     ['x','y','z'].forEach(function(c,i){var b=document.getElementById('sl-ax'+c);
       if(b)b.addEventListener('click',function(){st.ax=i;st.reset(st);mark();});});
-    var z=document.getElementById('sl-zupt');
-    if(z)z.addEventListener('click',function(){st.zupt=!st.zupt;mark();});
     mark();
   }
+  if(L.t==='pendulum-fit'){
+    var rb=document.getElementById('sl-rec');
+    if(rb)rb.addEventListener('click',function(){
+      if(!impl.record(st))say('חכו שזמן המחזור יתייצב לפני שרושמים נקודה.');else say('');});
+    var cb=document.getElementById('sl-clr');
+    if(cb)cb.addEventListener('click',function(){impl.clear(st);});
+  }
   var zb=document.getElementById('sl-zero');
-  if(zb)zb.addEventListener('click',function(){st.reset(st);});
+  if(zb)zb.addEventListener('click',function(){st.reset(st);say('');});
 
-  function loop(){if(!_sl.run){return;}
-    ctx.clearRect(0,0,W,H);impl.draw(ctx,W,H,st);_sl.raf=requestAnimationFrame(loop);}
+  function loop(){if(!_sl.run)return;
+    ctx.clearRect(0,0,W,H);
+    if(impl.chips)impl.chips(st);
+    impl.draw(ctx,W,H,st);
+    _sl.raf=requestAnimationFrame(loop);}
 
-  function stop(){slStopAll();_sl.st=st;btn.textContent='▶ הפעל חיישן';btn.className='';}
+  function stop(){slStopAll();_sl.st=st;_sl.onResize=resize;btn.textContent='▶ הפעל חיישן';btn.className='';}
   function go(){
     if(_sl.run){stop();return;}
     if(!window.isSecureContext&&location.protocol!=='file:'){
@@ -22759,9 +22886,13 @@ function initSensorLab(key){
       say('');_sensor.got=0;st.reset(st);
       sensorStart(function(s){if(_sl.st===st)impl.sample(s,st);});
       _sl.run=true;btn.textContent='⏹ עצור';btn.className='on';
+      _sl.stopFn=stop; slWakeOn();
       _sl.raf=requestAnimationFrame(loop);
-      setTimeout(function(){if(_sl.run&&_sensor.got===0)
-        say('לא מתקבלים נתונים ממד-התאוצה. ייתכן שהמכשיר אינו כולל חיישן זמין לדפדפן.');},1800);
+      setTimeout(function(){
+        if(!_sl.run)return;
+        if(_sensor.got===0)say('לא מתקבלים נתונים ממד-התאוצה. ייתכן שהמכשיר אינו כולל חיישן זמין לדפדפן.');
+        else if(_sensor.bad>_sensor.got*0.8)say('החיישן מדווח אירועים ריקים. נסו דפדפן אחר, או בדקו שההרשאה אושרה.');
+      },2000);
     });
   }
   if(btn)btn.addEventListener('click',go);
