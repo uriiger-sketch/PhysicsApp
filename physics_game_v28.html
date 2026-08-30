@@ -815,6 +815,17 @@ function _siUnit(sym,nm,desc,unit){
   if(s==='f')  return /תדירות/.test(n)?'Hz':/חיכוך/.test(n)?'N':/מוקד/.test(n)?'cm':'';
   if(s==='Q'||s==='q') return /מטען/.test(n)?'C':'';
   if(s==='C')  return /קיבול/.test(n)?'F':'';
+  // m is overloaded three ways here: MASS (kg), the interference ORDER and the
+  // MAGNIFICATION — the last two dimensionless. Neither had a rule, so both fell
+  // through to the MAP fallback m:'kg' below, and every formula box in the
+  // wave-optics chapter plus every mirror/lens magnification box labelled a pure
+  // number as a mass in kilograms.
+  if(/^[mM]$/.test(raw)&&/סדר|מספר|הגדלה/.test(nm||''))return '—';
+  // Parameters that resolved to no unit at all.
+  if(/אורך הקטע/.test(nm||''))              return 'm';
+  if(/פונקציית מקום-זמן/.test(nm||''))       return 'm';
+  if(/מהירות רגעית/.test(nm||''))            return 'm/s';
+  if(/^מתקף$/.test((nm||'').trim()))         return 'N·s';
   var MAP={x:'m',y:'m',h:'m',L:'m',s:'m',t:'s',v:'m/s',u:'m/s',a:'m/s²',g:'m/s²',
            m:'kg',M:'kg',F:'N',W:'J',P:'W',I:'W/m²',lambda:'nm',theta:'°',omega:'rad/s'};
   if(MAP[s])return MAP[s];
