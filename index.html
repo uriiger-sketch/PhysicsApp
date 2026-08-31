@@ -45,7 +45,12 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 .sec-btn.active{color:var(--accent2);background:rgba(6,182,212,.1);font-weight:700;}
 .sec-dot{width:7px;height:7px;border-radius:50%;background:var(--border);border:1.5px solid var(--muted);flex-shrink:0;transition:all .2s;}
 .sec-dot.done{background:var(--green);border-color:var(--green);}
-.sec-dot.active{background:var(--accent);border-color:var(--accent);}
+.sec-dot.seen{background:var(--gold);border-color:var(--gold);}
+.sec-dot.fresh{background:transparent;border-color:var(--red);}
+.dot-legend{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;padding:8px 10px 2px;
+  font-size:.66rem;color:var(--muted);}
+.dot-legend span{display:inline-flex;align-items:center;gap:5px;}
+.dot-legend i{width:7px;height:7px;border-radius:50%;border:1.5px solid;display:inline-block;}
 /* sections carrying a phone-sensor experiment */
 .sec-lab{margin-inline-start:auto;font-size:.72rem;line-height:1;opacity:.85;flex-shrink:0;
   filter:saturate(1.2);}
@@ -172,6 +177,8 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 .sl-slider{display:flex;align-items:center;gap:8px;font-size:.8rem;color:var(--muted);}
 .sl-slider input{width:120px;}
 .sl-slider span{color:var(--text);font-weight:600;font-variant-numeric:tabular-nums;min-width:3.6em;direction:ltr;}
+.sl-zoom{display:inline-flex;gap:4px;margin-inline-start:auto;}
+.sl-zoom button{padding:7px 9px;font-size:.8rem;}
 .anim-ctrl{display:flex;align-items:center;gap:8px;padding:7px 14px;background:rgba(255,255,255,.02);border-top:1px solid var(--border);}
 .anim-ctrl button{padding:3px 13px;border:1px solid var(--border);background:var(--panel2);color:var(--text);border-radius:6px;cursor:pointer;font-family:'Heebo',sans-serif;font-size:.77rem;transition:all .15s;line-height:1.5;}
 .anim-ctrl button:hover{background:var(--accent);border-color:var(--accent);color:#fff;}
@@ -969,7 +976,7 @@ function saveState(){
     localStorage.setItem(SAVE_KEY,JSON.stringify({
       subject:state.subject,
       chapter:state.chapter, section:state.section,
-      xp:state.xp, completed:state.completed,
+      xp:state.xp, completed:state.completed, visited:state.visited,
       quizState:state.quizState, problemState:state.problemState,
       theme:state.theme,
       difficulty:state.difficulty
@@ -986,6 +993,7 @@ function loadState(){
     if(saved.section)state.section=saved.section;
     if(saved.xp)state.xp=saved.xp||0;
     if(saved.completed)state.completed=saved.completed||{};
+    if(saved.visited)state.visited=saved.visited||{};
     if(saved.quizState)state.quizState=saved.quizState||{};
     if(saved.problemState)state.problemState=saved.problemState||{};
     if(saved.theme)state.theme=saved.theme||'dark';
@@ -1002,7 +1010,7 @@ function applyTheme(t){
 const state={
   subject:'mechanics',
   chapter:'kinematics', section:'distance-time', tab:'theory',
-  xp:0, completed:{}, quizState:{}, problemState:{}, simState:{},
+  xp:0, completed:{}, visited:{}, quizState:{}, problemState:{}, simState:{},
   theme:'dark', difficulty:'normal'  // 'easy'|'normal'|'hard'
 };
 function isCompleted(c,s,t){return !!state.completed[`${c}.${s}.${t}`];}
@@ -2910,11 +2918,12 @@ const CONTENT={
   theory:{
     title:'שימור תנע',
     html:`
-      <p>כשאין כוחות חיצוניים על מערכת, התנע הכולל שלה <b>לא משתנה</b> — זהו אחד מחוקי השימור הגדולים בפיזיקה.</p>
+      <p>כאשר <b>שקול</b> הכוחות החיצוניים על מערכת מתאפס, התנע הכולל שלה <b>לא משתנה</b> — זהו אחד מחוקי השימור הגדולים בפיזיקה.</p>
       <div class="def-block"><div class="def-title">חוק שימור התנע</div>
         <p>במערכת <b>מבודדת</b> (${M('\\sum\\vec{F}_{ext}=0')}): ${M('\\vec{p}_{tot} = const')}.</p>
-        <p>הכוחות <em>הפנימיים</em> ביחס לחוק III תמיד מבטלים זה את זה — רק חיצוניים מחשיב.</p>
+        <p>הכוחות ה<em>פנימיים</em> מבטלים זה את זה בזוגות לפי החוק השלישי, ולכן רק החיצוניים נחשבים.</p>
       </div>
+      <div class="mis-block"><b>⚠️ דקדוק שחשוב:</b> התנאי אינו "אין כוחות חיצוניים" אלא "<b>שקולם</b> אפס". על שתי עגלות המתנגשות על שולחן פועלים כל הזמן גם הכובד וגם הכוח הנורמלי — הם פשוט מבטלים זה את זה, ולכן התנע נשמר במדויק בציר האופקי. וגם כשהשקול אינו אפס, אפשר עדיין להשתמש בשימור תנע ב<b>ציר</b> שבו רכיב השקול מתאפס.</div>
       ${fBox('m_1v_{1i}+m_2v_{2i} = m_1v_{1f}+m_2v_{2f}','שימור תנע לשני גופים',[
         ['v_{1i},v_{2i}','מהירויות לפני','m/s'],
         ['v_{1f},v_{2f}','מהירויות אחרי','m/s — פתרון בשתי משוואות'],
@@ -3131,8 +3140,9 @@ const CONTENT={
     html:`
       <p><b>רכבת הרים מטפסת פעם אחת — ואז לא נוגעת שוב במנוע.</b> כל שאר הנסיעה, כל ירידה וכל עלייה, היא חילוף אחד ויחיד: גובה תמורת מהירות. זה הרעיון החזק ביותר במכניקה, והוא חוסך את פתרון משוואות התנועה כמעט תמיד.</p>
       <div class="def-block"><div class="def-title">חוק שימור האנרגיה המכנית</div>
-        <p>כאשר פועלים רק <b>כוחות משמרים</b> (כובד, קפיץ), האנרגיה המכנית הכוללת אינה משתנה:</p>
+        <p>כאשר <b>העבודה</b> על הגוף נעשית רק על ידי <b>כוחות משמרים</b> (כובד, קפיץ), האנרגיה המכנית הכוללת אינה משתנה:</p>
       </div>
+      <div class="mis-block"><b>⚠️ דקדוק שחשוב מאוד:</b> התנאי אינו "רק כוחות משמרים <b>פועלים</b>" אלא "רק הם <b>מבצעים עבודה</b>". על עגלת רכבת ההרים פועל כוח נורמלי בכל רגע ורגע, ועל מטוטלת פועלת מתיחות החוט בכל רגע — ובכל זאת שתיהן משמרות אנרגיה מכנית במדויק. הסיבה: שני הכוחות האלה <b>ניצבים לתנועה</b> תמיד, ולכן ${M('W=Fd\\cos 90°=0')}. אילו היה התנאי "רק כוחות משמרים פועלים", החוק לא היה חל על אף אחת משתי המערכות שהפרק כולו בנוי סביבן.</div>
       ${fBox('E_k + E_p = \\text{const}','שימור אנרגיה מכנית')}
       ${fBox('\\tfrac12mv_1^2+mgh_1=\\tfrac12mv_2^2+mgh_2','בין שתי נקודות כלשהן')}
       ${animCanvas('anim-econs-track',200,'הסרגלים מתחלפים — הסכום לא זז')}
@@ -5773,8 +5783,9 @@ function simText(ctx,txt,x,y,col,sz,align,bold){
   if(col===undefined)col='#64748b'; if(sz===undefined)sz=11; if(align===undefined)align='center'; if(bold===undefined)bold=false;
   ctx.save(); ctx.fillStyle=col; ctx.font=(bold?'bold ':'')+sz+'px Heebo';
   ctx.textAlign=align;
+  sz=_fitFont(ctx,txt,sz,(bold?'bold ':'')+'Heebo');
   var fx=_fitLabel(ctx,txt,x,y,align,sz);
-  if(fx!==null)ctx.fillText(txt,fx,y);
+  if(fx!==null)ctx.fillText(txt,fx,_fitY(ctx,y,sz));
   ctx.restore();
 }
 function simCircle(ctx,x,y,r,fill,stroke,lw){
@@ -5811,6 +5822,13 @@ function initSim(id,type){
   if(!canvas)return;
   var _g=(_simGen[id]=(_simGen[id]||0)+1);
   setTimeout(function(){
+    if(_simGen[id]!==_g)return;
+    // Every running loop re-registers its own callback each frame and bails out
+    // when it sees the stop flag. Clearing the flag immediately could therefore
+    // let a loop from the previous section slip through and run forever against
+    // a canvas that is no longer on the page. Two frames guarantee that every
+    // callback scheduled before the flag went up has run and returned.
+    requestAnimationFrame(function(){requestAnimationFrame(function(){
     if(_simGen[id]!==_g)return;
     _simStop[id]=false;
   ({
@@ -5889,6 +5907,7 @@ function initSim(id,type){
     'elc-network':simElcNetwork,
     'elc-upair':simElcUpair,
   }[type]||simPlaceholder)(canvas,type);
+    })});
   },50);
 }
 
@@ -13009,6 +13028,33 @@ function optDash(ctx,x1,y1,x2,y2,col,op){
 // Transform-aware: bails out unless the current transform is an axis-aligned
 // scale+translate, because under a rotation the raw x,y say nothing about where
 // the glyph actually lands (rod glyphs, rotated axis labels, ...).
+// Pull a label that would be cut by the top or bottom edge just inside it.
+// Labels far outside are still dropped by _fitLabel; this only rescues the ones
+// that would otherwise be drawn half-visible.
+// A caption wider than the canvas cannot be rescued by moving it, only by
+// setting it smaller. Returns the size that fits, never below a readable floor.
+function _fitFont(ctx,txt,sz,family){
+  var cv=ctx.canvas; if(!cv||!cv.width)return sz;
+  var m; try{m=ctx.getTransform();}catch(e){return sz;}
+  var sx=m.a; if(!(sx>0))return sz;
+  var avail=(cv.width/sx)-8;
+  var w; try{w=ctx.measureText(String(txt)).width;}catch(e){return sz;}
+  if(w<=avail||w<=0)return sz;
+  var ns=Math.max(6.5,sz*avail/w);
+  ctx.font=ns+'px '+(family||'Heebo,sans-serif');
+  return ns;
+}
+function _fitY(ctx,y,sz){
+  var cv=ctx.canvas; if(!cv||!cv.height)return y;
+  var m; try{m=ctx.getTransform();}catch(e){return y;}
+  if(Math.abs(m.b)>1e-6||Math.abs(m.c)>1e-6)return y;
+  var sy=m.d; if(!(sy>0))return y;
+  var pad=(sz||11)*sy, dy=y*sy+m.f;
+  var lo=pad, hi=cv.height-pad*0.45;
+  if(dy<lo)return (lo-m.f)/sy;
+  if(dy>hi)return (hi-m.f)/sy;
+  return y;
+}
 function _fitLabel(ctx,txt,x,y,align,sz){
   var cv=ctx.canvas; if(!cv||!cv.width)return x;
   var m; try{m=ctx.getTransform();}catch(e){return x;}
@@ -13033,8 +13079,9 @@ function optLabel(ctx,txt,x,y,col,sz,align){
   ctx.save();ctx.fillStyle=col||'#94a3b8';ctx.font=(sz||11)+'px Heebo,sans-serif';
   ctx.textAlign=align||'center';ctx.textBaseline='middle';
   ctx.shadowColor='rgba(0,0,0,.7)';ctx.shadowBlur=4;
-  var fx=_fitLabel(ctx,txt,x,y,align||'center',sz||11);
-  if(fx!==null)ctx.fillText(txt,fx,y);
+  sz=_fitFont(ctx,txt,sz||11);
+  var fx=_fitLabel(ctx,txt,x,y,align||'center',sz);
+  if(fx!==null)ctx.fillText(txt,fx,_fitY(ctx,y,sz));
   ctx.restore();
 }
 function optInfoBox(ctx,x,y,w,lines){
@@ -15057,8 +15104,11 @@ function simOptDiffraction(canvas){
 // ─────────────────────────────────────────────────────────────
 // EM SPECTRUM sim
 // ─────────────────────────────────────────────────────────────
-function simOptEMSpectrum(canvas,id){
-  var _g=(_simGen[id]=(_simGen[id]||0)+1);
+function simOptEMSpectrum(canvas){
+  // initSim calls every simulation as (canvas, TYPE), so a parameter named
+  // `id` here held the type string while _simStop/_simGen are keyed by the
+  // canvas id -- the stop flag could never reach this loop.
+  var id=canvas.id, _g=_simGen[id];
   var R=setupCanvas(canvas,480);var ctx=R.ctx,W=R.W,H=R.H;
   var animT=0,last=null;
   // TRUE band boundaries in log10(frequency/Hz) — one scale for gradient, labels, detection and marker
@@ -15212,8 +15262,11 @@ function simOptEMSpectrum(canvas,id){
 // ─────────────────────────────────────────────────────────────
 // POLARIZATION sim
 // ─────────────────────────────────────────────────────────────
-function simOptPolarization(canvas,id){
-  var _g=(_simGen[id]=(_simGen[id]||0)+1);
+function simOptPolarization(canvas){
+  // initSim calls every simulation as (canvas, TYPE), so a parameter named
+  // `id` here held the type string while _simStop/_simGen are keyed by the
+  // canvas id -- the stop flag could never reach this loop.
+  var id=canvas.id, _g=_simGen[id];
   var R=setupCanvas(canvas,480);var ctx=R.ctx,W=R.W,H=R.H;
   var animT=0,last=null;
   function getAngle(){var e=document.getElementById('inp-pol-angle');return e?parseFloat(e.value):45;}
@@ -15373,8 +15426,11 @@ function simOptPolarization(canvas,id){
 // ─────────────────────────────────────────────────────────────
 // DOPPLER sim
 // ─────────────────────────────────────────────────────────────
-function simOptDoppler(canvas,id){
-  var _g=(_simGen[id]=(_simGen[id]||0)+1);
+function simOptDoppler(canvas){
+  // initSim calls every simulation as (canvas, TYPE), so a parameter named
+  // `id` here held the type string while _simStop/_simGen are keyed by the
+  // canvas id -- the stop flag could never reach this loop.
+  var id=canvas.id, _g=_simGen[id];
   var R=setupCanvas(canvas,480);var ctx=R.ctx,W=R.W,H=R.H;
   var animT=0,last=null;
   var emissions=[];
@@ -15508,8 +15564,11 @@ function simOptDoppler(canvas,id){
 // ─────────────────────────────────────────────────────────────
 // LASER sim
 // ─────────────────────────────────────────────────────────────
-function simOptLaser(canvas,id){
-  var _g=(_simGen[id]=(_simGen[id]||0)+1);
+function simOptLaser(canvas){
+  // initSim calls every simulation as (canvas, TYPE), so a parameter named
+  // `id` here held the type string while _simStop/_simGen are keyed by the
+  // canvas id -- the stop flag could never reach this loop.
+  var id=canvas.id, _g=_simGen[id];
   var R=setupCanvas(canvas,480);var ctx=R.ctx,W=R.W,H=R.H;
   var animT=0,last=null;
   var photons=[];
@@ -15641,8 +15700,11 @@ function simOptLaser(canvas,id){
 // ─────────────────────────────────────────────────────────────
 // COLOR MIXING sim — Additive RGB spotlights
 // ─────────────────────────────────────────────────────────────
-function simOptColorMix(canvas,id){
-  var _g=(_simGen[id]=(_simGen[id]||0)+1);
+function simOptColorMix(canvas){
+  // initSim calls every simulation as (canvas, TYPE), so a parameter named
+  // `id` here held the type string while _simStop/_simGen are keyed by the
+  // canvas id -- the stop flag could never reach this loop.
+  var id=canvas.id, _g=_simGen[id];
   var R=setupCanvas(canvas,460);var ctx=R.ctx,W=R.W,H=R.H;
   function gR(){var e=document.getElementById('inp-cm-red');return e?parseFloat(e.value)/100:0.8;}
   function gG(){var e=document.getElementById('inp-cm-green');return e?parseFloat(e.value)/100:0.8;}
@@ -15747,8 +15809,11 @@ function simOptColorMix(canvas,id){
 // ─────────────────────────────────────────────────────────────
 // FIBER OPTICS sim — TIR bouncing in curved fiber
 // ─────────────────────────────────────────────────────────────
-function simOptFiber(canvas,id){
-  var _g=(_simGen[id]=(_simGen[id]||0)+1);
+function simOptFiber(canvas){
+  // initSim calls every simulation as (canvas, TYPE), so a parameter named
+  // `id` here held the type string while _simStop/_simGen are keyed by the
+  // canvas id -- the stop flag could never reach this loop.
+  var id=canvas.id, _g=_simGen[id];
   var R=setupCanvas(canvas,460);var ctx=R.ctx,W=R.W,H=R.H;
   var animT=0,last=null;
   function gN1(){var e=document.getElementById('inp-fib-n1');return e?parseFloat(e.value):1.50;}
@@ -15874,8 +15939,11 @@ function simOptFiber(canvas,id){
 // ─────────────────────────────────────────────────────────────
 // TELESCOPE sim — two-lens ray diagram
 // ─────────────────────────────────────────────────────────────
-function simOptTelescope(canvas,id){
-  var _g=(_simGen[id]=(_simGen[id]||0)+1);
+function simOptTelescope(canvas){
+  // initSim calls every simulation as (canvas, TYPE), so a parameter named
+  // `id` here held the type string while _simStop/_simGen are keyed by the
+  // canvas id -- the stop flag could never reach this loop.
+  var id=canvas.id, _g=_simGen[id];
   var R=setupCanvas(canvas,460);var ctx=R.ctx,W=R.W,H=R.H;
   var animT=0,last=null;
   function gFo(){var e=document.getElementById('inp-tel-fo');return e?parseFloat(e.value):150;}
@@ -16017,8 +16085,11 @@ function simOptTelescope(canvas,id){
 // ─────────────────────────────────────────────────────────────
 // THIN FILM INTERFERENCE sim — soap film rainbow
 // ─────────────────────────────────────────────────────────────
-function simOptThinFilm(canvas,id){
-  var _g=(_simGen[id]=(_simGen[id]||0)+1);
+function simOptThinFilm(canvas){
+  // initSim calls every simulation as (canvas, TYPE), so a parameter named
+  // `id` here held the type string while _simStop/_simGen are keyed by the
+  // canvas id -- the stop flag could never reach this loop.
+  var id=canvas.id, _g=_simGen[id];
   var R=setupCanvas(canvas,500);var ctx=R.ctx,W=R.W,H=R.H;
   var animT=0,last=null;
   function getT(){var e=document.getElementById('inp-tf-thick');return e?parseFloat(e.value):300;}
@@ -16188,8 +16259,11 @@ function simOptThinFilm(canvas,id){
 // ─────────────────────────────────────────────────────────────
 // DIFFRACTION GRATING sim
 // ─────────────────────────────────────────────────────────────
-function simOptGrating(canvas,id){
-  var _g=(_simGen[id]=(_simGen[id]||0)+1);
+function simOptGrating(canvas){
+  // initSim calls every simulation as (canvas, TYPE), so a parameter named
+  // `id` here held the type string while _simStop/_simGen are keyed by the
+  // canvas id -- the stop flag could never reach this loop.
+  var id=canvas.id, _g=_simGen[id];
   var R=setupCanvas(canvas,480);var ctx=R.ctx,W=R.W,H=R.H;
   var animT=0,last=null;
   function getD(){var e=document.getElementById('inp-gr-d');return e?parseFloat(e.value)*1000:1500;}// μm→nm
@@ -16342,7 +16416,13 @@ function bg(ctx,W,H){
 }
 function label(ctx,txt,x,y,col,sz,align){
   if(col===undefined)col='#64748b'; if(sz===undefined)sz=11; if(align===undefined)align='center';
-  ctx.save();ctx.fillStyle=col;ctx.font=`${sz}px Heebo`;ctx.textAlign=align;ctx.fillText(txt,x,y);ctx.restore();
+  ctx.save();ctx.fillStyle=col;ctx.font=`${sz}px Heebo`;ctx.textAlign=align;
+  // every mechanics animation draws through here, and it used to call fillText
+  // raw -- so any label that ran past an edge was simply cut off
+  sz=_fitFont(ctx,txt,sz,'Heebo');
+  var fx=_fitLabel(ctx,txt,x,y,align,sz);
+  if(fx!==null)ctx.fillText(txt,fx,_fitY(ctx,y,sz));
+  ctx.restore();
 }
 function circle(ctx,x,y,r,fill,stroke,lw){
   if(stroke===undefined)stroke=''; if(lw===undefined)lw=2;
@@ -16414,6 +16494,8 @@ function _mechTrackTraj(withFric){
   }
   _mechTrackCache[key]=out;return out;
 }
+// The bar scale is the total the run actually starts with.
+function s0E(withFric){var a=_mechTrackTraj(withFric)[0];return a.Ek+a.Ep+a.Q;}
 function _drawEnergyTrack(ctx,W,H,s,withFric){
   var PXMx=(W*0.56)/4.2, gy=H-30, PXMy=(H-70)/3.4;
   function TX(x){return 16+x*PXMx;}
@@ -16428,11 +16510,20 @@ function _drawEnergyTrack(ctx,W,H,s,withFric){
   ctx.beginPath();ctx.arc(TX(s.x),TY(s.h)-7,8,0,Math.PI*2);ctx.fill();ctx.restore();
   optLabel(ctx,'v='+s.v.toFixed(1)+' m/s',TX(s.x),TY(s.h)-24,'#38bdf8',9);
   // bars
-  var E0=0.5*1*9.8*0+1*9.8*0.75*4;   // initial mgh at x=0 → 1*9.8*3 = 29.4 J
-  E0=29.4;
-  var BX=W*0.64,BW=34,BH=H-84,BY=30;
+  // Scale to the run's own starting total, not to a hand-written constant:
+  // the cart is released at x=0.02, so E0 = mgf(0.02) = 28.81 J, and using
+  // 29.4 drew every bar 2% short.
+  var E0=s0E(withFric);
+  var nB=withFric?4:3;
+  // Fixed pixel offsets pushed the last bar off a narrow canvas. Fit the group
+  // to whatever width is left beside the track.
+  var x0=W*0.58, avail=Math.max(60,W-12-x0);
+  var gapB=Math.max(5,Math.min(14,avail*0.05));
+  var BW=Math.max(10,Math.min(38,(avail-(nB-1)*gapB)/nB));
+  var groupW=nB*BW+(nB-1)*gapB;
+  var BX=x0+(avail-groupW)/2, BH=H-84, BY=30;
   function bar(idx,lab,val,col){
-    var X=BX+idx*(BW+14);
+    var X=BX+idx*(BW+gapB);
     ctx.save();ctx.fillStyle='rgba(148,163,184,.12)';ctx.fillRect(X,BY,BW,BH);
     ctx.fillStyle=col;var f=Math.max(0,Math.min(1,val/E0));
     ctx.fillRect(X,BY+BH*(1-f),BW,BH*f);
@@ -16450,6 +16541,14 @@ function _drawEnergyTrack(ctx,W,H,s,withFric){
   }
 }
 
+// Animations belong to the theory tab; leaving it must stop them, or they keep
+// drawing into canvases that are no longer in the document.
+function stopTheoryAnims(){
+  Object.keys(_anim).forEach(function(id){
+    if(_anim[id]&&_anim[id].raf)cancelAnimationFrame(_anim[id].raf);
+    delete _anim[id];
+  });
+}
 function initTheoryAnims(){
   // Cancel any leftover animation loops from previous section
   Object.keys(_anim).forEach(function(id){
@@ -17251,7 +17350,8 @@ runAnim('anim-n2apps',(canvas,ctx,W,H,t)=>{
     var cosA=Math.cos(ang), sinA=Math.sin(ang);
     var a_inc=g*sinA;
     var ORIG_X=14, ORIG_Y=H-14;
-    var incLen=W*0.88;
+    // 0.88W at 30 degrees rose 0.44W, far above a canvas this short
+    var incLen=Math.min(W*0.88,(H-46)/sinA);
     var topX=ORIG_X+incLen*cosA, topY=ORIG_Y-incLen*sinA;
 
     // Incline
@@ -19878,8 +19978,9 @@ function oLbl(ctx,txt,x,y,col,sz){
   ctx.font=(sz||10)+'px Heebo,sans-serif';
   ctx.textAlign='center';ctx.textBaseline='middle';
   ctx.shadowColor='rgba(0,0,0,.8)';ctx.shadowBlur=3;
-  var fx=_fitLabel(ctx,txt,x,y,'center',sz||10);
-  if(fx!==null)ctx.fillText(txt,fx,y);
+  sz=_fitFont(ctx,txt,sz||10);
+  var fx=_fitLabel(ctx,txt,x,y,'center',sz);
+  if(fx!==null)ctx.fillText(txt,fx,_fitY(ctx,y,sz));
   ctx.restore();
 }
 function oPhoton(ctx,x,y,col,r){
@@ -23240,12 +23341,18 @@ function render(){
   // A sensor stream and its animation frame outlive innerHTML, so stop them
   // before the page they were drawing into is replaced.
   slStopAll();
+  // Same for the theory animations when the learner leaves that tab.
+  if(state.tab!=='theory')stopTheoryAnims();
   // Preserve sidebar scroll position
   var _sidebarEl=document.getElementById('sidebar-nav');
   var _sidebarScroll=_sidebarEl?_sidebarEl.scrollTop:0;
   const ch=getChapters().find(c=>c.id===state.chapter);
   const sec=ch&&ch.sections?ch.sections.find(s=>s.id===state.section):null;
   const content=CONTENT[`${state.chapter}.${state.section}`];
+  // opening a section is itself progress worth showing in the navigation
+  if(sec&&!state.visited[`${state.chapter}.${state.section}`]){
+    state.visited[`${state.chapter}.${state.section}`]=true; saveState();
+  }
   document.getElementById('app').innerHTML=buildPage(ch,sec,content);
   // Restore sidebar scroll position
   var _sidebarElNew=document.getElementById('sidebar-nav');
@@ -23323,20 +23430,25 @@ function buildSidebar(){
     <button class="subject-tab${state.subject==='optics'?' active':''}" onclick="switchSubject('optics')">🔆 אופטיקה</button>
     <button class="subject-tab${state.subject==='electro'?' active':''}" onclick="switchSubject('electro')">⚡ חשמל</button>
   </div>`;
-  return subjectTabs+getChapters().map(function(ch){
+  const legend=`<div class="dot-legend">
+    <span><i style="border-color:var(--red)"></i>טרם נפתח</span>
+    <span><i style="border-color:var(--gold);background:var(--gold)"></i>נפתח</span>
+    <span><i style="border-color:var(--green);background:var(--green)"></i>הבעיה נפתרה</span>
+  </div>`;
+  return subjectTabs+legend+getChapters().map(function(ch){
     return `<div class="sidebar-chapter">${ch.icon} ${ch.title}</div>`+
     ch.sections.map(function(sec){
-      const quizDone=isCompleted(ch.id,sec.id,'quiz');
-      const theoryDone=isCompleted(ch.id,sec.id,'theory');
-      const simDone=isCompleted(ch.id,sec.id,'sim');
-      const anyDone=theoryDone||simDone;
+      // red never opened · amber opened · green the guided problem is solved
       const active=state.chapter===ch.id&&state.section===sec.id;
-      const dotCls=quizDone?'done':active?'active':anyDone?'partial':'';
+      const solved=isCompleted(ch.id,sec.id,'problem');
+      const seen=!!state.visited[ch.id+'.'+sec.id];
+      const dotCls=solved?'done':seen?'seen':'fresh';
+      const dotTitle=solved?'הבעיה המסכמת נפתרה':seen?'נפתח — טרם הושלם':'טרם נפתח';
       // six sections carry a phone-sensor experiment; flag them so they can be
       // found without opening every section in turn
       const hasLab=(typeof SENSOR_LABS!=='undefined')&&!!SENSOR_LABS[ch.id+'.'+sec.id];
       return `<button class="sec-btn${active?' active':''}" onclick="navigate('${ch.id}','${sec.id}')"${hasLab?' title="בסעיף זה יש ניסוי עם חיישני הטלפון"':''}>
-        <span class="sec-dot${dotCls?' '+dotCls:''}"></span>${sec.title}${hasLab?'<span class="sec-lab">📱</span>':''}</button>`;
+        <span class="sec-dot ${dotCls}" title="${dotTitle}"></span>${sec.title}${hasLab?'<span class="sec-lab">📱</span>':''}</button>`;
     }).join('');
   }).join('');
 }
@@ -23499,21 +23611,43 @@ function slScatter(ctx,x,y,w,h,pts,s,opt){
   ctx.save();ctx.strokeStyle=bd;ctx.lineWidth=1;ctx.strokeRect(x+.5,y+.5,w-1,h-1);
   var mx=opt.xmin||0.001,my=opt.ymin||0.001,i;
   for(i=0;i<pts.length;i++){if(pts[i][0]>mx)mx=pts[i][0];if(pts[i][1]>my)my=pts[i][1];}
-  mx*=1.15;my=Math.max(my,s*mx)*1.15;
+  mx=mx*1.15/_slZoom;my=Math.max(my,s*mx)*1.15/_slZoom;
   var X=function(v){return x+34+(w-44)*(v/mx);},Y=function(v){return y+h-24-(h-36)*(v/my);};
+  // numbered gridlines on both axes, 1-2-5 spacing
+  var sxs=slNiceStep(mx/3.2),sys=slNiceStep(my/3.2),q;
+  ctx.save();ctx.strokeStyle=bd;ctx.globalAlpha=.32;ctx.lineWidth=1;
+  for(q=sxs;q<=mx;q+=sxs){var gx=X(q);if(gx>x+w-8)break;
+    ctx.beginPath();ctx.moveTo(gx,y+6);ctx.lineTo(gx,Y(0));ctx.stroke();}
+  for(q=sys;q<=my;q+=sys){var gy2=Y(q);if(gy2<y+8)break;
+    ctx.beginPath();ctx.moveTo(X(0),gy2);ctx.lineTo(x+w-6,gy2);ctx.stroke();}
+  ctx.restore();
+  for(q=sxs;q<=mx;q+=sxs){var gx2=X(q);if(gx2>x+w-8)break;slTxt(ctx,slFmt(q,sxs),gx2,Y(0)+12,mu,8,'center');}
+  for(q=sys;q<=my;q+=sys){var gy3=Y(q);if(gy3<y+8)break;slTxt(ctx,slFmt(q,sys),X(0)-4,gy3+3,mu,8,'right');}
   ctx.strokeStyle=bd;ctx.beginPath();ctx.moveTo(X(0),y+6);ctx.lineTo(X(0),Y(0));ctx.lineTo(x+w-6,Y(0));ctx.stroke();
   if(s>0){ctx.strokeStyle=gd;ctx.lineWidth=2;ctx.setLineDash([6,4]);ctx.beginPath();
     ctx.moveTo(X(0),Y(0));ctx.lineTo(X(mx),Y(Math.min(s*mx,my)));ctx.stroke();ctx.setLineDash([]);}
   ctx.fillStyle=ac;
   for(i=0;i<pts.length;i++){ctx.beginPath();ctx.arc(X(pts[i][0]),Y(pts[i][1]),opt.r||3,0,6.2832);ctx.fill();}
   ctx.restore();
-  // top-right: a line through the origin never reaches that corner, and the
-  // top-left is where the axis title lives
-  slTxt(ctx,my.toFixed(my<10?1:0),x+w-8,y+14,mu,9,'right');
-  slTxt(ctx,mx.toFixed(mx<10?1:0),x+w-8,y+h-9,mu,9,'right');
+  if(_slZoom!==1)slTxt(ctx,'×'+(_slZoom<1?_slZoom.toFixed(2):_slZoom.toFixed(1)),x+w-8,y+14,slCss('--gold','#f59e0b'),9,'right',true);
   if(opt.xl)slTxt(ctx,opt.xl,X(mx/2),y+h-9,mu,10,'center');
   if(opt.yl)slTxt(ctx,opt.yl,x+4,y+13,mu,10,'left',true);
   return {X:X,Y:Y};
+}
+
+// Zoom is shared by whichever lab is on screen; 1 is the autoscaled view.
+var _slZoom=1;
+function slZoomSet(z){_slZoom=Math.max(0.2,Math.min(20,z));}
+// Largest 1-2-5 step not exceeding v — the spacing a person would choose.
+function slNiceStep(v){
+  if(!(v>0)||!isFinite(v))return 1;
+  var e=Math.pow(10,Math.floor(Math.log10(v))),f=v/e;
+  return (f>=5?5:f>=2?2:1)*e;
+}
+function slFmt(v,step){
+  var dec=step>=10?0:step>=1?1:step>=0.1?2:3;
+  var s=Math.abs(v)<step*0.001?'0':v.toFixed(dec);
+  return s;
 }
 
 // A strip chart. Autoscale is symmetric about zero and only ever grows
@@ -23530,22 +23664,48 @@ function slPlot(ctx,x,y,w,h,traces,opt){
   if(opt.hold!==undefined){m=Math.max(m,opt.hold.v*0.94);opt.hold.v=m;}
   // Magnitudes cannot go negative, so those labs plot from a zero baseline
   // and get the whole height; signed quantities stay centred on zero.
-  var pos=!!opt.positive,cy=pos?(y+h-4):(y+h/2),sc=pos?((h-14)/m):((h/2-6)/m),lo=pos?0:-m;
-  ctx.strokeStyle=bd;ctx.setLineDash([3,4]);ctx.beginPath();ctx.moveTo(x+1,cy);ctx.lineTo(x+w-1,cy);ctx.stroke();ctx.setLineDash([]);
+  m=m/_slZoom;                                   // learner-controlled zoom
+  var pos=!!opt.positive,GL=34;                  // gutter for the value labels
+  var px0=x+GL, pw=w-GL-6;
+  var cy=pos?(y+h-16):(y+(h-16)/2+2),sc=pos?((h-30)/m):(((h-16)/2-6)/m),lo=pos?0:-m;
+  // gridlines on a 1-2-5 scale, each carrying its value
+  var step=slNiceStep(m/2.2),k;
+  ctx.save();ctx.strokeStyle=bd;ctx.lineWidth=1;
+  for(k=pos?0:-Math.floor(m/step);k<=Math.floor(m/step);k++){
+    var gv=k*step,gy=cy-gv*sc;
+    if(gy<y+2||gy>y+h-15)continue;
+    ctx.globalAlpha=k===0?0.85:0.35;
+    ctx.beginPath();ctx.moveTo(px0,gy);ctx.lineTo(x+w-3,gy);ctx.stroke();
+    ctx.globalAlpha=1;
+    slTxt(ctx,slFmt(gv,step),px0-4,gy+3.5,mu,8.5,'right');
+  }
+  ctx.restore();
   for(i=0;i<traces.length;i++){
     d=traces[i].tr.d;if(d.length<2)continue;
+    ctx.save();ctx.beginPath();ctx.rect(px0,y+1,pw,h-16);ctx.clip();
     ctx.strokeStyle=traces[i].c;ctx.lineWidth=traces[i].lw||2;ctx.lineJoin='round';ctx.beginPath();
     for(j=0;j<d.length;j++){
-      var px=x+2+(w-4)*(j/(traces[i].tr.n-1)),py=cy-Math.max(lo,Math.min(m,d[j]))*sc;
-      if(j===0)ctx.moveTo(px,py);else ctx.lineTo(px,py);
+      var pxx=px0+pw*(j/(traces[i].tr.n-1)),py=cy-Math.max(lo*3,Math.min(m*3,d[j]))*sc;
+      if(j===0)ctx.moveTo(pxx,py);else ctx.lineTo(pxx,py);
     }
-    ctx.stroke();
+    ctx.stroke();ctx.restore();
   }
-  slTxt(ctx,(pos?'':'+')+m.toFixed(m<10?1:0),x+w-5,y+12,mu,9,'right');
-  slTxt(ctx,pos?'0':('\u2212'+m.toFixed(m<10?1:0)),x+w-5,y+h-5,mu,9,'right');
-  if(opt.title)slTxt(ctx,opt.title,x+6,y+12,traces[0]?traces[0].c:mu,10.5,'left',true);
+  // time axis: the window is (samples / sample rate) seconds, ending at now
+  var hz=(_sensor&&_sensor.hz)?_sensor.hz:0, nSam=traces[0]?traces[0].tr.n:0;
+  if(hz>1&&nSam>1){
+    var Tw=nSam/hz, ts=slNiceStep(Tw/3.2);
+    ctx.save();ctx.strokeStyle=bd;ctx.globalAlpha=.5;
+    for(var tt=0;tt<=Tw+1e-6;tt+=ts){
+      var tx=px0+pw*(1-tt/Tw); if(tx<px0-1)break;
+      ctx.beginPath();ctx.moveTo(tx,y+h-15);ctx.lineTo(tx,y+h-11);ctx.stroke();
+      slTxt(ctx,(tt===0?'0':'−'+slFmt(tt,ts))+'s',tx,y+h-3,mu,8,'center');
+    }
+    ctx.restore();
+  }
+  if(opt.title)slTxt(ctx,opt.title,px0+4,y+12,traces[0]?traces[0].c:mu,10.5,'left',true);
+  if(_slZoom!==1)slTxt(ctx,'×'+(_slZoom<1?_slZoom.toFixed(2):_slZoom.toFixed(1)),x+w-6,y+12,slCss('--gold','#f59e0b'),9,'right',true);
   ctx.restore();
-  return {cy:cy,sc:sc,m:m};
+  return {cy:cy,sc:sc,m:m,x0:px0,pw:pw};
 }
 
 // Period from up-crossings of a zero-mean signal, with hysteresis so that
@@ -23590,6 +23750,22 @@ var SENSOR_LABS={
    note:'הטלפון מודד <b>אך ורק תאוצה</b>; v ו-x אינם נמדדים אלא מחושבים ממנה. הניסוי מתחיל ונגמר במנוחה, ולכן אנחנו <b>יודעים</b> שהמהירות האמיתית בסוף היא אפס — וכל מה שנשאר באינטגרל הוא שגיאה מצטברת. זהו מד הסחיפה, וממנו גם מתקנים את ההעתק. משום כך ניווט אינרציאלי מדויק לדקות בלבד וזקוק ל-GPS שיאפס אותו.',
    chips:[['ph','מצב',''],['x','Δx מתוקן','m'],['vm','v מרבי','m/s'],['dr','סחיפה','m/s']],
    ctrl:'<button class="sl-sec" id="sl-axx">X</button><button class="sl-sec" id="sl-axy">Y</button><button class="sl-sec" id="sl-axz">Z</button>'},
+
+ 'kinematics.freefall':{t:'freefall-toss',h:330,
+   ttl:'זרקו ותפסו — חוסר משקל, וזמן המעוף',
+   how:'עמדו מעל מיטה או ספה. הניחו את הטלפון בשקט על כף היד, <b>זרקו אותו בעדינות כלפי מעלה וקלטו אותו חזרה</b>. כל עוד הוא באוויר, החיישן קורא כמעט אפס — והאפליקציה מודדת בדיוק כמה זמן זה נמשך.',
+   pred:'לפני הזריקה: מה לדעתכם יראה מד-התאוצה בזמן שהטלפון באוויר — יותר מ-9.8, פחות, או אפס? ולמה?',
+   note:'הקריאה באוויר היא <b>אפס</b>, ולא 9.8. מד-תאוצה אינו מודד כבידה אלא <b>כוח משען</b> ליחידת מסה — ובנפילה חופשית אין משען. זה בדיוק מה שמרגיש אסטרונאוט, וזו הסיבה שהוא "חסר משקל" אף שהכבידה בגובהו כמעט מלאה. לזמן מעוף '+M('T')+' וגובה שיא '+M('h')+' מתקיים '+M('h=gT^2/8')+'. שימו לב ש-'+M('g')+' נמדד ב-'+M('\\text{m/s}^2')+', ולכן <b>אי אפשר</b> להסיק אותו מזמן בלבד — צריך גם אורך אחד. מדדו את גובה הזריקה בסרגל, רשמו כמה זריקות, והשיפוע ייתן לכם את '+M('g')+'.',
+   chips:[['T','זמן מעוף','s'],['amin','|a| מזערי','m/s²'],['g','g מהשיפוע','m/s²'],['n','זריקות','']],
+   ctrl:'<span class="sl-slider">גובה <input id="sl-h" type="range" min="0.05" max="1.2" step="0.01" value="0.30"><span id="sl-hv">0.30 m</span></span><button class="sl-sec" id="sl-rec">➕ רשום זריקה</button><button class="sl-sec" id="sl-clr">🗑 נקה</button>'},
+
+ 'forces2.static-friction':{t:'slip-angle',h:300,
+   ttl:'מדדו את '+M('\\mu_s')+' מזווית ההחלקה',
+   how:'הניחו את הטלפון על לוח או ספר <b>שטוח</b>, והרימו קצה אחד <b>לאט מאוד</b>. ברגע שהטלפון מתחיל להחליק, האפליקציה קופאת על הזווית שבה זה קרה.',
+   pred:'לפני הניסוי: נחשו את הזווית שבה הטלפון יתחיל להחליק על העץ. ואז נסו משטח אחר — נייר, בד, זכוכית — ובדקו מי מהם "דביק" יותר.',
+   note:'ברגע ההחלקה רכיב הכובד לאורך המדרון משתווה לחיכוך הסטטי המרבי: '+M('mg\\sin\\theta = \\mu_s\\,mg\\cos\\theta')+', והמסה מצטמצמת — ולכן '+M('\\mu_s=\\tan\\theta')+' <b>בלי תלות במסת הטלפון</b>. זו הסיבה שאותה מדידה תיתן אותו מקדם לכל גוף על אותו זוג משטחים. הרימו <b>לאט</b>: הרמה מהירה מוסיפה תאוצה ומזייפת את הזווית.',
+   chips:[['th','זווית','°'],['mu','μs = tanθ','' ],['thm','זווית ההחלקה','°'],['n','מדידות','']],
+   ctrl:'<button class="sl-sec" id="sl-clr">🗑 נקה</button>'},
 
  'vectors.vec-components':{t:'tilt-components',h:272,
    ttl:'פירוק וקטור הכובד לרכיבים',
@@ -23641,7 +23817,10 @@ function sensorLabCard(key){
     '<div class="sl-how">'+L.how+'</div>'+
     (L.pred?'<div class="sl-pred">🔮 <b>נחשו קודם:</b> '+L.pred+'</div>':'')+
     '<div class="sl-ctrl"><button id="sl-start">▶ הפעל חיישן</button>'+
-      '<button class="sl-sec" id="sl-zero">↺ אתחל</button>'+L.ctrl+'</div>'+
+      '<button class="sl-sec" id="sl-zero">↺ אתחל</button>'+L.ctrl+
+      '<span class="sl-zoom"><button class="sl-sec" id="sl-zout">🔍−</button>'+
+      '<button class="sl-sec" id="sl-zin">🔍+</button>'+
+      '<button class="sl-sec" id="sl-zrst">⤢</button></span></div>'+
     '<div class="sl-read">'+chips+'</div>'+
     '<canvas id="sl-canvas" height="'+L.h+'"></canvas>'+
     '<div class="sl-err" id="sl-err" style="display:none"></div>'+
@@ -23718,6 +23897,112 @@ var SL_IMPL={
     slSet('slv-x',r?(r.xc).toFixed(3):(st.ph==='run'?st.x.toFixed(3):'—'));
     slSet('slv-vm',r?r.vmax.toFixed(2):(st.ph==='run'?Math.abs(st.v).toFixed(2):'—'));
     slSet('slv-dr',r?Math.abs(r.drift).toFixed(3):'—');}},
+
+// Toss and catch. The airborne window is where the proper acceleration falls
+// to near zero, which is what "weightless" means; timing it gives T, and a
+// measured height turns several tosses into a value for g.
+'freefall-toss':{
+  init:function(st){st.tr=slTrace(240);st.h={v:2};st.pts=[];st.g=0;st.r2=0;st.reset(st);},
+  reset:function(st){if(st.tr)st.tr.clear();st.inFall=false;st.fallT=0;st.T=0;st.amin=99;st.arm=false;st.hold=0;},
+  clear:function(st){st.pts=[];st.g=0;st.r2=0;},
+  record:function(st){
+    if(!st.T)return false;
+    var e=document.getElementById('sl-h'),h=e?parseFloat(e.value):0.3;
+    st.pts.push([st.T*st.T,h]);                       // h = (g/8)·T²
+    var s=slFitOrigin(st.pts);st.g=s*8;st.r2=slR2(st.pts,s);
+    st.T=0;return true;},
+  sample:function(s,st){
+    var a=Math.hypot(s.gx,s.gy,s.gz);                 // proper acceleration, g at rest
+    st.cur=a;st.tr.push(a);
+    // free fall: the support force vanishes, so |a| collapses toward zero
+    if(a<2.5){
+      if(!st.inFall){st.inFall=true;st.fallT=0;st.amin=a;}
+      st.fallT+=s.dt; if(a<st.amin)st.amin=a;
+    } else if(st.inFall){
+      st.inFall=false;
+      // a real toss lasts longer than a jolt and shorter than a drop off a roof
+      if(st.fallT>0.12&&st.fallT<1.6){st.T=st.fallT;st.hold=2.5;}
+      st.fallT=0;
+    }
+    if(st.hold>0)st.hold-=s.dt;},
+  chips:function(st){
+    slSet('slv-T',st.T?st.T.toFixed(3):(st.inFall?st.fallT.toFixed(2):'—'));
+    slSet('slv-amin',st.amin<99?st.amin.toFixed(2):'—');
+    slSet('slv-g',st.pts.length>1?st.g.toFixed(2):'—');
+    slSet('slv-n',String(st.pts.length));},
+  draw:function(ctx,W,H,st){
+    var c1=slCss('--accent','#3b82f6'),mu=slCss('--muted','#889'),tx=slCss('--text','#dde'),
+        gr=slCss('--green','#10b981'),gd=slCss('--gold','#f59e0b');
+    var hp=Math.round(H*0.34);
+    slPlot(ctx,8,6,W-16,hp,[{tr:st.tr,c:c1}],{title:'|a|  (m/s²)   — 9.8 במנוחה, 0 באוויר',floor:12,hold:st.h,positive:true});
+    var s=st.pts.length?slFitOrigin(st.pts):0;
+    slScatter(ctx,8,hp+12,W-16,H-hp-58,st.pts,s,{xl:'T²  (s²)',yl:'h  (m)',xmin:.1,ymin:.2});
+    if(st.inFall)simText(ctx,'🕊 באוויר… '+st.fallT.toFixed(2)+' ש',W/2,H-30,gd,13,'center',true);
+    else if(st.T)slTxt(ctx,'T = '+st.T.toFixed(3)+' s   →   h = gT²/8 = '+(9.81*st.T*st.T/8).toFixed(3)+' m',
+      W/2,H-30,tx,12,'center',true);
+    else simText(ctx,'זרקו בעדינות וקלטו — מעל משטח רך',W/2,H-30,mu,12,'center',true);
+    if(st.pts.length>1)
+      simText(ctx,'שיפוע → g = '+st.g.toFixed(2)+' m/s²   ·   R² = '+st.r2.toFixed(3),
+        W/2,H-10,Math.abs(st.g-9.81)<0.7?gr:gd,11.5,'center',true);
+    else simText(ctx,'מדדו את גובה הזריקה, רשמו — וחזרו בגבהים שונים',W/2,H-10,mu,11,'center',true);}},
+
+// The angle at which it lets go IS the coefficient: mu_s = tan(theta).
+'slip-angle':{
+  init:function(st){st.tr=slTrace(240);st.h={v:1};st.pts=[];st.reset(st);},
+  reset:function(st){if(st.tr)st.tr.clear();st.th=0;st.slip=0;st.hold=0;st.quiet=0;},
+  clear:function(st){st.pts=[];st.slip=0;},
+  sample:function(s,st){
+    var g=Math.hypot(s.gx,s.gy,s.gz)||9.81;
+    st.th=Math.acos(Math.min(1,Math.abs(s.gz)/g));          // tilt of the board
+    var lin=Math.hypot(s.ax,s.ay,s.az);
+    st.tr.push(lin);
+    // A slip is a burst of real acceleration after a stretch of near-stillness,
+    // so a hand wobble while lifting cannot be mistaken for one.
+    if(lin<0.35){st.quiet+=s.dt;} else {
+      if(st.quiet>0.5&&lin>1.2&&st.th>0.08&&st.hold<=0){
+        // one reading per slide: the burst lasts a fraction of a second, and the
+        // 0.5 s of stillness required beforehand already prevents re-triggering
+        // within the same slip, so a long lockout would only block the next trial
+        st.slip=st.th;st.hold=0.8;st.pts.push([st.th*180/Math.PI,Math.tan(st.th)]);
+        if(st.pts.length>12)st.pts.shift();
+      }
+      st.quiet=0;
+    }
+    if(st.hold>0)st.hold-=s.dt;},
+  chips:function(st){
+    slSet('slv-th',((st.th||0)*180/Math.PI).toFixed(1));
+    slSet('slv-mu',Math.tan(st.th||0).toFixed(3));
+    slSet('slv-thm',st.slip?((st.slip*180/Math.PI).toFixed(1)):'—');
+    slSet('slv-n',String(st.pts.length));},
+  draw:function(ctx,W,H,st){
+    var c1=slCss('--accent','#3b82f6'),mu=slCss('--muted','#889'),tx=slCss('--text','#dde'),
+        gr=slCss('--green','#10b981'),gd=slCss('--gold','#f59e0b'),rd=slCss('--red','#ef4444');
+    var hp=Math.round(H*0.30);
+    slPlot(ctx,8,6,W-16,hp,[{tr:st.tr,c:c1}],{title:'|a| ללא כובד  (m/s²)  — קפיצה = החלקה',floor:1,hold:st.h,positive:true});
+    // the board, drawn at the measured tilt
+    var th=st.th||0,BX=W*0.12,BY=H-64,RL=W*0.62;
+    ctx.save();ctx.strokeStyle=mu;ctx.lineWidth=3;
+    ctx.beginPath();ctx.moveTo(BX,BY);ctx.lineTo(BX+RL*Math.cos(th),BY-RL*Math.sin(th));ctx.stroke();
+    ctx.strokeStyle=slCss('--border','#334');ctx.lineWidth=1;
+    ctx.beginPath();ctx.moveTo(BX,BY);ctx.lineTo(BX+RL,BY);ctx.stroke();
+    ctx.beginPath();ctx.arc(BX,BY,30,-th,0);ctx.stroke();ctx.restore();
+    slTxt(ctx,(th*180/Math.PI).toFixed(1)+'°',BX+38,BY-9,mu,11.5,'left',true);
+    var pf=0.45,bx=BX+RL*pf*Math.cos(th),by=BY-RL*pf*Math.sin(th);
+    ctx.save();ctx.translate(bx,by);ctx.rotate(-th);
+    ctx.fillStyle='rgba(59,130,246,.35)';ctx.strokeStyle=c1;ctx.lineWidth=2;
+    ctx.beginPath();ctx.rect(-13,-26,26,26);ctx.fill();ctx.stroke();ctx.restore();
+    if(st.slip){
+      slTxt(ctx,'θ_slip = '+(st.slip*180/Math.PI).toFixed(1)+'°   →   μs = tanθ = '+Math.tan(st.slip).toFixed(3),
+        W/2,H-26,tx,13,'center',true);
+      var mus=st.pts.map(function(p){return p[1];});
+      var av=mus.reduce(function(a,b){return a+b;},0)/(mus.length||1);
+      simText(ctx,st.pts.length>1?('ממוצע על '+st.pts.length+' מדידות: μs = '+av.toFixed(3)):'הרימו שוב כדי לחזור על המדידה',
+        W/2,H-8,st.pts.length>1?gr:mu,11.5,'center',st.pts.length>1);
+    } else {
+      simText(ctx,st.hold>0?'החלקה זוהתה':'הרימו את הקצה לאט — עד שהטלפון יחליק',W/2,H-26,
+        st.hold>0?rd:gd,12.5,'center',true);
+      simText(ctx,'הרמה מהירה מזייפת את הזווית',W/2,H-8,mu,11,'center');
+    }}},
 
 'tilt-components':{
   init:function(st){st.reset(st);},
@@ -23931,7 +24216,7 @@ function initSensorLab(key){
   }
   _sl.onResize=resize;
 
-  [['sl-m','sl-mv',' kg',1],['sl-L','sl-Lv',' m',2]].forEach(function(a){
+  [['sl-m','sl-mv',' kg',1],['sl-L','sl-Lv',' m',2],['sl-h','sl-hv',' m',2]].forEach(function(a){
     var i=document.getElementById(a[0]),o=document.getElementById(a[1]);
     if(i&&o)i.addEventListener('input',function(){o.textContent=parseFloat(i.value).toFixed(a[3])+a[2];});});
 
@@ -23942,6 +24227,17 @@ function initSensorLab(key){
       if(b)b.addEventListener('click',function(){st.ax=i;st.reset(st);mark();});});
     mark();
   }
+  if(L.t==='freefall-toss'){
+    var rb2=document.getElementById('sl-rec');
+    if(rb2)rb2.addEventListener('click',function(){
+      if(!impl.record(st))say('בצעו זריקה תחילה — ואז רשמו אותה עם הגובה שמדדתם.');else say('');});
+    var cb2=document.getElementById('sl-clr');
+    if(cb2)cb2.addEventListener('click',function(){impl.clear(st);});
+  }
+  if(L.t==='slip-angle'){
+    var cb3=document.getElementById('sl-clr');
+    if(cb3)cb3.addEventListener('click',function(){impl.clear(st);st.reset(st);});
+  }
   if(L.t==='pendulum-fit'){
     var rb=document.getElementById('sl-rec');
     if(rb)rb.addEventListener('click',function(){
@@ -23951,6 +24247,11 @@ function initSensorLab(key){
   }
   var zb=document.getElementById('sl-zero');
   if(zb)zb.addEventListener('click',function(){st.reset(st);say('');});
+  // zoom is shared by both plot kinds, so one control serves the whole card
+  [['sl-zin',1.6],['sl-zout',1/1.6],['sl-zrst',0]].forEach(function(a){
+    var e=document.getElementById(a[0]);
+    if(e)e.addEventListener('click',function(){slZoomSet(a[1]?_slZoom*a[1]:1);});});
+  slZoomSet(1);
 
   function loop(){if(!_sl.run)return;
     ctx.clearRect(0,0,W,H);
