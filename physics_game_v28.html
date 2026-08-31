@@ -23751,13 +23751,13 @@ var SENSOR_LABS={
    chips:[['ph','מצב',''],['x','Δx מתוקן','m'],['vm','v מרבי','m/s'],['dr','סחיפה','m/s']],
    ctrl:'<button class="sl-sec" id="sl-axx">X</button><button class="sl-sec" id="sl-axy">Y</button><button class="sl-sec" id="sl-axz">Z</button>'},
 
- 'kinematics.freefall':{t:'freefall-toss',h:330,
-   ttl:'זרקו ותפסו — חוסר משקל, וזמן המעוף',
-   how:'עמדו מעל מיטה או ספה. הניחו את הטלפון בשקט על כף היד, <b>זרקו אותו בעדינות כלפי מעלה וקלטו אותו חזרה</b>. כל עוד הוא באוויר, החיישן קורא כמעט אפס — והאפליקציה מודדת בדיוק כמה זמן זה נמשך.',
-   pred:'לפני הזריקה: מה לדעתכם יראה מד-התאוצה בזמן שהטלפון באוויר — יותר מ-9.8, פחות, או אפס? ולמה?',
-   note:'הקריאה באוויר היא <b>אפס</b>, ולא 9.8. מד-תאוצה אינו מודד כבידה אלא <b>כוח משען</b> ליחידת מסה — ובנפילה חופשית אין משען. זה בדיוק מה שמרגיש אסטרונאוט, וזו הסיבה שהוא "חסר משקל" אף שהכבידה בגובהו כמעט מלאה. לזמן מעוף '+M('T')+' וגובה שיא '+M('h')+' מתקיים '+M('h=gT^2/8')+'. שימו לב ש-'+M('g')+' נמדד ב-'+M('\\text{m/s}^2')+', ולכן <b>אי אפשר</b> להסיק אותו מזמן בלבד — צריך גם אורך אחד. מדדו את גובה הזריקה בסרגל, רשמו כמה זריקות, והשיפוע ייתן לכם את '+M('g')+'.',
-   chips:[['T','זמן מעוף','s'],['amin','|a| מזערי','m/s²'],['g','g מהשיפוע','m/s²'],['n','זריקות','']],
-   ctrl:'<span class="sl-slider">גובה <input id="sl-h" type="range" min="0.05" max="1.2" step="0.01" value="0.30"><span id="sl-hv">0.30 m</span></span><button class="sl-sec" id="sl-rec">➕ רשום זריקה</button><button class="sl-sec" id="sl-clr">🗑 נקה</button>'},
+ 'kinematics.freefall':{t:'freefall-toss',h:352,
+   ttl:'זרקו ותפסו — ו-g מהשיפוע של v(t)',
+   how:'עמדו מעל מיטה או ספה, <b>זרקו את הטלפון בעדינות כלפי מעלה וקלטו אותו</b>. הזריקה נלכדת אוטומטית, וגרף המהירות נעצר כדי שתוכלו לעבוד עליו: <b>גררו את שני הסמנים</b> אל תוך קטע המעוף וקראו את השיפוע.',
+   pred:'לפני הזריקה: איך ייראה גרף המהירות בזמן המעוף — קו ישר, פרבולה, או משהו אחר? ומה יהיה השיפוע שלו?',
+   note:'<b>שני העקומים בגרף העליון הם אותה תופעה משני צדדים.</b> העקום הכהה הוא מה שהחיישן <b>קורא</b> — כוח המשען ליחידת מסה — ולכן 9.8 במנוחה ואפס באוויר; זו בדיוק הסיבה שטלפון יודע לזהות שהוא נפל. העקום הבהיר הוא <b>תאוצת הטלפון עצמו</b>, '+M('a = g_0 - \\vec A\\cdot\\hat u')+' — אפס במנוחה ו-9.8 מטה בנפילה, כמו בשיעור. הם תמונת ראי זה של זה, ולא סתירה.<br><br>בגרף התחתון, בזמן המעוף '+M('v(t)')+' הוא <b>קו ישר</b> — וזו כל המשמעות של "תאוצה קבועה". השיפוע בין שני הסמנים הוא התאוצה. שימו לב שהמהירות חושבה מקריאת החיישן עם הכיול שנעשה במנוחה, ולכן ההתאמה ל-'+M('g')+' היא <b>בדיקת עקביות</b> — היא מוכיחה שהמעוף באמת חופשי ושהתאוצה קבועה, ולא מודדת את '+M('g')+' מחדש.',
+   chips:[['T','זמן מעוף','s'],['a','תאוצה במעוף','m/s²'],['g','שיפוע v(t)','m/s²'],['g0','g במנוחה','m/s²']],
+   ctrl:'<button class="sl-sec" id="sl-mid">📌 מרכז סמנים</button>'},
 
  'forces2.static-friction':{t:'slip-angle',h:300,
    ttl:'מדדו את '+M('\\mu_s')+' מזווית ההחלקה',
@@ -23902,49 +23902,154 @@ var SL_IMPL={
 // to near zero, which is what "weightless" means; timing it gives T, and a
 // measured height turns several tosses into a value for g.
 'freefall-toss':{
-  init:function(st){st.tr=slTrace(240);st.h={v:2};st.pts=[];st.g=0;st.r2=0;st.reset(st);},
-  reset:function(st){if(st.tr)st.tr.clear();st.inFall=false;st.fallT=0;st.T=0;st.amin=99;st.arm=false;st.hold=0;},
-  clear:function(st){st.pts=[];st.g=0;st.r2=0;},
-  record:function(st){
-    if(!st.T)return false;
-    var e=document.getElementById('sl-h'),h=e?parseFloat(e.value):0.3;
-    st.pts.push([st.T*st.T,h]);                       // h = (g/8)·T²
-    var s=slFitOrigin(st.pts);st.g=s*8;st.r2=slR2(st.pts,s);
-    st.T=0;return true;},
+  init:function(st){st.tr=slTrace(220);st.trR=slTrace(220);st.h={v:12};st.reset(st);},
+  reset:function(st){
+    if(st.tr){st.tr.clear();st.trR.clear();}
+    st.ph='cal';st.calN=0;st.calS=[0,0,0];st.g0=0;st.u=null;
+    st.buf=[];st.tacc=0;st.inFall=false;st.fallT=0;st.T=0;st.aFall=0;
+    st.cap=null;st.m1=0.30;st.m2=0.70;st.drag=0;},
+  mid:function(st){
+    if(!st.cap)return;
+    var d=st.cap.dur||1;
+    st.m1=st.cap.fs/d+(st.cap.fe-st.cap.fs)/d*0.15;
+    st.m2=st.cap.fs/d+(st.cap.fe-st.cap.fs)/d*0.85;},
   sample:function(s,st){
-    var a=Math.hypot(s.gx,s.gy,s.gz);                 // proper acceleration, g at rest
-    st.cur=a;st.tr.push(a);
-    // free fall: the support force vanishes, so |a| collapses toward zero
-    if(a<2.5){
-      if(!st.inFall){st.inFall=true;st.fallT=0;st.amin=a;}
-      st.fallT+=s.dt; if(a<st.amin)st.amin=a;
+    var A=[s.gx,s.gy,s.gz], mag=Math.hypot(A[0],A[1],A[2]), i;
+    if(st.ph==='cal'){
+      // "up" is wherever the accelerometer points while the phone rests
+      if(Math.hypot(s.ax,s.ay,s.az)>0.3){st.calN=0;st.calS=[0,0,0];return;}
+      st.calN++;for(i=0;i<3;i++)st.calS[i]+=A[i];
+      if(st.calN>=50){
+        var u=[st.calS[0]/st.calN,st.calS[1]/st.calN,st.calS[2]/st.calN];
+        st.g0=Math.hypot(u[0],u[1],u[2])||9.81;
+        st.u=[u[0]/st.g0,u[1]/st.g0,u[2]/st.g0];st.ph='run';}
+      return;
+    }
+    st.tacc+=s.dt;
+    var Au=A[0]*st.u[0]+A[1]*st.u[1]+A[2]*st.u[2];
+    var aDown=st.g0-Au;                 // 0 at rest, +g in free fall, <0 while thrown
+    st.aNow=aDown;st.rawNow=mag;
+    st.tr.push(aDown);st.trR.push(mag);
+    st.buf.push({t:st.tacc,a:aDown});if(st.buf.length>700)st.buf.shift();
+    // the flight is found on the RAW reading, which collapses when support goes
+    if(mag<2.5){
+      if(!st.inFall){st.inFall=true;st.fallT=0;st.t0=st.tacc;st.aS=0;st.aN=0;}
+      st.fallT+=s.dt;st.aS+=aDown;st.aN++;
     } else if(st.inFall){
       st.inFall=false;
-      // a real toss lasts longer than a jolt and shorter than a drop off a roof
-      if(st.fallT>0.12&&st.fallT<1.6){st.T=st.fallT;st.hold=2.5;}
+      if(st.fallT>0.12&&st.fallT<1.6){
+        st.T=st.fallT;st.aFall=st.aN?st.aS/st.aN:0;
+        SL_IMPL['freefall-toss'].capture(st,st.t0,st.tacc);}
       st.fallT=0;
+    }},
+  capture:function(st,t0,t1){
+    var pre=0.30,post=0.30,a=[],i;
+    for(i=0;i<st.buf.length;i++){var b=st.buf[i];if(b.t>=t0-pre&&b.t<=t1+post)a.push(b);}
+    if(a.length<8)return;
+    // velocity downward, integrated across the captured window
+    var v=0,out=[];
+    for(i=0;i<a.length;i++){
+      if(i>0)v+=(a[i-1].a+a[i].a)/2*(a[i].t-a[i-1].t);
+      out.push({t:a[i].t-a[0].t,a:a[i].a,v:v});}
+    st.cap={p:out,dur:out[out.length-1].t||1,fs:t0-a[0].t,fe:t1-a[0].t};
+    SL_IMPL['freefall-toss'].mid(st);},
+  slope:function(st){
+    if(!st.cap)return null;
+    var P=st.cap.p,d=st.cap.dur;
+    var at=function(f){var tt=f*d,lo=P[0];
+      for(var i=1;i<P.length;i++){if(P[i].t>=tt){var hi=P[i],k=(tt-lo.t)/((hi.t-lo.t)||1);
+        return {t:tt,v:lo.v+(hi.v-lo.v)*k};}lo=P[i];}
+      return {t:P[P.length-1].t,v:P[P.length-1].v};};
+    var A=at(Math.min(st.m1,st.m2)),B=at(Math.max(st.m1,st.m2));
+    if(Math.abs(B.t-A.t)<1e-3)return null;
+    return {A:A,B:B,g:(B.v-A.v)/(B.t-A.t)};},
+  pointer:function(st,px,py,phase){
+    // release carries no meaningful position, so it must only let go -- moving
+    // the marker to wherever the up-event reported would snap it to the edge
+    if(phase==='up'){st.drag=0;return;}
+    var r=st.vr;if(!r||!st.cap)return;
+    var f=Math.max(0,Math.min(1,(px-r.x)/r.w));
+    if(phase==='down'){
+      if(py<r.y-14||py>r.y+r.h+14)return;
+      st.drag=Math.abs(f-st.m1)<=Math.abs(f-st.m2)?1:2;
     }
-    if(st.hold>0)st.hold-=s.dt;},
+    if(st.drag){ if(st.drag===1)st.m1=f; else st.m2=f; }},
   chips:function(st){
     slSet('slv-T',st.T?st.T.toFixed(3):(st.inFall?st.fallT.toFixed(2):'—'));
-    slSet('slv-amin',st.amin<99?st.amin.toFixed(2):'—');
-    slSet('slv-g',st.pts.length>1?st.g.toFixed(2):'—');
-    slSet('slv-n',String(st.pts.length));},
+    slSet('slv-a',st.T?st.aFall.toFixed(2):(st.aNow!==undefined?st.aNow.toFixed(2):'—'));
+    var s=SL_IMPL['freefall-toss'].slope(st);
+    slSet('slv-g',s?s.g.toFixed(2):'—');
+    slSet('slv-g0',st.g0?st.g0.toFixed(2):'—');},
   draw:function(ctx,W,H,st){
-    var c1=slCss('--accent','#3b82f6'),mu=slCss('--muted','#889'),tx=slCss('--text','#dde'),
-        gr=slCss('--green','#10b981'),gd=slCss('--gold','#f59e0b');
-    var hp=Math.round(H*0.34);
-    slPlot(ctx,8,6,W-16,hp,[{tr:st.tr,c:c1}],{title:'|a|  (m/s²)   — 9.8 במנוחה, 0 באוויר',floor:12,hold:st.h,positive:true});
-    var s=st.pts.length?slFitOrigin(st.pts):0;
-    slScatter(ctx,8,hp+12,W-16,H-hp-58,st.pts,s,{xl:'T²  (s²)',yl:'h  (m)',xmin:.1,ymin:.2});
-    if(st.inFall)simText(ctx,'🕊 באוויר… '+st.fallT.toFixed(2)+' ש',W/2,H-30,gd,13,'center',true);
-    else if(st.T)slTxt(ctx,'T = '+st.T.toFixed(3)+' s   →   h = gT²/8 = '+(9.81*st.T*st.T/8).toFixed(3)+' m',
-      W/2,H-30,tx,12,'center',true);
-    else simText(ctx,'זרקו בעדינות וקלטו — מעל משטח רך',W/2,H-30,mu,12,'center',true);
-    if(st.pts.length>1)
-      simText(ctx,'שיפוע → g = '+st.g.toFixed(2)+' m/s²   ·   R² = '+st.r2.toFixed(3),
-        W/2,H-10,Math.abs(st.g-9.81)<0.7?gr:gd,11.5,'center',true);
-    else simText(ctx,'מדדו את גובה הזריקה, רשמו — וחזרו בגבהים שונים',W/2,H-10,mu,11,'center',true);}},
+    var c1=slCss('--accent','#3b82f6'),c2=slCss('--muted','#64748b'),mu=c2,
+        tx=slCss('--text','#dde'),gr=slCss('--green','#10b981'),gd=slCss('--gold','#f59e0b');
+    if(st.ph==='cal'){
+      simText(ctx,'⏳ מכייל בשקט ('+Math.round(st.calN/50*100)+'%) — הניחו את הטלפון ואל תזיזו',
+        W/2,H/2-8,gd,13,'center',true);
+      simText(ctx,'הכיול קובע איפה "מעלה" ומהו g במנוחה',W/2,H/2+16,mu,11.5,'center');return;}
+    var hp=Math.round(H*0.30);
+    // the phone's own acceleration in front, the raw sensor reading behind
+    slPlot(ctx,8,6,W-16,hp,[{tr:st.trR,c:c2,lw:1.5},{tr:st.tr,c:c1,lw:2.4}],
+      {title:'a  (m/s²)   מטה חיובי',floor:12,hold:st.h});
+    slTxt(ctx,'— תאוצת הטלפון',W-14,20,c1,9,'right',true);
+    slTxt(ctx,'— קריאת החיישן',W-14,32,c2,9,'right');
+    // the captured toss: v(t) with two draggable markers
+    var vy=hp+16,vh=H-hp-74,vx=40,vw=W-52;
+    st.vr={x:vx,y:vy,w:vw,h:vh};
+    ctx.save();ctx.strokeStyle=slCss('--border','#2a3d55');ctx.lineWidth=1;ctx.strokeRect(vx+.5,vy+.5,vw-1,vh-1);ctx.restore();
+    if(!st.cap){
+      simText(ctx,st.inFall?('🕊 באוויר… '+st.fallT.toFixed(2)+' ש'):'זרקו בעדינות וקלטו — מעל משטח רך',
+        vx+vw/2,vy+vh/2,st.inFall?gd:mu,13,'center',true);
+    } else {
+      var P=st.cap.p,d=st.cap.dur,i,vmin=1e9,vmax=-1e9;
+      for(i=0;i<P.length;i++){if(P[i].v<vmin)vmin=P[i].v;if(P[i].v>vmax)vmax=P[i].v;}
+      var pad=(vmax-vmin)*0.15+0.05;vmin-=pad;vmax+=pad;
+      var X=function(t){return vx+vw*(t/d);},Y=function(v){return vy+vh-vh*((v-vmin)/((vmax-vmin)||1));};
+      // the flight window, shaded
+      ctx.save();ctx.fillStyle='rgba(16,185,129,.10)';
+      ctx.fillRect(X(st.cap.fs),vy+1,X(st.cap.fe)-X(st.cap.fs),vh-2);ctx.restore();
+      slTxt(ctx,'מעוף חופשי',(X(st.cap.fs)+X(st.cap.fe))/2,vy+13,gr,9.5,'center',true);
+      // value gridlines
+      var stp=slNiceStep((vmax-vmin)/3.2),k0=Math.ceil(vmin/stp);
+      ctx.save();ctx.strokeStyle=slCss('--border','#2a3d55');ctx.globalAlpha=.35;
+      for(var k=k0;k*stp<=vmax;k++){var gy=Y(k*stp);
+        ctx.beginPath();ctx.moveTo(vx,gy);ctx.lineTo(vx+vw,gy);ctx.stroke();
+        slTxt(ctx,slFmt(k*stp,stp),vx-4,gy+3,mu,8,'right');}
+      ctx.restore();
+      var ts=slNiceStep(d/3.2);
+      for(var tt=0;tt<=d+1e-6;tt+=ts)slTxt(ctx,slFmt(tt,ts)+'s',X(tt),vy+vh+11,mu,8,'center');
+      // v(t)
+      ctx.save();ctx.beginPath();ctx.rect(vx,vy,vw,vh);ctx.clip();
+      ctx.strokeStyle=c1;ctx.lineWidth=2.2;ctx.beginPath();
+      for(i=0;i<P.length;i++){i?ctx.lineTo(X(P[i].t),Y(P[i].v)):ctx.moveTo(X(P[i].t),Y(P[i].v));}
+      ctx.stroke();ctx.restore();
+      // the two markers and the straight line through them
+      var s=SL_IMPL['freefall-toss'].slope(st);
+      if(s){
+        ctx.save();ctx.strokeStyle=gd;ctx.lineWidth=2;ctx.setLineDash([6,4]);
+        var ex=(X(s.B.t)-X(s.A.t))*0.25, ey=(Y(s.B.v)-Y(s.A.v))*0.25;
+        ctx.beginPath();ctx.moveTo(X(s.A.t)-ex,Y(s.A.v)-ey);ctx.lineTo(X(s.B.t)+ex,Y(s.B.v)+ey);ctx.stroke();
+        ctx.restore();
+      }
+      [[st.m1,'1'],[st.m2,'2']].forEach(function(mk){
+        var mx=vx+vw*mk[0];
+        ctx.save();ctx.strokeStyle=gd;ctx.lineWidth=1.5;ctx.globalAlpha=.85;
+        ctx.beginPath();ctx.moveTo(mx,vy+1);ctx.lineTo(mx,vy+vh-1);ctx.stroke();ctx.restore();
+        ctx.fillStyle=gd;ctx.beginPath();ctx.arc(mx,vy+vh-7,7,0,6.2832);ctx.fill();
+        slTxt(ctx,mk[1],mx,vy+vh-4,'#1b2433',9,'center',true);
+      });
+      slTxt(ctx,'v (m/s, מטה)',vx+4,vy-3,c1,9.5,'left',true);
+    }
+    // readout
+    var s2=SL_IMPL['freefall-toss'].slope(st);
+    if(s2){
+      slTxt(ctx,'Δv = '+(s2.B.v-s2.A.v).toFixed(2)+' m/s     Δt = '+(s2.B.t-s2.A.t).toFixed(3)+
+        ' s     Δv/Δt = '+s2.g.toFixed(2)+' m/s²',W/2,H-26,tx,11.5,'center',true);
+      simText(ctx,Math.abs(s2.g-st.g0)<0.6
+        ? '✓ השיפוע מסכים עם g שנמדד במנוחה — המעוף אכן חופשי והתאוצה קבועה'
+        : 'גררו את שני הסמנים אל תוך הקטע הירוק — שם התנועה חופשית',
+        W/2,H-8,Math.abs(s2.g-st.g0)<0.6?gr:gd,11,'center',true);
+    } else simText(ctx,'גררו את הסמנים לאורך הגרף כדי למדוד שיפוע',W/2,H-14,mu,11.5,'center');}},
 
 // The angle at which it lets go IS the coefficient: mu_s = tan(theta).
 'slip-angle':{
@@ -24228,11 +24333,18 @@ function initSensorLab(key){
     mark();
   }
   if(L.t==='freefall-toss'){
-    var rb2=document.getElementById('sl-rec');
-    if(rb2)rb2.addEventListener('click',function(){
-      if(!impl.record(st))say('בצעו זריקה תחילה — ואז רשמו אותה עם הגובה שמדדתם.');else say('');});
-    var cb2=document.getElementById('sl-clr');
-    if(cb2)cb2.addEventListener('click',function(){impl.clear(st);});
+    var mb2=document.getElementById('sl-mid');
+    if(mb2)mb2.addEventListener('click',function(){impl.mid(st);});
+  }
+  // labs with draggable elements get pointer events on the canvas
+  if(impl.pointer){
+    var _pd=function(e){var p=simPointerXY(cv,S.dpr,e);impl.pointer(st,p.x,p.y,'down');e.preventDefault();};
+    var _pm=function(e){if(!st.drag)return;var p=simPointerXY(cv,S.dpr,e);impl.pointer(st,p.x,p.y,'move');e.preventDefault();};
+    var _pu=function(e){impl.pointer(st,0,0,'up');};
+    cv.addEventListener('mousedown',_pd);cv.addEventListener('touchstart',_pd,{passive:false});
+    cv.addEventListener('mousemove',_pm);cv.addEventListener('touchmove',_pm,{passive:false});
+    cv.addEventListener('mouseup',_pu);cv.addEventListener('touchend',_pu);
+    cv.style.touchAction='none';
   }
   if(L.t==='slip-angle'){
     var cb3=document.getElementById('sl-clr');
