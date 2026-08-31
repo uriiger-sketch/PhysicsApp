@@ -19848,20 +19848,22 @@ runAnim('anim-static2',(canvas,ctx,W,H,t)=>{
   bg(ctx,W,H);
   var CY=H*0.52;
   ctx.save();ctx.fillStyle='rgba(59,130,246,.5)';ctx.strokeStyle='#60a5fa';ctx.lineWidth=1.5;
-  ctx.beginPath();ctx.roundRect(W*0.10,CY-44,W*0.80,38,3);ctx.fill();ctx.stroke();ctx.restore();
+  ctx.beginPath();ctx.roundRect(W*0.10,CY-46,W*0.80,38,3);ctx.fill();ctx.stroke();ctx.restore();
   ctx.save();ctx.fillStyle='#3b82f6';ctx.strokeStyle='#60a5fa';ctx.lineWidth=1;
   var asps=7;
   for(var i=0;i<asps;i++){
+    // the roughness lives ON the face, pointing across the contact
     var ax=W*0.15+i*(W*0.70/(asps-1)),ah=6+(i*53)%6;
-    ctx.beginPath();ctx.moveTo(ax-7,CY-6);ctx.lineTo(ax,CY-6-ah);ctx.lineTo(ax+7,CY-6);ctx.closePath();ctx.fill();ctx.stroke();
+    ctx.beginPath();ctx.moveTo(ax-7,CY-8);ctx.lineTo(ax,CY-8+ah);ctx.lineTo(ax+7,CY-8);ctx.closePath();ctx.fill();ctx.stroke();
   }
   ctx.restore();
   ctx.save();ctx.fillStyle='rgba(34,197,94,.3)';ctx.strokeStyle='#22c55e';ctx.lineWidth=1.5;
-  ctx.beginPath();ctx.roundRect(W*0.10,CY+6,W*0.80,40,3);ctx.fill();ctx.stroke();ctx.restore();
+  ctx.beginPath();ctx.roundRect(W*0.10,CY+8,W*0.80,40,3);ctx.fill();ctx.stroke();ctx.restore();
   ctx.save();ctx.fillStyle='#16a34a';ctx.strokeStyle='#22c55e';ctx.lineWidth=1;
   for(var i=0;i<asps;i++){
+    // offset in x from the upper row, so the two sets mesh instead of collide
     var ax2=W*0.15+i*(W*0.70/(asps-1))+W*0.035,ah2=5+(i*37)%5;
-    ctx.beginPath();ctx.moveTo(ax2-6,CY+6);ctx.lineTo(ax2,CY+6+ah2);ctx.lineTo(ax2+6,CY+6);ctx.closePath();ctx.fill();ctx.stroke();
+    ctx.beginPath();ctx.moveTo(ax2-6,CY+8);ctx.lineTo(ax2,CY+8-ah2);ctx.lineTo(ax2+6,CY+8);ctx.closePath();ctx.fill();ctx.stroke();
   }
   ctx.restore();
   var F_apply=18*(1-Math.exp(-t*0.5));
@@ -23677,7 +23679,7 @@ function slPlot(ctx,x,y,w,h,traces,opt){
     ctx.globalAlpha=k===0?0.85:0.35;
     ctx.beginPath();ctx.moveTo(px0,gy);ctx.lineTo(x+w-3,gy);ctx.stroke();
     ctx.globalAlpha=1;
-    slTxt(ctx,slFmt(gv,step),px0-4,gy+3.5,mu,8.5,'right');
+    slTxt(ctx,slFmt(gv+(opt.offset||0),step),px0-4,gy+3.5,mu,8.5,'right');
   }
   ctx.restore();
   for(i=0;i<traces.length;i++){
@@ -23755,7 +23757,7 @@ var SENSOR_LABS={
    ttl:'זרקו ותפסו — ו-g מהשיפוע של v(t)',
    how:'עמדו מעל מיטה או ספה, <b>זרקו את הטלפון בעדינות כלפי מעלה וקלטו אותו</b>. הזריקה נלכדת אוטומטית, וגרף המהירות נעצר כדי שתוכלו לעבוד עליו: <b>גררו את שני הסמנים</b> אל תוך קטע המעוף וקראו את השיפוע.',
    pred:'לפני הזריקה: איך ייראה גרף המהירות בזמן המעוף — קו ישר, פרבולה, או משהו אחר? ומה יהיה השיפוע שלו?',
-   note:'<b>שני העקומים בגרף העליון הם אותה תופעה משני צדדים.</b> העקום הכהה הוא מה שהחיישן <b>קורא</b> — כוח המשען ליחידת מסה — ולכן 9.8 במנוחה ואפס באוויר; זו בדיוק הסיבה שטלפון יודע לזהות שהוא נפל. העקום הבהיר הוא <b>תאוצת הטלפון עצמו</b>, '+M('a = g_0 - \\vec A\\cdot\\hat u')+' — אפס במנוחה ו-9.8 מטה בנפילה, כמו בשיעור. הם תמונת ראי זה של זה, ולא סתירה.<br><br>בגרף התחתון, בזמן המעוף '+M('v(t)')+' הוא <b>קו ישר</b> — וזו כל המשמעות של "תאוצה קבועה". השיפוע בין שני הסמנים הוא התאוצה. שימו לב שהמהירות חושבה מקריאת החיישן עם הכיול שנעשה במנוחה, ולכן ההתאמה ל-'+M('g')+' היא <b>בדיקת עקביות</b> — היא מוכיחה שהמעוף באמת חופשי ושהתאוצה קבועה, ולא מודדת את '+M('g')+' מחדש.',
+   note:'<b>שני העקומים בגרף העליון הם אותה תופעה משני צדדים.</b> העקום הכהה הוא מה שהחיישן <b>קורא</b> — הכוח הנורמלי ליחידת מסה — ולכן 9.8 במנוחה ואפס באוויר; זו בדיוק הסיבה שטלפון יודע לזהות שהוא נפל. העקום הבהיר הוא <b>תאוצת הטלפון עצמו</b>, '+M('a = g_0 - \\vec A\\cdot\\hat u')+' — אפס במנוחה ו-9.8 מטה בנפילה, כמו בשיעור. הם תמונת ראי זה של זה, ולא סתירה.<br><br>בגרף התחתון, בזמן המעוף '+M('v(t)')+' הוא <b>קו ישר</b> — וזו כל המשמעות של "תאוצה קבועה". השיפוע בין שני הסמנים הוא התאוצה. שימו לב שהמהירות חושבה מקריאת החיישן עם הכיול שנעשה במנוחה, ולכן ההתאמה ל-'+M('g')+' היא <b>בדיקת עקביות</b> — היא מוכיחה שהמעוף באמת חופשי ושהתאוצה קבועה, ולא מודדת את '+M('g')+' מחדש.',
    chips:[['T','זמן מעוף','s'],['a','תאוצה במעוף','m/s²'],['g','שיפוע v(t)','m/s²'],['g0','g במנוחה','m/s²']],
    ctrl:'<button class="sl-sec" id="sl-mid">📌 מרכז סמנים</button>'},
 
@@ -23786,7 +23788,7 @@ var SENSOR_LABS={
    ttl:'מדדו את g — ואת דיוק המדידה',
    how:'הניחו את הטלפון <b>בשקט מוחלט</b> על שולחן וחכו. ככל שנאספות יותר דגימות, אי-הוודאות של הממוצע קטנה.',
    pred:'לפני שמסתכלים: כמה ספרות אחרי הנקודה אתם מצפים לקבל נכונות? האם מד-תאוצה של טלפון יכול להתחרות במטוטלת?',
-   note:'מד-התאוצה אינו מודד כבידה אלא את <b>כוח המשען</b> ליחידת מסה: במנוחה השולחן דוחף מעלה ב-'+M('mg')+' והקריאה 9.8, ובנפילה חופשית אין משען והקריאה צונחת לאפס — זו "חוסר המשקל" של אסטרונאוט. שימו לב להבדל בין <b>פיזור</b> (רעש, קטן עם ממוצע) לבין <b>סטייה</b> קבועה מ-9.81 (שגיאת כיול של המכשיר, שממוצע לא יתקן לעולם).',
+   note:'מד-התאוצה אינו מודד כבידה אלא את <b>הכוח הנורמלי</b> ליחידת מסה: במנוחה השולחן דוחף מעלה ב-'+M('mg')+' והקריאה 9.8, ובנפילה חופשית אין משען והקריאה צונחת לאפס — זו "חוסר המשקל" של אסטרונאוט. שימו לב להבדל בין <b>פיזור</b> (רעש, קטן עם ממוצע) לבין <b>סטייה</b> קבועה מ-9.81 (שגיאת כיול של המכשיר, שממוצע לא יתקן לעולם).',
    chips:[['g','נוכחי','m/s²'],['gm','ממוצע','m/s²'],['se','אי-ודאות ±','m/s²'],['er','סטייה','%']],ctrl:''},
 
  'planar.circular':{t:'spin-fit',h:306,
@@ -24114,26 +24116,41 @@ var SL_IMPL={
   reset:function(st){st.th=0;st.gp=9.81;st.gx=0;st.gy=0;st.gm=0;st.res=0;},
   sample:function(s,st){
     var gx=s.Gx,gy=s.Gy,gp=Math.hypot(gx,gy);
-    st.gp=gp;st.th=Math.atan2(gx,Math.abs(gy)||1e-9);
-    st.gx=Math.abs(gp*Math.sin(st.th));st.gy=Math.abs(gp*Math.cos(st.th));
+    st.gp=gp;
+    // The accelerometer reading points OPPOSITE to gravity, so gravity in the
+    // phone's own frame is -G. Taking the full-range angle of that direction
+    // (not atan2 of an absolute value, which folds at the vertical) gives the
+    // phone's true attitude through every orientation, upside-down included.
+    st.al=Math.atan2(-gx,-gy);
+    st.flat=gp<1.5;                    // lying flat: the in-plane angle is meaningless
+    st.gx=Math.abs(gx);st.gy=Math.abs(gy);          // components along the phone's own axes
+    st.th=Math.atan2(st.gx,st.gy||1e-9);            // tilt from the phone's y axis, 0..90
     st.gm=Math.hypot(s.Gx,s.Gy,s.Gz);
     st.res=Math.hypot(st.gx,st.gy)-gp;},
   chips:function(st){
     slSet('slv-th',(st.th*180/Math.PI).toFixed(1));slSet('slv-gx',(st.gx||0).toFixed(2));
     slSet('slv-gy',(st.gy||0).toFixed(2));slSet('slv-rs',((st.gm||0)-9.81).toFixed(3));},
   draw:function(ctx,W,H,st){
-    var cx=W/2,cy=H/2-8,ph=Math.min(W*0.17,52),pv=ph*1.9,th=st.th||0;
+    var cx=W/2,cy=H/2-8,ph=Math.min(W*0.17,52),pv=ph*1.9,th=st.th||0,al=st.al||0;
     var c1=slCss('--accent','#3b82f6'),c2=slCss('--green','#10b981'),c3=slCss('--red','#ef4444'),mu=slCss('--muted','#889');
-    ctx.save();ctx.translate(cx,cy);ctx.rotate(-th);
+    if(st.flat){
+      simText(ctx,'📱 הטלפון שוכב שטוח — הכובד ניצב למסך',W/2,H/2-10,slCss('--gold','#f59e0b'),13,'center',true);
+      simText(ctx,'החזיקו אותו במאונך והטו אותו במישור המסך',W/2,H/2+14,mu,11.5,'center');return;}
+    ctx.save();ctx.translate(cx,cy);ctx.rotate(al);
     ctx.strokeStyle=mu;ctx.lineWidth=2;ctx.beginPath();
     if(ctx.roundRect)ctx.roundRect(-ph,-pv,ph*2,pv*2,9);else ctx.rect(-ph,-pv,ph*2,pv*2);
     ctx.stroke();
+    // a notch at the top edge, so a flip is visible rather than merely implied
+    ctx.fillStyle=mu;ctx.beginPath();
+    ctx.roundRect?ctx.roundRect(-ph*0.30,-pv+5,ph*0.60,5,2.5):ctx.rect(-ph*0.30,-pv+5,ph*0.60,5);
+    ctx.fill();
     slTxt(ctx,'y',0,-pv-7,mu,10,'center',true);slTxt(ctx,'x',ph+11,4,mu,10,'center',true);
     ctx.strokeStyle=mu;ctx.setLineDash([3,3]);ctx.lineWidth=1;
     ctx.beginPath();ctx.moveTo(0,-pv-4);ctx.lineTo(0,pv+4);ctx.moveTo(-ph-8,0);ctx.lineTo(ph+8,0);ctx.stroke();
     ctx.setLineDash([]);ctx.restore();
     var sc=(Math.min(W,H)*0.29)/9.81,gL=(st.gp||9.8)*sc;
-    var ux=Math.sin(th),uy=-Math.cos(th),vx=Math.cos(th),vy=Math.sin(th);
+    // exact projections of a straight-down g onto the phone's drawn axes
+    var ux=-Math.sin(al),uy=Math.cos(al),vx=Math.cos(al),vy=Math.sin(al);
     var ky=gL*uy,kx=gL*vy,Ax=ky*ux,Ay=ky*uy,Bx=kx*vx,By=kx*vy;
     ctx.save();ctx.strokeStyle=mu;ctx.setLineDash([2,4]);ctx.lineWidth=1;
     ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(cx+Bx,cy+By);
@@ -24144,7 +24161,7 @@ var SL_IMPL={
     simArrow(ctx,cx+Ax,cy+Ay,cx+Ax+Bx,cy+Ay+By,c1,2.5,9);
     slTxt(ctx,'g·cosθ = '+(st.gy||0).toFixed(2),12,20,c2,11,'left',true);
     slTxt(ctx,'g·sinθ = '+(st.gx||0).toFixed(2),12,37,c1,11,'left',true);
-    slTxt(ctx,'θ = '+((th*180/Math.PI)||0).toFixed(1)+'°',12,54,mu,11,'left',true);
+    slTxt(ctx,'θ = '+((th*180/Math.PI)||0).toFixed(1)+'°  (מציר y של הטלפון)',12,54,mu,11,'left',true);
     var eq=Math.abs(Math.abs(st.gx-st.gy))<0.25;
     if(eq)simText(ctx,'⇦ כאן הרכיבים שווים — 45°',W-12,20,slCss('--gold','#f59e0b'),11,'right',true);
     slTxt(ctx,'√('+(st.gx||0).toFixed(2)+'² + '+(st.gy||0).toFixed(2)+'²) = '+
@@ -24208,7 +24225,7 @@ var SL_IMPL={
   draw:function(ctx,W,H,st){
     var mu=slCss('--muted','#889'),c1=slCss('--accent','#3b82f6'),
         gr=slCss('--green','#10b981'),gd=slCss('--gold','#f59e0b');
-    slPlot(ctx,8,8,W-16,H-72,[{tr:st.tr,c:c1}],{title:'|a| − 9.81  (m/s²)',floor:.2,hold:st.h});
+    slPlot(ctx,8,8,W-16,H-72,[{tr:st.tr,c:c1}],{title:'|a|  (m/s²)',floor:.2,hold:st.h,offset:9.81});
     var ok=st.still;
     simText(ctx,ok?'● במנוחה — נאסף':'● זז — לא נאסף',W/2,H-52,ok?gr:gd,11.5,'center',true);
     if(st.mean)slTxt(ctx,'g = '+st.mean.toFixed(3)+' ± '+st.se.toFixed(4)+' m/s²   (N = '+st.n+')',
