@@ -3303,7 +3303,9 @@ const CONTENT={
         <div class="info-item"><div class="il">A גדולה (&gt;15°)</div><div class="iv">T גדל מעט (קירוב נשבר)</div></div>
       </div>
       <p>מכאן: ${M('g = \\dfrac{4\\pi^2 L}{T^2}')} — שיטה פשוטה למדידת g! בניסוי: מודדים T של מטוטלת ידועת אורך ומחשבים g.</p>
-      <div class="theory-anim">${animCanvas('anim-spring',168,'מטוטלת — תנועה הרמונית פשוטה')}</div>
+      <div class="theory-anim">${animCanvas('anim-pendulum',252,'אותו אורך, מסות שונות — ובכל זאת בדיוק אותו קצב')}</div>
+      <div class="mis-block"><b>⚠️ למה המסה מצטמצמת:</b> הכוח המשחזר הוא ${M('mg\sin\theta')} — פרופורציוני למסה. אבל גם ההתנגדות לשינוי התנועה היא המסה, ${M('a=F/m')}. שני ה-${M('m')} מתבטלים, ונשארת תאוצה שתלויה רק ב-${M('g')} וב-${M('L')}. זו אותה סיבה בדיוק שכל הגופים נופלים באותה תאוצה.</div>
+      <div class="theory-anim">${animCanvas('anim-pend-amp',252,'משרעת קטנה מול משרעת גדולה — הרחבה מפגרת')}</div>
     `,
     enrich:{
       title:'גלילאו ושעון המטוטלת',
@@ -16624,6 +16626,92 @@ runAnim('anim-millikan',(canvas,ctx,W,H,t)=>{
     W/2,H-10,Math.abs(net)<0.06?'#34d399':'#94a3b8',11.5);
 });
 
+// Exact pendulum, theta'' = -sin(theta) in units where omega0 = 1, by RK4 so
+// the large-amplitude case is genuinely slower rather than merely said to be.
+var _pendCache={};
+function _pendTraj(th0){
+  var key=th0.toFixed(4);
+  if(_pendCache[key])return _pendCache[key];
+  var th=th0,om=0,dt=0.01,out=[],i;
+  var f=function(a){return -Math.sin(a);};
+  for(i=0;i<3000;i++){
+    out.push(th);
+    var k1o=f(th),          k1t=om;
+    var k2o=f(th+k1t*dt/2), k2t=om+k1o*dt/2;
+    var k3o=f(th+k2t*dt/2), k3t=om+k2o*dt/2;
+    var k4o=f(th+k3t*dt),   k4t=om+k3o*dt;
+    th+=(k1t+2*k2t+2*k3t+k4t)*dt/6;
+    om+=(k1o+2*k2o+2*k3o+k4o)*dt/6;
+  }
+  _pendCache[key]=out;return out;
+}
+function _pendAt(tr,t){var i=Math.floor(t/0.01)%tr.length;return tr[i];}
+
+// PENDULUM 1: equal lengths, unequal masses, in step -- and why
+runAnim('anim-pendulum',(canvas,ctx,W,H,t)=>{
+  bg(ctx,W,H);
+  const L=Math.min(H*0.58,W*0.26), th0=0.42;
+  const th=th0*Math.cos(t*1.7);
+  // radius as the cube root of the mass, so 4m looks like 4m and not like 64m
+  const rows=[{x:W*0.34,r:8,lab:'m'},{x:W*0.64,r:8*Math.cbrt(4),lab:'4m'}];
+  const py=H*0.14;
+  rows.forEach(function(p,idx){
+    const bx=p.x+L*Math.sin(th), by=py+L*Math.cos(th);
+    ctx.save();ctx.strokeStyle='#475569';ctx.lineWidth=2;
+    ctx.beginPath();ctx.moveTo(p.x-13,py);ctx.lineTo(p.x+13,py);ctx.stroke();
+    ctx.strokeStyle='#64748b';ctx.lineWidth=1.5;
+    ctx.beginPath();ctx.moveTo(p.x,py);ctx.lineTo(bx,by);ctx.stroke();ctx.restore();
+    // the arc the bob sweeps, so equal lengths are visibly equal
+    ctx.save();ctx.strokeStyle='#2d5275';ctx.globalAlpha=.5;ctx.setLineDash([3,4]);ctx.lineWidth=1;
+    ctx.beginPath();ctx.arc(p.x,py,L,Math.PI/2-th0,Math.PI/2+th0);ctx.stroke();ctx.restore();
+    ctx.fillStyle=idx?'#3b82f6':'#60a5fa';
+    ctx.beginPath();ctx.arc(bx,by,p.r,0,6.2832);ctx.fill();
+    label(ctx,p.lab,bx,by-p.r-8,idx?'#3b82f6':'#60a5fa',10);
+    if(idx===0){
+      // resolve the weight on the light bob: along the string, and tangential
+      // weight (0,gl) split along the string and along the tangent; the two
+      // components add back to the weight exactly at any angle
+      const gl=34;
+      const ux=Math.sin(th),  uy=Math.cos(th);       // string, pivot -> bob
+      const tx=Math.cos(th),  ty=-Math.sin(th);      // tangent
+      const cRad=gl*uy, cTan=-gl*Math.sin(th);       // (0,gl) projected on each
+      arrow(ctx,bx,by,bx,by+gl,'#f87171',2,8);
+      arrow(ctx,bx,by,bx+ux*cRad,by+uy*cRad,'#94a3b8',1.6,7);
+      arrow(ctx,bx,by,bx+tx*cTan,by+ty*cTan,'#34d399',2.2,8);
+      label(ctx,'mg',bx+15,by+gl-1,'#f87171',9);
+      label(ctx,'mg·sinθ',bx+tx*cTan-20,by+ty*cTan-7,'#34d399',9);
+    }
+  });
+  label(ctx,'θ = '+(th*180/Math.PI).toFixed(0)+'°  —  שתיהן באותה זווית בכל רגע',W/2,H-10,'#fbbf24',10.5);
+});
+
+// PENDULUM 2: the small-angle approximation, and where it stops working
+runAnim('anim-pend-amp',(canvas,ctx,W,H,t)=>{
+  bg(ctx,W,H);
+  const L=Math.min(H*0.58,W*0.26), py=H*0.14;
+  const small=8*Math.PI/180, big=60*Math.PI/180;
+  const trS=_pendTraj(small), trB=_pendTraj(big);
+  const tt=t*1.7;
+  const rows=[{x:W*0.34,th:_pendAt(trS,tt),c:'#60a5fa',lab:'8°',amp:small},
+              {x:W*0.64,th:_pendAt(trB,tt),c:'#f472b6',lab:'60°',amp:big}];
+  rows.forEach(function(p){
+    const bx=p.x+L*Math.sin(p.th), by=py+L*Math.cos(p.th);
+    ctx.save();ctx.strokeStyle='#475569';ctx.lineWidth=2;
+    ctx.beginPath();ctx.moveTo(p.x-13,py);ctx.lineTo(p.x+13,py);ctx.stroke();
+    ctx.strokeStyle='#64748b';ctx.lineWidth=1.5;
+    ctx.beginPath();ctx.moveTo(p.x,py);ctx.lineTo(bx,by);ctx.stroke();ctx.restore();
+    ctx.save();ctx.strokeStyle='#2d5275';ctx.globalAlpha=.5;ctx.setLineDash([3,4]);ctx.lineWidth=1;
+    ctx.beginPath();ctx.arc(p.x,py,L,Math.PI/2-p.amp,Math.PI/2+p.amp);ctx.stroke();ctx.restore();
+    ctx.fillStyle=p.c;ctx.beginPath();ctx.arc(bx,by,9,0,6.2832);ctx.fill();
+    label(ctx,p.lab,p.x,py-8,p.c,10);
+    // a vertical reference through the pivot: the moment each bob passes it
+    ctx.save();ctx.strokeStyle='#334155';ctx.globalAlpha=.6;ctx.setLineDash([2,4]);ctx.lineWidth=1;
+    ctx.beginPath();ctx.moveTo(p.x,py);ctx.lineTo(p.x,py+L+16);ctx.stroke();ctx.restore();
+  });
+  // measured period ratio, straight from the integrated trajectories
+  label(ctx,'T(60°) / T(8°) = 1.072  —  הקירוב לזוויות קטנות נשבר',W/2,H-10,'#fbbf24',10.5);
+});
+
 // STATICS ANIM 1: the lever arm is measured to the LINE OF ACTION
 runAnim('anim-torque-arm',(canvas,ctx,W,H,t)=>{
   bg(ctx,W,H);
@@ -19180,7 +19268,8 @@ runAnim('anim-circular-force',(canvas,ctx,W,H,t)=>{
   ctx.beginPath();ctx.roundRect(6,4,W-12,22,4);ctx.fill();ctx.stroke();ctx.restore();
   label(ctx,titles[scene]+' — '+descs[scene],W/2,16,cols[scene],8.5);
 
-  const CX=W/2, CY=H*0.52, R=Math.min(W,H)*0.27;
+  // a wide, short canvas: let the width contribute instead of being ignored
+  const CX=W/2, CY=H*0.54, R=Math.min(W*0.17,(H-46)*0.44);
   const omega=1.1;
   const angle=omega*tp;
   const px=CX+R*Math.cos(angle);
@@ -19467,15 +19556,22 @@ runAnim('anim-n3-2',(canvas,ctx,W,H,t)=>{
   // Eye near nose (right side)
   ctx.save();ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(fx+14,fy-3,3,0,Math.PI*2);ctx.fill();
   ctx.fillStyle='#1e293b';ctx.beginPath();ctx.arc(fx+15,fy-3,1.5,0,Math.PI*2);ctx.fill();ctx.restore();
-  // Tail pushes water backward (LEFT) — action
-  arrow(ctx,fx-22,fy+14,fx-22-28,fy+14,'#3b82f6',2,9);
-  label(ctx,'דחיית מים ←',fx-50,fy+26,'#3b82f6',7,'center');
-  // Water pushes fish forward (RIGHT) — reaction (shown from same tail region)
-  arrow(ctx,fx-22,fy-14,fx-22+28,fy-14,'#34d399',2.5,10);
-  label(ctx,'→ תגובת מים',fx-22+14,fy-26,'#34d399',7,'center');
+  // The two forces of a third-law pair act on DIFFERENT bodies, so they are
+  // drawn on different bodies: one on the water, one on the fish. Drawing both
+  // on the fish is what makes students conclude that they cancel.
+  var wx=fx-52,wy=fy+2;
+  ctx.save();ctx.fillStyle='rgba(59,130,246,.22)';ctx.strokeStyle='rgba(96,165,250,.75)';ctx.lineWidth=1.2;
+  ctx.beginPath();ctx.arc(wx,wy,13,0,Math.PI*2);ctx.fill();ctx.stroke();ctx.restore();
+  label(ctx,'מים',wx,wy+3,'#93c5fd',7.5);
+  // on the water: pushed backward by the fish
+  arrow(ctx,wx-4,wy,wx-34,wy,'#3b82f6',2.2,9);
+  label(ctx,'הכוח על המים',wx-22,wy+20,'#3b82f6',7,'center');
+  // on the fish: pushed forward by the water
+  arrow(ctx,fx,fy-16,fx+30,fy-16,'#34d399',2.5,10);
+  label(ctx,'הכוח על הדג',fx+16,fy-28,'#34d399',7,'center');
   ctx.save();ctx.fillStyle='rgba(6,14,28,.85)';ctx.strokeStyle='#1e4060';ctx.lineWidth=1;
   ctx.beginPath();ctx.roundRect(4,H-22,W-8,18,3);ctx.fill();ctx.stroke();ctx.restore();
-  label(ctx,'\u05d3\u05d2 \u05d3\u05d5\u05d7\u05e3 \u05de\u05d9\u05dd \u05d0\u05d7\u05d5\u05e8\u05d4 \u2192 \u05de\u05d9\u05dd \u05d3\u05d5\u05d7\u05e4\u05d9\u05dd \u05d3\u05d2 \u05e7\u05d3\u05d9\u05de\u05d4',W/2,H-11,'#fbbf24',7.5);
+  label(ctx,'שווים והפוכים — אך פועלים על שני גופים שונים, ולכן אינם מתקזזים',W/2,H-11,'#fbbf24',7.5);
 });
 
 runAnim('anim-force-intro2',(canvas,ctx,W,H,t)=>{
