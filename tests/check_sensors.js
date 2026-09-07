@@ -118,6 +118,17 @@ const S = p => p.evaluate(() => JSON.parse(JSON.stringify(_sl.st, (k, v) =>
   t('N = mg·cos30', s.N, 2 * 9.81 * Math.cos(0.5236), 0.2);
   t('F∥ = mg·sin30', s.Fp, 2 * 9.81 * 0.5, 0.2);
   t('and N is smaller than the weight at every non-zero angle', s.N < 2 * 9.81, true);
+  // the angle comes from the direction of gravity, so it is only true at rest
+  await push(p, 'forces.normal-force', 8,
+    '()=>({g:[9.81*Math.sin(1.0),0,9.81*Math.cos(1.0)],a:[2.5,0,0]})');
+  s = await S(p);
+  t('a moving board is flagged', s.moving, true);
+  t('  and its angle is held at the last still reading, not the moving lie',
+    s.th * 57.29578, 30, 0.5);
+  await push(p, 'forces.normal-force', 8,
+    '()=>({g:[9.81*Math.sin(1.0),0,9.81*Math.cos(1.0)],a:[0,0,0]})');
+  s = await S(p);
+  t('and it follows again once still', s.th * 57.29578, 57.3, 0.5);
 
   console.log('\n5) forces2.static-friction — μs from the angle it lets go at');
   await openLab(p, 'forces2.static-friction');
@@ -214,6 +225,16 @@ const S = p => p.evaluate(() => JSON.parse(JSON.stringify(_sl.st, (k, v) =>
   for (const L of [0.4, 0.8, 1.2]) await rec(L, 2 * Math.PI * Math.sqrt(L / g));
   s = await S(p);
   t('three lengths recorded', s.pts.length, 3);
+  t('the swing amplitude is measured, not assumed',
+    Math.asin(0.8 / 9.81) - s.amp, 0, 0.02);
+  // a big swing: the small-angle formula is no longer the truth
+  await p.evaluate(L2 => { document.getElementById('sl-L').value = String(L2); }, 1.0);
+  await push(p, 'shm.pendulum', 500,
+    `i=>({g:[0,0,9.81],a:[6.0*Math.sin(2*Math.PI*i*0.02/2.0),0,0]})`);
+  const amp = (await S(p)).amp;
+  t('a 38° swing is recognised as large', amp * 57.29578, 37.7, 1.5);
+  t('  and its period error is worth more than the measurement spread',
+    amp * amp / 16 * 100 > 1, true);
   t('g from the slope of T² against L', s.g, 9.81, 0.4);
   t('and the fit is a straight line', s.r2 > 0.99, true);
 

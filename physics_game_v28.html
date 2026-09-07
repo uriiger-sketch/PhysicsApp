@@ -23722,10 +23722,15 @@ function slScatter(ctx,x,y,w,h,pts,s,opt){
   for(q=sxs;q<=mx;q+=sxs){var gx2=X(q);if(gx2>x+w-8)break;slTxt(ctx,slFmt(q,sxs),gx2,Y(0)+12,mu,8,'center');}
   for(q=sys;q<=my;q+=sys){var gy3=Y(q);if(gy3<y+8)break;slTxt(ctx,slFmt(q,sys),X(0)-4,gy3+3,mu,8,'right');}
   ctx.strokeStyle=bd;ctx.beginPath();ctx.moveTo(X(0),y+6);ctx.lineTo(X(0),Y(0));ctx.lineTo(x+w-6,Y(0));ctx.stroke();
+  // Zooming in shrinks the axis range, so a point outside it would otherwise be
+  // painted over the frame, the labels, or off the canvas entirely. Clip the
+  // data to the plot box; the axes and their numbers stay outside the clip.
+  ctx.save();ctx.beginPath();ctx.rect(x+1,y+1,w-2,h-2);ctx.clip();
   if(s>0){ctx.strokeStyle=gd;ctx.lineWidth=2;ctx.setLineDash([6,4]);ctx.beginPath();
     ctx.moveTo(X(0),Y(0));ctx.lineTo(X(mx),Y(Math.min(s*mx,my)));ctx.stroke();ctx.setLineDash([]);}
   ctx.fillStyle=ac;
   for(i=0;i<pts.length;i++){ctx.beginPath();ctx.arc(X(pts[i][0]),Y(pts[i][1]),opt.r||3,0,6.2832);ctx.fill();}
+  ctx.restore();
   ctx.restore();
   if(_slZoom!==1)slTxt(ctx,'×'+(_slZoom<1?_slZoom.toFixed(2):_slZoom.toFixed(1)),x+w-8,y+14,slCss('--gold','#f59e0b'),9,'right',true);
   if(opt.xl)slTxt(ctx,opt.xl,X(mx/2),y+h-9,mu,10,'center');
@@ -24918,10 +24923,15 @@ var SL_IMPL={
 
 'incline-forces':{
   init:function(st){st.reset(st);},
-  reset:function(st){st.th=0;st.m=2;st.N=0;st.Fp=0;st.W=0;},
+  reset:function(st){st.th=0;st.m=2;st.N=0;st.Fp=0;st.W=0;st.moving=false;st.seen=false;},
   sample:function(s,st){
     var g=Math.hypot(s.Gx,s.Gy,s.Gz)||9.81,c=Math.min(1,Math.abs(s.Gz)/g);
-    st.th=Math.acos(c);
+    // The angle is read from the DIRECTION OF GRAVITY, which is gravity alone
+    // only while the board is still. During the lift the reading carries the
+    // motion too, and the angle it gives is not the angle of the board -- so
+    // hold the last still reading rather than showing a moving lie.
+    st.moving=Math.hypot(s.ax,s.ay,s.az)>0.35;
+    if(!st.moving||!st.seen){st.th=Math.acos(c);st.seen=true;}
     var e=document.getElementById('sl-m');st.m=e?parseFloat(e.value):2;
     st.N=st.m*9.81*Math.cos(st.th);st.Fp=st.m*9.81*Math.sin(st.th);st.W=st.m*9.81;},
   chips:function(st){
@@ -24951,7 +24961,10 @@ var SL_IMPL={
     slTxt(ctx,'N = mg·cosθ = '+(st.N||0).toFixed(1)+' N',10,18,c2,11,'left',true);
     slTxt(ctx,'F∥ = mg·sinθ = '+(st.Fp||0).toFixed(1)+' N',10,35,c1,11,'left',true);
     slTxt(ctx,'mg = '+(st.W||0).toFixed(1)+' N',10,52,c3,11,'left',true);
-    if(Math.abs((st.N||0)-(st.Fp||0))<0.4*(st.m||2))
+    if(st.moving)
+      simText(ctx,'⏸ מרימים — הזווית מוקפאת על הקריאה היציבה האחרונה. עצרו לרגע.',
+        W-10,18,gd,10.5,'right',true);
+    else if(Math.abs((st.N||0)-(st.Fp||0))<0.4*(st.m||2))
       simText(ctx,'⇦ הכוחות שווים — זו הזווית 45°',W-10,18,gd,11,'right',true);}},
 
 'measure-g':{
@@ -25030,7 +25043,7 @@ var SL_IMPL={
 'pendulum-fit':{
   init:function(st){st.tr=slTrace(220);st.pd=slPeriod();st.h={v:1};st.pts=[];st.g=0;st.r2=0;st.reset(st);},
   reset:function(st){if(st.pd)st.pd.reset();if(st.tr)st.tr.clear();
-    st.T=0;st.sp=0;st.va=[0,0,0];st.L=0.5;},
+    st.T=0;st.sp=0;st.va=[0,0,0];st.L=0.5;st.amp=0;st.pkA=0;st.pkT=0;},
   clear:function(st){st.pts=[];st.g=0;st.r2=0;},
   record:function(st){
     if(!st.T)return false;
@@ -25045,7 +25058,13 @@ var SL_IMPL={
     var k=(st.va[0]>=st.va[1]&&st.va[0]>=st.va[2])?0:(st.va[1]>=st.va[2]?1:2);
     var v=a[k],rms=Math.sqrt(st.va[k]);
     st.tr.push(v);st.pd.push(v,s.t,Math.max(0.15,rms*0.35));
-    st.T=st.pd.mean;st.sp=st.pd.spread||0;},
+    st.T=st.pd.mean;st.sp=st.pd.spread||0;
+    // The tangential reading swings between +-g*sin(theta0), so its peak gives
+    // the amplitude -- the one quantity the small-angle formula quietly assumes
+    // is small, and the one the learner has no other way to check.
+    if(Math.abs(v)>st.pkA)st.pkA=Math.abs(v);
+    st.pkT+=s.dt;
+    if(st.pkT>2.5){st.amp=Math.asin(Math.min(1,st.pkA/9.81));st.pkA=0;st.pkT=0;}},
   chips:function(st){
     slSet('slv-T',st.T?st.T.toFixed(3):'—');
     slSet('slv-g',st.pts.length>1?st.g.toFixed(2):'—');
@@ -25061,7 +25080,15 @@ var SL_IMPL={
     var Tp=2*Math.PI*Math.sqrt((st.L||0.5)/9.81);
     slTxt(ctx,'L = '+((st.L||0.5).toFixed(2))+' m    T = '+(st.T?st.T.toFixed(3):'—')+' s'+
       (st.T?('    (2π√(L/g) = '+Tp.toFixed(3)+')'):''),W/2,H-27,tx,11.5,'center',true);
-    if(st.pts.length>1)
+    // T = 2pi sqrt(L/g) is the SMALL angle result; the true period is longer by
+    // about theta0^2/16, which at 30 degrees is already 1.7% -- more than the
+    // spread of a careful measurement, so it has to be said out loud.
+    var big=st.amp>0.35;
+    if(big)
+      simText(ctx,'⚠ אמפליטודה ~'+(st.amp*180/Math.PI).toFixed(0)+'° — בזווית כזו המחזור ארוך ב-'+
+        (st.amp*st.amp/16*100).toFixed(1)+'% מהנוסחה. הקטינו את התנודה.',
+        W/2,H-9,gd,10.5,'center',true);
+    else if(st.pts.length>1)
       simText(ctx,'שיפוע → g = '+st.g.toFixed(2)+' m/s²   ·   R² = '+st.r2.toFixed(3),
         W/2,H-9,Math.abs(st.g-9.81)<0.5?gr:gd,11.5,'center',true);
     else simText(ctx,st.T?'ה-T התייצב — לחצו "רשום נקודה", ואז שנו את L':'נדנדו בתנודה קטנה…',
