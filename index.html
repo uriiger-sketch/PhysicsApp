@@ -23901,6 +23901,14 @@ var SENSOR_LABS={
    note:'סכום ריבועי הרכיבים נשאר '+M('9.81')+' בכל זווית — הפירוק אינו משנה את הווקטור, רק את הדרך לתאר אותו. השורה התחתונה בתרשים היא בדיקת פיתגורס על המדידה עצמה: הסטייה שלה מ-9.81 היא <b>רעש המכשיר</b>, ולא שגיאה בפיזיקה.',
    chips:[['th','θ','°'],['gx','g·sinθ','m/s²'],['gy','g·cosθ','m/s²'],['rs','שארית פיתגורס','m/s²']],ctrl:''},
 
+ 'forces.tension':{t:'lift-ride',h:344,minHz:25,
+   ttl:'נסיעה במעלית — '+M('T=m(g\\pm a)'),
+   how:'החזיקו את הטלפון <b>שטוח על כף היד</b>, היכנסו למעלית ולחצו <b>אפס</b> כשהיא עומדת. סעו קומה או שתיים ואל תזיזו את היד. הנסיעה נלכדת ונחתכת מעצמה כשהמעלית נעצרת.',
+   pred:'לפני הנסיעה: בעלייה — מתי תרגישו כבדים יותר, בתחילת הנסיעה או בסופה? ומה יקרה באמצע, כשהמעלית נוסעת במהירות קבועה?',
+   note:'הטלפון על כף היד הוא בדיוק גוף התלוי על חוט: הכוח שנושא אותו הוא '+M('T=m(g+a)')+' כאשר '+M('a')+' חיובי כלפי מעלה. הקריאה שלו, חלקי '+M('g')+', היא בדיוק היחס '+M('T/mg')+' — ה<b>משקל המדומה</b>. בתחילת עלייה הוא גדול מ-1, בסוף עלייה קטן ממנו, ובאמצע, כשהמהירות קבועה, הוא חוזר בדיוק ל-1.<br><br>זו הנקודה החשובה: <b>מהירות אינה מורגשת, רק תאוצה</b>. אמצע הנסיעה מרגיש בדיוק כמו עמידה, ואין שום ניסוי מכני שיבדיל ביניהם. מכאן קצרה הדרך לעיקרון השקילות — מעלית שנופלת חופשית מרגישה כמו חלל ריק, ומעלית שמאיצה בחלל מרגישה כמו כבידה.<br><br>המהירות והגובה בגרפים אינם נמדדים אלא מחושבים באינטגרל על התאוצה. אנחנו יודעים שהנסיעה התחילה ונגמרה במנוחה, ולכן כל מהירות שנשארה בסוף היא <b>שגיאה מצטברת</b>, וממנה מתקנים גם את הגובה.',
+   chips:[['ph','מצב',''],['tm','T/mg מרבי',''],['tn','T/mg מזערי',''],['h','גובה','m']],
+   ctrl:'<button class="sl-sec" id="sl-clr">🗑 נקה</button>'},
+
  'forces.normal-force':{t:'incline-forces',h:292,
    ttl:'N ו-F∥ על מדרון אמיתי',
    how:'הניחו את הטלפון <b>שטוח על ספר</b> והרימו לאט את קצה הספר. הטלפון מודד את זווית המדרון מכיוון הכובד, והתרשים מציג את הכוחות על גוף במסה שתבחרו.',
@@ -24354,6 +24362,145 @@ var SL_IMPL={
         : 'גררו את שני הסמנים אל תוך הקטע הירוק — שם התנועה חופשית',
         W/2,H-8,Math.abs(s2.g-st.g0)<0.6?gr:gd,11,'center',true);
     } else simText(ctx,'גררו את הסמנים לאורך הגרף כדי למדוד שיפוע',W/2,H-14,mu,11.5,'center');}},
+
+// A phone lying on an open palm is exactly a body hanging on a string: the force
+// carrying it is T = m(g+a), so the reading divided by g IS T/mg, the apparent
+// weight. A lift ride shows all three phases, and the middle one -- constant
+// velocity, reading back to exactly g -- is the whole point.
+'lift-ride':{
+  init:function(st){st.tr=slTrace(400);st.h={v:.3};st.reset(st);},
+  reset:function(st){if(st.tr)st.tr.clear();
+    st.ph='cal';st.calN=0;st.calS=[0,0,0];st.g0=0;st.u=null;
+    st.a=0;st.v=0;st.ap=0;st.run=0;st.quiet=0;st.rec=[];st.cap=null;},
+  clear:function(st){st.cap=null;st.rec=[];st.run=0;},
+  sample:function(s,st){
+    var A=[s.gx,s.gy,s.gz],i;
+    if(st.ph==='cal'){
+      if(Math.hypot(s.ax,s.ay,s.az)>0.25){st.calN=0;st.calS=[0,0,0];return;}
+      st.calN++;for(i=0;i<3;i++)st.calS[i]+=A[i];
+      if(st.calN>=50){
+        var u=[st.calS[0]/st.calN,st.calS[1]/st.calN,st.calS[2]/st.calN];
+        st.g0=Math.hypot(u[0],u[1],u[2])||9.81;
+        st.u=[u[0]/st.g0,u[1]/st.g0,u[2]/st.g0];st.ph='ready';}
+      return;}
+    var Au=A[0]*st.u[0]+A[1]*st.u[1]+A[2]*st.u[2];
+    st.a=Au-st.g0;                       // the lift's own acceleration, up positive
+    st.tw=Au/st.g0;                      // T/mg, the apparent weight
+    // The trace carries the DEVIATION from 1. A lift shifts the apparent weight
+    // by a few percent, and plotted against a full scale of 1.0 that is a flat
+    // line; the plot re-adds the 1 on its labels (opt.offset) so the numbers
+    // still read as T/mg.
+    st.tr.push(st.tw-1);
+    if(st.ph==='ready'){
+      if(Math.abs(st.a)>0.15){st.ph='run';st.rec=[];st.quiet=0;st.v=0;st.ap=st.a;}
+      else return;}
+    if(st.ph!=='run')return;
+    st.rec.push([s.dt,st.a]);
+    if(st.rec.length>4000)st.rec.shift();
+    st.v+=(st.ap+st.a)/2*s.dt;st.ap=st.a;
+    // The MIDDLE of a lift ride has zero acceleration too -- that is the whole
+    // lesson -- so acceleration alone cannot say the ride is over, and waiting
+    // on it cut every journey in half at the coast. A stopped lift is the one
+    // with no acceleration AND no speed left in the integral.
+    st.quiet=(Math.abs(st.a)<0.08&&Math.abs(st.v)<0.08)?st.quiet+s.dt:0;
+    if((st.quiet>1.2&&st.rec.length>40)||st.rec.length>3500)
+      SL_IMPL['lift-ride'].finish(st);},
+  finish:function(st){
+    var r=st.rec,i,T=0;for(i=0;i<r.length;i++)T+=r[i][0];
+    var v=0,ap=0;for(i=0;i<r.length;i++){v+=(ap+r[i][1])/2*r[i][0];ap=r[i][1];}
+    // it started and ended standing still, so the velocity left over is drift
+    var b=T>0?v/T:0,v2=0,h2=0,ap2=0,t=0,P=[{t:0,a:0,v:0,h:0}];
+    var amx=0,amn=0,vmx=0;
+    for(i=0;i<r.length;i++){
+      var a=r[i][1]-b,dt=r[i][0],vp=v2;
+      v2+=(ap2+a)/2*dt;ap2=a;h2+=(vp+v2)/2*dt;t+=dt;
+      P.push({t:t,a:a,v:v2,h:h2});
+      if(a>amx)amx=a; if(a<amn)amn=a; if(Math.abs(v2)>Math.abs(vmx))vmx=v2;}
+    st.cap={p:P,dur:t||1,amx:amx,amn:amn,vmx:vmx,h:h2,drift:v,
+            tmx:1+amx/st.g0,tmn:1+amn/st.g0};
+    st.ph='ready';st.quiet=0;st.rec=[];st.v=0;st.ap=0;},
+  chips:function(st){
+    var L={cal:'מכייל',ready:'מוכן',run:'נוסע'};
+    slSet('slv-ph',L[st.ph]||'—');
+    var C=st.cap;
+    slSet('slv-tm',C?C.tmx.toFixed(3):(st.ph==='run'?(st.tw||1).toFixed(2):'—'));
+    slSet('slv-tn',C?C.tmn.toFixed(3):'—');
+    slSet('slv-h',C?C.h.toFixed(2):'—');},
+  draw:function(ctx,W,H,st){
+    var c1=slCss('--accent','#3b82f6'),gr=slCss('--green','#10b981'),gd=slCss('--gold','#f59e0b'),
+        mu=slCss('--muted','#889'),tx=slCss('--text','#dde'),bd=slCss('--border','#2a3d55');
+    if(st.ph==='cal'){
+      simText(ctx,'⏳ מכייל ('+Math.round(st.calN/50*100)+'%) — החזיקו את היד יציבה והמעלית עומדת',
+        W/2,H/2-8,gd,12.5,'center',true);
+      simText(ctx,'הכיול קובע מהו "משקל רגיל" עבור הטלפון הזה',W/2,H/2+16,mu,11.5,'center');
+      return;}
+    var hp=Math.round(H*0.26);
+    slPlot(ctx,8,6,W-16,hp,[{tr:st.tr,c:c1}],
+      {title:'T / mg   משקל מדומה',floor:.3,hold:st.h,offset:1});
+    var C=st.cap;
+    // two quantities share this frame, so each gets its own axis: height on the
+    // left, velocity on the right. Without the right-hand scale the dashed curve
+    // appears to end above zero, because it was being read against the height.
+    var py=hp+24,ph2=H-py-58,px=40,pw=W-86;
+    ctx.save();ctx.strokeStyle=bd;ctx.lineWidth=1;ctx.strokeRect(px+.5,py+.5,pw-1,ph2-1);ctx.restore();
+    if(!C){
+      simText(ctx,st.ph==='run'?('🔴 נוסעים… '+(st.tw||1).toFixed(2)+' × משקל')
+        :'סעו קומה — הנסיעה תיחתך מעצמה כשהמעלית תיעצר',
+        px+pw/2,py+ph2/2,st.ph==='run'?gd:mu,12.5,'center',true);
+    } else {
+      var P=C.p,d=C.dur,i,hmn=0,hmx=0,vmn=0,vmx=0;
+      for(i=0;i<P.length;i++){
+        if(P[i].h<hmn)hmn=P[i].h; if(P[i].h>hmx)hmx=P[i].h;
+        if(P[i].v<vmn)vmn=P[i].v; if(P[i].v>vmx)vmx=P[i].v;}
+      var hp2=(hmx-hmn)*0.12+0.02;hmn-=hp2;hmx+=hp2;
+      var vp2=(vmx-vmn)*0.18+0.02;vmn-=vp2;vmx+=vp2;
+      var X=function(t){return px+pw*(t/d);};
+      var YH=function(h){return py+ph2-ph2*((h-hmn)/((hmx-hmn)||1));};
+      var YV=function(v){return py+ph2-ph2*((v-vmn)/((vmx-vmn)||1));};
+      // the coasting stretch: constant velocity, and the reading back at exactly g
+      ctx.save();ctx.beginPath();ctx.rect(px,py,pw,ph2);ctx.clip();
+      var s0=-1,s1=-1;
+      for(i=0;i<P.length;i++){
+        if(Math.abs(P[i].a)<0.12&&Math.abs(P[i].v)>Math.abs(C.vmx)*0.5){
+          if(s0<0)s0=P[i].t; s1=P[i].t;}}
+      if(s0>=0&&s1>s0){
+        ctx.fillStyle='rgba(16,185,129,.12)';ctx.fillRect(X(s0),py+1,X(s1)-X(s0),ph2-2);
+        slTxt(ctx,'מהירות קבועה — T = mg בדיוק',(X(s0)+X(s1))/2,py+14,gr,9.5,'center',true);}
+      ctx.strokeStyle=gd;ctx.lineWidth=2.2;ctx.beginPath();
+      for(i=0;i<P.length;i++)i?ctx.lineTo(X(P[i].t),YH(P[i].h)):ctx.moveTo(X(P[i].t),YH(P[i].h));
+      ctx.stroke();
+      ctx.strokeStyle=gr;ctx.lineWidth=1.6;ctx.setLineDash([5,4]);ctx.beginPath();
+      for(i=0;i<P.length;i++)i?ctx.lineTo(X(P[i].t),YV(P[i].v)):ctx.moveTo(X(P[i].t),YV(P[i].v));
+      ctx.stroke();ctx.setLineDash([]);ctx.restore();
+      var stp=slNiceStep((hmx-hmn)/3.2),k;
+      for(k=Math.ceil(hmn/stp);k*stp<=hmx;k++){var gy=YH(k*stp);
+        slTxt(ctx,slFmt(k*stp,stp),px-4,gy+3,mu,8,'right');}
+      var ts=slNiceStep(d/3.2);
+      for(var tt=0;tt<=d+1e-6;tt+=ts)slTxt(ctx,slFmt(tt,ts)+'s',X(tt),py+ph2+11,mu,8,'center');
+      var vs=slNiceStep((vmx-vmn)/2.6);
+      for(k=Math.ceil(vmn/vs);k*vs<=vmx;k++){var vy2=YV(k*vs);
+        ctx.save();ctx.strokeStyle=gr;ctx.globalAlpha=k?.18:.45;
+        ctx.setLineDash(k?[2,4]:[4,4]);ctx.beginPath();
+        ctx.moveTo(px,vy2);ctx.lineTo(px+pw,vy2);ctx.stroke();ctx.restore();
+        slTxt(ctx,slFmt(k*vs,vs),px+pw+4,vy2+3,gr,8,'left');}
+      slTxt(ctx,'גובה (m)',px+4,py-4,gd,9.5,'left',true);
+      slTxt(ctx,'- - מהירות (m/s)',px+pw+4,py-4,gr,8.5,'right',true);
+      // All Latin on purpose: a line that mixes Hebrew words with numbers gets
+      // reordered by the bidi algorithm and comes out scrambled. The sentence
+      // underneath carries the Hebrew.
+      slTxt(ctx,'T/mg  '+C.tmn.toFixed(3)+' … '+C.tmx.toFixed(3)+
+        '     h = '+C.h.toFixed(2)+' m     v = '+Math.abs(C.vmx).toFixed(2)+' m/s',
+        W/2,H-30,tx,11,'center',true);
+    }
+    var y=H-11;
+    if(C){
+      var up=C.h>0;
+      simText(ctx,Math.abs(C.drift)>0.35
+        ? '⚠ סחיפה גדולה באינטגרל — ככל הנראה היד זזה במהלך הנסיעה'
+        : (up?'עלייה: כבדים בהתחלה, קלים בסוף — ובאמצע בדיוק כמו לעמוד'
+             :'ירידה: קלים בהתחלה, כבדים בסוף — ובאמצע בדיוק כמו לעמוד'),
+        W/2,y,Math.abs(C.drift)>0.35?gd:mu,11,'center',Math.abs(C.drift)>0.35);
+    } else simText(ctx,'החזיקו שטוח על כף היד ואל תזיזו אותה',W/2,y,mu,11,'center');}},
 
 // Energy conservation with every parameter cancelled out: at the bottom of a
 // swing a_r = g + v^2/L, and v^2 = 2gL(1-cos th0) turns that into a_r/g =
@@ -25151,7 +25298,7 @@ function initSensorLab(key){
     cv.addEventListener('mouseup',_pu);cv.addEventListener('touchend',_pu);
     cv.style.touchAction='none';
   }
-  if(L.t==='slip-angle'||L.t==='slide-mu'||L.t==='impulse-land'||L.t==='com-balance'||L.t==='swing-energy'){
+  if(L.t==='slip-angle'||L.t==='slide-mu'||L.t==='impulse-land'||L.t==='com-balance'||L.t==='swing-energy'||L.t==='lift-ride'){
     var cb3=document.getElementById('sl-clr');
     if(cb3)cb3.addEventListener('click',function(){impl.clear(st);});
   }
