@@ -23542,8 +23542,8 @@ function buildSidebar(){
       const seen=!!state.visited[ch.id+'.'+sec.id];
       const dotCls=solved?'done':seen?'seen':'fresh';
       const dotTitle=solved?'הבעיה המסכמת נפתרה':seen?'נפתח — טרם הושלם':'טרם נפתח';
-      // six sections carry a phone-sensor experiment; flag them so they can be
-      // found without opening every section in turn
+      // twelve sections carry a phone-sensor experiment; flag them so they can
+      // be found without opening every section in turn
       const hasLab=(typeof SENSOR_LABS!=='undefined')&&!!SENSOR_LABS[ch.id+'.'+sec.id];
       return `<button class="sec-btn${active?' active':''}" onclick="navigate('${ch.id}','${sec.id}')"${hasLab?' title="בסעיף זה יש ניסוי עם חיישני הטלפון"':''}>
         <span class="sec-dot ${dotCls}" title="${dotTitle}"></span>${sec.title}${hasLab?'<span class="sec-lab">📱</span>':''}</button>`;
@@ -23849,6 +23849,14 @@ var SENSOR_LABS={
    chips:[['ph','מצב',''],['x','Δx מתוקן','m'],['vm','v מרבי','m/s'],['dr','סחיפה','m/s']],
    ctrl:'<button class="sl-sec" id="sl-axx">X</button><button class="sl-sec" id="sl-axy">Y</button><button class="sl-sec" id="sl-axz">Z</button>'},
 
+ 'kinematics.avg-instant-vel':{t:'avg-inst',h:348,minHz:25,
+   ttl:'מיתר מול משיק: ממוצעת מול רגעית',
+   how:'הניחו את הטלפון על שולחן חלק ואל תזיזו — הוא מכייל את עצמו. כשייכתב "מוכן": <b>החליקו אותו, עצרו באמצע לרגע, החליקו שוב ועצרו</b>. אחרי שהניסוי נסגר, גררו את שני הסמנים על גרף '+M('x(t)')+' — הקו שביניהם הוא המהירות הממוצעת בקטע.',
+   pred:'לפני שמחליקים: אם תעצרו באמצע הדרך לשנייה שלמה, מה יקרה למהירות <b>הממוצעת</b> על כל המסלול? ומה למהירות <b>הרגעית</b> באותו רגע עצירה?',
+   note:'המהירות הממוצעת היא <b>שיפוע המיתר</b> — הקו הישר בין שתי נקודות על '+M('x(t)')+' — ולכן היא תלויה אך ורק בנקודות הקצה: '+M('\\bar v=\\Delta x/\\Delta t')+'. כל מה שקרה בין לבין, כולל עצירה מלאה, אינו משנה אותה כלל. המהירות הרגעית היא <b>שיפוע המשיק</b> — גבול המיתר כאשר '+M('\\Delta t\\to 0')+' — ולכן היא רואה בדיוק את מה שהמיתר מחמיץ.<br><br>הסמנים בגרף מציירים את שניהם יחד: המיתר המקווקו על '+M('x(t)')+', והמשיקים הקצרים בשתי הנקודות. בגרף '+M('v(t)')+' העליון מסומן גובה '+M('\\bar v')+' בקו מקווקו: <b>כל מקום שבו עקומת המהירות חוצה אותו</b> הוא רגע שבו המהירות הרגעית שווה בדיוק לממוצעת. תמיד יש רגע כזה — זהו משפט הערך הממוצע, והגרף מראה אותו על נתונים אמיתיים.<br><br>הגרף מחושב מאינטגרל כפול על התאוצה, ולכן סחיפה מצטברת בו; הצורה אמינה הרבה יותר מהמספרים המדויקים.',
+   chips:[['ph','מצב',''],['va','v ממוצעת','m/s'],['v1','v רגעית ①','m/s'],['v2','v רגעית ②','m/s']],
+   ctrl:'<button class="sl-sec" id="sl-axx">X</button><button class="sl-sec" id="sl-axy">Y</button><button class="sl-sec" id="sl-axz">Z</button><button class="sl-sec" id="sl-mid">📌 מרכז סמנים</button>'},
+
  'kinematics.freefall':{t:'freefall-toss',h:352,minHz:40,
    ttl:'זרקו ותפסו — ו-g מהשיפוע של v(t)',
    how:'עמדו מעל מיטה או ספה, <b>זרקו את הטלפון בעדינות כלפי מעלה וקלטו אותו</b>. הזריקה נלכדת אוטומטית, וגרף המהירות נעצר כדי שתוכלו לעבוד עליו: <b>גררו את שני הסמנים</b> אל תוך קטע המעוף וקראו את השיפוע.',
@@ -23902,6 +23910,14 @@ var SENSOR_LABS={
    pred:'לפני שמסתכלים: כמה ספרות אחרי הנקודה אתם מצפים לקבל נכונות? האם מד-תאוצה של טלפון יכול להתחרות במטוטלת?',
    note:'מד-התאוצה אינו מודד כבידה אלא את <b>הכוח הנורמלי</b> ליחידת מסה: במנוחה השולחן דוחף מעלה ב-'+M('mg')+' והקריאה 9.8, ובנפילה חופשית אין משען והקריאה צונחת לאפס — זו "חוסר המשקל" של אסטרונאוט. שימו לב להבדל בין <b>פיזור</b> (רעש, קטן עם ממוצע) לבין <b>סטייה</b> קבועה מ-9.81 (שגיאת כיול של המכשיר, שממוצע לא יתקן לעולם).',
    chips:[['g','נוכחי','m/s²'],['gm','ממוצע','m/s²'],['se','אי-ודאות ±','m/s²'],['er','סטייה','%']],ctrl:''},
+
+ 'statics.center-mass':{t:'com-balance',h:330,
+   ttl:'אתרו את מרכז המסה של הטלפון עצמו',
+   how:'הניחו עיפרון על השולחן והשעינו עליו את הטלפון <b>לרוחבו</b>, כך שיוכל להתנדנד. הזיזו את הטלפון לאט עד שהוא נשאר <b>מאוזן</b>. אז מדדו בסרגל את המרחק מקצה הטלפון עד העיפרון, הזינו אותו במחוון, ולחצו <b>רשום</b>. חזרו 3–4 פעמים.',
+   pred:'לפני המדידה: האם נקודת האיזון תהיה בדיוק באמצע הטלפון? חשבו איפה יושבת הסוללה — החלק הכבד ביותר במכשיר.',
+   note:'גוף הנשען על ציר נמצא בשיווי משקל כאשר <b>סכום המומנטים סביב הציר מתאפס</b>. כל פיסת מסה '+M('m_i')+' במרחק '+M('x_i')+' מהציר תורמת מומנט '+M('m_i g x_i')+', והסכום מתאפס בדיוק כאשר הציר נמצא מתחת ל-'+M('x_{cm}=\\sum m_i x_i/\\sum m_i')+'. זו אינה "תכונה" של מרכז המסה אלא <b>ההגדרה שלו במעבדה</b>: הנקודה שבה אפשר לתמוך את הגוף והוא לא יסתובב.<br><br>מד-התאוצה כאן אינו מודד תאוצה אלא משמש <b>פלס</b>: הוא מראה את כיוון הכובד ביחס לצירי הטלפון, ולכן קורא אפס בדיוק כשהטלפון מאוזן. הריצוד הקטן שנשאר הוא סימן ש<b>שיווי המשקל רופף</b> — מרכז המסה נמצא <i>מעל</i> נקודת התמיכה, וכל סטייה יוצרת מומנט שמגדיל את עצמו. ואם יצא לכם שמרכז המסה אינו באמצע — זה נכון ואינו שגיאה: הטלפון אינו גוף אחיד, והסוללה מושכת אותו לצד אחד.',
+   chips:[['tl','הטיה','°'],['wb','ריצוד','°'],['f','x_cm/L','%'],['n','מדידות','']],
+   ctrl:'<button class="sl-sec" id="sl-axl">לאורך</button><button class="sl-sec" id="sl-axw">לרוחב</button><span class="sl-slider">מרחק מהקצה <input id="sl-d" type="range" min="1" max="20" step="0.1" value="7.5"><span id="sl-dv">7.5 cm</span></span><span class="sl-slider">אורך הטלפון <input id="sl-len" type="range" min="8" max="22" step="0.1" value="15.0"><span id="sl-lenv">15.0 cm</span></span><button class="sl-sec" id="sl-rec">➕ רשום</button><button class="sl-sec" id="sl-clr">🗑 נקה</button>'},
 
  'planar.circular':{t:'spin-fit',h:306,minHz:25,
    ttl:'מדדו את '+M('a_c=\\omega^2 r')+' — והוציאו את r מהשיפוע',
@@ -24012,6 +24028,166 @@ var SL_IMPL={
     slSet('slv-x',r?(r.xc).toFixed(3):(st.ph==='run'?st.x.toFixed(3):'—'));
     slSet('slv-vm',r?r.vmax.toFixed(2):(st.ph==='run'?Math.abs(st.v).toFixed(2):'—'));
     slSet('slv-dr',r?Math.abs(r.drift).toFixed(3):'—');}},
+
+// Average velocity is the slope of the CHORD and instantaneous the slope of the
+// TANGENT; a trial with a deliberate pause in the middle separates them, and the
+// crossings of the mean line are the mean value theorem drawn on real data.
+'avg-inst':{
+  init:function(st){st.ax=1;st.tr=[slTrace(220),slTrace(220)];st.h=[{v:.2},{v:.1}];st.reset(st);},
+  reset:function(st){st.ph='cal';st.calN=0;st.calS=0;st.bias=0;st.gref=null;st.tilt=0;
+    st.v=0;st.x=0;st.ap=0;st.still=0;st.dur=0;st.rec=[];st.cap=null;
+    st.m1=0.20;st.m2=0.80;st.drag=0;
+    if(st.tr){st.tr[0].clear();st.tr[1].clear();}},
+  sample:function(s,st){
+    var raw=[s.ax,s.ay,s.az][st.ax],lin=Math.hypot(s.ax,s.ay,s.az);
+    var gm=Math.hypot(s.Gx,s.Gy,s.Gz)||9.81,gu=[s.Gx/gm,s.Gy/gm,s.Gz/gm];
+    if(st.ph==='cal'){
+      if(lin>0.16){st.calN=0;st.calS=0;return;}
+      st.calN++;st.calS+=raw;st.gref=gu;
+      if(st.calN>=55){st.bias=st.calS/st.calN;st.ph='armed';}
+      return;}
+    var a=raw-st.bias;
+    if(st.ph==='armed'){if(Math.abs(a)>0.3){st.ph='run';st.ap=a;}else return;}
+    if(st.ph!=='run')return;
+    // one degree of tilt leaks 0.17 m/s2 into the axis, far above the noise
+    if(st.gref){var dp=gu[0]*st.gref[0]+gu[1]*st.gref[1]+gu[2]*st.gref[2];
+      var tl=Math.acos(Math.max(-1,Math.min(1,dp)));if(tl>st.tilt)st.tilt=tl;}
+    st.dur+=s.dt;st.rec.push([s.dt,a]);
+    var vp=st.v;st.v+=(st.ap+a)/2*s.dt;st.x+=(vp+st.v)/2*s.dt;st.ap=a;
+    st.tr[0].push(st.v);st.tr[1].push(st.x);
+    // The pause in the middle is the whole point of this trial, so stillness has
+    // to last far longer than it before the run may close -- the 0.45 s used by
+    // the plain motion trial would end the run at the pause every time.
+    st.still=(Math.abs(a)<0.12)?st.still+s.dt:0;
+    if((st.still>1.4&&st.dur>1.8)||st.dur>12)SL_IMPL['avg-inst'].finish(st);},
+  finish:function(st){
+    st.ph='done';
+    var r=st.rec,i,T=0;for(i=0;i<r.length;i++)T+=r[i][0];
+    var v=0,ap=0;for(i=0;i<r.length;i++){v+=(ap+r[i][1])/2*r[i][0];ap=r[i][1];}
+    // it began and ended at rest, so this leftover velocity is pure drift
+    var b=T>0?v/T:0,v2=0,x2=0,ap2=0,t=0,P=[{t:0,v:0,x:0}],last=0;
+    for(i=0;i<r.length;i++){var a=r[i][1]-b,dt=r[i][0],vp=v2;
+      v2+=(ap2+a)/2*dt;ap2=a;x2+=(vp+v2)/2*dt;t+=dt;P.push({t:t,v:v2,x:x2});
+      if(Math.abs(a)>0.12)last=P.length-1;}
+    // The run may only close after a long stillness, or it would end at the
+    // pause in the middle -- but that dead tail must not be plotted, or it takes
+    // most of the width and squeezes the motion into a corner. The drift is
+    // still estimated over the FULL record, where "ends at rest" is what holds.
+    var keep=P[last]?P[last].t+0.25:t;
+    while(P.length>3&&P[P.length-1].t>keep)P.pop();
+    // which way the phone was pushed is arbitrary; show every trial as forward
+    if(P[P.length-1].x<0)for(i=0;i<P.length;i++){P[i].x=-P[i].x;P[i].v=-P[i].v;}
+    st.cap={p:P,dur:P[P.length-1].t||1,drift:v,tilt:st.tilt*180/Math.PI};},
+  at:function(st,f){
+    var P=st.cap.p,tt=f*st.cap.dur,lo=P[0],i;
+    for(i=1;i<P.length;i++){
+      if(P[i].t>=tt){var hi=P[i],k=(tt-lo.t)/((hi.t-lo.t)||1);
+        return {t:tt,x:lo.x+(hi.x-lo.x)*k,v:lo.v+(hi.v-lo.v)*k};}
+      lo=P[i];}
+    return {t:P[P.length-1].t,x:P[P.length-1].x,v:P[P.length-1].v};},
+  chord:function(st){
+    if(!st.cap)return null;
+    var f=SL_IMPL['avg-inst'].at;
+    var A=f(st,Math.min(st.m1,st.m2)),B=f(st,Math.max(st.m1,st.m2));
+    if(B.t-A.t<1e-3)return null;
+    return {A:A,B:B,va:(B.x-A.x)/(B.t-A.t)};},
+  mid:function(st){st.m1=0.20;st.m2=0.80;},
+  pointer:function(st,px,py,phase){
+    // release carries no meaningful position, so it must only let go
+    if(phase==='up'){st.drag=0;return;}
+    var r=st.xr;if(!r||!st.cap)return;
+    var f=Math.max(0,Math.min(1,(px-r.x)/r.w));
+    if(phase==='down'){
+      if(py<r.y-14||py>r.y+r.h+14)return;
+      st.drag=Math.abs(f-st.m1)<=Math.abs(f-st.m2)?1:2;}
+    if(st.drag){if(st.drag===1)st.m1=f;else st.m2=f;}},
+  chips:function(st){
+    var L={cal:'מכייל',armed:'מוכן',run:'מודד',done:'הושלם'};
+    slSet('slv-ph',L[st.ph]||'—');
+    var C=SL_IMPL['avg-inst'].chord(st);
+    slSet('slv-va',C?C.va.toFixed(3):'—');
+    slSet('slv-v1',C?C.A.v.toFixed(3):'—');
+    slSet('slv-v2',C?C.B.v.toFixed(3):'—');},
+  draw:function(ctx,W,H,st){
+    var c1=slCss('--accent','#3b82f6'),gr=slCss('--green','#10b981'),gd=slCss('--gold','#f59e0b'),
+        mu=slCss('--muted','#889'),tx=slCss('--text','#dde'),bd=slCss('--border','#2a3d55');
+    if(st.ph!=='done'){
+      var pad=7,ph=(H-pad*3-28)/2;
+      slPlot(ctx,pad,pad,W-pad*2,ph,[{tr:st.tr[0],c:gr}],{title:'v = ∫a dt  (m/s)',floor:.2,hold:st.h[0]});
+      slPlot(ctx,pad,pad*2+ph,W-pad*2,ph,[{tr:st.tr[1],c:gd}],{title:'x = ∫v dt  (m)',floor:.1,hold:st.h[1]});
+      var y=H-10;
+      if(st.ph==='cal')simText(ctx,'⏳ מכייל — אל תזיזו ('+Math.round(st.calN/55*100)+'%)',W/2,y,gd,12.5,'center',true);
+      else if(st.ph==='armed')simText(ctx,'✅ מוכן — החליקו, עצרו לרגע, החליקו שוב ועצרו',W/2,y,gr,12.5,'center',true);
+      else if(st.ph==='run')simText(ctx,'🔴 מודד… ('+st.dur.toFixed(1)+' ש) — סיימו בעצירה מלאה',W/2,y,slCss('--red','#ef4444'),12.5,'center',true);
+      else simText(ctx,'לחצו ▶ כדי להתחיל',W/2,y,mu,12,'center',true);
+      return;}
+    var P=st.cap.p,d=st.cap.dur,i,C=SL_IMPL['avg-inst'].chord(st);
+    var xmn=1e9,xmx=-1e9,vmn=1e9,vmx=-1e9;
+    for(i=0;i<P.length;i++){
+      if(P[i].x<xmn)xmn=P[i].x;if(P[i].x>xmx)xmx=P[i].x;
+      if(P[i].v<vmn)vmn=P[i].v;if(P[i].v>vmx)vmx=P[i].v;}
+    var px=42,pw=W-54;
+    var vy=16,vh=Math.round(H*0.26),xy=vy+vh+26,xh=H-xy-46;
+    st.xr={x:px,y:xy,w:pw,h:xh};
+    var vpd=(vmx-vmn)*0.18+0.02;vmn-=vpd;vmx+=vpd;
+    var xpd=(xmx-xmn)*0.12+0.005;xmn-=xpd;xmx+=xpd;
+    var XT=function(t){return px+pw*(t/d);};
+    var VY=function(v){return vy+vh-vh*((v-vmn)/((vmx-vmn)||1));};
+    var XY=function(x){return xy+xh-xh*((x-xmn)/((xmx-xmn)||1));};
+    function frame(y0,h0,lo,hi,YY,ttl,col){
+      ctx.save();ctx.strokeStyle=bd;ctx.lineWidth=1;ctx.strokeRect(px+.5,y0+.5,pw-1,h0-1);
+      var stp=slNiceStep((hi-lo)/3.2),k;
+      for(k=Math.ceil(lo/stp);k*stp<=hi;k++){var gy=YY(k*stp);
+        ctx.globalAlpha=.35;ctx.beginPath();ctx.moveTo(px,gy);ctx.lineTo(px+pw,gy);ctx.stroke();
+        ctx.globalAlpha=1;slTxt(ctx,slFmt(k*stp,stp),px-4,gy+3,mu,8,'right');}
+      ctx.restore();
+      slTxt(ctx,ttl,px+4,y0-4,col,9.5,'left',true);}
+    frame(vy,vh,vmn,vmx,VY,'v (m/s)  — משיק',gr);
+    frame(xy,xh,xmn,xmx,XY,'x (m)  — מיתר',gd);
+    var ts=slNiceStep(d/3.2);
+    for(var tt=0;tt<=d+1e-6;tt+=ts)slTxt(ctx,slFmt(tt,ts)+'s',XT(tt),xy+xh+11,mu,8,'center');
+    ctx.save();ctx.beginPath();ctx.rect(px,vy,pw,vh);ctx.clip();
+    ctx.strokeStyle=gr;ctx.lineWidth=2;ctx.beginPath();
+    for(i=0;i<P.length;i++)i?ctx.lineTo(XT(P[i].t),VY(P[i].v)):ctx.moveTo(XT(P[i].t),VY(P[i].v));
+    ctx.stroke();ctx.restore();
+    ctx.save();ctx.beginPath();ctx.rect(px,xy,pw,xh);ctx.clip();
+    ctx.strokeStyle=gd;ctx.lineWidth=2.2;ctx.beginPath();
+    for(i=0;i<P.length;i++)i?ctx.lineTo(XT(P[i].t),XY(P[i].x)):ctx.moveTo(XT(P[i].t),XY(P[i].x));
+    ctx.stroke();ctx.restore();
+    if(C){
+      ctx.save();ctx.beginPath();ctx.rect(px,xy,pw,xh);ctx.clip();
+      ctx.strokeStyle=c1;ctx.lineWidth=2;ctx.setLineDash([6,4]);
+      ctx.beginPath();ctx.moveTo(XT(C.A.t),XY(C.A.x));ctx.lineTo(XT(C.B.t),XY(C.B.x));ctx.stroke();
+      ctx.setLineDash([]);
+      // short tangents whose slope is the instantaneous velocity at each marker
+      [C.A,C.B].forEach(function(m){
+        var half=Math.min(0.10*d,(C.B.t-C.A.t)*0.5+0.05);
+        ctx.strokeStyle=gr;ctx.lineWidth=2;ctx.beginPath();
+        ctx.moveTo(XT(m.t-half),XY(m.x-m.v*half));
+        ctx.lineTo(XT(m.t+half),XY(m.x+m.v*half));ctx.stroke();});
+      ctx.restore();
+      // the same number as a height on v(t): every crossing is a moment where
+      // the instantaneous velocity equals the average one
+      ctx.save();ctx.beginPath();ctx.rect(px,vy,pw,vh);ctx.clip();
+      ctx.strokeStyle=c1;ctx.lineWidth=1.8;ctx.setLineDash([6,4]);
+      ctx.beginPath();ctx.moveTo(px,VY(C.va));ctx.lineTo(px+pw,VY(C.va));ctx.stroke();ctx.restore();
+      slTxt(ctx,'v̄',px+pw-6,VY(C.va)-4,c1,9.5,'right',true);
+      [[st.m1,'1'],[st.m2,'2']].forEach(function(mk){
+        var mx=px+pw*mk[0];
+        ctx.save();ctx.strokeStyle=gd;ctx.globalAlpha=.8;ctx.lineWidth=1.5;
+        ctx.beginPath();ctx.moveTo(mx,vy+1);ctx.lineTo(mx,xy+xh-1);ctx.stroke();ctx.restore();
+        ctx.fillStyle=gd;ctx.beginPath();ctx.arc(mx,xy+xh-7,7,0,6.2832);ctx.fill();
+        slTxt(ctx,mk[1],mx,xy+xh-4,'#1b2433',9,'center',true);});
+      slTxt(ctx,'Δx = '+(C.B.x-C.A.x).toFixed(3)+' m     Δt = '+(C.B.t-C.A.t).toFixed(2)+
+        ' s     Δx/Δt = '+C.va.toFixed(3)+' m/s',W/2,H-26,tx,11.5,'center',true);
+      var d1=Math.abs(C.A.v-C.va),d2=Math.abs(C.B.v-C.va);
+      simText(ctx,st.cap.tilt>2.5
+        ?('⚠ הטלפון הוטה ב-'+st.cap.tilt.toFixed(1)+'° במהלך הניסוי — הכובד דלף לציר')
+        :(d1>0.04||d2>0.04
+          ?'שיפוע המיתר שונה משיפוע המשיקים — הממוצעת אינה הרגעית'
+          :'כאן המיתר והמשיקים כמעט מקבילים — בקטע הזה התנועה כמעט שוות-מהירות'),
+        W/2,H-8,st.cap.tilt>2.5?gd:mu,11,'center',st.cap.tilt>2.5);
+    } else simText(ctx,'גררו את שני הסמנים כדי לבחור קטע',W/2,H-14,mu,11.5,'center');}},
 
 // Toss and catch. The airborne window is where the proper acceleration falls
 // to near zero, which is what "weightless" means; timing it gives T, and a
@@ -24165,6 +24341,136 @@ var SL_IMPL={
         : 'גררו את שני הסמנים אל תוך הקטע הירוק — שם התנועה חופשית',
         W/2,H-8,Math.abs(s2.g-st.g0)<0.6?gr:gd,11,'center',true);
     } else simText(ctx,'גררו את הסמנים לאורך הגרף כדי למדוד שיפוע',W/2,H-14,mu,11.5,'center');}},
+
+// The accelerometer as a plain spirit level: a body supported exactly under its
+// centre of mass has zero net torque about the support, which is the laboratory
+// definition of the centre of mass rather than a property derived from it.
+'com-balance':{
+  init:function(st){st.mode=0;st.tr=slTrace(240);st.h={v:4};st.reset(st);},
+  reset:function(st){if(st.tr)st.tr.clear();
+    st.th=0;st.win=[];st.mean=0;st.sd=0;st.ok=false;st.up=true;st.pts=[];},
+  clear:function(st){st.pts=[];},
+  sample:function(s,st){
+    // gravity's direction in the phone's own frame. A pencil laid ACROSS the
+    // phone lets it rock about the short axis, which moves gy; a pencil laid
+    // ALONG it moves gx instead, hence the two modes.
+    var gz=Math.abs(s.gz)||1e-9;
+    var th=st.mode?Math.atan2(s.gx,gz):Math.atan2(s.gy,gz);
+    st.th=th*180/Math.PI;st.tr.push(st.th);
+    st.win.push(st.th);if(st.win.length>60)st.win.shift();
+    var n=st.win.length,i,m=0;for(i=0;i<n;i++)m+=st.win[i];m/=n;
+    var v=0;for(i=0;i<n;i++)v+=(st.win[i]-m)*(st.win[i]-m);
+    st.mean=m;st.sd=Math.sqrt(v/Math.max(1,n-1));
+    // face down the tilt reverses sense, and "level" would be read upside down
+    st.up=s.gz>0;
+    st.ok=n>=45&&Math.abs(m)<1.5&&st.sd<1.2&&st.up;},
+  vals:function(){
+    var e=document.getElementById('sl-d'),e2=document.getElementById('sl-len');
+    var d=e?parseFloat(e.value):7.5,L=e2?parseFloat(e2.value):15;
+    return {d:d,L:L,f:L>0?d/L:0.5};},
+  record:function(st){
+    if(!st.ok)return false;
+    var V=SL_IMPL['com-balance'].vals();
+    st.pts.push({d:V.d,L:V.L,f:V.f,sd:st.sd});
+    if(st.pts.length>8)st.pts.shift();
+    return true;},
+  mean:function(st){
+    if(!st.pts.length)return null;
+    var i,s=0,mn=1e9,mx=-1e9;
+    for(i=0;i<st.pts.length;i++){s+=st.pts[i].f;
+      if(st.pts[i].f<mn)mn=st.pts[i].f;if(st.pts[i].f>mx)mx=st.pts[i].f;}
+    return {f:s/st.pts.length,lo:mn,hi:mx};},
+  chips:function(st){
+    slSet('slv-tl',st.win.length?st.th.toFixed(2):'—');
+    slSet('slv-wb',st.win.length>=20?st.sd.toFixed(2):'—');
+    var m=SL_IMPL['com-balance'].mean(st);
+    slSet('slv-f',m?(m.f*100).toFixed(1):'—');
+    slSet('slv-n',String(st.pts.length));},
+  draw:function(ctx,W,H,st){
+    var c1=slCss('--accent','#3b82f6'),gr=slCss('--green','#10b981'),gd=slCss('--gold','#f59e0b'),
+        rd=slCss('--red','#ef4444'),mu=slCss('--muted','#889'),tx=slCss('--text','#dde'),
+        bd=slCss('--border','#2a3d55');
+    var V=SL_IMPL['com-balance'].vals(),M2=SL_IMPL['com-balance'].mean(st);
+    // ── side elevation: the slab on its knife edge, at the measured tilt ──
+    var cx=W/2,cy=Math.round(H*0.26),Ls=Math.min(W-70,250),T=13;
+    var f=Math.max(0.03,Math.min(0.97,V.f));
+    var ang=Math.max(-0.42,Math.min(0.42,st.th*Math.PI/180*3));
+    ctx.save();ctx.translate(cx,cy);ctx.rotate(ang);
+    ctx.fillStyle=slCss('--card','#16202e');ctx.strokeStyle=bd;ctx.lineWidth=1.5;
+    var x0=-f*Ls;
+    ctx.beginPath();ctx.rect(x0,-T,Ls,T);ctx.fill();ctx.stroke();
+    ctx.fillStyle=c1;ctx.globalAlpha=.20;ctx.fillRect(x0,-T,Ls,T);ctx.globalAlpha=1;
+    slTxt(ctx,'0',x0-8,4,mu,9,'center');
+    slTxt(ctx,V.L.toFixed(1)+'cm',x0+Ls+16,4,mu,9,'center');
+    var gcx=x0+Ls*0.5;
+    ctx.strokeStyle=mu;ctx.setLineDash([3,3]);ctx.lineWidth=1;
+    ctx.beginPath();ctx.moveTo(gcx,-T-10);ctx.lineTo(gcx,2);ctx.stroke();ctx.setLineDash([]);
+    if(M2){
+      var mcx=x0+Ls*Math.max(0,Math.min(1,M2.f));
+      ctx.fillStyle=gd;ctx.beginPath();ctx.arc(mcx,-T/2,5.5,0,6.2832);ctx.fill();
+      ctx.strokeStyle=gd;ctx.lineWidth=1.6;
+      ctx.beginPath();ctx.moveTo(mcx,-T/2);ctx.lineTo(mcx,-T-26);ctx.stroke();}
+    ctx.restore();
+    // two rows: the measured centre lands ON the geometric one whenever the
+    // phone turns out to be uniform enough, and one row would overprint
+    slTxt(ctx,'מרכז גאומטרי',cx+(0.5-f)*Ls,cy-T-14,mu,8.5,'center');
+    if(M2)slTxt(ctx,'x_cm',cx+(M2.f-f)*Ls,cy-T-30,gd,9.5,'center',true);
+    // the pencil
+    ctx.fillStyle=gd;ctx.beginPath();
+    ctx.moveTo(cx,cy+1);ctx.lineTo(cx-9,cy+16);ctx.lineTo(cx+9,cy+16);ctx.closePath();ctx.fill();
+    ctx.strokeStyle=bd;ctx.lineWidth=1.5;
+    ctx.beginPath();ctx.moveTo(cx-70,cy+16.5);ctx.lineTo(cx+70,cy+16.5);ctx.stroke();
+    slTxt(ctx,'הטיה מוצגת מוגדלת ×3',cx,cy+30,mu,8.5,'center');
+    // ── the level itself: +-5 degrees with real ticks ──
+    var by=cy+Math.round(H*0.17),bx=44,bw=W-88,rng=5;
+    ctx.strokeStyle=bd;ctx.lineWidth=1;ctx.strokeRect(bx+.5,by+.5,bw-1,15);
+    ctx.fillStyle=gr;ctx.globalAlpha=.18;
+    ctx.fillRect(bx+bw*(0.5-1.5/(2*rng)),by+1,bw*(3/(2*rng)),14);ctx.globalAlpha=1;
+    for(var k=-rng;k<=rng;k++){
+      var gx2=bx+bw*(k+rng)/(2*rng);
+      ctx.strokeStyle=bd;ctx.beginPath();ctx.moveTo(gx2,by+11);ctx.lineTo(gx2,by+15);ctx.stroke();
+      if(k===0||Math.abs(k)===rng||Math.abs(k)===Math.round(rng*0.6))
+        slTxt(ctx,(k>0?'+':'')+k+'°',gx2,by+27,mu,8,'center');}
+    var mk=bx+bw*(Math.max(-rng,Math.min(rng,st.th))+rng)/(2*rng);
+    ctx.fillStyle=st.ok?gr:(st.win.length?gd:mu);
+    ctx.beginPath();ctx.arc(mk,by+8,6,0,6.2832);ctx.fill();
+    slTxt(ctx,st.win.length?(st.th>=0?'+':'')+st.th.toFixed(2)+'°':'—',bx+bw+2,by+12,tx,10,'left',true);
+    // ── recorded balance points along the phone ──
+    var sy=by+Math.round(H*0.16),sw=W-88,sx=44,sh=16;
+    ctx.strokeStyle=bd;ctx.lineWidth=1;ctx.strokeRect(sx+.5,sy+.5,sw-1,sh);
+    ctx.strokeStyle=mu;ctx.setLineDash([3,3]);
+    ctx.beginPath();ctx.moveTo(sx+sw/2,sy);ctx.lineTo(sx+sw/2,sy+sh);ctx.stroke();ctx.setLineDash([]);
+    slTxt(ctx,'50%',sx+sw/2,sy+sh+11,mu,8,'center');
+    slTxt(ctx,'0',sx-4,sy+12,mu,8,'right');slTxt(ctx,'L',sx+sw+4,sy+12,mu,8,'left');
+    st.pts.forEach(function(q){
+      var qx=sx+sw*Math.max(0,Math.min(1,q.f));
+      ctx.strokeStyle=c1;ctx.lineWidth=2;
+      ctx.beginPath();ctx.moveTo(qx,sy+2);ctx.lineTo(qx,sy+sh-2);ctx.stroke();});
+    if(M2){
+      var mx2=sx+sw*Math.max(0,Math.min(1,M2.f));
+      ctx.strokeStyle=gd;ctx.lineWidth=2.5;
+      ctx.beginPath();ctx.moveTo(mx2,sy-4);ctx.lineTo(mx2,sy+sh+4);ctx.stroke();
+      slTxt(ctx,(M2.f*100).toFixed(1)+'% מהקצה'+(st.pts.length>1?('  (פיזור '+((M2.hi-M2.lo)*100).toFixed(1)+'%)'):''),
+        W/2,sy+sh+24,gd,10.5,'center',true);
+      // the same result in centimetres beside the centre of a uniform slab --
+      // whether those two differ is the entire point of the measurement
+      var xcm=M2.f*V.L,dev=(M2.f-0.5)*V.L;
+      slTxt(ctx,'x_cm = '+xcm.toFixed(2)+' cm     L/2 = '+(V.L/2).toFixed(2)+' cm',
+        W/2,sy+sh+42,tx,11,'center',true);
+      simText(ctx,Math.abs(dev)<0.15
+        ? 'מרכז המסה יצא בערך במרכז הגאומטרי — הטלפון קרוב לגוף אחיד לאורכו'
+        : ('מרכז המסה מוסט ב-'+Math.abs(dev).toFixed(2)+' ס״מ מהמרכז — הטלפון אינו אחיד'),
+        W/2,sy+sh+60,mu,10.5,'center');}
+    // ── status ──
+    var y=H-10;
+    if(!st.win.length)simText(ctx,'לחצו ▶ והשעינו את הטלפון על העיפרון',W/2,y,mu,12,'center',true);
+    else if(!st.up)simText(ctx,'⚠ הטלפון הפוך — הניחו אותו כשהמסך כלפי מעלה',W/2,y,rd,11.5,'center',true);
+    else if(st.ok&&st.sd<0.03)
+      simText(ctx,'מאוזן — אך ללא ריצוד כלל. ודאו שהוא נשען על העיפרון ולא על השולחן',W/2,y,gd,11,'center',true);
+    else if(st.ok)simText(ctx,'✓ מאוזן ויציב — מדדו בסרגל, כווננו את המחוון ולחצו "רשום"',W/2,y,gr,11.5,'center',true);
+    else if(Math.abs(st.mean)>=1.5)
+      simText(ctx,'צד אחד צונח — הזיזו את הטלפון על העיפרון לכיוון הצד היורד',W/2,y,gd,11.5,'center',true);
+    else simText(ctx,'כמעט — המתינו שהתנודות ידעכו',W/2,y,gd,11.5,'center',true);}},
 
 // The angle at which it lets go IS the coefficient: mu_s = tan(theta).
 // mu_k straight off the reading: on the level, the horizontal part of proper
@@ -24330,7 +24636,7 @@ var SL_IMPL={
 'slip-angle':{
   init:function(st){st.tr=slTrace(240);st.h={v:1};st.pts=[];st.reset(st);},
   reset:function(st){if(st.tr)st.tr.clear();st.th=0;st.slip=0;st.hold=0;st.quiet=0;
-    st.thMin=0;},
+    st.thMin=0;st.algn=0;},
   clear:function(st){st.pts=[];st.slip=0;},
   sample:function(s,st){
     var g=Math.hypot(s.gx,s.gy,s.gz)||9.81;
@@ -24346,8 +24652,14 @@ var SL_IMPL={
     // is lowered, so each trial needs its own lift and a bump at a standing tilt
     // (where the board never came down and back up) still counts for nothing.
     if(st.th<st.thMin)st.thMin=st.th;
+    // ...and the burst must point DOWN THE SLOPE, which is where a slipping
+    // phone accelerates and where a knock on the table has no reason to point.
+    // At rest the in-plane part of the reading is -g*sin(theta) along the slope,
+    // so down-slope is the direction opposite to it.
+    var dn=Math.hypot(s.gx,s.gy),an=Math.hypot(s.ax,s.ay);
+    st.algn=(dn>0.3&&an>0.2)?-(s.ax*s.gx+s.ay*s.gy)/(dn*an):0;
     if(lin<0.35){st.quiet+=s.dt;} else {
-      if(st.quiet>0.5&&lin>1.2&&st.th>0.08&&st.hold<=0&&st.th-st.thMin>0.05){
+      if(st.quiet>0.5&&lin>1.2&&st.th>0.08&&st.hold<=0&&st.th-st.thMin>0.05&&st.algn>0.5){
         // one reading per slide: the burst lasts a fraction of a second, and the
         // 0.5 s of stillness required beforehand already prevents re-triggering
         // within the same slip, so a long lockout would only block the next trial
@@ -24620,20 +24932,32 @@ function initSensorLab(key){
   }
   _sl.onResize=resize;
 
-  [['sl-m','sl-mv',' kg',1],['sl-L','sl-Lv',' m',2],['sl-h','sl-hv',' m',2]].forEach(function(a){
+  [['sl-m','sl-mv',' kg',1],['sl-L','sl-Lv',' m',2],['sl-h','sl-hv',' m',2],
+   ['sl-d','sl-dv',' cm',1],['sl-len','sl-lenv',' cm',1]].forEach(function(a){
     var i=document.getElementById(a[0]),o=document.getElementById(a[1]);
     if(i&&o)i.addEventListener('input',function(){o.textContent=parseFloat(i.value).toFixed(a[3])+a[2];});});
 
-  if(L.t==='motion-trial'){
+  if(L.t==='motion-trial'||L.t==='avg-inst'){
     var mark=function(){['x','y','z'].forEach(function(c,i){
       var b=document.getElementById('sl-ax'+c);if(b)b.className='sl-sec'+(st.ax===i?' on':'');});};
     ['x','y','z'].forEach(function(c,i){var b=document.getElementById('sl-ax'+c);
       if(b)b.addEventListener('click',function(){st.ax=i;st.reset(st);mark();});});
     mark();
   }
-  if(L.t==='freefall-toss'){
+  if(L.t==='freefall-toss'||L.t==='avg-inst'){
     var mb2=document.getElementById('sl-mid');
     if(mb2)mb2.addEventListener('click',function(){impl.mid(st);});
+  }
+  if(L.t==='com-balance'){
+    var cm=function(){[['sl-axl',0],['sl-axw',1]].forEach(function(a){
+      var b=document.getElementById(a[0]);if(b)b.className='sl-sec'+(st.mode===a[1]?' on':'');});};
+    [['sl-axl',0],['sl-axw',1]].forEach(function(a){
+      var b=document.getElementById(a[0]);
+      if(b)b.addEventListener('click',function(){st.mode=a[1];st.win=[];st.ok=false;cm();});});
+    cm();
+    var rb2=document.getElementById('sl-rec');
+    if(rb2)rb2.addEventListener('click',function(){
+      if(!impl.record(st))say('רשמו רק כשהטלפון מאוזן ויציב — חכו שהסימון יהפוך לירוק.');else say('');});
   }
   // labs with draggable elements get pointer events on the canvas
   if(impl.pointer){
@@ -24645,7 +24969,7 @@ function initSensorLab(key){
     cv.addEventListener('mouseup',_pu);cv.addEventListener('touchend',_pu);
     cv.style.touchAction='none';
   }
-  if(L.t==='slip-angle'||L.t==='slide-mu'||L.t==='impulse-land'){
+  if(L.t==='slip-angle'||L.t==='slide-mu'||L.t==='impulse-land'||L.t==='com-balance'){
     var cb3=document.getElementById('sl-clr');
     if(cb3)cb3.addEventListener('click',function(){impl.clear(st);});
   }
