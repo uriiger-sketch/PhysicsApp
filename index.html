@@ -23926,6 +23926,14 @@ var SENSOR_LABS={
    note:'ההאטה היא היתרון, לא מטרד: היא סורקת עבורכם טווח שלם של '+M('\\omega')+'. אם הנקודות יושבות על ישר במערכת '+M('a_c')+' מול '+M('\\omega^2')+' — אישרתם שהתאוצה הולכת כ<b>ריבוע</b> ולא ליניארית, והשיפוע הוא הרדיוס. שימו לב שאיננו קוראים את התאוצה מהערוץ "ללא כובד": סיבוב יציב הוא תאוצה מתמדת, וכל מסנן כובד בולע אותה תוך שנייה. במקום זה '+M('a_c=\\sqrt{|G|^2-g_0^2}')+', שאינו תלוי כלל בכיוון שבו מונח הטלפון.',
    chips:[['w','ω','rad/s'],['ac','a_c','m/s²'],['r','r מהשיפוע','m'],['n','נקודות','']],ctrl:''},
 
+ 'energy.energy-cons':{t:'swing-energy',h:330,minHz:25,
+   ttl:'שימור אנרגיה — בלי לדעת את המסה ואת האורך',
+   how:'הכניסו את הטלפון לשקית ותלו אותה על חוט (אותה הרכבה כמו במטוטלת). משכו את הטלפון הצידה <b>בזווית כלשהי, שחררו בעדינות</b> — בלי דחיפה — ותנו לו להתנדנד. כל חצי-תנודה נמדדת בנפרד, וההתנחתות הטבעית של התנודה סורקת עבורכם טווח שלם של זוויות.',
+   pred:'לפני השחרור: אם תשחררו מ-60° במקום מ-30°, פי כמה תגדל הקריאה בנקודה הנמוכה? נחשו מספר, ואז בדקו בגרף.',
+   note:'בנקודה הנמוכה החוט מושך פנימה ומספק גם משקל וגם תאוצה צנטריפטלית, ולכן הקריאה לאורך החוט היא '+M('a_r=g+v^2/L')+'. שימור האנרגיה נותן '+M('v^2=2gL(1-\\cos\\theta_0)')+', והצבה מבטלת גם את '+M('L')+' וגם את '+M('m')+':<br>'+M('a_r/g = 3-2\\cos\\theta_0')+'<br>זו תחזית <b>ללא אף פרמטר</b> — לא צריך למדוד מסה, לא אורך חוט ולא זמן. אם הנקודות יושבות על העקומה, שימור האנרגיה אושר; אם הן נופלות מתחתיה באופן שיטתי, חלק מהאנרגיה הלך לחיכוך ולגרירת אוויר, וזה בדיוק מה שרואים כשמסתכלים על תנודות מאוחרות.<br><br>הזווית עצמה נמדדת ב<b>ג׳ירוסקופ</b>: אינטגרל של קצב הסיבוב מרגע השחרור ועד לנקודה הנמוכה הוא הזווית שנסחפה. שימו לב שהמדידה מתחילה כשהתנועה כבר החלה, ולכן '+M('\\theta_0')+' יוצא קטן במעט מהזווית האמיתית — הטיה שיטתית קטנה שכדאי לדעת עליה.',
+   chips:[['th','θ₀ אחרון','°'],['ar','a_r/g נמדד',''],['pr','3−2cosθ₀ חזוי',''],['n','חצאי תנודה','']],
+   ctrl:'<button class="sl-sec" id="sl-clr">🗑 נקה</button>'},
+
  'shm.pendulum':{t:'pendulum-fit',h:312,minHz:25,
    ttl:'מטוטלת: מדדו את g מהשיפוע',
    how:'הכניסו את הטלפון לשקית ותלו אותה על חוט. מדדו את <b>L</b> עד מרכז הטלפון, הזינו אותו, הניעו בתנודה קטנה, המתינו שה-T יתייצב ולחצו <b>רשום נקודה</b>. חזרו על כך ב-3–4 אורכים שונים.',
@@ -24342,6 +24350,151 @@ var SL_IMPL={
         W/2,H-8,Math.abs(s2.g-st.g0)<0.6?gr:gd,11,'center',true);
     } else simText(ctx,'גררו את הסמנים לאורך הגרף כדי למדוד שיפוע',W/2,H-14,mu,11.5,'center');}},
 
+// Energy conservation with every parameter cancelled out: at the bottom of a
+// swing a_r = g + v^2/L, and v^2 = 2gL(1-cos th0) turns that into a_r/g =
+// 3 - 2cos(th0). No mass, no length, no timing -- only the release angle, which
+// the gyroscope supplies by integrating the rate from release to the bottom.
+'swing-energy':{
+  init:function(st){st.tr=slTrace(240);st.h={v:1};st.pts=[];st.reset(st);},
+  reset:function(st){if(st.tr)st.tr.clear();
+    st.ph='cal';st.calN=0;st.calS=[0,0,0];st.g0=0;st.u=null;
+    st.w=0;st.wPrev=0;st.pre=0;st.ar=1;st.inSw=false;st.still=false;st.gyro=0;
+    st.ang=0;st.pk=0;st.pkW=0;st.wPk0=0;st.angAtPk=0;st.dur=0;st.last=null;
+    st.wm1=undefined;st.wm2=undefined;st.am1=0;st.am2=0;},
+  clear:function(st){st.pts=[];st.last=null;},
+  sample:function(s,st){
+    var A=[s.gx,s.gy,s.gz],i;
+    var w=Math.hypot(s.ra,s.rb,s.rg)*Math.PI/180;
+    if(w>st.gyro)st.gyro=w;                      // is there a gyroscope at all?
+    if(st.ph==='cal'){
+      // hanging still: the string direction in the phone's frame is wherever
+      // the accelerometer points, and it stays that way as the phone swings
+      if(Math.hypot(s.ax,s.ay,s.az)>0.4||w>0.25){st.calN=0;st.calS=[0,0,0];return;}
+      st.calN++;for(i=0;i<3;i++)st.calS[i]+=A[i];
+      if(st.calN>=50){
+        var u=[st.calS[0]/st.calN,st.calS[1]/st.calN,st.calS[2]/st.calN];
+        st.g0=Math.hypot(u[0],u[1],u[2])||9.81;
+        st.u=[u[0]/st.g0,u[1]/st.g0,u[2]/st.g0];st.ph='run';}
+      return;}
+    var Au=A[0]*st.u[0]+A[1]*st.u[1]+A[2]*st.u[2];
+    st.w=w;st.ar=Au/st.g0;st.tr.push(st.ar);
+    // Every half swing starts at a turning point, where the phone really is
+    // momentarily at rest -- so each of them is a release, and the natural
+    // damping walks the measurement down through a whole range of angles. The
+    // turning point is brief (hundredths of a second), so it is LATCHED rather
+    // than timed; a phone being waved by hand never passes through it and never
+    // arms, which is the case this has to exclude.
+    if(w<0.15){st.still=true;st.pre=0;}
+    // The arc swept between the turning point and the arming threshold is small
+    // but not nothing, and dropping it made the recovered angle jump around by a
+    // degree or so depending on where the turn fell between two samples. It is
+    // already measured, so carry it into the pass instead of discarding it.
+    else st.pre=(st.pre||0)+(st.wPrev+w)/2*s.dt;
+    if(!st.inSw){
+      st.wPrev=w;
+      if(w>0.35&&st.still){
+        st.inSw=true;st.still=false;
+        st.ang=st.pre||0;st.dur=0;st.pk=Au;st.pkW=0;st.wPk0=0;st.angAtPk=st.ang;
+        st.wm1=undefined;st.wm2=undefined;st.am1=0;st.am2=0;}
+      return;}
+    st.dur+=s.dt;
+    // trapezoid, not rectangle: the rate is rising steeply through this
+    // integral, and taking the end-of-step value overstated a 50 degree
+    // release by nearly three degrees
+    st.ang+=(st.wPrev+w)/2*s.dt;st.wPrev=w;
+    if(Au>st.pk)st.pk=Au;
+    // The bottom of the arc is where the rate peaks, and the angle swept up to
+    // that instant is the release angle -- but the peak falls BETWEEN samples,
+    // and taking the largest sample instead put the bottom up to a whole step
+    // late, worth two degrees at fifty. Fit a parabola through the peak sample
+    // and its two neighbours and take the angle at the interpolated vertex.
+    if(st.wm1!==undefined&&st.wm2!==undefined&&
+       st.wm1>=st.wm2&&st.wm1>=w&&st.wm1>st.pkW){
+      st.pkW=st.wm1;
+      var den=st.wm2-2*st.wm1+w;
+      var dl=den?0.5*(st.wm2-w)/den:0;
+      dl=Math.max(-1,Math.min(1,dl));
+      st.angAtPk=st.am1+dl*(st.ang-st.am2)/2;
+    } else if(!st.pkW&&w>=st.wPk0){st.wPk0=w;st.angAtPk=st.ang;}
+    st.wm2=st.wm1;st.am2=st.am1;st.wm1=w;st.am1=st.ang;
+    if(w<0.25||st.dur>2.2){
+      // A real half swing ENDS at a turning point. If the rate never came back
+      // down and the pass had to be closed on the clock, the phone was being
+      // carried or waved, not swinging freely, and there is no release angle to
+      // speak of -- so that pass is dropped rather than recorded.
+      var byTurn=w<0.25;
+      st.inSw=false;
+      var th=st.angAtPk,r=st.pk/st.g0;
+      if(byTurn&&st.dur>0.25&&th>0.12&&th<1.6&&r>1.01&&r<3.4){
+        st.last={th:th,r:r,pred:3-2*Math.cos(th)};
+        st.pts.push(st.last);if(st.pts.length>24)st.pts.shift();}}},
+  chips:function(st){
+    var L=st.last;
+    slSet('slv-th',L?(L.th*180/Math.PI).toFixed(1):(st.inSw?(st.ang*180/Math.PI).toFixed(0):'—'));
+    slSet('slv-ar',L?L.r.toFixed(3):(st.ph==='run'?st.ar.toFixed(2):'—'));
+    slSet('slv-pr',L?L.pred.toFixed(3):'—');
+    slSet('slv-n',String(st.pts.length));},
+  draw:function(ctx,W,H,st){
+    var c1=slCss('--accent','#3b82f6'),gr=slCss('--green','#10b981'),gd=slCss('--gold','#f59e0b'),
+        rd=slCss('--red','#ef4444'),mu=slCss('--muted','#889'),tx=slCss('--text','#dde'),
+        bd=slCss('--border','#2a3d55');
+    if(st.ph==='cal'){
+      simText(ctx,'⏳ מכייל ('+Math.round(st.calN/50*100)+'%) — תנו לטלפון לתלות בשקט',
+        W/2,H/2-8,gd,13,'center',true);
+      simText(ctx,'הכיול קובע את כיוון החוט במערכת הצירים של הטלפון',W/2,H/2+16,mu,11.5,'center');
+      return;}
+    var hp=Math.round(H*0.24);
+    slPlot(ctx,8,6,W-16,hp,[{tr:st.tr,c:c1}],{title:'a_r / g   לאורך החוט',floor:.5,hold:st.h,positive:true});
+    // ── the prediction curve, with the measurements on top of it ──
+    var px=44,py=hp+26,pw=W-58,ph2=H-py-52;
+    var TH=80,RM=3-2*Math.cos(TH*Math.PI/180);
+    var X=function(d){return px+pw*(d/TH);},Y=function(r){return py+ph2-ph2*((r-1)/(RM-1));};
+    ctx.save();ctx.strokeStyle=bd;ctx.lineWidth=1;ctx.strokeRect(px+.5,py+.5,pw-1,ph2-1);ctx.restore();
+    var k;
+    ctx.save();ctx.globalAlpha=.35;ctx.strokeStyle=bd;
+    for(k=20;k<=TH;k+=20){ctx.beginPath();ctx.moveTo(X(k),py);ctx.lineTo(X(k),py+ph2);ctx.stroke();}
+    for(k=12;k<=Math.round(RM*10);k+=2){var yy=Y(k/10);
+      if(yy>py&&yy<py+ph2){ctx.beginPath();ctx.moveTo(px,yy);ctx.lineTo(px+pw,yy);ctx.stroke();}}
+    ctx.restore();
+    // the last tick would sit under the axis name at the right edge
+    for(k=20;k<TH;k+=20)slTxt(ctx,k+'°',X(k),py+ph2+11,mu,8,'center');
+    for(k=12;k<=Math.round(RM*10);k+=2){var y2=Y(k/10);
+      if(y2>py&&y2<py+ph2)slTxt(ctx,(k/10).toFixed(1),px-4,y2+3,mu,8,'right');}
+    ctx.save();ctx.beginPath();ctx.rect(px,py,pw,ph2);ctx.clip();
+    ctx.strokeStyle=gr;ctx.lineWidth=2;ctx.setLineDash([5,4]);ctx.beginPath();
+    for(k=0;k<=TH;k+=2){var r2=3-2*Math.cos(k*Math.PI/180);
+      k?ctx.lineTo(X(k),Y(r2)):ctx.moveTo(X(k),Y(r2));}
+    ctx.stroke();ctx.setLineDash([]);
+    st.pts.forEach(function(q,i){
+      var d=q.th*180/Math.PI;
+      ctx.fillStyle=(i===st.pts.length-1)?gd:c1;
+      ctx.beginPath();ctx.arc(X(d),Y(q.r),(i===st.pts.length-1)?5:3.5,0,6.2832);ctx.fill();});
+    ctx.restore();
+    slTxt(ctx,'a_r / g',px+4,py-4,tx,9.5,'left',true);
+    // the axis name goes UNDER the axis it names; the legend had been sitting on
+    // top of it in the same corner
+    slTxt(ctx,'θ₀',px+pw-2,py+ph2+11,tx,9.5,'left',true);
+    // on the left, where the curve runs low and cannot be written over
+    slTxt(ctx,'— 3−2cosθ₀',px+8,py+13,gr,9,'left',true);
+    // ── verdict ──
+    var y=H-10;
+    if(st.gyro<0.05&&st.pts.length===0&&st.ar<1.02)
+      simText(ctx,'משכו הצידה ושחררו — כל חצי תנודה נרשמת בנפרד',W/2,y,mu,11.5,'center',true);
+    else if(st.gyro<0.05)
+      simText(ctx,'⚠ אין קריאה מהג׳ירוסקופ במכשיר זה — לא ניתן למדוד את זווית השחרור',W/2,y,rd,11,'center',true);
+    else if(st.inSw)
+      simText(ctx,'🔴 מתנדנד… '+(st.ang*180/Math.PI).toFixed(0)+'° נסחפו',W/2,y,gd,11.5,'center',true);
+    else if(st.last){
+      var er=(st.last.r-st.last.pred)/(st.last.pred-1)*100;
+      slTxt(ctx,'נמדד '+st.last.r.toFixed(3)+'   ·   חזוי '+st.last.pred.toFixed(3)+
+        '   ·   סטייה '+(er>=0?'+':'')+er.toFixed(0)+'%',W/2,y-14,tx,11,'center',true);
+      simText(ctx,Math.abs(er)<12
+        ? '✓ הנקודה יושבת על העקומה — האנרגיה נשמרה בתנודה הזו'
+        : (er<0?'הנקודה מתחת לעקומה — חלק מהאנרגיה אבד לחיכוך ולגרירת אוויר'
+               :'הנקודה מעל העקומה — כנראה נדחף במקום להשתחרר ממנוחה'),
+        W/2,y,Math.abs(er)<12?gr:gd,11,'center',true);
+    } else simText(ctx,'משכו הצידה ושחררו בעדינות — בלי דחיפה',W/2,y,mu,11.5,'center',true);}},
+
 // The accelerometer as a plain spirit level: a body supported exactly under its
 // centre of mass has zero net torque about the support, which is the laboratory
 // definition of the centre of mass rather than a property derived from it.
@@ -24411,9 +24564,11 @@ var SL_IMPL={
       ctx.strokeStyle=gd;ctx.lineWidth=1.6;
       ctx.beginPath();ctx.moveTo(mcx,-T/2);ctx.lineTo(mcx,-T-26);ctx.stroke();}
     ctx.restore();
-    // two rows: the measured centre lands ON the geometric one whenever the
-    // phone turns out to be uniform enough, and one row would overprint
-    slTxt(ctx,'מרכז גאומטרי',cx+(0.5-f)*Ls,cy-T-14,mu,8.5,'center');
+    // A short tag, not a phrase: the measured centre lands ON the geometric one
+    // whenever the phone turns out to be uniform, and a long label there would
+    // be crossed by the x_cm marker exactly when the two agree. The strip below
+    // carries the wording.
+    slTxt(ctx,'L/2',cx+(0.5-f)*Ls,cy-T-14,mu,8.5,'center');
     if(M2)slTxt(ctx,'x_cm',cx+(M2.f-f)*Ls,cy-T-30,gd,9.5,'center',true);
     // the pencil
     ctx.fillStyle=gd;ctx.beginPath();
@@ -24969,7 +25124,7 @@ function initSensorLab(key){
     cv.addEventListener('mouseup',_pu);cv.addEventListener('touchend',_pu);
     cv.style.touchAction='none';
   }
-  if(L.t==='slip-angle'||L.t==='slide-mu'||L.t==='impulse-land'||L.t==='com-balance'){
+  if(L.t==='slip-angle'||L.t==='slide-mu'||L.t==='impulse-land'||L.t==='com-balance'||L.t==='swing-energy'){
     var cb3=document.getElementById('sl-clr');
     if(cb3)cb3.addEventListener('click',function(){impl.clear(st);});
   }
