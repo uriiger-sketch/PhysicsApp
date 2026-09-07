@@ -86,7 +86,7 @@ const S = p => p.evaluate(() => JSON.parse(JSON.stringify(_sl.st, (k, v) =>
     }
     return out;
   });
-  t('lab count', reg.keys.length, 12);
+  t('lab count', reg.keys.length, 13);
   t('every lab points at a real section and a complete implementation', reg.bad.join(' | '), '');
 
   console.log('\n2) forces2.gravity-force — g, and the honesty of its error bar');
@@ -325,6 +325,46 @@ const S = p => p.evaluate(() => JSON.parse(JSON.stringify(_sl.st, (k, v) =>
   await p.evaluate(() => document.getElementById('sl-clr').click());
   t('clear empties the record', (await S(p)).pts.length, 0);
 
+  console.log('\n13b) energy.energy-cons — a_r/g = 3 − 2cos θ₀');
+  await openLab(p, 'energy.energy-cons');
+  // an exact pendulum: theta'' = -(g/L) sin(theta); the reading along the string
+  // is g(3cos th - 2cos th0), which peaks at the bottom
+  const swing = (deg, quiet = 40) => push(p, 'energy.energy-cons', quiet + 400, `(()=>{
+    let th=${deg}/57.29578, w=0, n=0, L=0.5, G=9.81, th0=th;
+    return i=>{
+      if(i>=${quiet}){ for(let k=0;k<4;k++){ const dt=0.005;
+        const a1=-(G/L)*Math.sin(th); w+=a1*dt; th+=w*dt; } }
+      const ar=G*(3*Math.cos(th)-2*Math.cos(th0));
+      return { g:[0,0,ar], a:[0,0,0], r:[Math.abs(w)*57.29578,0,0] };
+    };
+  })()`);
+  await push(p, 'energy.energy-cons', 60, '()=>({g:[0,0,9.81],a:[0,0,0],r:[0,0,0]})');
+  t('calibrated while hanging still', (await S(p)).ph, 'run');
+  for (const deg of [30, 50]) {
+    await swing(deg);
+    const L = (await S(p)).last;
+    t(`θ₀ recovered from the gyroscope at ${deg}°`, L.th * 57.29578, deg, 0.5);
+    t(`  a_r/g measured at the bottom`, L.r, 3 - 2 * Math.cos(deg / 57.29578), 0.02);
+    t(`  and the prediction it is compared against`, L.pred, L.r, 0.01);
+    await push(p, 'energy.energy-cons', 60, '()=>({g:[0,0,9.81],a:[0,0,0],r:[0,0,0]})');
+  }
+  s = await S(p);
+  t('several half-swings recorded, not just the first', s.pts.length >= 4, true);
+  t('every recorded point sits on the prediction curve',
+    Math.max(...s.pts.map(q => Math.abs(q.r - q.pred) / (q.pred - 1))) < 0.02, true);
+  t('and a larger angle gives a larger reading',
+    Math.max(...s.pts.map(q => q.r)) > Math.min(...s.pts.map(q => q.r)), true);
+  t('successive half-swings are each measured', await p.evaluate(() => {
+    const st = _sl.st, n = st.pts.length;
+    return st.pts.length >= 2 && st.pts[0].th > 0;
+  }), true);
+  const n0 = (await S(p)).pts.length;
+  // waved by hand: the rate never passes through a turning point, so there is
+  // no release from rest and nothing may be recorded
+  await push(p, 'energy.energy-cons', 300,
+    'i=>({g:[0,0,9.81*(1.6+0.5*Math.sin(i/9))],a:[0,0,0],r:[(60+40*Math.sin(i/9)),0,0]})');
+  t('a phone that is merely waved is not a released swing', (await S(p)).pts.length, n0);
+
   console.log('\n14) the freeze control');
   await openLab(p, 'forces2.gravity-force');
   const fz = await p.evaluate(async () => {
@@ -397,7 +437,7 @@ const S = p => p.evaluate(() => JSON.parse(JSON.stringify(_sl.st, (k, v) =>
     }
     return n;
   });
-  t('all twelve painted', painted, 12);
+  t('all thirteen painted', painted, 13);
   console.log('   phone page errors:', p._errs.length ? p._errs.join(' | ') : 'NONE');
   if (p._errs.length) fail++;
 
@@ -423,7 +463,7 @@ const S = p => p.evaluate(() => JSON.parse(JSON.stringify(_sl.st, (k, v) =>
   });
   t('phoneHasMotion() is false on a desktop', desk.phone, false);
   t('no live lab', desk.live, false);
-  t('all twelve show the note instead', desk.note, 12);
+  t('all thirteen show the note instead', desk.note, 13);
   t('and none of them opens a canvas', desk.canvas, 0);
   console.log('   desktop page errors:', derr.length ? derr.join(' | ') : 'NONE');
   if (derr.length) fail++;
