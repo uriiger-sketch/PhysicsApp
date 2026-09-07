@@ -86,7 +86,7 @@ const S = p => p.evaluate(() => JSON.parse(JSON.stringify(_sl.st, (k, v) =>
     }
     return out;
   });
-  t('lab count', reg.keys.length, 13);
+  t('lab count', reg.keys.length, 14);
   t('every lab points at a real section and a complete implementation', reg.bad.join(' | '), '');
 
   console.log('\n2) forces2.gravity-force — g, and the honesty of its error bar');
@@ -386,6 +386,42 @@ const S = p => p.evaluate(() => JSON.parse(JSON.stringify(_sl.st, (k, v) =>
     'i=>({g:[0,0,9.81*(1.6+0.5*Math.sin(i/9))],a:[0,0,0],r:[(60+40*Math.sin(i/9)),0,0]})');
   t('a phone that is merely waved is not a released swing', (await S(p)).pts.length, n0);
 
+  console.log('\n13c) forces.tension — a lift ride, T = m(g±a)');
+  await openLab(p, 'forces.tension');
+  await push(p, 'forces.tension', 60, '()=>({g:[0,0,9.81],a:[0,0,0]})');
+  t('calibrated standing still', (await S(p)).ph, 'ready');
+  // up: 1.2 s at +0.8, 3 s coasting at 0.96 m/s, 1.2 s at -0.8, then stopped
+  const ride = (A) => push(p, 'forces.tension', 60, `()=>({g:[0,0,${9.81 + A}],a:[0,0,${A}]})`);
+  await ride(0.8);
+  await push(p, 'forces.tension', 150, '()=>({g:[0,0,9.81],a:[0,0,0]})');
+  s = await S(p);
+  t('the ride is still open through the coast', s.ph, 'run');
+  await ride(-0.8);
+  await push(p, 'forces.tension', 120, '()=>({g:[0,0,9.81],a:[0,0,0]})');
+  s = await S(p);
+  t('the ride closes when the lift stops', s.ph, 'ready');
+  t('apparent weight while accelerating up', s.cap.tmx, 1 + 0.8 / 9.81, 0.01);
+  t('  and while slowing down', s.cap.tmn, 1 - 0.8 / 9.81, 0.01);
+  // v = 0.8*1.2 = 0.96 m/s; height = 0.96*(1.2 + 3.0) = 4.03 m
+  t('top speed from the integral', Math.abs(s.cap.vmx), 0.96, 0.03);
+  t('height travelled', s.cap.h, 4.03, 0.15);
+  t('and it ends at rest, so the drift is small', Math.abs(s.cap.drift) < 0.05, true);
+  await p.evaluate(() => document.getElementById('sl-clr').click());
+  // a ride DOWN mirrors it
+  await ride(-0.8);
+  await push(p, 'forces.tension', 150, '()=>({g:[0,0,9.81],a:[0,0,0]})');
+  await ride(0.8);
+  await push(p, 'forces.tension', 120, '()=>({g:[0,0,9.81],a:[0,0,0]})');
+  s = await S(p);
+  t('going down, the height is negative', s.cap.h, -4.03, 0.15);
+  t('  and the phone feels LIGHT first', s.cap.p[30].a < 0, true);
+  const n1 = await p.evaluate(() => { document.getElementById('sl-clr').click();
+    return _sl.st.cap === null; });
+  t('clear drops the captured ride', n1, true);
+  await push(p, 'forces.tension', 20, '()=>({g:[0,0,9.81+0.4],a:[0,0,0.4]})');
+  await push(p, 'forces.tension', 40, '()=>({g:[0,0,9.81],a:[0,0,0]})');
+  t('a twitch too short to be a ride is not captured', (await S(p)).cap, null);
+
   console.log('\n14) the freeze control');
   await openLab(p, 'forces2.gravity-force');
   const fz = await p.evaluate(async () => {
@@ -458,7 +494,7 @@ const S = p => p.evaluate(() => JSON.parse(JSON.stringify(_sl.st, (k, v) =>
     }
     return n;
   });
-  t('all thirteen painted', painted, 13);
+  t('all fourteen painted', painted, 14);
   console.log('   phone page errors:', p._errs.length ? p._errs.join(' | ') : 'NONE');
   if (p._errs.length) fail++;
 
@@ -484,7 +520,7 @@ const S = p => p.evaluate(() => JSON.parse(JSON.stringify(_sl.st, (k, v) =>
   });
   t('phoneHasMotion() is false on a desktop', desk.phone, false);
   t('no live lab', desk.live, false);
-  t('all thirteen show the note instead', desk.note, 13);
+  t('all fourteen show the note instead', desk.note, 14);
   t('and none of them opens a canvas', desk.canvas, 0);
   console.log('   desktop page errors:', derr.length ? derr.join(' | ') : 'NONE');
   if (derr.length) fail++;
