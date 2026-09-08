@@ -823,7 +823,9 @@ var _OPS={times:'×',cdot:'·',div:'÷',pm:'±',mp:'∓',approx:'≈',
   gg:'≫',propto:'∝',infty:'∞',partial:'∂',sum:'Σ',int:'∫',
   Rightarrow:'⇒',rightarrow:'→',to:'→',Leftarrow:'⇐',leftarrow:'←',
   perp:'⊥',parallel:'∥',angle:'∠',circ:'°',degree:'°',
-  ldots:'…',dots:'…',cong:'≅',equiv:'≡',in:'∈'};
+  ldots:'…',dots:'…',cong:'≅',equiv:'≡',in:'∈',
+  implies:'⟹',Longrightarrow:'⟹',Longleftarrow:'⟸',sim:'~',
+  lfloor:'⌊',rfloor:'⌋',lceil:'⌈',rceil:'⌉',langle:'⟨',rangle:'⟩'};
 function _script(s,map){
   var out='',i;
   for(i=0;i<s.length;i++){ if(!map[s[i]])return null; out+=map[s[i]]; }
@@ -831,8 +833,22 @@ function _script(s,map){
 }
 function _texFallback(s){
   var t=String(s);
+  // A cases environment is a two-column table, and without a renderer the only
+  // honest thing is to write the rows out in words. Left alone it came out as
+  // "begincases 0 & r<R \\ kQ/r² & r≥Rendcases", which is worse than nothing.
+  t=t.replace(/\\begin\{cases\}([\s\S]*?)\\end\{cases\}/g,function(m,body){
+    return body.split(/\\\\(?:\[[^\]]*\])?/).map(function(row){
+      var pr=row.split('&');
+      return pr.length>1?(pr[0].trim()+' כאשר '+pr[1].trim()):row.trim();
+    }).filter(function(x){return x;}).join('   ·   ');
+  });
   // spacing and grouping commands carry no meaning without a renderer
   t=t.replace(/\\(left|right|!|,|;|:|\s|quad|qquad|displaystyle|limits)/g,' ');
+  t=t.replace(/\\dot\{([^{}]*)\}/g,'$1̇').replace(/\\dot(\w)/g,'$1̇');
+  // the common small fractions have their own characters
+  t=t.replace(/\\[dt]?frac\{1\}\{2\}/g,'½').replace(/\\[dt]?frac\{1\}\{3\}/g,'⅓')
+     .replace(/\\[dt]?frac\{1\}\{4\}/g,'¼').replace(/\\[dt]?frac\{2\}\{3\}/g,'⅔')
+     .replace(/\\[dt]?frac\{3\}\{4\}/g,'¾');
   t=t.replace(/\\(?:text|mathrm|mathbf|textbf|mathit|operatorname)\{([^{}]*)\}/g,'$1');
   // fractions, including the brace-less \tfrac12 the app uses for halves
   t=t.replace(/\\[dt]?frac\{([^{}]*)\}\{([^{}]*)\}/g,function(m,a,b){
@@ -853,8 +869,10 @@ function _texFallback(s){
   // A symbol swallows the space LaTeX needed to end its name (\Delta h -> Δh),
   // but a function name keeps it (\cos 90 -> cos 90).
   t=t.replace(/\\([A-Za-z]+)( ?)/g,function(m,w,sp){
+    // a Greek letter swallows the space LaTeX needed to end its name (\Delta h
+    // -> Delta-h), but a relation must keep it or it fuses with what follows
     if(_GREEK[w])return _GREEK[w];
-    if(_OPS[w])return _OPS[w];
+    if(_OPS[w])return _OPS[w]+(/[⟹⟸→←≈≠≤≥∝≡≅∈~]/.test(_OPS[w])?' ':sp);
     return w+sp;});
   // exponents and indices, as Unicode where the characters exist
   t=t.replace(/\^\{([^{}]*)\}/g,function(m,x){var u=_script(x,_SUP);return u!==null?u:'^('+x+')';});
@@ -5361,35 +5379,31 @@ const ELECTRO_CONTENT={
 },
 'elc-charge.elc-plane':{
   theory:{html:`
-    <p>מטען נקודתי נותן ${M('E\\propto 1/r^2')}. מה נותן משטח שטוח וגדול מאוד, טעון אחיד? התשובה מפתיעה: <b>שדה קבוע לגמרי</b>, שאינו תלוי במרחק מהמישור.</p>
+    <p>מטען נקודתי נותן ${M('E\\propto 1/r^2')}. משטח שטוח וגדול מאוד, טעון אחיד, נותן משהו אחר לגמרי: <b>שדה קבוע</b>, שאינו תלוי כלל במרחק ממנו.</p>
     ${fBox('\\sigma = \\dfrac{Q}{A}','צפיפות מטען שטחית',[['\\sigma','צפיפות מטען לשטח','C/m²'],['Q','המטען על המשטח','C'],['A','שטח המשטח','m²']])}
     ${fBox('E = \\dfrac{\\sigma}{2\\varepsilon_0}','שדה של מישור אינסופי טעון',[['E','עוצמת השדה','V/m — זהה בכל מרחק'],['\\sigma','צפיפות המטען','C/m²'],['\\varepsilon_0','חדירות הריק','8.85×10⁻¹² F/m']])}
-    <div class="def-block"><div class="def-title">למה השדה אינו נחלש עם המרחק?</div>
-      <p>ככל שמתרחקים, כל פיסת מטען אכן תורמת פחות (${M('1/r^2')}) — אבל בו-זמנית נכנסות ל״שדה הראייה״ עוד ועוד פיסות מטען, ושטחן גדל כ-${M('r^2')}. שני האפקטים מבטלים זה את זה <b>בדיוק</b>. זה נכון כל עוד המרחק קטן בהרבה ממידות המשטח — ומרחק של סנטימטרים מלוח בגודל מטר הוא בדיוק המצב הזה.</p>
+    <div class="def-block"><div class="def-title">למה השדה אינו נחלש?</div>
+      <p>בהתרחקות כל פיסת מטען אכן תורמת פחות (${M('1/r^2')}), אבל נכנסות לתמונה עוד ועוד פיסות — ושטחן גדל כ-${M('r^2')}. שני האפקטים מבטלים זה את זה <b>בדיוק</b>. זה תקף כל עוד המרחק קטן בהרבה ממידות הלוח, וזו בדיוק הסיבה שהשדה בין לוחות קבל הוא אחיד.</p>
     </div>
-    <p><b>כיוון:</b> מ<b>שני</b> צדי המישור השדה מצביע החוצה ממנו אם ${M('\\sigma>0')}, ופנימה אליו אם ${M('\\sigma<0')}. הוא <b>קופץ</b> בסימנו בחציית המישור — אך גודלו זהה משני הצדדים.</p>
+    <p>משני צדי המישור השדה מצביע <b>החוצה</b> ממנו (עבור ${M('\\sigma>0')}), ולכן הוא <b>קופץ בסימנו</b> בחצייתו — אך גודלו זהה בשני הצדדים.</p>
     ${animCanvas('anim-elc-plane-t',180,'מישור אחד: אותו חץ בדיוק בכל מרחק — משני הצדדים')}
-    <div class="mis-block"><b>⚠️ טעות נפוצה:</b> להציב ${M('E=\\sigma/\\varepsilon_0')} עבור מישור <b>אחד</b>. הנוסחה הזו שייכת לשני מישורים מנוגדים; למישור בודד יש <b>2</b> במכנה, כי המטען שולח שדה לשני הצדדים ולא רק לאחד.</div>
-    <div class="def-block"><div class="def-title">שני מישורים — פשוט מחברים</div>
-      <p>לכל מישור שדה קבוע משלו, וסופרפוזיציה היא חיבור רגיל של שני מספרים עם סימן. שני מקרים בלבד:</p>
+    <div class="mis-block"><b>⚠️ טעות נפוצה:</b> להציב ${M('E=\\sigma/\\varepsilon_0')} למישור <b>אחד</b>. ה-2 במכנה קיים מפני שהמטען שולח שדה לשני צדדיו; ${M('\\sigma/\\varepsilon_0')} שייך לזוג לוחות מנוגדים, שבו שני החצאים מצטרפים.</div>
+    <div class="sum-open"><b>שני מישורים — פשוט מחברים שני מספרים עם סימן:</b><br>
+      <b>מנוגדים</b> (${M('+\\sigma')} ו-${M('-\\sigma')}) — זהו קבל:<br>
+      ${M('E_{\\text{בין}} = \\dfrac{\\sigma}{2\\varepsilon_0} + \\dfrac{\\sigma}{2\\varepsilon_0} = \\dfrac{\\sigma}{\\varepsilon_0}')} , ומחוץ לשניהם ${M('E = 0')}<br>
+      <b>זהים</b> — בדיוק ההפך: ${M('E_{\\text{בין}} = 0')} , ומבחוץ ${M('E = \\sigma/\\varepsilon_0')}
     </div>
-    <div class="sum-open"><b>איך הסכום הזה נראה בפועל?</b><br>
-      <b>מטענים מנוגדים</b> (${M('+\\sigma')} ו-${M('-\\sigma')}) — זהו קבל:<br>
-      ${M('E_{\\text{בין}} = \\dfrac{\\sigma}{2\\varepsilon_0} + \\dfrac{\\sigma}{2\\varepsilon_0} = \\dfrac{\\sigma}{\\varepsilon_0}')} , ומחוץ לשניהם ${M('E = \\dfrac{\\sigma}{2\\varepsilon_0} - \\dfrac{\\sigma}{2\\varepsilon_0} = 0')}<br><br>
-      <b>מטענים זהים</b> (${M('+\\sigma')} ו-${M('+\\sigma')}) — בדיוק ההפך:<br>
-      ${M('E_{\\text{בין}} = 0')} , ומבחוץ ${M('E = \\dfrac{\\sigma}{\\varepsilon_0}')}
-    </div>
-    ${animCanvas('anim-elc-2plane-t',200,'שני מישורים: מנוגדים כולאים את השדה בפנים, זהים דוחים אותו החוצה')}
-    <p><b>הקשר ל-${M('E=V/d')} מהפרק הבא:</b> בין שני לוחות מנוגדים השדה קבוע, ולכן הפרש הפוטנציאלים הוא פשוט ${M('\\Delta V = E\\,d')}. שתי הנוסחאות מתארות את אותו מצב משני צדדים: ${M('\\sigma/\\varepsilon_0')} מדבר על ה<b>מטען</b> שעל הלוחות, ו-${M('V/d')} על ה<b>מתח</b> שביניהם.</p>
-    <div class="mis-block"><b>⚠️ ושנייה:</b> ${M('V')} של מישור אינסופי <b>אינו</b> שואף לאפס באינסוף — הוא יורד ליניארית לנצח. לכן כאן מדברים תמיד על <b>הפרשי</b> פוטנציאל בין שתי נקודות, ולא על ״הפוטנציאל בנקודה״ ביחס לאינסוף כמו במטען נקודתי.</div>
+    ${animCanvas('anim-elc-2plane-t',200,'מנוגדים כולאים את השדה בפנים, זהים דוחים אותו החוצה')}
+    <p>בין לוחות מנוגדים השדה קבוע, ולכן ${M('\\Delta V = E\\,d')} — וזו בדיוק ${M('E=V/d')} מהפרק הבא, כתובה מהצד השני: ${M('\\sigma/\\varepsilon_0')} מדבר על ה<b>מטען</b> שעל הלוחות, ו-${M('V/d')} על ה<b>מתח</b> שביניהם.</p>
+    <div class="mis-block"><b>⚠️ ושנייה:</b> ${M('V')} של מישור אינסופי אינו שואף לאפס באינסוף — הוא יורד ליניארית לנצח. לכן כאן מדברים תמיד על <b>הפרשי</b> פוטנציאל, ולא על ״הפוטנציאל בנקודה״ כמו במטען נקודתי.</div>
     <div class="ex-block"><div class="ex-title">✏️ דוגמה — לוח בודד ואז זוג</div>
     <p>לוח גדול נושא ${M('\\sigma = 4\\,\\mu\\text{C/m}^2')}.</p>
-    <p><b>1. השדה שלו:</b> ${M('E=\\sigma/2\\varepsilon_0 = 4\\times10^{-6}/(2\\cdot 8.85\\times10^{-12}) = 2.26\\times10^{5}')} V/m — במרחק 1 ס״מ, וגם במרחק 10 ס״מ.<br>
-    <b>2. מוסיפים לוח שני</b> במטען ${M('-4\\,\\mu\\text{C/m}^2')} במרחק ${M('d=2')} ס״מ: בין הלוחות השדות מתחברים ⇒ ${M('E=4.52\\times10^{5}')} V/m, ומחוצה להם מתבטלים ⇒ ${M('E=0')}.<br>
-    <b>3. המתח בין הלוחות:</b> ${M('\\Delta V = E\\,d = 4.52\\times10^{5}\\cdot 0.02 = 9040')} V.<br>
-    <b>4. הכוח על אלקטרון בפנים:</b> ${M('F=qE=1.6\\times10^{-19}\\cdot 4.52\\times10^{5} = 7.2\\times10^{-14}')} N — ו<b>אותו כוח בדיוק</b> בכל נקודה ביניהם, כי השדה אחיד.</p></div>
+    <p><b>1.</b> ${M('E=\\sigma/2\\varepsilon_0 = 2.26\\times10^{5}')} V/m — במרחק 1 ס״מ, וגם ב-10 ס״מ.<br>
+    <b>2.</b> מוסיפים לוח שני ב-${M('-4\\,\\mu\\text{C/m}^2')} במרחק ${M('d=2')} ס״מ: ביניהם ${M('E=4.52\\times10^{5}')} V/m, ומחוצה להם ${M('E=0')}.<br>
+    <b>3.</b> ${M('\\Delta V = E\\,d = 9040')} V.<br>
+    <b>4.</b> על אלקטרון בפנים: ${M('F=qE=7.2\\times10^{-14}')} N — ואותו כוח בכל נקודה, כי השדה אחיד.</p></div>
     <div class="enrich-card"><div class="enrich-title">״אינסופי״ פירושו גדול מספיק</div>
-      <p>אין מישורים אינסופיים, אבל הנוסחה עובדת מצוין כשהמרחק קטן בהרבה מגודל הלוח — בדיוק כמו ${M('g')} קבוע ליד פני כדור הארץ. ליד קצה הלוח השדה כן מתעקל (״אפקט שפה״), וזו הסיבה שקבלים אמיתיים מתוכננים עם לוחות גדולים ומרווח קטן.</p>
+      <p>אין מישורים אינסופיים, אך הנוסחה מצוינת כשהמרחק קטן בהרבה מגודל הלוח — כמו ${M('g')} קבוע ליד פני כדור הארץ. ליד הקצוות השדה מתעקל (״אפקט שפה״), ולכן קבלים מתוכננים עם לוחות גדולים ומרווח קטן.</p>
     </div>`,
   },
   sim:{type:'elc-plane',desc:'שנו את σ של כל לוח וגררו את מטען הבוחן. שימו לב שהחץ אינו קטן עם המרחק, ושבין לוחות מנוגדים השדה מוכפל בעוד שמחוצה להם הוא מתאפס.'},
@@ -5604,31 +5618,29 @@ const ELECTRO_CONTENT={
 },
 'elc-energy.elc-sphere':{
   theory:{html:`
-    <p>כדור מוליך טעון הוא המקרה שבו כל מה שלמדנו נפגש: השדה מתאפס בפנים, הפוטנציאל <b>אינו</b> מתאפס, ומבחוץ הכול נראה כאילו המטען כולו יושב בנקודה אחת במרכז.</p>
+    <p>בכדור מוליך טעון נפגש כל מה שלמדנו: השדה מתאפס בפנים, הפוטנציאל <b>אינו</b> מתאפס, ומבחוץ הכול נראה כאילו המטען כולו יושב בנקודה אחת במרכז.</p>
     ${fBox('E(r) = \\begin{cases} 0 & r<R \\\\ k\\dfrac{Q}{r^2} & r\\ge R\\end{cases}','השדה של כדור מוליך',[['R','רדיוס הכדור','m'],['r','המרחק מהמרכז','m'],['Q','המטען הכולל','C']])}
-    ${fBox('V(r) = \\begin{cases} k\\dfrac{Q}{R} & r\\le R \\\\[4pt] k\\dfrac{Q}{r} & r\\ge R\\end{cases}','הפוטנציאל של כדור מוליך')}
-    <div class="def-block"><div class="def-title">שתי התנהגויות שונות בתכלית באותה נקודה</div>
-      <p>בחציית פני הכדור ${M('E')} <b>קופץ</b> מ-${M('kQ/R^2')} לאפס — אי-רציפות אמיתית, שמקורה בשכבת המטען הדקה שיושבת בדיוק שם. ${M('V')} לעומת זאת <b>רציף</b>: הוא פשוט מפסיק לרדת ונשאר שטוח על הערך ${M('kQ/R')} בכל הפנים. וזה הגיוני: ${M('V')} קבוע פירושו בדיוק ${M('E=0')}, כי השדה הוא שיפוע הפוטנציאל.</p>
+    ${fBox('V(r) = \\begin{cases} k\\dfrac{Q}{R} & r\\le R \\\\ k\\dfrac{Q}{r} & r\\ge R\\end{cases}','הפוטנציאל של כדור מוליך')}
+    <div class="def-block"><div class="def-title">אותה נקודה, שתי התנהגויות</div>
+      <p>בחציית פני הכדור ${M('E')} <b>קופץ</b> לאפס — אי-רציפות אמיתית, שמקורה בשכבת המטען הדקה שיושבת שם. ${M('V')} לעומתו <b>רציף</b>: הוא מפסיק לרדת ונשאר שטוח על ${M('kQ/R')}. וזה הגיוני — ${M('V')} קבוע פירושו בדיוק ${M('E=0')}, כי השדה הוא שיפוע הפוטנציאל.</p>
     </div>
     ${animCanvas('anim-elc-sphere-t',210,'הגשוש נכנס פנימה: E צונח לאפס, V מתיישר — ואינו מתאפס')}
-    <div class="mis-block"><b>⚠️ טעות נפוצה:</b> ״בתוך הכדור אין שדה, ולכן אין שם אנרגיה ואין פוטנציאל״. הפוטנציאל בפנים הוא ${M('kQ/R')} — הערך הגבוה ביותר בכל המרחב. מטען חיובי שישוחרר שם לא ירגיש כוח, אבל אם ייצא החוצה הוא יואץ עד אינסוף בדיוק כמו מנקודה על פני הכדור.</div>
-    <div class="def-block"><div class="def-title">האנרגיה האגורה בכדור טעון</div>
-      <p>טוענים את הכדור בהדרגה. כשכבר יש עליו מטען ${M('q')}, הפוטנציאל שלו הוא ${M('kq/R')}, ולהביא עוד ${M('dq')} מאינסוף עולה ${M('dU = (kq/R)\\,dq')}. סכימה מ-0 עד ${M('Q')} נותנת:</p>
+    <div class="mis-block"><b>⚠️ טעות נפוצה:</b> ״אין שדה בפנים, ולכן אין שם פוטנציאל״. הפוטנציאל בפנים הוא ${M('kQ/R')} — הגבוה ביותר בכל המרחב. מטען שישוחרר שם לא ירגיש כוח, אך אם ייצא החוצה יואץ בדיוק כמו מנקודה על פני הכדור.</div>
+    <div class="def-block"><div class="def-title">האנרגיה האגורה</div>
+      <p>טוענים בהדרגה: כשעל הכדור כבר יושב ${M('q')}, הפוטנציאל שלו ${M('kq/R')}, ולהביא עוד ${M('dq')} מאינסוף עולה ${M('dU=(kq/R)dq')}. סכימה מ-0 עד ${M('Q')} נותנת:</p>
     </div>
     ${fBox('U = \\dfrac{kQ^2}{2R} = \\tfrac{1}{2}QV','האנרגיה של כדור מוליך טעון',[['U','האנרגיה האגורה','J'],['Q','המטען','C'],['R','רדיוס','m'],['V','הפוטנציאל על פני הכדור','V']])}
-    <div class="mis-block"><b>⚠️ טעות נפוצה:</b> להציב ${M('U=QV')} בלי החצי. ${M('U=qV')} נכון עבור מטען ${M('q')} שמוכנס לפוטנציאל <b>נתון</b> שמישהו אחר יצר. כאן המטען יוצר את הפוטנציאל של עצמו: הראשון מגיע כשהכדור עוד ריק והמחיר אפס, והאחרון משלם את המחיר המלא — ולכן ה<b>ממוצע</b> הוא חצי.</div>
-    <div class="def-block"><div class="def-title">איפה האנרגיה יושבת? בשדה עצמו</div>
-      <p>לכל נקודה במרחב שבה יש שדה יש צפיפות אנרגיה ${M('u=\\tfrac12\\varepsilon_0E^2')}. בתוך הכדור ${M('E=0')} ולכן אין שם אנרגיה כלל; כל האנרגיה נמצאת ב<b>חוץ</b>. סכימה של ${M('u')} על כל המרחב שמחוץ לכדור נותנת בדיוק ${M('kQ^2/2R')} — אותה תשובה, משני כיווני חשיבה שונים לגמרי.</p>
+    <div class="mis-block"><b>⚠️ טעות נפוצה:</b> ${M('U=QV')} בלי החצי. ${M('U=qV')} נכון למטען שמוכנס לפוטנציאל <b>נתון</b> שמישהו אחר יצר; כאן המטען יוצר את הפוטנציאל של עצמו — הראשון מגיע כשהכדור ריק והמחיר אפס, האחרון משלם מלא, ולכן משלמים את ה<b>ממוצע</b>.</div>
+    <p><b>ואיפה האנרגיה יושבת?</b> בשדה, בצפיפות ${M('u=\\tfrac12\\varepsilon_0E^2')}. בפנים ${M('E=0')} ואין שם אנרגיה כלל, וסכימה על כל החוץ נותנת בדיוק ${M('kQ^2/2R')} — אותה תשובה משני כיווני חשיבה שונים.</p>
+    <div class="def-block"><div class="def-title">כמה מטען כדור בכלל יכול להחזיק?</div>
+      <p>אוויר נשבר בשדה של ${M('3\\times10^{6}')} V/m, ולכן ${M('E_{\\max}=kQ/R^2')} מגביל את המטען. לכדור של 5 ס״מ זה יוצא ${M('0.83\\,\\mu C')} בלבד — ומכיוון ש-${M('V_{\\max}=E_{\\max}R')}, כדור גדול יותר מחזיק מתח גבוה יותר. זו הסיבה שכיפת מכונת ואן דה גראף היא ענקית וחלקה, בלי חודים.</p>
     </div>
-    <p><b>וקישור יפה לפרק הקודם:</b> על פני מוליך השדה הוא ${M('E=\\sigma/\\varepsilon_0')} — פי <b>שניים</b> מזה של מישור מבודד באותה צפיפות. הסיבה: המטען של מוליך יושב על צד אחד בלבד, וכל השדה נדחף החוצה במקום להתחלק לשני הצדדים.</p>
-    <div class="ex-block"><div class="ex-title">✏️ דוגמה — כדור ברדיוס 5 ס״מ</div>
-    <p>${M('R=5')} ס״מ, ${M('Q=+3\\,\\mu C')}, ${M('k=9\\times10^{9}')}.</p>
-    <p><b>1. פוטנציאל על פני הכדור:</b> ${M('V=kQ/R=5.4\\times10^{5}')} V — ואותו ערך בכל נקודה בפנים.<br>
-    <b>2. שדה במרחק 10 ס״מ:</b> ${M('E=kQ/r^2=2.7\\times10^{6}')} V/m.<br>
-    <b>3. שדה במרחק 2 ס״מ:</b> אפס — זה בתוך המתכת.<br>
-    <b>4. אנרגיה אגורה:</b> ${M('U=kQ^2/2R=0.81')} J, וגם ${M('\\tfrac12QV=\\tfrac12\\cdot3\\times10^{-6}\\cdot5.4\\times10^{5}=0.81')} J ✓</p></div>
+    <p>ועוד קישור: על פני מוליך ${M('E=\\sigma/\\varepsilon_0')} — פי <b>שניים</b> ממישור מבודד, כי המטען יושב על צד אחד בלבד וכל השדה נדחף החוצה.</p>
+    <div class="ex-block"><div class="ex-title">✏️ דוגמה — כדור ברדיוס 20 ס״מ, ${M('Q=+3\\,\\mu C')}</div>
+    <p>${M('V=kQ/R=1.35\\times10^{5}')} V בפנים ועל הפנים · ${M('E(40\\,\\text{cm})=1.7\\times10^{5}')} V/m · ${M('E(10\\,\\text{cm})=0')} — בתוך המתכת · ${M('U=kQ^2/2R=0.20')} J, וגם ${M('\\tfrac12QV=0.20')} J ✓<br>
+    ובדיקה שהכדור בכלל מסוגל להחזיק זאת: ${M('E_{\\text{פנים}}=kQ/R^2=6.7\\times10^{5}')} V/m — הרבה מתחת ל-${M('3\\times10^{6}')}, ולכן אין פריצה.</p></div>
     <div class="enrich-card"><div class="enrich-title">למה מטען נקודתי הוא בעיה</div>
-      <p>${M('U=kQ^2/2R')} גדל ללא גבול כאשר ${M('R\\to0')}. לכן ל״מטען נקודתי״ מתמטי יש אנרגיה עצמית אינסופית — קושי אמיתי שליווה את הפיזיקה מהמאה ה-19 ועד תורת השדות הקוונטית, שם מטפלים בו בשיטות של רנורמליזציה.</p>
+      <p>${M('U=kQ^2/2R')} מתבדר כאשר ${M('R\\to0')}, ולכן ל״מטען נקודתי״ מתמטי יש אנרגיה עצמית אינסופית — קושי שליווה את הפיזיקה מהמאה ה-19 ועד תורת השדות הקוונטית.</p>
     </div>`,
   },
   sim:{type:'elc-sphere',desc:'גררו את הגשוש לאורך הרדיוס וצפו בשני הגרפים יחד: E קופץ לאפס בכניסה פנימה, ואילו V רק מתיישר. שנו את R ואת Q וראו מה קורה לאנרגיה האגורה.'},
@@ -5644,19 +5656,19 @@ const ELECTRO_CONTENT={
     {q:'מכפילים את רדיוס הכדור ומשאירים את המטען. האנרגיה האגורה:',opts:['מוכפלת','נחצית','אינה משתנה','גדלה פי 4'],correct:1,explain:'U=kQ²/2R עם R כפול ⇒ U נחצה. אינטואיציה: הכדור הגדול יותר מגיע לפוטנציאל נמוך יותר באותו מטען, ולכן ״עלה״ פחות לטעון אותו.'},
     {q:'השדה בדיוק על פני מוליך, בצפיפות מטען σ:',opts:['σ/2ε₀ כמו מישור','σ/ε₀ — פי שניים ממישור מבודד','אפס','תלוי ברדיוס בלבד'],correct:1,explain:'מטען על מוליך יושב על צד אחד בלבד, וכל השדה נדחף החוצה במקום להתחלק לשני צדדים כמו במישור מבודד. מכאן σ/ε₀.'},
   ],
-  problem:{title:'כדור מוליך: שדה, פוטנציאל ואנרגיה',text:'כדור מוליך ברדיוס R=5 ס״מ נושא מטען Q=+3 μC. (k=9×10⁹, ε₀=8.85×10⁻¹² F/m)',steps:[
-    {q:'מה הפוטנציאל '+M('V')+' על פני הכדור, בוולט?',unit:'V',answer:'5.4e5',tolerance:1e4,
-     explain:'V=kQ/R=9×10⁹·3×10⁻⁶/0.05=5.4×10⁵ V. אותו ערך בדיוק בכל נקודה בתוך הכדור, כי שם E=0 ולכן V אינו משתנה.',
+  problem:{title:'כדור מוליך: שדה, פוטנציאל ואנרגיה',text:'כדור מוליך ברדיוס R=20 ס״מ נושא מטען Q=+3 μC. (k=9×10⁹, ε₀=8.85×10⁻¹² F/m, פריצת אוויר ב-3×10⁶ V/m)',steps:[
+    {q:'מה הפוטנציאל '+M('V')+' על פני הכדור, בוולט?',unit:'V',answer:'1.35e5',tolerance:4e3,
+     explain:'V=kQ/R=9×10⁹·3×10⁻⁶/0.2=1.35×10⁵ V. אותו ערך בדיוק בכל נקודה בתוך הכדור, כי שם E=0 ולכן V אינו משתנה.',
      nudge:'מחוץ לכדור ועל פניו הוא שקול למטען נקודתי במרכז. איזה מרחק מציבים כשמבקשים את הפוטנציאל על הפנים?',hint:'V=kQ/R'},
-    {q:'מה עוצמת השדה '+M('E')+' במרחק 10 ס״מ מהמרכז, ב-V/m?',unit:'V/m',answer:'2.7e6',tolerance:5e4,
-     explain:'10 ס״מ הוא מחוץ לכדור, ולכן E=kQ/r²=9×10⁹·3×10⁻⁶/0.01=2.7×10⁶ V/m.',
+    {q:'מה עוצמת השדה '+M('E')+' במרחק 40 ס״מ מהמרכז, ב-V/m?',unit:'V/m',answer:'1.69e5',tolerance:5e3,
+     explain:'40 ס״מ הוא מחוץ לכדור, ולכן E=kQ/r²=9×10⁹·3×10⁻⁶/0.16=1.69×10⁵ V/m.',
      nudge:'ראשית קבעו אם הנקודה בפנים או בחוץ; רק מחוץ לכדור אפשר להתייחס אליו כמטען נקודתי.',hint:'E=kQ/r²'},
-    {q:'כמה אנרגיה '+M('U')+' אגורה בכדור, בג׳אול?',unit:'J',answer:'0.81',tolerance:0.03,
-     explain:'U=kQ²/2R=9×10⁹·9×10⁻¹²/0.1=0.81 J. בדיקה בדרך שנייה: ½QV=½·3×10⁻⁶·5.4×10⁵=0.81 J ✓ — שתי דרכים שונות לאותו מספר.',
+    {q:'כמה אנרגיה '+M('U')+' אגורה בכדור, בג׳אול?',unit:'J',answer:'0.202',tolerance:0.01,
+     explain:'U=kQ²/2R=9×10⁹·9×10⁻¹²/0.4=0.20 J. בדיקה בדרך שנייה: ½QV=½·3×10⁻⁶·1.35×10⁵=0.20 J ✓ — שתי דרכים שונות לאותו מספר.',
      nudge:'זהו מטען שיוצר את הפוטנציאל של עצמו, ולכן משלמים את הממוצע ולא את המחיר המלא. איזה גורם מופיע לפני QV?',hint:'U=½QV'},
-    {q:'מה עוצמת השדה '+M('E')+' בדיוק על פני הכדור, ב-V/m?',unit:'V/m',answer:'1.08e7',tolerance:3e5,
-     explain:'E=kQ/R²=9×10⁹·3×10⁻⁶/0.0025=1.08×10⁷ V/m. בדיקה יפה: σ=Q/4πR²=9.55×10⁻⁵ C/m², ו-σ/ε₀ נותן בדיוק אותו מספר — כי על פני מוליך השדה הוא σ/ε₀ ולא σ/2ε₀.',
-     nudge:'זו עדיין נקודה שאינה בתוך החומר, ולכן הנוסחה החיצונית תקפה — עם המרחק הקטן ביותר האפשרי.',hint:'E=kQ/R²'},
+    {q:'מהו המטען המרבי '+M('Q_{\\max}')+' שהכדור יכול להחזיק באוויר, במיקרו-קולון?',unit:'μC',answer:'13.3',tolerance:0.6,
+     explain:'הגבול הוא השדה על פני הכדור: E=kQ/R²=3×10⁶ ⇒ Q=3×10⁶·0.04/9×10⁹=1.33×10⁻⁵ C = 13.3 μC. שלושת המיקרו-קולון שבשאלה רחוקים מהגבול, ולכן הכדור אכן יכול להחזיק אותם. שימו לב ש-Q_max גדל כ-R², ולכן כיפה גדולה מחזיקה הרבה יותר — וזו הסיבה שכיפת ואן דה גראף ענקית.',
+     nudge:'הפריצה מתחילה היכן שהשדה חזק ביותר — על פני הכדור. השוו את E שם לערך הפריצה ובודדו את המטען.',hint:'kQ/R²=3×10⁶'},
   ]},
 },
 
@@ -5811,7 +5823,7 @@ const ELECTRO_CONTENT={
 
 'elc-energy.elc-compare':{
   theory:{html:`
-    <p>כל האלקטרוסטטיקה של הפרק בנויה משלוש גאומטריות בלבד. אותם ארבעה גדלים — כוח, שדה, פוטנציאל ואנרגיה — נראים אחרת בכל אחת מהן, וכל השאלה בכל תרגיל היא <b>באיזו מהן מדובר</b>.</p>
+    <p>כל האלקטרוסטטיקה של הפרק בנויה משלוש גאומטריות. אותם ארבעה גדלים נראים אחרת בכל אחת, וכל השאלה בכל תרגיל היא <b>באיזו מהן מדובר</b>.</p>
     <table style="width:100%;border-collapse:collapse;font-size:.82rem;margin:16px 0;direction:rtl">
       <tr style="background:rgba(99,102,241,.18);color:#c7d2fe">
         <th style="padding:6px 8px;text-align:right">גודל</th>
@@ -5841,34 +5853,35 @@ const ELECTRO_CONTENT={
         <td style="padding:5px 8px;color:#34d399">אנרגיה עצמית ${M('U')}</td>
         <td style="padding:5px 8px;color:#94a3b8">מתבדרת</td>
         <td style="padding:5px 8px;color:#e2e8f0">${M('kQ^2/2R')}</td>
-        <td style="padding:5px 8px;color:#94a3b8">מתבדרת (אינסופי)</td>
+        <td style="padding:5px 8px;color:#94a3b8">מתבדרת</td>
         <td style="padding:5px 8px;color:#e2e8f0">${M('\\tfrac12 CV^2')}</td></tr>
       <tr>
         <td style="padding:5px 8px;color:#f87171">כוח על ${M('q')}</td>
-        <td style="padding:5px 8px;color:#e2e8f0" colspan="4">${M('\\vec F = q\\vec E')} — תמיד, בכל אחת מהן. רק ${M('E')} משתנה.</td></tr>
+        <td style="padding:5px 8px;color:#e2e8f0" colspan="4">${M('\\vec F = q\\vec E')} — תמיד, בכל אחת. רק ${M('E')} משתנה.</td></tr>
     </table>
-    <div class="def-block"><div class="def-title">איך מזהים באיזו נוסחה להשתמש?</div>
-      <p>1. <b>האם הגוף מוליך?</b> אם כן — בפנים ${M('E=0')} ו-${M('V')} קבוע, ומבחוץ הוא שקול למטען נקודתי במרכזו.<br>
-      2. <b>האם המרחק קטן ביחס לגודל המשטח?</b> אם כן — מישור: השדה קבוע ואינו תלוי במרחק.<br>
-      3. <b>האם המרחק גדול ביחס לגודל הגוף?</b> אז כל גוף טעון נראה כמו מטען נקודתי, יהיה צורתו אשר תהיה.</p>
+    <div class="def-block"><div class="def-title">איך בוחרים נוסחה?</div>
+      <p>1. <b>מוליך?</b> בפנים ${M('E=0')} ו-${M('V')} קבוע; מבחוץ — כמו מטען נקודתי במרכז.<br>
+      2. <b>המרחק קטן ביחס לגודל המשטח?</b> מישור: שדה קבוע.<br>
+      3. <b>המרחק גדול ביחס לגודל הגוף?</b> כל גוף טעון נראה אז כמטען נקודתי, תהיה צורתו אשר תהיה.</p>
     </div>
-    ${animCanvas('anim-elc-compare-t',200,'אותו מטען, שלוש גאומטריות — וכך נראה השדה בכל אחת כפונקציה של המרחק')}
-    <div class="mis-block"><b>⚠️ הטעות שחוזרת בכל מבחן:</b> להציב ${M('kQ/r^2')} עבור לוח, או ${M('\\sigma/2\\varepsilon_0')} עבור כדור. שאלו קודם <b>מה יוצר את השדה</b> — נקודה, כדור, או משטח — ורק אז בחרו נוסחה. שתי הנוסחאות נכונות, כל אחת בעולם שלה.</div>
-    <div class="def-block"><div class="def-title">והחוט המקשר: ${M('u=\\tfrac12\\varepsilon_0E^2')}</div>
-      <p>בכל אחת מהגאומטריות האנרגיה יושבת <b>בשדה</b>, בצפיפות ${M('u=\\tfrac12\\varepsilon_0E^2')}. סכימה עליה נותנת ${M('kQ^2/2R')} לכדור ו-${M('\\tfrac12CV^2')} לקבל — שתי תוצאות שנראות שונות לגמרי, מאותו ביטוי אחד בדיוק.</p>
+    ${animCanvas('anim-elc-compare-t',200,'אותו מטען, שלוש גאומטריות — וכך נראה השדה בכל אחת')}
+    <div class="mis-block"><b>⚠️ הטעות שחוזרת בכל מבחן:</b> ${M('kQ/r^2')} עבור לוח, או ${M('\\sigma/2\\varepsilon_0')} עבור כדור. שאלו קודם <b>מה יוצר את השדה</b>, ורק אז בחרו נוסחה — שתי הנוסחאות נכונות, כל אחת בעולם שלה.</div>
+    <div class="def-block"><div class="def-title">היכן הן נחתכות?</div>
+      <p>מטען נקודתי חזק מכל דבר מקרוב ונחלש מהר; לוח שומר על עוצמתו. השוואה נותנת ${M('kQ/r^2=Q/2A\\varepsilon_0')} ⇒ ${M('r_\\star=\\sqrt{2kA\\varepsilon_0}')} — ו<b>המטען מצטמצם</b>: מרחק החיתוך תלוי בשטח הלוח בלבד. ללוח של ${M('1\\,\\text{m}^2')} הוא כ-40 ס״מ, לא משנה כמה טעון.</p>
     </div>
+    <p><b>והחוט המקשר:</b> בכל הגאומטריות האנרגיה יושבת בשדה, בצפיפות ${M('u=\\tfrac12\\varepsilon_0E^2')}. סכימה עליה נותנת ${M('kQ^2/2R')} לכדור ו-${M('\\tfrac12CV^2')} לקבל — שתי תוצאות שנראות שונות, מאותו ביטוי אחד.</p>
     <div class="ex-block"><div class="ex-title">✏️ דוגמה — אותו מטען, שלוש דרכים</div>
-    <p>${M('Q=3\\,\\mu C')} מפוזר אחיד. משווים את השדה במרחק ${M('r=10')} ס״מ:</p>
-    <p><b>1. כמטען נקודתי:</b> ${M('E=kQ/r^2=2.7\\times10^{6}')} V/m.<br>
-    <b>2. ככדור מוליך ברדיוס 5 ס״מ:</b> אותו דבר בדיוק — ${M('2.7\\times10^{6}')} V/m, כי הנקודה מחוץ לכדור.<br>
-    <b>3. כמשטח בשטח ${M('1\\,\\text{m}^2')}:</b> ${M('\\sigma=3\\times10^{-6}')} C/m² ⇒ ${M('E=\\sigma/2\\varepsilon_0=1.7\\times10^{5}')} V/m — קטן פי 16, <b>ולא משתנה כלל</b> אם נתרחק ל-20 ס״מ.<br>
-    <b>הלקח:</b> אותו מטען בדיוק, ושלוש תשובות שונות — כי מה שקובע הוא איך הוא <b>מפוזר</b>.</p></div>`,
+    <p>${M('Q=0.5\\,\\mu C')}, והשדה נמדד ב-${M('r=10')} ס״מ:</p>
+    <p><b>1. נקודתי:</b> ${M('E=kQ/r^2=4.5\\times10^{5}')} V/m.<br>
+    <b>2. ככדור מוליך ${M('R=5')} ס״מ:</b> אותו דבר בדיוק, כי הנקודה בחוץ.<br>
+    <b>3. כמשטח ${M('1\\,\\text{m}^2')}:</b> ${M('\\sigma=5\\times10^{-7}')} C/m² ⇒ ${M('E=2.8\\times10^{4}')} V/m — קטן פי 16, ו<b>אינו משתנה</b> אם נתרחק ל-20 ס״מ.<br>
+    <b>הלקח:</b> אותו מטען, שלוש תשובות — כי מה שקובע הוא איך הוא <b>מפוזר</b>.</p></div>`,
   },
   sim:{type:'elc-compare',desc:'גררו את קו המרחק וצפו בשלושת השדות יחד: הנקודתי והכדור צונחים כ-1/r², המישור אינו יורד כלל. שנו את המטען ואת רדיוס הכדור וראו איזה מהם מוביל בכל טווח.'},
-  example:{title:'שלוש גאומטריות',text:'Q=3 μC, r=10 ס״מ.',steps:[
-    {q:'כמטען נקודתי?',a:'E=kQ/r²=2.7×10⁶ V/m'},
-    {q:'ככדור מוליך R=5 ס״מ?',a:'הנקודה מחוץ לכדור, ולכן אותה תשובה בדיוק: 2.7×10⁶ V/m'},
-    {q:'כמשטח 1 מ״ר?',a:'σ=3×10⁻⁶ C/m², E=σ/2ε₀=1.7×10⁵ V/m — ואינו תלוי במרחק'}]},
+  example:{title:'שלוש גאומטריות',text:'Q=0.5 μC, r=10 ס״מ.',steps:[
+    {q:'כמטען נקודתי?',a:'E=kQ/r²=4.5×10⁵ V/m'},
+    {q:'ככדור מוליך R=5 ס״מ?',a:'הנקודה מחוץ לכדור, ולכן אותה תשובה בדיוק: 4.5×10⁵ V/m'},
+    {q:'כמשטח 1 מ״ר?',a:'σ=5×10⁻⁷ C/m², E=σ/2ε₀=2.8×10⁴ V/m — ואינו תלוי במרחק'}]},
   quiz:[
     {q:'במרחק גדול מאוד מגוף טעון בעל צורה כלשהי, השדה מתנהג כמו:',opts:['מישור אינסופי','מטען נקודתי','אפס','תלוי בצורה לנצח'],correct:1,explain:'מרחוק כל פרט של הצורה מיטשטש, ומה שנשאר הוא המטען הכולל — ולכן E→kQ/r². זו הסיבה שאפשר לטפל בכוכבים, בגרעינים ובכדורים כנקודות.'},
     {q:'מודדים שדה בשתי נקודות ומקבלים אותו ערך בדיוק. מקור השדה הוא כנראה:',opts:['מטען נקודתי','כדור מוליך','משטח טעון גדול','אין מקור'],correct:2,explain:'רק מישור נותן שדה שאינו תלוי במרחק. נקודה וכדור נותנים שניהם 1/r² מחוץ לגוף.'},
@@ -5877,15 +5890,15 @@ const ELECTRO_CONTENT={
     {q:'הכוח על מטען q בכל אחת משלוש הגאומטריות הוא:',opts:['kQq/r² תמיד','qE — רק E משתנה','σq/ε₀ תמיד','אין כוח במישור'],correct:1,explain:'F=qE היא ההגדרה של השדה, ולכן היא תקפה תמיד. מה שמשתנה בין הגאומטריות הוא E בלבד — וזה בדיוק מה שהופך את מושג השדה למועיל.'},
     {q:'צפיפות האנרגיה בשדה חשמלי היא:',opts:['½ε₀E','½ε₀E²','ε₀E²','kQ²/2R תמיד'],correct:1,explain:'u=½ε₀E². מהביטוי האחד הזה נגזרות גם kQ²/2R של הכדור וגם ½CV² של הקבל — שתי תוצאות שנראות שונות לגמרי, ומגיעות מאותו מקום.'},
   ],
-  problem:{title:'אותו מטען, שלוש גאומטריות',text:'Q=+3 μC. משווים את השדה במרחק r=10 ס״מ בשלושה מקרים. (k=9×10⁹, ε₀=8.85×10⁻¹² F/m)',steps:[
-    {q:'המטען כולו נקודתי. מה '+M('E')+' במרחק 10 ס״מ, ב-V/m?',unit:'V/m',answer:'2.7e6',tolerance:5e4,
-     explain:'E=kQ/r²=9×10⁹·3×10⁻⁶/0.01=2.7×10⁶ V/m.',
+  problem:{title:'אותו מטען, שלוש גאומטריות',text:'Q=+0.5 μC. משווים את השדה במרחק r=10 ס״מ בשלושה מקרים. (k=9×10⁹, ε₀=8.85×10⁻¹² F/m)',steps:[
+    {q:'המטען כולו נקודתי. מה '+M('E')+' במרחק 10 ס״מ, ב-V/m?',unit:'V/m',answer:'4.5e5',tolerance:1e4,
+     explain:'E=kQ/r²=9×10⁹·0.5×10⁻⁶/0.01=4.5×10⁵ V/m.',
      nudge:'זהו המקרה הבסיסי ביותר בפרק — חוק קולומב מחולק במטען הבוחן.',hint:'E=kQ/r²'},
-    {q:'עכשיו אותו מטען על כדור מוליך ברדיוס 5 ס״מ. מה '+M('E')+' באותה נקודה, ב-V/m?',unit:'V/m',answer:'2.7e6',tolerance:5e4,
+    {q:'עכשיו אותו מטען על כדור מוליך ברדיוס 5 ס״מ. מה '+M('E')+' באותה נקודה, ב-V/m?',unit:'V/m',answer:'4.5e5',tolerance:1e4,
      explain:'אותה תשובה בדיוק: הנקודה נמצאת מחוץ לכדור, ומבחוץ כדור מוליך שקול למטען נקודתי במרכזו. הפיזור על פני הכדור אינו משנה דבר כל עוד נשארים בחוץ.',
      nudge:'בדקו קודם אם 10 ס״מ נמצא בתוך הכדור או מחוצה לו, ואז היזכרו למה שקול כדור מוליך מבחוץ.',hint:'מבחוץ — כמו מטען נקודתי'},
-    {q:'ולבסוף אותו מטען מרוח אחיד על משטח בשטח '+M('1\\,\\text{m}^2')+'. מה '+M('E')+' לידו, ב-V/m?',unit:'V/m',answer:'1.7e5',tolerance:1e4,
-     explain:'σ=Q/A=3×10⁻⁶ C/m², ולכן E=σ/2ε₀=3×10⁻⁶/(2·8.85×10⁻¹²)=1.7×10⁵ V/m — קטן פי 16 מהמקרה הנקודתי, ו<b>אינו משתנה</b> כלל עם המרחק.',
+    {q:'ולבסוף אותו מטען מרוח אחיד על משטח בשטח '+M('1\\,\\text{m}^2')+'. מה '+M('E')+' לידו, ב-V/m?',unit:'V/m',answer:'2.8e4',tolerance:1.5e3,
+     explain:'σ=Q/A=5×10⁻⁷ C/m², ולכן E=σ/2ε₀=5×10⁻⁷/(2·8.85×10⁻¹²)=2.8×10⁴ V/m — קטן פי 16 מהמקרה הנקודתי, ו<b>אינו משתנה</b> כלל עם המרחק.',
      nudge:'ראשית חשבו את צפיפות המטען לשטח, ורק אז השתמשו בנוסחת המישור.',hint:'σ=Q/A ואז E=σ/2ε₀'},
   ]},
 },
@@ -17075,7 +17088,9 @@ runAnim('anim-elc-compare-t',(canvas,ctx,W,H,t)=>{
     // 1/r^2 for the first two, constant for the plane
     const rel=(i===2)?0.62:Math.min(1,(24/d)*(24/d));
     simArrow(ctx,tx,cy+16,tx,cy+16+8+rel*26,'rgba(251,191,36,.9)',2,7);
-    label(ctx,(i===2)?'קבוע':'נחלש כ-1/r²',cx,H*0.86,(i===2)?'#34d399':'#94a3b8',9.5);
+    // the arrow length IS the field strength, so name what it is doing
+    label(ctx,(i===2)?'קבוע — σ/2ε₀':'נחלש כ-1/r²',cx,H*0.86,(i===2)?'#34d399':'#94a3b8',9.5);
+    if(i===0)label(ctx,'הגשוש מתרחק ומתקרב — עקבו אחרי אורך החץ',W*0.5,H*0.955,'#64748b',9);
   });
   label(ctx,'אותו מטען — ושלוש התנהגויות שונות של השדה',W*0.5,H-8,'#e2e8f0',10.5);
 });
@@ -17088,14 +17103,19 @@ runAnim('anim-elc-plane-t',(canvas,ctx,W,H,t)=>{
   ctx.beginPath();ctx.moveTo(px,top);ctx.lineTo(px,bot);ctx.stroke();ctx.restore();
   for(let i=0;i<6;i++)label(ctx,'+',px,top+10+(bot-top-20)*i/5,'#f87171',12);
   label(ctx,'σ > 0',px,top-10,'#f87171',10);
-  // the same arrow at every distance, on both sides
+  // The same arrow at every distance, on both sides — with two of them labelled
+  // by distance, so "does not depend on r" is a claim the reader can check
+  // against the picture rather than take on trust.
   for(let s=-1;s<=1;s+=2){
     for(let d=1;d<=4;d++){
       const x=px+s*d*W*0.10;
       simArrow(ctx,x-s*9,H*0.5,x+s*9,H*0.5,'rgba(251,191,36,.85)',2,8);
       label(ctx,'E',x,H*0.5-14,'#fbbf24',9);
+      if(s>0&&(d===1||d===4))label(ctx,d===1?'1 ס״מ':'10 ס״מ',x,H*0.5+18,'#64748b',8.5);
     }
   }
+  label(ctx,'σ/2ε₀',px+W*0.10,H*0.28,'#fbbf24',10);
+  label(ctx,'σ/2ε₀',px-W*0.10,H*0.28,'#fbbf24',10);
   // a test charge drifting away, feeling exactly the same push all the way
   const f=(t*0.28)%1;
   const tx=px+W*0.07+f*W*0.36;
@@ -17127,6 +17147,9 @@ runAnim('anim-elc-2plane-t',(canvas,ctx,W,H,t)=>{
     }
     label(ctx,rg[1]===0?'E = 0':'E = σ/ε₀',rg[0],bot+16,rg[1]===0?'#64748b':'#fbbf24',10);
   });
+  // the arithmetic of the middle region, which is the whole lesson
+  label(ctx,opp?'באמצע:  σ/2ε₀ + σ/2ε₀ = σ/ε₀':'באמצע:  σ/2ε₀ − σ/2ε₀ = 0',
+    W*0.5,bot+34,opp?'#fbbf24':'#64748b',10.5);
   label(ctx,opp?'מטענים מנוגדים — כל השדה כלוא בפנים':'מטענים זהים — השדה נדחף החוצה',
     W*0.5,H-10,'#e2e8f0',11);
 });
@@ -17157,6 +17180,8 @@ runAnim('anim-elc-sphere-t',(canvas,ctx,W,H,t)=>{
     ctx.fillRect(bx+1,b[0]+bh-b[1]*(bh-2),bw-2,b[1]*(bh-2));ctx.restore();
     label(ctx,b[3],bx-12,b[0]+bh/2,b[2],12);
   });
+  label(ctx,'r',pxp,cy-14,'#34d399',9);
+  label(ctx,'R',cx+R*0.72,cy+R*0.72,'#94a3b8',9);
   label(ctx,inside?'בתוך המתכת: E=0 אבל V מרבי':'בחוץ: E כמו מטען נקודתי, V יורד כ-1/r',
     W*0.5,H-10,inside?'#38bdf8':'#94a3b8',10.5);
 });
@@ -23442,11 +23467,14 @@ function simElcPotential(canvas){
 // marked, because "which one is stronger" has no answer until you say at what
 // distance.
 function simElcCompare(canvas){
-  var id=canvas.id;
+  var id=canvas.id, _g=_simGen[id];
   const H=470; const {ctx,W,dpr}=setupCanvas(canvas,H);
   const K=8.988e9, EPS0=8.854e-12, A=1.0;         // the sheet is one square metre
-  var rSel=0.10, drag=false, touched=false;
-  var GX=52,GW=0,RMAX=0.40;
+  var rSel=0.10, drag=false, touched=false, showV=false;
+  var GX=52,GW=0,RMAX=0.60;
+  var vb=document.getElementById('btn-cmp-v');
+  if(vb)vb.addEventListener('click',function(){showV=!showV;
+    vb.textContent=showV?'⚡ הצג שדה E':'🔋 הצג פוטנציאל V';});
   function Qv(){var e=document.getElementById('inp-cmp-Q');return e?parseFloat(e.value):3;}
   function Rv(){var e=document.getElementById('inp-cmp-R');return e?parseFloat(e.value):5;}
   simDrag(canvas,dpr,{
@@ -23455,36 +23483,47 @@ function simElcCompare(canvas){
     up:function(){drag=false;}});
   function set(p){rSel=Math.max(0.005,Math.min(RMAX,(p.x-GX)/Math.max(1,GW)*RMAX));}
   function draw(){
-    if(_simStop[id])return;
+    if(_simGen[id]!==_g)return;if(_simStop[id])return;
     var Q=Qv()*1e-6, R=Rv()/100;
     GW=W-GX-16;
     var bg=ctx.createLinearGradient(0,0,0,H);bg.addColorStop(0,'#020810');bg.addColorStop(1,'#04101e');
     ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);
-    var Epoint=function(r){return K*Math.abs(Q)/(r*r);};
-    var Esph=function(r){return r<R?0:K*Math.abs(Q)/(r*r);};
-    var Eplane=Math.abs(Q)/A/(2*EPS0);
+    // V is measured from the far end of the axis, which is the only honest
+    // reference for a sheet: its potential never reaches zero at infinity.
+    var Epoint=function(r){return showV?K*Math.abs(Q)/r:K*Math.abs(Q)/(r*r);};
+    var Esph=function(r){return showV?(r<R?K*Math.abs(Q)/R:K*Math.abs(Q)/r)
+                                    :(r<R?0:K*Math.abs(Q)/(r*r));};
+    var Eplane0=Math.abs(Q)/A/(2*EPS0);
+    var Eplane=showV?null:Eplane0;
+    var Vplane=function(r){return Eplane0*(RMAX-r);};
     var gy=54, gh=H-gy-96;
-    var top=Epoint(Math.max(R,0.02))*1.15;         // keep the frame readable
+    var top=Math.max(Epoint(Math.max(R,0.02)),showV?Vplane(0):0)*1.15;
     var X=function(r){return GX+GW*(r/RMAX);};
     var Y=function(E){return gy+gh-4-Math.min(1,E/top)*(gh-12);};
     ctx.save();ctx.strokeStyle='#1e3a52';ctx.lineWidth=1;ctx.strokeRect(GX+.5,gy+.5,GW-1,gh-1);ctx.restore();
-    // gridlines with real numbers on them
-    var step=Math.pow(10,Math.floor(Math.log10(top)))/2;
+    // The axis picks its own unit: in the potential view the numbers are a
+    // thousand times smaller, and a fixed ×10⁶ scale printed every gridline as
+    // "0.1" twice over.
+    var uDiv=top>=3e6?1e6:top>=3e3?1e3:1, uName=uDiv===1e6?'M':uDiv===1e3?'k':'';
+    var step=Math.pow(10,Math.floor(Math.log10(top/2)));
+    if(top/step>6)step*=2; else if(top/step<3)step/=2;
     for(var v=step;v<top;v+=step){
       var yy=Y(v);
       if(yy<gy+8)break;
       ctx.save();ctx.strokeStyle='rgba(30,58,82,.7)';ctx.beginPath();
       ctx.moveTo(GX,yy);ctx.lineTo(GX+GW,yy);ctx.stroke();ctx.restore();
-      simText(ctx,(v/1e6).toFixed(1),GX-6,yy+3,'#475569',8,'right');
+      var lv=v/uDiv;
+      simText(ctx,lv>=10?lv.toFixed(0):lv.toFixed(lv>=1?1:2),GX-6,yy+3,'#475569',8,'right');
     }
-    simText(ctx,'E  (×10⁶ V/m)',GX+4,gy-8,'#94a3b8',10,'left',true);
-    for(var rr=0.1;rr<=RMAX+1e-9;rr+=0.1)
+    simText(ctx,showV?('V  ('+uName+'V)'):('E  ('+uName+'V/m)'),GX+4,gy-8,'#94a3b8',10,'left',true);
+    for(var rr=0.15;rr<=RMAX+1e-9;rr+=0.15)
       simText(ctx,(rr*100).toFixed(0)+' ס״מ',X(rr),gy+gh+13,'#475569',8.5,'center');
     // the three curves
     ctx.save();ctx.beginPath();ctx.rect(GX,gy,GW,gh);ctx.clip();
-    // start where the curve first fits in the frame, so it enters from the top
-    // edge instead of running along it and looking like a plateau
-    var rStart=Math.max(0.004,Math.sqrt(K*Math.abs(Q)/top));
+    // Start where the curve first fits in the frame, so it enters from the top
+    // edge instead of running along it. The threshold differs between the two
+    // views: kQ/r² = top in one, kQ/r = top in the other.
+    var rStart=Math.max(0.004,showV?(K*Math.abs(Q)/top):Math.sqrt(K*Math.abs(Q)/top));
     ctx.strokeStyle='rgba(248,113,113,.85)';ctx.lineWidth=2.6;ctx.beginPath();
     for(var r1=rStart;r1<=RMAX;r1+=RMAX/400){
       r1<=rStart+1e-9?ctx.moveTo(X(r1),Y(Epoint(r1))):ctx.lineTo(X(r1),Y(Epoint(r1)));}
@@ -23494,14 +23533,20 @@ function simElcCompare(canvas){
     for(var r2=R;r2<=RMAX;r2+=RMAX/400)ctx.lineTo(X(r2),Y(Esph(r2)));
     ctx.stroke();ctx.setLineDash([]);
     ctx.strokeStyle='rgba(52,211,153,.9)';ctx.lineWidth=2.4;ctx.beginPath();
-    ctx.moveTo(GX,Y(Eplane));ctx.lineTo(GX+GW,Y(Eplane));ctx.stroke();
+    if(showV){for(var r3=0;r3<=RMAX;r3+=RMAX/200){
+        r3?ctx.lineTo(X(r3),Y(Vplane(r3))):ctx.moveTo(X(r3),Y(Vplane(r3)));}}
+    else {ctx.moveTo(GX,Y(Eplane));ctx.lineTo(GX+GW,Y(Eplane));}
+    ctx.stroke();
     ctx.restore();
-    // where the point charge drops below the sheet: the answer to "which is bigger"
-    var rCross=Math.sqrt(K*Math.abs(Q)/Eplane);
-    if(rCross>0.005&&rCross<RMAX){
+    // Where the point charge drops below the sheet. The charge cancels out of
+    // r* = sqrt(2 k A eps0), so this distance depends on the SHEET'S AREA alone
+    // -- move the charge slider and watch the line stay exactly where it is.
+    var rCross=Math.sqrt(2*K*A*EPS0);
+    if(!showV&&rCross>0.005&&rCross<RMAX){
       ctx.save();ctx.strokeStyle='rgba(148,163,184,.45)';ctx.setLineDash([3,3]);
       ctx.beginPath();ctx.moveTo(X(rCross),gy);ctx.lineTo(X(rCross),gy+gh);ctx.stroke();ctx.restore();
-      simText(ctx,'כאן הם משתווים',Math.min(X(rCross),GX+GW-52),gy+12,'#94a3b8',9,'center');
+      simText(ctx,'משתווים ב-'+(rCross*100).toFixed(0)+' ס״מ — ולא תלוי במטען',
+        Math.min(X(rCross),GX+GW-90),gy+12,'#94a3b8',9,'center');
     }
     // the selected distance, and the three numbers it gives
     var px=X(rSel);
@@ -23509,32 +23554,35 @@ function simElcCompare(canvas){
     ctx.beginPath();ctx.moveTo(px,gy);ctx.lineTo(px,gy+gh);ctx.stroke();ctx.restore();
     var vals=[['מטען נקודתי',Epoint(rSel),'#f87171'],
               ['כדור מוליך',Esph(rSel),'#38bdf8'],
-              ['מישור (1 מ״ר)',Eplane,'#34d399']];
+              ['מישור (1 מ״ר)',showV?Vplane(rSel):Eplane,'#34d399']];
     vals.forEach(function(v,i){
       var yy=Y(v[1]);
       if(yy>gy&&yy<gy+gh){ctx.save();ctx.fillStyle=v[2];ctx.beginPath();ctx.arc(px,yy,4.5,0,6.2832);ctx.fill();ctx.restore();}
       var bx=16+i*(W-32)/3;
       simText(ctx,v[0],bx+(W-32)/6,gy+gh+34,v[2],10,'center',true);
-      simText(ctx,v[1]<1?'E = 0':(v[1]/1e6).toFixed(2)+'×10⁶ V/m',
+      var rv=v[1]/uDiv;
+      simText(ctx,v[1]<1?(showV?'V = 0':'E = 0')
+        :((showV?'V = ':'E = ')+(rv>=10?rv.toFixed(0):rv.toFixed(2))+' '+uName+(showV?'V':'V/m')),
         bx+(W-32)/6,gy+gh+52,'#e2e8f0',10.5,'center',true);
     });
     simText(ctx,'r = '+(rSel*100).toFixed(1)+' ס״מ'+(rSel<R?'  (בתוך הכדור)':''),
       W/2,gy-8,'#fbbf24',10.5,'center',true);
-    simText(ctx,touched?'שני העקומים הראשונים חופפים בדיוק מחוץ לכדור'
-      :'גררו כדי לבחור מרחק',W/2,H-10,'#64748b',10,'center');
+    simText(ctx,showV?'V של מישור יורד ליניארית ולעולם אינו מתאפס — ולכן נמדד כאן מקצה הציר'
+      :(touched?'הנקודתי והכדור חופפים בדיוק מחוץ לכדור — ההבדל כולו בפנים'
+        :'גררו כדי לבחור מרחק'),W/2,H-10,'#64748b',10,'center');
     requestAnimationFrame(draw);
   }
   requestAnimationFrame(draw);
 }
 
 function simElcSphere(canvas){
-  var id=canvas.id;
+  var id=canvas.id, _g=_simGen[id];
   const H=500; const {ctx,W,dpr}=setupCanvas(canvas,H);
   const K=8.988e9, EPS0=8.854e-12;
   var rProbe=0.12, drag=false, touched=false;
   function Qv(){var e=document.getElementById('inp-sph-Q');return e?parseFloat(e.value):3;}
   function Rv(){var e=document.getElementById('inp-sph-R');return e?parseFloat(e.value):5;}
-  var RMAX=0.30;                                  // the axis runs to 30 cm
+  var RMAX=0.75;                                  // the axis runs to 75 cm
   function E(r,R,Q){return r<R?0:K*Q/(r*r);}
   function V(r,R,Q){return r<R?K*Q/R:K*Q/r;}
   simDrag(canvas,dpr,{
@@ -23544,7 +23592,7 @@ function simElcSphere(canvas){
   var GX=46,GW=0;
   function set(p){rProbe=Math.max(0.004,Math.min(RMAX,(p.x-GX)/Math.max(1,GW)*RMAX));}
   function draw(){
-    if(_simStop[id])return;
+    if(_simGen[id]!==_g)return;if(_simStop[id])return;
     var Q=Qv()*1e-6, R=Rv()/100;
     GW=W-GX-14;
     var bg=ctx.createLinearGradient(0,0,0,H);bg.addColorStop(0,'#020810');bg.addColorStop(1,'#04101e');
@@ -23580,6 +23628,19 @@ function simElcSphere(canvas){
     }
     axes(g1,'E(r)   V/m','#fbbf24');
     axes(g2,'V(r)   V','#a78bfa');
+    // the metal, shaded on both graphs: everything left of R is inside it
+    [[g1],[g2]].forEach(function(a){
+      ctx.save();ctx.fillStyle='rgba(148,163,184,.07)';
+      ctx.fillRect(GX+1,a[0]+1,Math.max(0,X(R)-GX-1),gh-2);ctx.restore();});
+    // air breaks down at 3 MV/m -- the ceiling on how much charge a sphere of
+    // this size can hold at all, and the reason a Van de Graaff dome is big
+    var EBD=3e6;
+    if(EBD<Emax){
+      var ybd=g1+gh-4-(EBD/Emax)*(gh-14);
+      ctx.save();ctx.strokeStyle='rgba(239,68,68,.75)';ctx.setLineDash([6,4]);ctx.lineWidth=1.4;
+      ctx.beginPath();ctx.moveTo(GX,ybd);ctx.lineTo(GX+GW,ybd);ctx.stroke();ctx.restore();
+      simText(ctx,'פריצת אוויר — 3×10⁶ V/m',GX+GW-6,ybd-5,'#ef4444',9,'right',true);
+    }
     // E: zero inside, then a cliff at R and a 1/r² tail
     ctx.save();ctx.beginPath();ctx.rect(GX,g1,GW,gh);ctx.clip();
     ctx.strokeStyle='#fbbf24';ctx.lineWidth=2.4;ctx.beginPath();
@@ -23616,9 +23677,16 @@ function simElcSphere(canvas){
       W/2,g1-24,inside?'#38bdf8':'#94a3b8',11,'center',true);
     simText(ctx,'E = '+(Math.abs(Ep)<1?'0':(Ep/1e6).toFixed(2)+'×10⁶')+' V/m     V = '+(Vp/1e5).toFixed(2)+'×10⁵ V',
       W/2,g2+gh+26,'#e2e8f0',11.5,'center',true);
-    var U=K*Q*Q/(2*R);
+    var U=K*Q*Q/(2*R), Umax=K*(6e-6)*(6e-6)/(2*0.02);
+    var ubw=Math.min(220,W*0.42), ubx=W/2-ubw/2, uby=g2+gh+52;
+    ctx.save();ctx.strokeStyle='#1e3a52';ctx.lineWidth=1;ctx.strokeRect(ubx+.5,uby+.5,ubw,10);
+    ctx.fillStyle='rgba(52,211,153,.75)';
+    ctx.fillRect(ubx+1,uby+1,Math.max(1,(ubw-2)*Math.min(1,U/Umax)),8);ctx.restore();
     simText(ctx,'U = kQ²/2R = '+U.toFixed(2)+' J   ·   ½QV = '+(0.5*Q*K*Q/R).toFixed(2)+' J',
       W/2,g2+gh+44,'#34d399',11,'center',true);
+    var Qmax=EBD*R*R/K;
+    simText(ctx,'מטען מרבי לפני פריצה: '+(Qmax*1e6).toFixed(2)+' μC   ·   מתח מרבי: '+(EBD*R/1e3).toFixed(0)+' kV',
+      W/2,uby+24,Math.abs(Q)>Qmax?'#ef4444':'#64748b',9.5,'center',Math.abs(Q)>Qmax);
     if(!touched)simText(ctx,'גררו לאורך הציר כדי להזיז את הגשוש',W/2,H-8,'#64748b',9.5,'center');
     requestAnimationFrame(draw);
   }
@@ -23626,16 +23694,21 @@ function simElcSphere(canvas){
 }
 
 function simElcPlane(canvas){
-  var id=canvas.id;
+  var id=canvas.id, _g=_simGen[id];
   const H=470; const {ctx,W,dpr}=setupCanvas(canvas,H);
   const EPS0=8.854e-12;
-  var two=true, tx=W*0.5, ty=H*0.30, drag=false, touched=false;
+  var two=true, tx=W*0.5, ty=H*0.30, drag=false, touched=false, qSign=1;
   var x1=W*0.30, x2=W*0.70;
   function s1(){var e=document.getElementById('inp-pln-s1');return e?parseFloat(e.value):4;}
   function s2(){var e=document.getElementById('inp-pln-s2');return e?parseFloat(e.value):-4;}
   var tb=document.getElementById('btn-pln-two');
   if(tb)tb.addEventListener('click',function(){two=!two;
     tb.textContent=two?'➖ לוח אחד':'➕ לוח שני';});
+  // the force flips while the field does not -- the cheapest way to show that
+  // F=qE carries the sign of the charge and E does not
+  var sb=document.getElementById('btn-pln-sign');
+  if(sb)sb.addEventListener('click',function(){qSign=-qSign;
+    sb.textContent=qSign>0?'🔴 מטען בוחן חיובי':'🔵 מטען בוחן שלילי';});
   simDrag(canvas,dpr,{
     down:function(p){if(Math.hypot(p.x-tx,p.y-ty)<30){drag=true;touched=true;}},
     move:function(p){if(drag){tx=Math.max(12,Math.min(W-12,p.x));ty=Math.max(28,Math.min(H*0.62,p.y));}},
@@ -23644,7 +23717,7 @@ function simElcPlane(canvas){
   function Ei(sig,px,plx){return (sig*1e-6/(2*EPS0))*(px>plx?1:-1);}
   function Etot(px){return Ei(s1(),px,x1)+(two?Ei(s2(),px,x2):0);}
   function draw(){
-    if(_simStop[id])return;
+    if(_simGen[id]!==_g)return;if(_simStop[id])return;
     var bg=ctx.createLinearGradient(0,0,0,H);bg.addColorStop(0,'#020810');bg.addColorStop(1,'#04101e');
     ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);
     var S1=s1(),S2=two?s2():0;
@@ -23682,16 +23755,30 @@ function simElcPlane(canvas){
         simArrow(ctx,gx-d*L/2,gy,gx+d*L/2,gy,E>0?'rgba(251,191,36,.75)':'rgba(56,189,248,.75)',1.6,7);
       }
     }
-    // ── the test charge ──
-    var Et=Etot(tx);
-    ctx.save();ctx.fillStyle='#34d399';ctx.strokeStyle='#064e3b';ctx.lineWidth=2;
+    // ── the test charge, with the superposition written out beside it ──
+    var E1=Ei(S1,tx,x1), E2=two?Ei(S2,tx,x2):0, Et=E1+E2;
+    // each plate's own contribution, drawn above the charge as two short arrows
+    var sy2=ty-34;
+    [[E1,'#f0abfc','E₁'],[E2,'#7dd3fc','E₂']].forEach(function(a,i){
+      if(!two&&i===1)return;
+      if(Math.abs(a[0])<1e3)return;
+      var L=10+14*Math.min(1,Math.abs(a[0])/maxE), yy=sy2-i*13, d=a[0]>0?1:-1;
+      simArrow(ctx,tx-d*L/2,yy,tx+d*L/2,yy,a[1],1.8,6);
+      simText(ctx,a[2]+' = '+(Math.abs(a[0])/1e5).toFixed(2)+'×10⁵',tx+d*L/2+(d>0?6:-6),yy+3,a[1],9,d>0?'left':'right');
+    });
+    var qcol=qSign>0?'#f87171':'#60a5fa';
+    ctx.save();ctx.fillStyle=qcol;ctx.strokeStyle='#0b1220';ctx.lineWidth=2;
     ctx.beginPath();ctx.arc(tx,ty,11,0,6.2832);ctx.fill();ctx.stroke();ctx.restore();
-    optLabel(ctx,'+q',tx,ty,'#052e1b',10);
+    optLabel(ctx,qSign>0?'+q':'−q',tx,ty,'#0b1220',9.5);
     if(Math.abs(Et)>1e3){
-      var FL=22+30*Math.min(1,Math.abs(Et)/maxE);
-      simArrow(ctx,tx,ty,tx+(Et>0?FL:-FL),ty,'#34d399',3,11);
-      simText(ctx,'F = qE',tx+(Et>0?FL+4:-FL-4),ty-14,'#34d399',10,Et>0?'left':'right',true);
-    } else simText(ctx,'E = 0 — אין כוח',tx,ty-20,'#94a3b8',10,'center',true);
+      var FL=22+30*Math.min(1,Math.abs(Et)/maxE), fd=(Et*qSign)>0?1:-1;
+      simArrow(ctx,tx,ty,tx+fd*FL,ty,'#34d399',3,11);
+      simText(ctx,'F = qE',tx+fd*(FL+4),ty-14,'#34d399',10,fd>0?'left':'right',true);
+      var lw=ctx.measureText('E = E₁ + E₂ = 0.00×10⁵ V/m').width+16;
+      ctx.save();ctx.fillStyle='rgba(3,10,20,.82)';
+      ctx.beginPath();ctx.roundRect(tx-lw/2,ty+16,lw,18,5);ctx.fill();ctx.restore();
+      simText(ctx,'E = E₁ + E₂ = '+(Et/1e5).toFixed(2)+'×10⁵ V/m',tx,ty+26,'#fbbf24',10,'center',true);
+    } else simText(ctx,'E₁ + E₂ = 0 — אין כוח',tx,ty+26,'#94a3b8',10,'center',true);
     if(!touched)simText(ctx,'גררו את מטען הבוחן',W-16,H*0.62-8,'#64748b',9.5,'right');
     // ── the three regions, each with its own arithmetic ──
     var lbl=[[ (x1)/2, Etot(x1*0.5)],[ two?(x1+x2)/2:(x1+W)/2, Etot(two?(x1+x2)/2:(x1+W)/2)]];
@@ -23713,7 +23800,10 @@ function simElcPlane(canvas){
     Vs.forEach(function(q,i){var yy=gy0+gh-6-(q[1]-vmin)/span*(gh-16);
       i?ctx.lineTo(q[0],yy):ctx.moveTo(q[0],yy);});
     ctx.stroke();ctx.restore();
-    simText(ctx,'V(x) — ישר בכל אזור, כי השדה בו קבוע',W/2,H-10,'#a78bfa',10.5,'center',true);
+    simText(ctx,!two?'לוח בודד — שדה קבוע לשני הכיוונים'
+      :(S1*S2<0?'מטענים מנוגדים — קבל: כל השדה כלוא בפנים'
+        :(S1*S2>0?'מטענים זהים — השדה נדחף החוצה, ובפנים מתאפס':'אחד הלוחות ניטרלי')),
+      W/2,H-10,'#a78bfa',10.5,'center',true);
     simText(ctx,two?('ΔV בין הלוחות = '+Math.abs(Etot((x1+x2)/2)*D_M).toFixed(0)+' V   (d = 2 ס״מ)')
       :'לוח בודד: הפרש הפוטנציאלים גדל ליניארית ללא גבול',
       W/2,gy0-6,'#c4b5fd',10,'center',true);
@@ -26396,9 +26486,9 @@ function buildSim(sim){
   else if(sim.type==='elc-scope')extra=C(rng('scope-q',1,10,5,1,'עוצמת מטען המוט','')+btn('scope-flip','↔ החלף סימן','btn-secondary')+btn('scope-touch','👆 גע — הולכה','btn-secondary')+btn('scope-ground','⏚ חבר הארקה','btn-secondary'));
   else if(sim.type==='elc-coulomb')extra=C(rng('elc-q1',-5,5,2,0.5,'q₁',' μC')+rng('elc-q2',-5,5,-3,0.5,'q₂',' μC')+btn('clb-three','⊕ הוסף מטען q₃ (סופרפוזיציה)','btn-secondary'));
   else if(sim.type==='elc-field')extra=C(rng('elc-Q',-6,6,4,0.5,'מטען Q₁',' μC')+rng('elc-Q2',-6,6,-4,0.5,'מטען Q₂',' μC')+btn('field-dipole','⇄ שני מטענים','btn-secondary')+btn('field-lines','✒️ קווי שדה רציפים','btn-secondary'));
-  else if(sim.type==='elc-compare')extra=C(rng('cmp-Q',0.5,8,3,0.5,'מטען Q',' μC')+rng('cmp-R',2,12,5,0.5,'רדיוס הכדור R',' ס״מ'));
-  else if(sim.type==='elc-sphere')extra=C(rng('sph-Q',-6,6,3,0.5,'מטען Q',' μC')+rng('sph-R',2,12,5,0.5,'רדיוס R',' ס״מ'));
-  else if(sim.type==='elc-plane')extra=C(rng('pln-s1',-6,6,4,0.5,'σ₁ של הלוח השמאלי',' μC/m²')+rng('pln-s2',-6,6,-4,0.5,'σ₂ של הלוח הימני',' μC/m²')+btn('pln-two','➖ לוח אחד','btn-secondary'));
+  else if(sim.type==='elc-compare')extra=C(rng('cmp-Q',0.1,4,0.5,0.1,'מטען Q',' μC')+rng('cmp-R',2,12,5,0.5,'רדיוס הכדור R',' ס״מ')+btn('cmp-v','🔋 הצג פוטנציאל V','btn-secondary'));
+  else if(sim.type==='elc-sphere')extra=C(rng('sph-Q',-6,6,3,0.5,'מטען Q',' μC')+rng('sph-R',2,30,20,1,'רדיוס R',' ס״מ'));
+  else if(sim.type==='elc-plane')extra=C(rng('pln-s1',-6,6,4,0.5,'σ₁ של הלוח השמאלי',' μC/m²')+rng('pln-s2',-6,6,-4,0.5,'σ₂ של הלוח הימני',' μC/m²')+btn('pln-two','➖ לוח אחד','btn-secondary')+btn('pln-sign','🔴 מטען בוחן חיובי','btn-secondary'));
   else if(sim.type==='elc-conductor')extra=C(rng('cnd-Q',-8,8,4,0.5,'מטען המוליך Q',' μC')+rng('cnd-R',30,70,50,2,'רדיוס R',' px')+btn('cnd-mode','📐 חוד ופריקה','btn-secondary')+btn('cnd-ext','⚡ שדה חיצוני','btn-secondary'));
   else if(sim.type==='elc-potential')extra=C(rng('elc-Vq',-8,8,2,0.5,'מטען Q₁',' μC')+rng('elc-Vq2',-8,8,-3,0.5,'מטען Q₂',' μC')+rng('elc-q0',-5,5,1,0.5,'מטען בוחן q₀',' nC')+btn('pot-two','⊕ הוסף מטען שני','btn-secondary')+btn('pot-mark','📌 סמן נקודה A','btn-secondary'));
   else if(sim.type==='elc-plates')extra=C(rng('elc-V',50,400,200,10,'מתח V',' V')+rng('elc-d',2,8,4,0.5,'מרווח d',' cm')+rng('elc-v0',5,30,20,1,'v₀ כניסה',' ×10⁶ m/s')+btn('pl-launch','🚀 שגר','btn-primary')+btn('pl-flip','± הפוך קוטביות','btn-secondary')+btn('pl-part','🔁 החלף לפרוטון','btn-secondary'));
