@@ -70,6 +70,41 @@ const t = (name, got, want) => {
   t('every animation scrubs with a drag', noScrub.slice(0, 6).join(' ') || 'none', 'none');
   t('every animation pauses on a drag and toggles on a tap', noPause.slice(0, 6).join(' ') || 'none', 'none');
   t('none of them renders blank', blank.slice(0, 6).join(' ') || 'none', 'none');
+  // worked examples and enrichment asides fold, and give everything back
+  const folds = await p.evaluate(async () => {
+    const out = { ex: 0, en: 0, hidden: 0, revealed: 0, lost: 0, chars: [0, 0] };
+    const chapters = [].concat(MECH_CHAPTERS, OPTICS_CHAPTERS, ELECTRO_CHAPTERS);
+    for (const ch of chapters) for (const se of ch.sections) {
+      state.subject = ch.id.startsWith('opt-') ? 'optics' : ch.id.startsWith('elc-') ? 'electro' : 'mechanics';
+      state.chapter = ch.id; state.section = se.id; state.tab = 'theory'; render();
+      await new Promise(r => setTimeout(r, 620));
+      const host = document.getElementById('app');
+      const ex = host.querySelectorAll('.ex-block[data-fold]').length;
+      const en = host.querySelectorAll('.enrich-card[data-fold]').length;
+      out.ex += ex; out.en += en;
+      const bodies = host.querySelectorAll('.fold-body');
+      bodies.forEach(bd => { if (bd.style.display === 'none') out.hidden++; });
+      // the visible page must be shorter, and pressing must bring it all back
+      const shortText = host.innerText.length;
+      const btns = host.querySelectorAll('.fold-btn');
+      btns.forEach(b => b.click());
+      await new Promise(r => setTimeout(r, 30));
+      const fullText = host.innerText.length;
+      out.chars[0] += shortText; out.chars[1] += fullText;
+      bodies.forEach(bd => { if (bd.style.display !== 'none') out.revealed++; });
+      // nothing may be dropped: every folded body must still hold its children
+      host.querySelectorAll('.fold-body').forEach(bd => { if (!bd.children.length) out.lost++; });
+    }
+    return out;
+  });
+  t('worked examples fold', folds.ex > 15, true);
+  t('enrichment asides fold', folds.en > 30, true);
+  t('all of them start closed', folds.hidden, folds.ex + folds.en);
+  t('and every one opens on a press', folds.revealed, folds.ex + folds.en);
+  t('nothing is dropped when folding', folds.lost, 0);
+  t('the theory page really is shorter when closed', folds.chars[0] < folds.chars[1] * 0.90, true);
+  console.log(`   theory text visible: ${folds.chars[0]} closed vs ${folds.chars[1]} open`);
+
   console.log('   page errors:', errs.length ? errs.slice(0, 3).join(' | ') : 'NONE');
   if (errs.length) fail++;
   await b.close();
