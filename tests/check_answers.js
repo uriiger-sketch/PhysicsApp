@@ -76,6 +76,22 @@ const t = (name, got, want) => {
   t('every quiz item scores when the marked option is clicked', r.quizBad.slice(0, 6).join(' ') || 'none', 'none');
   t('every quiz renders its options', r.noOpts.slice(0, 6).join(' ') || 'none', 'none');
   t('every problem step accepts its own stated answer', r.stepsBad.slice(0, 6).join(' ') || 'none', 'none');
+  // authoring slips that no physics check would catch: template syntax that
+  // survived into the rendered string, an undefined spliced into a sentence
+  const slips = await p.evaluate(() => {
+    const bad = [];
+    for (const k of Object.keys(CONTENT)) {
+      const c = CONTENT[k];
+      const all = [c.theory && c.theory.html,
+        ...(c.quiz || []).flatMap(q => [q.q, q.explain, ...(q.opts || [])]),
+        ...(((c.problem || {}).steps) || []).flatMap(s => [s.q, s.explain, s.hint, s.nudge]),
+        (c.sim || {}).desc].filter(Boolean).join(' ');
+      if (/\$\{|\bundefined\b|\[object/.test(all)) bad.push(k);
+    }
+    return bad;
+  });
+  t('no leftover template syntax in any section', slips.slice(0, 6).join(' ') || 'none', 'none');
+
   // a cursor past the end must not take the page down
   const overrun = await p.evaluate(async () => {
     state.subject = 'mechanics'; state.chapter = 'kinematics'; state.section = 'distance-time';
