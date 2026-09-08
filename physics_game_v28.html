@@ -4663,7 +4663,7 @@ const OPTICS_CONTENT={
       {q:'מהו אורך הגל '+M('\\lambda')+' של האור בניסוי, בננומטרים?',unit:'nm',answer:'600',tolerance:5,
        explain:'λ=(3×10⁻³×0.3×10⁻³)/1.5=6×10⁻⁷ m=600 nm — אור כתום-אדום. שימו לב עד כמה הניסוי רגיש: הוא מודד אורך גל של חצי מיקרון בעזרת סרגל בלבד, מפני ש-'+M('L/d')+' מגדיל את התבנית פי 5000.',
        nudge:'המרווח בין פסים נתון על ידי '+M('\\Delta y=\\lambda L/d')+'. בודדו את אורך הגל, והמירו את כל האורכים למטרים לפני ההצבה.',hint:'λ=Δy·d/L — המירו מ"מ למטרים לפני ההצבה'},
-      {q:'מהי תדירות האור '+M('f')+'? (הזינו את התשובה ביחידות של '+M('10^{14}')+' הרץ — כלומר '+M('5\\times10^{14}\\,\\text{Hz}')+' נכתב כ-5)',unit:'×10¹⁴ Hz',answer:'5',tolerance:0.1,
+    {q:'מהי תדירות האור '+M('f')+', בהרץ?',unit:'Hz',answer:'5e14',tolerance:1e13,
        explain:'f=c/λ=(3×10⁸)/(600×10⁻⁹)=5×10¹⁴ Hz. שימו לב שהתדירות היא המאפיין שאינו משתנה כשהאור עובר לחומר אחר; אורך הגל מתקצר ומהירותו קטנה, אך חמש מאות טרה-הרץ נשארים חמש מאות טרה-הרץ — ולכן הצבע הנתפס אינו משתנה מתחת למים.',
        nudge:'בחלל '+M('c=\\lambda f')+'. יש לכם את אורך הגל מהשלב הקודם — רק זכרו להמיר ננומטרים למטרים.',hint:'f=c/λ — המר nm למטרים: 600nm=600×10⁻⁹m'},
     ]}
@@ -5895,7 +5895,7 @@ const ELECTRO_CONTENT={
      explain:'E=kQ/r²=9×10⁹·0.5×10⁻⁶/0.01=4.5×10⁵ V/m.',
      nudge:'זהו המקרה הבסיסי ביותר בפרק — חוק קולומב מחולק במטען הבוחן.',hint:'E=kQ/r²'},
     {q:'עכשיו אותו מטען על כדור מוליך ברדיוס 5 ס״מ. מה '+M('E')+' באותה נקודה, ב-V/m?',unit:'V/m',answer:'4.5e5',tolerance:1e4,
-     explain:'אותה תשובה בדיוק: הנקודה נמצאת מחוץ לכדור, ומבחוץ כדור מוליך שקול למטען נקודתי במרכזו. הפיזור על פני הכדור אינו משנה דבר כל עוד נשארים בחוץ.',
+     explain:'אותה תשובה בדיוק — 4.5×10⁵ V/m: הנקודה נמצאת מחוץ לכדור, ומבחוץ כדור מוליך שקול למטען נקודתי במרכזו. הפיזור על פני הכדור אינו משנה דבר כל עוד נשארים בחוץ.',
      nudge:'בדקו קודם אם 10 ס״מ נמצא בתוך הכדור או מחוצה לו, ואז היזכרו למה שקול כדור מוליך מבחוץ.',hint:'מבחוץ — כמו מטען נקודתי'},
     {q:'ולבסוף אותו מטען מרוח אחיד על משטח בשטח '+M('1\\,\\text{m}^2')+'. מה '+M('E')+' לידו, ב-V/m?',unit:'V/m',answer:'2.8e4',tolerance:1.5e3,
      explain:'σ=Q/A=5×10⁻⁷ C/m², ולכן E=σ/2ε₀=5×10⁻⁷/(2·8.85×10⁻¹²)=2.8×10⁴ V/m — קטן פי 16 מהמקרה הנקודתי, ו<b>אינו משתנה</b> כלל עם המרחק.',
@@ -6146,6 +6146,18 @@ function simDrag(canvas,dpr,h){
   canvas.addEventListener('touchend',up);canvas.addEventListener('touchcancel',up);
   canvas.style.touchAction='none';canvas.style.cursor='pointer';
 }
+// A draggable point that is not drawn is a draggable point nobody finds. One
+// ring, one dot, sized for a fingertip -- drawn at the hit target itself so the
+// affordance and the hit test can never drift apart.
+function simHandle(ctx,x,y,col,r){
+  if(r===undefined)r=13;
+  ctx.save();
+  ctx.strokeStyle=col;ctx.globalAlpha=.55;ctx.lineWidth=1.6;ctx.setLineDash([4,3]);
+  ctx.beginPath();ctx.arc(x,y,r,0,6.2832);ctx.stroke();
+  ctx.setLineDash([]);ctx.globalAlpha=.95;ctx.fillStyle=col;
+  ctx.beginPath();ctx.arc(x,y,3.2,0,6.2832);ctx.fill();
+  ctx.restore();
+}
 function simSyncSlider(id,val,dec){
   var el=document.getElementById('inp-'+id);if(!el)return;
   var lo=parseFloat(el.min),hi=parseFloat(el.max);
@@ -6255,16 +6267,19 @@ function initSim(id,type){
     // there is no hover and no cursor there. Watch what the simulation
     // registers for, and if it takes the pointer, float a badge over it until
     // the learner touches it once.
-    var _addL=canvas.addEventListener,_takes=false;
+    var _addL=canvas.addEventListener,_takes=false,_drag=false;
     canvas.addEventListener=function(t,f,o){
       if(/^(mouse|touch|pointer)/.test(t))_takes=true;
+      // a canvas that only listens for click is tapped, not dragged, and a
+      // badge telling the learner to drag it is simply wrong
+      if(/^(mousedown|mousemove|pointerdown|touchmove|touchstart)$/.test(t))_drag=true;
       return _addL.call(canvas,t,f,o);};
     setTimeout(function(){
       canvas.addEventListener=_addL;
       if(!_takes||!canvas.parentNode)return;
       var old=canvas.parentNode.querySelector('.sim-hint');if(old)old.remove();
       var h=document.createElement('div');
-      h.className='sim-hint';h.textContent='✋ גררו על התרשים';
+      h.className='sim-hint';h.textContent=_drag?'✋ גררו על התרשים':'👆 הקישו על התרשים';
       canvas.parentNode.appendChild(h);
       var kill=function(){if(h.parentNode)h.remove();};
       canvas.addEventListener('mousedown',kill,{once:true});
@@ -11984,6 +11999,8 @@ function simStaticsTorque(canvas){
     ctx.beginPath();ctx.moveTo(PX,PY);ctx.lineTo(fx,fy);ctx.stroke();ctx.restore();
     slTxt(ctx,'d = '+d.toFixed(3)+' m',(PX+fx)/2,(PY+fy)/2-14,'#f59e0b',12,'center',true);
     simArrow(ctx,a.x,a.y,tip.x,tip.y,'#3b82f6',3.5,13);
+    simHandle(ctx,tip.x,tip.y,'#93c5fd',22);      // drag to set the angle
+    simHandle(ctx,a.x,a.y,'#fbbf24',22);          // drag along the bar
     slTxt(ctx,'F = '+F.toFixed(0)+' N',tip.x+(ux>=0?10:-10),tip.y-8,'#3b82f6',12,ux>=0?'left':'right',true);
     // pivot and r
     ctx.save();ctx.strokeStyle='#94a3b8';ctx.lineWidth=1.5;ctx.setLineDash([3,3]);
@@ -12065,6 +12082,7 @@ function simStaticsBeam(canvas){
     ctx.fillStyle='#3b82f6';ctx.strokeStyle='#93c5fd';ctx.lineWidth=2;
     ctx.beginPath();ctx.rect(xl-22,BY-52,44,42);ctx.fill();ctx.stroke();
     slTxt(ctx,P.toFixed(0)+' N',xl,BY-27,'#fff',12,'center',true);
+    simHandle(ctx,xl,BY-30,'#bfdbfe',28);         // the load is what you drag
     simArrow(ctx,xl,BY-8,xl,BY+26,'#3b82f6',2.5,10);
     // scale
     for(var m=0;m<=L;m++){var x=X0+m*PPM;
@@ -13313,7 +13331,7 @@ function simVecComponents(canvas){
   function onDown(e){
     e.preventDefault();
     var p=getXY(e);
-    if(Math.abs(p.x-CX-vx)<18&&Math.abs(p.y-CY-vy)<18){dragging=true;}
+    if(Math.abs(p.x-CX-vx)<26&&Math.abs(p.y-CY-vy)<26){dragging=true;}
   }
   function onMove(e){
     if(!dragging)return; e.preventDefault();
@@ -13382,6 +13400,7 @@ function simVecComponents(canvas){
 
     // ── Main vector ───────────────────────────────────
     simArrow(ctx,CX,CY,CX+vx,CY+vy,'#60a5fa',3.5,13);
+    simHandle(ctx,CX+vx,CY+vy,'#93c5fd',24);
     // Tip handle
     ctx.save(); ctx.fillStyle=dragging?'#fbbf24':'#60a5fa'; ctx.strokeStyle='#fff'; ctx.lineWidth=2;
     ctx.beginPath(); ctx.arc(CX+vx,CY+vy,10,0,Math.PI*2); ctx.fill(); ctx.stroke(); ctx.restore();
