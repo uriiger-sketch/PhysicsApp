@@ -70,6 +70,36 @@ const t = (name, got, want) => {
   t('every animation scrubs with a drag', noScrub.slice(0, 6).join(' ') || 'none', 'none');
   t('every animation pauses on a drag and toggles on a tap', noPause.slice(0, 6).join(' ') || 'none', 'none');
   t('none of them renders blank', blank.slice(0, 6).join(' ') || 'none', 'none');
+  // Dragging an animation sets its time directly, which only makes sense if the
+  // drawing is a pure function of that time. An animation that accumulates
+  // state instead would show something different at t=6 depending on where it
+  // had been -- so: render at 6, go back to 3, return to 6, compare pixels.
+  const impure = await p.evaluate(async () => {
+    const bad = [];
+    const chapters = [].concat(MECH_CHAPTERS, OPTICS_CHAPTERS, ELECTRO_CHAPTERS);
+    for (const ch of chapters) for (const se of ch.sections) {
+      state.subject = ch.id.startsWith('opt-') ? 'optics' : ch.id.startsWith('elc-') ? 'electro' : 'mechanics';
+      state.chapter = ch.id; state.section = se.id; state.tab = 'theory'; render();
+      await new Promise(r => setTimeout(r, 620));
+      for (const id of Object.keys(_anim)) {
+        const cv = document.getElementById(id), st = _anim[id];
+        if (!cv || !st) continue;
+        st.paused = true;
+        const shot = (t) => { st.t = t; st.prev = null; st.fn(cv, cv.getContext('2d'),
+            cv.offsetWidth || 680, parseInt(cv.style.height) || 140, t);
+          return cv.getContext('2d').getImageData(0, 0, cv.width, cv.height).data.slice(); };
+        const a = shot(6), b2 = shot(3), c2 = shot(6);
+        let diff = 0;
+        for (let i = 3; i < a.length; i += 40) if (a[i] !== c2[i]) diff++;
+        if (diff > 3) bad.push(ch.id + '.' + se.id + '/' + id + ' (' + diff + ')');
+        st.paused = false;
+      }
+    }
+    return bad;
+  });
+  t('every animation is a pure function of its time, so scrubbing is exact',
+    impure.slice(0, 8).join(' ') || 'none', 'none');
+
   // worked examples and enrichment asides fold, and give everything back
   const folds = await p.evaluate(async () => {
     const out = { ex: 0, en: 0, hidden: 0, revealed: 0, lost: 0, chars: [0, 0] };

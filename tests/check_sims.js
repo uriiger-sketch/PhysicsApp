@@ -65,12 +65,14 @@ const t = (name, got, want) => {
         // A sim may take the pointer only on its own handle, so sweep: a coarse
         // grid first, and a fine one only for the canvases that ignored it.
         const sweep = async (nx, ny, wait) => {
+          // reach the bottom strip too: some sims put their controls there
           for (let iy = 0; iy < ny; iy++) for (let ix = 0; ix < nx; ix++) {
-            const x0 = 0.12 + 0.76 * ix / (nx - 1), y0 = 0.12 + 0.76 * iy / (ny - 1);
+            const x0 = 0.10 + 0.80 * ix / (nx - 1), y0 = 0.08 + 0.88 * iy / (ny - 1);
             const before = snap();
             at('mousedown', x0, y0);
             at('mousemove', Math.min(0.93, x0 + 0.12), Math.min(0.93, y0 + 0.10));
             at('mouseup', Math.min(0.93, x0 + 0.12), Math.min(0.93, y0 + 0.10));
+            at('click', x0, y0);       // some sims are tapped, not dragged
             await new Promise(r2 => setTimeout(r2, wait));
             if (diff(before, snap()) > 40) return true;
           }
