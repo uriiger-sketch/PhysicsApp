@@ -100,6 +100,9 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 /* Inline math — always LTR inside RTL text */
 .math-ltr{direction:ltr;display:inline-flex;align-items:center;vertical-align:middle;margin:0 3px;font-size:1.05em;}
 .ltr-run{direction:ltr;unicode-bidi:isolate;}
+.sum-open{background:rgba(96,165,250,.07);border-right:3px solid rgba(96,165,250,.5);
+  border-radius:8px;padding:9px 14px;margin:8px 0 14px;font-size:.9rem;color:#cfe0f0;line-height:1.9;}
+.sum-open b{color:#93c5fd;}
 .tex-fb{font-family:'Cambria Math','Times New Roman',serif;font-size:1.05em;white-space:nowrap;}
 .enrich-formula{direction:ltr;}
 /* Responsive equation sizing */
@@ -1381,6 +1384,12 @@ const CONTENT={
         ['\\Delta x_i','קטע מסלול','ההעתק בכל קטע שבו הגוף לא שינה כיוון, ביחידות מטר'],
         ['|\\Delta x_i|','אורך הקטע','גודל בלבד — הסימן נזרק, ולכן דרך אף פעם לא קטֵנה'],
       ])}
+      <div class="sum-open"><b>איך הסכום הזה נראה בפועל?</b><br>
+        ${M('s = |\\Delta x_1| + |\\Delta x_2| + |\\Delta x_3| + \\ldots')}<br>
+        אדם ההולך ${M('5')} מ׳ קדימה ואז ${M('3')} מ׳ אחורה עשה שני קטעים, ולכן:<br>
+        ${M('s = |{+5}| + |{-3}| = 5 + 3 = 8\\,\\text{m}')}<br>
+        ואילו ההעתק מחבר <b>עם</b> הסימן: ${M('\\Delta x = (+5) + (-3) = +2\\,\\text{m}')}
+      </div>
       <p style="margin-top:6px;color:#94a3b8;font-size:.92em">שימו לב: ${tex('s = |x_2 - x_1|')} נכון <b>רק</b> אם הגוף לא שינה כיוון באמצע. ברגע שיש חזרה — הנוסחה הזו נותנת את ההעתק, לא את הדרך.</p>
       <div class="def-block"><div class="def-title">העתק ${P('\\Delta x','העתק','הפרש המיקומים — יכול להיות שלילי!')}</div>
         <p>${P('\\Delta x','העתק','ההפרש בין מיקום סופי לראשוני, כולל כיוון')} ${tex('= x_2 - x_1')} — הפרש בין מיקום סופי לראשוני, <em>עם כיוון</em>. יכול להיות שלילי!</p>
@@ -1803,6 +1812,10 @@ const CONTENT={
       <div class="def-block"><div class="def-title">חוק ניוטון הראשון</div>
         <p>גוף שסכום הכוחות הפועלים עליו אפסי — ישאר במנוחה (אם היה במנוחה), או ימשיך לנוע בקו ישר במהירות קבועה.</p>
       </div>
+      ${'<div class="sum-open"><b>איך הסכום הזה נראה בפועל?</b><br>'+
+        M('\\Sigma F = F_1 + F_2 + F_3 + \\ldots = 0')+'<br>'+
+        'ספר על שולחן: המשקל מושך מטה ב-'+M('20\\,\\text{N}')+' והנורמל דוחף מעלה ב-'+M('20\\,\\text{N}')+', ולכן '+
+        M('\\Sigma F = (-20) + (+20) = 0')+' — ולכן הוא נשאר במנוחה.</div>'}
       ${fBox('\\sum \\vec{F} = 0 \\implies \\vec{v} = \\text{const}','חוק ניוטון הראשון',[
         ['\\sum \\vec{F}','סכום הכוחות','וקטורי — סכום כל הכוחות על הגוף'],
         ['\\vec{v}','מהירות','קבועה בגודל ובכיוון כאשר ΣF=0'],
@@ -1874,6 +1887,11 @@ const CONTENT={
       ${animCanvas('anim-n2-2',198,'a = F/m')}
       <div class="def-block"><div class="def-title">יחידת כוח — ניוטון (N)</div>
         <p>${tex('1\\,\\text{N} = 1\\,\\text{kg}\\cdot\\text{m/s}^2')} — הכוח הנדרש להאיץ 1 kg ב-1 m/s².</p>
+      </div>
+      <div class="sum-open"><b>איך הסכום הזה נראה בפועל?</b><br>
+        ${M('\\Sigma F = F_1 + F_2 + \\ldots = m\\,a')}<br>
+        מושכים ארגז של ${M('10\\,\\text{kg}')} בכוח ${M('50\\,\\text{N}')} וחיכוך של ${M('20\\,\\text{N}')} מתנגד:<br>
+        ${M('\\Sigma F = (+50) + (-20) = 30\\,\\text{N}')} , ומכאן ${M('a = 30/10 = 3\\,\\text{m/s}^2')}
       </div>
       <p>חוק ניוטון הראשון הוא מקרה פרטי: כאשר ${tex('\\sum F = 0 \\Rightarrow a = 0')} (v=const).</p>
       <div class="info-grid">
@@ -2461,7 +2479,7 @@ const CONTENT={
         <div class="info-item"><div class="il">θ=0°</div><div class="iv">כל הוקטור ב-x</div></div>
         <div class="info-item"><div class="il">θ=90°</div><div class="iv">כל הוקטור ב-y</div></div>
         <div class="info-item"><div class="il">θ=45°</div><div class="iv">${M('v_x=v_y=v/\\sqrt{2}')}</div></div>
-        <div class="info-item"><div class="il">סכום</div><div class="iv">${M('R_x=\\sum A_{xi}')}</div></div>
+        <div class="info-item"><div class="il">סכום</div><div class="iv">${M('R_x=A_{1x}+A_{2x}+\\ldots')}</div></div>
       </div>
     `,
     enrich:{
@@ -3137,7 +3155,12 @@ const CONTENT={
         <p>הכוחות ה<em>פנימיים</em> מבטלים זה את זה בזוגות לפי החוק השלישי, ולכן רק החיצוניים נחשבים.</p>
       </div>
       <div class="mis-block"><b>⚠️ דקדוק שחשוב:</b> התנאי אינו "אין כוחות חיצוניים" אלא "<b>שקולם</b> אפס". על שתי עגלות המתנגשות על שולחן פועלים כל הזמן גם הכובד וגם הכוח הנורמלי — הם פשוט מבטלים זה את זה, ולכן התנע נשמר במדויק בציר האופקי. וגם כשהשקול אינו אפס, אפשר עדיין להשתמש בשימור תנע ב<b>ציר</b> שבו רכיב השקול מתאפס.</div>
-      ${fBox('m_1v_{1i}+m_2v_{2i} = m_1v_{1f}+m_2v_{2f}','שימור תנע לשני גופים',[
+      ${'<div class="sum-open"><b>איך הסכום הזה נראה בפועל?</b><br>'+
+      M('\\Sigma p_{\\text{before}} = \\Sigma p_{\\text{after}}')+' פירושו לחבר את '+M('mv')+' של כל גוף, <b>עם הסימן</b>:<br>'+
+      M('m_1v_1 + m_2v_2 = m_1u_1 + m_2u_2')+'<br>'+
+      'עגלה של '+M('4\\,\\text{kg}')+' ב-'+M('5\\,\\text{m/s}')+' פוגעת בעגלה של '+M('2\\,\\text{kg}')+' במנוחה ונדבקת אליה:<br>'+
+      M('4\\cdot 5 + 2\\cdot 0 = (4+2)\\,v \\Rightarrow v = 20/6 \\approx 3.33\\,\\text{m/s}')+'</div>'}
+    ${fBox('m_1v_{1i}+m_2v_{2i} = m_1v_{1f}+m_2v_{2f}','שימור תנע לשני גופים',[
         ['v_{1i},v_{2i}','מהירויות לפני','m/s'],
         ['v_{1f},v_{2f}','מהירויות אחרי','m/s — פתרון בשתי משוואות'],
       ])}
@@ -3781,6 +3804,11 @@ const CONTENT={
       <p>גוף נקודתי במנוחה דורש ${M('\\Sigma F=0')}. אבל גוף בעל <b>גודל</b> יכול לקיים זאת ובכל זאת להסתובב: שני כוחות שווים והפוכים בקווים שונים מסובבים אותו בלי להזיז את מרכזו.</p>
       <div class="def-block"><div class="def-title">שני תנאי שיווי המשקל</div><p><b>1. ${M('\\Sigma \\vec F = 0')}</b> — אינו מתחיל לנוע.<br>
       <b>2. ${M('\\Sigma \\tau = 0')}</b> — אינו מתחיל להסתובב.</p></div>
+      <div class="sum-open"><b>איך שני הסכומים נראים בפועל?</b><br>
+        כוחות: ${M('\\Sigma F = N_A + N_B - W - F = 0')}<br>
+        מומנטים סביב ציר נבחר: ${M('\\Sigma \\tau = \\tau_1 + \\tau_2 + \\tau_3 = 0')}, כשכל אחד הוא ${M('\\pm F\\cdot d')} לפי כיוון הסיבוב.<br>
+        לקורה שבדוגמה: ${M('N_B\\cdot 4 - 200\\cdot 2 - 300\\cdot 3 = 0')}
+      </div>
       <div class="theory-anim">${animCanvas('anim-eq-couple',200,'זוג כוחות: הסכום אפס — והגוף בכל זאת מסתובב')}</div>
       <p><b>הכלי החזק בנושא:</b> בשיווי משקל ${M('\\Sigma\\tau=0')} סביב <b>כל</b> ציר, גם דמיוני. לכן בוחרים ציר <b>על אחד הנעלמים</b> — הוא נעלם מהמשוואה ונשאר נעלם אחד.</p>
       <div class="ex-block"><div class="ex-title">✏️ דוגמה — קורה על שני משענים</div>
@@ -3845,6 +3873,12 @@ const CONTENT={
     html:`
       <p>כשזרקנו גוף התייחסנו אליו כנקודה. עכשיו אפשר לומר <b>איזו</b>: מרכז המסה נע כאילו כל המסה מרוכזת בו וכל הכוחות פועלים עליו. פטיש שנזרק מסתחרר בפראות — ומרכז המסה שלו מצייר פרבולה מושלמת.</p>
       ${fBox('x_{cm} = \\dfrac{\\Sigma m_i x_i}{\\Sigma m_i}','מרכז מסה',[['x_{cm}','מיקום מרכז המסה','m'],['m_i','המסה '+'i','kg'],['x_i','מיקומה','m']])}
+      <div class="sum-open"><b>איך הסכום הזה נראה בפועל?</b><br>
+        לשני גופים: ${M('x_{cm} = \\dfrac{m_1x_1 + m_2x_2}{m_1+m_2}')}<br>
+        ${M('2\\,\\text{kg}')} ב-${M('x=0')} ו-${M('6\\,\\text{kg}')} ב-${M('x=0.8\\,\\text{m}')}:<br>
+        ${M('x_{cm} = \\dfrac{2\\cdot 0 + 6\\cdot 0.8}{2+6} = \\dfrac{4.8}{8} = 0.6\\,\\text{m}')}<br>
+        קרוב יותר לגוף הכבד — כמו שהיה צריך לצאת.
+      </div>
       <div class="theory-anim">${animCanvas('anim-com-throw',210,'הגוף מסתחרר — ומרכז המסה נע בפרבולה חלקה')}</div>
       <p>מרכז המסה נמשך אל הצד הכבד, ואינו חייב להיות בתוך החומר: של טבעת הוא בחור שבמרכזה.</p>
       <div class="def-block"><div class="def-title">תנאי היציבות</div><p>גוף יציב כל עוד ה<b>אנך ממרכז המסה</b> נופל בתוך <b>בסיס התמיכה</b>. ברגע שיצא ממנו, המשקל מסובב את הגוף החוצה.</p></div>
@@ -5519,7 +5553,11 @@ const ELECTRO_CONTENT={
     <b>U &lt; 0 (מנוגדים):</b> מצב <b>קשור</b> — הפרדה לאינסוף דורשת עבודה של |U|. זה מה שמחזיק אלקטרון סביב גרעין.</div>
     <p><b>הקשר לפוטנציאל:</b> ${M('U = q_2 V_1')} — המטען כפול הפוטנציאל שהשני יוצר בשבילו, ואכן ${M('q_2 \\cdot k q_1/r = k q_1 q_2 / r')}.</p>
     ${animCanvas('anim-elc-upair-t',195,'שחרור זוג מטענים: U הופכת ל-E_k, והסכום קבוע')}
-    <p><b>יותר משניים?</b> סוכמים על ה<b>זוגות</b>: לשלושה מטענים שלושה זוגות, לארבעה כבר שישה.</p>
+    <div class="sum-open"><b>איך הסכום הזה נראה בפועל?</b><br>
+      סוכמים על ה<b>זוגות</b>, לא על המטענים. לשלושה מטענים יש שלושה זוגות:<br>
+      ${M('U_{tot} = U_{12} + U_{13} + U_{23} = k\\dfrac{q_1q_2}{r_{12}} + k\\dfrac{q_1q_3}{r_{13}} + k\\dfrac{q_2q_3}{r_{23}}')}<br>
+      לארבעה מטענים כבר שישה זוגות.
+    </div>
     <div class="ex-block"><div class="ex-title">✏️ דוגמה — לשחרר או להפריד</div>
     <p>q₁=+2 μC ו-q₂=+3 μC במרחק 30 cm.</p>
     <p><b>1.</b> U = 9×10⁹·(2×10⁻⁶)(3×10⁻⁶)/0.3 = <b>+0.18 J</b>.<br>
