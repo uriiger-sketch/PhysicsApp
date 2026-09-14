@@ -74,7 +74,7 @@ const SCAN = `(() => {
   await p.waitForTimeout(800);
   await p.evaluate(() => { if (window.closeOnboarding) closeOnboarding(); });
 
-  const chapters = await p.evaluate(() => [].concat(MECH_CHAPTERS, OPTICS_CHAPTERS, ELECTRO_CHAPTERS)
+  const chapters = await p.evaluate(() => [].concat(MECH_CHAPTERS, OPTICS_CHAPTERS, ELECTRO_CHAPTERS, DC_CHAPTERS)
     .map(c => ({ id: c.id, s: c.sections.map(x => x.id) })));
 
   const bad = {};
@@ -82,7 +82,7 @@ const SCAN = `(() => {
   for (const ch of chapters) for (const se of ch.s) {
     for (const tab of ['theory', 'quiz', 'problem', 'sim']) {
       const hits = await p.evaluate(async ([c, x, tb, scan]) => {
-        state.subject = c.startsWith('opt-') ? 'optics' : c.startsWith('elc-') ? 'electro' : 'mechanics';
+        state.subject = c.startsWith('opt-') ? 'optics' : c.startsWith('elc-') ? 'electro' : c.startsWith('dc-') ? 'circuits' : 'mechanics';
         state.chapter = c; state.section = x; state.tab = tb;
         markCompleted(c, x, 'quiz', 0);
         render();
