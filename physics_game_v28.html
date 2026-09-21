@@ -23461,7 +23461,10 @@ runAnim('anim-elc-cap-t',(cv,ctx,W,H,t)=>{
   ctx.beginPath();ctx.moveTo(bx-46,byC);
   if(dis)ctx.lineTo(bx-34,byC);else ctx.lineTo(bx-37,byC-13);
   ctx.stroke();ctx.restore();
-  oLbl(ctx,dis?'מפסק סגור':'מפסק פתוח',bx-52,byC+24,dis?'#4ade80':'#64748b',8.5);
+  // it is the BYPASS that is open while charging, not the charging loop --
+  // an unqualified "switch open" beside a circuit that is plainly conducting
+  // reads as a contradiction
+  oLbl(ctx,dis?'מסלול פריקה — סגור':'מסלול פריקה — פתוח',bx-44,byC+26,dis?'#4ade80':'#64748b',8.5);
   // electrons: leave the + plate through the top wire, pumped onto the − plate below
   function wirePoint(u,pts){
     var lens=[],tot=0;
@@ -26233,8 +26236,8 @@ function simElcNetwork(canvas){
       ctx.stroke();ctx.restore();
       capSym(W*0.50,yA,'C₁',c1,Q1,V1,'#f87171');
       capSym(W*0.50,yB,'C₂',c2,Q2,V2,'#60a5fa');
-      optLabel(ctx,'= אותו מתח',W*0.86,yA,'#4ade80',9.5);
-      optLabel(ctx,'= אותו מתח',W*0.86,yB,'#4ade80',9.5);
+      optLabel(ctx,'אותו מתח',W*0.88,yA,'#4ade80',9.5);
+      optLabel(ctx,'אותו מתח',W*0.88,yB,'#4ade80',9.5);
       optLabel(ctx,'מקביל — המתח משותף, המטענים מתחברים',W/2,18,'#4ade80',11);
     } else {
       var yT=H*0.26,yB2=H*0.66;
@@ -26246,7 +26249,7 @@ function simElcNetwork(canvas){
       ctx.stroke();ctx.restore();
       capSym(W*0.36,yT,'C₁',c1,Q1,V1,'#f87171');
       capSym(W*0.62,yT,'C₂',c2,Q2,V2,'#60a5fa');
-      optLabel(ctx,'= אותו מטען עובר בשניהם',W*0.49,yT-52,'#4ade80',9.5);
+      optLabel(ctx,'אותו מטען עובר בשניהם',W*0.49,yT-52,'#4ade80',9.5);
       optLabel(ctx,'טור — המטען משותף, המתחים מתחלקים',W/2,18,'#4ade80',11);
     }
     // comparison bars: C_eq against both inputs, so the rule of thumb is visible
@@ -26257,18 +26260,20 @@ function simElcNetwork(canvas){
       ctx.save();ctx.fillStyle='rgba(148,163,184,.12)';ctx.fillRect(BX,y,BW,BH);
       ctx.fillStyle=col;ctx.fillRect(BX,y,BW*Math.min(1,val/scale),BH);
       ctx.strokeStyle='rgba(148,163,184,.35)';ctx.lineWidth=1;ctx.strokeRect(BX,y,BW,BH);ctx.restore();
-      optLabel(ctx,'‎'+lab+' = '+val.toFixed(2)+' μF',BX+78,y+BH/2,col,9);
+      optLabel(ctx,'‎'+lab+' = '+val.toFixed(2)+' μF',BX+BW+10,y+BH/2,col,9.5,'left');
     }
-    bar(0,'C₁',c1,'#f87171'); bar(1,'C₂',c2,'#60a5fa'); bar(2,'C_eq',Ceq,'#fbbf24');
-    optLabel(ctx,series?'בטור: C_eq קטן מהקטן שבשניהם':'במקביל: C_eq גדול מהגדול שבשניהם',
+    bar(0,'C₁',c1,'#f87171'); bar(1,'C₂',c2,'#60a5fa'); bar(2,'C',Ceq,'#fbbf24');
+    optLabel(ctx,series?'בטור: הקיבול השקול קטן מהקטן שבשניהם':'במקביל: הקיבול השקול גדול מהגדול שבשניהם',
              BX+BW/2,BY+68,'#a78bfa',9.5);
     // Panel moved to the free right-hand column: at H-150 it sat on top of the
     // comparison bars. LTR marks keep "1/C_eq" from being reordered by bidi.
     optInfoBox(ctx,W-232,H*0.30,224,[
-      series?'‎1/C_eq = 1/C₁ + 1/C₂':'‎C_eq = C₁ + C₂',
-      '‎C_eq = '+Ceq.toFixed(2)+' μF',
-      series?('‎Q = '+Q1.toFixed(1)+' μC  (משותף)'):('‎Q = '+(Q1+Q2).toFixed(1)+' μC  (כולל)'),
-      '‎U = ½C_eq·V² = '+U.toFixed(1)+' μJ']);
+      series?'הקיבול השקול:':'הקיבול השקול:',
+      series?'‎1/C = 1/C₁ + 1/C₂':'‎C = C₁ + C₂',
+      '‎C = '+Ceq.toFixed(2)+' μF',
+      series?'המטען המשותף:':'המטען הכולל:',
+      '‎Q = '+(series?Q1:(Q1+Q2)).toFixed(1)+' μC',
+      '‎U = ½CV² = '+U.toFixed(1)+' μJ']);
     requestAnimationFrame(draw);
   }requestAnimationFrame(draw);
 }

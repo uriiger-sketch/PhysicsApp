@@ -303,6 +303,10 @@ const S = p => p.evaluate(() => JSON.parse(JSON.stringify(_sl.st, (k, v) =>
   t('  and it is exactly Δx/Δt', cd.va, cd.xend / cd.d, 0.01);
   t('inside the coast the chord matches the tangents', Math.abs(cd.cv - cd.ca) < 0.02, true);
   t('  where the phone moved at ~0.4 m/s', cd.cv, 0.4, 0.06);
+  // st.xr is the marker rail's hit box, and it only exists once the lab has
+  // painted a frame. Without this wait the next step reads it off an unpainted
+  // canvas every few runs and throws.
+  await p.waitForFunction(() => window._sl && _sl.st && _sl.st.xr, null, { timeout: 8000 });
   t('dragging marker 2 leaves marker 1 alone', await p.evaluate(() => {
     const st = _sl.st, r = st.xr, I = SL_IMPL['avg-inst'];
     st.m1 = 0.2; st.m2 = 0.8;
