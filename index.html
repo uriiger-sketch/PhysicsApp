@@ -5797,7 +5797,7 @@ const ELECTRO_CONTENT={
     ${fBox('C = \\dfrac{Q}{V}','הגדרת הקיבול',[['C','הקיבול','F (פאראד = C/V)'],['Q','המטען על כל לוח (±Q)','C'],['V','המתח בין הלוחות','V']])}
     ${fBox('C = \\dfrac{\\varepsilon_0 A}{d}','קבל לוחות מקבילים',[['\\varepsilon_0','חדירות הריק','8.85×10⁻¹² F/m'],['A','שטח לוח','m²'],['d','המרווח','m']])}
     ${fBox('U = \\tfrac{1}{2}CV^2 = \\dfrac{Q^2}{2C}','האנרגיה האגורה')}
-    <p>לוחות גדולים אוגרים יותר מטען ומרווח קטן מאפשר לדחוס יותר — מכאן ${M('C=\\varepsilon_0A/d')}. פאראד אחד הוא ענק; קבלים אמיתיים הם pF עד mF.</p>
+    <p>זהו בדיוק ה<b>זוג המישורים</b> מהסעיף על מישור אינסופי: שני מישורים במטענים מנוגדים כולאים ביניהם שדה אחיד ${M('E=\\sigma/\\varepsilon_0')} ומאפסים אותו בחוץ. מכאן הכול נובע: ${M('V=Ed=\\sigma d/\\varepsilon_0')} ועם ${M('\\sigma=Q/A')} מתקבל ${M('C=Q/V=\\varepsilon_0A/d')} — לוח גדול אוגר יותר, ומרווח קטן דוחס יותר. פאראד אחד הוא ענק; קבלים אמיתיים הם pF עד mF.</p>
     <div class="mis-block"><b>⚠️ טעות נפוצה:</b> "אעלה את V והקיבול יגדל — הרי C=Q/V". V עולה, Q עולה באותו יחס, והמנה קבועה. ${M('C')} נקבע <b>מהגאומטריה ומהחומר בלבד</b>; ${M('C=Q/V')} מלמדת איך מודדים, לא ממה נקבע.</div>
     <div class="def-block"><b>דיאלקטרן:</b> מבודד בין הלוחות מקטב ומחליש את השדה הפנימי ⇒ הקיבול גדל פי ${M('\\kappa')}. נייר ${M('\\kappa\\approx3.7')}, מים ${M('\\kappa\\approx80')}.</div>
     ${animCanvas('anim-elc-diel-t',200,'קיטוב → מטען כבול → שדה מנוגד → E קטן פי κ ולכן C גדל פי κ')}
@@ -5813,7 +5813,7 @@ const ELECTRO_CONTENT={
     <p><b>המסך שאתם נוגעים בו</b> הוא רשת קבלים זעירים: אצבע מוליכה משנה את הקיבול המקומי והבקר מאתר את המגע. כפפה מבודדת כמעט אינה משנה את ${M('C')}, ולכן אינה עובדת.</p>
     <div class="enrich-card"><div class="enrich-title">מהדפיברילטור ועד ה-DRAM</div>
       <p>דפיברילטור טוען ~100 μF ל-2000 V (200 J) ומשחרר בפעימה, וכל ביט ב-DRAM הוא קבל מיקרוסקופי: טעון=1, ריק=0.</p></div>
-    <div class="theory-anim">${animCanvas('anim-elc-cap-t',170,'טעינת קבל — מטען מצטבר, שדה נבנה, אנרגיה נאגרת')}</div>`,
+    <p><b>וכיצד הוא נטען?</b> כאן דיברנו על הקבל כעל <b>אובייקט</b>: שני מישורים, שדה ביניהם, מטען ואנרגיה. מה קורה כשמחברים אותו לסוללה דרך נגד — הזרם שדועך, קבוע הזמן ${M('\\tau=RC')} — הוא שאלה של <b>מעגל</b>, ומקומה בפרק מעגלי זרם ישר.</p>`,
   },
   sim:{type:'elc-cap',desc:'גררו את הלוח לשינוי d, שנו שטח ומתח והכניסו דיאלקטרן. נתקו מהסוללה: Q ננעל, גרירה מעלה את V ואת U — ו-E נשאר קבוע.'},
   example:{title:'קבל לוחות',text:'קבל עם A=0.02 m², d=1 mm, מחובר ל-9 V.',steps:[
@@ -6476,6 +6476,7 @@ const DC_CONTENT={
       <b>אחרי זמן רב</b> הוא טעון, אינו מעביר זרם, ומתנהג כמו <b>נתק</b>.<br>
       קצב המעבר נקבע מ-${M('\\tau=RC')}, כאשר ${M('R')} היא ההתנגדות ה<b>נראית מהדקי הקבל</b> (במעגל שלנו ${M('R_1\\parallel R_2')}, ולא נגד יחיד). אחרי ${M('\\tau')} הקבל הגיע לכ-63% מהמתח הסופי, ואחרי ${M('5\\tau')} הוא שם למעשה.</p>
     </div>
+    ${animCanvas('anim-dc-charge',175,'טעינה: הזרם מתחיל גדול ודועך · פריקה: אותו סיפור בכיוון ההפוך')}
     <div class="ex-block"><div class="ex-title">✏️ דוגמה — קבל על נגד</div>
     <p>${M('12')} V, ${M('R_1=4')} Ω בטור עם ${M('R_2=8')} Ω, וקבל ${M('C=10\\,\\mu F')} מחובר במקביל ל-${M('R_2')}.</p>
     <p><b>1. מוחקים את הקבל:</b> ${M('I=12/12=1')} A.<br>
@@ -18187,12 +18188,19 @@ runAnim('anim-dc-cap',(canvas,ctx,W,H,t)=>{
   ctx.beginPath();ctx.moveTo(nx-15,cyT);ctx.lineTo(nx+15,cyT);
   ctx.moveTo(nx-15,cyB);ctx.lineTo(nx+15,cyB);ctx.stroke();ctx.restore();
   dcFlow(ctx,[[L,B],[L,T],[nx,T]],t,0.055*I1,'#fbbf24',6);
-  dcFlow(ctx,[[nx,T],[Rt,T],[Rt,B],[nx,B]],t,0.055*Math.max(0.05,I2),'#a78bfa',7);
-  if(Ic>0.06)dcFlow(ctx,[[nx,B],[nx,cyB]],t,0.32*Ic,'#f472b6',2);
+  dcFlow(ctx,[[nx,T],[Rt,T],[Rt,B],[nx,B],[L,B]],t,0.055*Math.max(0.05,I2),'#a78bfa',9);
+  if(Ic>0.06){
+    dcFlow(ctx,[[nx,T],[nx,cyT]],t,0.32*Ic,'#f472b6',2);     // into the + plate
+    dcFlow(ctx,[[nx,cyB],[nx,B]],t,0.32*Ic,'#f472b6',2);     // out of the − plate
+  }
   const nq=Math.round(f*5);
-  for(let q=0;q<nq;q++){
-    label(ctx,'+',nx-12+q*6,cyT-7,'#f87171',10);
-    label(ctx,'−',nx-12+q*6,cyB+12,'#60a5fa',10);
+  if(nq){
+    ctx.save();ctx.fillStyle='rgba(2,10,20,.9)';
+    ctx.fillRect(nx-17,cyT-14,34,12);ctx.fillRect(nx-17,cyB+4,34,12);ctx.restore();
+    for(let q=0;q<nq;q++){
+      label(ctx,'+',nx-12+q*6,cyT-7,'#f87171',10);
+      label(ctx,'−',nx-12+q*6,cyB+12,'#60a5fa',10);
+    }
   }
   // three currents, each with its own bar, so the dying one is unmistakable
   const bx=W*0.82, bw=W*0.14;
@@ -23407,7 +23415,7 @@ runAnim('anim-elc-plates-t',(cv,ctx,W,H,t)=>{
 });
 
 // ── 6. Capacitor charging: electron current through the battery, Q builds up, U=½CV² ──
-runAnim('anim-elc-cap-t',(cv,ctx,W,H,t)=>{
+runAnim('anim-dc-charge',(cv,ctx,W,H,t)=>{
   ctx.clearRect(0,0,W,H);
   var cx=W*0.55, py0=H*0.28, py1=H*0.72;
   // 6s charge · 2s hold · 4s discharge — the capacitor no longer teleports
@@ -23489,22 +23497,22 @@ runAnim('anim-elc-cap-t',(cv,ctx,W,H,t)=>{
     ctx.restore();
   }
   // Q and U bars — note U ∝ Q² (U=Q²/2C)
-  var bx2=W*0.82;
+  var bx2=W-100;
   ctx.save();
   ctx.fillStyle='rgba(148,163,184,.12)';ctx.fillRect(bx2,30,26,H-70);
   ctx.fillStyle='#38bdf8';ctx.fillRect(bx2,30+(H-70)*(1-q),26,(H-70)*q);
-  ctx.fillStyle='rgba(148,163,184,.12)';ctx.fillRect(bx2+34,30,26,H-70);
-  ctx.fillStyle='#f472b6';ctx.fillRect(bx2+34,30+(H-70)*(1-q),26,(H-70)*q);   // V=Q/C ∝ Q
-  ctx.fillStyle='rgba(148,163,184,.12)';ctx.fillRect(bx2+68,30,26,H-70);
-  ctx.fillStyle='#a78bfa';ctx.fillRect(bx2+68,30+(H-70)*(1-q*q),26,(H-70)*q*q);
+  ctx.fillStyle='rgba(148,163,184,.12)';ctx.fillRect(bx2+33,30,26,H-70);
+  ctx.fillStyle='#f472b6';ctx.fillRect(bx2+33,30+(H-70)*(1-q),26,(H-70)*q);   // V=Q/C ∝ Q
+  ctx.fillStyle='rgba(148,163,184,.12)';ctx.fillRect(bx2+66,30,26,H-70);
+  ctx.fillStyle='#a78bfa';ctx.fillRect(bx2+66,30+(H-70)*(1-q*q),26,(H-70)*q*q);
   ctx.strokeStyle='rgba(148,163,184,.4)';
-  ctx.strokeRect(bx2,30,26,H-70);ctx.strokeRect(bx2+34,30,26,H-70);ctx.strokeRect(bx2+68,30,26,H-70);
+  ctx.strokeRect(bx2,30,26,H-70);ctx.strokeRect(bx2+33,30,26,H-70);ctx.strokeRect(bx2+66,30,26,H-70);
   ctx.restore();
   oLbl(ctx,'Q',bx2+13,H-28,'#38bdf8',11);
-  oLbl(ctx,'V',bx2+47,H-28,'#f472b6',11);
-  oLbl(ctx,'U',bx2+81,H-28,'#a78bfa',11);
+  oLbl(ctx,'V',bx2+46,H-28,'#f472b6',11);
+  oLbl(ctx,'U',bx2+79,H-28,'#a78bfa',11);
   oLbl(ctx,dis?'פריקה: המטען זורם חזרה — U יורדת כריבוע (U∝Q²), מהר מ-Q ומ-V':(cyc<6?'טעינה: הסוללה שואבת אלקטרונים מלוח אחד ודוחפת אל השני — הזרם דועך':'הקבל טעון: Q=CV,  U=½CV²  — שימו לב ש-U גדלה כריבוע'),W/2,12,'#94a3b8',11);
-  oLbl(ctx,'C=ε₀A/d — בין הלוחות נבנה שדה אחיד E=V/d',cx,H-8,'#a78bfa',10);
+  oLbl(ctx,'קצב הכול נקבע מקבוע הזמן τ=RC — לא מהקיבול לבדו',cx-30,H-8,'#a78bfa',10);
 });
 
 // ── 9. Conductor reaching electrostatic equilibrium ──
@@ -25065,31 +25073,50 @@ function simDcMixed(canvas){
     var r23=r2*r3/(r2+r3), Req=r1+r23, I=v/Req, v1=I*r1, v23=I*r23, i2=v23/r2, i3=v23/r3;
     var bg=ctx.createLinearGradient(0,0,0,H);bg.addColorStop(0,'#020810');bg.addColorStop(1,'#04101e');
     ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);
-    var L=W*0.12,Rt=W*0.88,T=H*0.18,B=H*0.50,mx=W*0.52;
+    // The old drawing put R₃ on the RETURN rail and ran a wire from the split
+    // node straight back to the battery, which shorts R₁ across the source and
+    // leaves R₂ and R₃ hanging off a dead end — a different circuit from the one
+    // being solved. The parallel pair now sits on its own two rails between the
+    // split node and the merge node, and the return rail carries no components.
+    var L=W*0.12,Rt=W*0.84,T=H*0.17,MY=H*0.36,B=H*0.54,mx=W*0.50;
     ctx.save();ctx.strokeStyle='#64748b';ctx.lineWidth=2.5;
-    ctx.beginPath();ctx.rect(L,T,Rt-L,B-T);ctx.stroke();ctx.restore();
+    ctx.beginPath();
+    ctx.moveTo(L,T);ctx.lineTo(L,B);                       // battery rail
+    ctx.moveTo(L,T);ctx.lineTo(mx,T);                      // supply, through R₁
+    ctx.moveTo(L,B);ctx.lineTo(Rt,B);                      // return rail, no components
+    ctx.moveTo(Rt,T);ctx.lineTo(Rt,B);                     // merge node down to the return
+    ctx.stroke();ctx.restore();
     dcRes(ctx,L+(mx-L)*0.55,T,58,26,r1.toFixed(0)+' Ω','#38bdf8',I*I*r1/70);
-    dcFlow(ctx,[[L,B],[L,T],[mx,T]],t,Math.min(.6,I*0.1),'#fbbf24',8);
+    dcFlow(ctx,[[Rt,B],[L,B],[L,T],[mx,T]],t,Math.min(.6,I*0.1),'#fbbf24',12);
     if(stage===1){
-      // the parallel pair, collapsed into one box
+      // the parallel pair, collapsed into one box on the same rail
+      ctx.save();ctx.strokeStyle='#64748b';ctx.lineWidth=2.5;
+      ctx.beginPath();ctx.moveTo(mx,T);ctx.lineTo(Rt,T);ctx.stroke();ctx.restore();
       dcRes(ctx,(mx+Rt)/2,T,72,28,r23.toFixed(2)+' Ω','#f472b6',0);
       simText(ctx,'R₂∥R₃',(mx+Rt)/2,T-22,'#f472b6',10,'center',true);
-      dcFlow(ctx,[[mx,T],[Rt,T],[Rt,B],[L,B]],t,Math.min(.6,I*0.1),'#fbbf24',10);
+      dcFlow(ctx,[[mx,T],[Rt,T]],t,Math.min(.6,I*0.1),'#fbbf24',6);
+      dcFlow(ctx,[[Rt,T],[Rt,B]],t,Math.min(.6,I*0.1),'#fbbf24',4);
     } else {
       ctx.save();ctx.strokeStyle='#64748b';ctx.lineWidth=2;
-      ctx.beginPath();ctx.moveTo(mx,T);ctx.lineTo(mx,B);ctx.moveTo(Rt,T);ctx.lineTo(Rt,B);ctx.stroke();
-      ctx.fillStyle='#e2e8f0';[[mx,T],[mx,B],[Rt,T],[Rt,B]].forEach(function(q){
+      ctx.beginPath();
+      ctx.moveTo(mx,T);ctx.lineTo(Rt,T);                   // upper branch, R₂
+      ctx.moveTo(mx,T);ctx.lineTo(mx,MY);                  // split node down
+      ctx.moveTo(mx,MY);ctx.lineTo(Rt,MY);                 // lower branch, R₃
+      ctx.stroke();
+      ctx.fillStyle='#e2e8f0';[[mx,T],[Rt,T],[Rt,MY]].forEach(function(q){
         ctx.beginPath();ctx.arc(q[0],q[1],3.4,0,6.2832);ctx.fill();});ctx.restore();
       dcRes(ctx,(mx+Rt)/2,T,58,26,r2.toFixed(0)+' Ω','#a78bfa',i2*i2*r2/70);
-      dcRes(ctx,(mx+Rt)/2,B,58,26,r3.toFixed(0)+' Ω','#34d399',i3*i3*r3/70);
+      dcRes(ctx,(mx+Rt)/2,MY,58,26,r3.toFixed(0)+' Ω','#34d399',i3*i3*r3/70);
       dcFlow(ctx,[[mx,T],[Rt,T]],t,Math.min(.9,i2*0.14),'#a78bfa',5);
-      dcFlow(ctx,[[mx,B],[Rt,B]],t,Math.min(.9,i3*0.14),'#34d399',5);
+      dcFlow(ctx,[[mx,T],[mx,MY],[Rt,MY]],t,Math.min(.9,i3*0.14),'#34d399',6);
+      // the right rail is where the two branch currents merge again
+      dcFlow(ctx,[[Rt,MY],[Rt,B]],t,Math.min(.6,I*0.1),'#fbbf24',4);
       if(stage===2){
         simText(ctx,'I₂ = '+i2.toFixed(2)+' A',(mx+Rt)/2,T-22,'#a78bfa',10,'center',true);
-        simText(ctx,'I₃ = '+i3.toFixed(2)+' A',(mx+Rt)/2,B+24,'#34d399',10,'center',true);
+        simText(ctx,'I₃ = '+i3.toFixed(2)+' A',(mx+Rt)/2,MY+26,'#34d399',10,'center',true);
       }else{
         simText(ctx,'?',(mx+Rt)/2,T-22,'#475569',11,'center',true);
-        simText(ctx,'?',(mx+Rt)/2,B+24,'#475569',11,'center',true);
+        simText(ctx,'?',(mx+Rt)/2,MY+26,'#475569',11,'center',true);
       }
     }
     dcBatt(ctx,L,(T+B)/2,v.toFixed(1)+' V');
@@ -25476,8 +25503,11 @@ function simDcCap(canvas){
     if(Iin>1e-6)dcFlow(ctx,[[L,Bm],[L,T],[nx,T]],tt,Math.min(.5,Iin*900),'#fbbf24',8);
     if(I2>1e-6){dcFlow(ctx,[[nx,T],[r2x,T],[r2x,Bm]],tt,Math.min(.5,I2*900),'#a78bfa',6);
       dcFlow(ctx,[[r2x,Bm],[L,Bm]],tt,Math.min(.5,I2*900),'#a78bfa',6);}
-    if(Math.abs(Ic)>1e-6)dcFlow(ctx,Ic>0?[[nx,Bm],[nx,cyB]]:[[nx,cyB],[nx,Bm]],
-      tt,Math.min(1.1,Math.abs(Ic)*900),'#f472b6',3);
+    if(Math.abs(Ic)>1e-6){
+      var _up=Ic<0;                                   // discharging: back up into the − plate
+      dcFlow(ctx,_up?[[nx,cyT],[nx,T]]:[[nx,T],[nx,cyT]],tt,Math.min(1.1,Math.abs(Ic)*900),'#f472b6',2);
+      dcFlow(ctx,_up?[[nx,Bm],[nx,cyB]]:[[nx,cyB],[nx,Bm]],tt,Math.min(1.1,Math.abs(Ic)*900),'#f472b6',2);
+    }
     // charge piled on the plates -- the thing that actually stops the current --
     // painted after the flowing charges so it is never hidden behind one
     var nq=Math.round(Math.min(1,Vfin>0?Vc/Vfin:0)*5);
