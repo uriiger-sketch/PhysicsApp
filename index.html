@@ -1222,17 +1222,26 @@ function initFolds(){
   host.querySelectorAll('.ex-block').forEach(function(bx){
     if(bx.dataset.fold)return;
     var kids=Array.prototype.slice.call(bx.children);
-    var i=kids.findIndex(function(e){return e.tagName==='P';});
-    // the first paragraph is the question; everything after it is the answer
-    if(i<0||kids.length<=i+1)return;
-    fold(bx,kids.slice(i+1),'🔍 הצג פתרון','🙈 הסתר פתרון');
+    var ti=kids.findIndex(function(e){return /ex-title/.test(e.className||'');});
+    var i=kids.findIndex(function(e,k){return k>ti&&e.tagName==='P';});
+    if(i<0)return;
+    // Normally the first paragraph states the question and the rest is the
+    // answer. Where the whole worked example is ONE paragraph the title carries
+    // the question, so that paragraph is the answer -- and those four examples
+    // used to sit permanently open because there was nothing "after" it.
+    var rest=kids.length>i+1?kids.slice(i+1):kids.slice(i);
+    if(!rest.length)return;
+    fold(bx,rest,'🔍 הצג פתרון','🙈 הסתר פתרון');
   });
   host.querySelectorAll('.enrich-card').forEach(function(bx){
     if(bx.dataset.fold)return;
     var kids=Array.prototype.slice.call(bx.children);
-    var i=kids.findIndex(function(e){return e.className==='enrich-title';});
-    if(i<0||kids.length<=i+1)return;
-    fold(bx,kids.slice(i+1),'✨ קראו עוד','✕ סגירה');
+    // match on the class NAME, not on the whole class string, so a card whose
+    // title carries an extra class is still folded away
+    var i=kids.findIndex(function(e){return /enrich-title/.test(e.className||'');});
+    var rest=i<0?kids.slice(0):kids.slice(i+1);
+    if(!rest.length)return;
+    fold(bx,rest,'✨ קראו עוד','✕ סגירה');
   });
   function fold(bx,rest,show,hide){
     bx.dataset.fold='1';
@@ -1766,7 +1775,7 @@ const CONTENT={
   quiz:[
     {q:'ברגע הפסגה של כדור שנזרק מעלה:',
      opts:['v=0 וגם a=0','v=0 אך a=-g','v≠0 ו-a=0','a=+g'],correct:1,
-     explain:'ברגע הפסגה v=0 (הגוף עוצר רגע), אבל התאוצה עדיין '+tex('a = -g = -9.8\\,\\text{m/s}^2')+'!'},
+     explain:'ברגע הפסגה v=0 (הגוף עוצר רגע), אבל התאוצה עדיין '+tex('a = -g')+' כלפי מטה, בדיוק כמו בכל רגע אחר בתעופה — אפס מהירות אינו אפס תאוצה. (שאר הסעיף עובד ב-g=10, ולכן לא נקבנו כאן בערך.)'},
     {q:'כדור נופל '+tex('h=45\\,\\text{m}')+' ממנוחה ('+tex('g=10')+' m/s²). זמן הנפילה?',
      opts:[tex('3\\,\\text{s}'),tex('4.5\\,\\text{s}'),tex('\\sqrt{45}\\,\\text{s}'),tex('6.7\\,\\text{s}')],correct:0,
      explain:tex('h = \\tfrac12 g t^2 \\Rightarrow t = \\sqrt{2h/g} = \\sqrt{9} = 3\\,\\text{s}')},
@@ -5206,7 +5215,9 @@ const OPTICS_CONTENT={
     {q:'בועת סבון (n=1.33, t=100nm). m=0 בנייה: λ=?',opts:['266nm','532nm','400nm','133nm'],correct:1,explain:'בהחזרה מקרום סבון יש היפוך פאזה אחד (במשטח העליון בלבד), ולכן תנאי הבנייה הוא 2nt=(m+½)λ. עבור m=0: λ=4nt=4×1.33×100=532nm — אור ירוק.',formula:'λ=4nt/(2m+1)'},
     {q:'ציפוי AR (anti-reflection) פועל ע"י:',opts:['בליעה','התאבכות קיטוע בין קרן 1 ו-2','החזרה פנימית מלאה','עקיפה'],correct:1,explain:'שתי קרניות מוחזרות (מקדמי ואחורי) מתאבכות הרסנית. הגל המוחזר מתבטל → כל האור עובר. הנדסה של עובי לλ/4.',formula:'2nt=mλ (קיטוע)'},
     {q:'מדוע עדשות מצלמה צבעוניות (סגול)?',opts:['פיגמנט','ציפוי AR מבטל ירוק → אדום+כחול=ורוד/סגול נשאר','חלודה','יצרן שרירותי'],correct:1,explain:'ציפוי AR מכוין לירוק (550nm). אדום+כחול לא מבוטלים לחלוטין → משתקפים → ורוד/סגול. זה סימן שהעדשה מצופה!',formula:''},
-    {q:'שכבת שמן (n=1.45) t=200nm. הצבע הנראה ב-θ=0?',opts:['לא נראה','כחול ~464nm','ירוק ~580nm','UV'],correct:1,explain:'4nt/(2m+1): m=0 → 4(1.45)(200)=1160nm (IR). m=1 → 1160/3=387nm (UV). m=2 → 1160/5=232nm. קרוב לנראה: 387nm (סגול-UV, קצה). עשוי להראות סגול כהה.',formula:'λ=4nt/(2m+1)'},
+    {q:'שכבת שמן (n=1.45) בעובי t=200nm על מים. מה ייראה בהחזרה במבט ניצב?',
+     opts:['אדום ~700nm','סגול עמוק ~387nm — בקצה הנראה בלבד','ירוק ~580nm','כחול ~464nm'],correct:1,
+     explain:'באוויר→שמן יש היפוך פאזה, ובשמן→מים אין (n יורד) — היפוך אחד בלבד, ולכן תנאי הבנייה הוא λ=4nt/(2m+1). כאן 4nt=1160nm: m=0 נותן 1160nm (אינפרה-אדום, לא נראה), m=1 נותן 387nm — סגול בקצה הנראה — ו-m=2 כבר 232nm (על-סגול). לכן כתם בעובי כזה כמעט חסר צבע ונוטה לסגול כהה; הצבעים העזים מופיעים רק בטווח עוביים שבו אחד הסדרים נופל באמצע הנראה.',formula:'λ=4nt/(2m+1)'},
     {q:'קרום סבון מתנקז, והחלק העליון נעשה דק מאוד. הוא נראה <b>שחור</b> רגע לפני שהוא נקרע. מדוע?',
      opts:['הסבון נגמר שם','כש-'+tex('t\\to0')+' הפרש הדרכים מתאפס, אך היפוך הפאזה נשאר — ולכן קיטוע לכל אורכי הגל','האור נבלע','הקרום נעשה שקוף'],correct:1,
      explain:'כשהעובי זניח שתי הקרניים עוברות אותו מסלול, אך אחת קיבלה היפוך פאזה בפני השטח — ולכן הן מבטלות זו את זו ב<b>כל</b> אורכי הגל בבת אחת. בלי ההיפוך הקרום היה נראה שם לבן בוהק.'},
@@ -5253,7 +5264,7 @@ const OPTICS_CONTENT={
     {q:'סריג 500 חריצים/מ"מ, λ=500nm. זווית סדר 1?',opts:['14.5°','30°','45°','90°'],correct:0,explain:'d=1/500mm=2000nm. sinθ=500/2000=0.25 → θ=arcsin(0.25)≈14.48°.',formula:'d sinθ=mλ'},
     {q:'בסריג, אדום (700nm) ↔ כחול (400nm) — מי בזווית גדולה יותר בסדר 1?',opts:['כחול','אדום','שווה','תלוי בסריג'],correct:1,explain:'sinθ=mλ/d: λ גדול → θ גדול. אדום (700nm) יוצא בזווית גדולה יותר! הפוך מפריזמה שם כחול נשבר יותר.',formula:'sinθ=λ/d'},
     {q:'מה קורה בסדר m=0?',opts:['ספקטרום מלא','קרן לבנה ישר קדימה','לא קיים','החזרה מלאה'],correct:1,explain:'m=0: sinθ=0 → θ=0 לכל λ. כל הצבעים יוצאים ישר קדימה — קרן לבנה. אין פיזור בסדר 0.',formula:'m=0 → θ=0'},
-    {q:'כדי לקבל ספקטרום בסדר 2 של λ=700nm, d=2μm. אפשרי?',opts:['כן','לא — sin>1','רק אם θ<45°','צריך λ קצר יותר'],correct:1,explain:'sinθ=mλ/d=2×700/2000=0.7 → θ=44°. אפשרי! אבל אם sinθ>1 (בלתי אפשרי פיזיקלית) — הסדר לא קיים.',formula:'בדוק אם sinθ=mλ/d ≤ 1'},
+    {q:'כדי לקבל ספקטרום בסדר 2 של λ=700nm, d=2μm. אפשרי?',opts:['כן','לא — sin>1','רק אם θ<45°','צריך λ קצר יותר'],correct:0,explain:'כן. sinθ=mλ/d=2×700/2000=0.7 ⇒ θ≈44° — זווית חוקית לגמרי. סדר נופל רק כאשר החישוב נותן sinθ>1, ואין זווית שתענה עליו: כאן זה יקרה כבר בסדר 3, שכן 3×700/2000=1.05.',formula:'בדוק אם sinθ=mλ/d ≤ 1'},
     {q:'מהו הסדר המרבי הנצפה בסריג?',
      opts:['אין גבול','הגדול ביותר המקיים '+tex('m\\lambda/d\\leq1'),'תמיד 3','תלוי בעוצמת האור'],correct:1,
      explain:tex('\\sin\\theta=m\\lambda/d')+' ו-'+tex('\\sin\\theta')+' אינו יכול לעבור 1, ולכן '+tex('m_{\\max}=\\lfloor d/\\lambda\\rfloor')+'. סריג צפוף (‎d קטן) נותן פיזור זוויתי גדול אך פחות סדרים — ואם '+tex('d<\\lambda')+' נשאר רק הסדר המרכזי.'},
@@ -28499,6 +28510,15 @@ function initSensorLab(key){
   simText(ctx,'לחצו ▶ כדי להתחיל למדוד',W/2,H/2,slCss('--muted','#889'),12.5,'center',true);
 }
 
+function _ltSafe(s){
+  if(typeof s!=='string'||s.indexOf('<')<0)return s;
+  // a genuine tag is <name ...> or </name> with nothing but attribute text
+  // between the name and the closing bracket
+  return s.replace(/</g,function(m,i){
+    var rest=s.slice(i);
+    return /^<\/?[A-Za-z][A-Za-z0-9]*(\s[^<>]*)?>/.test(rest)?'<':'&lt;';
+  });
+}
 function buildTheory(th){
   if(!th)return '';
   // The sensor lab is the last card on the page, so say up front that it is
@@ -28510,7 +28530,7 @@ function buildTheory(th){
   const _sec=(getChapters().find(ch=>ch.id===state.chapter)||{sections:[]})
     .sections.find(s=>s.id===state.section);
   const _ttl=th.title||(_sec&&_sec.title)||'';
-  let html=`<div class="theory-card"><h3>${_ttl}</h3>${_flag}${th.html}</div>`;
+  let html=`<div class="theory-card"><h3>${_ttl}</h3>${_flag}${_ltSafe(th.html)}</div>`;
   if(th.enrich){
     html+=`<div class="enrich-card"><div class="enrich-title">${th.enrich.title}</div>${th.enrich.html}</div>`;
   }
@@ -28705,7 +28725,7 @@ function buildQuiz(qs){
   const lets=['א','ב','ג','ד'];
   const qv=quizView(q);
   const opts=qv.opts.map((o,oi)=>{let cls='';if(ans){if(oi===qv.correct)cls='correct';else if(oi===st.ans[qi])cls='wrong';}
-    return`<button class="quiz-opt${cls?' '+cls:''}"${ans?' disabled':''} onclick="answerQuiz(${oi})"><span class="quiz-opt-letter">${lets[oi]}</span>${o}</button>`;
+    return`<button class="quiz-opt${cls?' '+cls:''}"${ans?' disabled':''} onclick="answerQuiz(${oi})"><span class="quiz-opt-letter">${lets[oi]}</span>${_ltSafe(o)}</button>`;
   }).join('');
   // Hint button (if question has a hint and not answered yet, costs 5 XP)
   var hintKey=state.chapter+'.'+state.section+'.'+qi;
@@ -28715,15 +28735,15 @@ function buildQuiz(qs){
     hintHTML='<button class="quiz-hint-btn" onclick="showQuizHint('+qi+')">💡 רמז (−5 XP)</button>';
   }
   if(q.hint&&hintShown){
-    hintHTML='<div class="quiz-hint-box">💡 '+q.hint+'</div>';
+    hintHTML='<div class="quiz-hint-box">💡 '+_ltSafe(q.hint)+'</div>';
   }
   const fb=ans?`<div class="quiz-feedback${st.ans[qi]===qv.correct?' fb-ok':' fb-err'}">
     <div style="font-size:1rem;margin-bottom:4px">${st.ans[qi]===qv.correct?'✅ נכון!':'❌ לא נכון.'}</div>
-    <div style="font-size:.88rem;color:var(--muted)">${q.explain||''}</div>
+    <div style="font-size:.88rem;color:var(--muted)">${_ltSafe(q.explain||'')}</div>
     ${q.formula&&st.ans[qi]!==qv.correct?`<div style="margin-top:8px;padding:6px 10px;background:rgba(0,0,0,.2);border-radius:6px;font-family:monospace;color:var(--accent);font-size:.9rem">${q.formula}</div>`:''}
   </div>`:'';
   const nxt=ans?(qi<qs.length-1?`<button class="btn btn-primary" onclick="nextQ()" style="margin-top:12px">הבאה ← <kbd style="font-size:.75em;opacity:.6">Enter</kbd></button>`:`<button class="btn btn-green" onclick="finishQuiz()" style="margin-top:12px">סיום החידון ✓</button>`):'';
-  return`<div class="quiz-card">${prog}<div class="quiz-q"><span class="quiz-q-num">${qi+1}</span>${q.q}</div><div class="quiz-opts">${opts}</div>${hintHTML}${fb}${nxt}</div>`;
+  return`<div class="quiz-card">${prog}<div class="quiz-q"><span class="quiz-q-num">${qi+1}</span>${_ltSafe(q.q)}</div><div class="quiz-opts">${opts}</div>${hintHTML}${fb}${nxt}</div>`;
 }
 function buildProblem(prob){
   if(!prob)return'';
@@ -28735,10 +28755,10 @@ function buildProblem(prob){
     // level 1 shows the nudge (or, for a step without one, the hint itself);
     // level 2 adds the worked hint below it.
     const tier1=st2.nudge||st2.hint, showBtn=!locked&&lvl<maxLvl;
-    const hintHTML=(lvl>=1?`<div class="hint-box">💡 ${tier1}</div>`:'')
-                 +(lvl>=2&&st2.nudge?`<div class="hint-box">✏️ ${st2.hint}</div>`:'');
+    const hintHTML=(lvl>=1?`<div class="hint-box">💡 ${_ltSafe(tier1)}</div>`:'')
+                 +(lvl>=2&&st2.nudge?`<div class="hint-box">✏️ ${_ltSafe(st2.hint)}</div>`:'');
     return`<div class="step-card${locked?' locked-step':''}${solved?' solved':''}">
-      <div class="step-hdr"><div class="step-num${solved?' done':''}">${solved?'✓':si+1}</div><div class="step-q">${st2.q}</div></div>
+      <div class="step-hdr"><div class="step-num${solved?' done':''}">${solved?'✓':si+1}</div><div class="step-q">${_ltSafe(st2.q)}</div></div>
       ${!solved?`${hintHTML}
         <div class="step-inp-row">
           <input class="step-inp${fb==='correct'?' ok':fb?' err':''}" type="text" id="si${si}" value="${inp}" placeholder="תשובה..." oninput="upInp(${si},this.value)" onkeydown="if(event.key==='Enter')chkStep(${si})" ${locked?'disabled':''}>
@@ -28747,7 +28767,7 @@ function buildProblem(prob){
           ${!locked?`<button class="btn btn-primary" style="padding:7px 14px" onclick="chkStep(${si})">בדוק</button>`:''}
         </div>
         ${fb&&fb!=='correct'?`<div class="step-fb err">${fb}</div>`:''}`
-      :`<div class="step-fb ok">✅ ${st2.explain}</div>`}
+      :`<div class="step-fb ok">✅ ${_ltSafe(st2.explain)}</div>`}
     </div>`;
   }).join('');
   return`<div class="problem-card"><div class="problem-text"><b>${prob.title}:</b> ${prob.text}</div><div class="problem-steps">${steps}</div></div>`;
