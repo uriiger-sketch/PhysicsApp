@@ -12371,17 +12371,29 @@ function simElcDielectric(canvas){
     mb.textContent=connected?'🔌 הסוללה מחוברת':'✂️ הסוללה מנותקת';});
   function gk(){var e=document.getElementById('inp-di-k');return e?parseFloat(e.value):4;}
   function gf(){var e=document.getElementById('inp-di-f');return e?parseFloat(e.value):0;}
-  var PL=W*0.10, PR=W*0.62, PT=H*0.16, PB=H*0.40;
-  var drag=false;
+  // The battery sits on the LEFT so the slab has clear parking space on the
+  // right: it is a rigid object that slides in and out, not a rectangle that
+  // grows out of the plate edge and through the battery wiring.
+  var BX=W*0.08, PL=W*0.21, PR=W*0.59, PT=H*0.17, PB=H*0.40;
+  var SLW=PR-PL;                       // the slab exactly fills the gap at f=1
+  var drag=false, dragDX=0;
+  function slabX(){return PR-SLW*gf();}          // left edge of the slab
+  function onSlab(p){var x=slabX();
+    return p.x>x-8&&p.x<x+SLW+8&&p.y>PT-12&&p.y<PB+12;}
+  // anywhere along the gap row counts, so the slab is not a thin target to hunt
+  // for; a press that misses it simply picks it up by the middle
+  function inRow(p){return p.x>PL-6&&p.y>PT-16&&p.y<PB+16;}
   function _dn(e){var p=simPointerXY(canvas,dpr,e);
-    if(p.y>PT-14&&p.y<PB+14&&p.x>PL-10&&p.x<PR+120){drag=true;e.preventDefault();}}
+    if(onSlab(p)){drag=true;dragDX=p.x-slabX();e.preventDefault();}
+    else if(inRow(p)){drag=true;dragDX=SLW/2;e.preventDefault();}}
   function _mv(e){var p=simPointerXY(canvas,dpr,e);
-    if(drag){simSyncSlider('di-f',Math.max(0,Math.min(1,(PR-p.x)/(PR-PL))),2);e.preventDefault();}
-    else canvas.style.cursor=(p.y>PT-14&&p.y<PB+14&&p.x>PL-10&&p.x<PR+120)?'grab':'';}
+    if(drag){simSyncSlider('di-f',Math.max(0,Math.min(1,(PR-(p.x-dragDX))/SLW)),2);e.preventDefault();}
+    else canvas.style.cursor=(onSlab(p)||inRow(p))?'grab':'';}
   function _up(){drag=false;canvas.style.cursor='';}
   canvas.addEventListener('mousedown',_dn);canvas.addEventListener('touchstart',_dn,{passive:false});
   canvas.addEventListener('mousemove',_mv);canvas.addEventListener('touchmove',_mv,{passive:false});
-  canvas.addEventListener('mouseup',_up);canvas.addEventListener('touchend',_up);
+  canvas.addEventListener('mouseup',_up);canvas.addEventListener('mouseleave',_up);
+  canvas.addEventListener('touchend',_up);
 
   function draw(){
     if(_simStop[id])return;
@@ -12393,47 +12405,87 @@ function simElcDielectric(canvas){
     else { Q=Q0; V=Q/Cc; E=V/d_m; U=Q*Q/(2*Cc); }
     ctx.clearRect(0,0,W,H);
     ctx.fillStyle=slCssSim('--panel','#0f1c2e');ctx.fillRect(0,0,W,H);
+    var sx=slabX(), inL=Math.max(PL,sx), inW=Math.max(0,PR-inL);   // the part between the plates
     // plates
     ctx.fillStyle='#ef4444';ctx.fillRect(PL,PT-10,PR-PL,10);
     ctx.fillStyle='#3b82f6';ctx.fillRect(PL,PB,PR-PL,10);
-    slTxt(ctx,'+',PL-16,PT-1,'#ef4444',18,'center',true);
-    slTxt(ctx,'−',PL-16,PB+11,'#3b82f6',18,'center',true);
-    // field lines, density following E
-    var nl=Math.max(3,Math.round(6*E/E0));
-    ctx.save();ctx.strokeStyle='#94a3b8';ctx.globalAlpha=.55;
-    for(var i=0;i<nl;i++){var x=PL+18+(PR-PL-36)*i/(nl-1||1);
-      simArrow(ctx,x,PT+2,x,PB-4,'#94a3b8',1.6,7);}
-    ctx.restore();
-    // the slab, entering from the right
-    var sw=(PR-PL)*f;
-    if(sw>2){
-      ctx.save();ctx.fillStyle='rgba(139,92,246,.30)';ctx.strokeStyle='#8b5cf6';ctx.lineWidth=2;
-      ctx.beginPath();ctx.rect(PR-sw,PT,sw,PB-PT);ctx.fill();ctx.stroke();ctx.restore();
-      // polarised molecules: a row of dipoles all lined up with the field
-      var cols=Math.max(1,Math.floor(sw/26));
-      for(var a=0;a<cols;a++)for(var b2=0;b2<3;b2++){
-        var mx=PR-sw+13+a*26, my=PT+16+b2*((PB-PT-32)/2);
-        // the upper plate is positive, so the field points down and each dipole
-        // turns its negative end upward -- which is what weakens the field
-        ctx.fillStyle='#3b82f6';ctx.beginPath();ctx.arc(mx,my-5,3.5,0,6.2832);ctx.fill();
-        ctx.fillStyle='#ef4444';ctx.beginPath();ctx.arc(mx,my+5,3.5,0,6.2832);ctx.fill();
-        ctx.strokeStyle='#64748b';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(mx,my-5);ctx.lineTo(mx,my+5);ctx.stroke();
+    slTxt(ctx,'+',PL+7,PT-17,'#ef4444',15,'center',true);
+    slTxt(ctx,'−',PL+7,PB+28,'#3b82f6',15,'center',true);
+    // FREE charge on the plates. sigma = kappa*eps0*V/d, so the marks crowd
+    // together exactly kappa times over the dielectric -- which is the whole
+    // reason the capacitance went up.
+    (function(){
+      var stepV=Math.max(9,26*V0/Math.max(0.3,V));
+      var x=PL+6;
+      while(x<PR-4){
+        var ins=(x>=inL&&x<PR);
+        var st=ins?Math.max(5,stepV/k):stepV;
+        slTxt(ctx,'+',x,PT-2,'#fecaca',10.5,'center',true);
+        slTxt(ctx,'−',x,PB+9,'#bfdbfe',10.5,'center',true);
+        x+=st;
       }
-      simText(ctx,'κ = '+k.toFixed(1),PR-sw/2,PB+30,'#8b5cf6',12.5,'center',true);
+    })();
+    // the slab, a rigid body that slides; the part still outside is dimmer
+    ctx.save();
+    ctx.fillStyle='rgba(139,92,246,.22)';ctx.strokeStyle='#8b5cf6';ctx.lineWidth=2;
+    ctx.beginPath();ctx.rect(sx,PT,SLW,PB-PT);ctx.fill();ctx.stroke();
+    ctx.restore();
+    // Molecules line up only where there is a field to line them up with: the
+    // part of the slab still outside the plates keeps its random orientations,
+    // and they visibly snap into place as it slides in.
+    (function(){
+      var cols=Math.floor(SLW/26), a,b2,mx,my,ang,ux,uy;
+      for(a=0;a<cols;a++){
+        mx=sx+15+a*26; if(mx>sx+SLW-9)break;
+        for(b2=0;b2<3;b2++){
+          my=PT+20+b2*((PB-PT-40)/2);
+          if(mx>=inL&&mx<PR){ ux=0; uy=1; }               // aligned with the field
+          else { ang=(a*2.399+b2*1.107); ux=Math.cos(ang); uy=Math.sin(ang); }
+          ctx.strokeStyle='#64748b';ctx.lineWidth=1;
+          ctx.beginPath();ctx.moveTo(mx-ux*5,my-uy*5);ctx.lineTo(mx+ux*5,my+uy*5);ctx.stroke();
+          ctx.fillStyle='#3b82f6';ctx.beginPath();ctx.arc(mx-ux*5,my-uy*5,3.4,0,6.2832);ctx.fill();
+          ctx.fillStyle='#ef4444';ctx.beginPath();ctx.arc(mx+ux*5,my+uy*5,3.4,0,6.2832);ctx.fill();
+        }
+      }
+    })();
+    // BOUND surface charge: the thin layers the theory talks about, drawn only
+    // where the slab is actually inside the field
+    if(inW>14){
+      ctx.save();ctx.globalAlpha=Math.min(.85,.25+.15*k);
+      ctx.fillStyle='#3b82f6';ctx.fillRect(inL,PT+4,inW,3);
+      ctx.fillStyle='#ef4444';ctx.fillRect(inL,PB-7,inW,3);ctx.restore();
+      var bs=Math.max(17,34/k), bx2;
+      for(bx2=inL+12;bx2<PR-8;bx2+=bs){
+        slTxt(ctx,'−',bx2,PT+17,'#93c5fd',9,'center',true);
+        slTxt(ctx,'+',bx2,PB-9,'#fca5a5',9,'center',true);
+      }
     }
-    // battery / open switch
-    var bx=PR+56, by=(PT+PB)/2;
+    // Field lines LAST so they stay visible over the slab. E is the same in the
+    // empty part and the filled part -- same V, same d -- so the spacing is
+    // uniform; what changes with the switch is how many lines there are.
+    var nl=Math.max(3,Math.min(9,Math.round(8*E/E0)));
+    for(var i2=0;i2<nl;i2++){
+      var x2=PL+26+(PR-PL-52)*i2/(nl-1||1);
+      simArrow(ctx,x2,PT+8,x2,PB-9,'rgba(226,232,240,.9)',1.8,7);
+    }
+    // a grab handle on the slab, and its label
+    simHandle(ctx,sx+SLW-12,(PT+PB)/2,'#c4b5fd',13);
+    simText(ctx,'κ = '+k.toFixed(1),sx+SLW/2,PB+22,'#8b5cf6',12,'center',true);
+    simText(ctx,f<0.04?'גררו את הלוח פנימה':(f>0.96?'הלוח בפנים לגמרי':'מוכנס חלקית'),
+      sx+SLW/2,PT-18,'#64748b',10,'center');
+    // battery / open switch, on the left and out of the slab's way
+    var by=(PT+PB)/2;
     ctx.strokeStyle='#64748b';ctx.lineWidth=2;
-    ctx.beginPath();ctx.moveTo(PR,PT-5);ctx.lineTo(bx,PT-5);ctx.moveTo(PR,PB+5);ctx.lineTo(bx,PB+5);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(PL,PT-5);ctx.lineTo(BX,PT-5);ctx.moveTo(PL,PB+5);ctx.lineTo(BX,PB+5);ctx.stroke();
     if(connected){
-      ctx.beginPath();ctx.moveTo(bx,PT-5);ctx.lineTo(bx,by-12);ctx.moveTo(bx,by+12);ctx.lineTo(bx,PB+5);ctx.stroke();
-      ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(bx-11,by-8);ctx.lineTo(bx+11,by-8);ctx.stroke();
-      ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(bx-6,by+2);ctx.lineTo(bx+6,by+2);ctx.stroke();
-      slTxt(ctx,V0.toFixed(0)+' V',bx+20,by+4,'#94a3b8',11.5,'left');
+      ctx.beginPath();ctx.moveTo(BX,PT-5);ctx.lineTo(BX,by-12);ctx.moveTo(BX,by+12);ctx.lineTo(BX,PB+5);ctx.stroke();
+      ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(BX-11,by-8);ctx.lineTo(BX+11,by-8);ctx.stroke();
+      ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(BX-6,by+2);ctx.lineTo(BX+6,by+2);ctx.stroke();
+      slTxt(ctx,V0.toFixed(0)+' V',BX,by+22,'#94a3b8',11,'center');
     } else {
-      ctx.beginPath();ctx.moveTo(bx,PT-5);ctx.lineTo(bx,by-16);ctx.moveTo(bx,by+16);ctx.lineTo(bx,PB+5);ctx.stroke();
-      ctx.beginPath();ctx.moveTo(bx,by-16);ctx.lineTo(bx+16,by-2);ctx.stroke();
-      simText(ctx,'מנותק',bx+16,by+14,'#f59e0b',11,'center',true);
+      ctx.beginPath();ctx.moveTo(BX,PT-5);ctx.lineTo(BX,by-16);ctx.moveTo(BX,by+16);ctx.lineTo(BX,PB+5);ctx.stroke();
+      ctx.beginPath();ctx.moveTo(BX,by-16);ctx.lineTo(BX+15,by-3);ctx.stroke();
+      simText(ctx,'מנותק',BX,by+26,'#f59e0b',10.5,'center',true);
     }
     simText(ctx,connected?'הסוללה מחוברת — V קבוע':'הסוללה מנותקת — Q קבוע',
       W/2,H*0.51,connected?'#10b981':'#f59e0b',13.5,'center',true);
@@ -14247,7 +14299,9 @@ function _fitLabel(ctx,txt,x,y,align,sz){
   return x+shift/sx;
 }
 function optLabel(ctx,txt,x,y,col,sz,align){
+  txt=_mathIso(txt);
   ctx.save();ctx.fillStyle=col||'#94a3b8';ctx.font=(sz||11)+'px Heebo,sans-serif';
+  if(!/[\u0590-\u05FF]/.test(txt))ctx.direction='ltr';
   ctx.textAlign=align||'center';ctx.textBaseline='middle';
   ctx.shadowColor='rgba(0,0,0,.7)';ctx.shadowBlur=4;
   sz=_fitFont(ctx,txt,sz||11);
@@ -17762,7 +17816,7 @@ function initTheoryAnims(){
 // ELECTRO ANIM: the same charge in three geometries, side by side
 runAnim('anim-elc-compare-t',(canvas,ctx,W,H,t)=>{
   bg(ctx,W,H);
-  const cols=[[W*0.18,'מטען נקודתי','#f87171'],[W*0.5,'כדור מוליך','#38bdf8'],[W*0.82,'מישור','#34d399']];
+  const cols=[[W*0.16,'מטען נקודתי','#f87171'],[W*0.48,'כדור מוליך','#38bdf8'],[W*0.78,'מישור','#34d399']];
   const f=0.5-0.5*Math.cos(t*0.8);          // the probe walks out and back
   cols.forEach((cdef,i)=>{
     const cx=cdef[0], cy=H*0.42;
@@ -17778,16 +17832,15 @@ runAnim('anim-elc-compare-t',(canvas,ctx,W,H,t)=>{
       for(let k=0;k<4;k++)label(ctx,'+',cx-24,cy-22+k*15,'#f87171',9);
     }
     // the probe and the arrow it feels
-    const d=18+f*46, tx=cx+d;
+    const d=17+f*38, tx=cx+d;
     ctx.save();ctx.fillStyle='#fbbf24';ctx.beginPath();ctx.arc(tx,cy,5,0,6.2832);ctx.fill();ctx.restore();
     // 1/r^2 for the first two, constant for the plane
     const rel=(i===2)?0.62:Math.min(1,(24/d)*(24/d));
-    simArrow(ctx,tx,cy+16,tx,cy+16+8+rel*26,'rgba(251,191,36,.9)',2,7);
+    simArrow(ctx,tx+5,cy,tx+5+9+rel*26,cy,'rgba(251,191,36,.9)',2,7);
     // the arrow length IS the field strength, so name what it is doing
-    label(ctx,(i===2)?'קבוע — σ/2ε₀':'נחלש כ-1/r²',cx,H*0.86,(i===2)?'#34d399':'#94a3b8',9.5);
-    if(i===0)label(ctx,'הגשוש מתרחק ומתקרב — עקבו אחרי אורך החץ',W*0.5,H*0.955,'#64748b',9);
+    label(ctx,(i===2)?'קבוע — σ/2ε₀':'נחלש כ-1/r²',cx,H*0.84,(i===2)?'#34d399':'#94a3b8',9.5);
   });
-  label(ctx,'אותו מטען — ושלוש התנהגויות שונות של השדה',W*0.5,H-8,'#e2e8f0',10.5);
+  label(ctx,'אותו מטען — ושלוש התנהגויות שונות; עקבו אחרי אורך החץ',W*0.5,H-9,'#e2e8f0',10.5);
 });
 
 // DC ANIM: the same charges pass every cross-section of a series loop
@@ -18180,7 +18233,9 @@ runAnim('anim-elc-plane-t',(canvas,ctx,W,H,t)=>{
       const x=px+s*d*W*0.10;
       simArrow(ctx,x-s*9,H*0.5,x+s*9,H*0.5,'rgba(251,191,36,.85)',2,8);
       label(ctx,'E',x,H*0.5-14,'#fbbf24',9);
-      if(s>0&&(d===1||d===4))label(ctx,d===1?'1 ס״מ':'10 ס״מ',x,H*0.5+18,'#64748b',8.5);
+      // the two labelled points really are 1:4 apart on screen, so say 1:4 --
+      // 1 and 10 invited the reader to measure and find the picture lying
+      if(s>0&&(d===1||d===4))label(ctx,d===1?'2 ס״מ':'8 ס״מ',x,H*0.5+18,'#64748b',8.5);
     }
   }
   label(ctx,'σ/2ε₀',px+W*0.10,H*0.28,'#fbbf24',10);
@@ -18258,25 +18313,51 @@ runAnim('anim-elc-sphere-t',(canvas,ctx,W,H,t)=>{
 // ELECTRO ANIM: polarised molecules weaken the field inside a dielectric
 runAnim('anim-dielectric',(canvas,ctx,W,H,t)=>{
   bg(ctx,W,H);
-  const L=W*0.12,R=W*0.88,T=H*0.20,B=H*0.74;
-  const f=0.5+0.5*Math.sin(t*0.6);                 // slab slides in and out
+  const L=W*0.14,R=W*0.86,T=H*0.18,B=H*0.72,K=4;
+  const f=0.5+0.5*Math.sin(t*0.6);                 // the slab slides in from the right
+  const th=(B-T)*0.42, sT=(T+B)/2-th/2, sB=sT+th;  // it fills part of the GAP
+  const sx=R-(R-L)*f;                              // left edge; f=0 parks it outside
   ctx.save();ctx.fillStyle='#f87171';ctx.fillRect(L,T-8,R-L,8);
   ctx.fillStyle='#60a5fa';ctx.fillRect(L,B,R-L,8);ctx.restore();
-  const nl=6;
-  for(let i=0;i<nl;i++){const x=L+16+(R-L-32)*i/(nl-1);
-    const inSlab=x>R-(R-L)*f;
-    arrow(ctx,x,T+2,x,B-3,inSlab?'#475569':'#94a3b8',inSlab?1.1:1.8,7);}
-  const sw=(R-L)*f;
-  if(sw>4){
-    ctx.save();ctx.fillStyle='rgba(139,92,246,.22)';ctx.strokeStyle='#a78bfa';ctx.lineWidth=1.5;
-    ctx.beginPath();ctx.rect(R-sw,T,sw,B-T);ctx.fill();ctx.stroke();ctx.restore();
-    const cols=Math.max(1,Math.floor(sw/24));
-    for(let a=0;a<cols;a++)for(let b2=0;b2<2;b2++){
-      const mx=R-sw+12+a*24,my=T+18+b2*(B-T-36);
-      ctx.fillStyle='#60a5fa';ctx.beginPath();ctx.arc(mx,my-4,3,0,6.2832);ctx.fill();
-      ctx.fillStyle='#f87171';ctx.beginPath();ctx.arc(mx,my+4,3,0,6.2832);ctx.fill();}
+  label(ctx,'+',L+8,T-14,'#f87171',12);
+  label(ctx,'−',L+8,B+22,'#60a5fa',12);
+  // the slab first, so the arrows stay on top of it
+  ctx.save();ctx.fillStyle='rgba(139,92,246,.22)';ctx.strokeStyle='#a78bfa';ctx.lineWidth=1.5;
+  ctx.beginPath();ctx.rect(sx,sT,R-L,th);ctx.fill();ctx.stroke();ctx.restore();
+  // molecules: aligned where the slab is between the plates, random outside it
+  const cols=Math.floor((R-L)/26);
+  for(let a=0;a<cols;a++){
+    const mx=sx+14+a*26; if(mx>sx+(R-L)-8)break;
+    const inside=mx>=L&&mx<R;
+    const ang=inside?Math.PI/2:(a*2.399);
+    const ux=Math.cos(ang),uy=Math.sin(ang),my=(sT+sB)/2;
+    ctx.save();ctx.strokeStyle='#64748b';ctx.lineWidth=1;
+    ctx.beginPath();ctx.moveTo(mx-ux*5,my-uy*5);ctx.lineTo(mx+ux*5,my+uy*5);ctx.stroke();
+    ctx.fillStyle='#60a5fa';ctx.beginPath();ctx.arc(mx-ux*5,my-uy*5,3,0,6.2832);ctx.fill();
+    ctx.fillStyle='#f87171';ctx.beginPath();ctx.arc(mx+ux*5,my+uy*5,3,0,6.2832);ctx.fill();
+    ctx.restore();
   }
-  label(ctx,'בתוך הדיאלקטרי השדה חלש יותר',W/2,H-10,'#a78bfa',11);
+  // bound layers on the two faces of the slab, where it is in the field
+  if(sx<R-6){
+    const bL=Math.max(L,sx);
+    ctx.save();ctx.globalAlpha=.7;
+    ctx.fillStyle='#60a5fa';ctx.fillRect(bL,sT+1,R-bL,3);
+    ctx.fillStyle='#f87171';ctx.fillRect(bL,sB-4,R-bL,3);ctx.restore();
+  }
+  // field arrows: full strength in the air gaps, kappa times weaker inside the
+  // slab -- the layers in series share D, so the arrow there is shorter
+  const nl=7;
+  for(let i=0;i<nl;i++){
+    const x=L+18+(R-L-36)*i/(nl-1);
+    const covered=x>=sx;
+    if(covered){
+      arrow(ctx,x,T+3,x,sT-2,'#e2e8f0',1.8,6);
+      arrow(ctx,x,sT+th*0.30,x,sB-th*0.30,'#a78bfa',1.3,5);
+      arrow(ctx,x,sB+2,x,B-3,'#e2e8f0',1.8,6);
+    } else arrow(ctx,x,T+3,x,B-3,'#e2e8f0',1.8,7);
+  }
+  label(ctx,'בשכבות בטור השדה הוא שמשתנה, לא המתח הכולל',W/2,H-24,'#64748b',9.5);
+  label(ctx,'בתוך הדיאלקטרי החץ קצר — השדה שם קטן פי κ',W/2,H-9,'#a78bfa',11);
 });
 
 // ELECTRO ANIM: parabola inside the plates, straight line outside
@@ -21768,6 +21849,7 @@ function oDash(ctx,x1,y1,x2,y2,col){
 function oLbl(ctx,txt,x,y,col,sz){
   txt=_mathIso(txt);
   ctx.save();ctx.fillStyle=col||'#94a3b8';
+  if(!/[\u0590-\u05FF]/.test(txt))ctx.direction='ltr';
   ctx.font=(sz||10)+'px Heebo,sans-serif';
   ctx.textAlign='center';ctx.textBaseline='middle';
   ctx.shadowColor='rgba(0,0,0,.8)';ctx.shadowBlur=3;
@@ -23570,15 +23652,16 @@ runAnim('anim-elc-diel-t',(cv,ctx,W,H,t)=>{
   }
   oLbl(ctx,'Q קבוע — הסוללה מנותקת',(pxL+pxR)/2,H-9,'#94a3b8',9.5);
   // slab
-  var sw=(pxR-pxL)*0.62, sx=pxL+((pxR-pxL)-sw)/2;
-  var sxNow=sx+(1-slid)*(W*0.98-sx);
-  if(slid>0){
+  var sw=pxR-pxL, sx=pxL, sh=py1-py0-12;        // it fills the gap: E=E₀/κ exactly
+  var sxNow=sx;
+  var syNow=(py0+6)-(1-slid)*(sh+py0+16);        // parked above the frame, lowered into the gap
+  {
     ctx.save();ctx.fillStyle='rgba(167,139,250,.12)';ctx.strokeStyle='rgba(167,139,250,.55)';ctx.lineWidth=1.5;
-    ctx.fillRect(sxNow,py0+6,sw,py1-py0-12);ctx.strokeRect(sxNow,py0+6,sw,py1-py0-12);ctx.restore();
-    oLbl(ctx,'κ = '+KAPPA,sxNow+sw/2,py0-8,'#a78bfa',10);
+    ctx.fillRect(sxNow,syNow,sw,sh);ctx.strokeRect(sxNow,syNow,sw,sh);ctx.restore();
+    if(slid>0.55)oLbl(ctx,'κ = '+KAPPA,sxNow+sw/2,py0-9,'#a78bfa',10);
     // molecular dipoles: random, then aligned against the external field
     for(var r2=0;r2<3;r2++)for(var c2=0;c2<4;c2++){
-      var mx=sxNow+16+c2*(sw-32)/3, my=py0+26+r2*(py1-py0-52)/2;
+      var mx=sxNow+16+c2*(sw-32)/3, my=syNow+20+r2*(sh-40)/2;
       var a0=((r2*4+c2)*2.3)%6.28;
       // E₀ points from the + plate (left) to the − plate (right), so each
       // molecule's POSITIVE end shifts RIGHT. Target angle 0, not π — with π the
@@ -23596,7 +23679,7 @@ runAnim('anim-elc-diel-t',(cv,ctx,W,H,t)=>{
     if(bound>0){
       ctx.save();ctx.globalAlpha=bound;
       for(var i=0;i<5;i++){
-        var by=py0+22+i*(py1-py0-44)/4;
+        var by=syNow+16+i*(sh-32)/4;
         oLbl(ctx,'−',sxNow+5,by,'#60a5fa',11);
         oLbl(ctx,'+',sxNow+sw-5,by,'#f87171',11);
       }
@@ -23606,19 +23689,22 @@ runAnim('anim-elc-diel-t',(cv,ctx,W,H,t)=>{
   }
   // fields: free-charge field constant, bound field opposing, net = E0/kappa
   var netFrac=1-bound*(1-1/KAPPA);
+  var seated=slid>0.9;
   for(var i=0;i<3;i++){
     var fy=py0+30+i*(py1-py0-60)/2;
-    // E0 always at full strength outside the slab
-    simArrow(ctx,pxL+8,fy,sxNow>pxL+20?sxNow-4:pxL+22,fy,'rgba(251,191,36,.85)',1.6,7);
-    if(slid>0.9){
-      // inside: the surviving net field
-      simArrow(ctx,sxNow+8,fy,sxNow+8+(sw-16)*netFrac,fy,'#fbbf24',1.6+netFrac,7);
-      if(bound>0.15)simArrow(ctx,sxNow+sw-8,fy+11,sxNow+sw-8-(sw-16)*bound*(1-1/KAPPA),fy+11,'rgba(96,165,250,.8)',1.4,6);
+    if(seated){
+      // a dashed ghost of where E₀ used to reach, so the shortening is visible
+      ctx.save();ctx.strokeStyle='rgba(148,163,184,.35)';ctx.setLineDash([4,4]);ctx.lineWidth=1;
+      ctx.beginPath();ctx.moveTo(pxL+8,fy);ctx.lineTo(pxR-4,fy);ctx.stroke();ctx.restore();
+      simArrow(ctx,pxL+8,fy,pxL+8+(sw-14)*netFrac,fy,'#fbbf24',1.6+netFrac,7);
+      if(bound>0.15)simArrow(ctx,pxR-10,fy+11,pxR-10-(sw-14)*bound*(1-1/KAPPA),fy+11,'rgba(96,165,250,.8)',1.4,6);
+    } else {
+      simArrow(ctx,pxL+8,fy,pxR-4,fy,'rgba(251,191,36,.85)',1.6,7);         // plate to plate
     }
   }
   if(slid>0.9&&bound>0.15)oLbl(ctx,'שדה המטען הכבול — הפוך בכיוונו',(pxL+pxR)/2,py1-14,'#60a5fa',8.5);
-  var msg = cyc<2  ? 'קבל טעון, בלי דיאלקטרן: השדה בין הלוחות הוא E₀' :
-            cyc<4.2? 'מכניסים לוח דיאלקטרן — המולקולות עדיין מבולגנות' :
+  var msg = cyc<2  ? 'קבל טעון, בלי דיאלקטרי: השדה בין הלוחות הוא E₀' :
+            cyc<4.2? 'מנמיכים לוח דיאלקטרי לתוך הרווח — המולקולות עדיין מבולגנות' :
             cyc<6  ? 'השדה מסובב כל מולקולה: הקוטב + פונה אל הלוח השלילי' :
             cyc<8  ? 'בפנים הכול מתקזז — נשאר מטען כבול על שני הפָּנים בלבד' :
                      'שדה המטען הכבול מחסר מ-E₀:  E = E₀/κ  ⇒  V=E·d קטן פי κ  ⇒  C=Q/V גדל פי κ';
@@ -23731,9 +23817,10 @@ runAnim('anim-elc-net-t',(cv,ctx,W,H,t)=>{
     cap(W*0.50,yA,'C₁',C1,C1*V,V,'#f87171');
     cap(W*0.50,yB,'C₂',C2,C2*V,V,'#60a5fa');
     oLbl(ctx,'מקביל — המתח משותף',W/2,16,'#4ade80',11);
-    oLbl(ctx,'= אותו V על שניהם',W*0.86,yA,'#4ade80',9);
-    oLbl(ctx,'= אותו V',W*0.86,yB,'#4ade80',9);
-    oLbl(ctx,'C_eq = C₁+C₂ = '+Ceq.toFixed(1)+' μF   ·   Q_כולל = '+((C1+C2)*V).toFixed(0)+' μC',W/2,H-10,'#fbbf24',10);
+    oLbl(ctx,'אותו מתח',W*0.88,yA,'#4ade80',9);
+    oLbl(ctx,'אותו מתח',W*0.88,yB,'#4ade80',9);
+    oLbl(ctx,'C₁+C₂ = '+Ceq.toFixed(1)+' μF   ·   Q = '+((C1+C2)*V).toFixed(0)+' μC',W*0.40,H-10,'#fbbf24',10);
+    oLbl(ctx,'שקול · וסך המטען',W*0.78,H-10,'#94a3b8',9.5);
   } else {
     // one loop, both in the same path
     var yT=H*0.28, yB2=H*0.72;
@@ -23747,8 +23834,9 @@ runAnim('anim-elc-net-t',(cv,ctx,W,H,t)=>{
     cap(W*0.40,yT,'C₁',C1,Q,Q/C1,'#f87171');
     cap(W*0.62,yT,'C₂',C2,Q,Q/C2,'#60a5fa');
     oLbl(ctx,'טור — המטען משותף',W/2,16,'#4ade80',11);
-    oLbl(ctx,'= אותו Q עובר בשניהם',W/2,yT-46,'#4ade80',9.5);
-    oLbl(ctx,'1/C_eq = 1/C₁+1/C₂ ⇒ C_eq = '+Ceq.toFixed(2)+' μF   ·   V₁+V₂ = '+(Q/C1).toFixed(1)+'+'+(Q/C2).toFixed(1)+' = '+V+' V',W/2,H-10,'#fbbf24',10);
+    oLbl(ctx,'אותו מטען עובר בשניהם',W/2,H-32,'#4ade80',9.5);
+    oLbl(ctx,'1/C = 1/C₁+1/C₂ ⇒ C = '+Ceq.toFixed(2)+' μF   ·   V₁+V₂ = '+(Q/C1).toFixed(1)+'+'+(Q/C2).toFixed(1)+' = '+V+' V',W*0.42,H-10,'#fbbf24',9.5);
+    oLbl(ctx,'שקול',W*0.88,H-10,'#94a3b8',9.5);
   }
 });
 
@@ -23778,7 +23866,10 @@ runAnim('anim-elc-polar-t',(cv,ctx,W,H,t)=>{
     // every molecule identically, flattening the very gradient that makes the
     // section's argument — near poles dominate ⇒ net attraction — true.
     var _dRod=Math.max(1,mx-rodX);
-    var _loc=Math.min(1,Math.pow(90/_dRod,1.4));
+    // The falloff was so steep that even the nearest column only turned half
+    // way and the block read as unpolarised. Every molecule turns; the near
+    // ones turn further, which is the gradient the argument needs.
+    var _loc=0.55+0.45*Math.min(1,Math.pow(110/_dRod,1.2));
     var _al=align*_loc;
     var ang=a0+(Math.PI-a0)*_al;
     var dxm=Math.cos(ang)*(5+4*_loc), dym=Math.sin(ang)*(5+4*_loc);
@@ -24247,48 +24338,70 @@ function simElcField(canvas){
     var bg=ctx.createLinearGradient(0,0,0,H);bg.addColorStop(0,'#020810');bg.addColorStop(1,'#04101e');
     ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);
     if(!lineMode){
-      // Field grid
-      for(var gx=30;gx<W-10;gx+=46){
-        for(var gy=30;gy<H-60;gy+=46){
-          var E=Efield(gx,gy);
-          if(E.m<1)continue;
-          var L=Math.min(18,Math.pow(E.m,0.34)*0.62);   // no additive offset
-          var ux=E.x/E.m,uy=E.y/E.m;
-          var frac=Math.min(1,Math.pow(E.m,0.32)/28);
-          var col='rgba('+Math.round(80+175*frac)+','+Math.round(150+60*frac)+','+Math.round(250-160*frac)+',.75)';
-          simArrow(ctx,gx-ux*L/2,gy-uy*L/2,gx+ux*L/2,gy+uy*L/2,col,1.4,5);
-        }
+      // Field grid. Two passes: find the strongest arrow first, then scale the
+      // rest against it -- otherwise every arrow sits on its length cap and the
+      // picture says nothing about how the field falls off.
+      var gpts=[],gEmax=0,gx,gy,E;
+      for(gx=30;gx<W-10;gx+=46)for(gy=30;gy<H-60;gy+=46){
+        E=Efield(gx,gy);
+        if(E.m<1)continue;
+        gpts.push([gx,gy,E]); if(E.m>gEmax)gEmax=E.m;
+      }
+      for(var gi=0;gi<gpts.length;gi++){
+        var gp=gpts[gi]; E=gp[2];
+        var frac=Math.pow(E.m/(gEmax||1),0.32);
+        var L=5+15*frac;
+        var ux=E.x/E.m,uy=E.y/E.m;
+        var col='rgba('+Math.round(80+175*frac)+','+Math.round(150+60*frac)+','+Math.round(250-160*frac)+',.8)';
+        simArrow(ctx,gp[0]-ux*L/2,gp[1]-uy*L/2,gp[0]+ux*L/2,gp[1]+uy*L/2,col,1.4,5);
       }
     }else{
       // Continuous field lines, traced numerically along E
-      var qs=Q();
-      var ex0=(!dip||qs>0)?sx:dx2, ey0=(!dip||qs>0)?sy:dy2;
-      var rad0=16+Math.abs(qs);
-      for(var li=0;li<16;li++){
-        var a0=li*Math.PI/8+0.10;
-        var lx=ex0+Math.cos(a0)*rad0, ly=ey0+Math.sin(a0)*rad0;
-        var hp=null,hd=null;
-        ctx.save();ctx.strokeStyle='rgba(251,191,36,.5)';ctx.lineWidth=1.3;
-        ctx.beginPath();ctx.moveTo(lx,ly);
-        for(var st=0;st<240;st++){
-          var Ev=Efield(lx,ly);
-          if(Ev.m<0.5)break;
-          var dirx=Ev.x/Ev.m, diry=Ev.y/Ev.m;
-          if(qs<0&&!dip){dirx=-dirx;diry=-diry;}   // trace outward around a lone − charge
-          lx+=dirx*3; ly+=diry*3;
-          ctx.lineTo(lx,ly);
-          if(st===30){hp=[lx,ly];hd=[Ev.x/Ev.m,Ev.y/Ev.m];}
-          if(lx<8||lx>W-8||ly<8||ly>H-56)break;
-          if(dip){
-            var ox=(ex0===sx)?dx2:sx, oy=(ex0===sx)?dy2:sy;
-            if(Math.hypot(lx-ox,ly-oy)<rad0)break;
+      var qs=Q(), q2v=dip?Q2():0;
+      // Seed on every charge of the dominant sign. Lines leave positive charges;
+      // if every charge is negative they arrive from outside, so they are traced
+      // backwards along E while the arrowheads still point along it.
+      var seeds=[], outward=false;
+      if(qs>0)seeds.push([sx,sy,Math.abs(qs)]);
+      if(dip&&q2v>0)seeds.push([dx2,dy2,Math.abs(q2v)]);
+      if(!seeds.length){
+        outward=true;
+        if(qs<0)seeds.push([sx,sy,Math.abs(qs)]);
+        if(dip&&q2v<0)seeds.push([dx2,dy2,Math.abs(q2v)]);
+      }
+      var others=[[sx,sy,Math.abs(qs)]]; if(dip)others.push([dx2,dy2,Math.abs(q2v)]);
+      var perSeed=seeds.length>1?11:16;
+      for(var si=0;si<seeds.length;si++){
+        var sd=seeds[si], rad0=16+sd[2];
+        for(var li=0;li<perSeed;li++){
+          var a0=li*2*Math.PI/perSeed+0.10;
+          var lx=sd[0]+Math.cos(a0)*rad0, ly=sd[1]+Math.sin(a0)*rad0;
+          var hp=null,hd=null;
+          ctx.save();ctx.strokeStyle='rgba(251,191,36,.5)';ctx.lineWidth=1.3;
+          ctx.beginPath();ctx.moveTo(lx,ly);
+          for(var st=0;st<240;st++){
+            var Ev=Efield(lx,ly);
+            if(Ev.m<0.5)break;
+            var dirx=Ev.x/Ev.m, diry=Ev.y/Ev.m;
+            if(outward){dirx=-dirx;diry=-diry;}
+            lx+=dirx*3; ly+=diry*3;
+            ctx.lineTo(lx,ly);
+            if(st===30){hp=[lx,ly];hd=[Ev.x/Ev.m,Ev.y/Ev.m];}
+            if(lx<8||lx>W-8||ly<8||ly>H-56)break;
+            var hit=false;
+            for(var oi=0;oi<others.length;oi++){
+              var oq=others[oi];
+              if(oq[0]===sd[0]&&oq[1]===sd[1])continue;
+              if(Math.hypot(lx-oq[0],ly-oq[1])<16+oq[2]){hit=true;break;}
+            }
+            if(hit)break;
           }
+          ctx.stroke();
+          if(hp){ctx.translate(hp[0],hp[1]);ctx.rotate(Math.atan2(hd[1],hd[0]));
+            ctx.fillStyle='rgba(251,191,36,.85)';
+            ctx.beginPath();ctx.moveTo(5,0);ctx.lineTo(-3,-3.5);ctx.lineTo(-3,3.5);ctx.closePath();ctx.fill();}
+          ctx.restore();
         }
-        ctx.stroke();
-        if(hp){ctx.translate(hp[0],hp[1]);ctx.rotate(Math.atan2(hd[1],hd[0]));
-          ctx.fillStyle='rgba(251,191,36,.85)';
-          ctx.beginPath();ctx.moveTo(5,0);ctx.lineTo(-3,-3.5);ctx.lineTo(-3,3.5);ctx.closePath();ctx.fill();}
-        ctx.restore();
       }
       optLabel(ctx,'קו שדה = כיוון הכוח בכל נקודה — לא מסלול תנועה!',W/2,H-64,'#fbbf24',9.5);
     }
@@ -24347,7 +24460,7 @@ function simElcField(canvas){
     // and never changes. It was labelled 'צפיפות חצים ∝ עוצמה', the encoding
     // the chapter uses for FIELD LINES, which would teach a learner to read
     // this figure exactly wrong.
-    optInfoBox(ctx,8,H-88,206,['E בנקודת הבוחן:','\u200e|E| = '+sciTxt(Et.m)+' N/C',dip?'דיפול: E=E₊+E₋ (וקטורית)':'E=kQ/r² — רדיאלי',lineMode?'צפיפות הקווים ∝ עוצמת השדה':'אורך וצבע החץ ∝ עוצמת השדה']);
+    optInfoBox(ctx,8,H-88,206,['E בנקודת הבוחן:','\u200e|E| = '+sciTxt(Et.m)+' N/C',dip?'דיפול: E=E₊+E₋ (וקטורית)':'E=kQ/r² — רדיאלי',lineMode?'צפיפות הקווים ∝ עוצמת השדה':'אורך וצבע החץ מציינים את עוצמת השדה (סולם דחוס)']);
     requestAnimationFrame(draw);
   }requestAnimationFrame(draw);
 }
@@ -25860,11 +25973,13 @@ function simElcConductor(canvas){
         ctx.save();ctx.globalAlpha=0.3+0.7*w8;optLabel(ctx,Q>0?'+':'−',X,Y,qcol,11);ctx.restore();
       }
       optLabel(ctx,'E = 0',cx-rr*0.30,cy,'#4ade80',12);
-      // local field at the tip ≈ kQ/ρ² with ρ the tip's radius of curvature
-      var rhoTip=R*0.16;
-      var Etip=Math.abs(ELC_K*Q/(rhoTip*rhoTip));
+      // The whole surface sits at one potential V=kQ/R, and a region of
+      // curvature ρ carries the field that potential implies locally: E≈V/ρ.
+      // (kQ/ρ² would be the field of the whole charge squeezed into the tip.)
+      var rhoTip=R*0.16, Vsurf=Math.abs(ELC_K*Q/R);
+      var Etip=Vsurf/rhoTip;
       var tipX=cx+pear(0)*1.1, tipY=cy;
-      optLabel(ctx,'E_חוד ≈ '+(Etip/1e6).toFixed(1)+'×10⁶ V/m',cx,cy-rr*1.35,'#fbbf24',9.5);
+      optLabel(ctx,'E בחוד ≈ V/ρ = '+(Etip/1e6).toFixed(1)+'×10⁶ V/m',cx,cy-rr*1.35,'#fbbf24',9.5);
       if(Etip>3e6){
         ctx.save();ctx.strokeStyle='rgba(34,211,238,'+(0.45+0.55*Math.abs(Math.sin(animT*7))).toFixed(2)+')';ctx.lineWidth=1.6;
         for(var s2=0;s2<5;s2++){
@@ -25876,7 +25991,7 @@ function simElcConductor(canvas){
         ctx.restore();
         optLabel(ctx,'⚡ פריצת אוויר — פריקת חוד',cx,cy+rr*1.5,'#22d3ee',9.5);
       } else {
-        optLabel(ctx,'הגדילו את |Q| עד שהשדה בחוד יעבור 3×10⁶ V/m',cx,cy+rr*1.5,'#64748b',8.5);
+        optLabel(ctx,'הגדילו את |Q| או הקטינו את R עד ש-E בחוד יעבור 3×10⁶ V/m',cx,cy+rr*1.5,'#64748b',8.5);
       }
     }
     // ── probe (sphere mode only: kQ/r² does not describe the pear) ──
