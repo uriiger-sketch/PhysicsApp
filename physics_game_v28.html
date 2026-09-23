@@ -5339,6 +5339,12 @@ const DC_CHAPTERS=[
     {id:'dc-emf',title:'סוללה לא אידיאלית',sub:'כא״מ מול מתח הדקים, V=ε−Ir'},
     {id:'dc-capacitor',title:'קבל במעגל זרם ישר',sub:'במצב מתמיד אין זרם דרכו'},
   ]},
+  {id:'dc-kirchhoff',icon:'🕸️',title:'פרק ד: חוקי קירכהוף ומעגלים מורכבים',sections:[
+    {id:'dc-junction',title:'חוק הצמתים',sub:'מה שנכנס יוצא — ומה אומר סימן שלילי'},
+    {id:'dc-loop',title:'חוק הלולאות',sub:'ΣΔV=0, וכללי הסימן שסביבם הכול נופל'},
+    {id:'dc-twoloop',title:'שתי לולאות, שתי סוללות',sub:'שלוש משוואות — וסוללה שנטענת'},
+    {id:'dc-bridge',title:'גשר ויטסטון',sub:'איזון, ומדידה שאינה תלויה במקור'},
+  ]},
 ];
 
 const ELECTRO_CONTENT={
@@ -6681,6 +6687,225 @@ const DC_CONTENT={
      nudge:'זו קינמטיקה פשוטה במהירות קבועה, עם המהירות שחישבתם בשלב הקודם.',hint:'t=L/v'},
   ]},
 },
+
+'dc-kirchhoff.dc-junction':{
+  theory:{title:'חוק הצמתים — מה שנכנס, יוצא',html:`
+    <p>עד כה צמצמנו כל מעגל לטור ולמקביל. יש מעגלים שאי אפשר לצמצם — ואז צריך את שני החוקים שעליהם כל מה שעשינו נשען ממילא. הראשון פשוט להפליא.</p>
+    ${fBox('\\sum I_{\\text{נכנס}} = \\sum I_{\\text{יוצא}}','חוק הצמתים של קירכהוף',[['I','זרם בענף','A — בסימן, לפי הכיוון שבחרנו'],['צומת','נקודה שבה נפגשים שלושה ענפים או יותר','—']])}
+    <div class="def-block"><div class="def-title">למה זה נכון?</div>
+      <p>זהו <b>שימור המטען</b> ותו לא. מטען אינו נוצר, אינו נעלם, ואינו מצטבר בצומת: צומת הוא נקודת חיבור, לא מאגר. כל קולון שנכנס חייב לצאת באותו רגע — אחרת היה שם מטען הולך וגדל, ושדה החשמלי שלו היה עוצר את הזרימה תוך ננו-שניות.</p>
+    </div>
+    ${animCanvas('anim-dc-junction',180,'שניים נכנסים, שניים יוצאים — והסכום נשמר בכל רגע')}
+    <div class="def-block"><div class="def-title">השיטה: לבחור כיוון, ולתת לסימן לעבוד</div>
+      <p>לפני שיודעים לאן הזרם זורם — <b>בוחרים</b> כיוון לכל ענף ומסמנים חץ. אם התשובה יוצאת חיובית, ניחשתם נכון; אם היא יוצאת <b>שלילית</b>, הזרם פשוט זורם הפוך, והגודל נכון. זו אינה טעות ואין צורך לחזור אחורה.</p>
+    </div>
+    <div class="mis-block"><b>⚠️ טעות נפוצה:</b> ״הזרם מתחלק שווה בשווה בין הענפים״. לא. הצומת מחייב רק שהסכום יישמר; <b>איך</b> הוא מתחלק נקבע מההתנגדויות, לפי ${M('I_i=V/R_i')}. שני ענפים שווים יקבלו חצי-חצי — וזה מקרה פרטי, לא כלל.</div>
+    <div class="ex-block"><div class="ex-title">✏️ דוגמה — צומת עם ארבעה ענפים</div>
+    <p>לצומת נכנסים ${M('3')} A ו-${M('2')} A; מאחד הענפים יוצאים ${M('4')} A. מה בענף הרביעי? נכנס ${M('3+2=5')} A, יוצא עד כה ${M('4')} A, ולכן הרביעי מוציא ${M('5-4=1')} A. ואילו היו יוצאים בו ${M('6')} A, היינו מקבלים ${M('5-6=-1')} A — כלומר הוא דווקא <b>מכניס</b> אמפר אחד, והחץ שציירנו הפוך.</p></div>
+    <div class="enrich-card"><div class="enrich-title">כמה מהר ״מתמלא״ צומת?</div>
+      <p>נניח שהצומת היה מפר את החוק ב-${M('1')} A למשך מיליונית שנייה. היה מצטבר שם ${M('10^{-6}')} C — ומטען כזה על נקודה בגודל מילימטר יוצר מתח של סדר ${M('10^{7}')} V. הצומת היה מתפוצץ. זו הסיבה שהחוק מדויק כל כך: כל סטייה מייצרת מיד שדה שמחסל אותה.</p>
+    </div>`,
+  },
+  sim:{type:'dc-junction',desc:'שנו את הזרמים בשלושת הענפים הראשונים — הרביעי נקבע מהחוק. שימו לב מה קורה לחץ שלו כשהערך יוצא שלילי, וגררו על התרשים כדי לשנות ענף ישירות.'},
+  example:{title:'צומת של ארבעה ענפים',text:'נכנסים 3 A ו-2 A, ומאחד הענפים יוצאים 4 A.',steps:[
+    {q:'כמה נכנס בסך הכול?',a:'3+2=5 A'},
+    {q:'ומה נשאר לענף הרביעי?',a:'5−4=1 A יוצא'},
+    {q:'ואם באותו ענף היו יוצאים 6 A?',a:'5−6=−1 A — הסימן אומר שהוא מכניס 1 A, והחץ הפוך'}]},
+  quiz:[
+    {q:'חוק הצמתים נובע ישירות מ:',opts:['שימור אנרגיה','שימור המטען','חוק אוהם','שימור התנע'],correct:1,
+     explain:'שימור המטען. צומת אינו יכול לאגור מטען, ולכן כל מה שנכנס בו חייב לצאת ממנו באותו רגע. חוק אוהם אינו מעורב כאן כלל — החוק תקף גם לרכיבים שאינם אוהמיים.'},
+    {q:'לצומת נכנסים 5 A ו-3 A, ויוצאים 6 A בענף אחד. הענף הרביעי:',opts:['מוציא 2 A','מוציא 14 A','מכניס 2 A','מוציא 8 A'],correct:0,
+     explain:'נכנס 8 A, יצא עד כה 6 A, ולכן נותרו 2 A שחייבים לצאת בענף הרביעי. בדיקה: 5+3=6+2 ✓'},
+    {q:'בפתרון יצא לכם I=−0.4 A בענף מסוים. פירוש הדבר:',opts:['טעות בחישוב','הזרם זורם בכיוון ההפוך לחץ שציירתם, בגודל 0.4 A','אין זרם בענף','הענף מנותק'],correct:1,
+     explain:'זו התשובה, לא טעות. הכיוון שציירתם היה ניחוש; הסימן השלילי מתקן אותו. הגודל 0.4 A נכון בדיוק, ואין שום צורך לחזור ולפתור מחדש.'},
+    {q:'בצומת נפגשים שני ענפים בלבד (ללא ענף שלישי). מה אומר החוק?',opts:['הזרם מתחלק','הזרם בשניהם זהה','הזרם מתאפס','אין לחוק משמעות'],correct:1,
+     explain:'אותו זרם בדיוק. ״צומת״ של שני ענפים אינו צומת אלא חוט מתמשך — וזו בדיוק הסיבה שבטור הזרם משותף. חוק הצמתים הוא הכללה של מה שכבר ידענו.'},
+    {q:'שני ענפים יוצאים מצומת, R₁=2 Ω ו-R₂=6 Ω, ושניהם מובילים לאותה נקודה. סך הזרם הנכנס 8 A. כמה עובר ב-R₁?',opts:['4 A','2 A','6 A','8 A'],correct:2,
+     explain:'אותו מתח על שני הענפים, ולכן הזרם מתחלק ביחס הפוך להתנגדויות — 3:1 לטובת הקטן. מתוך 8 A: 6 A ב-2 Ω ו-2 A ב-6 Ω. בדיקה: 6+2=8 ✓. חצי-חצי היה נכון רק לו היו הנגדים שווים.'},
+    {q:'האם חוק הצמתים תקף גם ברגע שבו קבל במעגל עדיין נטען?',opts:['לא — אז מטען כן מצטבר','כן — המטען מצטבר על הלוחות, לא בצומת','רק אחרי מצב מתמיד','רק אם אין קבלים'],correct:1,
+     explain:'תקף תמיד. המטען אכן מצטבר — על לוחות הקבל, שאינם צומת. בכל צומת אמיתי במעגל, גם באמצע הטעינה, הסכום הנכנס שווה ליוצא בכל רגע.'},
+  ],
+  problem:{title:'צומת עם ארבעה ענפים',text:'לצומת מחוברים ארבעה ענפים. בשניים נכנסים I₁=4 A ו-I₂=1.5 A, ובשלישי יוצאים I₃=2 A.',steps:[
+    {q:'מה סך הזרם הנכנס לצומת, באמפר?',unit:'A',answer:'5.5',tolerance:0.1,
+     explain:'4+1.5=5.5 A. פשוט מסכמים את הענפים שהחץ שלהם מצביע פנימה.',
+     nudge:'סכמו רק את הענפים שהחץ שלהם מצביע אל הצומת.',hint:'I₁+I₂'},
+    {q:'מה הזרם I₄ בענף הרביעי, באמפר? (חיובי = יוצא)',unit:'A',answer:'3.5',tolerance:0.1,
+     explain:'5.5 נכנסים, 2 כבר יוצאים, ולכן I₄=5.5−2=3.5 A יוצא. בדיקה: 4+1.5=2+3.5 ✓',
+     nudge:'מה שנכנס חייב לצאת. כמה עוד חסר כדי להשלים את היציאה?',hint:'I₄=I₁+I₂−I₃'},
+    {q:'עכשיו מגדילים את I₃ ל-7 A. מה I₄ עכשיו, באמפר?',unit:'A',answer:'-1.5',tolerance:0.1,
+     explain:'I₄=5.5−7=−1.5 A. הסימן השלילי אומר שהענף הרביעי אינו מוציא אלא <b>מכניס</b> 1.5 A — החץ שציירנו הפוך, והגודל נכון.',
+     nudge:'הציבו באותה נוסחה בדיוק. אל תתקנו את הסימן שיוצא — הוא התשובה.',hint:'I₄=5.5−7'},
+    {q:'ומה גודל הזרם בענף הרביעי אז, באמפר?',unit:'A',answer:'1.5',tolerance:0.1,
+     explain:'גודל הוא ערך מוחלט: 1.5 A. הסימן נושא כיוון בלבד — בדיוק כמו בוקטורים בפרק הקינמטיקה.',
+     nudge:'גודל לעולם אינו שלילי.',hint:'|I₄|'},
+  ]},
+},
+
+'dc-kirchhoff.dc-loop':{
+  theory:{title:'חוק הלולאות — לסגור מעגל ולחזור לאותו פוטנציאל',html:`
+    <p>החוק השני של קירכהוף מסתכל על <b>אנרגיה</b>. קולון שיוצא לסיבוב שלם סביב לולאה וחוזר לנקודת המוצא — חייב לחזור לאותו פוטנציאל בדיוק.</p>
+    ${fBox('\\sum \\Delta V = 0','חוק הלולאות של קירכהוף',[['\\Delta V','שינוי הפוטנציאל בכל רכיב','V — בסימן'],['לולאה','כל מסלול סגור במעגל','—']])}
+    <div class="def-block"><div class="def-title">כללי הסימן — כל מה שצריך לזכור</div>
+      <p>בוחרים כיוון הליכה סביב הלולאה, ואז:<br>
+      <b>סוללה</b> — נכנסים מהקוטב ה־− ויוצאים ב־+: ${M('+\\varepsilon')}. בכיוון ההפוך: ${M('-\\varepsilon')}.<br>
+      <b>נגד</b> — הולכים <b>עם</b> הזרם: ${M('-IR')} (יורדים). נגד הזרם: ${M('+IR')}.<br>
+      מסכמים סביב הלולאה ומשווים לאפס.</p>
+    </div>
+    ${animCanvas('anim-dc-loop',190,'מטפסים בסוללה, יורדים בכל נגד — וחוזרים בדיוק לאותו גובה')}
+    <div class="mis-block"><b>⚠️ טעות נפוצה:</b> ״הסכום אפס, אז אין מתח בשום מקום״. יש ויש: על כל נגד יש ירידה אמיתית, והסוללה מספקת עלייה. מה שמתאפס הוא ה<b>סכום</b> לאורך מסלול סגור — בדיוק כמו טיול שחוזר לנקודת המוצא: היו עליות וירידות, וההפרש הכולל בגובה אפס.</div>
+    <div class="def-block"><div class="def-title">כיוון ההליכה אינו משנה</div>
+      <p>הלכו בכיוון ההפוך וכל האיברים יחליפו סימן — המשוואה תוכפל ב-${M('-1')} ותיתן בדיוק אותו פתרון. גם בחירת הזרם ההתחלתית אינה משנה, מאותה סיבה כמו בחוק הצמתים.</p>
+    </div>
+    <div class="ex-block"><div class="ex-title">✏️ דוגמה — לולאה אחת, שני נגדים</div>
+    <p>${M('\\varepsilon=12')} V עם ${M('R_1=4')} Ω ו-${M('R_2=8')} Ω בטור. הולכים עם הזרם מהקוטב ה־−: ${M('+12-4I-8I=0')}, ומכאן ${M('12=12I')} ו-${M('I=1')} A. הירידות: ${M('4')} V ו-${M('8')} V, וסכומן ${M('12')} V — בדיוק עליית הסוללה. זהו ״מחלק המתח״ מפרק ב׳, עכשיו כמשוואה אחת.</p></div>
+    <div class="enrich-card"><div class="enrich-title">למה ״מתח״ ולא ״כוח״</div>
+      <p>הפוטנציאל הוא אנרגיה לקולון, והוא <b>פונקציית מצב</b>: לכל נקודה במעגל יש ערך אחד. מכאן נובע מיד שהסכום סביב לולאה סגורה מתאפס — אותה תכונה בדיוק שבגללה עבודת הכובד אינה תלויה במסלול. חוק הלולאות אינו חוק חדש; הוא שימור אנרגיה בשפה של מעגלים.</p>
+    </div>`,
+  },
+  sim:{type:'dc-loop',desc:'המטייל צועד סביב הלולאה, וסולם הפוטנציאל נבנה מתחתיו — עלייה בסוללה, ירידה בכל נגד, וחזרה מדויקת לאפס. הפכו את כיוון ההליכה או את הסוללה השנייה וראו שהמסקנה אינה משתנה.'},
+  example:{title:'לולאה אחת',text:'ε=12 V עם R₁=4 Ω ו-R₂=8 Ω בטור.',steps:[
+    {q:'מה המשוואה?',a:'+12−4I−8I=0'},
+    {q:'ומה הזרם?',a:'12=12I ⇒ I=1 A'},
+    {q:'בדיקה?',a:'הירידות 4 V ו-8 V מסתכמות ל-12 V — עליית הסוללה'}]},
+  quiz:[
+    {q:'חוק הלולאות נובע מ:',opts:['שימור המטען','שימור האנרגיה','חוק אוהם','חוק ניוטון השלישי'],correct:1,
+     explain:'שימור אנרגיה. הפוטנציאל הוא אנרגיה לקולון, ולכן קולון שחוזר לנקודת המוצא חייב לחזור לאותה אנרגיה — אחרת היינו מייצרים אנרגיה מכלום בכל סיבוב.'},
+    {q:'עוברים דרך נגד <b>בכיוון הזרם</b>. השינוי בפוטנציאל:',opts:['+IR','−IR','אפס','+ε'],correct:1,
+     explain:'ירידה: −IR. הזרם זורם מפוטנציאל גבוה לנמוך דרך נגד, ולכן ללכת איתו פירושו לרדת. הולכים נגד הזרם — מטפסים, ‎+IR.'},
+    {q:'עוברים דרך סוללה מהקוטב ה-+ אל הקוטב ה-−. השינוי:',opts:['+ε','−ε','אפס','תלוי בזרם'],correct:1,
+     explain:'−ε. הסוללה מעלה את הפוטנציאל מה-− אל ה-+, ולכן מעבר בכיוון ההפוך הוא ירידה. שימו לב שהסימן נקבע מכיוון ה<b>הליכה</b> מול קטבי הסוללה בלבד, ולא מכיוון הזרם.'},
+    {q:'בלולאה עם ε=9 V ושני נגדים בטור, סכום הירידות על הנגדים הוא:',opts:['אפס','9 V','18 V','תלוי בהתנגדויות'],correct:1,
+     explain:'9 V בדיוק. איך הם מתחלקים בין שני הנגדים תלוי בהתנגדויות, אבל הסכום נעול על מתח המקור — זו כל המשמעות של ΣΔV=0.'},
+    {q:'הולכים סביב אותה לולאה בכיוון ההפוך. הפתרון שיתקבל:',opts:['הפוך בסימן','זהה בדיוק','שגוי','תלוי מהיכן מתחילים'],correct:1,
+     explain:'זהה. כל איבר מחליף סימן, כלומר המשוואה כולה מוכפלת ב-−1 — וזו אותה משוואה. גם נקודת ההתחלה אינה משנה, שכן מדובר במסלול סגור.'},
+    {q:'שתי סוללות בלולאה אחת, 12 V ו-4 V, המחוברות זו <b>נגד</b> זו, עם נגד כולל 2 Ω. הזרם:',opts:['8 A','4 A','2 A','אפס'],correct:1,
+     explain:'הכא״מים מחסירים: 12−4=8 V נטו, ולכן I=8/2=4 A. הסוללה החלשה נדחפת אחורה — היא נטענת. אילו היו מחוברות באותו כיוון היינו מקבלים 16/2=8 A.'},
+  ],
+  problem:{title:'לולאה עם שתי סוללות',text:'בלולאה אחת: ε₁=12 V ו-ε₂=3 V מחוברות זו נגד זו, ובטור איתן R₁=2 Ω ו-R₂=4 Ω.',steps:[
+    {q:'מה הכא״מ נטו בלולאה, בוולט?',unit:'V',answer:'9',tolerance:0.2,
+     explain:'12−3=9 V. הסוללות מחוברות זו נגד זו, ולכן החלשה מחסירה מהחזקה.',
+     nudge:'שתי עליות בכיוונים מנוגדים לאורך אותה לולאה — מה נשאר?',hint:'ε₁−ε₂'},
+    {q:'מה הזרם I בלולאה, באמפר?',unit:'A',answer:'1.5',tolerance:0.05,
+     explain:'המשוואה: 12−3−2I−4I=0 ⇒ 9=6I ⇒ I=1.5 A. הנגדים בטור מצטרפים, והכא״מ נטו מחלק בהם.',
+     nudge:'כתבו ΣΔV=0 לאורך הלולאה, עם שתי העליות ושתי הירידות.',hint:'I=(ε₁−ε₂)/(R₁+R₂)'},
+    {q:'מה ההספק שהסוללה החזקה מספקת, בוואט?',unit:'W',answer:'18',tolerance:0.5,
+     explain:'P=ε₁I=12·1.5=18 W. זהו ההספק הכולל שהיא מזרימה למעגל.',
+     nudge:'הספק של מקור הוא הכא״מ שלו כפול הזרם שעובר דרכו.',hint:'P=ε₁I'},
+    {q:'ומה קורה לסוללה החלשה — כמה הספק היא <b>קולטת</b>, בוואט?',unit:'W',answer:'4.5',tolerance:0.3,
+     explain:'P=ε₂I=3·1.5=4.5 W. הזרם נכנס אליה בקוטב ה-+, כלומר היא נטענת. בדיקה: 18=4.5 שנקלטים ועוד 13.5 שמתפזרים בנגדים (2+4 Ω כפול 1.5² = 13.5 W) ✓',
+     nudge:'אותו זרם עובר גם בה. מה קורה כשהוא נכנס בקוטב החיובי?',hint:'P=ε₂I'},
+  ]},
+},
+
+'dc-kirchhoff.dc-twoloop':{
+  theory:{title:'שתי לולאות, שתי סוללות',html:`
+    <p>המעגל שבו שתי סוללות מזינות יחד נגד אחד אינו טור ואינו מקביל, ואי אפשר לצמצם אותו. זה בדיוק המעגל שבשבילו נכתבו שני החוקים — ושלושה זרמים בלתי ידועים דורשים שלוש משוואות.</p>
+    <div class="def-block"><div class="def-title">המתכון, בשלושה צעדים</div>
+      <p><b>1.</b> מסמנים חץ לכל ענף — כרצוננו — ונותנים שם: ${M('I_1,I_2,I_3')}.<br>
+      <b>2.</b> כותבים את חוק הצמתים פעם אחת: ${M('I_3=I_1+I_2')}.<br>
+      <b>3.</b> כותבים את חוק הלולאות לכל לולאה: ${M('\\varepsilon_1=I_1R_1+I_3R_3')} ו-${M('\\varepsilon_2=I_2R_2+I_3R_3')}. שלוש משוואות, שלושה נעלמים — ופותרים.</p>
+    </div>
+    ${animCanvas('anim-dc-twoloop',195,'שתי לולאות, צומת אחד — וזרם שיוצא שלילי כשהסוללה החלשה נטענת')}
+    <div class="def-block"><div class="def-title">הסימן השלילי הוא תוצאה פיזיקלית</div>
+      <p>כששתי סוללות מושכות לכיוונים מנוגדים, הזרם באחת מהן עלול לצאת <b>שלילי</b>. אין בכך טעות: פירושו שהזרם נכנס אליה בקוטב ה-+, כלומר היא <b>נטענת</b> על חשבון החזקה. כך בדיוק עובד מטען — סוללה חזקה דוחפת זרם לאחור דרך חלשה.</p>
+    </div>
+    <div class="mis-block"><b>⚠️ טעות נפוצה:</b> ״שתי סוללות במעגל — פשוט מחברים את הכא״מים״. זה נכון רק אם הן בטור באותה לולאה. כאן כל סוללה יושבת בענף משלה עם נגד משלה, והזרמים בענפים שונים — ${M('I_1\\ne I_2')}. אין קיצור דרך; כותבים משוואות.</div>
+    <div class="ex-block"><div class="ex-title">✏️ דוגמה — ${M('\\varepsilon_1=12')} V, ${M('\\varepsilon_2=4')} V, ${M('R_1=R_2=2')} Ω, ${M('R_3=4')} Ω</div>
+    <p>המשוואות: ${M('12=2I_1+4I_3')}, ${M('4=2I_2+4I_3')}, ${M('I_3=I_1+I_2')}. הפתרון: ${M('I_1=2.8')} A, ${M('I_2=-1.2')} A, ${M('I_3=1.6')} A.<br>
+    <b>בדיקת צומת:</b> ${M('2.8-1.2=1.6')} ✓ &nbsp; <b>בדיקת אנרגיה:</b> הסוללה החזקה מספקת ${M('12\\cdot2.8=33.6')} W; החלשה קולטת ${M('4\\cdot1.2=4.8')} W; הנגדים מפזרים ${M('28.8')} W. סך הכול ${M('4.8+28.8=33.6')} ✓<br>
+    <b>הפירוש:</b> ${M('I_2')} שלילי — הסוללה של ${M('4')} V נטענת.</p></div>
+    <div class="enrich-card"><div class="enrich-title">מכונית מתניעה מכונית</div>
+      <p>כבלי התנעה הם בדיוק המעגל הזה: הסוללה התקינה היא ${M('\\varepsilon_1')}, החלשה ${M('\\varepsilon_2')}, וההתנגדויות הפנימיות והכבלים הם ${M('R_1')} ו-${M('R_2')}. הזרם בסוללה החלשה יוצא שלילי — היא נטענת. ואם מחברים הפוך, בין + ל-−, שתי הסוללות דוחפות באותו כיוון סביב הלולאה, הנגד היחיד הוא ההתנגדויות הפנימיות הזעירות, והזרם מזנק למאות אמפרים.</p>
+    </div>`,
+  },
+  sim:{type:'dc-twoloop',desc:'שנו את שני הכא״מים ואת שלושת הנגדים. שלושת הזרמים נפתרים בדיוק, והחצים מתהפכים מאליהם כשזרם יוצא שלילי — אז הסוללה החלשה נטענת. הקישו על הסוללה השנייה (או על הכפתור) כדי להפוך את קטביה, וראו מה קורה כששתיהן דוחפות סביב אותה לולאה. מאזן ההספקים למטה חייב להסתכם תמיד.'},
+  example:{title:'שתי סוללות, נגד משותף',text:'ε₁=12 V, ε₂=4 V, R₁=R₂=2 Ω, R₃=4 Ω.',steps:[
+    {q:'מה המשוואות?',a:'12=2I₁+4I₃ · 4=2I₂+4I₃ · I₃=I₁+I₂'},
+    {q:'מה הפתרון?',a:'I₁=2.8 A, I₂=−1.2 A, I₃=1.6 A'},
+    {q:'מה פירוש הסימן ב-I₂?',a:'הזרם נכנס לסוללה השנייה בקוטב ה-+ — היא נטענת'}]},
+  quiz:[
+    {q:'כמה משוואות בלתי תלויות דרושות למעגל עם שלושה זרמים בלתי ידועים?',opts:['אחת','שתיים','שלוש','ארבע'],correct:2,
+     explain:'שלוש — כמספר הנעלמים. כאן: צומת אחד ושתי לולאות. צומת שני במעגל כזה אינו נותן מידע חדש, כי הוא בדיוק אותה משוואה בסימן הפוך.'},
+    {q:'בפתרון יצא I₂=−1.2 A. הסוללה השנייה:',opts:['מספקת הספק כרגיל','נטענת — הזרם נכנס אליה בקוטב ה-+','מנותקת','שרופה'],correct:1,
+     explain:'נטענת. הסימן השלילי אומר שהזרם זורם הפוך לחץ שציירנו, כלומר נכנס בקוטב החיובי — וסוללה שזרם נכנס אליה כך קולטת אנרגיה במקום לספק. זה בדיוק מה שעושה מטען.'},
+    {q:'מדוע אי אפשר לפתור מעגל כזה בצמצום טור-מקביל?',opts:['הנגדים גדולים מדי','שתי הסוללות בענפים שונים, ולכן אין צמד טהור לצמצם','אין בו צמתים','חוק אוהם אינו חל'],correct:1,
+     explain:'אין אף זוג רכיבים שהוא טור טהור (אותו זרם) או מקביל טהור (אותו מתח). הצמצום פשוט אינו מתחיל — ולכן עוברים למשוואות. זה המקרה שהוזכר כבר בסעיף המעגל המעורב.'},
+    {q:'בדיקה טובה לפתרון של מעגל דו-לולאתי היא:',opts:['שכל הזרמים חיוביים','שסך ההספק שהסוללות מספקות שווה לסך מה שנקלט ומתפזר','שכל הנגדים שווים','שהזרם הגדול ביותר בענף הקצר ביותר'],correct:1,
+     explain:'מאזן ההספקים. הוא בודק את כל המשוואות בבת אחת, והוא ייכשל כמעט בכל טעות סימן או אריתמטיקה. הדרישה ש״כל הזרמים חיוביים״ אינה נכונה כלל — זרם שלילי הוא תוצאה לגיטימית.'},
+    {q:'ε₁=12 V ו-ε₂=12 V, R₁=R₂. מה יהיה I₃ ביחס ל-I₁?',opts:['I₃=I₁','I₃=2I₁','I₃=I₁/2','אפס'],correct:1,
+     explain:'בסימטריה מלאה שתי הסוללות תורמות שווה בשווה, ולכן I₁=I₂ ומהצומת I₃=2I₁. זה גם מסביר למה שתי סוללות זהות במקביל מספקות זרם כפול לאותו עומס — ולא מתח כפול.'},
+    {q:'מה מייצג I₃R₃ בשתי משוואות הלולאה?',opts:['שני מתחים שונים','אותה ירידת מתח, המשותפת לשתי הלולאות','טעות — אסור לכתוב אותו איבר פעמיים','את הכא״מ של הסוללה'],correct:1,
+     explain:'אותה ירידה בדיוק: R₃ הוא הענף המשותף לשתי הלולאות, ושתיהן חולפות בו. זה מה שקושר בין המשוואות והופך אותן למערכת — בלי הענף המשותף היו אלה שני מעגלים נפרדים.'},
+  ],
+  problem:{title:'שתי סוללות ונגד משותף',text:'ε₁=12 V בטור עם R₁=2 Ω, ε₂=4 V בטור עם R₂=2 Ω, ושתיהן מזינות את R₃=4 Ω המשותף. הזרמים I₁ ו-I₂ מסומנים אל הצומת, ו-I₃ ממנו.',steps:[
+    {q:'כתבו את חוק הלולאות ללולאה הראשונה והציבו I₃=I₁+I₂. מה מקדם I₁ במשוואה שהתקבלה?',unit:'Ω',answer:'6',tolerance:0.2,
+     explain:'12=2I₁+4(I₁+I₂)=6I₁+4I₂ — מקדם I₁ הוא 6 Ω. שימו לב שהנגד המשותף מופיע גם ליד I₂.',
+     nudge:'הציבו I₃=I₁+I₂ בתוך האיבר I₃R₃ ואספו את איברי I₁.',hint:'R₁+R₃'},
+    {q:'מה הזרם I₁, באמפר?',unit:'A',answer:'2.8',tolerance:0.1,
+     explain:'פותרים 12=6I₁+4I₂ יחד עם 4=4I₁+6I₂ ומקבלים I₁=2.8 A. (המשוואה השנייה נבנית באותה דרך מהלולאה השנייה.)',
+     nudge:'בנו את המשוואה השנייה באותה שיטה, ופתרו שתי משוואות בשני נעלמים.',hint:'12=6I₁+4I₂ · 4=4I₁+6I₂'},
+    {q:'מה הזרם I₂, באמפר? (שמרו על הסימן)',unit:'A',answer:'-1.2',tolerance:0.1,
+     explain:'I₂=−1.2 A. הסימן השלילי הוא התשובה: הזרם בענף השני זורם הפוך לחץ, כלומר נכנס אל הסוללה של 4 V בקוטב ה-+ — היא נטענת.',
+     nudge:'הציבו את I₁ שמצאתם באחת המשוואות. אל ״תתקנו״ את הסימן שמתקבל.',hint:'מתוך 4=4I₁+6I₂'},
+    {q:'מה הזרם I₃ בנגד המשותף, באמפר?',unit:'A',answer:'1.6',tolerance:0.1,
+     explain:'I₃=I₁+I₂=2.8−1.2=1.6 A. בדיקת אנרגיה: 12·2.8=33.6 W מסופקים, 4·1.2=4.8 W נקלטים בסוללה החלשה, והנגדים מפזרים 28.8 W — וסך הכול מסתדר ✓',
+     nudge:'חוק הצמתים, עם הסימנים כפי שיצאו.',hint:'I₃=I₁+I₂'},
+  ]},
+},
+
+'dc-kirchhoff.dc-bridge':{
+  theory:{title:'גשר ויטסטון — למדוד התנגדות בלי למדוד זרם',html:`
+    <p>כל מד התנגדות רגיל מסתמך על מדידת זרם ומתח, ושתיהן נושאות שגיאה. הגשר עוקף את שתיהן: הוא מודד <b>יחס</b>, ואת נקודת האיזון מזהים מכך ש<b>אין</b> זרם כלל.</p>
+    ${fBox('\\dfrac{R_1}{R_2} = \\dfrac{R_3}{R_x}','תנאי האיזון של הגשר',[['R_1,R_2','זרועות היחס — ידועות','Ω'],['R_3','נגד משתנה מכויל','Ω'],['R_x','הנגד הנמדד','Ω']])}
+    <div class="def-block"><div class="def-title">איך הוא בנוי</div>
+      <p>שני מחלקי מתח מקבילים בין אותן שתי נקודות: ${M('R_1')} מעל ${M('R_3')} בצד אחד, ${M('R_2')} מעל ${M('R_x')} בצד השני. בין שתי נקודות האמצע מחובר <b>גלוונומטר</b>. מכווננים את ${M('R_3')} עד שהמחוג מתאפס — ואז שני האמצעים באותו פוטנציאל בדיוק.</p>
+    </div>
+    ${animCanvas('anim-dc-bridge',195,'שני מחלקי מתח זה לצד זה — והמחוג מתאפס כשהיחסים משתווים')}
+    <div class="def-block"><div class="def-title">למה זה מדויק כל כך</div>
+      <p>בנקודת האיזון התוצאה ${M('R_x=R_3R_2/R_1')} אינה תלויה כלל במתח המקור, בהתנגדות הגלוונומטר או ברגישותו. המקור יכול להשתנות תוך כדי המדידה ולא יקרה דבר. כל מה שדרוש מהגלוונומטר הוא לזהות <b>אפס</b> — וזה הדבר היחיד שמכשיר מדידה עושה בלי שגיאת כיול.</p>
+    </div>
+    <div class="mis-block"><b>⚠️ טעות נפוצה:</b> ״כשהגשר מאוזן אין זרם במעגל״. יש ויש: בכל אחת משתי הזרועות זורם זרם, ושניהם גדולים. מה שמתאפס הוא הזרם ב<b>ענף הגלוונומטר</b> בלבד, כי שני קצותיו באותו פוטנציאל.</div>
+    <div class="ex-block"><div class="ex-title">✏️ דוגמה — מדידת נגד לא ידוע</div>
+    <p>זרועות יחס ${M('R_1=100')} Ω ו-${M('R_2=200')} Ω. מכווננים ומגלים שהמחוג מתאפס ב-${M('R_3=250')} Ω. אז ${M('R_x=R_3\\cdot R_2/R_1=250\\cdot200/100=500')} Ω.<br>
+    <b>בדיקה:</b> ${M('R_1/R_2=100/200=0.5')} וגם ${M('R_3/R_x=250/500=0.5')} ✓ — היחסים שווים, וזה כל התנאי.</p></div>
+    <div class="enrich-card"><div class="enrich-title">הגשר שלא מאוזן — וזו התכונה השימושית</div>
+      <p>מד מאמץ (strain gauge) בכנף מטוס או במאזני מטבח הוא נגד שהתנגדותו משתנה בשבריר אחוז כשהוא נמתח. מציבים אותו כ-${M('R_x')} בגשר מאוזן, וכל סטייה זעירה הופכת למתח מדיד בין שני האמצעים. הגשר אינו מודד כאן התנגדות אלא <b>שינוי</b> בה — ומגבר פשוט הופך את זה למספר על הצג.</p>
+    </div>`,
+  },
+  sim:{type:'dc-bridge',desc:'בחרו נגד למדידה, ואז כווננו את R₃ עד שהמחוג מתאפס — הגשר יחשב את ערכו מיחס הזרועות ותוכלו להשוות. הגלוונומטר מחושב במדויק, ולכן אפשר גם לשנות את מתח המקור ולראות שנקודת האיזון אינה זזה כלל.'},
+  example:{title:'איזון הגשר',text:'R₁=100 Ω, R₂=200 Ω, והמחוג מתאפס ב-R₃=250 Ω.',steps:[
+    {q:'מה תנאי האיזון?',a:'R₁/R₂ = R₃/R_x'},
+    {q:'מה R_x?',a:'R_x=R₃·R₂/R₁=250·200/100=500 Ω'},
+    {q:'ואם נכפיל את מתח המקור?',a:'שום דבר — נקודת האיזון אינה תלויה בו כלל'}]},
+  quiz:[
+    {q:'גשר ויטסטון מאוזן כאשר:',opts:['כל ההתנגדויות שוות','R₁/R₂=R₃/R_x','הזרם במעגל מתאפס','מתח המקור מרבי'],correct:1,
+     explain:'שוויון היחסים. שתי הזרועות הן מחלקי מתח, ושני האמצעים מגיעים לאותו פוטנציאל בדיוק כששני היחסים שווים — ללא קשר לערכים המוחלטים.'},
+    {q:'בנקודת האיזון, הזרם בענף הגלוונומטר הוא:',opts:['מרבי','אפס','חצי מהזרם הכולל','תלוי בהתנגדותו'],correct:1,
+     explain:'אפס. שני קצותיו באותו פוטנציאל, ובלי הפרש פוטנציאלים אין זרם — יהא אשר יהא ערך התנגדותו. בשאר המעגל, לעומת זאת, זורמים זרמים גדולים.'},
+    {q:'מכפילים את מתח המקור פי 3. נקודת האיזון:',opts:['זזה פי 3','זזה פי √3','אינה זזה כלל','הגשר יוצא מאיזון'],correct:2,
+     explain:'אינה זזה. תנאי האיזון הוא יחס בין התנגדויות בלבד, והמתח מצטמצם משני האגפים. זה היתרון הגדול של השיטה: יציבות המקור אינה נכנסת לתוצאה.'},
+    {q:'R₁=100 Ω, R₂=300 Ω, ואיזון ב-R₃=120 Ω. מהו R_x?',opts:['40 Ω','360 Ω','220 Ω','250 Ω'],correct:1,
+     explain:'R_x=R₃R₂/R₁=120·300/100=360 Ω. בדיקה: 100/300=1/3 וגם 120/360=1/3 ✓ היחסים שווים.'},
+    {q:'מדוע גשר ויטסטון מדויק יותר ממד התנגדות פשוט?',opts:['הוא משתמש במתח גבוה יותר','הוא מודד יחס ומזהה אפס, ולכן אינו תלוי בכיול הגלוונומטר ובמתח המקור','יש בו יותר נגדים','הוא מודד זרם ישירות'],correct:1,
+     explain:'זיהוי אפס הוא המדידה היחידה שאין בה שגיאת כיול. מכשיר שסולמו מוטה בעשרה אחוזים עדיין מראה אפס נכון — ולכן הדיוק נקבע רק מדיוק שלושת הנגדים הידועים.'},
+    {q:'הגשר אינו מאוזן. איך פותרים אותו?',opts:['בצמצום טור-מקביל','במשוואות קירכהוף (או במעגל תבנין שקול)','אי אפשר לפתור','רק במדידה'],correct:1,
+     explain:'זהו המעגל הקלאסי שאין בו אף צמד טור טהור או מקביל טהור, ולכן הצמצום נתקע. כותבים צמתים ולולאות, או — קיצור נוח — מחליפים את הכל בתבנין שקול מול ענף הגלוונומטר.'},
+  ],
+  problem:{title:'מדידה בגשר ויטסטון',text:'בגשר ויטסטון: R₁=150 Ω, R₂=450 Ω, ונגד משתנה R₃. הגלוונומטר מתאפס כאשר R₃=80 Ω.',steps:[
+    {q:'מה יחס זרועות היחס R₁/R₂?',unit:'',answer:'0.333',tolerance:0.02,
+     explain:'150/450=1/3≈0.333. זהו היחס שאליו חייב להשתוות גם R₃/R_x.',
+     nudge:'פשוט חלקו את הראשון בשני.',hint:'R₁/R₂'},
+    {q:'מהו הנגד הנמדד R_x, באוהם?',unit:'Ω',answer:'240',tolerance:5,
+     explain:'R_x=R₃·R₂/R₁=80·450/150=240 Ω. בדיקה: 80/240=1/3 — בדיוק יחס הזרועות ✓',
+     nudge:'מתוך R₁/R₂=R₃/R_x בודדו את R_x.',hint:'R_x=R₃R₂/R₁'},
+    {q:'מתח המקור 9 V. מה המתח על R₃ בנקודת האיזון, בוולט?',unit:'V',answer:'3.13',tolerance:0.2,
+     explain:'הזרוע השמאלית היא מחלק מתח: V₃=9·R₃/(R₁+R₃)=9·80/230=3.13 V. אותו ערך בדיוק יימדד על R_x בזרוע השנייה — וזו המשמעות של ״אותו פוטנציאל באמצע״.',
+     nudge:'הזרוע היא שני נגדים בטור על מתח המקור. חלק מהמתח נופל על כל אחד.',hint:'V₃=V·R₃/(R₁+R₃)'},
+    {q:'ומה המתח על R_x בזרוע השנייה, בוולט?',unit:'V',answer:'3.13',tolerance:0.2,
+     explain:'אותו דבר: 9·240/690=3.13 V. שוויון המתחים בשתי נקודות האמצע הוא בדיוק מה שמאפס את המחוג — ולכן הגשר מאוזן.',
+     nudge:'חשבו את אותו מחלק מתח בזרוע הימנית, והשוו.',hint:'V_x=V·R_x/(R₂+R_x)'},
+  ]},
+},
 };
 Object.assign(CONTENT, DC_CONTENT);
 
@@ -7042,6 +7267,10 @@ function initSim(id,type){
     'dc-realmeter':simDcRealMeter,
     'dc-emf':simDcEmf,
     'dc-cap':simDcCap,
+    'dc-junction':simDcJunction,
+    'dc-loop':simDcLoop,
+    'dc-twoloop':simDcTwoLoop,
+    'dc-bridge':simDcBridge,
     'dc-ohm':simDcOhm,
     'dc-power':simDcPower,
     'elc-sphere':simElcSphere,
@@ -17855,6 +18084,181 @@ runAnim('anim-elc-compare-t',(canvas,ctx,W,H,t)=>{
   label(ctx,'אותו מטען — ושלוש התנהגויות שונות; עקבו אחרי אורך החץ',W*0.5,H-9,'#e2e8f0',10.5);
 });
 
+// DC ANIM: one branch is driven, and the outgoing branch follows it exactly
+runAnim('anim-dc-junction',(canvas,ctx,W,H,t)=>{
+  bg(ctx,W,H);
+  const num=(v,d)=>(Math.abs(v)<5e-3?0:v).toFixed(d===undefined?1:d).replace('-','−');
+  const i1=3+1.6*Math.sin(t*0.55), i2=2, i3=1.5, i4=i1+i2-i3;
+  const cx=W*0.34, cy=H*0.47;
+  const Lh=Math.min(W*0.17,86), Lv=Math.min(H*0.28,50);
+  // dx, dy, current, colour, name, flows-in?, label dx, label dy, align, arrow offset
+  const arms=[[-Lh,0,i1,'#fbbf24','I₁',1,-Lh-9,-13,'right',0,-12],
+              [0,-Lv,i2,'#38bdf8','I₂',1, 13,-Lv-3,'left',-12,0],
+              [ Lh,0,i3,'#a78bfa','I₃',0, Lh+9,-13,'left',0,-12],
+              [0, Lv,i4,'#34d399','I₄',0, 13, Lv+14,'left',-12,0]];
+  arms.forEach(a=>{
+    const ex=cx+a[0], ey=cy+a[1], into=a[5];
+    ctx.save();ctx.strokeStyle='#64748b';ctx.lineWidth=2.4;
+    ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(ex,ey);ctx.stroke();ctx.restore();
+    dcFlow(ctx,into?[[ex,ey],[cx,cy]]:[[cx,cy],[ex,ey]],t,Math.min(.55,Math.abs(a[2])*0.09),a[3],5);
+    const f1=into?0.78:0.40, f2=into?0.40:0.78;   // the arrow always points the way we defined the branch
+    arrow(ctx,cx+a[0]*f1+a[9],cy+a[1]*f1+a[10],cx+a[0]*f2+a[9],cy+a[1]*f2+a[10],a[3],2,7.5);
+    label(ctx,a[4]+' = '+num(a[2]),cx+a[6],cy+a[7],a[3],9.5,a[8]);
+  });
+  ctx.save();ctx.fillStyle='#e2e8f0';ctx.beginPath();ctx.arc(cx,cy,5,0,6.2832);ctx.fill();ctx.restore();
+  label(ctx,num(i1)+' + '+num(i2)+' = '+num(i3)+' + '+num(i4),W*0.76,H*0.40,'#34d399',11.5);
+  label(ctx,'שלושה נבחרים, הרביעי נגזר',W*0.76,H*0.57,'#94a3b8',9.5);
+  label(ctx,'הזרם הנכנס משתנה — והיוצא עוקב אחריו מיד, בלי כל השהיה',W/2,H-9,'#94a3b8',10.5);
+});
+
+// DC ANIM: round the loop once, and back to exactly the same potential
+runAnim('anim-dc-loop',(canvas,ctx,W,H,t)=>{
+  bg(ctx,W,H);
+  const E=12,R1=4,R2=8,I=E/(R1+R2);
+  const L=W*0.07,R=W*0.50,T=H*0.20,B=H*0.64;
+  ctx.save();ctx.strokeStyle='#64748b';ctx.lineWidth=2.2;
+  ctx.beginPath();ctx.rect(L,T,R-L,B-T);ctx.stroke();ctx.restore();
+  const xa=L+(R-L)*0.34, xb=L+(R-L)*0.72, xm=(xa+xb)/2;
+  dcFlow(ctx,[[L,B],[L,T],[R,T],[R,B],[L,B]],t,0.09,'#fbbf24',12);
+  dcRes(ctx,xa,T,44,19,'','#38bdf8',0);label(ctx,'4 Ω',xa,T-16,'#38bdf8',10);
+  dcRes(ctx,xb,T,44,19,'','#a78bfa',0);label(ctx,'8 Ω',xb,T-16,'#a78bfa',10);
+  dcBatt(ctx,L,(T+B)/2,'');
+  label(ctx,'ε = 12 V',L+17,(T+B)/2+4,'#f87171',9.5,'left');
+  label(ctx,'I = 1 A',R-10,(T+B)/2+4,'#fbbf24',9.5,'right');
+  // the walk is split into four equal-time legs, so the circuit and the ladder stay in step
+  const path=[[[L,B],[L,T]],[[L,T],[xm,T]],[[xm,T],[R,T]],[[R,T],[R,B],[L,B]]];
+  const legs=[E,-I*R1,-I*R2,0];
+  const u=(t*0.13)%1, k=Math.min(3,Math.floor(u*4)), f=u*4-k;
+  const along=(pl,fr)=>{let d=[],tot=0,q;
+    for(q=1;q<pl.length;q++){const s=Math.hypot(pl[q][0]-pl[q-1][0],pl[q][1]-pl[q-1][1]);d.push(s);tot+=s;}
+    let s2=fr*tot,m=0;while(m<d.length-1&&s2>d[m]){s2-=d[m];m++;}
+    const a=pl[m],b=pl[m+1],g=d[m]?s2/d[m]:0;return[a[0]+(b[0]-a[0])*g,a[1]+(b[1]-a[1])*g];};
+  const wp=along(path[k],f);
+  ctx.save();ctx.fillStyle='#f8fafc';ctx.strokeStyle='#0f172a';ctx.lineWidth=2.5;
+  ctx.beginPath();ctx.arc(wp[0],wp[1],6.5,0,6.2832);ctx.fill();ctx.stroke();ctx.restore();
+  // the potential ladder
+  const GX=W*0.61,GW=W*0.34,GY=H*0.15,GH=H*0.47,BL=GY+GH;
+  const Y=v=>BL-2-(v/E)*(GH-22);
+  ctx.save();ctx.strokeStyle='rgba(148,163,184,.55)';ctx.lineWidth=1.2;
+  ctx.beginPath();ctx.moveTo(GX-6,GY);ctx.lineTo(GX-6,BL+3);ctx.stroke();
+  ctx.strokeStyle='rgba(148,163,184,.4)';ctx.setLineDash([4,3]);
+  ctx.beginPath();ctx.moveTo(GX-6,Y(0));ctx.lineTo(GX+GW,Y(0));ctx.stroke();ctx.restore();
+  ctx.save();ctx.fillStyle='rgba(250,204,21,.09)';
+  ctx.fillRect(GX+GW*k/4,GY,GW/4,BL-GY);ctx.restore();
+  let vv=0,x0=GX;
+  ctx.save();ctx.strokeStyle='#34d399';ctx.lineWidth=2.6;ctx.beginPath();ctx.moveTo(x0,Y(0));
+  for(let q=0;q<4;q++){const w=GW/4,nv=vv+legs[q];
+    ctx.lineTo(x0+w*0.30,Y(vv));ctx.lineTo(x0+w*0.70,Y(nv));ctx.lineTo(x0+w,Y(nv));vv=nv;x0+=w;}
+  ctx.stroke();ctx.restore();
+  let vs=0;for(let q=0;q<k;q++)vs+=legs[q];
+  const wv=vs+legs[k]*Math.max(0,Math.min(1,(f-0.30)/0.40));
+  ctx.save();ctx.fillStyle='#f8fafc';ctx.strokeStyle='#0f172a';ctx.lineWidth=2.5;
+  ctx.beginPath();ctx.arc(GX+GW*u,Y(wv),5.5,0,6.2832);ctx.fill();ctx.stroke();ctx.restore();
+  label(ctx,'V',GX-12,GY+9,'#94a3b8',9.5,'right');
+  label(ctx,'12',GX-12,Y(E)+4,'#64748b',8.5,'right');
+  label(ctx,'0',GX-12,Y(0)+4,'#64748b',8.5,'right');
+  const nm=['בסוללה','ב‏־‎R₁','ב‏־‎R₂','בחוט'], dv=['+12 V','−4 V','−8 V','0'],
+        dc=['#34d399','#f87171','#f87171','#94a3b8'];
+  for(let q=0;q<4;q++){
+    label(ctx,nm[q],GX+GW*(q+0.5)/4,BL+15,q===k?'#e2e8f0':'#64748b',8.5);
+    label(ctx,dv[q],GX+GW*(q+0.5)/4,BL+29,dc[q],9.5);
+  }
+  label(ctx,'‎+12 − 4 − 8 = 0',W*0.28,H-30,'#34d399',11.5);
+  label(ctx,'עלייה אחת, שתי ירידות — וחזרה בדיוק לאותו פוטנציאל',W*0.28,H-10,'#94a3b8',9.5);
+});
+
+// DC ANIM: weaken one source until its own current turns round and it starts charging
+runAnim('anim-dc-twoloop',(canvas,ctx,W,H,t)=>{
+  bg(ctx,W,H);
+  const num=(v,d)=>(Math.abs(v)<5e-3?0:v).toFixed(d===undefined?2:d).replace('-','−');
+  const e1=12,r1=2,r2=2,r3=4;
+  const e2=6+5*Math.cos(t*0.45);                 // sweeps through ε₂ = 8 V, where I₂ changes sign
+  const D=r1*r2+r3*(r1+r2);
+  const i1=(e1*(r2+r3)-e2*r3)/D, i2=(e2*(r1+r3)-e1*r3)/D, i3=i1+i2;
+  const P1=e1*i1,P2=e2*i2,Pd=i1*i1*r1+i2*i2*r2+i3*i3*r3;
+  const L=W*0.10,Rt=W*0.90,mid=W*0.50,T=H*0.26,B=H*0.72,ym=(T+B)/2;
+  ctx.save();ctx.strokeStyle='#64748b';ctx.lineWidth=2.2;
+  ctx.beginPath();
+  ctx.moveTo(L,T);ctx.lineTo(Rt,T);ctx.moveTo(L,B);ctx.lineTo(Rt,B);
+  ctx.moveTo(L,T);ctx.lineTo(L,B);ctx.moveTo(Rt,T);ctx.lineTo(Rt,B);
+  ctx.moveTo(mid,T);ctx.lineTo(mid,B);ctx.stroke();
+  ctx.fillStyle='#e2e8f0';[[mid,T],[mid,B]].forEach(q=>{
+    ctx.beginPath();ctx.arc(q[0],q[1],3.6,0,6.2832);ctx.fill();});ctx.restore();
+  const br=(pts,I,col)=>{if(Math.abs(I)>0.03)
+    dcFlow(ctx,I>0?pts:pts.slice().reverse(),t,Math.min(.5,Math.abs(I)*0.07),col,6);};
+  br([[L,B],[L,T],[mid,T]],i1,'#fbbf24');
+  br([[Rt,B],[Rt,T],[mid,T]],i2,'#38bdf8');
+  br([[mid,T],[mid,B]],i3,'#a78bfa');
+  if(P2<-0.01){ctx.save();ctx.strokeStyle='rgba(244,114,182,.8)';ctx.lineWidth=2;
+    ctx.beginPath();ctx.arc(Rt,ym,19,0,6.2832);ctx.stroke();ctx.restore();}
+  dcBatt(ctx,L,ym,'');dcBatt(ctx,Rt,ym,'');
+  label(ctx,'ε₁ = 12 V',L+15,ym+30,'#f87171',9.5,'left');
+  label(ctx,'ε₂ = '+num(e2,1)+' V',Rt-15,ym+30,P2<-0.01?'#f472b6':'#f87171',9.5,'right');
+  dcRes(ctx,(L+mid)/2,T,44,19,'2 Ω','#fbbf24',0);
+  dcRes(ctx,(mid+Rt)/2,T,44,19,'2 Ω','#38bdf8',0);
+  dcResV(ctx,mid,ym,20,36,'4 Ω','#a78bfa',0);
+  label(ctx,'I₁ = '+num(i1)+' A',W*0.28,H*0.12,'#fbbf24',9.5);
+  label(ctx,'I₃ = '+num(i3)+' A',W*0.50,H*0.12,'#a78bfa',9.5);
+  label(ctx,'I₂ = '+num(i2)+' A',W*0.72,H*0.12,'#38bdf8',9.5);
+  const ab=+((P1<0?-P1:0)+(P2<0?-P2:0)).toFixed(2), rd=+Pd.toFixed(2);
+  label(ctx,ab>0.005?(ab+rd).toFixed(2)+' W = '+ab.toFixed(2)+' + '+rd.toFixed(2)+' W'
+                    :rd.toFixed(2)+' W = '+rd.toFixed(2)+' W',W/2,H-29,'#34d399',10.5);
+  label(ctx,P2<-0.01?'‏ε₂ חלשה מכדי לדחוף — הזרם דרכה התהפך, והיא נטענת'
+                     :'שתי הסוללות דוחפות זרם החוצה מהקוטב החיובי',
+    W/2,H-9,P2<-0.01?'#f472b6':'#94a3b8',10.5);
+});
+
+// DC ANIM: the needle passes through zero exactly when the two ratios meet
+runAnim('anim-dc-bridge',(canvas,ctx,W,H,t)=>{
+  bg(ctx,W,H);
+  const num=(v,d)=>(Math.abs(v)<5e-4?0:v).toFixed(d===undefined?2:d).replace('-','−');
+  const V=9,R1=150,R2=450,Rx=240,RG=50;
+  const R3=80+70*Math.cos(t*0.5);                 // balance sits at R₃ = 80 Ω
+  const Vth=V*(R3/(R1+R3)-Rx/(R2+Rx));
+  const Rth=(R1*R3)/(R1+R3)+(R2*Rx)/(R2+Rx);
+  const Ig=Vth/(Rth+RG), nulled=Math.abs(Ig)<1.2e-4;
+  const T=H*0.20,B=H*0.72,xl=W*0.34,xr=W*0.68,mid=(T+B)/2,bx=W*0.10,gx=(xl+xr)/2;
+  ctx.save();ctx.strokeStyle='#64748b';ctx.lineWidth=2.2;
+  ctx.beginPath();
+  ctx.moveTo(bx,T);ctx.lineTo(xr,T);ctx.moveTo(bx,B);ctx.lineTo(xr,B);
+  ctx.moveTo(bx,T);ctx.lineTo(bx,B);
+  ctx.moveTo(xl,T);ctx.lineTo(xl,B);ctx.moveTo(xr,T);ctx.lineTo(xr,B);
+  ctx.moveTo(xl,mid);ctx.lineTo(xr,mid);ctx.stroke();
+  ctx.fillStyle='#e2e8f0';[[xl,mid],[xr,mid]].forEach(q=>{
+    ctx.beginPath();ctx.arc(q[0],q[1],3.6,0,6.2832);ctx.fill();});ctx.restore();
+  dcFlow(ctx,[[bx,B],[bx,T],[xr,T]],t,0.07,'#fbbf24',9);
+  dcFlow(ctx,[[xl,T],[xl,B]],t,Math.min(.4,V/(R1+R3)*9),'#fbbf24',4);
+  dcFlow(ctx,[[xr,T],[xr,B]],t,Math.min(.4,V/(R2+Rx)*9),'#fbbf24',4);
+  dcFlow(ctx,[[xr,B],[bx,B]],t,0.07,'#fbbf24',9);
+  if(!nulled)dcFlow(ctx,Ig>0?[[xl,mid],[gx-20,mid]]:[[gx-20,mid],[xl,mid]],t,Math.min(.45,Math.abs(Ig)*45),'#f472b6',3);
+  if(!nulled)dcFlow(ctx,Ig>0?[[gx+20,mid],[xr,mid]]:[[xr,mid],[gx+20,mid]],t,Math.min(.45,Math.abs(Ig)*45),'#f472b6',3);
+  dcBatt(ctx,bx,mid,'');
+  label(ctx,'9 V',bx+15,mid+4,'#f87171',9.5,'left');
+  dcResV(ctx,xl,(T+mid)/2,20,32,'','#fbbf24',0);
+  label(ctx,'R₁ 150 Ω',xl-22,(T+mid)/2+4,'#fbbf24',9,'right');
+  dcResV(ctx,xl,(mid+B)/2,20,32,'',nulled?'#34d399':'#38bdf8',0);
+  label(ctx,'R₃ '+R3.toFixed(0)+' Ω',xl-22,(mid+B)/2+4,nulled?'#34d399':'#38bdf8',9,'right');
+  dcResV(ctx,xr,(T+mid)/2,20,32,'','#a78bfa',0);
+  label(ctx,'R₂ 450 Ω',xr+22,(T+mid)/2+4,'#a78bfa',9,'left');
+  dcResV(ctx,xr,(mid+B)/2,20,32,'','#f472b6',0);
+  label(ctx,'Rₓ 240 Ω',xr+22,(mid+B)/2+4,'#f472b6',9,'left');
+  ctx.save();ctx.fillStyle='rgba(2,10,20,.95)';ctx.strokeStyle=nulled?'#34d399':'#94a3b8';
+  ctx.lineWidth=2.2;ctx.beginPath();ctx.arc(gx,mid,17,0,6.2832);ctx.fill();ctx.stroke();
+  const ang=-Math.PI/2+Math.max(-1,Math.min(1,Ig*700))*1.05;
+  ctx.strokeStyle=nulled?'#34d399':'#fbbf24';ctx.lineWidth=2;
+  ctx.beginPath();ctx.moveTo(gx,mid+6);ctx.lineTo(gx+Math.cos(ang)*14,mid+6+Math.sin(ang)*14);
+  ctx.stroke();ctx.restore();
+  label(ctx,'G',gx,mid-23,nulled?'#34d399':'#94a3b8',10);
+  label(ctx,num(Ig*1000)+' mA',gx,mid+33,nulled?'#34d399':'#fbbf24',9);
+  label(ctx,'תנאי האיזון',W*0.86,H*0.13,'#64748b',9);
+  label(ctx,'R₁·Rₓ = R₂·R₃',W*0.86,H*0.28,'#64748b',9.5);
+  label(ctx,'R₁/R₂ = '+(R1/R2).toFixed(2),W*0.15,H*0.11,'#94a3b8',9.5);
+  label(ctx,'R₃/Rₓ = '+(R3/Rx).toFixed(2),W*0.15,H*0.88,nulled?'#34d399':'#94a3b8',9.5);
+  label(ctx,nulled?'היחסים השתוו — המחוג על אפס, וזה כל התנאי'
+                  :'היחסים שונים — ולכן עובר זרם בגלוונומטר',
+    W*0.60,H-9,nulled?'#34d399':'#94a3b8',10.5);
+});
+
 // DC ANIM: the same charges pass every cross-section of a series loop
 runAnim('anim-dc-current',(canvas,ctx,W,H,t)=>{
   bg(ctx,W,H);
@@ -24933,6 +25337,339 @@ function dcFlow(ctx,pts,t,rate,col,n){
   }
 }
 
+// SECTION: dc-kirchhoff.dc-junction
+// PEDAGOGY: the fourth branch is never set by the learner -- it is DERIVED from
+// the other three, so the rule is not something to check but the thing that
+// draws the picture. When the derived value goes negative its arrow turns
+// round by itself, which is the whole lesson about signs in one gesture.
+function simDcJunction(canvas){
+  var id=canvas.id, _g=_simGen[id];
+  const H=400; const {ctx,W,dpr}=setupCanvas(canvas,H);
+  var t=0, NX=0, NY=0, ARM=0, ARMV=0;
+  function I1(){var e=document.getElementById('inp-jn-I1');return e?parseFloat(e.value):3;}
+  function I2(){var e=document.getElementById('inp-jn-I2');return e?parseFloat(e.value):2;}
+  function I3(){var e=document.getElementById('inp-jn-I3');return e?parseFloat(e.value):4;}
+  function set(p){
+    if(!ARM)return;
+    var dx=p.x-NX, dy=p.y-NY;
+    if(Math.abs(dx)>Math.abs(dy)){                       // horizontal arms
+      if(dx<-20)simSyncSlider('jn-I1',(NX-p.x)/ARM*6,1);
+      else if(dx>20)simSyncSlider('jn-I3',(p.x-NX)/ARM*6,1);
+    }else if(dy<-20)simSyncSlider('jn-I2',(NY-p.y)/ARMV*6,1);
+  }
+  simDrag(canvas,dpr,{down:set,move:set});
+  function draw(){
+    if(_simGen[id]!==_g)return;if(_simStop[id])return;
+    t+=0.016;
+    var i1=I1(), i2=I2(), i3=I3(), i4=i1+i2-i3;
+    var bg=ctx.createLinearGradient(0,0,0,H);bg.addColorStop(0,'#020810');bg.addColorStop(1,'#04101e');
+    ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);
+    var cx=W*0.50, cy=H*0.375, L=Math.min(W*0.28,130), Lv=Math.min(H*0.19,76);
+    NX=cx;NY=cy;ARM=L;ARMV=Lv;
+    // four arms; the fourth is whatever the rule leaves over
+    var arms=[
+      {dx:-1,dy:0,I:i1,col:'#fbbf24',lab:'I₁',into:true},
+      {dx:0,dy:-1,I:i2,col:'#38bdf8',lab:'I₂',into:true},
+      {dx:1,dy:0,I:i3,col:'#a78bfa',lab:'I₃',into:false},
+      {dx:0,dy:1,I:i4,col:i4>=0?'#34d399':'#ef4444',lab:'I₄',into:false}
+    ];
+    arms.forEach(function(a){
+      var ex=cx+a.dx*L, ey=cy+a.dy*Lv;
+      ctx.save();ctx.strokeStyle='#64748b';ctx.lineWidth=2.6;
+      ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(ex,ey);ctx.stroke();ctx.restore();
+      // the arrow always shows where charge REALLY goes
+      var flowIn=a.into?(a.I>=0):(a.I<0);
+      var mag=Math.abs(a.I);
+      var hx=cx+a.dx*L*0.62, hy=cy+a.dy*Lv*0.62;
+      var tx=flowIn?hx- a.dx*26:hx+a.dx*26, ty=flowIn?hy-a.dy*26:hy+a.dy*26;
+      simArrow(ctx,flowIn?hx+a.dx*26:hx-a.dx*26,flowIn?hy+a.dy*26:hy-a.dy*26,tx,ty,a.col,2.6,10);
+      if(mag>0.05)dcFlow(ctx,flowIn?[[ex,ey],[cx,cy]]:[[cx,cy],[ex,ey]],t,Math.min(.55,mag*0.09),a.col,5);
+      simText(ctx,a.lab+' = '+a.I.toFixed(1)+' A',
+        ex+a.dx*(a.dx?42:0),ey+a.dy*(a.dy?26:0)+(a.dy?0:-20),a.col,12,'center',true);
+    });
+    ctx.save();ctx.fillStyle='#e2e8f0';ctx.beginPath();ctx.arc(cx,cy,6,0,6.2832);ctx.fill();ctx.restore();
+    simText(ctx,'צומת',cx+34,cy-12,'#64748b',9.5,'center');
+    // the books, always balanced -- because I₄ was derived from them
+    var y=H*0.72;
+    simText(ctx,'נכנס',W*0.18,y-18,'#64748b',9.5,'center');
+    simText(ctx,'יוצא',W*0.82,y-18,'#64748b',9.5,'center');
+    var inS=Math.max(0,i1)+Math.max(0,i2)+Math.max(0,-i3)+Math.max(0,-i4);
+    var outS=Math.max(0,-i1)+Math.max(0,-i2)+Math.max(0,i3)+Math.max(0,i4);
+    simText(ctx,inS.toFixed(1)+' A',W*0.18,y,'#34d399',15,'center',true);
+    simText(ctx,outS.toFixed(1)+' A',W*0.82,y,'#34d399',15,'center',true);
+    simText(ctx,'=',W*0.50,y,'#64748b',15,'center',true);
+    simText(ctx,'I₄ אינו מחוון — הוא מה שהחוק מחייב',W/2,y+28,'#94a3b8',10.5,'center',true);
+    simText(ctx,i4>=0?'I₄ חיובי — הענף הרביעי מוציא זרם'
+      :'I₄ שלילי — החץ הפוך: הענף הרביעי דווקא מכניס '+Math.abs(i4).toFixed(1)+' A',
+      W/2,y+50,i4>=0?'#64748b':'#ef4444',11,'center',i4<0);
+    simText(ctx,'גררו לכיוון אחד הענפים כדי לשנות את הזרם בו',W/2,H-12,'#475569',9.5,'center');
+    requestAnimationFrame(draw);
+  }
+  requestAnimationFrame(draw);
+}
+
+// SECTION: dc-kirchhoff.dc-loop
+// PEDAGOGY: the potential ladder is drawn UNDER the loop and in step with a
+// walker going round it, so "the sum returns to zero" is watched rather than
+// asserted. Reversing the walk redraws the same ladder mirrored -- the point
+// being that the conclusion does not depend on the choice.
+function simDcLoop(canvas){
+  var id=canvas.id, _g=_simGen[id];
+  const H=440; const {ctx,W,dpr}=setupCanvas(canvas,H);
+  var u=0, dir=1, aid=true;
+  function E1(){var e=document.getElementById('inp-lp-E1');return e?parseFloat(e.value):12;}
+  function E2(){var e=document.getElementById('inp-lp-E2');return e?parseFloat(e.value):0;}
+  function R1(){var e=document.getElementById('inp-lp-R1');return e?parseFloat(e.value):4;}
+  function R2(){var e=document.getElementById('inp-lp-R2');return e?parseFloat(e.value):8;}
+  var db=document.getElementById('btn-lp-dir');
+  if(db)db.addEventListener('click',function(){dir=-dir;
+    db.textContent=dir>0?'↻ כיוון הליכה: עם הזרם':'↺ כיוון הליכה: נגד הזרם';});
+  var ab=document.getElementById('btn-lp-aid');
+  if(ab)ab.addEventListener('click',function(){aid=!aid;
+    ab.textContent=aid?'🔋 סוללה 2: מסייעת':'🔄 סוללה 2: מתנגדת';});
+  function draw(){
+    if(_simGen[id]!==_g)return;if(_simStop[id])return;
+    var e1=E1(), e2=E2()*(aid?1:-1), r1=R1(), r2=R2();
+    var Enet=e1+e2, I=Enet/(r1+r2);
+    u=(u+0.0035)%1;
+    var bg=ctx.createLinearGradient(0,0,0,H);bg.addColorStop(0,'#020810');bg.addColorStop(1,'#04101e');
+    ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);
+    var L=W*0.12,Rt=W*0.88,T=H*0.13,B=H*0.36;
+    ctx.save();ctx.strokeStyle='#64748b';ctx.lineWidth=2.4;
+    ctx.beginPath();ctx.rect(L,T,Rt-L,B-T);ctx.stroke();ctx.restore();
+    dcRes(ctx,W*0.36,T,56,24,r1.toFixed(0)+' Ω','#38bdf8',0);
+    dcRes(ctx,W*0.64,T,56,24,r2.toFixed(0)+' Ω','#a78bfa',0);
+    if(Math.abs(I)>1e-3)dcFlow(ctx,I>0?[[L,B],[L,T],[Rt,T],[Rt,B],[L,B]]:[[L,B],[Rt,B],[Rt,T],[L,T],[L,B]],
+      u*40,Math.min(.5,Math.abs(I)*0.08),'#fbbf24',12);
+    dcBatt(ctx,L,(T+B)/2,e1.toFixed(1)+' V');
+    // the second source sits on the right rail and can be turned round
+    ctx.save();ctx.strokeStyle=aid?'#34d399':'#ef4444';ctx.lineWidth=2.4;
+    ctx.beginPath();ctx.moveTo(Rt-10,(T+B)/2-13);ctx.lineTo(Rt+10,(T+B)/2-13);
+    ctx.lineWidth=5;ctx.moveTo(Rt-5,(T+B)/2-4);ctx.lineTo(Rt+5,(T+B)/2-4);ctx.stroke();ctx.restore();
+    simText(ctx,E2().toFixed(1)+' V',Rt,(T+B)/2+22,E2()<0.05?'#475569':(aid?'#34d399':'#ef4444'),10.5,'center',true);
+    simText(ctx,E2()<0.05?'אין מקור שני':(aid?'מסייעת':'מתנגדת'),
+      Rt,(T+B)/2+38,E2()<0.05?'#475569':(aid?'#34d399':'#ef4444'),9.5,'center');
+    // the walker, and the ladder it is building
+    var GX=W*0.08, GW=W*0.84, GY=H*0.44, GH=H*0.26;
+    var span=Math.max(1,Math.abs(e1)+Math.abs(e2)+Math.abs(I)*(r1+r2));
+    var Y=function(v){return GY+GH-6-(v/span)*(GH-14);};
+    ctx.save();ctx.strokeStyle='#1e3a52';ctx.lineWidth=1;ctx.strokeRect(GX+.5,GY+.5,GW-1,GH-1);
+    ctx.setLineDash([4,3]);ctx.strokeStyle='rgba(148,163,184,.5)';
+    ctx.beginPath();ctx.moveTo(GX,Y(0));ctx.lineTo(GX+GW,Y(0));ctx.stroke();ctx.restore();
+    // four legs: battery 1 rise, R₁ drop, R₂ drop, battery 2 rise/drop
+    // walking the other way flips every term: a different ladder, the same zero
+    var legs=[['ε₁',e1],['R₁',-I*r1],['R₂',-I*r2],['ε₂',e2]];
+    if(dir<0)legs=legs.slice().reverse().map(function(a){return [a[0],-a[1]];});
+    var vv=0, x0=GX;
+    ctx.save();ctx.strokeStyle='#34d399';ctx.lineWidth=2.6;ctx.beginPath();ctx.moveTo(x0,Y(0));
+    for(var k=0;k<4;k++){
+      var w=GW/4, nv=vv+legs[k][1];
+      ctx.lineTo(x0+w*0.28,Y(vv));ctx.lineTo(x0+w*0.72,Y(nv));ctx.lineTo(x0+w,Y(nv));
+      vv=nv; x0+=w;
+    }
+    ctx.stroke();ctx.restore();
+    vv=0;x0=GX;
+    for(var k2=0;k2<4;k2++){
+      var w2=GW/4;
+      simText(ctx,legs[k2][0],x0+w2/2,GY+GH+14,'#64748b',9.5,'center');
+      simText(ctx,(legs[k2][1]>=0?'+':'−')+Math.abs(legs[k2][1]).toFixed(1),
+        x0+w2/2,GY+GH+28,legs[k2][1]>=0?'#34d399':'#f87171',9.5,'center',true);
+      vv+=legs[k2][1]; x0+=w2;
+    }
+    // the walker dot rides the ladder
+    var wi=Math.min(3,Math.floor(u*4)), wf=(u*4)%1, vs=0;
+    for(var k3=0;k3<wi;k3++)vs+=legs[k3][1];
+    var wv=vs+legs[wi][1]*Math.max(0,Math.min(1,(wf-0.28)/0.44));
+    ctx.save();ctx.fillStyle='#fbbf24';ctx.beginPath();
+    ctx.arc(GX+GW*u,Y(wv),5.5,0,6.2832);ctx.fill();ctx.restore();
+    var y2=H*0.86;
+    simText(ctx,'I = '+I.toFixed(2)+' A',W*0.24,y2,'#fbbf24',13,'center',true);
+    simText(ctx,'ΣΔV = 0.00 V',W*0.62,y2,'#34d399',13,'center',true);
+    simText(ctx,'סכום כל העליות והירידות סביב הלולאה',W*0.62,y2-18,'#64748b',9,'center');
+    simText(ctx,Math.abs(I)<1e-3?'שתי הסוללות מבטלות זו את זו — אין זרם כלל'
+      :(aid?'שתי הסוללות דוחפות יחד: ε נטו = '+Enet.toFixed(1)+' V'
+            :'הסוללה השנייה מתנגדת: ε נטו = '+Enet.toFixed(1)+' V'),
+      W/2,H-14,'#94a3b8',10.5,'center');
+    requestAnimationFrame(draw);
+  }
+  requestAnimationFrame(draw);
+}
+// SECTION: dc-kirchhoff.dc-twoloop
+// PEDAGOGY: the three currents are solved exactly from the 3x3 system, so the
+// arrows on screen ARE the answer -- including the one that turns round when
+// the weaker source starts being charged. The power ledger underneath is the
+// check a student should run on their own paper.
+function simDcTwoLoop(canvas){
+  var id=canvas.id, _g=_simGen[id];
+  const H=400; const {ctx,W,dpr}=setupCanvas(canvas,H);
+  var t=0, flip=1, BX=0, BY=0;
+  var fb=document.getElementById('btn-tl-flip');
+  function setFlip(v){flip=v;
+    if(fb)fb.textContent=flip>0?'🔋 סוללה 2: באותו כיוון':'🔄 סוללה 2: הפוכה';}
+  if(fb)fb.addEventListener('click',function(){setFlip(-flip);});
+  // tapping the second battery does the same thing as the button
+  simDrag(canvas,dpr,{down:function(p){
+    if(BX&&Math.abs(p.x-BX)<34&&Math.abs(p.y-BY)<34)setFlip(-flip);}});
+  function E1(){var e=document.getElementById('inp-tl-E1');return e?parseFloat(e.value):12;}
+  function E2(){var e=document.getElementById('inp-tl-E2');return e?parseFloat(e.value):4;}
+  function R1(){var e=document.getElementById('inp-tl-R1');return e?parseFloat(e.value):2;}
+  function R2(){var e=document.getElementById('inp-tl-R2');return e?parseFloat(e.value):2;}
+  function R3(){var e=document.getElementById('inp-tl-R3');return e?parseFloat(e.value):4;}
+  function draw(){
+    if(_simGen[id]!==_g)return;if(_simStop[id])return;
+    t+=0.016;
+    var e1=E1(), e2=E2()*flip, r1=R1(), r2=R2(), r3=R3();
+    // (R₁+R₃)I₁ + R₃I₂ = ε₁ ;  R₃I₁ + (R₂+R₃)I₂ = ε₂
+    var D=r1*r2+r3*(r1+r2);
+    var i1=(e1*(r2+r3)-e2*r3)/D, i2=(e2*(r1+r3)-e1*r3)/D, i3=i1+i2;
+    var bg=ctx.createLinearGradient(0,0,0,H);bg.addColorStop(0,'#020810');bg.addColorStop(1,'#04101e');
+    ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);
+    var L=W*0.10,Rt=W*0.90,mid=W*0.50,T=H*0.15,B=H*0.54;
+    ctx.save();ctx.strokeStyle='#64748b';ctx.lineWidth=2.4;
+    ctx.beginPath();
+    ctx.moveTo(L,T);ctx.lineTo(Rt,T);ctx.moveTo(L,B);ctx.lineTo(Rt,B);
+    ctx.moveTo(L,T);ctx.lineTo(L,B);ctx.moveTo(Rt,T);ctx.lineTo(Rt,B);
+    ctx.moveTo(mid,T);ctx.lineTo(mid,B);                    // the shared branch
+    ctx.stroke();
+    ctx.fillStyle='#e2e8f0';[[mid,T],[mid,B]].forEach(function(q){
+      ctx.beginPath();ctx.arc(q[0],q[1],4,0,6.2832);ctx.fill();});ctx.restore();
+    dcBatt(ctx,L,(T+B)/2,'');
+    simText(ctx,'ε₁ = '+e1.toFixed(1)+' V',L+36,(T+B)/2+26,'#f87171',10.5,'center',true);
+    BX=Rt;BY=(T+B)/2;
+    dcBatt(ctx,Rt,(T+B)/2,'');
+    // a short arrow on the rail: the way this source pushes charge round its loop
+    simArrow(ctx,Rt-22,(T+B)/2+(flip>0?11:-11),Rt-22,(T+B)/2+(flip>0?-11:11),
+      flip>0?'#34d399':'#ef4444',2.2,8);
+    simText(ctx,'ε₂ = '+e2.toFixed(1)+' V',Rt-36,(T+B)/2+26,flip>0?'#f87171':'#ef4444',10.5,'center',true);
+    simText(ctx,flip>0?'באותו כיוון':'הפוכה',Rt-36,(T+B)/2+42,flip>0?'#64748b':'#ef4444',9.5,'center');
+    dcRes(ctx,(L+mid)/2,T,52,24,r1.toFixed(1)+'Ω','#fbbf24',0);
+    dcRes(ctx,(mid+Rt)/2,T,52,24,r2.toFixed(1)+'Ω','#38bdf8',0);
+    dcResV(ctx,mid,(T+B)/2,22,46,'','#a78bfa',0);
+    simText(ctx,r3.toFixed(1)+'Ω',mid+24,(T+B)/2+4,'#a78bfa',10.5,'left',true);
+    // charges move the way the SOLUTION says, not the way the arrows were drawn
+    function branch(pts,I,col){
+      if(Math.abs(I)<0.02)return;
+      dcFlow(ctx,I>0?pts:pts.slice().reverse(),t,Math.min(.5,Math.abs(I)*0.07),col,7);
+    }
+    branch([[L,B],[L,T],[mid,T]],i1,'#fbbf24');
+    branch([[Rt,B],[Rt,T],[mid,T]],i2,'#38bdf8');
+    branch([[mid,T],[mid,B]],i3,'#a78bfa');
+    // the three answers, each with its own sign
+    var ry=H*0.70, cols=['#fbbf24','#38bdf8','#a78bfa'], vals=[i1,i2,i3], labs=['I₁','I₂','I₃'];
+    for(var k=0;k<3;k++){
+      var x=W*(0.22+0.28*k);
+      simText(ctx,labs[k],x,ry-19,'#64748b',10,'center');
+      simText(ctx,vals[k].toFixed(2)+' A',x,ry,cols[k],13.5,'center',true);
+    }
+    var pw1=e1*i1, pw2=e2*i2, chg=pw2<-0.01||pw1<-0.01;
+    simText(ctx,pw2<-0.01?'הסוללה השנייה נטענת — הזרם נכנס אליה בקוטב ה-+'
+      :(pw1<-0.01?'הסוללה הראשונה היא שנטענת כאן'
+      :(flip<0?'שתיהן דוחפות סביב הלולאה החיצונית — ושתיהן מספקות הספק'
+              :'שתי הסוללות מספקות הספק למעגל')),
+      W/2,ry+26,chg?'#f472b6':'#34d399',11,'center',true);
+    // the ledger: supplied, absorbed, dissipated
+    var Psup=Math.max(0,e1*i1)+Math.max(0,e2*i2);
+    var Pabs=Math.max(0,-e1*i1)+Math.max(0,-e2*i2);
+    var Pdis=i1*i1*r1+i2*i2*r2+i3*i3*r3;
+    var bx=W*0.12,bw=W*0.76,by=H*0.855,tot=Math.max(1e-6,Pabs+Pdis);
+    ctx.save();ctx.fillStyle='rgba(56,189,248,.85)';ctx.fillRect(bx,by,bw*(Pdis/tot),16);
+    ctx.fillStyle='rgba(244,114,182,.85)';ctx.fillRect(bx+bw*(Pdis/tot),by,bw*(Pabs/tot),16);
+    ctx.strokeStyle='#1e3a52';ctx.lineWidth=1;ctx.strokeRect(bx+.5,by+.5,bw-1,15);ctx.restore();
+    simText(ctx,'מתפזר בנגדים',bx+bw*(Pdis/tot)/2,by-7,'#38bdf8',9.5,'center');
+    if(Pabs/tot>0.10)simText(ctx,'נקלט בסוללה',bx+bw*(Pdis/tot)+bw*(Pabs/tot)/2,by-7,'#f472b6',9.5,'center');
+    // the totals are displayed to two places, so the sum shown is built from the
+    // displayed parts -- otherwise rounding makes the balance look like it fails
+    var rD=+Pdis.toFixed(2), rA=+Pabs.toFixed(2);
+    simText(ctx,'סופק '+(rD+rA).toFixed(2)+' W   =   מתפזר '+rD.toFixed(2)+' W   +   נקלט '+rA.toFixed(2)+' W',
+      W/2,H-12,'#94a3b8',10.5,'center',true);
+    requestAnimationFrame(draw);
+  }
+  requestAnimationFrame(draw);
+}
+
+// SECTION: dc-kirchhoff.dc-bridge
+// PEDAGOGY: the unknown is genuinely hidden. The learner has to null the meter
+// and READ the answer off the ratio -- which is what the instrument is for --
+// and only then is the true value revealed for comparison. The galvanometer
+// current is the exact Thevenin result, so the null is a real null.
+function simDcBridge(canvas){
+  var id=canvas.id, _g=_simGen[id];
+  const H=400; const {ctx,W,dpr}=setupCanvas(canvas,H);
+  const RG=50;                                   // galvanometer resistance
+  var GX=0,GW=0,GY=0;
+  function V(){var e=document.getElementById('inp-br-V');return e?parseFloat(e.value):9;}
+  function R1(){var e=document.getElementById('inp-br-R1');return e?parseFloat(e.value):150;}
+  function R2(){var e=document.getElementById('inp-br-R2');return e?parseFloat(e.value):450;}
+  function R3(){var e=document.getElementById('inp-br-R3');return e?parseFloat(e.value):40;}
+  function Rx(){var e=document.getElementById('inp-br-Rx');return e?parseFloat(e.value):240;}
+  function set(p){if(GW>0&&p.y>GY-30)simSyncSlider('br-R3',5+295*Math.max(0,Math.min(1,(p.x-GX)/GW)),0);}
+  simDrag(canvas,dpr,{down:set,move:set});
+  function draw(){
+    if(_simGen[id]!==_g)return;if(_simStop[id])return;
+    var v=V(), r1=R1(), r2=R2(), r3=R3(), rx=Rx();
+    // Thevenin across the galvanometer branch — exact, for any imbalance
+    var Vth=v*(r3/(r1+r3)-rx/(r2+rx));
+    var Rth=(r1*r3)/(r1+r3)+(r2*rx)/(r2+rx);
+    var Ig=Vth/(Rth+RG);
+    var nulled=Math.abs(Ig)<2e-5;
+    var bg=ctx.createLinearGradient(0,0,0,H);bg.addColorStop(0,'#020810');bg.addColorStop(1,'#04101e');
+    ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);
+    var T=H*0.13,B=H*0.49,xl=W*0.30,xr=W*0.70,mid=(T+B)/2,bx=W*0.08;
+    ctx.save();ctx.strokeStyle='#64748b';ctx.lineWidth=2.4;
+    ctx.beginPath();
+    ctx.moveTo(bx,T);ctx.lineTo(xr,T);ctx.moveTo(bx,B);ctx.lineTo(xr,B);
+    ctx.moveTo(bx,T);ctx.lineTo(bx,B);
+    ctx.moveTo(xl,T);ctx.lineTo(xl,B);ctx.moveTo(xr,T);ctx.lineTo(xr,B);
+    ctx.moveTo(xl,mid);ctx.lineTo(xr,mid);
+    ctx.stroke();
+    ctx.fillStyle='#e2e8f0';[[xl,mid],[xr,mid]].forEach(function(q){
+      ctx.beginPath();ctx.arc(q[0],q[1],4,0,6.2832);ctx.fill();});ctx.restore();
+    dcBatt(ctx,bx,mid,v.toFixed(0)+' V');
+    dcResV(ctx,xl,(T+mid)/2,22,40,'','#fbbf24',0);
+    simText(ctx,'R₁ '+r1.toFixed(0),xl-26,(T+mid)/2+4,'#fbbf24',10,'right',true);
+    dcResV(ctx,xl,(mid+B)/2,22,40,'','#38bdf8',0);
+    simText(ctx,'R₃ '+r3.toFixed(0),xl-26,(mid+B)/2+4,'#38bdf8',10,'right',true);
+    dcResV(ctx,xr,(T+mid)/2,22,40,'','#a78bfa',0);
+    simText(ctx,'R₂ '+r2.toFixed(0),xr+26,(T+mid)/2+4,'#a78bfa',10,'left',true);
+    dcResV(ctx,xr,(mid+B)/2,22,40,'','#f472b6',0);
+    simText(ctx,'Rₓ  ?',xr+26,(mid+B)/2+4,'#f472b6',10,'left',true);
+    // the galvanometer, with a needle that really is the Thevenin current
+    var gx=(xl+xr)/2;
+    ctx.save();ctx.fillStyle='rgba(2,10,20,.95)';ctx.strokeStyle=nulled?'#34d399':'#94a3b8';
+    ctx.lineWidth=2.4;ctx.beginPath();ctx.arc(gx,mid,20,0,6.2832);ctx.fill();ctx.stroke();
+    var ang=-Math.PI/2+Math.max(-1,Math.min(1,Ig*1400))*1.0;
+    ctx.strokeStyle=nulled?'#34d399':'#fbbf24';ctx.lineWidth=2.2;
+    ctx.beginPath();ctx.moveTo(gx,mid+6);ctx.lineTo(gx+Math.cos(ang)*15,mid+6+Math.sin(ang)*15);
+    ctx.stroke();ctx.restore();
+    simText(ctx,'G',gx,mid-26,nulled?'#34d399':'#94a3b8',11,'center',true);
+    simText(ctx,(Ig*1000).toFixed(3)+' mA',gx,mid+36,nulled?'#34d399':'#fbbf24',10,'center',true);
+    // the dial the learner actually turns
+    GX=W*0.10;GW=W*0.80;GY=H*0.63;
+    // the verdict sits right under the dial, not a screen away
+    ctx.save();ctx.fillStyle='rgba(148,163,184,.14)';ctx.fillRect(GX,GY,GW,12);
+    ctx.fillStyle='#38bdf8';ctx.fillRect(GX,GY,GW*((r3-5)/295),12);
+    ctx.strokeStyle='#1e3a52';ctx.lineWidth=1;ctx.strokeRect(GX+.5,GY+.5,GW-1,11);ctx.restore();
+    simHandle(ctx,GX+GW*((r3-5)/295),GY+6,'#38bdf8',11);
+    simText(ctx,'R₃ = '+r3.toFixed(0)+' Ω',W/2,GY-12,'#38bdf8',11.5,'center',true);
+    simText(ctx,'גררו עד שהמחוג מתאפס',W/2,GY+30,'#475569',9.5,'center');
+    var y2=H*0.80;
+    if(nulled){
+      var meas=r3*r2/r1;
+      simText(ctx,'מאוזן — היחסים שווים',W/2,y2,'#34d399',12,'center',true);
+      simText(ctx,'Rₓ = R₃·R₂/R₁ = '+r3.toFixed(0)+'·'+r2.toFixed(0)+'/'+r1.toFixed(0)+' = '+meas.toFixed(0)+' Ω',
+        W/2,y2+22,'#34d399',12.5,'center',true);
+      simText(ctx,'הערך האמיתי: '+rx.toFixed(0)+' Ω',W/2,y2+42,'#64748b',10,'center');
+    }else{
+      simText(ctx,'עדיין לא מאוזן — המחוג סוטה',W/2,y2,'#fbbf24',11.5,'center',true);
+      simText(ctx,'R₁/R₂ = '+(r1/r2).toFixed(3)+'    ·    R₃/Rₓ = '+(r3/rx).toFixed(3),
+        W/2,y2+22,'#94a3b8',11,'center',true);
+      simText(ctx,r3/rx>r1/r2?'R₃ גדול מדי — הקטינו אותו':'R₃ קטן מדי — הגדילו אותו',
+        W/2,y2+42,'#64748b',10,'center');
+    }
+    requestAnimationFrame(draw);
+  }
+  requestAnimationFrame(draw);
+}
 // SECTION: dc-network.dc-series
 function simDcSeries(canvas){
   var id=canvas.id, _g=_simGen[id];
@@ -28636,6 +29373,10 @@ function buildSim(sim){
   else if(sim.type==='elc-field')extra=C(rng('elc-Q',-6,6,4,0.5,'מטען Q₁',' μC')+rng('elc-Q2',-6,6,-4,0.5,'מטען Q₂',' μC')+btn('field-dipole','⇄ שני מטענים','btn-secondary')+btn('field-lines','✒️ קווי שדה רציפים','btn-secondary'));
   else if(sim.type==='elc-compare')extra=C(rng('cmp-Q',0.1,4,0.5,0.1,'מטען Q',' μC')+rng('cmp-R',2,12,5,0.5,'רדיוס הכדור R',' ס״מ')+btn('cmp-v','🔋 הצג פוטנציאל V','btn-secondary'));
   else if(sim.type==='elc-sphere')extra=C(rng('sph-Q',-6,6,3,0.5,'מטען Q',' μC')+rng('sph-R',2,30,20,1,'רדיוס R',' ס״מ'));
+  else if(sim.type==='dc-junction')extra=C(rng('jn-I1',0,6,3,0.1,'I₁ — נכנס',' A')+rng('jn-I2',0,6,2,0.1,'I₂ — נכנס',' A')+rng('jn-I3',0,6,4,0.1,'I₃ — יוצא',' A'));
+  else if(sim.type==='dc-loop')extra=C(rng('lp-E1',2,24,12,0.5,'כא״מ ε₁',' V')+rng('lp-E2',0,12,0,0.5,'כא״מ ε₂',' V')+rng('lp-R1',1,20,4,1,'R₁',' Ω')+rng('lp-R2',1,20,8,1,'R₂',' Ω')+btn('lp-aid','🔋 סוללה 2: מסייעת','btn-secondary')+btn('lp-dir','↻ כיוון הליכה: עם הזרם','btn-secondary'));
+  else if(sim.type==='dc-twoloop')extra=C(rng('tl-E1',1,24,12,0.5,'כא״מ ε₁',' V')+rng('tl-E2',0,24,4,0.5,'כא״מ ε₂',' V')+rng('tl-R1',0.5,12,2,0.5,'R₁',' Ω')+rng('tl-R2',0.5,12,2,0.5,'R₂',' Ω')+rng('tl-R3',0.5,12,4,0.5,'R₃ (משותף)',' Ω')+btn('tl-flip','🔋 סוללה 2: באותו כיוון','btn-secondary'));
+  else if(sim.type==='dc-bridge')extra=C(rng('br-V',3,18,9,0.5,'מתח המקור',' V')+rng('br-R1',50,500,150,10,'R₁ (זרוע יחס)',' Ω')+rng('br-R2',50,900,450,10,'R₂ (זרוע יחס)',' Ω')+rng('br-R3',5,300,40,1,'R₃ (נגד מכויל)',' Ω')+rng('br-Rx',50,600,240,10,'Rₓ — הנגד שנמדוד',' Ω'));
   else if(sim.type==='dc-meters')extra=C(rng('mtr-V',2,24,12,0.5,'מתח המקור',' V')+rng('mtr-R1',1,20,4,1,'R₁',' Ω')+rng('mtr-R2',1,20,8,1,'R₂',' Ω')+btn('mtr-mode','🔀 אמפרמטר בטור','btn-secondary'));
   else if(sim.type==='dc-realmeter')extra=C(rng('rm-V',2,24,12,0.5,'מתח המקור',' V')+rng('rm-R',1,50,10,1,'כל נגד',' kΩ')+rng('rm-RV',-1,4,1,0.05,'התנגדות הוולטמטר','','_fmtOhm'));
   else if(sim.type==='dc-emf')extra=C(rng('emf-E',1.5,24,12,0.5,'כא״מ ε',' V')+rng('emf-r',0.1,4,1,0.1,'התנגדות פנימית r',' Ω')+rng('emf-R',0.2,24,3,0.1,'עומס R',' Ω'));

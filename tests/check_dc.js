@@ -6,7 +6,8 @@ const t=(name,cond,detail)=>(cond?ok:bad).push(name+(detail?' — '+detail:''));
   const p = await (await b.newContext({viewport:{width:900,height:1000}})).newPage();
   const errs=[]; p.on('pageerror',e=>errs.push(e.message));
   await p.goto('file:///home/user/PhysicsApp/physics_game_v28.html'); await p.waitForTimeout(1200);
-  await p.evaluate(()=>{if(window.closeOnboarding)closeOnboarding();});
+  await p.evaluate(()=>{if(window.closeOnboarding)closeOnboarding();
+    window.showSimTooltip=function(){};});   // the first-visit hint card covers the lower canvas
   const go = async (ch,se)=>{ await p.evaluate(([c,x])=>{state.subject='circuits';state.chapter=c;state.section=x;state.tab='sim';render();},[ch,se]); await p.waitForTimeout(950); };
   const box = async ()=>p.evaluate(()=>{const c=document.querySelector('#app canvas');const r=c.getBoundingClientRect();return{x:r.x,y:r.y,w:r.width,h:r.height};});
   const val = async id=>p.evaluate(i=>parseFloat(document.getElementById(i).value),id);
@@ -69,6 +70,61 @@ const t=(name,cond,detail)=>(cond?ok:bad).push(name+(detail?' — '+detail:''));
   await p.mouse.move(bx.x+bx.w*0.2, bx.y+bx.h*0.68); await p.mouse.down(); await p.mouse.move(bx.x+bx.w*0.7, bx.y+bx.h*0.68); await p.mouse.up();
   await p.waitForTimeout(300);
   t('emf: dragging the line picks a load', (await val('inp-emf-R'))!==v0, `${v0} → ${await val('inp-emf-R')}`);
+
+  // ── chapter 4: Kirchhoff ────────────────────────────────────────────────
+  // junction: dragging toward an arm sets that arm's current, and I₄ follows
+  await go('dc-kirchhoff','dc-junction'); bx=await box();
+  v0=await val('inp-jn-I1');
+  await p.mouse.move(bx.x+bx.w*0.50, bx.y+bx.h*0.30); await p.mouse.down();
+  await p.mouse.move(bx.x+bx.w*0.30, bx.y+bx.h*0.30); await p.mouse.up();
+  await p.waitForTimeout(300);
+  t('junction: dragging left sets I₁', (await val('inp-jn-I1'))!==v0, `${v0} → ${await val('inp-jn-I1')}`);
+  v0=await val('inp-jn-I2');
+  await p.mouse.move(bx.x+bx.w*0.50, bx.y+bx.h*0.30); await p.mouse.down();
+  await p.mouse.move(bx.x+bx.w*0.50, bx.y+bx.h*0.14); await p.mouse.up();
+  await p.waitForTimeout(300);
+  t('junction: dragging up sets I₂', (await val('inp-jn-I2'))!==v0, `${v0} → ${await val('inp-jn-I2')}`);
+
+  // loop: both buttons must change their own label and the drawing
+  await go('dc-kirchhoff','dc-loop');
+  for (const bid of ['btn-lp-dir','btn-lp-aid']) {
+    const l0=await p.evaluate(i=>document.getElementById(i).textContent,bid);
+    await p.click('#'+bid); await p.waitForTimeout(300);
+    const l1=await p.evaluate(i=>document.getElementById(i).textContent,bid);
+    t('loop: '+bid+' toggles', l0!==l1, `${l0.trim()} → ${l1.trim()}`);
+  }
+
+  // two loops: flipping the second source must change the answer on screen
+  await go('dc-kirchhoff','dc-twoloop'); bx=await box();
+  // the reversed source is drawn in warning red; nothing else on screen is
+  const readRed = async ()=>p.evaluate(()=>{const c=document.querySelector('#app canvas');
+    const d=c.getContext('2d').getImageData(0,0,c.width,c.height).data;let n=0;
+    for(let i=0;i<d.length;i+=4)if(d[i]>200&&d[i+1]<95&&d[i+2]<95)n++;return n;});
+  const f0=await readRed();
+  await p.click('#btn-tl-flip'); await p.waitForTimeout(500);
+  const f1=await readRed();
+  t('two-loop: flipping marks the source as reversed', f1>f0+60, `red px ${f0} → ${f1}`);
+  const lbl=await p.evaluate(()=>document.getElementById('btn-tl-flip').textContent);
+  t('two-loop: the flip button relabels itself', /הפוכה/.test(lbl), lbl.trim());
+  await p.mouse.click(bx.x+bx.w*0.90, bx.y+bx.h*0.285); await p.waitForTimeout(400);
+  t('two-loop: tapping the battery flips it back',
+    /באותו כיוון/.test(await p.evaluate(()=>document.getElementById('btn-tl-flip').textContent)));
+
+  // bridge: dragging the calibrated resistor must move R₃ and can null the bridge
+  await go('dc-kirchhoff','dc-bridge'); bx=await box();
+  v0=await val('inp-br-R3');
+  await p.mouse.move(bx.x+bx.w*0.20, bx.y+bx.h*0.88); await p.mouse.down();
+  await p.mouse.move(bx.x+bx.w*0.70, bx.y+bx.h*0.88); await p.mouse.up();
+  await p.waitForTimeout(300);
+  t('bridge: dragging the dial sets R₃', (await val('inp-br-R3'))!==v0, `${v0} → ${await val('inp-br-R3')}`);
+  await p.evaluate(()=>{const s=document.getElementById('inp-br-R3');s.value='80';
+    s.dispatchEvent(new Event('input',{bubbles:true}));});
+  await p.waitForTimeout(500);
+  t('bridge: R₁·Rₓ = R₂·R₃ really is the null',
+    await p.evaluate(()=>{const c=document.querySelector('#app canvas');
+      const d=c.getContext('2d').getImageData(0,0,c.width,c.height).data;let n=0;
+      for(let i=0;i<d.length;i+=4)if(d[i]<90&&d[i+1]>190&&d[i+2]>130&&d[i+2]<190)n++;return n>200;}),
+    'green null readout present');
 
   ok.forEach(s=>console.log('  PASS',s));
   bad.forEach(s=>console.log('  FAIL',s));
