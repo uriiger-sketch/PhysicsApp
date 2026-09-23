@@ -18392,12 +18392,15 @@ runAnim('anim-dc-parallel',(canvas,ctx,W,H,t)=>{
   dcRes(ctx,W*0.50,yA,54,22,'4 Ω','#38bdf8',0);
   dcRes(ctx,W*0.50,yB,54,22,'12 Ω','#a78bfa',0);
   // speed stands for current: the 4 Ω lane visibly runs three times faster
-  dcFlow(ctx,[[jL,yA],[jR,yA]],t,0.05*Ia,'#38bdf8',7);
-  dcFlow(ctx,[[jL,yB],[jR,yB]],t,0.05*Ib,'#a78bfa',4);
-  dcFlow(ctx,[[L,ym],[jL,ym]],t,0.05*It,'#fbbf24',5);
-  dcFlow(ctx,[[jR,ym],[R,ym]],t,0.05*It,'#fbbf24',5);
-  label(ctx,'12 V',jL-18,ym-4,'#34d399',9.5);
-  label(ctx,'12 V',jR+18,ym-4,'#34d399',9.5);
+  const lane=(a,b,I,col)=>{const len=Math.hypot(b[0]-a[0],b[1]-a[1]);
+    dcFlow(ctx,[a,b],t,5.5*I/len,col,Math.max(2,Math.round(len/34)));};
+  lane([jL,yA],[jR,yA],Ia,'#38bdf8');
+  lane([jL,yB],[jR,yB],Ib,'#a78bfa');
+  lane([L,ym],[jL,ym],It,'#fbbf24');
+  lane([jR,ym],[R,ym],It,'#fbbf24');
+  // node potentials: 12 V in, 0 V out — so each branch has the whole 12 V across it
+  label(ctx,'12 V',jL-20,ym+16,'#34d399',9.5);
+  label(ctx,'0 V',jR+18,ym+16,'#34d399',9.5);
   label(ctx,'3 A',W*0.50,yA-20,'#38bdf8',10);
   label(ctx,'1 A',W*0.50,yB+22,'#a78bfa',10);
   label(ctx,'4 A',W*0.19,ym-12,'#fbbf24',11);
@@ -18410,10 +18413,12 @@ runAnim('anim-dc-parallel',(canvas,ctx,W,H,t)=>{
 runAnim('anim-dc-mixed',(canvas,ctx,W,H,t)=>{
   bg(ctx,W,H);
   const ph=Math.floor((t/3.2)%4);
-  const L=W*0.12,R=W*0.90,ym=H*0.40,yA=H*0.26,yB=H*0.54,pL=W*0.52,pR=W*0.80;
+  const L=W*0.12,R=W*0.90,ym=H*0.40,yA=H*0.26,yB=H*0.54,pL=W*0.52,pR=W*0.80,yR=H*0.70;
   ctx.save();ctx.strokeStyle='#64748b';ctx.lineWidth=2.2;ctx.beginPath();
-  ctx.moveTo(L,ym);ctx.lineTo(pL,ym);ctx.moveTo(pR,ym);ctx.lineTo(R,ym);ctx.stroke();ctx.restore();
-  dcBatt(ctx,L,ym,'12 V');
+  ctx.moveTo(L,ym);ctx.lineTo(pL,ym);ctx.moveTo(pR,ym);ctx.lineTo(R,ym);
+  ctx.lineTo(R,yR);ctx.lineTo(L,yR);ctx.lineTo(L,ym);ctx.stroke();ctx.restore();
+  dcBatt(ctx,L,(ym+yR)/2,'');
+  label(ctx,'12 V',L+16,(ym+yR)/2+4,'#f87171',10,'left');
   dcRes(ctx,W*0.32,ym,50,22,'6 Ω','#38bdf8',ph>=2?0.25:0);
   if(ph===0||ph===3){
     ctx.save();ctx.strokeStyle='#64748b';ctx.lineWidth=2.2;ctx.beginPath();
@@ -18430,7 +18435,18 @@ runAnim('anim-dc-mixed',(canvas,ctx,W,H,t)=>{
     ctx.moveTo(pL,ym);ctx.lineTo(pR,ym);ctx.stroke();ctx.restore();
     dcRes(ctx,(pL+pR)/2,ym,58,24,'2 Ω','#34d399',ph>=2?0.25:0);
   }
-  if(ph>=2)dcFlow(ctx,[[L,ym],[R,ym]],t,0.10,'#fbbf24',10);
+  // once split back into branches, the charges must go through the branches —
+  // 1.5 A on the main loop, 0.5 A and 1.0 A in the two arms
+  // same wire everywhere: fixed dot spacing, speed ∝ current, so the charge
+  // crossing any point per second is proportional to the current there
+  const flow=(pts,I,col)=>{let len=0;for(let i=1;i<pts.length;i++)len+=Math.hypot(pts[i][0]-pts[i-1][0],pts[i][1]-pts[i-1][1]);
+    dcFlow(ctx,pts,t,24*I/len,col,Math.max(2,Math.round(len/30)));};
+  if(ph===2)flow([[L,yR],[L,ym],[R,ym],[R,yR],[L,yR]],1.5,'#fbbf24');
+  if(ph===3){
+    flow([[pR,ym],[R,ym],[R,yR],[L,yR],[L,ym],[pL,ym]],1.5,'#fbbf24');
+    flow([[pL,ym],[pL,yA],[pR,yA],[pR,ym]],0.5,'#a78bfa');
+    flow([[pL,ym],[pL,yB],[pR,yB],[pR,ym]],1.0,'#f472b6');
+  }
   if(ph===3){
     label(ctx,'0.5 A',(pL+pR)/2,yA-19,'#a78bfa',10);
     label(ctx,'1.0 A',(pL+pR)/2,yB+21,'#f472b6',10);
@@ -18637,7 +18653,7 @@ runAnim('anim-dc-cap',(canvas,ctx,W,H,t)=>{
   label(ctx,'זרם (mA)',W*0.89,H*0.07,'#94a3b8',9);
   label(ctx,tc<tau?'ברגע הראשון הקבל מתנהג כמו חוט — כל הזרם נכנס אליו'
     :(tc>4*tau?'מצב מתמיד: אין זרם בענף הקבל, והמעגל ממשיך בלעדיו'
-    :'הקבל מתמלא, זרמו דועך — והזרם ב-R₂ עולה בדיוק כפי שהוא יורד'),
+    :'הקבל מתמלא וזרמו דועך; הזרם ב-R₂ עולה, והזרם הראשי יורד — עד ששניהם 1 mA'),
     W*0.42,H-8,tc>4*tau?'#34d399':'#94a3b8',10);
 });
 
@@ -25334,6 +25350,17 @@ function dcBatt(ctx,x,y,txt){
     ctx.fillStyle='rgba(2,8,16,.92)';ctx.fillRect(x-tw/2,y+21,tw,16);ctx.restore();}
   if(txt)simText(ctx,txt,x,y+30,'#f87171',10.5,'center',true);
 }
+// Current drawn as charges on one uniform wire: fixed spacing everywhere and a
+// speed proportional to I, so the charge passing any point per second is
+// proportional to I — and every junction visibly balances. (dcFlow on its own
+// takes a dot count and a lap rate; picking those per branch made a 3:1 split
+// look like 5:1.) k is pixels per unit time per ampere.
+function dcFlowI(ctx,pts,t,I,col,k){
+  var len=0,i; for(i=1;i<pts.length;i++)len+=Math.hypot(pts[i][0]-pts[i-1][0],pts[i][1]-pts[i-1][1]);
+  if(len<1||!(Math.abs(I)>1e-12))return;
+  var sp=Math.min(240,k*Math.abs(I));
+  dcFlow(ctx,I>0?pts:pts.slice().reverse(),t,sp/len,col,Math.max(2,Math.round(len/28)));
+}
 function dcFlow(ctx,pts,t,rate,col,n){
   // charges spaced evenly along a polyline, moving at a rate that stands for
   // the current -- the only honest way to show "more current" on a still image
@@ -25568,7 +25595,8 @@ function simDcTwoLoop(canvas){
     branch([[Rt,B],[Rt,T],[mid,T]],i2,'#38bdf8');
     branch([[mid,T],[mid,B]],i3,'#a78bfa');
     // the three answers, each with its own sign
-    var ry=H*0.70, cols=['#fbbf24','#38bdf8','#a78bfa'], vals=[i1,i2,i3], labs=['I₁','I₂','I₃'];
+    // readouts sit under the branch they belong to: I₁ left, I₃ the shared middle, I₂ right
+    var ry=H*0.70, cols=['#fbbf24','#a78bfa','#38bdf8'], vals=[i1,i3,i2], labs=['I₁','I₃','I₂'];
     for(var k=0;k<3;k++){
       var x=W*(0.22+0.28*k);
       simText(ctx,labs[k],x,ry-19,'#7d8da6',10,'center');
@@ -25609,7 +25637,7 @@ function simDcBridge(canvas){
   var id=canvas.id, _g=_simGen[id];
   const H=400; const {ctx,W,dpr}=setupCanvas(canvas,H);
   const RG=50;                                   // galvanometer resistance
-  var GX=0,GW=0,GY=0;
+  var GX=0,GW=0,GY=0,t=0;
   function V(){var e=document.getElementById('inp-br-V');return e?parseFloat(e.value):9;}
   function R1(){var e=document.getElementById('inp-br-R1');return e?parseFloat(e.value):150;}
   function R2(){var e=document.getElementById('inp-br-R2');return e?parseFloat(e.value):450;}
@@ -25619,6 +25647,7 @@ function simDcBridge(canvas){
   simDrag(canvas,dpr,{down:set,move:set});
   function draw(){
     if(_simGen[id]!==_g)return;if(_simStop[id])return;
+    t+=0.016;
     var v=V(), r1=R1(), r2=R2(), r3=R3(), rx=Rx();
     // Thevenin across the galvanometer branch — exact, for any imbalance
     var Vth=v*(r3/(r1+r3)-rx/(r2+rx));
@@ -25637,6 +25666,23 @@ function simDcBridge(canvas){
     ctx.stroke();
     ctx.fillStyle='#e2e8f0';[[xl,mid],[xr,mid]].forEach(function(q){
       ctx.beginPath();ctx.arc(q[0],q[1],4,0,6.2832);ctx.fill();});ctx.restore();
+    // every branch current, exact: node A (left middle) and B (right middle)
+    // sit at their divider values shifted by the galvanometer current
+    var VA=v*r3/(r1+r3)-Ig*(r1*r3)/(r1+r3), VB=v*rx/(r2+rx)+Ig*(r2*rx)/(r2+rx);
+    var I1=(v-VA)/r1, I3=VA/r3, I2=(v-VB)/r2, Ix=VB/rx, It=I1+I2;
+    var KF=1900;                                   // px per unit time per ampere
+    dcFlowI(ctx,[[bx,B],[bx,T],[xl,T]],t,It,'#fbbf24',KF);
+    dcFlowI(ctx,[[xl,T],[xr,T]],t,I2,'#fbbf24',KF);
+    dcFlowI(ctx,[[xl,T],[xl,mid]],t,I1,'#fbbf24',KF);
+    dcFlowI(ctx,[[xl,mid],[xl,B]],t,I3,'#fbbf24',KF);
+    dcFlowI(ctx,[[xr,T],[xr,mid]],t,I2,'#fbbf24',KF);
+    dcFlowI(ctx,[[xr,mid],[xr,B]],t,Ix,'#fbbf24',KF);
+    dcFlowI(ctx,[[xr,B],[xl,B]],t,Ix,'#fbbf24',KF);
+    dcFlowI(ctx,[[xl,B],[bx,B]],t,It,'#fbbf24',KF);
+    if(!nulled){                                   // it stops, and then turns round
+      dcFlowI(ctx,[[xl,mid],[(xl+xr)/2-22,mid]],t,Ig,'#f472b6',KF*3);
+      dcFlowI(ctx,[[(xl+xr)/2+22,mid],[xr,mid]],t,Ig,'#f472b6',KF*3);
+    }
     dcBatt(ctx,bx,mid,v.toFixed(0)+' V');
     dcResV(ctx,xl,(T+mid)/2,22,40,'','#fbbf24',0);
     simText(ctx,'R₁ '+r1.toFixed(0),xl-26,(T+mid)/2+4,'#fbbf24',10,'right',true);
@@ -25787,11 +25833,11 @@ function simDcParallel(canvas){
       if(!on){ctx.save();ctx.strokeStyle='#ef4444';ctx.lineWidth=3;
         ctx.beginPath();ctx.moveTo(x,T+16);ctx.lineTo(x+13,T+28);ctx.stroke();ctx.restore();}
       dcRes(ctx,x,(T+B)/2,54,26,r.toFixed(0)+' Ω',on?cols[i]:'#475569',on?v*v/r/80:0);
-      if(on)dcFlow(ctx,[[x,T],[x,B]],t,Math.min(0.9,Ii*0.13),cols[i],5);
+      if(on)dcFlowI(ctx,[[x,T],[x,B]],t,Ii,cols[i],18);
       simText(ctx,on?('I'+'₁₂₃'[i]+' = '+Ii.toFixed(2)+' A'):'מנותק',
         x,B+20,on?cols[i]:'#ef4444',10.5,'center',true);
     });
-    if(Itot>0)dcFlow(ctx,[[L,B],[L,T],[Xb(0),T]],t,Math.min(0.5,Itot*0.05),'#fbbf24',8);
+    if(Itot>0)dcFlowI(ctx,[[L,B],[L,T],[Xb(0),T]],t,Itot,'#fbbf24',18);
     dcBatt(ctx,L,(T+B)/2,v.toFixed(1)+' V');     // over the charges, not under them
     simText(ctx,'הקישו על ענף כדי לנתקו — ושוב כדי להחזירו',W/2,B+42,'#7d8da6',9,'center');
     simText(ctx,'הזרם הכולל',(L+Re)/2,T-30,'#7d8da6',9.5,'center');
@@ -25848,15 +25894,15 @@ function simDcMixed(canvas){
     ctx.moveTo(Rt,T);ctx.lineTo(Rt,B);                     // merge node down to the return
     ctx.stroke();ctx.restore();
     dcRes(ctx,L+(mx-L)*0.55,T,58,26,r1.toFixed(0)+' Ω','#38bdf8',I*I*r1/70);
-    dcFlow(ctx,[[Rt,B],[L,B],[L,T],[mx,T]],t,Math.min(.6,I*0.1),'#fbbf24',12);
+    dcFlowI(ctx,[[Rt,B],[L,B],[L,T],[mx,T]],t,I,'#fbbf24',40);
     if(stage===1){
       // the parallel pair, collapsed into one box on the same rail
       ctx.save();ctx.strokeStyle='#64748b';ctx.lineWidth=2.5;
       ctx.beginPath();ctx.moveTo(mx,T);ctx.lineTo(Rt,T);ctx.stroke();ctx.restore();
       dcRes(ctx,(mx+Rt)/2,T,72,28,r23.toFixed(2)+' Ω','#f472b6',0);
       simText(ctx,'R₂∥R₃',(mx+Rt)/2,T-22,'#f472b6',10,'center',true);
-      dcFlow(ctx,[[mx,T],[Rt,T]],t,Math.min(.6,I*0.1),'#fbbf24',6);
-      dcFlow(ctx,[[Rt,T],[Rt,B]],t,Math.min(.6,I*0.1),'#fbbf24',4);
+      dcFlowI(ctx,[[mx,T],[Rt,T]],t,I,'#fbbf24',40);
+      dcFlowI(ctx,[[Rt,T],[Rt,B]],t,I,'#fbbf24',40);
     } else {
       ctx.save();ctx.strokeStyle='#64748b';ctx.lineWidth=2;
       ctx.beginPath();
@@ -25868,10 +25914,10 @@ function simDcMixed(canvas){
         ctx.beginPath();ctx.arc(q[0],q[1],3.4,0,6.2832);ctx.fill();});ctx.restore();
       dcRes(ctx,(mx+Rt)/2,T,58,26,r2.toFixed(0)+' Ω','#a78bfa',i2*i2*r2/70);
       dcRes(ctx,(mx+Rt)/2,MY,58,26,r3.toFixed(0)+' Ω','#34d399',i3*i3*r3/70);
-      dcFlow(ctx,[[mx,T],[Rt,T]],t,Math.min(.9,i2*0.14),'#a78bfa',5);
-      dcFlow(ctx,[[mx,T],[mx,MY],[Rt,MY]],t,Math.min(.9,i3*0.14),'#34d399',6);
+      dcFlowI(ctx,[[mx,T],[Rt,T],[Rt,MY]],t,i2,'#a78bfa',40);
+      dcFlowI(ctx,[[mx,T],[mx,MY],[Rt,MY]],t,i3,'#34d399',40);
       // the right rail is where the two branch currents merge again
-      dcFlow(ctx,[[Rt,MY],[Rt,B]],t,Math.min(.6,I*0.1),'#fbbf24',4);
+      dcFlowI(ctx,[[Rt,MY],[Rt,B]],t,I,'#fbbf24',40);
       if(stage===2){
         simText(ctx,'I₂ = '+i2.toFixed(2)+' A',(mx+Rt)/2,T-22,'#a78bfa',10,'center',true);
         simText(ctx,'I₃ = '+i3.toFixed(2)+' A',(mx+Rt)/2,MY+26,'#34d399',10,'center',true);
@@ -26241,6 +26287,7 @@ function simDcCap(canvas){
     ctx.save();ctx.strokeStyle='#64748b';ctx.lineWidth=2.2;ctx.beginPath();
     ctx.moveTo(L,T);ctx.lineTo(SWX-12,T);ctx.moveTo(SWX+12,T);ctx.lineTo(r2x,T);
     ctx.moveTo(L,Bm);ctx.lineTo(r2x,Bm);ctx.moveTo(L,T);ctx.lineTo(L,Bm);
+    ctx.moveTo(r2x,T);ctx.lineTo(r2x,Bm);                    // R₂'s own branch: it was drawn floating
     ctx.stroke();ctx.restore();
     dcBatt(ctx,L,(T+Bm)/2,v.toFixed(0)+' V');
     // the switch blade
@@ -26261,13 +26308,13 @@ function simDcCap(canvas){
     ctx.beginPath();ctx.moveTo(nx-17,cyT);ctx.lineTo(nx+17,cyT);
     ctx.moveTo(nx-17,cyB);ctx.lineTo(nx+17,cyB);ctx.stroke();ctx.restore();
     simText(ctx,(C*1e6).toFixed(0)+' μF',nx-24,cyT+11,'#fbbf24',10,'right',true);
-    if(Iin>1e-6)dcFlow(ctx,[[L,Bm],[L,T],[nx,T]],tt,Math.min(.5,Iin*900),'#fbbf24',8);
-    if(I2>1e-6){dcFlow(ctx,[[nx,T],[r2x,T],[r2x,Bm]],tt,Math.min(.5,I2*900),'#a78bfa',6);
-      dcFlow(ctx,[[r2x,Bm],[L,Bm]],tt,Math.min(.5,I2*900),'#a78bfa',6);}
+    if(Iin>1e-6)dcFlowI(ctx,[[L,Bm],[L,T],[nx,T]],tt,Iin,'#fbbf24',30000);
+    if(I2>1e-6){dcFlowI(ctx,[[nx,T],[r2x,T],[r2x,Bm]],tt,I2,'#a78bfa',30000);
+      dcFlowI(ctx,[[r2x,Bm],[L,Bm]],tt,I2,'#a78bfa',30000);}
     if(Math.abs(Ic)>1e-6){
       var _up=Ic<0;                                   // discharging: back up into the − plate
-      dcFlow(ctx,_up?[[nx,cyT],[nx,T]]:[[nx,T],[nx,cyT]],tt,Math.min(1.1,Math.abs(Ic)*900),'#f472b6',2);
-      dcFlow(ctx,_up?[[nx,Bm],[nx,cyB]]:[[nx,cyB],[nx,Bm]],tt,Math.min(1.1,Math.abs(Ic)*900),'#f472b6',2);
+      dcFlowI(ctx,_up?[[nx,cyT],[nx,T]]:[[nx,T],[nx,cyT]],tt,Math.abs(Ic),'#f472b6',30000);
+      dcFlowI(ctx,_up?[[nx,Bm],[nx,cyB]]:[[nx,cyB],[nx,Bm]],tt,Math.abs(Ic),'#f472b6',30000);
     }
     // charge piled on the plates -- the thing that actually stops the current --
     // painted after the flowing charges so it is never hidden behind one
@@ -26346,11 +26393,21 @@ function simDcCurrent(canvas){
   function Iv(){var e=document.getElementById('inp-dcc-I');return e?parseFloat(e.value):2;}
   function Av(){var e=document.getElementById('inp-dcc-A');return e?parseFloat(e.value):1;}
   var rb=document.getElementById('btn-dcc-reset');
-  if(rb)rb.addEventListener('click',function(){qA=0;qB=0;parts=[];});
+  if(rb)rb.addEventListener('click',function(){qA=0;qB=0;seededA=-1;});
   var pb=document.getElementById('btn-dcc-run');
   if(pb)pb.addEventListener('click',function(){run=!run;
     pb.textContent=run?'⏸ עצור':'▶ הפעל';});
-  for(var i=0;i<70;i++)parts.push({x:Math.random(),y:Math.random()});
+  // Steady state: the same charge crosses every section per second, so where the
+  // wire is thin (charges twice as fast) there must be half as many per metre.
+  // At real drift speeds the dots move ~1 px/s and would never get there on
+  // their own, so they are placed there — and re-placed when the thickness changes.
+  var seededA=-1;
+  function seed(Amm){
+    var u=0.5, pThin=0.5*u/(0.5*u+Amm*(1-u));
+    parts.forEach(function(q){q.x=Math.random()<pThin?Math.random()*u:u+Math.random()*(1-u);});
+    seededA=Amm;
+  }
+  for(var i=0;i<70;i++)parts.push({x:0,y:Math.random()});
   var XA=0, XB=0, MID=0;
   function set(p){
     if(MID<=0)return;
@@ -26362,6 +26419,7 @@ function simDcCurrent(canvas){
     if(_simGen[id]!==_g)return;if(_simStop[id])return;
     var dt=t0?Math.min((ts-t0)/1000,0.05):0;t0=ts;
     var I=Iv(), Amm=Av(), Am=Amm*1e-6;
+    if(Amm!==seededA)seed(Amm);
     var vd=I/(NDENS*Am*E);                       // metres per second, really
     var bg=ctx.createLinearGradient(0,0,0,H);bg.addColorStop(0,'#020810');bg.addColorStop(1,'#04101e');
     ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);
