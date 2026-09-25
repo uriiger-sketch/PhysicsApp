@@ -82,7 +82,7 @@ const SCAN = `(() => {
   for (const ch of chapters) for (const se of ch.s) {
     for (const tab of ['theory', 'quiz', 'problem', 'sim']) {
       const hits = await p.evaluate(async ([c, x, tb, scan]) => {
-        state.subject = c.startsWith('opt-') ? 'optics' : c.startsWith('elc-') ? 'electro' : c.startsWith('dc-') ? 'circuits' : 'mechanics';
+        state.subject = c.startsWith('opt-') ? 'optics' : c.startsWith('elc-') ? 'electro' : c.startsWith('dc-') ? 'circuits' : c.startsWith('mag-') ? 'magnetism' : 'mechanics';
         state.chapter = c; state.section = x; state.tab = tb;
         markCompleted(c, x, 'quiz', 0);
         render();

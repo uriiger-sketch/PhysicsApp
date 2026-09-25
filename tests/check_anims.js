@@ -28,7 +28,7 @@ const t = (name, got, want) => {
   let seen = 0, noHandler = [], noScrub = [], noPause = [], blank = [];
   for (const ch of chapters) for (const se of ch.s) {
     const r = await p.evaluate(async ([c, x]) => {
-      state.subject = c.startsWith('opt-') ? 'optics' : c.startsWith('elc-') ? 'electro' : c.startsWith('dc-') ? 'circuits' : 'mechanics';
+      state.subject = c.startsWith('opt-') ? 'optics' : c.startsWith('elc-') ? 'electro' : c.startsWith('dc-') ? 'circuits' : c.startsWith('mag-') ? 'magnetism' : 'mechanics';
       state.chapter = c; state.section = x; state.tab = 'theory'; render();
       await new Promise(r2 => setTimeout(r2, 700));
       const out = [];
@@ -78,7 +78,7 @@ const t = (name, got, want) => {
     const bad = [];
     const chapters = [].concat(MECH_CHAPTERS, OPTICS_CHAPTERS, ELECTRO_CHAPTERS, DC_CHAPTERS);
     for (const ch of chapters) for (const se of ch.sections) {
-      state.subject = ch.id.startsWith('opt-') ? 'optics' : ch.id.startsWith('elc-') ? 'electro' : ch.id.startsWith('dc-') ? 'circuits' : 'mechanics';
+      state.subject = ch.id.startsWith('opt-') ? 'optics' : ch.id.startsWith('elc-') ? 'electro' : ch.id.startsWith('dc-') ? 'circuits' : ch.id.startsWith('mag-') ? 'magnetism' : 'mechanics';
       state.chapter = ch.id; state.section = se.id; state.tab = 'theory'; render();
       await new Promise(r => setTimeout(r, 620));
       for (const id of Object.keys(_anim)) {
@@ -105,7 +105,7 @@ const t = (name, got, want) => {
     const out = { ex: 0, en: 0, hidden: 0, revealed: 0, lost: 0, chars: [0, 0] };
     const chapters = [].concat(MECH_CHAPTERS, OPTICS_CHAPTERS, ELECTRO_CHAPTERS, DC_CHAPTERS);
     for (const ch of chapters) for (const se of ch.sections) {
-      state.subject = ch.id.startsWith('opt-') ? 'optics' : ch.id.startsWith('elc-') ? 'electro' : ch.id.startsWith('dc-') ? 'circuits' : 'mechanics';
+      state.subject = ch.id.startsWith('opt-') ? 'optics' : ch.id.startsWith('elc-') ? 'electro' : ch.id.startsWith('dc-') ? 'circuits' : ch.id.startsWith('mag-') ? 'magnetism' : 'mechanics';
       state.chapter = ch.id; state.section = se.id; state.tab = 'theory'; render();
       await new Promise(r => setTimeout(r, 620));
       const host = document.getElementById('app');

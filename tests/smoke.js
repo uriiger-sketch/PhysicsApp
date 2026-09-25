@@ -22,7 +22,7 @@ const t = (name, got, want) => {
   await p.waitForTimeout(900);
   await p.evaluate(() => { if (window.closeOnboarding) closeOnboarding(); });
 
-  const subjects = await p.evaluate(() => ['mechanics', 'optics', 'electro', 'circuits'].map(s => {
+  const subjects = await p.evaluate(() => ['mechanics', 'optics', 'electro', 'circuits', 'magnetism'].map(s => {
     state.subject = s;
     return { s, chapters: getChapters().map(c => ({ id: c.id, sections: c.sections.map(x => x.id) })) };
   }));

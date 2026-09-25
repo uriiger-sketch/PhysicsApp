@@ -27,7 +27,7 @@ const t = (name, got, want) => {
     const chapters = [].concat(MECH_CHAPTERS, OPTICS_CHAPTERS, ELECTRO_CHAPTERS, DC_CHAPTERS);
     for (const ch of chapters) for (const se of ch.sections) {
       const key = ch.id + '.' + se.id, c = CONTENT[key];
-      state.subject = ch.id.startsWith('opt-') ? 'optics' : ch.id.startsWith('elc-') ? 'electro' : ch.id.startsWith('dc-') ? 'circuits' : 'mechanics';
+      state.subject = ch.id.startsWith('opt-') ? 'optics' : ch.id.startsWith('elc-') ? 'electro' : ch.id.startsWith('dc-') ? 'circuits' : ch.id.startsWith('mag-') ? 'magnetism' : 'mechanics';
       state.chapter = ch.id; state.section = se.id;
 
       // ── quiz: click the option the content marks correct ──

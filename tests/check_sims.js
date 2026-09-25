@@ -35,7 +35,7 @@ const t = (name, got, want) => {
   let n = 0, noInput = [], deaf = [], noHint = [], falseHint = [];
   for (const ch of chapters) for (const se of ch.s) {
     const r = await p.evaluate(async ([c, x]) => {
-      state.subject = c.startsWith('opt-') ? 'optics' : c.startsWith('elc-') ? 'electro' : c.startsWith('dc-') ? 'circuits' : 'mechanics';
+      state.subject = c.startsWith('opt-') ? 'optics' : c.startsWith('elc-') ? 'electro' : c.startsWith('dc-') ? 'circuits' : c.startsWith('mag-') ? 'magnetism' : 'mechanics';
       state.chapter = c; state.section = x; state.tab = 'sim'; render();
       await new Promise(r2 => setTimeout(r2, 800));
       const cv = document.querySelector('#app canvas');
