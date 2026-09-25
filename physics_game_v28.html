@@ -33,6 +33,14 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 .xp-badge{background:rgba(245,158,11,.15);border:1px solid rgba(245,158,11,.3);color:var(--gold);padding:4px 14px;border-radius:20px;font-weight:700;}
 .done-badge{color:var(--muted);font-size:.78rem;}
 
+.ver-badge{margin-inline-start:10px;margin-inline-end:auto;font:600 .7rem/1 'Heebo',sans-serif;color:var(--muted);background:rgba(148,163,184,.08);border:1px solid var(--border);border-radius:999px;padding:4px 9px;cursor:pointer;direction:ltr;letter-spacing:.02em;transition:color .15s,border-color .15s;}
+.ver-badge:hover{color:var(--text);border-color:#3b82f6;}
+.cl-ver{padding:14px 20px 4px;display:flex;align-items:baseline;gap:10px;direction:rtl}
+.cl-ver b{font-size:.95rem;color:var(--text);direction:ltr}
+.cl-ver span{font-size:.75rem;color:var(--muted);direction:ltr}
+.cl-list{margin:0;padding:0 38px 10px 20px;color:var(--text);font-size:.86rem;line-height:1.6}
+.cl-list li{margin:3px 0}
+
 /* LAYOUT */
 .layout{display:flex;min-height:calc(100vh - 62px);}
 
@@ -788,6 +796,31 @@ input[type=range]{accent-color:var(--accent);cursor:pointer;}
 <div id="app"></div>
 
 <script>
+// ── App version ────────────────────────────────────────────────────
+// One number per push: MAJOR.MINOR. Every push that changes this file bumps
+// MINOR and adds an entry at the TOP of APP_CHANGELOG (tests/check_version.js
+// fails if the file changed without a bump). Shown as the badge in the header.
+var APP_VERSION='28.1';
+var APP_CHANGELOG=[
+  {v:'28.1',d:'2026-09-25',notes:[
+    'מספר גרסה מוצג בכותרת, עם יומן שינויים',
+    'מעבדות חיישנים: תנועה נמדדת מההתחלה (האצת הפתיחה כבר לא נחתכת), תיקון סחיפה לפני הציור — הגרפים של v ו-x מסכימים עם התוצאה המדווחת; החלק הדומם לפני התנועה לא מצויר',
+    'מעבדות חיישנים: כיוון הצירים באייפון מתוקן (iOS מדווח כבידה בסימן הפוך)',
+    'זריקה אנכית: המהירות מעוגנת לרגע המנוחה, רגע השיא (<bdi dir="ltr">v = 0</bdi>) מסומן, תיקון הסחיפה לא מעקם את שיפוע g; נחיתה רכה נרשמת',
+    'מטוטלת חיישן: זמן מחזור מאינטרפולציה של חציות האפס, זיהוי נדנוד בג׳ירוסקופ',
+    'תאוצה קבועה: אינטגרציה מדויקת (<bdi dir="ltr">x += v·dt + ½a·dt²</bdi>) — גרף x(t) מתאים לשטח מתחת ל-v(t); הצירים מותאמים לריצה ולטווח <bdi dir="ltr">±10 m</bdi>',
+    'מהירות ממוצעת ורגעית: המשיק צויר בזווית שגויה (סקאלה ישנה) — תוקן',
+    'נפילה חופשית: הכדור כבר לא שוקע מתחת לקרקע אחרי הנחיתה; פרמטרי הזריקה קבועים במהלך המעוף',
+    'זריקה משופעת: נקודת הנחיתה מחושבת בדיוק (הטווח היה קצר עד <bdi dir="ltr">~0.8 m</bdi>)',
+    'מטוטלת: ציר θ ביחידות מעלות (נכתב rad), סקאלה קבועה במקום "נושמת"',
+    'קפיץ ו-SHM: ציר זמן אמיתי; שינוי T לא קופץ בפאזה; שינוי A נראה בגרף',
+    'תנע: גרף p(t) עם סימן — ההיפוך בכל פגיעה בקיר נראה; תוויות ציר במקומן',
+    'חיכוך: הגוף עוצר ולא "מרטט" סביב <bdi dir="ltr">v = 0</bdi>; גוש מחליק מאיץ באנימציה; התווית של a(t) בצד הנכון של הציר',
+    'הוסרה הצללה מתחת לגרפי x(t) — לשטח מתחת לגרף מקום אין משמעות'
+  ]},
+  {v:'28.0',d:'2026-09-24',notes:['נקודת ההתחלה של מעקב הגרסאות: מכניקה, אופטיקה, חשמל סטטי ומעגלי זרם ישר']}
+];
+
 // ── roundRect polyfill (for older browsers/renderers) ──────────────
 if(!CanvasRenderingContext2D.prototype.roundRect){
   CanvasRenderingContext2D.prototype.roundRect=function(x,y,w,h,r){
@@ -7424,7 +7457,7 @@ function simPositionTime(canvas){
   canvas.addEventListener('touchstart',function(e){e.preventDefault();_ptStart(getXE(e));},{passive:false});
   canvas.addEventListener('touchmove',function(e){e.preventDefault();if(drag)ballX=getXE(e);},{passive:false});
   canvas.addEventListener('touchend',function(){drag=false;});
-  var rb=document.getElementById('btn-pt-reset'); if(rb)rb.addEventListener('click',function(){hist=[];ballX=W/2;});
+  var rb=document.getElementById('btn-pt-reset'); if(rb)rb.addEventListener('click',function(){hist=[];ballX=W/2;recording=false;tRec0=null;sPath=0;lastXm=null;});
   requestAnimationFrame(draw);
 }
 
@@ -7500,10 +7533,8 @@ function simConstVelocity(canvas){
       var tSpan=Math.max(12,t+1);
       var toGx=function(tv){return GL+(tv/tSpan)*gW;};
       var toGy2=function(xv2){return midG-(xv2/10)*gH/2;};
-      ctx.save(); ctx.globalAlpha=0.12; ctx.fillStyle=vel>=0?'#34d399':'#f87171';
-      ctx.beginPath(); ctx.moveTo(toGx(hist[0].t),toGy2(0));
-      for(var i=0;i<hist.length;i++) ctx.lineTo(toGx(hist[i].t),toGy2(hist[i].x));
-      ctx.lineTo(toGx(hist[hist.length-1].t),toGy2(0)); ctx.closePath(); ctx.fill(); ctx.globalAlpha=1; ctx.restore();
+      // (No shading under x(t): the area under a POSITION graph has no
+      // kinematic meaning, and shading it invited reading it as Δx.)
       ctx.save(); ctx.lineWidth=2.5; ctx.lineJoin='round'; ctx.strokeStyle=vel>=0?'#3b82f6':'#a78bfa'; ctx.beginPath();
       for(var i=0;i<hist.length;i++){
         var px=toGx(hist[i].t), py2=toGy2(hist[i].x);
@@ -7563,6 +7594,8 @@ function simAvgInstant(canvas){
       if(dt>0.021){ dt=Math.max(0.02,dt*Math.pow(0.22,elapsed)); holdT=0; }
       else { holdT+=elapsed; if(holdT>2.5){ dt=2.2; holdT=0; } }
     }
+    // Keep P0 on the visible part of the curve (x ≤ XVIEW) for large k.
+    t0=Math.min(t0,Math.sqrt(XVIEW/A)-0.1);
     var t1=Math.min(TMax-0.01,t0+dt);
     var x0v=xAt(t0), x1v=xAt(t1);
     var vavg=(x1v-x0v)/Math.max(dt,0.0001);
@@ -7593,10 +7626,7 @@ function simAvgInstant(canvas){
     ctx.beginPath(); ctx.moveTo(toGx(t0),GB+1); ctx.lineTo(toGx(t0),GB+9); ctx.stroke();
     ctx.beginPath(); ctx.moveTo(toGx(t1),GB+1); ctx.lineTo(toGx(t1),GB+9); ctx.stroke(); ctx.restore();
     simText(ctx,'Δt='+dt.toFixed(4)+'s',(toGx(t0)+toGx(t1))/2,GB+26,'#fbbf24',9,'center');
-    // Parabola fill+curve
-    ctx.save(); ctx.fillStyle='rgba(99,102,241,.06)'; ctx.beginPath(); ctx.moveTo(toGx(0),GB);
-    for(var i=0;i<=300;i++){var tv2=i/300*TMax; var py=toGy(xAt(tv2)); if(py<GT||py>GB)continue; ctx.lineTo(toGx(tv2),py);}
-    ctx.lineTo(GR,GB); ctx.closePath(); ctx.fill(); ctx.restore();
+    // Parabola (no fill: area under x(t) means nothing)
     ctx.save(); ctx.strokeStyle='#4f46e5'; ctx.lineWidth=3.5; ctx.lineJoin='round'; ctx.beginPath();
     var started=false;
     for(var i=0;i<=400;i++){var tv2=i/400*TMax; var py=toGy(xAt(tv2)); if(py<GT||py>GB){started=false;continue;} started?ctx.lineTo(toGx(tv2),py):ctx.moveTo(toGx(tv2),py); started=true;}
@@ -7609,7 +7639,10 @@ function simAvgInstant(canvas){
     ctx.beginPath(); ctx.moveTo(p0c.px-sdx/sLen*ext,p0c.py-sdy/sLen*ext); ctx.lineTo(p1c.px+sdx/sLen*ext,p1c.py+sdy/sLen*ext);
     ctx.stroke(); ctx.setLineDash([]); ctx.restore();
     // Tangent
-    var tScl=(GR-GL)/TMax, yScl=-(GB-GT)*0.9/xAt(TMax);
+    // Same px-per-metre as toGy. This still divided by xAt(TMax) from before
+    // the axis became absolute, so the "tangent" was drawn at the wrong angle
+    // for every A ≠ 40/25 — visibly crossing the curve it claims to touch.
+    var tScl=(GR-GL)/TMax, yScl=-(GB-GT)*0.9/XVIEW;
     var tAng=Math.atan2(vinst*yScl,tScl), tExt=62;
     ctx.save(); ctx.strokeStyle='#34d399'; ctx.lineWidth=3;
     ctx.beginPath(); ctx.moveTo(p0c.px-Math.cos(tAng)*tExt,p0c.py-Math.sin(tAng)*tExt); ctx.lineTo(p0c.px+Math.cos(tAng)*tExt,p0c.py+Math.sin(tAng)*tExt); ctx.stroke(); ctx.restore();
@@ -7666,6 +7699,16 @@ function simAcceleration(canvas){
   var acc=3, vel=0, xm=0, ballX=W/2, t=0, pT=null, dragging=false, hist=[];
   function getAcc(){var el=document.getElementById('inp-acc-a');return el?parseFloat(el.value)||0:acc;}
   function getV0() {var el=document.getElementById('inp-acc-v0');return el?parseFloat(el.value)||0:0;}
+  function runSpan(){
+    // remaining time until |x| = 10 m, from x + v·τ + ½a·τ² = ±10
+    var best=Infinity;
+    [10,-10].forEach(function(X){
+      var A=0.5*acc,B=vel,C=xm-X,r=[];
+      if(Math.abs(A)<1e-9){if(Math.abs(B)>1e-9)r=[-C/B];}
+      else{var D=B*B-4*A*C;if(D>=0){var q=Math.sqrt(D);r=[(-B+q)/(2*A),(-B-q)/(2*A)];}}
+      r.forEach(function(x){if(x>1e-6&&x<best)best=x;});});
+    return Math.max(t+0.15,Math.min(12,t+best));
+  }
   function draw(ts){
     if(_simStop[id])return;
     if(!pT)pT=ts; var dt=Math.min((ts-pT)/1000,.04); pT=ts;
@@ -7674,7 +7717,11 @@ function simAcceleration(canvas){
     // and the readout converted back with that other scale, so the drawn motion
     // disagreed with the v and a printed beside it.
     const PPM_A=(GR-GL)/20;
-    acc=getAcc(); t+=dt; vel+=acc*dt; xm+=vel*dt;
+    acc=getAcc(); t+=dt;
+    // Exact for piecewise-constant a: x += v·dt + ½a·dt². The old update
+    // (v first, then x with the NEW v) put x(t) ahead of ½at² by ½a·t·dt and
+    // made the x(t) curve disagree with the area under the v(t) line.
+    xm+=vel*dt+0.5*acc*dt*dt; vel+=acc*dt;
     // Reaching the edge used to reverse the velocity and destroy 75% of it
     // (vel=-vel*0.25), which turned v(t) into a sawtooth in the one section
     // whose caption reads "slope = a". A constant-acceleration run should show a
@@ -7743,30 +7790,37 @@ function simAcceleration(canvas){
     ctx.save(); ctx.strokeStyle='#1a3a5c'; ctx.lineWidth=1.5; ctx.strokeRect(gl,GT,gr-gl,gH); ctx.restore();
     ctx.save(); ctx.strokeStyle='#1e3a52'; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(gl,midV); ctx.lineTo(gr,midV); ctx.stroke(); ctx.restore();
     if(hist.length>3){
-      var tSpan=Math.max(8,t);
+      // The axis spans THIS run: the moment it will reach ±10 m (and restart)
+      // under the current a. A fixed 8 s left two thirds of both plots empty
+      // for a = 3 m/s², where a run lasts 2.6 s.
+      var tSpan=runSpan();
       var toVx=function(tv){return gl+(tv/tSpan)*(gr-gl);};
       var toVy=function(vv){return midV-(vv/vMax)*(GB-GT)/2;};
       ctx.save(); ctx.fillStyle='rgba(52,211,153,.1)'; ctx.beginPath(); ctx.moveTo(toVx(hist[0].t),midV); hist.forEach(function(p){ctx.lineTo(toVx(p.t),toVy(p.v));}); ctx.lineTo(toVx(hist[hist.length-1].t),midV); ctx.closePath(); ctx.fill(); ctx.restore();
       ctx.save(); ctx.strokeStyle='#34d399'; ctx.lineWidth=2.5; ctx.lineJoin='round'; ctx.beginPath(); hist.forEach(function(p,i){var px=toVx(p.t),py=toVy(p.v); i===0?ctx.moveTo(px,py):ctx.lineTo(px,py);}); ctx.stroke(); ctx.restore();
       simCircle(ctx,toVx(hist[hist.length-1].t),toVy(hist[hist.length-1].v),5,'#34d399');
     }
+    [-20,-10,10,20].forEach(function(q){var yy=midV-(q/vMax)*(GB-GT)/2;simText(ctx,(q>0?'+':'')+q,gl-3,yy+3,'#5b7089',7,'right');ctx.save();ctx.strokeStyle='rgba(30,58,82,.5)';ctx.setLineDash([2,5]);ctx.beginPath();ctx.moveTo(gl,yy);ctx.lineTo(gr,yy);ctx.stroke();ctx.restore();});
         simText(ctx,'v (m/s) ↑',gl+3,GT+8,'#34d399',7,'left');
     simText(ctx,'v(t)',gl+12,GT+20,'#34d399',9,'left'); simText(ctx,'שיפוע=a',gl+(gr-gl)/2,GB-3,'#7d8da6',8,'center'); simText(ctx,'שטח = Δx',gl+(gr-gl)*0.75,GT+13,'#a7f3d0',8,'center');
     simText(ctx,'t (s) →',gr-4,GB+3,'#7d8da6',7,'right');
     // x(t)
     var gl2=GL+gW2+16, gr2=GR;
     ctx.save(); var gbg2=ctx.createLinearGradient(gl2,GT,gl2,GB); gbg2.addColorStop(0,'rgba(12,26,50,.7)'); gbg2.addColorStop(1,'rgba(6,14,28,.9)'); ctx.fillStyle=gbg2; ctx.fillRect(gl2,GT,gr2-gl2,gH); ctx.restore();
-    var xMax=26;                     // absolute, for the same reason as vMax
+    // Absolute, for the same reason as vMax. The track is ±10 m (the run
+    // restarts past that), so ±12 m uses the plot instead of its middle 40%.
+    var xMax=12;
     var midX=(GT+GB)/2;
     ctx.save(); ctx.strokeStyle='#1a3a5c'; ctx.lineWidth=1.5; ctx.strokeRect(gl2,GT,gr2-gl2,gH); ctx.restore();
     ctx.save(); ctx.strokeStyle='#1e3a52'; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(gl2,midX); ctx.lineTo(gr2,midX); ctx.stroke(); ctx.restore();
     if(hist.length>3){
-      var tSpan2=Math.max(8,t);
+      var tSpan2=runSpan();
       var toQx=function(tv){return gl2+(tv/tSpan2)*(gr2-gl2);};
       var toQy=function(xv){return midX-(xv/xMax)*(GB-GT)/2;};
       ctx.save(); ctx.strokeStyle='#6366f1'; ctx.lineWidth=2.5; ctx.lineJoin='round'; ctx.beginPath(); hist.forEach(function(p,i){var px=toQx(p.t),py=toQy(p.x); i===0?ctx.moveTo(px,py):ctx.lineTo(px,py);}); ctx.stroke(); ctx.restore();
       simCircle(ctx,toQx(hist[hist.length-1].t),toQy(hist[hist.length-1].x),5,'#818cf8');
     }
+    [-10,-5,5,10].forEach(function(q){var yy=midX-(q/xMax)*(GB-GT)/2;simText(ctx,(q>0?'+':'')+q,gr2-3,yy-2,'#5b7089',7,'right');ctx.save();ctx.strokeStyle='rgba(30,58,82,.5)';ctx.setLineDash([2,5]);ctx.beginPath();ctx.moveTo(gl2,yy);ctx.lineTo(gr2,yy);ctx.stroke();ctx.restore();});
         simText(ctx,'x (m) ↑',gl2+3,GT+8,'#818cf8',7,'left');
     simText(ctx,'x(t)',gl2+12,GT+20,'#818cf8',9,'left'); simText(ctx,'פרבולה',gl2+(gr2-gl2)/2,GB-3,'#7d8da6',8,'center');
     simText(ctx,'t (s) →',gr2-4,GB+3,'#7d8da6',7,'right');
@@ -7789,9 +7843,9 @@ function simAcceleration(canvas){
   canvas.addEventListener('mousedown',_acDn);canvas.addEventListener('touchstart',_acDn,{passive:false});
   canvas.addEventListener('mousemove',_acMv);canvas.addEventListener('touchmove',_acMv,{passive:false});
   canvas.addEventListener('mouseup',_acUp);canvas.addEventListener('touchend',_acUp);
-  canvas.addEventListener('dblclick',function(){vel=getV0();ballX=W/2;hist=[];t=0;});
-  var rb=document.getElementById('btn-acc-reset'); if(rb)rb.addEventListener('click',function(){vel=getV0();ballX=W/2;hist=[];t=0;});
-  var v0e=document.getElementById('inp-acc-v0'); if(v0e)v0e.addEventListener('input',function(){vel=getV0();ballX=W/2;hist=[];t=0;});
+  canvas.addEventListener('dblclick',function(){vel=getV0();xm=0;ballX=W/2;hist=[];t=0;});
+  var rb=document.getElementById('btn-acc-reset'); if(rb)rb.addEventListener('click',function(){vel=getV0();xm=0;ballX=W/2;hist=[];t=0;});
+  var v0e=document.getElementById('inp-acc-v0'); if(v0e)v0e.addEventListener('input',function(){vel=getV0();xm=0;ballX=W/2;hist=[];t=0;});
   requestAnimationFrame(draw);
 }
 
@@ -7826,7 +7880,7 @@ function simFreefall(canvas){
       simSyncSlider('v0',(GND-aimY)/260*30,0);e.preventDefault();}
     else if(!ball)canvas.style.cursor=(Math.abs(p.x-BX())<70&&p.y>GND-150)?'grab':'';}
   function _ffUp(){if(aimF){aimF=false;aimY=null;canvas.style.cursor='';
-    v0=getV0();g=getG();if(v0>0.5)ball={ym:0,vy:v0,t:0};}}
+    v0=getV0();g=getG();if(v0>0.5)ball={ym:0,vy:v0,t:0,v0:v0,g:g};}}
   canvas.addEventListener('mousedown',_ffDn);canvas.addEventListener('touchstart',_ffDn,{passive:false});
   canvas.addEventListener('mousemove',_ffMv);canvas.addEventListener('touchmove',_ffMv,{passive:false});
   canvas.addEventListener('mouseup',_ffUp);canvas.addEventListener('touchend',_ffUp);
@@ -7836,14 +7890,20 @@ function simFreefall(canvas){
     if(!pT)pT=ts; var dt=Math.min((ts-pT)/1000,.04); pT=ts;
     v0=getV0(); g=getG();
     // Physics update: purely in meters
-    if(ball){
-      ball.vy-=g*dt; // gravity decelerates upward velocity
-      ball.ym+=ball.vy*dt;
-      ball.t+=dt;
-      // Never zero vy: the section's punchline is that the ball returns with
-      // speed exactly −v₀ and that rise time equals fall time. Capture both.
-      if(ball.ym<=0&&ball.vy<0&&!ball.landed){
-        ball.ym=0; ball.vLand=ball.vy; ball.tTotal=ball.t; ball.landed=true;
+    if(ball&&!ball.landed){
+      // The throw keeps the g and v₀ it was launched with, so moving a slider
+      // mid-flight no longer bends the path away from the strobe ghosts.
+      var gB=ball.g||g;
+      // Exact constant-g step (y += v·dt − ½g·dt²); the old v-then-y update
+      // lowered the apex and landed early vs. the analytic strobe ghosts.
+      var yN=ball.ym+ball.vy*dt-0.5*gB*dt*dt;
+      if(yN<=0&&ball.vy-gB*dt<0){
+        // Land at the exact touchdown instant (it used to keep integrating,
+        // sinking below the ground with v growing past −v₀).
+        var tL=2*ball.v0/gB;
+        ball.ym=0; ball.vy=-ball.v0; ball.vLand=-ball.v0; ball.t=tL; ball.tTotal=tL; ball.landed=true;
+      } else {
+        ball.ym=yN; ball.vy-=gB*dt; ball.t+=dt;
       }
       if(ball.prevVy>0&&ball.vy<=0&&ball.tUp===undefined)ball.tUp=ball.t;
       ball.prevVy=ball.vy;
@@ -7884,7 +7944,7 @@ function simFreefall(canvas){
       var GDT=0.15;
       for(var gi=1;gi*GDT<ball.t&&gi<90;gi++){
         var gt=gi*GDT;
-        var gym=Math.max(0,v0*gt-0.5*g*gt*gt);
+        var gym=Math.max(0,ball.v0*gt-0.5*ball.g*gt*gt);
         var gpy=toY(gym); if(gpy<16)continue;
         ctx.save(); ctx.globalAlpha=0.30;
         simCircle(ctx,bx,gpy,7,'rgba(99,102,241,.35)','rgba(129,140,248,.5)',1);
@@ -7958,7 +8018,7 @@ function simFreefall(canvas){
   var gInp=document.getElementById('inp-ff-g');
   if(v0Inp){v0=parseFloat(v0Inp.value)||18; v0Inp.addEventListener('input',function(){v0=parseFloat(v0Inp.value)||18;});}
   if(gInp) {g=parseFloat(gInp.value)||9.8;  gInp.addEventListener('input',function(){g=parseFloat(gInp.value)||9.8;});}
-  if(throwBtn)throwBtn.addEventListener('click',function(){v0=getV0();g=getG();ball={ym:0,vy:v0,t:0};});
+  if(throwBtn)throwBtn.addEventListener('click',function(){v0=getV0();g=getG();ball={ym:0,vy:v0,t:0,v0:v0,g:g};});
   requestAnimationFrame(draw);
 }
 
@@ -8423,10 +8483,15 @@ function simNewton2(canvas){
     // graph kept reporting a = ΣF/m ≠ 0 — a net force with no acceleration, in
     // the simulation of ΣF = ma. The wall stop already bounds the motion, so the
     // limit only needs to be out of reach for numerical safety.
+    var _vN0=vel;
     vel+=a*dt; vel=Math.max(-200,Math.min(200,vel));
+    // Kinetic friction can stop a block but never push it backwards: without
+    // this clamp a step could carry v through zero, friction flipped, and v
+    // chattered around 0 (a spiky a(t) graph) instead of the block stopping.
+    if(Math.abs(_vN0)>0.02&&_vN0*vel<0&&f_fric*_vN0<0) vel=0;
     // Stop if static friction holds
     if(Math.abs(vel)<0.02&&Math.abs(netF)<0.02) vel=0;
-    pos+=vel*dt*22;
+    pos+=0.5*(_vN0+vel)*dt*22;
     var atWall=false;
     if(pos>W-48){ pos=W-48; vel=0; atWall=true; dragF=null; }
     if(pos<48){   pos=48;   vel=0; atWall=true; dragF=null; }
@@ -8621,7 +8686,7 @@ function simIncline(canvas){
     const sinT=Math.sin(th), cosT=Math.cos(th);
     const N_=m*g*cosT;
     const a=g*(sinT-mu*cosT);
-    if(a>0.001){ vel+=a*dt; s+=vel*dt; }
+    if(a>0.001){ s+=vel*dt+0.5*a*dt*dt; vel+=a*dt; }
     else if(a<-0.001&&vel>0){ vel+=a*dt; if(vel<0)vel=0; s+=Math.max(0,vel)*dt; }
     const CX=W*0.14, CY=H-72;
     const INCLINE_LEN=Math.min(W*0.70,320);
@@ -9365,8 +9430,11 @@ function simMomentumDisplay(canvas){
     if(pos>W-r){pos=W-r; vel=-Math.abs(vel);}
     if(pos<r){pos=r; vel=Math.abs(vel);}
 
-    var p=mass*Math.abs(vel);
-    pHistory.push(p); vHistory.push(Math.abs(vel));
+    // Momentum is a VECTOR: the history keeps its sign, so every wall bounce
+    // shows as the jump +p → −p (Δp = −2p, the wall's impulse). Plotting |p| drew
+    // a flat line and hid the one event on screen where momentum changes.
+    var p=mass*Math.abs(vel), pS=mass*vel;
+    pHistory.push(pS); vHistory.push(vel);
     if(pHistory.length>180){pHistory.shift(); vHistory.shift();}
 
     simBg(ctx,W,H);
@@ -9420,22 +9488,24 @@ function simMomentumDisplay(canvas){
     // ── p graph (bottom)
     ctx.save();ctx.fillStyle='rgba(6,14,28,.75)';ctx.strokeStyle='#1e3a52';ctx.lineWidth=1;
     ctx.beginPath();ctx.roundRect(12,GRAPH_TOP,W-24,GRAPH_H,4);ctx.fill();ctx.stroke();ctx.restore();
-    simText(ctx,'תנע p לאורך זמן',W/2,GRAPH_TOP+10,'#7d8da6',7.5,'center');
+    simText(ctx,'p(t) — תנע עם סימן: בכל התנגשות בקיר p מתהפך',W/2,GRAPH_TOP+10,'#7d8da6',7.5,'center');
 
     if(pHistory.length>2){
-      var maxP=Math.max.apply(null,pHistory)*1.1||1;
-      // Zero line
-      ctx.save();ctx.strokeStyle='rgba(255,255,255,.08)';ctx.lineWidth=1;ctx.setLineDash([3,5]);
-      ctx.beginPath();ctx.moveTo(18,GRAPH_TOP+GRAPH_H-6);ctx.lineTo(W-18,GRAPH_TOP+GRAPH_H-6);ctx.stroke();ctx.setLineDash([]);ctx.restore();
+      var maxP=1; pHistory.forEach(function(q){maxP=Math.max(maxP,Math.abs(q)*1.15);});
+      var gMid=GRAPH_TOP+GRAPH_H/2+3, gAmp=GRAPH_H/2-9;
+      // Zero line (p = 0) through the middle: + is to the right, − to the left
+      ctx.save();ctx.strokeStyle='rgba(255,255,255,.14)';ctx.lineWidth=1;ctx.setLineDash([3,5]);
+      ctx.beginPath();ctx.moveTo(18,gMid);ctx.lineTo(W-18,gMid);ctx.stroke();ctx.setLineDash([]);ctx.restore();
+      simText(ctx,'+',12,gMid-gAmp+6,'#6ee7b7',8,'left');simText(ctx,'0',12,gMid+3,'#7d8da6',7,'left');simText(ctx,'−',12,gMid+gAmp,'#fca5a5',8,'left');
       // p curve
       ctx.save();ctx.strokeStyle='#22d3ee';ctx.lineWidth=2;ctx.beginPath();
       pHistory.forEach(function(pv,i){
         var px2=18+(W-36)*i/(pHistory.length-1);
-        var py2=GRAPH_TOP+GRAPH_H-6-(pv/maxP)*(GRAPH_H-14);
+        var py2=gMid-(pv/maxP)*gAmp;
         i===0?ctx.moveTo(px2,py2):ctx.lineTo(px2,py2);
       });
       ctx.stroke();ctx.restore();
-      simText(ctx,'p='+p.toFixed(1)+' kg·m/s',W-18,GRAPH_TOP+14,'#22d3ee',8,'right',true);
+      simText(ctx,'\u200ep = '+(pS>=0?'+':'−')+p.toFixed(1)+' kg·m/s',W-18,GRAPH_TOP+14,'#22d3ee',8,'right',true);
     }
 
     requestAnimationFrame(draw);
@@ -9783,8 +9853,10 @@ function simCollision(canvas){
       ctx.save();ctx.strokeStyle='rgba(255,255,255,.12)';ctx.lineWidth=1;
       ctx.beginPath();ctx.moveTo(14,midY);ctx.lineTo(W-14,midY);ctx.stroke();ctx.restore();
       simText(ctx,'0',14,midY+3,'#7d8da6',6.5,'left');
-      simText(ctx,pMax2.toFixed(1),14,GRAPH_TOP+18,'#7d8da6',6.5,'left');
-      simText(ctx,pMin2.toFixed(1),14,GRAPH_TOP+GRAPH_H-6,'#7d8da6',6.5,'left');
+      // Labels sit AT the height of the value they name (they were pinned to
+      // the frame's top/bottom, which is ±1.2·max — so the axis misread p).
+      if(Math.abs(pMax2)>0.05)simText(ctx,pMax2.toFixed(1),14,midY-pMax2/pRange2*(GRAPH_H-28)+3,'#7d8da6',6.5,'left');
+      if(Math.abs(pMin2)>0.05)simText(ctx,pMin2.toFixed(1),14,midY-pMin2/pRange2*(GRAPH_H-28)+3,'#7d8da6',6.5,'left');
 
       function plotMomentum(hist,col,dash){
         ctx.save();ctx.strokeStyle=col;ctx.lineWidth=2;
@@ -10246,7 +10318,7 @@ function simSpring(canvas){
   // k range 0.1–25, default 2 → T≈3s for m=0.5
   let k=2, mass=0.5, theta=0, drag=false, pT=null;
   let amp=90;           // amplitude in px (max 110, min 8)
-  let xHist=[], vHist=[];
+  let xHist=[], vHist=[], tHist=[], tSim=0;
 
   function readSliders(){
     const kS=document.getElementById('inp-spring-k');
@@ -10256,12 +10328,10 @@ function simSpring(canvas){
   }
   ['inp-spring-k','inp-spring-m'].forEach(function(id2){
     const el=document.getElementById(id2);
-    if(el)el.addEventListener('input',function(){readSliders();theta=0;xHist=[];vHist=[];});
+    if(el)el.addEventListener('input',function(){readSliders();theta=0;xHist=[];vHist=[];tHist=[];});
   });
   readSliders();
 
-  // Keep max history proportional to ~2.5 periods
-  function maxHist(omega){ return Math.min(600,Math.round(2.5*2*Math.PI/omega/0.025)); }
 
   function draw(ts){
     if(_simStop[id])return;
@@ -10277,10 +10347,14 @@ function simSpring(canvas){
     const T=2*Math.PI/omega;
     const mx=EQ+x;
 
-    xHist.push(x_m);
-    vHist.push(v_ms);
-    const mh=maxHist(omega);
-    while(xHist.length>mh){xHist.shift();vHist.shift();}
+    // Samples carry their time: the plot's horizontal axis is real time over a
+    // fixed 2.5-period window. It used to be one pixel-slot per FRAME, squeezed
+    // to fit however many frames were stored, so the axis scale changed with
+    // frame rate and while the history filled — the period could not be read.
+    tSim+=dt;
+    xHist.push(x_m); vHist.push(v_ms); tHist.push(tSim);
+    const WIN=2.5*2*Math.PI/omega;
+    while(tHist.length&&tSim-tHist[0]>WIN){xHist.shift();vHist.shift();tHist.shift();}
 
     simBg(ctx,W,H);
 
@@ -10383,13 +10457,14 @@ function simSpring(canvas){
 
     if(xHist.length>3){
       const n=xHist.length;
-      const tS=gW/n;
+      const WINp=2.5*2*Math.PI/omega;
+      const tPx=i=>gL+4+(tHist[i]-tHist[0])/WINp*(gW-8);
       const ampX=amp/100;
       const ampV=Math.max(ampX*omega,0.0001);
       // x(t) — orange
       ctx.save();ctx.strokeStyle='#f59e0b';ctx.lineWidth=2;ctx.beginPath();
       for(let i=0;i<n;i++){
-        const px=gL+4+i*tS;
+        const px=tPx(i);
         const py=midG-xHist[i]/ampX*(gH*0.42);
         i===0?ctx.moveTo(px,py):ctx.lineTo(px,py);
       }
@@ -10397,13 +10472,13 @@ function simSpring(canvas){
       // v(t) — cyan
       ctx.save();ctx.strokeStyle='#22d3ee';ctx.lineWidth=2;ctx.beginPath();
       for(let i=0;i<n;i++){
-        const px=gL+4+i*tS;
+        const px=tPx(i);
         const py=midG-vHist[i]/ampV*(gH*0.42);
         i===0?ctx.moveTo(px,py):ctx.lineTo(px,py);
       }
       ctx.stroke();ctx.restore();
       // Current dots
-      const curPx=gL+4+(n-1)*tS;
+      const curPx=tPx(n-1);
       ctx.save();ctx.fillStyle='#f59e0b';ctx.strokeStyle='#fff';ctx.lineWidth=1.5;
       ctx.beginPath();ctx.arc(curPx,midG-x_m/ampX*(gH*0.42),4.5,0,Math.PI*2);ctx.fill();ctx.stroke();ctx.restore();
       ctx.save();ctx.fillStyle='#22d3ee';ctx.strokeStyle='#fff';ctx.lineWidth=1.5;
@@ -10434,7 +10509,7 @@ function simSpring(canvas){
   canvas.addEventListener('mousemove',function(e){
     if(!drag)return;
     amp=Math.max(8,Math.min(110,Math.abs(getCanvasX(e)-EQ)));
-    theta=0; xHist=[]; vHist=[];
+    theta=0; xHist=[]; vHist=[]; tHist=[];
   });
   canvas.addEventListener('mouseup',function(){drag=false;});
   canvas.addEventListener('touchstart',function(e){
@@ -10445,7 +10520,7 @@ function simSpring(canvas){
   canvas.addEventListener('touchmove',function(e){
     if(!drag)return;
     amp=Math.max(8,Math.min(110,Math.abs(getCanvasX(e)-EQ)));
-    theta=0; xHist=[]; vHist=[]; e.preventDefault();
+    theta=0; xHist=[]; vHist=[]; tHist=[]; e.preventDefault();
   },{passive:false});
   canvas.addEventListener('touchend',function(){drag=false;});
 
@@ -11223,7 +11298,7 @@ function simGravityForce(canvas){
       var D=drops[i];
       if(D){
         if(!D.land){
-          D.t+=dt;D.v+=pl.g*dt;D.y+=D.v*dt;
+          D.t+=dt;D.y+=D.v*dt+0.5*pl.g*dt*dt;D.v+=pl.g*dt;
           if(D.y>=DROP_M){D.y=DROP_M;D.land=D.t;}
         } else if((D.hold=(D.hold||0)+dt)>2.6){delete drops[i];}
         var by2=laneTop+(D.y/DROP_M)*laneH;
@@ -11531,6 +11606,7 @@ function simKineticFriction(canvas){
       var dx;
       if(vel<0){
         dx=0.5*_v0k*(_v0k/(-a));        // = v₀²/(2|a|) for the remaining stretch
+        tClock+=_v0k/(-a)-dt;          // it stopped part-way through this step
         vel=0; running=false;
       } else {
         dx=0.5*(_v0k+vel)*dt;
@@ -11661,7 +11737,7 @@ function simKineticFriction(canvas){
       ctx.stroke(); ctx.restore();
       ctx.save(); ctx.strokeStyle='rgba(30,58,82,.4)'; ctx.lineWidth=1;
       ctx.beginPath(); ctx.moveTo(GX2+6,GY+GH/2); ctx.lineTo(GX2+GW2-6,GY+GH/2); ctx.stroke(); ctx.restore();
-      simText(ctx,'a='+a.toFixed(2),GX2+GW2-8,GY+GH/2-Math.abs(a)/(Math.abs(a)*2)*(GH-20)-4,'#ef4444',7,'right');
+      simText(ctx,'a='+a.toFixed(2),GX2+GW2-8,GY+GH/2-a/(Math.abs(a)*2)*(GH-20)+(a<0?12:-4),'#ef4444',7,'right');   // beside the line (a<0 sits BELOW zero; the label used to sit above it)
     } else {
       simText(ctx,'גרף a(t)',GX2+GW2/2,GY+GH/2,'#7d8da6',8.5,undefined,true);
       simText(ctx,'יופיע לאחר שיגור',GX2+GW2/2,GY+GH/2+12,'#7d8da6',8,undefined,true);
@@ -12171,7 +12247,10 @@ function simPendulum(canvas){
       clock+=dt;
       thetaHist.push(theta*180/Math.PI);
       timeHist.push(clock);
-      if(thetaHist.length>maxHist){thetaHist.shift();timeHist.shift();}
+      // Fixed window of 3 small-angle periods (was 300 FRAMES, i.e. a time
+      // axis whose length depended on the device's frame rate).
+      var _win=3*2*Math.PI*Math.sqrt(L/g);
+      while(timeHist.length&&clock-timeHist[0]>_win){thetaHist.shift();timeHist.shift();}
     }
 
     var T=2*Math.PI*Math.sqrt(L/g);
@@ -12293,14 +12372,16 @@ function simPendulum(canvas){
     ctx.beginPath(); ctx.roundRect(GX,GY,GW,GH,4); ctx.fill(); ctx.stroke(); ctx.restore();
     simText(ctx,'θ(t) — זווית מול זמן',GX+GW/2,GY+9,'#7d8da6',8,undefined,true);
     simText(ctx,'t (s) →',GX+GW-8,GY+GH-4,'#7d8da6',7,'right');
-    simText(ctx,'θ (rad) ↑',GX+8,GY+18,'#a78bfa',7,'left');
+    simText(ctx,'θ (°) ↑',GX+8,GY+18,'#a78bfa',7,'left');   // the samples are in DEGREES; this said rad
     var gMY=GY+GH/2+6;
     ctx.save(); ctx.strokeStyle='#1e3a52'; ctx.lineWidth=1;
     ctx.beginPath(); ctx.moveTo(GX+6,gMY); ctx.lineTo(GX+GW-6,gMY); ctx.stroke(); ctx.restore();
     if(thetaHist.length>2){
-      var tSpan=Math.max(timeHist[timeHist.length-1]-timeHist[0],0.1);
+      var tSpan=3*T;                       // fixed axis: fills, then scrolls
       var tScale=(GW-14)/tSpan;
-      var thMax=Math.max(45,Math.abs(theta)*180/Math.PI+5);
+      // Scale from the whole visible history, not the CURRENT angle — that
+      // rescaled the plot every swing, so the curve breathed instead of decaying.
+      var thMax=45; for(var _k=0;_k<thetaHist.length;_k++)thMax=Math.max(thMax,Math.abs(thetaHist[_k])+5);
       ctx.save(); ctx.strokeStyle='#60a5fa'; ctx.lineWidth=1.8;
       ctx.beginPath();
       for(var i=0;i<thetaHist.length;i++){
@@ -12408,13 +12489,19 @@ function simProjectile(canvas){
     SCALE=Math.min(SCALE,scaleY);
 
     if(running){
+      var _yP=y,_vyP=vy;
+      x+=vx*dt; y+=vy*dt-0.5*g*dt*dt;   // exact parabola step
       vy-=g*dt;
-      x+=vx*dt; y+=vy*dt;
       trail.push({x:x,y:y,vx:vx,vy:vy});
       if(trail.length>400)trail.shift();
       var py=GND_Y-y*SCALE;
       if(py>=GND_Y){
-        running=false; x=Math.max(x-vx*dt,0); y=0; landT=t;
+        // Land at the exact root of y(τ)=0 inside this step. It used to back up
+        // a whole frame (x−vx·dt), so the reported range fell short of v₀²sin2θ/g
+        // by up to vx·40 ms — ~0.8 m at 20 m/s, enough to flip a "hit" verdict.
+        var _tau=(_vyP+Math.sqrt(Math.max(0,_vyP*_vyP+2*g*_yP)))/g;
+        running=false; x=Math.max(x-vx*dt+vx*Math.min(_tau,dt),0); y=0; vy=_vyP-g*Math.min(_tau,dt); landT=t;
+        if(trail.length){trail[trail.length-1]={x:x,y:0,vx:vx,vy:vy};}
         if(targetX>0){
           var miss=x-targetX;
           if(Math.abs(miss)<3){
@@ -13950,11 +14037,16 @@ function simSHMDef(canvas){
     if(!pT)pT=ts; var dt=Math.min((ts-pT)/1000,0.04); pT=ts;
     t+=dt; A=getA(); T=getT();
     var omega=2*Math.PI/T;
-    var x_m=A*Math.sin(omega*t); // displacement in screen px
-    var v_m=A*omega*Math.cos(omega*t);
-    var a_m=-A*omega*omega*Math.sin(omega*t);
+    // Phase is ACCUMULATED (φ += ω·dt). With sin(ωt), moving the T slider
+    // jumped φ by t·Δω — the dot teleported and x(t) grew a vertical cliff.
+    phase+=omega*dt;
+    var x_m=A*Math.sin(phase); // displacement in screen px
+    var v_m=A*omega*Math.cos(phase);
+    var a_m=-A*omega*omega*Math.sin(phase);
     xHist.push(x_m); tHist.push(t);
-    if(xHist.length>maxHist){xHist.shift();tHist.shift();}
+    // Trim by TIME (2.5 T is on screen); a 500-frame cap cut the trace short
+    // for long periods.
+    while(tHist.length&&t-tHist[0]>2.5*T+0.5){xHist.shift();tHist.shift();}
 
     simBg(ctx,W,H);
 
@@ -14048,7 +14140,9 @@ function simSHMDef(canvas){
         var tAge=tHist[i]-tStart;
         if(tAge<0)continue;
         var px=gAX+gAW*(tAge/tSpan);
-        var py=gCY-(xHist[i]/Math.max(A,1))*(GH/2-16);
+        // Fixed scale (slider max 130 px): dividing by A made every amplitude
+        // draw the same height, so the A slider had no visible effect here.
+        var py=gCY-(xHist[i]/130)*(GH/2-16);
         py=Math.max(GY+14,Math.min(GY+GH-6,py));
         i===0||tHist[i-1]<tStart?ctx.moveTo(px,py):ctx.lineTo(px,py);
       }
@@ -14056,7 +14150,7 @@ function simSHMDef(canvas){
       // Current point dot
       var cpx=gAX+gAW*(Math.min(t-tStart,tSpan)/tSpan);
       ctx.save(); ctx.fillStyle='#fbbf24'; ctx.strokeStyle='#030c15'; ctx.lineWidth=1.5;
-      ctx.beginPath(); ctx.arc(Math.min(gAX+gAW,cpx),gCY-(x_m/Math.max(A,1))*(GH/2-16),5,0,Math.PI*2); ctx.fill(); ctx.stroke(); ctx.restore();
+      ctx.beginPath(); ctx.arc(Math.min(gAX+gAW,cpx),gCY-(x_m/130)*(GH/2-16),5,0,Math.PI*2); ctx.fill(); ctx.stroke(); ctx.restore();
     }
     simText(ctx,'t (s) →',gAX+gAW-2,gCY+10,'#7d8da6',7,'right');
     simText(ctx,'x ↑',gAX+2,gCY-GH/2+8,'#a78bfa',7,'center');
@@ -19112,8 +19206,10 @@ runAnim('anim-disp',(canvas,ctx,W,H,t)=>{
 // CH1 ANIM 3: תנועה שוות-מהירות
 runAnim('anim-cv',(canvas,ctx,W,H,t)=>{
   bg(ctx,W,H);
-  const v=2.8, PERIOD=9, tt=t%PERIOD;
-  const x0=-8, xPos=x0+v*tt;
+  // PERIOD matches the trip −9 → +10 m. It was 9 s from x₀ = −8, so for
+  // the last 2.6 s the body sat parked at +10 under a "v = 2.8 m/s" arrow.
+  const v=2.8, PERIOD=6.8, tt=t%PERIOD;
+  const x0=-9, xPos=x0+v*tt;
   // Split: axis 52%, graph 48%
   const split=Math.floor(W*0.5);
   const L=18,R=split-8,ay=Math.floor(H/2);
@@ -19192,9 +19288,6 @@ runAnim('anim-avgv',(canvas,ctx,W,H,t)=>{
   label(ctx,'t (s) →',GR+2,GB+4,'#7d8da6',7,'left'); label(ctx,'x='+A+'t²',GL+36,GT+11,'#818cf8',8,'center');
   label(ctx,'x (m) ↑',GL-2,GT+8,'#7d8da6',7,'right');
   // Parabola
-  ctx.save(); ctx.fillStyle='rgba(99,102,241,.06)'; ctx.beginPath(); ctx.moveTo(toGx(0),GB);
-  for(let i=0;i<=300;i++){const tv=i/300*TMax;const py=toGy(xAt(tv));if(py<GT||py>GB)continue;ctx.lineTo(toGx(tv),py);}
-  ctx.lineTo(GR,GB); ctx.closePath(); ctx.fill(); ctx.restore();
   ctx.save(); ctx.strokeStyle='#4f46e5'; ctx.lineWidth=3; ctx.lineJoin='round'; ctx.beginPath();
   let started=false;
   for(let i=0;i<=400;i++){const tv=i/400*TMax;const py=toGy(xAt(tv));if(py<GT||py>GB){started=false;continue;}started?ctx.lineTo(toGx(tv),py):ctx.moveTo(toGx(tv),py);started=true;}
@@ -20247,8 +20340,13 @@ runAnim('anim-static-frict',(canvas,ctx,W,H,t)=>{
 
   // Block scene (upper half)
   const GND=H*0.54, bH=28, bW=52;
-  let bx=W*0.48+(moving?(Fapp-fs_max)*0.55:0);
-  bx=Math.min(bx,W-bW/2-10);
+  // Once sliding, the block ACCELERATES: a = (F − f_k)/m with F still ramping,
+  // so x = ½·a₀τ² + rate·τ³/(6m). It used to move linearly with F, i.e. at a
+  // constant speed while the panel showed a net force.
+  const rateF=2.3*fs_max/PERIOD, tS=fs_max/rateF, tauMax=PERIOD-tS;
+  const xAt=tau=>((fs_max-fk)/m)*tau*tau/2+rateF*tau*tau*tau/(6*m);
+  const tau=moving?tt-tS:0;
+  let bx=W*0.48+xAt(tau)/xAt(tauMax)*(W*0.52-bW/2-12);
 
   ctx.save();ctx.fillStyle='#0f1e30';ctx.fillRect(10,GND,W-20,8);ctx.restore();
   ctx.save();ctx.strokeStyle='rgba(30,58,82,.4)';ctx.lineWidth=0.8;
@@ -27446,6 +27544,7 @@ function buildPage(ch,sec,content){
   <div class="header">
     <button class="hamburger-btn" id="hamburger-btn" onclick="openDrawer()" aria-label="נושאים">☰</button>
     <div class="header-title">${subjIcon} ${subjName}</div>
+    <button class="ver-badge" id="ver-badge" onclick="openChangelog()" title="מה חדש בגרסה">v${APP_VERSION}</button>
     <div class="header-progress">
       <div class="progress-bar-wrap" title="${pct}% הושלם"><div class="progress-bar-fill" style="width:${pct}%"></div></div>
       <span class="xp-badge" id="xp-badge-el">⭐ ${state.xp} XP</span>
@@ -27556,6 +27655,17 @@ var _sensor={stop:null,got:0,bad:0,hz:0};
 // the good signal but is null on a number of Android builds, so when it is
 // missing gravity is estimated with a low-pass filter and subtracted --
 // the standard fallback, and the reason the lab says which one it is using.
+// Safari on iPhone/iPad reports accelerationIncludingGravity as gravity ITSELF
+// (flat, face up: z = −9.81) where the spec and Android report the reaction to
+// it (z = +9.81), and its linear acceleration is inverted with it. Anything
+// that reads one axis — a slide along x, a face-up check, a tilt direction —
+// came out reversed on iPhones. Normalise to the spec convention here, once.
+// (Reconfirmed on iOS 18: gravity "sign +1", i.e. still inverted vs the spec.)
+function _slPlatformSign(){
+  try{var ua=navigator.userAgent||'';
+    var apple=/iPad|iPhone|iPod/.test(ua)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+    return apple?-1:1;}catch(e){return 1;}
+}
 function sensorStart(cb,ev0){
   sensorStop();
   if(ev0===undefined)ev0=0;
@@ -27574,13 +27684,14 @@ function sensorStart(cb,ev0){
     // An event with no payload is not a reading of zero, it is the absence of
     // a reading. Forwarding it put a |a| = 0 sample into the g average.
     if(!G||typeof G.x!=='number'||!isFinite(G.x)||(!G.x&&!G.y&&!G.z)){_sensor.bad++;return;}
-    var gx=G.x||0,gy=G.y||0,gz=G.z||0;
+    var SG=_sensor.sign||(_sensor.sign=_slPlatformSign());
+    var gx=SG*(G.x||0),gy=SG*(G.y||0),gz=SG*(G.z||0);
     if(g===null)g=[gx,gy,gz];
     else{var k=Math.min(1,dt/0.5);g[0]+=k*(gx-g[0]);g[1]+=k*(gy-g[1]);g[2]+=k*(gz-g[2]);}
     var L=ev.acceleration,lx,ly,lz;
     var fin=!!(L&&typeof L.x==='number'&&isFinite(L.x)&&typeof L.y==='number'&&typeof L.z==='number');
     if(fin)hasLin=true;                 // latched: {0,0,0} is a reading, not an absence
-    if(hasLin&&fin){lx=L.x;ly=L.y;lz=L.z;}
+    if(hasLin&&fin){lx=SG*L.x;ly=SG*L.y;lz=SG*L.z;}
     else{lx=gx-g[0];ly=gy-g[1];lz=gz-g[2];}
     var R=ev.rotationRate||{};
     cb({dt:dt,t:tsum,exact:hasLin,
@@ -27652,6 +27763,37 @@ function slTrace(n){return {n:n,d:[],push:function(v){this.d.push(v);if(this.d.l
 // signs get reordered ("+1.8" drawn as "1.8+").
 function slTxt(ctx,txt,x,y,col,sz,align,bold){
   ctx.save();ctx.direction='ltr';simText(ctx,txt,x,y,col,sz,align,bold);ctx.restore();}
+// While a lab waits for motion it keeps the last `win` seconds of samples. The
+// trigger fires only once |a| crosses a threshold, but a push ramps up from
+// zero, and every sample below the threshold was simply lost — a step error in
+// v that the drift correction then smeared across the whole trial. The phone
+// was at rest at the start of this history, so v = 0 there is exact.
+// The pre-trigger buffer keeps the sub-threshold onset in the INTEGRAL, but
+// its leading stillness should not be plotted: cut the record to `lead` s
+// before the first sample that really moves, re-zeroing time and the listed
+// position keys there (v is kept; it is ~0 at rest anyway).
+function slTrimHead(P,first,lead,keys){
+  if(!(first>0)||!P[first])return P;
+  var t0=Math.max(0,P[first].t-lead),j=0;
+  while(j<P.length-1&&P[j+1].t<=t0)j++;
+  if(j===0)return P;
+  var B=P[j];
+  return P.slice(j).map(function(q){var o={},k;for(k in q)o[k]=q[k];o.t=q.t-B.t;
+    for(k=0;k<keys.length;k++)o[keys[k]]=q[keys[k]]-B[keys[k]];return o;});
+}
+function slPreBuf(buf,dt,a,win){buf.push([dt,a]);var s=0,i;
+  for(i=buf.length-1;i>=0;i--){s+=buf[i][0];if(s>win){buf.splice(0,i);break;}}}
+// Resample rows of [dt, value…] onto n evenly spaced instants; row i's values
+// belong to the END of its step, so a leading row with dt = 0 pins t = 0.
+function slResample(rows,n,col){var T=0,i,ts=[];
+  for(i=0;i<rows.length;i++){T+=rows[i][0];ts.push(T);}
+  if(rows.length<2||!(T>ts[0]))return {d:[],T:0};
+  var out=[],j=0;
+  for(var k=0;k<n;k++){var tk=ts[0]+(T-ts[0])*k/(n-1);
+    while(j<rows.length-2&&ts[j+1]<tk)j++;
+    var t0=ts[j],t1=ts[j+1],f=t1>t0?(tk-t0)/(t1-t0):0;
+    out.push(rows[j][col]+(rows[j+1][col]-rows[j][col])*Math.max(0,Math.min(1,f)));}
+  return {d:out,T:T};}
 function slSet(id,txt){var e=document.getElementById(id);if(e)e.textContent=txt;}
 function slChip(id,lbl,unit){return '<span class="sl-chip"><i>'+lbl+'</i><b id="slv-'+id+'">—</b><u>'+unit+'</u></span>';}
 function slCss(v,f){try{var c=getComputedStyle(document.documentElement).getPropertyValue(v).trim();return c||f;}catch(e){return f;}}
@@ -27768,7 +27910,14 @@ function slPlot(ctx,x,y,w,h,traces,opt){
   }
   // time axis: the window is (samples / sample rate) seconds, ending at now
   var hz=(_sensor&&_sensor.hz)?_sensor.hz:0, nSam=traces[0]?traces[0].tr.n:0;
-  if(hz>1&&nSam>1){
+  if(opt.tspan>0){                       // a captured trial: time from its start
+    var Tf=opt.tspan,tf=slNiceStep(Tf/3.2);
+    ctx.save();ctx.strokeStyle=bd;ctx.globalAlpha=.5;
+    for(var t2=0;t2<=Tf+1e-6;t2+=tf){var tx2=px0+pw*(t2/Tf);
+      ctx.beginPath();ctx.moveTo(tx2,y+h-15);ctx.lineTo(tx2,y+h-11);ctx.stroke();
+      slTxt(ctx,slFmt(t2,tf)+'s',tx2,y+h-3,mu,8,'center');}
+    ctx.restore();
+  } else if(hz>1&&nSam>1){
     var Tw=nSam/hz, ts=slNiceStep(Tw/3.2);
     ctx.save();ctx.strokeStyle=bd;ctx.globalAlpha=.5;
     for(var tt=0;tt<=Tw+1e-6;tt+=ts){
@@ -27793,12 +27942,15 @@ function slPeriod(){
       var m=0,i;                              // running mean over the window
       this.cross.push(v);if(this.cross.length>240)this.cross.shift();
       for(i=0;i<this.cross.length;i++)m+=this.cross[i];m/=this.cross.length;
-      var s=v-m;
+      var s=v-m,ps=this.ps,pt=this.pt;this.ps=s;this.pt=t;
       if(!this.armed&&s<-thr)this.armed=true;
       else if(this.armed&&s>thr){
         this.armed=false;
-        if(this.prev){var T=t-this.prev;if(T>0.12&&T<6){this.per.push(T);if(this.per.length>8)this.per.shift();}}
-        this.prev=t;
+        // the threshold is crossed BETWEEN two samples: interpolate the instant,
+        // or every period is quantised to a whole sample (±10 ms at 100 Hz)
+        var tc=(ps!==undefined&&s>ps&&ps<=thr)?pt+(t-pt)*(thr-ps)/(s-ps):t;
+        if(this.prev){var T=tc-this.prev;if(T>0.12&&T<6){this.per.push(T);if(this.per.length>8)this.per.shift();}}
+        this.prev=tc;
         // median, not mean: one mistimed swing must not drag the estimate
         this.mean=slMedian(this.per);
         if(this.per.length>2){var lo=1e9,hi=-1e9;
@@ -27808,7 +27960,7 @@ function slPeriod(){
       }
       return false;
     },
-    reset:function(){this.cross=[];this.per=[];this.prev=0;this.armed=false;this.mean=0;}};
+    reset:function(){this.cross=[];this.per=[];this.prev=0;this.armed=false;this.mean=0;this.ps=undefined;this.pt=undefined;}};
 }
 
 // ── which sections a phone can actually measure ──────────────────────────
@@ -27962,7 +28114,7 @@ var SL_IMPL={
   init:function(st){st.ax=1;st.tr=[slTrace(220),slTrace(220),slTrace(220)];
     st.h=[{v:.5},{v:.2},{v:.1}];st.reset(st);},
   reset:function(st){st.ph='cal';st.calN=0;st.calS=0;st.bias=0;st.gref=null;st.tilt=0;
-    st.v=0;st.x=0;st.ap=0;st.still=0;st.dur=0;st.rec=[];st.res=null;
+    st.v=0;st.x=0;st.ap=0;st.still=0;st.dur=0;st.rec=[];st.res=null;st.pre=[];
     if(st.tr)for(var i=0;i<3;i++)st.tr[i].clear();},
   sample:function(s,st){
     var raw=[s.ax,s.ay,s.az][st.ax],lin=Math.hypot(s.ax,s.ay,s.az);
@@ -27976,7 +28128,15 @@ var SL_IMPL={
       return;
     }
     var a=raw-st.bias;
-    if(st.ph==='armed'){if(Math.abs(a)>0.3){st.ph='run';st.ap=a;}else return;}
+    if(st.ph==='armed'){
+      if(Math.abs(a)>0.3){
+        // replay the quiet lead-in: the phone was at rest at its start
+        st.ph='run';st.v=0;st.x=0;st.ap=st.pre.length?st.pre[0][1]:a;
+        for(var q=0;q<st.pre.length;q++){var pa=st.pre[q][1],pd=st.pre[q][0],pv=st.v;
+          st.dur+=pd;st.rec.push([pd,pa]);st.v+=(st.ap+pa)/2*pd;st.x+=(pv+st.v)/2*pd;st.ap=pa;
+          st.tr[0].push(pa);st.tr[1].push(st.v);st.tr[2].push(st.x);}
+        st.pre=[];
+      } else {slPreBuf(st.pre,s.dt,a,0.35);return;}}
     if(st.ph!=='run')return;
     // Tilt leaks gravity into the measured axis: one degree is 0.17 m/s², an
     // order of magnitude above the noise, so the trial is flagged if it moved.
@@ -27993,16 +28153,24 @@ var SL_IMPL={
     var v=0,ap=0;for(i=0;i<r.length;i++){v+=(ap+r[i][1])/2*r[i][0];ap=r[i][1];}
     // It began and ended at rest, so the true v here is 0 and this leftover is
     // the accumulated drift. Removing it as a constant bias de-trends x.
-    var vend=v,b=T>0?vend/T:0,v2=0,x2=0,ap2=0,vmax=0;
+    var vend=v,b=T>0?vend/T:0,v2=0,x2=0,ap2=r.length?r[0][1]-b:0,vmax=0,rows=[[0,ap2,0,0]];
     for(i=0;i<r.length;i++){var a=r[i][1]-b,dt=r[i][0],vp=v2;
-      v2+=(ap2+a)/2*dt;ap2=a;x2+=(vp+v2)/2*dt;if(Math.abs(v2)>vmax)vmax=Math.abs(v2);}
-    st.res={T:T,xr:st.x,xc:x2,drift:vend,vmax:vmax,tilt:st.tilt*180/Math.PI};},
+      v2+=(ap2+a)/2*dt;ap2=a;x2+=(vp+v2)/2*dt;if(Math.abs(v2)>vmax)vmax=Math.abs(v2);
+      rows.push([dt,a,v2,x2]);}
+    st.res={T:T,xr:st.x,xc:x2,drift:vend,vmax:vmax,tilt:st.tilt*180/Math.PI};
+    // The graphs must show the SAME corrected a, v and x that the numbers report,
+    // over the whole trial. Left as they were, they kept the raw drifting
+    // integral — v ending away from zero, x bending off — beside a Δx that had
+    // already been corrected, and a long trial had scrolled its start away.
+    for(var c2=0;c2<3;c2++){var R=slResample(rows,st.tr[c2].n,c2+1);st.tr[c2].d=R.d;}
+    st.h[0].v=0;st.h[1].v=0;st.h[2].v=0;},
   draw:function(ctx,W,H,st){
     var pad=7,ph=(H-pad*4-46)/3,c1=slCss('--accent','#3b82f6'),c2=slCss('--green','#10b981'),
         c3=slCss('--gold','#f59e0b'),mu=slCss('--muted','#889'),tx=slCss('--text','#dde');
-    slPlot(ctx,pad,pad,W-pad*2,ph,[{tr:st.tr[0],c:c1}],{title:'a  (m/s²)',floor:.5,hold:st.h[0]});
-    slPlot(ctx,pad,pad*2+ph,W-pad*2,ph,[{tr:st.tr[1],c:c2}],{title:'v = ∫a dt  (m/s)',floor:.2,hold:st.h[1]});
-    slPlot(ctx,pad,pad*3+ph*2,W-pad*2,ph,[{tr:st.tr[2],c:c3}],{title:'x = ∫v dt  (m)',floor:.1,hold:st.h[2]});
+    var TS=(st.ph==='done'&&st.res)?st.res.T:0;
+    slPlot(ctx,pad,pad,W-pad*2,ph,[{tr:st.tr[0],c:c1}],{title:'a  (m/s²)',floor:.5,hold:st.h[0],tspan:TS});
+    slPlot(ctx,pad,pad*2+ph,W-pad*2,ph,[{tr:st.tr[1],c:c2}],{title:'v = ∫a dt  (m/s)',floor:.2,hold:st.h[1],tspan:TS});
+    slPlot(ctx,pad,pad*3+ph*2,W-pad*2,ph,[{tr:st.tr[2],c:c3}],{title:'x = ∫v dt  (m)',floor:.1,hold:st.h[2],tspan:TS});
     var y=H-30,r=st.res;
     if(st.ph==='cal')simText(ctx,'⏳ מכייל — אל תזיזו ('+Math.round(st.calN/55*100)+'%)',W/2,y,c3,12.5,'center',true);
     else if(st.ph==='armed')simText(ctx,'✅ מוכן — החליקו את הטלפון ואז עצרו אותו',W/2,y,c2,12.5,'center',true);
@@ -28029,7 +28197,7 @@ var SL_IMPL={
 'avg-inst':{
   init:function(st){st.ax=1;st.tr=[slTrace(220),slTrace(220)];st.h=[{v:.2},{v:.1}];st.reset(st);},
   reset:function(st){st.ph='cal';st.calN=0;st.calS=0;st.bias=0;st.gref=null;st.tilt=0;
-    st.v=0;st.x=0;st.ap=0;st.still=0;st.dur=0;st.rec=[];st.cap=null;
+    st.v=0;st.x=0;st.ap=0;st.still=0;st.dur=0;st.rec=[];st.cap=null;st.pre=[];
     st.m1=0.20;st.m2=0.80;st.drag=0;
     if(st.tr){st.tr[0].clear();st.tr[1].clear();}},
   sample:function(s,st){
@@ -28041,7 +28209,14 @@ var SL_IMPL={
       if(st.calN>=55){st.bias=st.calS/st.calN;st.ph='armed';}
       return;}
     var a=raw-st.bias;
-    if(st.ph==='armed'){if(Math.abs(a)>0.3){st.ph='run';st.ap=a;}else return;}
+    if(st.ph==='armed'){
+      if(Math.abs(a)>0.3){
+        st.ph='run';st.v=0;st.x=0;st.ap=st.pre.length?st.pre[0][1]:a;
+        for(var q=0;q<st.pre.length;q++){var pa=st.pre[q][1],pd=st.pre[q][0],pv=st.v;
+          st.dur+=pd;st.rec.push([pd,pa]);st.v+=(st.ap+pa)/2*pd;st.x+=(pv+st.v)/2*pd;st.ap=pa;
+          st.tr[0].push(st.v);st.tr[1].push(st.x);}
+        st.pre=[];
+      } else {slPreBuf(st.pre,s.dt,a,0.35);return;}}
     if(st.ph!=='run')return;
     // one degree of tilt leaks 0.17 m/s2 into the axis, far above the noise
     if(st.gref){var dp=gu[0]*st.gref[0]+gu[1]*st.gref[1]+gu[2]*st.gref[2];
@@ -28059,16 +28234,17 @@ var SL_IMPL={
     var r=st.rec,i,T=0;for(i=0;i<r.length;i++)T+=r[i][0];
     var v=0,ap=0;for(i=0;i<r.length;i++){v+=(ap+r[i][1])/2*r[i][0];ap=r[i][1];}
     // it began and ended at rest, so this leftover velocity is pure drift
-    var b=T>0?v/T:0,v2=0,x2=0,ap2=0,t=0,P=[{t:0,v:0,x:0}],last=0;
+    var b=T>0?v/T:0,v2=0,x2=0,ap2=r.length?r[0][1]-b:0,t=0,P=[{t:0,v:0,x:0}],last=0,first=-1;
     for(i=0;i<r.length;i++){var a=r[i][1]-b,dt=r[i][0],vp=v2;
       v2+=(ap2+a)/2*dt;ap2=a;x2+=(vp+v2)/2*dt;t+=dt;P.push({t:t,v:v2,x:x2});
-      if(Math.abs(a)>0.12)last=P.length-1;}
+      if(Math.abs(a)>0.12){last=P.length-1;if(first<0)first=P.length-1;}}
     // The run may only close after a long stillness, or it would end at the
     // pause in the middle -- but that dead tail must not be plotted, or it takes
     // most of the width and squeezes the motion into a corner. The drift is
     // still estimated over the FULL record, where "ends at rest" is what holds.
     var keep=P[last]?P[last].t+0.25:t;
     while(P.length>3&&P[P.length-1].t>keep)P.pop();
+    P=slTrimHead(P,first,0.1,['x']);     // and the still head from the pre-buffer
     // which way the phone was pushed is arbitrary; show every trial as forward
     if(P[P.length-1].x<0)for(i=0;i<P.length;i++){P[i].x=-P[i].x;P[i].v=-P[i].v;}
     st.cap={p:P,dur:P[P.length-1].t||1,drift:v,tilt:st.tilt*180/Math.PI};},
@@ -28191,7 +28367,7 @@ var SL_IMPL={
   reset:function(st){
     if(st.tr){st.tr.clear();st.trR.clear();}
     st.ph='cal';st.calN=0;st.calS=[0,0,0];st.g0=0;st.u=null;
-    st.buf=[];st.tacc=0;st.inFall=false;st.fallT=0;st.T=0;st.aFall=0;
+    st.buf=[];st.tacc=0;st.inFall=false;st.fallT=0;st.T=0;st.aFall=0;st.pend=null;
     st.cap=null;st.m1=0.30;st.m2=0.70;st.drag=0;},
   mid:function(st){
     if(!st.cap)return;
@@ -28215,7 +28391,12 @@ var SL_IMPL={
     var aDown=st.g0-Au;                 // 0 at rest, +g in free fall, <0 while thrown
     st.aNow=aDown;st.rawNow=mag;
     st.tr.push(aDown);st.trR.push(mag);
-    st.buf.push({t:st.tacc,a:aDown});if(st.buf.length>700)st.buf.shift();
+    st.buf.push({t:st.tacc,a:aDown});if(st.buf.length>1200)st.buf.shift();
+    // a finished flight is captured only once the catch has come to rest, so the
+    // velocity can be anchored at rest at BOTH ends
+    if(st.pend){st.pend.q=(Math.abs(aDown)<0.5)?st.pend.q+s.dt:0;
+      if(st.pend.q>0.2||st.tacc-st.pend.t1>1.5){
+        SL_IMPL['freefall-toss'].capture(st,st.pend.t0,st.pend.t1,st.pend.q>0.2);st.pend=null;}}
     // the flight is found on the RAW reading, which collapses when support goes
     if(mag<2.5){
       if(!st.inFall){st.inFall=true;st.fallT=0;st.t0=st.tacc;st.aS=0;st.aN=0;}
@@ -28224,19 +28405,39 @@ var SL_IMPL={
       st.inFall=false;
       if(st.fallT>0.12&&st.fallT<1.6){
         st.T=st.fallT;st.aFall=st.aN?st.aS/st.aN:0;
-        SL_IMPL['freefall-toss'].capture(st,st.t0,st.tacc);}
+        st.pend={t0:st.t0,t1:st.tacc,q:0};}
       st.fallT=0;
     }},
-  capture:function(st,t0,t1){
-    var pre=0.30,post=0.30,a=[],i;
-    for(i=0;i<st.buf.length;i++){var b=st.buf[i];if(b.t>=t0-pre&&b.t<=t1+post)a.push(b);}
+  capture:function(st,t0,t1,endsAtRest){
+    // v is only known up to a constant unless it is pinned somewhere the phone
+    // was genuinely still. Starting the integral 0.3 s before release — already
+    // mid-throw, moving upward — put v = 0 at an arbitrary instant, so the
+    // curve did not cross zero at the top of the flight and the numbers on its
+    // axis meant nothing. Walk back from the release to the last rest before
+    // the throw and start there.
+    var B=st.buf,i,k0=0,iS=-1,quiet=0,qi=-1;
+    while(k0<B.length&&B[k0].t<t0)k0++;
+    for(i=k0-1;i>0;i--){
+      if(Math.abs(B[i].a)<0.4){if(qi<0)qi=i;quiet+=B[i].t-B[i-1].t;if(quiet>0.15){iS=qi;break;}}
+      else{quiet=0;qi=-1;}}
+    var anchored=iS>=0;
+    if(!anchored){iS=k0;while(iS>0&&B[k0].t-B[iS].t<0.30)iS--;}
+    var a=B.slice(iS);
     if(a.length<8)return;
-    // velocity downward, integrated across the captured window
-    var v=0,out=[];
+    var v=0,out=[],T=a[a.length-1].t-a[0].t;
+    for(i=0;i<a.length;i++){if(i>0)v+=(a[i-1].a+a[i].a)/2*(a[i].t-a[i-1].t);}
+    // ends at rest too (after the catch): what is left in v is integration drift
+    // The residual is removed only OUTSIDE the flight. In free fall the
+    // accelerometer reads ~0 and is trustworthy; the error comes from the throw
+    // and the catch (hand rotation, a catch spike past the sensor's range).
+    // Spreading it over the flight as well bent the very slope that measures g.
+    var Tg=0;for(i=1;i<a.length;i++){var tm=(a[i].t+a[i-1].t)/2;if(tm<t0||tm>t1)Tg+=a[i].t-a[i-1].t;}
+    var b=(anchored&&endsAtRest&&Tg>0)?v/Tg:0;v=0;
     for(i=0;i<a.length;i++){
-      if(i>0)v+=(a[i-1].a+a[i].a)/2*(a[i].t-a[i-1].t);
-      out.push({t:a[i].t-a[0].t,a:a[i].a,v:v});}
-    st.cap={p:out,dur:out[out.length-1].t||1,fs:t0-a[0].t,fe:t1-a[0].t};
+      var inF=i>0&&(a[i].t+a[i-1].t)/2>=t0&&(a[i].t+a[i-1].t)/2<=t1;
+      if(i>0)v+=((a[i-1].a+a[i].a)/2-(inF?0:b))*(a[i].t-a[i-1].t);
+      out.push({t:a[i].t-a[0].t,a:a[i].a-((a[i].t>=t0&&a[i].t<=t1)?0:b),v:v});}
+    st.cap={p:out,dur:out[out.length-1].t||1,fs:t0-a[0].t,fe:t1-a[0].t,anchored:anchored};
     SL_IMPL['freefall-toss'].mid(st);},
   slope:function(st){
     if(!st.cap)return null;
@@ -28308,6 +28509,17 @@ var SL_IMPL={
       ctx.strokeStyle=c1;ctx.lineWidth=2.2;ctx.beginPath();
       for(i=0;i<P.length;i++){i?ctx.lineTo(X(P[i].t),Y(P[i].v)):ctx.moveTo(X(P[i].t),Y(P[i].v));}
       ctx.stroke();ctx.restore();
+      // v is pinned at rest, so where it crosses zero inside the flight is the
+      // top of the throw — the instant the phone stood still in mid-air
+      if(st.cap.anchored){
+        for(i=1;i<P.length;i++){
+          if(P[i-1].t>=st.cap.fs&&P[i].t<=st.cap.fe&&P[i-1].v<0&&P[i].v>=0){
+            var fz=-P[i-1].v/((P[i].v-P[i-1].v)||1),tz=P[i-1].t+fz*(P[i].t-P[i-1].t);
+            ctx.save();ctx.fillStyle=gr;ctx.beginPath();ctx.arc(X(tz),Y(0),4.5,0,6.2832);ctx.fill();ctx.restore();
+            slTxt(ctx,'v = 0',X(tz)+7,Y(0)-6,gr,9.5,'left',true);
+            simText(ctx,'השיא',X(tz)+7,Y(0)+13,gr,9.5,'left');
+            break;}}
+      }
       // the two markers and the straight line through them
       var s=SL_IMPL['freefall-toss'].slope(st);
       if(s){
@@ -28344,7 +28556,7 @@ var SL_IMPL={
   init:function(st){st.tr=slTrace(400);st.h={v:.3};st.reset(st);},
   reset:function(st){if(st.tr)st.tr.clear();
     st.ph='cal';st.calN=0;st.calS=[0,0,0];st.g0=0;st.u=null;
-    st.a=0;st.v=0;st.ap=0;st.run=0;st.quiet=0;st.rec=[];st.cap=null;},
+    st.a=0;st.v=0;st.ap=0;st.run=0;st.quiet=0;st.rec=[];st.cap=null;st.pre=[];},
   clear:function(st){st.cap=null;st.rec=[];st.run=0;},
   sample:function(s,st){
     var A=[s.gx,s.gy,s.gz],i;
@@ -28365,8 +28577,11 @@ var SL_IMPL={
     // still read as T/mg.
     st.tr.push(st.tw-1);
     if(st.ph==='ready'){
-      if(Math.abs(st.a)>0.15){st.ph='run';st.rec=[];st.quiet=0;st.v=0;st.ap=st.a;}
-      else return;}
+      if(Math.abs(st.a)>0.15){
+        st.ph='run';st.quiet=0;st.v=0;st.rec=st.pre.slice();st.pre=[];
+        st.ap=st.rec.length?st.rec[0][1]:st.a;
+        for(var q=0;q<st.rec.length;q++){st.v+=(st.ap+st.rec[q][1])/2*st.rec[q][0];st.ap=st.rec[q][1];}
+      } else {slPreBuf(st.pre,s.dt,st.a,0.8);return;}}
     if(st.ph!=='run')return;
     st.rec.push([s.dt,st.a]);
     if(st.rec.length>4000)st.rec.shift();
@@ -28382,13 +28597,16 @@ var SL_IMPL={
     var r=st.rec,i,T=0;for(i=0;i<r.length;i++)T+=r[i][0];
     var v=0,ap=0;for(i=0;i<r.length;i++){v+=(ap+r[i][1])/2*r[i][0];ap=r[i][1];}
     // it started and ended standing still, so the velocity left over is drift
-    var b=T>0?v/T:0,v2=0,h2=0,ap2=0,t=0,P=[{t:0,a:0,v:0,h:0}];
-    var amx=0,amn=0,vmx=0;
+    var b=T>0?v/T:0,v2=0,h2=0,ap2=r.length?r[0][1]-b:0,t=0,P=[{t:0,a:0,v:0,h:0}];
+    var amx=0,amn=0,vmx=0,first=-1;
     for(i=0;i<r.length;i++){
       var a=r[i][1]-b,dt=r[i][0],vp=v2;
       v2+=(ap2+a)/2*dt;ap2=a;h2+=(vp+v2)/2*dt;t+=dt;
       P.push({t:t,a:a,v:v2,h:h2});
+      if(first<0&&Math.abs(a)>0.08)first=P.length-1;
       if(a>amx)amx=a; if(a<amn)amn=a; if(Math.abs(v2)>Math.abs(vmx))vmx=v2;}
+    P=slTrimHead(P,first,0.2,['h']);  // the 0.8 s pre-buffer is mostly stillness
+    h2=P[P.length-1].h; t=P[P.length-1].t;
     st.cap={p:P,dur:t||1,amx:amx,amn:amn,vmx:vmx,h:h2,drift:v,
             tmx:1+amx/st.g0,tmn:1+amn/st.g0};
     st.ph='ready';st.quiet=0;st.rec=[];st.v=0;st.ap=0;},
@@ -28858,18 +29076,23 @@ var SL_IMPL={
       if(mag<2.5){ if(!st.inFall){st.inFall=true;st.fallT=0;} st.fallT+=s.dt; }
       else if(st.inFall&&st.fallT>0.10){
         st.Tf=st.fallT;st.inFall=false;
-        st.inHit=true;st.hitT=0;st.hitI=0;st.pk=0;      // the landing starts here
+        st.inHit=true;st.hitT=0;st.hitI=0;st.pk=0;st.settle=0;   // the landing starts here
       } else if(st.inFall){st.inFall=false;st.fallT=0;}
     }
     if(st.inHit){
-      if(mag>=st.g0*1.25&&st.hitT<0.9){
-        st.hitT+=s.dt;
-        if(aUp>0)st.hitI+=aUp*s.dt;                     // integrate the braking
-        if(aUp>st.pk)st.pk=aUp;
-      } else {
+      // Δv is the integral of the phone's upward acceleration over the WHOLE
+      // contact, from the end of the fall until it rests. Counting only the part
+      // above 1.25 g, and only while braking, dropped the soft start (surface
+      // force still below the weight — the phone is still speeding up) and the
+      // slow tail, so the "Δv" was not the change in velocity at all.
+      st.hitT+=s.dt;st.hitI+=aUp*s.dt;
+      if(aUp>st.pk)st.pk=aUp;
+      st.settle=(Math.abs(mag-st.g0)<0.15*st.g0)?st.settle+s.dt:0;
+      if(st.settle>0.08||st.hitT>1.2){
         st.inHit=false;
-        if(st.hitT>0.02&&st.hitI>0.3){
-          var rec={dv:st.hitI,dt:st.hitT,ag:(st.hitI/st.hitT)/st.g0,
+        var dur=Math.max(0,st.hitT-st.settle);
+        if(dur>0.02&&st.hitI>0.3){
+          var rec={dv:st.hitI,dt:dur,ag:(st.hitI/dur)/st.g0,
                    pk:st.pk/st.g0,vf:st.g0*st.Tf};   // released from rest: v = gT
           st.last=rec;st.pts.push(rec);if(st.pts.length>6)st.pts.shift();}
         st.fallT=0;
@@ -28908,7 +29131,7 @@ var SL_IMPL={
       slTxt(ctx,'Δv = '+r2.dv.toFixed(2)+' m/s     Δt = '+(r2.dt*1000).toFixed(0)+
         ' ms     שיא '+r2.pk.toFixed(1)+'g',W/2,H-28,tx,11.5,'center',true);
       var agree=r2.vf>0.2&&Math.abs(r2.dv-r2.vf)/r2.vf<0.3;
-      simText(ctx,agree?('✓ מסכים עם gT/2 מזמן הנפילה ('+r2.vf.toFixed(2)+' m/s)')
+      simText(ctx,agree?('✓ מסכים עם v = gT מזמן הנפילה ('+r2.vf.toFixed(2)+' m/s)')
                       :'נסו נפילה נקייה יותר — שחררו בלי לדחוף',
         W/2,H-9,agree?gr:gd,11,'center',true);
     } else simText(ctx,'אותו גובה, משטחים ברכות שונה — והשוו את העמודות',W/2,H-12,mu,11,'center');}},
@@ -29163,7 +29386,7 @@ var SL_IMPL={
 'pendulum-fit':{
   init:function(st){st.tr=slTrace(220);st.pd=slPeriod();st.h={v:1};st.pts=[];st.g=0;st.r2=0;st.reset(st);},
   reset:function(st){if(st.pd)st.pd.reset();if(st.tr)st.tr.clear();
-    st.T=0;st.sp=0;st.va=[0,0,0];st.L=0.5;st.amp=0;st.pkA=0;st.pkT=0;},
+    st.T=0;st.sp=0;st.va=[0,0,0];st.vr=[0,0,0];st.L=0.5;st.amp=0;st.pkA=0;st.pkT=0;st.gyro=false;},
   clear:function(st){st.pts=[];st.g=0;st.r2=0;},
   record:function(st){
     if(!st.T)return false;
@@ -29173,18 +29396,30 @@ var SL_IMPL={
     st.pd.reset();st.T=0;return true;},
   sample:function(s,st){
     var e=document.getElementById('sl-L');st.L=e?parseFloat(e.value):0.5;
-    var a=[s.ax,s.ay,s.az],i;
-    for(i=0;i<3;i++)st.va[i]+=Math.min(1,s.dt/1.5)*(a[i]*a[i]-st.va[i]);
-    var k=(st.va[0]>=st.va[1]&&st.va[0]>=st.va[2])?0:(st.va[1]>=st.va[2]?1:2);
-    var v=a[k],rms=Math.sqrt(st.va[k]);
-    st.tr.push(v);st.pd.push(v,s.t,Math.max(0.15,rms*0.35));
+    var a=[s.ax,s.ay,s.az],r=[s.ra,s.rb,s.rg],i,kk=Math.min(1,s.dt/1.5);
+    for(i=0;i<3;i++){st.va[i]+=kk*(a[i]*a[i]-st.va[i]);st.vr[i]+=kk*(r[i]*r[i]-st.vr[i]);}
+    // The swing's own angular velocity oscillates at exactly the pendulum's
+    // frequency, on every phone. The accelerometer does only when the OS supplies
+    // a true gravity-free acceleration: with the low-pass fallback, a phone
+    // hanging rigidly on the string reads only ALONG the string, at twice the
+    // swing frequency — T halved, g four times too big. Prefer the gyroscope.
+    var kr=(st.vr[0]>=st.vr[1]&&st.vr[0]>=st.vr[2])?0:(st.vr[1]>=st.vr[2]?1:2);
+    st.gyro=st.vr[kr]>25;                           // above (5 deg/s)² of swing
+    var v,rms;
+    if(st.gyro){v=r[kr];rms=Math.sqrt(st.vr[kr]);}
+    else{var k=(st.va[0]>=st.va[1]&&st.va[0]>=st.va[2])?0:(st.va[1]>=st.va[2]?1:2);v=a[k];rms=Math.sqrt(st.va[k]);}
+    st.tr.push(v);st.pd.push(v,s.t,Math.max(st.gyro?2:0.15,rms*0.35));
     st.T=st.pd.mean;st.sp=st.pd.spread||0;
-    // The tangential reading swings between +-g*sin(theta0), so its peak gives
-    // the amplitude -- the one quantity the small-angle formula quietly assumes
-    // is small, and the one the learner has no other way to check.
+    // The amplitude is the one quantity the small-angle formula quietly assumes
+    // is small. From the gyroscope: energy gives ω_max² = 2g(1−cosθ₀)/L. Without
+    // it: the tangential reading swings between ±g·sinθ₀.
     if(Math.abs(v)>st.pkA)st.pkA=Math.abs(v);
     st.pkT+=s.dt;
-    if(st.pkT>2.5){st.amp=Math.asin(Math.min(1,st.pkA/9.81));st.pkA=0;st.pkT=0;}},
+    if(st.pkT>2.5){
+      if(st.gyro){var wm=st.pkA*Math.PI/180;
+        st.amp=Math.acos(Math.max(-1,Math.min(1,1-wm*wm*Math.max(0.05,st.L)/(2*9.81))));}
+      else st.amp=Math.asin(Math.min(1,st.pkA/9.81));
+      st.pkA=0;st.pkT=0;}},
   chips:function(st){
     slSet('slv-T',st.T?st.T.toFixed(3):'—');
     slSet('slv-g',st.pts.length>1?st.g.toFixed(2):'—');
@@ -29194,7 +29429,7 @@ var SL_IMPL={
     var c1=slCss('--accent2','#06b6d4'),mu=slCss('--muted','#889'),tx=slCss('--text','#dde'),
         gr=slCss('--green','#10b981'),gd=slCss('--gold','#f59e0b');
     var hp=Math.round(H*0.30);
-    slPlot(ctx,8,6,W-16,hp,[{tr:st.tr,c:c1}],{title:'a  (m/s²)',floor:.5,hold:st.h});
+    slPlot(ctx,8,6,W-16,hp,[{tr:st.tr,c:c1}],{title:st.gyro?'ω  (°/s) — קצב הסיבוב של הנדנוד':'a  (m/s²) — רכיב משיקי',floor:st.gyro?10:.5,hold:st.h});
     var s=st.pts.length?slFitOrigin(st.pts):0;
     slScatter(ctx,8,hp+12,W-16,H-hp-56,st.pts,s,{xl:'L  (m)',yl:'T²  (s²)',xmin:.4,ymin:.4});
     var Tp=2*Math.PI*Math.sqrt((st.L||0.5)/9.81);
@@ -30053,6 +30288,38 @@ function closeFormulaPanel(){
   document.body.style.overflow='';
 }
 
+// ── Changelog panel (opened from the version badge) ──
+function openChangelog(){
+  var p=document.getElementById('changelog-panel');
+  var o=document.getElementById('changelog-overlay');
+  if(!p){
+    p=document.createElement('div');
+    p.id='changelog-panel'; p.className='formula-panel';
+    p.innerHTML='<div class="formula-panel-hdr"><h3>🆕 יומן גרסאות</h3>'+
+      '<button class="formula-panel-close" onclick="closeChangelog()">✕</button></div>'+
+      APP_CHANGELOG.map(function(e){
+        return '<div class="cl-ver"><b>v'+e.v+'</b><span>'+e.d+'</span></div>'+
+          '<ul class="cl-list">'+e.notes.map(function(n){return '<li>'+n+'</li>';}).join('')+'</ul>';
+      }).join('');
+    document.body.appendChild(p);
+    o=document.createElement('div');
+    o.id='changelog-overlay'; o.className='formula-overlay';
+    o.onclick=closeChangelog;
+    document.body.appendChild(o);
+  }
+  p.classList.add('open'); o.classList.add('open');
+  document.body.style.overflow='hidden';
+}
+window.openChangelog=openChangelog;
+function closeChangelog(){
+  var p=document.getElementById('changelog-panel');
+  var o=document.getElementById('changelog-overlay');
+  if(p) p.classList.remove('open');
+  if(o) o.classList.remove('open');
+  document.body.style.overflow='';
+}
+window.closeChangelog=closeChangelog;
+
 // Create FAB on load
 function createFormuleFAB(){
   if(document.getElementById('formula-fab')) return;
@@ -30236,7 +30503,7 @@ document.addEventListener('keydown',function(e){
       break;
     }
     // Escape → close panels
-    case 'Escape': closeDrawer(); closeFormulaPanel(); break;
+    case 'Escape': closeDrawer(); closeFormulaPanel(); closeChangelog(); break;
     // Shift+F → formula panel
     case 'F': if(e.shiftKey){e.preventDefault();openFormulaPanel();} break;
     // Shift+D → toggle theme
