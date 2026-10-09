@@ -162,7 +162,10 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 .param-val:hover{color:var(--t-param-h);}
 .param-tip{display:none;position:absolute;bottom:calc(100% + 8px);right:50%;transform:translateX(50%);background:var(--tip-bg);border:1px solid rgba(59,130,246,.4);border-radius:8px;padding:9px 13px;font-size:.8rem;color:var(--tip-t);white-space:nowrap;z-index:999;pointer-events:none;box-shadow:0 6px 24px rgba(0,0,0,.4);min-width:160px;text-align:right;}
 .param-tip::after{content:'';position:absolute;top:100%;right:50%;transform:translateX(50%);border:6px solid transparent;border-top-color:rgba(59,130,246,.4);}
-.param-wrap:hover .param-tip{display:block;}
+/* a hover that a finger cannot do: on touch the tip opens on a tap (tip-open,
+   toggled in script) and for the keyboard on focus */
+@media (hover:hover){ .param-wrap:hover .param-tip{display:block;} }
+.param-wrap.tip-open .param-tip,.param-wrap:focus-within .param-tip{display:block;}
 .param-tip strong{color:var(--accent2);display:block;margin-bottom:3px;}
 
 /* DEF BLOCK */
@@ -860,6 +863,65 @@ input[type=range]{accent-color:var(--accent);cursor:pointer;}
   border-radius:8px; padding:10px 14px; margin-top:10px;
   font-size:.88rem; color:var(--gold); direction:rtl; text-align:right;
 }
+
+/* ── Phones, fingers, keyboards ─────────────────────────────────────── */
+/* the header is sticky: anything scrolled or focused into view must land
+   below it, not under it */
+html{scroll-padding-top:72px;}
+/* iOS counts the address bar in 100vh; dvh is the height actually visible */
+@supports (height:100dvh){
+  .layout{min-height:calc(100dvh - 62px);}
+  .sidebar{height:calc(100dvh - 62px);}
+}
+/* a symbol's tooltip wraps instead of running off a phone screen; script
+   nudges it back inside the window when it opens near an edge */
+.param-tip{white-space:normal;width:max-content;max-width:min(280px,86vw);}
+@media (max-width:560px){
+  /* the header carries the formula button already, and it is sticky -- the
+     floating copy only sat on top of the bottom-left of the page, where the
+     right-to-left layout puts every "check" and "next" button */
+  .formula-fab{display:none;}
+  /* room to scroll the last card clear of the screen edge */
+  .main{padding-bottom:40px;}
+}
+@media (max-width:400px){
+  /* 320 px: hamburger, version, XP and two buttons are all the header holds;
+     the course-progress bar was what pushed the page 28 px sideways */
+  .progress-bar-wrap{display:none;}
+}
+/* Touch: every control at least 44 px tall, the size of a fingertip */
+@media (pointer:coarse){
+  .hamburger-btn{min-width:44px;min-height:44px;justify-content:center;}
+  .header-progress .theme-btn,.drawer-close button,.formula-panel-close{
+    min-width:44px;min-height:44px;align-items:center;justify-content:center;}
+  .header-progress .theme-btn:not(.print-btn),.drawer-close button,.formula-panel-close{display:inline-flex;}
+  /* the version pill keeps its size; its hit area grows invisibly */
+  .ver-badge{position:relative;}
+  .ver-badge::after{content:'';position:absolute;inset:-12px -4px;}
+  .tab,.sec-btn,.subject-tab,.btn,.hint-btn,.quiz-hint-btn,.fold-btn,.next-section-btn,
+  .anim-ctrl button,.sl-ctrl button,.quiz-reset-link{min-height:44px;}
+  .anim-ctrl{padding:4px 12px;}
+  input[type=range]{min-height:36px;}
+  .step-inp{min-height:44px;}
+  /* below 16 px iOS zooms the whole page into the field and leaves it there */
+  input[type=text],input[type=number],input:not([type]),select,textarea{font-size:16px!important;}
+}
+/* Keyboard: one visible focus ring, in both themes */
+:focus-visible{outline:2px solid var(--accent2);outline-offset:2px;}
+.step-inp:focus-visible{outline:2px solid var(--accent2);outline-offset:1px;}
+.skip-link{position:fixed;top:8px;right:8px;z-index:10000;padding:10px 16px;border-radius:8px;
+  background:var(--btn);color:#fff;font:700 .9rem 'Heebo',sans-serif;text-decoration:none;
+  transform:translateY(-200%);transition:transform .15s;}
+.skip-link:focus{transform:none;}
+.sec-title:focus{outline:none;}
+.visually-hidden{position:absolute!important;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;}
+/* Reduced motion: no pulsing, popping or sliding; the theory animations
+   start parked on their first frame (a tap plays them) */
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;
+    transition-duration:.01ms!important;scroll-behavior:auto!important;}
+  .sim-hint{animation:none;opacity:1;}
+}
 </style>
 </head>
 <body>
@@ -1100,7 +1162,7 @@ function P(symbol, name, desc){
   // Inline symbol chips carry the SI unit too, resolved by the same table the
   // formula boxes use, so a unit is visible wherever a symbol is introduced.
   var u=_siUnit(symbol,name,desc);
-  return `<span class="param-wrap"><span class="param-val math-ltr">${tex(symbol)}</span>${u?`<span class="unit-badge">${u}</span>`:''}<span class="param-tip"><strong>${name}</strong>${_tipText(desc)}</span></span>`;
+  return `<span class="param-wrap" tabindex="0"><span class="param-val math-ltr">${tex(symbol)}</span>${u?`<span class="unit-badge">${u}</span>`:''}<span class="param-tip"><strong>${name}</strong>${_tipText(desc)}</span></span>`;
 }
 // A tooltip is plain text: any LaTeX that slipped into one ("n\\geq 1") is
 // converted by the same fallback the offline renderer uses, never shown raw.
@@ -1214,7 +1276,7 @@ function fBox(latexStr, name, params){
     html += `<div style="direction:rtl;display:flex;flex-wrap:wrap;gap:8px;margin:-8px 0 16px;justify-content:center">`;
     params.forEach(([sym,nm,desc,unit])=>{
       const u = _siUnit(sym, nm, desc, unit);
-      html += `<div class="param-wrap" style="background:rgba(59,130,246,.07);border:1px solid rgba(59,130,246,.15);border-radius:7px;padding:5px 12px;font-size:.8rem;display:flex;align-items:center;gap:5px;cursor:help">
+      html += `<div class="param-wrap" tabindex="0" style="background:rgba(59,130,246,.07);border:1px solid rgba(59,130,246,.15);border-radius:7px;padding:5px 12px;font-size:.8rem;display:flex;align-items:center;gap:5px;cursor:help">
         <span class="math-ltr">${tex(sym)}</span> <span style="color:var(--muted)">— ${nm}</span>
         ${u?`<span class="unit-badge">${u}</span>`:''}
         <span class="param-tip"><strong>${nm}</strong>${_tipText(desc)}</span>
@@ -32899,6 +32961,36 @@ document.addEventListener('touchend',function(e){
      document.getElementById('mobile-drawer').classList.contains('open')&&
      e.changedTouches[0].clientX-_touchStartX>60) closeDrawer();
 },false);
+
+// ── Symbol tooltips ─────────────────────────────────────────────────────
+// A tooltip that opens on hover never opens under a finger. A tap toggles it
+// (tip-open), the keyboard opens it on focus, and wherever it opens it is
+// nudged back inside the window -- centred on a symbol near the edge of a
+// phone screen it used to hang off the side.
+function _placeTip(w){
+  var tip=w&&w.querySelector('.param-tip');if(!tip)return;
+  tip.style.marginRight='';
+  var r=tip.getBoundingClientRect();if(!r.width)return;
+  var vw=document.documentElement.clientWidth,pad=8,dx=0;
+  if(r.left<pad)dx=pad-r.left;else if(r.right>vw-pad)dx=(vw-pad)-r.right;
+  if(dx)tip.style.marginRight=(-dx)+'px';
+}
+function _closeTips(except){
+  document.querySelectorAll('.param-wrap.tip-open').forEach(function(x){if(x!==except)x.classList.remove('tip-open');});
+}
+document.addEventListener('click',function(e){
+  var w=e.target&&e.target.closest?e.target.closest('.param-wrap'):null;
+  _closeTips(w);
+  if(!w)return;
+  if(w.classList.toggle('tip-open'))_placeTip(w);
+  else if(document.activeElement===w)w.blur();
+});
+['mouseover','focusin'].forEach(function(ev){
+  document.addEventListener(ev,function(e){
+    var w=e.target&&e.target.closest?e.target.closest('.param-wrap'):null;
+    if(w)_placeTip(w);
+  });
+});
 window.setTab=(t)=>{state.tab=t;render();};
 window.finishTheory=()=>{markCompleted(state.chapter,state.section,'theory',20);setTab('sim');};
 window.finishSim=()=>{markCompleted(state.chapter,state.section,'sim',30);setTab('quiz');};
