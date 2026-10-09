@@ -8825,14 +8825,19 @@ function initSim(id,type){
 // ─────────────────────────────────────────────────────────────
 
 // CH1 SIM 1: POSITION-TIME
+// A nice tick step for an axis that spans `span` units with about `n` ticks.
+function _kinTick(span,n){
+  var raw=span/(n||5), p=Math.pow(10,Math.floor(Math.log10(raw))), m=raw/p;
+  return (m<1.5?1:m<3.5?2:m<7.5?5:10)*p;
+}
 function simPositionTime(canvas){
-  const H=440; const {ctx,W,dpr}=setupCanvas(canvas,H);
-  const AXISY=110;
+  const H=480; const {ctx,W,dpr}=setupCanvas(canvas,H);
+  const AXISY=120;
   const GL=66, GR=W-36;
-  const GT=190, GB=H-28;
+  const GT=234, GB=H-30;
   const XRANGE=20;
   const SCALE=(GR-GL)/XRANGE;
-  let ballX=W/2, drag=false, startT=null;
+  let ballX=GL+XRANGE/2*SCALE, drag=false;
   let hist=[];
   const id=canvas.id;
 
@@ -8845,30 +8850,28 @@ function simPositionTime(canvas){
 
   function drawAxis(){
     ctx.save();
-    ctx.fillStyle='rgba(248,113,113,.07)'; ctx.fillRect(GL,AXISY-50,(GR-GL)/2,100);
-    ctx.fillStyle='rgba(52,211,153,.07)';  ctx.fillRect(GL+(GR-GL)/2,AXISY-50,(GR-GL)/2,100);
+    ctx.fillStyle='rgba(248,113,113,.07)'; ctx.fillRect(GL,AXISY-46,(GR-GL)/2,92);
+    ctx.fillStyle='rgba(52,211,153,.07)';  ctx.fillRect(GL+(GR-GL)/2,AXISY-46,(GR-GL)/2,92);
     ctx.restore();
     for(var v=-10;v<=10;v++){
       var px=toCanvasX(v); var major=(v%5===0);
       ctx.save(); ctx.strokeStyle=v===0?'#2d5275':major?'#1a3245':'#0e1e2e';
       ctx.lineWidth=v===0?1.5:major?0.8:0.4; ctx.globalAlpha=v===0?1:major?0.6:0.25;
-      ctx.beginPath(); ctx.moveTo(px,AXISY-50); ctx.lineTo(px,AXISY+50); ctx.stroke(); ctx.restore();
+      ctx.beginPath(); ctx.moveTo(px,AXISY-46); ctx.lineTo(px,AXISY+46); ctx.stroke(); ctx.restore();
     }
     for(var v=-10;v<=10;v+=5){
       var px=toCanvasX(v);
       ctx.save(); ctx.strokeStyle='#3d6480'; ctx.lineWidth=2;
-      ctx.beginPath(); ctx.moveTo(px,AXISY-14); ctx.lineTo(px,AXISY+14); ctx.stroke(); ctx.restore();
-      simText(ctx,v===0?'0':(v>0?'+'+v:String(v)),px,AXISY+28,v===0?'#94a3b8':'#4a7595',11);
+      ctx.beginPath(); ctx.moveTo(px,AXISY-12); ctx.lineTo(px,AXISY+12); ctx.stroke(); ctx.restore();
+      simText(ctx,v===0?'0':(v>0?'+'+v:String(v)),px,AXISY+26,v===0?'#94a3b8':'#7d9ab5',11);
     }
     ctx.save(); ctx.strokeStyle='#2d5275'; ctx.lineWidth=2.5;
     ctx.beginPath(); ctx.moveTo(GL-4,AXISY); ctx.lineTo(GR+4,AXISY); ctx.stroke(); ctx.restore();
     simArrow(ctx,GR-4,AXISY,GR+14,AXISY,'#2d5275',2.5,10);
-    simText(ctx,'x (m)',GR+18,AXISY+4,'#7d8da6',11,'left');
-    ctx.save(); ctx.strokeStyle='rgba(255,255,255,.2)'; ctx.lineWidth=1; ctx.setLineDash([3,6]);
-    ctx.beginPath(); ctx.moveTo(toCanvasX(0),AXISY-58); ctx.lineTo(toCanvasX(0),AXISY+58); ctx.stroke(); ctx.setLineDash([]); ctx.restore();
-    simText(ctx,'O',toCanvasX(0),AXISY+44,'#7d8da6',10);
-    simText(ctx,'שלילי',GL+32,AXISY-56,'#f87171',10);
-    simText(ctx,'חיובי',GR-32,AXISY-56,'#34d399',10);
+    simText(ctx,'x (m)',GR+2,AXISY-15,'#94a3b8',10,'left');
+    simText(ctx,'O',toCanvasX(0)+9,AXISY+40,'#94a3b8',10);
+    simText(ctx,'צד שלילי',GL+30,AXISY-36,'#f87171',10);
+    simText(ctx,'צד חיובי',GR-30,AXISY-36,'#34d399',10);
   }
 
   function drawBall(){
@@ -8876,30 +8879,31 @@ function simPositionTime(canvas){
     // The section's whole subject: s (path, never decreases) versus Δx (signed).
     if(recording){
       var _dx=xm-xStart;
-      simText(ctx,'‎s = '+sPath.toFixed(2)+' m   (דרך)',W*0.28,30,'#fbbf24',11,'center',true);
-      simText(ctx,'‎Δx = '+(_dx>=0?'+':'')+_dx.toFixed(2)+' m   (העתק)',W*0.62,30,'#4ade80',11,'center',true);
-      simText(ctx,'‎s − |Δx| = '+(sPath-Math.abs(_dx)).toFixed(2)+' m',W*0.88,30,'#94a3b8',9.5,'center');
+      var _ph=W<480;
+      simText(ctx,'‎s = '+sPath.toFixed(2)+' m   (דרך)',W*(_ph?0.27:0.22),16,'#fbbf24',11,'center',true);
+      simText(ctx,'‎Δx = '+(_dx>=0?'+':'')+_dx.toFixed(2)+' m   (העתק)',W*(_ph?0.73:0.55),16,'#4ade80',11,'center',true);
+      simText(ctx,'‎s − |Δx| = '+(sPath-Math.abs(_dx)).toFixed(2)+' m',_ph?W/2:W*0.86,_ph?32:16,'#94a3b8',10,'center');
     } else {
-      simText(ctx,'גררו את הגוף — s ו-Δx יימדדו',W/2,30,'#7d8da6',10,'center');
+      simText(ctx,'גררו את הכדור — הדרך s וההעתק Δx יימדדו מרגע זה',W/2,18,'#94a3b8',10,'center');
     }
-    var bx=Math.max(GL+18,Math.min(GR-18,toCanvasX(Math.max(-10,Math.min(10,xm)))));
+    var bx=toCanvasX(xm);
     var col=xm>0?'#34d399':xm<0?'#f87171':'#94a3b8';
     var ox=toCanvasX(0);
-    if(Math.abs(xm)>0.4){
-      simArrow(ctx,ox,AXISY-64,bx,AXISY-64,col,2.5,10);
-      ctx.save(); ctx.fillStyle='rgba(8,18,36,.85)'; ctx.strokeStyle=col; ctx.lineWidth=1;
-      ctx.beginPath(); ctx.roundRect((ox+bx)/2-40,AXISY-82,80,16,4); ctx.fill(); ctx.stroke();
-      simText(ctx,'Δx='+(xm>=0?'+':'')+xm.toFixed(2)+'m',(ox+bx)/2,AXISY-71,col,9,'center'); ctx.restore();
+    // the position is the arrow from the origin; it is not the displacement
+    if(Math.abs(xm)>0.4) simArrow(ctx,ox,AXISY-58,bx,AXISY-58,col,2.5,10);
+    simText(ctx,'x = '+(xm>=0?'+':'')+xm.toFixed(2)+' m',Math.max(GL+40,Math.min(GR-40,(ox+bx)/2)),AXISY-70,col,11,'center',true);
+    // the displacement since the recording began: from where it started to where it is
+    if(recording){
+      var sx=toCanvasX(xStart);
+      ctx.save(); ctx.strokeStyle='#fbbf24'; ctx.lineWidth=1.5; ctx.setLineDash([3,3]);
+      ctx.beginPath(); ctx.moveTo(sx,AXISY-20); ctx.lineTo(sx,AXISY+58); ctx.stroke(); ctx.setLineDash([]); ctx.restore();
+      if(Math.abs(xm-xStart)>0.15) simArrow(ctx,sx,AXISY+58,bx,AXISY+58,'#4ade80',2.5,10);
+      simText(ctx,'Δx',(sx+bx)/2,AXISY+72,'#4ade80',10,'center',true);
     }
-    ctx.save(); ctx.strokeStyle=col; ctx.lineWidth=1; ctx.globalAlpha=0.4; ctx.setLineDash([2,4]);
-    ctx.beginPath(); ctx.moveTo(bx,AXISY-20); ctx.lineTo(bx,AXISY); ctx.stroke(); ctx.setLineDash([]); ctx.restore();
     ctx.save(); ctx.shadowColor=col; ctx.shadowBlur=18;
-    var g2=ctx.createRadialGradient(bx-5,AXISY-5,2,bx,AXISY,18);
+    var g2=ctx.createRadialGradient(bx-5,AXISY-5,2,bx,AXISY,16);
     g2.addColorStop(0,'#bfdbfe'); g2.addColorStop(0.5,'#3b82f6'); g2.addColorStop(1,'#1e3a8a');
-    simCircle(ctx,bx,AXISY,18,g2,'#60a5fa',2); ctx.restore();
-    ctx.save(); ctx.fillStyle='rgba(8,18,36,.9)'; ctx.strokeStyle=col; ctx.lineWidth=1.2;
-    ctx.beginPath(); ctx.roundRect(bx-50,AXISY-110,100,26,5); ctx.fill(); ctx.stroke();
-    simText(ctx,'x='+(xm>=0?'+':'')+xm.toFixed(3)+'m',bx,AXISY-93,col,12,'center'); ctx.restore();
+    simCircle(ctx,bx,AXISY,16,g2,'#60a5fa',2); ctx.restore();
   }
 
   function drawGraph(){
@@ -8913,28 +8917,32 @@ function simPositionTime(canvas){
       ctx.save(); ctx.strokeStyle=xv===0?'#1e3a52':'#0c1c30';
       ctx.lineWidth=xv===0?1.2:0.6; ctx.setLineDash(xv===0?[]:[3,6]);
       ctx.beginPath(); ctx.moveTo(GL,py); ctx.lineTo(GR,py); ctx.stroke(); ctx.setLineDash([]); ctx.restore();
-      simText(ctx,xv===0?'0':(xv>0?'+'+xv:String(xv)),GL-5,py+4,'#7d8da6',9,'right');
+      simText(ctx,xv===0?'0':(xv>0?'+'+xv:String(xv)),GL-6,py+4,'#94a3b8',10,'right');
     }
     ctx.save(); ctx.strokeStyle='#1a3a5c'; ctx.lineWidth=1.5; ctx.strokeRect(GL,GT,gW,gH); ctx.restore();
-    simText(ctx,'x(t)',GL+14,GT+14,'#7d8da6',10,'left');
-    simText(ctx,'t→',GR-2,GB+16,'#7d8da6',10,'right');
+    simText(ctx,'x (m)',GL+6,GT+14,'#94a3b8',10,'left');
+    // a real time axis: the graph is read against it
+    var tMax=Math.max(5,hist.length?hist[hist.length-1].t+0.5:5);
+    var dtk=_kinTick(tMax,W<480?4:7);
+    for(var tk=0;tk<=tMax+1e-9;tk+=dtk){
+      var gx=GL+(tk/tMax)*gW;
+      ctx.save(); ctx.strokeStyle='#0c1c30'; ctx.lineWidth=0.6; ctx.setLineDash([3,6]);
+      ctx.beginPath(); ctx.moveTo(gx,GT); ctx.lineTo(gx,GB); ctx.stroke(); ctx.setLineDash([]); ctx.restore();
+      simText(ctx,String(+tk.toFixed(1)),gx,GB+14,'#94a3b8',10,'center');
+    }
+    simText(ctx,'t (s)',GR,GB+26,'#94a3b8',10,'right');
     if(hist.length>3){
-      var tMax=Math.max(5,(hist[hist.length-1]||{t:5}).t+0.5);
       var toGx=function(tv){ return GL+(tv/tMax)*gW; };
       var toGy=function(xv){ return midG-(xv/10)*gH/2; };
       ctx.save(); ctx.lineWidth=2.5; ctx.lineJoin='round'; ctx.lineCap='round';
-      var grd=ctx.createLinearGradient(GL,0,GR,0);
-      grd.addColorStop(0,'#6366f1'); grd.addColorStop(0.5,'#3b82f6'); grd.addColorStop(1,'#34d399');
-      ctx.strokeStyle=grd; ctx.beginPath();
+      ctx.strokeStyle='#60a5fa'; ctx.beginPath();
       for(var i=0;i<hist.length;i++){
         var px=toGx(hist[i].t), py=toGy(hist[i].x);
-        if(py<GT||py>GB) continue;
         i===0?ctx.moveTo(px,py):ctx.lineTo(px,py);
       }
       ctx.stroke(); ctx.restore();
       var last=hist[hist.length-1];
-      var lx=toGx(last.t), ly=toGy(last.x);
-      if(ly>=GT&&ly<=GB) simCircle(ctx,lx,ly,5,'#60a5fa','',0);
+      simCircle(ctx,toGx(last.t),toGy(last.x),5,'#93c5fd','',0);
     }
   }
 
@@ -8947,27 +8955,30 @@ function simPositionTime(canvas){
       var _x=getXm();
       if(lastXm!==null)sPath+=Math.abs(_x-lastXm);
       lastXm=_x;
-      hist.push({t:(ts-tRec0)/1000, x:_x}); if(hist.length>1800)hist.shift();
+      var _t=(ts-tRec0)/1000;
+      // one point per 1/30 s and a two-minute window: a long session no
+      // longer squeezes the start out of the graph
+      if(!hist.length||_t-hist[hist.length-1].t>=1/30){ hist.push({t:_t, x:_x}); if(hist.length>3600)hist.shift(); }
     }
     simBg(ctx,W,H);
     drawAxis(); drawBall(); drawGraph();
-    ctx.save(); ctx.fillStyle='rgba(8,18,36,.7)'; ctx.strokeStyle='#1a3252'; ctx.lineWidth=1;
-    ctx.beginPath(); ctx.roundRect(GL,GT-22,GR-GL,16,3); ctx.fill(); ctx.stroke();
-    simText(ctx,'גררו את הכדור — הגרף מתעד x(t)',W/2,GT-11,'#7d8da6',9,'center'); ctx.restore();
+    simText(ctx,'גרף המקום כפונקציה של הזמן, x(t)',W/2,GT-12,'#94a3b8',10,'center');
     requestAnimationFrame(draw);
   }
   function getXE(e){ var r=canvas.getBoundingClientRect(); return ((e.touches?e.touches[0].clientX:e.clientX)-r.left)*(canvas.width/r.width)/dpr; }
   function _ptStart(px){
     drag=true; ballX=px;
-    if(!recording){ recording=true; tRec0=performance.now(); hist=[]; sPath=0; lastXm=null; xStart=getXm(); }
+    if(!recording){ recording=true; tRec0=performance.now(); hist=[]; sPath=0; xStart=getXm(); lastXm=xStart; }
   }
   canvas.addEventListener('mousedown',function(e){_ptStart(getXE(e));});
   canvas.addEventListener('mousemove',function(e){if(drag)ballX=getXE(e);});
   canvas.addEventListener('mouseup',function(){drag=false;});
+  canvas.addEventListener('mouseleave',function(){drag=false;});
   canvas.addEventListener('touchstart',function(e){e.preventDefault();_ptStart(getXE(e));},{passive:false});
   canvas.addEventListener('touchmove',function(e){e.preventDefault();if(drag)ballX=getXE(e);},{passive:false});
   canvas.addEventListener('touchend',function(){drag=false;});
-  var rb=document.getElementById('btn-pt-reset'); if(rb)rb.addEventListener('click',function(){hist=[];ballX=W/2;recording=false;tRec0=null;sPath=0;lastXm=null;});
+  canvas.style.touchAction='none';
+  var rb=document.getElementById('btn-pt-reset'); if(rb)rb.addEventListener('click',function(){hist=[];ballX=toCanvasX(0);recording=false;tRec0=null;sPath=0;lastXm=null;});
   requestAnimationFrame(draw);
 }
 
