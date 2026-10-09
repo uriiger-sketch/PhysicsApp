@@ -1862,7 +1862,7 @@ const CONTENT={
       <p>ובכל זאת זה משנה: שעוני לווייני ה-GPS מאחרים בגלל מהירותם כ-7 מיקרו-שניות ביממה. בלי תיקון, הניווט היה סוטה בכמה קילומטרים ביום.</p>`
     }
   },
-  sim:{type:'const-velocity',title:'תנועה שוות-מהירות',desc:'גררו את חץ המהירות ישירות על הגוף. גרף x(t) מצטייר בזמן אמת.'},
+  sim:{type:'const-velocity',title:'תנועה שוות-מהירות',desc:'גררו את קצה חץ המהירות שעל הכדור (או השתמשו במחוון) ובחרו x₀. גרף x(t) מצטייר בזמן אמת: שיפועו v, וחיתוכו עם הציר האנכי x₀.'},
   example:{title:'רכב בתנועה שוות-מהירות',text:`רכב נוסע במהירות קבועה ${M('v=15\\,\\text{m/s}')} ויוצא מהראשית.`,steps:[
     {q:'באיזו נוסחה משתמשים?',a:`${M('x=x_0+v\\,t')} — המהירות קבועה, ולכן המיקום גדל באותו שיעור בכל שנייה.`},
     {q:'היכן יהיה אחרי 6 שניות?',a:`${M('x=0+15\\times6=90\\,\\text{m}')}`},
@@ -1903,7 +1903,7 @@ const CONTENT={
       {q:'כמה זמן '+tex('t')+' אחרי יציאת המשאית ייפגשו השתיים? (השוו את שתי נוסחאות המקום ופתרו)',
        nudge:'פגישה פירושה שבאותו רגע שני הגופים נמצאים באותו מקום — כלומר '+tex('x_1(t) = x_2(t)')+'. הציבו את שתי הנוסחאות משני צדי המשוואה ובודדו את '+tex('t')+'.',
        hint:tex('70t = 340 - 100t \\Rightarrow 170t = 340'),answer:'2',unit:'h',tolerance:0.05,
-       explain:tex('170t = 340 \\Rightarrow t = 2\\,\\text{h}')+' אחרי יציאת המשאית (כלומר 1.5 שעות אחרי יציאת המונית), ומקום הפגישה '+tex('x = 70 \\cdot 2 = 140\\,\\text{km}')+' מ-A. בגרף מקום-זמן זו בדיוק נקודת החיתוך של שני הישרים — הסימולציה בפרק זה מציירת אותה.'},
+       explain:tex('170t = 340 \\Rightarrow t = 2\\,\\text{h}')+' אחרי יציאת המשאית (כלומר 1.5 שעות אחרי יציאת המונית), ומקום הפגישה '+tex('x = 70 \\cdot 2 = 140\\,\\text{km}')+' מ-A. בגרף מקום-זמן זו בדיוק נקודת החיתוך של שני הישרים: שרטטו את שניהם וראו.'},
     ]
   }
 },
@@ -8984,11 +8984,11 @@ function simPositionTime(canvas){
 
 // CH1 SIM 2: CONST-VELOCITY
 function simConstVelocity(canvas){
-  const H=430; const {ctx,W,dpr}=setupCanvas(canvas,H);
-  const AXISY=84, GL=58, GR=W-34, GT=158, GB=H-24;
+  const H=450; const {ctx,W,dpr}=setupCanvas(canvas,H);
+  const AXISY=112, GL=58, GR=W-34, GT=196, GB=H-30;
   const RANGE=20;
   const id=canvas.id;
-  var vel=2.5, x0=0, t=0, pT=null, hist=[];
+  var vel=2.5, x0=0, t=0, pT=null, hist=[], drag=false, VPX=Math.min(18,(GR-GL)/32);
   var toXpx=function(xv){return GL+(xv+10)/RANGE*(GR-GL);};
   function getVel(){var el=document.getElementById('inp-cv-v');return el?parseFloat(el.value)||0:vel;}
   function getX0() {var el=document.getElementById('inp-cv-x0');return el?parseFloat(el.value)||0:x0;}
@@ -8996,12 +8996,14 @@ function simConstVelocity(canvas){
     if(_simStop[id])return;
     if(!pT)pT=ts;
     var dt=Math.min((ts-pT)/1000,.05); pT=ts;
-    vel=getVel(); x0=getX0(); t+=dt;
+    vel=getVel(); x0=getX0();
+    // while the learner holds the velocity arrow the clock waits
+    if(!drag)t+=dt;
     var xm=x0+vel*t;
     // The body used to leave the axis permanently and the sim sat inert until
     // reset was found. Re-run cleanly when it exits.
     if(xm>10.5||xm<-10.5){ t=0; hist=[]; xm=x0; }
-    hist.push({t:t,x:xm}); if(hist.length>800)hist.shift();
+    if(!drag&&(!hist.length||t-hist[hist.length-1].t>=1/30)){ hist.push({t:t,x:xm}); if(hist.length>1200)hist.shift(); }
     simBg(ctx,W,H);
     // Axis
     ctx.save();
@@ -9012,29 +9014,31 @@ function simConstVelocity(canvas){
       var px=toXpx(v);
       ctx.save(); ctx.strokeStyle='#3d6480'; ctx.lineWidth=v===0?2:1.5;
       ctx.beginPath(); ctx.moveTo(px,AXISY-12); ctx.lineTo(px,AXISY+12); ctx.stroke(); ctx.restore();
-      simText(ctx,v===0?'0':(v>0?'+'+v:String(v)),px,AXISY+26,'#7d8da6',11);
+      simText(ctx,v===0?'0':(v>0?'+'+v:String(v)),px,AXISY+50,'#94a3b8',11);
     }
     ctx.save(); ctx.strokeStyle='#2d5275'; ctx.lineWidth=2.5;
     ctx.beginPath(); ctx.moveTo(GL-4,AXISY); ctx.lineTo(GR+4,AXISY); ctx.stroke(); ctx.restore();
     simArrow(ctx,GR-4,AXISY,GR+14,AXISY,'#2d5275',2.5,10);
-    simText(ctx,'x (m)',GR+18,AXISY+4,'#7d8da6',11,'left');
+    simText(ctx,'x (m)',GR+2,AXISY-15,'#94a3b8',10,'left');
     ctx.save(); ctx.strokeStyle='rgba(255,255,255,.18)'; ctx.lineWidth=1; ctx.setLineDash([3,6]);
-    ctx.beginPath(); ctx.moveTo(toXpx(0),AXISY-48); ctx.lineTo(toXpx(0),AXISY+48); ctx.stroke(); ctx.setLineDash([]); ctx.restore();
-    // Ball
-    var bx=Math.max(GL+18,Math.min(GR-18,toXpx(Math.max(-10,Math.min(10,xm)))));
-    var arLen=vel*18; var arCol=vel>0?'#34d399':vel<0?'#f87171':'#94a3b8';
-    if(Math.abs(arLen)>5) simArrow(ctx,bx,AXISY-30,bx+arLen,AXISY-30,arCol,3,12);
-    simText(ctx,'v='+(vel>=0?'+':'')+vel.toFixed(2)+' m/s',bx+arLen/2,AXISY-44,arCol,11,'center');
-    ctx.save(); ctx.fillStyle='rgba(251,191,36,.1)'; ctx.strokeStyle='rgba(251,191,36,.4)'; ctx.lineWidth=1;
-    ctx.beginPath(); ctx.roundRect(bx-24,AXISY+20,48,16,4); ctx.fill(); ctx.stroke();
-    simText(ctx,'a=0',bx,AXISY+31,'#fbbf24',9,'center'); ctx.restore();
+    ctx.beginPath(); ctx.moveTo(toXpx(0),AXISY-44); ctx.lineTo(toXpx(0),AXISY+40); ctx.stroke(); ctx.setLineDash([]); ctx.restore();
+    // x0 marker
+    var x0px=toXpx(x0);
+    ctx.save(); ctx.strokeStyle='#fbbf24'; ctx.globalAlpha=.7; ctx.lineWidth=1.5; ctx.setLineDash([2,3]);
+    ctx.beginPath(); ctx.moveTo(x0px,AXISY+14); ctx.lineTo(x0px,AXISY+36); ctx.stroke(); ctx.setLineDash([]); ctx.restore();
+    simText(ctx,'x₀',x0px,AXISY+34,'#fbbf24',10,'center',true);
+    // Ball and its velocity arrow (the arrow tip is a handle: drag it to set v)
+    var bx=toXpx(Math.max(-10.5,Math.min(10.5,xm)));
+    var arLen=vel*VPX; var arCol=vel>0?'#34d399':vel<0?'#f87171':'#94a3b8';
+    var AY=AXISY-34;
+    if(Math.abs(arLen)>5) simArrow(ctx,bx,AY,bx+arLen,AY,arCol,3,12);
+    simHandle(ctx,bx+arLen,AY,arCol,12);
+    simText(ctx,'v = '+(vel>=0?'+':'')+vel.toFixed(1)+' m/s',bx+arLen/2,AY-18,arCol,11,'center',true);
     ctx.save(); ctx.shadowColor='rgba(59,130,246,.7)'; ctx.shadowBlur=16;
-    var g2=ctx.createRadialGradient(bx-4,AXISY-4,2,bx,AXISY,18);
+    var g2=ctx.createRadialGradient(bx-4,AXISY-4,2,bx,AXISY,16);
     g2.addColorStop(0,'#bfdbfe'); g2.addColorStop(0.5,'#3b82f6'); g2.addColorStop(1,'#1e3a8a');
-    simCircle(ctx,bx,AXISY,18,g2,'#60a5fa',2); ctx.restore();
-    ctx.save(); ctx.fillStyle='rgba(8,18,36,.88)'; ctx.strokeStyle='#1e4060'; ctx.lineWidth=1;
-    ctx.beginPath(); ctx.roundRect(bx-48,AXISY-104,96,24,5); ctx.fill(); ctx.stroke();
-    simText(ctx,'x='+(xm>=0?'+':'')+xm.toFixed(2)+'m',bx,AXISY-88,'#93c5fd',11,'center'); ctx.restore();
+    simCircle(ctx,bx,AXISY,16,g2,'#60a5fa',2); ctx.restore();
+    simText(ctx,'x = '+(xm>=0?'+':'')+xm.toFixed(2)+' m   ·   t = '+t.toFixed(1)+' s   ·   a = 0',W/2,16,'#93c5fd',11,'center',true);
     // Graph
     var gW=GR-GL, gH=GB-GT, midG=(GT+GB)/2;
     ctx.save();
@@ -9045,36 +9049,39 @@ function simConstVelocity(canvas){
       var py=midG-(xv/10)*gH/2;
       ctx.save(); ctx.strokeStyle=xv===0?'#1e3a52':'#0c1c30'; ctx.lineWidth=xv===0?1.2:0.6;
       ctx.setLineDash(xv===0?[]:[3,6]); ctx.beginPath(); ctx.moveTo(GL,py); ctx.lineTo(GR,py); ctx.stroke(); ctx.setLineDash([]); ctx.restore();
-      simText(ctx,xv===0?'0':(xv>0?'+'+xv:String(xv)),GL-5,py+4,'#7d8da6',9,'right');
+      simText(ctx,xv===0?'0':(xv>0?'+'+xv:String(xv)),GL-6,py+4,'#94a3b8',10,'right');
     }
     ctx.save(); ctx.strokeStyle='#1a3a5c'; ctx.lineWidth=1.5; ctx.strokeRect(GL,GT,gW,gH); ctx.restore();
-    simText(ctx,'x(t)',GL+14,GT+14,'#7d8da6',10,'left');
-    simText(ctx,'t→',GR-2,GB+16,'#7d8da6',10,'right');
-    if(hist.length>3){
-      var tSpan=Math.max(12,t+1);
-      var toGx=function(tv){return GL+(tv/tSpan)*gW;};
-      var toGy2=function(xv2){return midG-(xv2/10)*gH/2;};
+    simText(ctx,'x (m)',GL+6,GT+14,'#94a3b8',10,'left');
+    var tSpan=Math.max(12,t+1);
+    var dtk=_kinTick(tSpan,W<480?4:7);
+    for(var tk=0;tk<=tSpan+1e-9;tk+=dtk){
+      var gx=GL+(tk/tSpan)*gW;
+      simText(ctx,String(+tk.toFixed(1)),gx,GB+14,'#94a3b8',10,'center');
+    }
+    simText(ctx,'t (s)',GR,GB+26,'#94a3b8',10,'right');
+    simText(ctx,'גרף x(t)',W/2,GT-12,'#94a3b8',10,'center');
+    var toGx=function(tv){return GL+(tv/tSpan)*gW;};
+    var toGy2=function(xv2){return midG-(Math.max(-10.5,Math.min(10.5,xv2))/10)*gH/2;};
+    if(hist.length>1){
       // (No shading under x(t): the area under a POSITION graph has no
       // kinematic meaning, and shading it invited reading it as Δx.)
-      ctx.save(); ctx.lineWidth=2.5; ctx.lineJoin='round'; ctx.strokeStyle=vel>=0?'#3b82f6':'#a78bfa'; ctx.beginPath();
+      ctx.save(); ctx.beginPath(); ctx.rect(GL,GT,gW,gH); ctx.clip();
+      ctx.lineWidth=2.5; ctx.lineJoin='round'; ctx.strokeStyle=vel>=0?'#3b82f6':'#a78bfa'; ctx.beginPath();
       for(var i=0;i<hist.length;i++){
         var px=toGx(hist[i].t), py2=toGy2(hist[i].x);
-        if(py2<GT||py2>GB)continue;
         i===0?ctx.moveTo(px,py2):ctx.lineTo(px,py2);
       }
       ctx.stroke(); ctx.restore();
-      if(hist.length>60){
-        var n=hist.length, p1=hist[Math.floor(n*0.25)], p2=hist[Math.floor(n*0.75)];
-        if(p1&&p2&&(p2.t-p1.t)>0.1){
-          var slope=(p2.x-p1.x)/(p2.t-p1.t);
-          var mx=(toGx(p1.t)+toGx(p2.t))/2, my=(toGy2(p1.x)+toGy2(p2.x))/2;
-          ctx.save(); ctx.fillStyle='rgba(8,18,36,.9)'; ctx.strokeStyle='#fbbf24'; ctx.lineWidth=1;
-          ctx.beginPath(); ctx.roundRect(mx-52,my-14,104,20,4); ctx.fill(); ctx.stroke();
-          simText(ctx,'שיפוע='+slope.toFixed(2)+' m/s',mx,my+1,'#fbbf24',9,'center'); ctx.restore();
-        }
-      }
     }
-    simText(ctx,'t='+t.toFixed(1)+'s | x='+xm.toFixed(2)+'m | v='+vel.toFixed(2)+'m/s | a=0',W/2,GB+16,'#7d8da6',9,'center');
+    // the intercept is x0 and the slope is v -- read straight off the line
+    simCircle(ctx,toGx(0),toGy2(x0),4,'#fbbf24','',0);
+    simText(ctx,'x₀ = '+x0.toFixed(0)+' m',toGx(0)+8,toGy2(x0)+(x0>=0?16:-8),'#fbbf24',10,'left',true);
+    if(t>1){
+      ctx.save(); ctx.fillStyle='rgba(8,18,36,.9)'; ctx.strokeStyle='#fbbf24'; ctx.lineWidth=1;
+      ctx.beginPath(); ctx.roundRect(GR-128,GT+6,122,20,4); ctx.fill(); ctx.stroke(); ctx.restore();
+      simText(ctx,'שיפוע = '+vel.toFixed(2)+' m/s',GR-67,GT+17,'#fbbf24',10,'center',true);
+    }
     requestAnimationFrame(draw);
   }
   var rb=document.getElementById('btn-cv-reset'); if(rb)rb.addEventListener('click',function(){t=0;hist=[];});
@@ -9085,6 +9092,21 @@ function simConstVelocity(canvas){
     var el=document.getElementById(idc);
     if(el)el.addEventListener('input',function(){t=0;hist=[];});
   });
+  // the velocity arrow's tip is a handle: grab it and pull to set v
+  simDrag(canvas,dpr,{
+    down:function(p){
+      var xm=x0+vel*t, bx=toXpx(Math.max(-10.5,Math.min(10.5,xm)));
+      if(Math.hypot(p.x-(bx+vel*VPX),p.y-(AXISY-34))<26||Math.abs(p.y-AXISY)<24&&Math.abs(p.x-bx)<26){
+        drag=true; t=0; hist=[];
+        // the run restarts from x0 so the arrow sits on the ball at x0
+        dragBase=toXpx(x0);
+        simSyncSlider('cv-v',Math.round(((p.x-dragBase)/VPX)*2)/2,1);
+      }
+    },
+    move:function(p){ if(drag) simSyncSlider('cv-v',Math.round(((p.x-dragBase)/VPX)*2)/2,1); },
+    up:function(){ if(drag){ drag=false; t=0; hist=[]; } }
+  });
+  var dragBase=toXpx(0);
   requestAnimationFrame(draw);
 }
 
