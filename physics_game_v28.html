@@ -4656,7 +4656,7 @@ const OPTICS_CONTENT={
   quiz:[
     {q:'קרן פוגעת במראה בזווית 35° מהנורמל. מה זווית ההחזרה?',opts:['55°','35°','70°','45°'],correct:1,explain:'חוק ההחזרה: θᵣ=θᵢ=35°. פשוט — שתי הזוויות נמדדות מהנורמל ותמיד שוות.',hint:'θᵢ=θᵣ'},
     {q:'מה הנורמל למשטח?',opts:['קו המשיק למשטח','קו מאונך למשטח','קרן הפגיעה','ציר x'],correct:1,explain:'הנורמל הוא הקו המאונך (ניצב) למשטח בנקודת הפגיעה. זוויות ההחזרה נמדדות ממנו.'},
-    {q:'אם קרן פוגעת בנורמל (θᵢ=0°), לאן הקרן המוחזרת?',opts:['ניצבת למשטח','מקבילה למשטח','לא מוחזרת','בזווית 45°'],correct:0,explain:'θᵣ=θᵢ=0° — הקרן חוזרת ישירות על עצמה, בניצב למשטח.'},
+    {q:'אם קרן פוגעת לאורך הנורמל (θᵢ=0°), לאן הקרן המוחזרת?',opts:['ניצבת למשטח','מקבילה למשטח','לא מוחזרת','בזווית 45°'],correct:0,explain:'θᵣ=θᵢ=0° — הקרן חוזרת ישירות על עצמה, בניצב למשטח.'},
     {q:'הסיבה שאנחנו רואים דף נייר לבן (שאינו מנורה) היא:',opts:['החזרה ספקולרית','קרינה עצמית','החזרה דיפוזית','שבירת האור'],correct:2,explain:'נייר הוא משטח מחוספס — מפזר אור לכל הכיוונים (החזרה דיפוזית). לכן ניתן לראותו מכל זווית.'},
     {q:'מדוע דף נייר לבן אינו משמש כמראה, אף שהוא מחזיר כמעט את כל האור?',
      opts:['הוא בולע יותר מדי','פני השטח שלו מחוספסים ברמה המיקרוסקופית, ולכן ההחזרה מפוזרת לכל הכיוונים','חוק ההחזרה אינו תקף עליו','הנייר שקוף'],correct:1,
@@ -4674,7 +4674,7 @@ const OPTICS_CONTENT={
        explain:'50°. משום ששתי המראות ניצבות זו לזו, המשטח של B מקביל לנורמל של A — ולכן הזווית של הקרן עם משטח B שווה בדיוק לזווית שלה עם הנורמל של A. שרטוט קטן חוסך כאן את כל הבלבול.',
        nudge:'שרטטו את שתי המראות הניצבות ואת הקרן ביניהן. הנורמל של מראה אחת מקביל למשטח של השנייה — זה המפתח.',hint:'בשתי מראות ניצבות: סכום הזוויות עם הנורמלים = 90°'},
       {q:'ולבסוף — מהי זווית הפגיעה '+M('\\theta_i')+' במראה B, הפעם נמדדת מהנורמל שלה?',unit:'°',answer:'40',tolerance:1,
-       explain:'90°−50°=40°: הנורמל ניצב למשטח, ולכן הזווית ממנו והזווית מהמשטח משלימות ל-90°. מכאן מסקנה יפה — בשתי מראות ניצבות הקרן יוצאת <b>מקבילה</b> לכיוון הכניסה בכל זווית. כך עובדים מחזירי האור בכביש ואלה שהושארו על הירח.',
+       explain:'90°−50°=40°: הנורמל ניצב למשטח, ולכן הזווית ממנו והזווית מהמשטח משלימות ל-90°. מכאן מסקנה יפה — אחרי שתי מראות ניצבות הקרן חוזרת <b>בכיוון ההפוך</b>, מקבילה לקרן הנכנסת, בכל זווית פגיעה (במישור הניצב לשתי המראות). שלוש מראות ניצבות זו לזו — ״פינת קובייה״ — עושות זאת לכל כיוון במרחב; כך עובדים מחזירי האור בכביש ואלה שהושארו על הירח.',
        nudge:'הזווית מהמשטח והזווית מהנורמל הן זוויות משלימות. חסרו מ-90°.',hint:'הנורמל מאונך למשטח. אם זווית עם המשטח=50°, אז עם הנורמל=90°-50°=40°'},
     ]}
 },
@@ -4688,7 +4688,7 @@ const OPTICS_CONTENT={
         <ul style="padding-right:20px;color:#b8cfe0;font-size:.9rem;line-height:2">
           <li><b>מדומה</b> — לא ניתן להקרין על מסך</li>
           <li><b>ישרה</b> ו<b>שווה גודל</b> — |m|=1</li>
-          <li><b>מרחק שווה</b> — dᵢ = dₒ מאחורי המראה</li>
+          <li><b>מרחק שווה</b> — התמונה במרחק dₒ מאחורי המראה</li>
           <li><b>היפוך עומק</b> — קדמי לאחורי, לא ימין-שמאל</li>
         </ul>
       </div>
@@ -4720,7 +4720,7 @@ const OPTICS_CONTENT={
     ]},
   quiz:[
     {q:'מהי תמונה מדומה?',opts:['תמונה שניתן להקרין על מסך','תמונה שנוצרת כשקרניים נחתכות בפועל','תמונה שנוצרת כשהמשכי הקרניים נחתכים (לא קרניים ממשיות)','תמונה בצבעים שגויים'],correct:2,explain:'תמונה מדומה נמצאת בנקודת החיתוך של <b>המשכי</b> הקרניים המוחזרות — מאחורי המראה. האור לא עובר שם בפועל.'},
-    {q:'עצם במרחק 25 cm ממראה מישורית. איפה התמונה?',opts:['25 cm לפני המראה','50 cm מאחורי המראה','25 cm מאחורי המראה','12.5 cm מאחורי המראה'],correct:2,explain:'dᵢ=dₒ=25 cm. התמונה נמצאת מאחורי המראה במרחק שווה למרחק העצם.',formula:'d_i=d_o'},
+    {q:'עצם במרחק 25 cm ממראה מישורית. איפה התמונה?',opts:['25 cm לפני המראה','50 cm מאחורי המראה','25 cm מאחורי המראה','12.5 cm מאחורי המראה'],correct:2,explain:'25 cm מאחורי המראה — במרחק שווה למרחק העצם. בסימון של משוואת המראה זה dᵢ=−25 cm: הסימן השלילי מציין שהתמונה מדומה.',formula:'|d_i|=d_o'},
     {q:'מה ההגדלה (m) של מראה מישורית?',opts:['0.5','2','+1','−1'],correct:2,explain:'m=1 תמיד — התמונה שווה גודל לעצם. לא הפוכה (m חיובי = ישרה).'},
     {q:'אדם עומד 2 m ממראה. כדי לראות את כל גופו (1.8 m גובה), מה אורך המראה המינימלי?',opts:['1.8 m','2 m','0.9 m','3.6 m'],correct:2,explain:'מינימום מראה = מחצית גובה האדם = 0.9 m. הקרניים מהרגל חוזרות מחצי הדרך לעיניים.',hint:'חשבו על הגאומטריה: כדי לראות את הרגליים — קרן מהרגל לעין עוברת בחצי גובה המראה'},
     {q:'מתרחקים ממראה מישורית במטר. המרחק בינך לבין <b>תמונתך</b> גדל ב:',
@@ -4732,9 +4732,9 @@ const OPTICS_CONTENT={
   ],
   problem:{title:'בניית תמונה',text:'עצם גבוה 4 cm נמצא 20 cm ממראה מישורית.',
     steps:[
-      {q:'מהו מרחק התמונה '+M('d_i')+' מן המראה?',unit:'cm',answer:'20',tolerance:0,
-       explain:'dᵢ=dₒ=20 cm, מאחורי המראה. התמונה <b>מדומה</b>: הקרניים אינן נפגשות שם באמת, אלא רק הארכותיהן לאחור, ולכן אי אפשר לקלוט אותה על מסך אף שרואים אותה היטב בעין.',
-       nudge:'במראה מישורית התמונה נמצאת בדיוק באותו מרחק מאחורי המראה כמו העצם לפניה. אין כאן מה לחשב — רק להעתיק.',hint:'dᵢ=dₒ'},
+      {q:'מהו המרחק בין התמונה למראה?',unit:'cm',answer:'20',tolerance:0,
+       explain:'20 cm מאחורי המראה — ובסימון של משוואת המראה '+M('d_i=-20\\,\\text{cm}')+'. התמונה <b>מדומה</b>: הקרניים אינן נפגשות שם באמת, אלא רק הארכותיהן לאחור, ולכן אי אפשר לקלוט אותה על מסך אף שרואים אותה היטב בעין.',
+       nudge:'במראה מישורית התמונה נמצאת בדיוק באותו מרחק מאחורי המראה כמו העצם לפניה. אין כאן מה לחשב — רק להעתיק.',hint:'|dᵢ|=dₒ'},
       {q:'מהו גובה התמונה '+M('h_i')+' במראה?',unit:'cm',answer:'4',tolerance:0,
        explain:'ההגדלה במראה מישורית היא '+M('m=+1')+' תמיד, ולכן גובה התמונה שווה לגובה העצם: 4 cm, וישרה. אף שהתמונה אינה מוקטנת כלל, די במראה בגובה חצי מגובהכם כדי לראות בה את כל גופכם — נסו לשרטט את הקרניים ותראו מדוע.',
        nudge:'במראה מישורית ההגדלה קבועה ואינה תלויה במרחק. מה גודלה?',hint:'m=1 תמיד'},
@@ -4790,7 +4790,7 @@ const OPTICS_CONTENT={
      opts:['היא קמורה','היא קעורה, והפנים קרובים יותר מהמוקד — ואז התמונה מדומה, ישרה ומוגדלת','היא שטוחה עם עדשה','בגלל התאורה'],correct:1,
      explain:'עבור '+tex('d_o<f')+' מתקבל '+tex('d_i<0')+' ו-'+tex('m>1')+': תמונה מדומה, ישרה ומוגדלת. זה גם מסביר מדוע יש למראה כזו ״טווח עבודה״: אם תתרחקו מעבר למוקד, התמונה תהפוך לממשית והפוכה — ופתאום תראו את עצמכם הפוך.'},
   ],
-  problem:{title:'טלסקופ השתקפות',text:'מראה קעורה עם R=60 cm. עצם ב-dₒ=25 cm ממנה.',
+  problem:{title:'מראת איפור',text:'מראה קעורה עם R=60 cm. עצם ב-dₒ=25 cm ממנה.',
     steps:[
       {q:'מהו המרחק המוקדי '+M('f')+' של המראה הקעורה? (רדיוס העקמומיות '+M('R=60\\,\\text{cm}')+')',unit:'cm',answer:'30',tolerance:0,
        explain:'f=R/2=60/2=30 cm. המוקד נמצא תמיד באמצע הדרך בין המראה למרכז העקמומיות. במראה קעורה '+M('f')+' חיובי, כי היא <b>מכנסת</b> קרניים מקבילות לנקודה ממשית.',
@@ -16417,6 +16417,14 @@ function simOptReflection(canvas){
   const id=canvas.id;var animT=0;
   function getAngle(){var e=document.getElementById('inp-ref-angle');return e?parseFloat(e.value):40;}
   function getWl(){var e=document.getElementById('inp-ref-wl');return e?parseFloat(e.value):550;}
+  // Drag the incoming beam: the pointer sets the angle it makes with the normal
+  // (the lesson invites exactly this, and there was no pointer handling at all)
+  simDrag(canvas,dpr,{down:setFromPointer,move:setFromPointer});
+  function setFromPointer(p){
+    var MY=H-90,cx=W/2,dx=cx-p.x,dy=MY-p.y;
+    if(dy<4)return;
+    simSyncSlider('ref-angle',Math.atan2(Math.abs(dx),dy)*180/Math.PI,0);
+  }
   function draw(){
     if(_simStop[id])return;
     animT+=0.025;
@@ -16435,24 +16443,30 @@ function simOptReflection(canvas){
     // Normal
     optDash(ctx,cx,MY-170,cx,MY+30,'#334155',0.6);
     optLabel(ctx,'נורמל',cx+22,MY-148,'#7d8da6',9);
-    var L=188,offsets=[-20,0,20];
+    // half-width of the beam; at grazing incidence its footprint on the mirror
+    // (w/cosθ) grows, so narrow the beam rather than let it run off the canvas
+    var bw=Math.min(20,(W/2-40)*Math.cos(th)*0.8);
+    var L=Math.min(188,MY-30),offsets=[-bw,0,bw];
     // Split animation: 0→0.5 incident moves, 0.5→1.0 reflected moves
     var phase=(animT*0.65)%1;
     var incSeg=Math.min(1,phase*2);   // 0→1 during first half
     var refSeg=Math.max(0,phase*2-1); // 0→1 during second half
     offsets.forEach(function(off,oi){
       var alpha=0.3+0.45*(oi===1?1:0.55);
-      var startX=cx-L*Math.sin(th)+off*Math.cos(th);
-      var startY=MY-L*Math.cos(th)-off*Math.sin(th);
-      var hitX=cx+off*Math.cos(th),hitY=MY-off*Math.sin(th);
+      // A beam of parallel rays, offset across its width. Each ray meets the
+      // mirror (y = MY) at its own point, off/cosθ from the centre, and reflects
+      // from THAT point; the side rays used to end above or below the mirror.
+      var hitX=cx+off/Math.cos(th),hitY=MY;
+      var startX=hitX-L*Math.sin(th);
+      var startY=MY-L*Math.cos(th);
       // Incident ray
       ctx.save();ctx.strokeStyle=wlA(alpha);
       ctx.lineWidth=oi===1?2.5:1.5;optGlow(ctx,wlHex,oi===1?9:3);
       ctx.beginPath();ctx.moveTo(startX,startY);ctx.lineTo(hitX,hitY);ctx.stroke();
       optNoGlow(ctx);ctx.restore();
       // Reflected ray (same wavelength)
-      var refX=cx+L*Math.sin(th)+off*Math.cos(th);
-      var refY=MY-L*Math.cos(th)+off*Math.sin(th);
+      var refX=hitX+L*Math.sin(th);
+      var refY=MY-L*Math.cos(th);
       ctx.save();ctx.strokeStyle=wlA(alpha*0.75);
       ctx.lineWidth=oi===1?2.5:1.5;optGlow(ctx,wlHex,oi===1?7:2);
       ctx.beginPath();ctx.moveTo(hitX,hitY);ctx.lineTo(refX,refY);ctx.stroke();
@@ -16502,6 +16516,12 @@ function simOptPlaneMirror(canvas){
   const id=canvas.id;var animT=0;
   function getDist(){var e=document.getElementById('inp-pm-dist');return e?parseFloat(e.value):3;}
   function getWl(){var e=document.getElementById('inp-pm-wl');return e?parseFloat(e.value):550;}
+  // one unit of distance in px, chosen so the farthest object (8 u) and its
+  // image both stay on the canvas at any width
+  var U=Math.min(52,(W/2-30)/8);
+  // drag the object along the axis, as the lesson invites
+  simDrag(canvas,dpr,{down:function(p){if(p.x<W/2)simSyncSlider('pm-dist',(W/2-p.x)/U,1);},
+    move:function(p){simSyncSlider('pm-dist',(W/2-p.x)/U,1);}});
   function draw(){
     if(_simStop[id])return;
     animT+=0.025;
@@ -16511,7 +16531,7 @@ function simOptPlaneMirror(canvas){
     function wlA(a){return 'rgba('+_pr[0]+','+_pr[1]+','+_pr[2]+','+a+')';}
     var bgG=ctx.createLinearGradient(0,0,0,H);bgG.addColorStop(0,'#020810');bgG.addColorStop(1,'#030d1a');
     ctx.fillStyle=bgG;ctx.fillRect(0,0,W,H);
-    var objX=MX-dist*52;
+    var objX=MX-dist*U;
     var imgX=2*MX-objX; // image is at mirror-image position
     // Mirror
     ctx.save();
@@ -16542,9 +16562,12 @@ function simOptPlaneMirror(canvas){
     ctx.beginPath();ctx.moveTo(imgX,cy-arrowH/2);ctx.lineTo(imgX-9,cy-arrowH/2+17);ctx.lineTo(imgX+9,cy-arrowH/2+17);ctx.closePath();ctx.fill();
     ctx.setLineDash([]);optNoGlow(ctx);ctx.restore();
     optLabel(ctx,'תמונה',imgX,cy+arrowH/2+16,'#34d399',11);
-    optLabel(ctx,'dᵢ='+dist.toFixed(1)+' u',imgX-doPx/2,cy-arrowH/2-20,'#fbbf24',10);
-    // Reflection rays: use correct geometry (ray from virtual image to eye)
-    var eyeX=W-22,eyeY=cy-52;
+    optLabel(ctx,'|dᵢ|='+dist.toFixed(1)+' u',imgX-doPx/2,cy-arrowH/2-20,'#fbbf24',10);
+    // Reflection rays. The eye looks INTO the mirror, so it sits on the object's
+    // side (it used to sit behind the mirror, and the rays went straight through
+    // the glass to reach it). Each ray leaves the object, reflects where the line
+    // from the virtual image to the eye crosses the mirror, and reaches the eye.
+    var eyeX=Math.max(24,objX-36),eyeY=cy-92;
     var rayYs=[cy-arrowH/2,cy-arrowH/4,cy+2];
     rayYs.forEach(function(ry,ri){
       // Correct mirror hit point: intersection of line(virtualImage→eye) with mirror x=MX
