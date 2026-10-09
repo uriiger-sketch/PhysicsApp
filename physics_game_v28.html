@@ -9141,7 +9141,10 @@ function simAvgInstant(canvas){
     t0=Math.min(t0,Math.sqrt(XVIEW/A)-0.1);
     var t1=Math.min(TMax-0.01,t0+dt);
     var x0v=xAt(t0), x1v=xAt(t1);
-    var vavg=(x1v-x0v)/Math.max(dt,0.0001);
+    // the chord's own interval: near the end of the axis t1 is clamped, and
+    // dividing by the requested dt instead gave a wrong average
+    var dtA=Math.max(t1-t0,0.0001);
+    var vavg=(x1v-x0v)/dtA;
     var vinst=vInstAt(t0);
     var converged=(dt<0.08);
     simBg(ctx,W,H);
@@ -9152,15 +9155,15 @@ function simAvgInstant(canvas){
     ctx.fillStyle=gbg; ctx.fillRect(GL,GT,GR-GL,GB-GT); ctx.restore();
     // Grid
     for(var tv=0;tv<=TMax;tv++){var px=toGx(tv); ctx.save(); ctx.strokeStyle='#0c1c30'; ctx.lineWidth=0.5; ctx.setLineDash([2,8]); ctx.beginPath(); ctx.moveTo(px,GT); ctx.lineTo(px,GB); ctx.stroke(); ctx.setLineDash([]); ctx.restore();}
-    for(var xv=0;xv<=Math.floor(xAt(TMax));xv+=3){var py=toGy(xv); if(py<GT||py>GB)continue; ctx.save(); ctx.strokeStyle='#0c1c30'; ctx.lineWidth=0.5; ctx.setLineDash([2,8]); ctx.beginPath(); ctx.moveTo(GL,py); ctx.lineTo(GR,py); ctx.stroke(); ctx.setLineDash([]); ctx.restore(); simText(ctx,xv,GL-6,py+4,'#7d8da6',9,'right');}
+    for(var xv=0;xv<=XVIEW*1.12;xv+=5){var py=toGy(xv); if(py<GT||py>GB)continue; ctx.save(); ctx.strokeStyle='#0c1c30'; ctx.lineWidth=0.5; ctx.setLineDash([2,8]); ctx.beginPath(); ctx.moveTo(GL,py); ctx.lineTo(GR,py); ctx.stroke(); ctx.setLineDash([]); ctx.restore(); simText(ctx,xv,GL-6,py+4,'#7d8da6',9,'right');}
     // Axes
     ctx.save(); ctx.strokeStyle='#2d5275'; ctx.lineWidth=2;
     ctx.beginPath(); ctx.moveTo(GL,GT); ctx.lineTo(GL,GB); ctx.lineTo(GR,GB); ctx.stroke(); ctx.restore();
     simArrow(ctx,GL,GT+2,GL,GT-2,'#2d5275',1.5,7); simArrow(ctx,GR-2,GB,GR+2,GB,'#2d5275',1.5,7);
     for(var tv=0;tv<=TMax;tv++){var px=toGx(tv); ctx.save(); ctx.strokeStyle='#3d6480'; ctx.lineWidth=1.5; ctx.beginPath(); ctx.moveTo(px,GB-6); ctx.lineTo(px,GB+6); ctx.stroke(); ctx.restore(); simText(ctx,tv,px,GB+17,'#7d8da6',10);}
     ctx.save(); ctx.strokeStyle='#1a3a5c'; ctx.lineWidth=1.5; ctx.strokeRect(GL,GT,GR-GL,GB-GT); ctx.restore();
-    simText(ctx,'t (s) →',GR+4,GB+5,'#7d8da6',9,'left'); simText(ctx,'x (m) ↑',GL+6,GT+9,'#7d8da6',8,'left');
-    simText(ctx,'x='+A.toFixed(1)+'t²',GL+52,GT+14,'#818cf8',9,'center');
+    simText(ctx,'t (s)',GR,GB+30,'#94a3b8',10,'right'); simText(ctx,'x (m)',GL-6,GT+2,'#94a3b8',10,'right');
+    simText(ctx,'x = '+A.toFixed(2)+'t²',GR-8,GT+16,'#a5b4fc',11,'right',true);
     // Shaded Δt
     ctx.save(); ctx.fillStyle='rgba(251,191,36,.07)'; ctx.fillRect(toGx(t0),GT,Math.max(toGx(t1)-toGx(t0),2),GB-GT); ctx.restore();
     // Δt bracket
@@ -9168,7 +9171,7 @@ function simAvgInstant(canvas){
     ctx.beginPath(); ctx.moveTo(toGx(t0),GB+4); ctx.lineTo(toGx(t1),GB+4); ctx.stroke();
     ctx.beginPath(); ctx.moveTo(toGx(t0),GB+1); ctx.lineTo(toGx(t0),GB+9); ctx.stroke();
     ctx.beginPath(); ctx.moveTo(toGx(t1),GB+1); ctx.lineTo(toGx(t1),GB+9); ctx.stroke(); ctx.restore();
-    simText(ctx,'Δt='+dt.toFixed(4)+'s',(toGx(t0)+toGx(t1))/2,GB+26,'#fbbf24',9,'center');
+    simText(ctx,'Δt = '+dtA.toFixed(3)+' s',(toGx(t0)+toGx(t1))/2,GB+28,'#fbbf24',10,'center',true);
     // Parabola (no fill: area under x(t) means nothing)
     ctx.save(); ctx.strokeStyle='#4f46e5'; ctx.lineWidth=3.5; ctx.lineJoin='round'; ctx.beginPath();
     var started=false;
@@ -9190,7 +9193,9 @@ function simAvgInstant(canvas){
     ctx.save(); ctx.strokeStyle='#34d399'; ctx.lineWidth=3;
     ctx.beginPath(); ctx.moveTo(p0c.px-Math.cos(tAng)*tExt,p0c.py-Math.sin(tAng)*tExt); ctx.lineTo(p0c.px+Math.cos(tAng)*tExt,p0c.py+Math.sin(tAng)*tExt); ctx.stroke(); ctx.restore();
     ctx.save(); ctx.shadowColor='#34d399'; ctx.shadowBlur=10; simCircle(ctx,p0c.px,p0c.py,7,'#34d399','#a7f3d0',2); ctx.restore();
-    if(dt>0.12){ctx.save(); ctx.shadowColor='#f59e0b'; ctx.shadowBlur=8; simCircle(ctx,p1c.px,p1c.py,7,'#f59e0b','#fde68a',2); ctx.restore();}
+    if(dt>0.12){ctx.save(); ctx.shadowColor='#f59e0b'; ctx.shadowBlur=8; simCircle(ctx,p1c.px,p1c.py,7,'#f59e0b','#fde68a',2); ctx.restore();
+      simText(ctx,'P₁',p1c.px+12,p1c.py+4,'#fbbf24',11,'left',true);}
+    simText(ctx,'P₀',p0c.px-12,p0c.py-8,'#34d399',11,'right',true);
     // Drop lines
     ctx.save(); ctx.strokeStyle='rgba(52,211,153,.25)'; ctx.lineWidth=1; ctx.setLineDash([2,5]);
     ctx.beginPath(); ctx.moveTo(p0c.px,p0c.py); ctx.lineTo(p0c.px,GB); ctx.stroke();
@@ -9200,16 +9205,16 @@ function simAvgInstant(canvas){
     var infoY=GT+2, panH=converged?90:70;
     ctx.save(); ctx.fillStyle='rgba(6,14,28,.93)'; ctx.strokeStyle='#1e4060'; ctx.lineWidth=1.5;
     ctx.beginPath(); ctx.roundRect(GL+2,infoY,230,panH,6); ctx.fill(); ctx.stroke(); ctx.restore();
-    simText(ctx,'v̄ = Δx/Δt = '+vavg.toFixed(3)+' m/s (מיתר צהוב)',GL+117,infoY+17,'#fbbf24',9,'center');
-    simText(ctx,'v_inst=dx/dt='+vinst.toFixed(3)+' m/s (משיק ירוק)',GL+117,infoY+34,'#34d399',9,'center');
-    simText(ctx,'|v̄ − v_inst| = '+Math.abs(vavg-vinst).toFixed(4),GL+117,infoY+50,'#94a3b8',8,'center');
+    simText(ctx,'מיתר:  v̄ = Δx/Δt = '+vavg.toFixed(3)+' m/s',GL+117,infoY+17,'#fbbf24',10,'center',true);
+    simText(ctx,'משיק:  v(t₀) = '+vinst.toFixed(3)+' m/s',GL+117,infoY+34,'#34d399',10,'center',true);
+    simText(ctx,'|v̄ − v(t₀)| = '+Math.abs(vavg-vinst).toFixed(3)+' m/s',GL+117,infoY+51,'#cbd5e1',10,'center');
     if(converged){
       ctx.save(); ctx.fillStyle='rgba(52,211,153,.12)'; ctx.strokeStyle='#34d399'; ctx.lineWidth=1;
-      ctx.beginPath(); ctx.roundRect(GL+2,infoY+56,230,28,4); ctx.fill(); ctx.stroke(); ctx.restore();
-      simText(ctx,'‏v̄ ← v_inst כאשר Δt ← 0',GL+117,infoY+68,'#34d399',10,'center');
-      simText(ctx,'זוהי הגדרת הנגזרת dx/dt !',GL+117,infoY+82,'#a7f3d0',9,'center');
+      ctx.beginPath(); ctx.roundRect(GL+2,infoY+56,230,30,4); ctx.fill(); ctx.stroke(); ctx.restore();
+      simText(ctx,'Δt → 0  ⇒  v̄ → v(t₀) = dx/dt',GL+117,infoY+68,'#34d399',10,'center',true);
+      simText(ctx,'זוהי הגדרת הנגזרת',GL+117,infoY+81,'#a7f3d0',9,'center');
     }
-    simText(ctx,'‏גררו את P0 הירוקה או את P1 הצהובה — Δt מתכווץ מאליו',W/2,GB+40,'#7d8da6',9,'center');
+    simText(ctx,'גררו את P₀ (ירוקה) או את P₁ (צהובה)',W*0.3,GB+40,'#94a3b8',9,'center');
     requestAnimationFrame(draw);
   }
   function _aiDn(e){
