@@ -239,11 +239,21 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 .sl-ctrl button:disabled{opacity:.45;cursor:default;}
 .sl-ctrl button.on{background:var(--red);}
 .sl-read{padding:0 15px 10px;display:flex;gap:7px;flex-wrap:wrap;}
+/* A chip reads like the page: its label at the start (right), then the value
+   with its unit as one left-to-right run -- "1.35 m/s²", never "m/s² 1.35",
+   and a negative value with its minus in front, never "1.35−". Laid out
+   left to right as a whole it put Latin labels on the far side, and Hebrew
+   ones written right to left (slChip's inline style) reversed the value and
+   the unit instead. That inline style still marks a label with Hebrew in
+   it; a label without (θ, Δp, √(gx²+gy²)) is itself a left-to-right run. */
 .sl-chip{background:var(--bg);border:1px solid var(--border);border-radius:9px;padding:5px 10px;
-  font-size:.78rem;color:var(--muted);display:flex;align-items:baseline;gap:5px;direction:ltr;}
-.sl-chip i{font-style:normal;color:var(--muted);}
-.sl-chip b{font-size:.98rem;color:var(--text);font-variant-numeric:tabular-nums;min-width:3.2em;text-align:left;}
-.sl-chip u{text-decoration:none;font-size:.72rem;color:var(--muted);}
+  font-size:.78rem;color:var(--muted);display:flex;align-items:baseline;gap:5px;direction:rtl;}
+.sl-chip i{font-style:normal;color:var(--muted);order:0;}
+.sl-chip:not([style*="rtl"]) i{direction:ltr;unicode-bidi:isolate;}
+.sl-chip b{font-size:.98rem;color:var(--text);font-variant-numeric:tabular-nums;min-width:3.2em;text-align:right;
+  direction:ltr;unicode-bidi:isolate;order:2;}
+.sl-chip u{text-decoration:none;font-size:.72rem;color:var(--muted);direction:ltr;unicode-bidi:isolate;order:1;}
+.sl-chip u:empty{display:none;}
 .sensor-lab canvas{display:block;width:100%;background:var(--bg);border-top:1px solid var(--border);
   border-bottom:1px solid var(--border);}
 .sl-pred{margin:0 15px 11px;padding:9px 13px;border-radius:10px;font-size:.82rem;line-height:1.6;
