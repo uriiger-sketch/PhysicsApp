@@ -835,10 +835,16 @@ input[type=range]{accent-color:var(--accent);cursor:pointer;}
   transition:background .12s;
 }
 .formula-row:hover{ background:rgba(255,255,255,.04); }
-.formula-math{ flex:1; font-size:.92rem; color:var(--text);
-  direction:ltr; text-align:left; font-family:'Courier New',monospace; }
-.formula-desc{ font-size:.78rem; color:var(--muted);
-  text-align:right; min-width:120px; }
+/* The formula keeps its own width and never breaks ("τ =" over
+   "NBIA·sinθ" at 360 px); the description takes the rest and wraps. Left-
+   aligned in a stretched box, every formula used to start at a different
+   place, wherever its description ended. The face is the one the formulas
+   have in the lessons, not a typewriter's. */
+.formula-math{ flex:0 0 auto; max-width:72%; font-size:.95rem; color:var(--text);
+  direction:ltr; unicode-bidi:isolate; text-align:left; white-space:nowrap; overflow-x:auto;
+  font-family:'Cambria Math','Times New Roman',serif; }
+.formula-desc{ flex:1 1 0; min-width:0; font-size:.78rem; line-height:1.45; color:var(--muted);
+  text-align:right; }
 
 /* ── Onboarding overlay ─────────────────────────────────── */
 .onboard-overlay{
