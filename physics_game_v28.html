@@ -26782,14 +26782,12 @@ MAG_SIMS['mag-flux']=function(canvas){
   const H=460; const {ctx,W,dpr}=setupCanvas(canvas,H);
   var CX=W*0.30,CY=H*0.46,SC=Math.min(W*0.46,300)/0.25,dy0=-0.13;
   var P=function(x,y,z){return [CX+(x+z*0.42)*SC,CY-(y-z*0.30)*SC];};
-  simDrag(canvas,dpr,{});                            // touch-action and cursor only
   // a drag down or to the right tilts the loop forward; a sideways drag used
-  // to do nothing at all
-  var lastY=null,lastX=null;
-  canvas.addEventListener('pointerdown',function(e){lastY=e.clientY;lastX=e.clientX;});
-  canvas.addEventListener('pointermove',function(e){if(lastY===null||!(e.buttons&1))return;
-    var th=magV('mgx-th',0)+((e.clientY-lastY)+(e.clientX-lastX))*0.8;lastY=e.clientY;lastX=e.clientX;simSyncSlider('mgx-th',((th%360)+360)%360,0);});
-  canvas.addEventListener('pointerup',function(){lastY=null;lastX=null;});
+  // to do nothing at all. Through simDrag, as every other sim: mouse and touch
+  var last=null;
+  simDrag(canvas,dpr,{down:function(p){last=p;},up:function(){last=null;},
+    move:function(p){if(!last)return;
+      var th=magV('mgx-th',0)+((p.y-last.y)+(p.x-last.x))*0.8;last=p;simSyncSlider('mgx-th',((th%360)+360)%360,0);}});
   function draw(){
     if(!magAlive(id,_g))return;
     var th=magV('mgx-th',0)*Math.PI/180,A=magV('mgx-A',0.02),B=magV('mgx-B',0.5),a=Math.sqrt(A),c=Math.cos(th),sn=Math.sin(th);
