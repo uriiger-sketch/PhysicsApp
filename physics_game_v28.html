@@ -21635,7 +21635,7 @@ runAnim('anim-gravity',(canvas,ctx,W,H,t)=>{
   const tt=t%PERIOD;
   const tFall=PERIOD*0.72;
   const yMax=H*0.72;
-  const GND=H-18, topY=22;
+  const GND=H-32, topY=26;
   const yFrac=tt<tFall?Math.min(0.5*g*tt*tt/(0.5*g*tFall*tFall),1):1;
   const bouncing=tt>=tFall;
   const bounceFrac=bouncing?(tt-tFall)/(PERIOD-tFall):0;
@@ -21682,26 +21682,22 @@ runAnim('anim-gravity',(canvas,ctx,W,H,t)=>{
     grad.addColorStop(0,'#fff8');grad.addColorStop(0.35,b.col+'dd');grad.addColorStop(1,b.col+'44');
     ctx.beginPath();ctx.arc(b.x,by,b.r,0,Math.PI*2);ctx.fillStyle=grad;ctx.fill();
     ctx.strokeStyle=b.col;ctx.lineWidth=1.5;ctx.stroke();ctx.restore();
-    // label
-    label(ctx,b.lbl,b.x,GND+12,b.col,8);
-    // velocity arrow
+    // mass and weight under the ground: the weights differ twenty-fold, the motion does not
+    label(ctx,'m = '+b.lbl,b.x,GND+13,b.col,9);
+    label(ctx,'W = '+(b.m*9.8).toFixed(1)+' N',b.x,GND+26,b.col,9);
+    // velocity arrow (the same for all three balls at every instant)
     const vy=g*(tt<tFall?tt:tFall);
     if(vy>1&&!bouncing){
       const aLen=Math.min(vy*1.15,26);   // v reaches ~17 m/s; at 1.4 px per m/s the arrow froze before landing
       arrow(ctx,b.x,by+b.r+2,b.x,by+b.r+2+aLen,b.col,1.8,6);
+      label(ctx,'v',b.x+7,by+b.r+2+aLen/2+3,b.col,9,'left');
     }
   });
 
   // "a=g for all" banner
   ctx.save();ctx.fillStyle='rgba(6,14,28,.9)';ctx.strokeStyle='rgba(251,191,36,.4)';ctx.lineWidth=1;
-  ctx.beginPath();ctx.roundRect(W/2-130,2,260,16,4);ctx.fill();ctx.stroke();ctx.restore();
-  label(ctx,'a = g = 9.8 m/s² — לכל המסות! (גלילאו)',W/2,12,'#fbbf24',8.5);
-
-  // W = mg labels on top
-  balls.forEach(b=>{
-    const W_kg=(b.m*9.8).toFixed(1);
-    label(ctx,'W='+W_kg+'N',b.x,topY+3,b.col,7.5);
-  });
+  ctx.beginPath();ctx.roundRect(6,2,W-12,17,4);ctx.fill();ctx.stroke();ctx.restore();
+  label(ctx,'בלי התנגדות אוויר כל הגופים נופלים יחד:  a = g = 9.8 m/s²',W/2,13,'#fbbf24',9);
 });
 
 
@@ -21857,19 +21853,19 @@ runAnim('anim-static-frict',(canvas,ctx,W,H,t)=>{
   bGrad.addColorStop(1,moving?'rgba(153,27,27,.5)':'rgba(23,62,172,.5)');
   ctx.beginPath();ctx.roundRect(bx-bW/2,bTop,bW,bH,4);ctx.fillStyle=bGrad;ctx.fill();
   ctx.strokeStyle=moving?'#ef4444':'#60a5fa';ctx.lineWidth=1.5;ctx.stroke();ctx.restore();
-  label(ctx,m+'kg',bx,GND-bH/2+5,'#e0f2fe',8.5);
+  label(ctx,m+' kg',bx,GND-bH/2+5,'#e0f2fe',9);
 
-  // F arrow (applied)
+  // F arrow (applied), pushing on the left face; one scale (0.9 px/N) for F and f
   if(Fapp>0.5){
-    const fLen=Math.min(Fapp*0.7,62);
-    arrow(ctx,bx-bW/2-4-fLen,GND-bH/2,bx-bW/2-4,GND-bH/2,'#f59e0b',2.5,9);
-    label(ctx,'F='+Fapp.toFixed(0)+'N',bx-bW/2-fLen/2-4,GND-bH/2-11,'#fbbf24',8,'center');
+    const fLen=Fapp*0.9;
+    arrow(ctx,bx-bW/2-2-fLen,GND-bH/2,bx-bW/2-2,GND-bH/2,'#f59e0b',2.5,9);
+    label(ctx,'F = '+Fapp.toFixed(0)+' N',bx-bW/2-2-fLen/2,GND-bH/2-12,'#fbbf24',9,'center');
   }
-  // friction arrow
+  // friction acts on the bottom face, along the contact surface, against the push
   if(f_act>0.5){
-    const fLen=Math.min(f_act*0.7,52);
-    arrow(ctx,bx+bW/2+4+fLen,GND-bH/2,bx+bW/2+4,GND-bH/2,'#a78bfa',2.5,9);
-    label(ctx,'f='+f_act.toFixed(0)+'N',bx+bW/2+fLen/2+4,GND-bH/2-11,'#c4b5fd',8,'center');
+    const fLen=f_act*0.9;
+    arrow(ctx,bx,GND-3,bx-fLen,GND-3,'#a78bfa',2.5,9);
+    label(ctx,'f = '+f_act.toFixed(0)+' N',bx,GND-bH-7,'#c4b5fd',9,'center');
   }
 
   // f(F) graph (lower half)
@@ -21910,9 +21906,11 @@ runAnim('anim-static-frict',(canvas,ctx,W,H,t)=>{
   circle(ctx,toX(Math.min(Fapp,Fmax*0.93)),toY(f_act),5,'#fbbf24');
 
   // Status
-  const stateStr=moving?'נע! f_k='+fk.toFixed(0)+'N':Fapp>=fs_max*0.97?'בסף תנועה!':'f_s = F = '+Fapp.toFixed(0)+'N';
+  const stateStr=moving?'הגוף מחליק, החיכוך קינטי וקבוע:  f_k = μ_k·N = '+fk.toFixed(1)+' N'
+    :Fapp>=fs_max*0.97?'על סף החלקה:  f_s,max = μ_s·N = '+fs_max.toFixed(1)+' N'
+    :'הגוף נח, החיכוך מאזן את הכוח:  f_s = F';
   const stateCol=moving?'#f87171':Fapp>=fs_max*0.95?'#fbbf24':'#34d399';
-  label(ctx,stateStr,W/2,H*0.57,stateCol,8.5);
+  label(ctx,stateStr,W/2,14,stateCol,9.5);
 });
 
 // ── ANIM 4: Kinetic Friction — constant fk, linear v(t)
@@ -23580,30 +23578,35 @@ runAnim('anim-n2apps2',(canvas,ctx,W,H,t)=>{
 
 runAnim('anim-gravity2',(canvas,ctx,W,H,t)=>{
   bg(ctx,W,H);
+  // The same 70 kg on four bodies: W = mg changes with g, m does not.
+  // (Title used to read 'ק"g'; Earth used 9.81 while the note beside it says 686 N.)
   var m=70;
   var planets=[
-    {name:'\u05d9\u05e8\u05d7',g:1.62,col:'#e2e8f0'},
-    {name:'\u05de\u05d0\u05d3\u05d9\u05dd',g:3.72,col:'#ef4444'},
-    {name:'\u05db\u05d3\u05d4"\u05d0',g:9.81,col:'#3b82f6'},
-    {name:'\u05e6\u05d3\u05e7',g:24.8,col:'#f97316'},
+    {name:'ירח',g:1.62,col:'#e2e8f0'},
+    {name:'מאדים',g:3.72,col:'#ef4444'},
+    {name:'כדור הארץ',g:9.8,col:'#3b82f6'},
+    {name:'צדק *',g:24.8,col:'#f97316'},
   ];
-  var maxW=m*24.8,BAR_X=W*0.28,BAR_W=W*0.52,BAR_H=22,BAR_GAP=28;
-  label(ctx,'m = 70 \u05e7"g \u2014 \u05de\u05e9\u05e7\u05dc \u05e2\u05dc \u05db\u05d5\u05db\u05d1\u05d9\u05dd \u05e9\u05d5\u05e0\u05d9\u05dd',W/2,12,'#22d3ee',8.5);
-  var startY=24;
+  var maxW=m*24.8,BAR_X=Math.max(86,W*0.24),BAR_W=Math.min(W*0.56,W-BAR_X-64),BAR_H=22,BAR_GAP=26;
+  label(ctx,'משקל של אותה מסה על גרמי שמיים שונים:  m = 70 kg',W/2,14,'#22d3ee',9.5);
+  var startY=30;
+  var grow=Math.min(1,(t%3)*0.8);
   planets.forEach(function(pl,i){
     var W_val=m*pl.g,barLen=(W_val/maxW)*BAR_W;
     var by=startY+i*(BAR_H+BAR_GAP);
     ctx.save();ctx.fillStyle='rgba(30,58,82,.3)';
     ctx.beginPath();ctx.roundRect(BAR_X,by,BAR_W,BAR_H,3);ctx.fill();ctx.restore();
-    var animLen=barLen*Math.min(1,(t%3)*0.8);
+    var animLen=barLen*grow;
     ctx.save();ctx.fillStyle=pl.col+'bb';
-    ctx.beginPath();ctx.roundRect(BAR_X,by,animLen,BAR_H,3);ctx.fill();ctx.restore();
-    label(ctx,pl.name,BAR_X-6,by+BAR_H/2+3,pl.col,8,'right');
-    label(ctx,W_val.toFixed(0)+' N',BAR_X+animLen+4,by+BAR_H/2+3,'#94a3b8',7.5,'left');
+    ctx.beginPath();ctx.roundRect(BAR_X,by,Math.max(2,animLen),BAR_H,3);ctx.fill();ctx.restore();
+    label(ctx,pl.name,BAR_X-8,by+9,pl.col,9.5,'right');
+    label(ctx,'g = '+pl.g+' m/s²',BAR_X-8,by+BAR_H+4,'#7d8da6',9,'right');
+    label(ctx,'W = '+W_val.toFixed(0)+' N',BAR_X+animLen+6,by+BAR_H/2+4,'#cbd5e1',9.5,'left');
   });
+  label(ctx,'* לצדק אין קרקע; g נמדד בגובה העננים',W/2,H-30,'#7d8da6',9);
   ctx.save();ctx.fillStyle='rgba(6,14,28,.85)';ctx.strokeStyle='#1e4060';ctx.lineWidth=1;
   ctx.beginPath();ctx.roundRect(4,H-22,W-8,18,3);ctx.fill();ctx.stroke();ctx.restore();
-  label(ctx,'\u05de\u05e1\u05d4 = \u05e7\u05d1\u05d5\u05e2\u05d4 (70 \u05e7"\u05d2). \u05de\u05e9\u05e7\u05dc W=mg \u05de\u05e9\u05ea\u05e0\u05d4 \u05e2\u05dd g',W/2,H-11,'#7d8da6',7.5);
+  label(ctx,'המסה קבועה, המשקל משתנה עם g:  W = mg',W/2,H-10,'#cbd5e1',9);
 });
 
 runAnim('anim-spring2',(canvas,ctx,W,H,t)=>{
@@ -23749,14 +23752,18 @@ runAnim('anim-static2',(canvas,ctx,W,H,t)=>{
     ctx.beginPath();ctx.moveTo(ax2-6,CY+8);ctx.lineTo(ax2,CY+8-ah2);ctx.lineTo(ax2+6,CY+8);ctx.closePath();ctx.fill();ctx.stroke();
   }
   ctx.restore();
-  var F_apply=18*(1-Math.exp(-t*0.5));
-  arrow(ctx,W*0.10-8,CY-25,W*0.10-8+Math.min(40,F_apply),CY-25,'#34d399',2,9);
-  label(ctx,'F',W*0.10+12,CY-33,'#34d399',8);
-  arrow(ctx,W*0.90+4,CY-25,W*0.90+4-Math.min(40,F_apply),CY-25,'#f87171',2,9);
-  label(ctx,'fs',W*0.90-14,CY-33,'#f87171',8);
+  // F grows over 4 s and holds (it used to grow once after page load and then freeze);
+  // it pushes on the left face, and the equal static friction acts along the contact face
+  var tc=t%5.5, F_apply=Math.min(1,tc/4)*Math.min(40,W*0.08-6);
+  if(F_apply>2){
+    arrow(ctx,W*0.10-4-F_apply,CY-27,W*0.10-4,CY-27,'#34d399',2,8);
+    label(ctx,'F',W*0.10-6-F_apply,CY-36,'#34d399',10,'left');
+    arrow(ctx,W*0.5,CY-14,W*0.5-F_apply,CY-14,'#f87171',2.2,8);
+    label(ctx,'f_s',W*0.5+6,CY-11,'#f87171',10,'left');
+  }
   ctx.save();ctx.fillStyle='rgba(6,14,28,.9)';ctx.strokeStyle='#1e4060';ctx.lineWidth=1;
   ctx.beginPath();ctx.roundRect(4,H-22,W-8,18,3);ctx.fill();ctx.stroke();ctx.restore();
-  label(ctx,'\u05d1\u05dc\u05d9\u05d8\u05d5\u05ea \u05de\u05d9\u05e7\u05e8\u05d5\u05e1\u05e7\u05d5\u05e4\u05d9\u05d5\u05ea \u201c\u05de\u05ea\u05e0\u05e2\u05dc\u05d5\u05ea\u201d \u2014 \u05e2\u05d3 \u05e1\u05e3 \u05d4\u05d2\u05dc\u05d9\u05e9\u05d4, fs = F \u05d1\u05d3\u05d9\u05d5\u05e7',W/2,H-11,'#fbbf24',7.5);
+  label(ctx,'הבליטות נצמדות ונתפסות זו בזו; עד סף ההחלקה  f_s = F',W/2,H-10,'#fbbf24',9);
 });
 
 runAnim('anim-kinetic2',(canvas,ctx,W,H,t)=>{
