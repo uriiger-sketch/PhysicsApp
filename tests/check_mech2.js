@@ -1,6 +1,8 @@
 // Mechanics chapters ו-י (statics, motion in a plane, momentum, energy, SHM):
-// the physics the simulations and animations claim, measured from what they
-// actually draw, plus every draggable canvas driven by real touch events.
+// every problem recomputed from first principles and put through the app's
+// own answer check, the physics the simulations and animations claim,
+// measured from what they actually draw, plus every draggable canvas driven
+// by real touch events.
 //
 //   node tests/check_mech2.js
 const { chromium } = require('playwright');
@@ -11,6 +13,26 @@ let fail = 0;
 const t = (name, ok, got) => {
   if (!ok) fail++;
   console.log(`   ${ok ? 'PASS' : 'FAIL'} ${name}${got !== undefined ? ': ' + got : ''}`);
+};
+
+const D = Math.PI / 180;
+const sf2 = x => { if (!x) return x; const q = Math.floor(Math.log10(Math.abs(x))) - 1; return Math.round(x / 10 ** q) * 10 ** q; };
+// key -> v: the value of every step, W: classic wrong answers per step
+const EXPECT = {
+  'statics.torque': { v: [0.30 * Math.sin(30 * D), 50 * 0.15, 7.5 / 0.30], W: [[0.30, 0.26], [15], [50, 12.5]] },
+  'statics.equilibrium': { v: [400 + 150, (400 * 3 + 150 * 6) / 4, 550 - 525, 400 * 1 / 2], W: [[400], [825, 300], [175], [400]] },
+  'statics.center-mass': { v: [5 * 2.4 / 8, Math.atan(0.40 / 0.80) / D, Math.atan(0.30) / D], W: [[1.2, 0.9], [63.4], [73.3]] },
+  'planar.projectile': { v: [25 * 0.8, 25 * 0.6, 15 * 15 / 20, (3 + Math.sqrt(9 + 16)) / 2, 20 * 4], W: [[15], [20], [31.25], [3], [60]] },
+  'planar.circular': { v: [225 / 50, 1200 * 4.5, 225 / (10 * 50), Math.sqrt(0.8 * 10 * 50)], W: [[0.3], [360], [2.22], [400]] },
+  'momentum.momentum-def': { v: [0.06 * (-50) - 0.06 * 40, (0.06 * (-50) - 0.06 * 40) / 0.005], W: [[-0.6, 5.4], [1080, -108]] },
+  'momentum.momentum-cons': { v: [3 * 6 - 1 * 2, 16 / 4, 0.5 * 3 * 36 + 0.5 * 1 * 4 - 0.5 * 4 * 16], W: [[20], [5], [56, 32]] },
+  'momentum.collision': { v: [4 * 6, 4 * 2 + 2 * 8, Math.abs(2 - 8) / Math.abs(6 - 0)], W: [[36], [16], [0]] },
+  'energy.kinetic': { v: [0.5 * 2 * 9, 10 * 5, Math.sqrt(2 * (9 + 50) / 2)], W: [[18], [2], [Math.sqrt(50)]] },
+  'energy.potential': { v: [3 * 10 * 8, Math.sqrt(2 * 10 * 8)], W: [[24], [160]] },
+  'energy.energy-cons': { v: [5 * 10 * 4, -0.2 * 5 * 10 * 6, Math.sqrt(2 * 140 / 5), 4 / 0.2], W: [[20], [60, -12], [Math.sqrt(80)], [6]] },
+  'shm.shm-def': { v: [1 / 0.2, 2 * Math.PI * 5, 0.05 * 2 * Math.PI * 5], W: [[0.2], [5], [0.25]] },
+  'shm.shm-spring': { v: [2 * Math.PI * Math.sqrt(2 / 200), 0.5 * 200 * 0.01, Math.sqrt(2 * 1 / 2)], W: [[0.1], [2], [Math.SQRT2]] },
+  'shm.pendulum': { v: [2 * Math.PI * Math.sqrt(2.5 / 10), 1 / (2 * Math.PI * Math.sqrt(0.25)), 10 * 4 / (4 * Math.PI ** 2)], W: [[0.5], [3.14], [0.51]] },
 };
 
 (async () => {
@@ -57,6 +79,35 @@ const t = (name, ok, got) => {
   const last = async re => { const a = await all(re); return a.length ? a[a.length - 1] : null; };
   const set = (id, v) => p.evaluate(([id, v]) => { const e = document.getElementById('inp-' + id); e.value = v; e.dispatchEvent(new Event('input')); }, [id, v]);
   const num = s => parseFloat(String(s).replace('−', '-'));
+
+  console.log('\n0) every problem in chapters ו-י, recomputed and put through the answer check');
+  const secs2 = await p.evaluate(() => MECH_CHAPTERS.slice(5).map(c => c.sections.map(s => c.id + '.' + s.id)).flat());
+  t('every section of chapters ו-י has an independent computation', secs2.length === 14 && secs2.every(k => EXPECT[k]), secs2.filter(k => !EXPECT[k]).join(' ') || secs2.length + ' sections');
+  const tryAns = (k, si, inp) => p.evaluate(([k, si, inp]) => {
+    const [c, s] = k.split('.');
+    state.subject = 'mechanics'; state.chapter = c; state.section = s; state.tab = 'problem';
+    state.problemState[k] = { idx: 0, inputs: [], solved: [], hints: [], feedback: [], done: false, attempts: [] };
+    state.problemState[k].inputs[si] = String(inp);
+    chkStep(si);
+    return !!state.problemState[k].solved[si];
+  }, [k, si, inp]);
+  for (const k of secs2) {
+    const E = EXPECT[k]; if (!E) continue;
+    const steps = await p.evaluate(k => CONTENT[k].problem.steps.map(s => ({ a: parseFloat(s.answer), tol: s.tolerance || 0 })), k);
+    const bad = [];
+    if (steps.length !== E.v.length) bad.push('steps ' + steps.length + ' vs ' + E.v.length);
+    for (let i = 0; i < Math.min(steps.length, E.v.length); i++) {
+      const want = E.v[i], st = steps[i];
+      if (Math.abs(st.a - want) > Math.max(st.tol, Math.abs(want) * 0.015) + 1e-9) bad.push(`#${i} answer ${st.a}, computed ${want.toPrecision(5)}`);
+      if (!(await tryAns(k, i, +want.toPrecision(6)))) bad.push(`#${i} exact value refused`);
+      if (!(await tryAns(k, i, +sf2(want).toPrecision(2)))) bad.push(`#${i} ${+sf2(want).toPrecision(2)} (2 s.f.) refused`);
+      for (const w of E.W[i] || []) if (await tryAns(k, i, +w.toPrecision(4))) bad.push(`#${i} wrong ${+w.toPrecision(4)} accepted`);
+    }
+    const q = await p.evaluate(k => CONTENT[k].quiz.every(x => x.correct >= 0 && x.correct < x.opts.length && new Set(x.opts).size === x.opts.length), k);
+    if (!q) bad.push('quiz key out of range or a repeated option');
+    t(k + ': answers right, roundings accepted, classic errors refused', bad.length === 0, bad.join('; ') || steps.length + ' steps');
+  }
+  await p.evaluate(() => { state.tab = 'sim'; });
 
   console.log('\n1) energy in the simulations');
   await open('energy.potential');
