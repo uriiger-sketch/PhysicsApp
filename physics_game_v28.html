@@ -30434,7 +30434,7 @@ function simElcPlates(canvas){
     optLabel(ctx,'v₀='+v06().toFixed(0)+'×10⁶',PL-30,cy-16,'#22d3ee',8.5);
     if(aimP&&aimX!==null){
       optDash(ctx,PL-30,cy,aimX,cy,'#22d3ee',0.8);
-      optLabel(ctx,'v₀='+v06().toFixed(0)+'×10⁶ m/s — שחרר לשיגור!',PL+40,cy-dPx/2-44,'#22d3ee',10);
+      optLabel(ctx,'v₀='+v06().toFixed(0)+'×10⁶ m/s — שחררו לשיגור!',PL+40,cy-dPx/2-44,'#22d3ee',10);
     }
     // Electron physics: real numbers, display-scaled
     var LP_m=0.12;                                // plate length 12cm
@@ -30479,11 +30479,13 @@ function simElcPlates(canvas){
       }
       if(part==='p'&&elec.x>LP_m&&!elec.hit)
         optLabel(ctx,'הפרוטון כבד פי 1836 — באותו שדה הוא כמעט אינו מוסט!',W/2,botY+44,'#fb923c',10);
-      optInfoBox(ctx,W-232,8,224,['a=qE/m='+sciTxt(Math.abs(a))+' m/s²','y(t)=½at² — פרבולה!','|v_y|='+(Math.abs(elec.vy)/1e6).toFixed(2)+'×10⁶ m/s','|הסט y|='+(Math.abs(elec.y)*1000).toFixed(2)+' mm']);
+      // on a phone the two boxes overlapped; there the static one is dropped
+      // (the sliders and the caption under the plates carry V, d and E)
+      optInfoBox(ctx,W<560?8:W-232,8,W<560?W-16:224,['a=qE/m='+sciTxt(Math.abs(a))+' m/s²','y(t)=½at² — פרבולה!','|v_y|='+(Math.abs(elec.vy)/1e6).toFixed(2)+'×10⁶ m/s','הסטה: |y| = '+(Math.abs(elec.y)*1000).toFixed(2)+' mm']);
     } else {
-      optLabel(ctx,'🚀 שגר — או משוך שמאלה מנקודת הכניסה לקביעת v₀!',W/2,H-26,'#22d3ee',10);
+      optLabel(ctx,'🚀 שגרו — או משכו שמאלה מנקודת הכניסה לקביעת v₀!',W/2,H-26,'#22d3ee',10);
     }
-    optInfoBox(ctx,8,8,192,['V='+Vv+' V,  d='+dcm()+' cm','E=V/d='+(E/1000).toFixed(1)+' kV/m','שדה אחיד: חצים מקבילים','\u200fלאלקטרון: a = eE/m']);
+    if(W>=560||!elec)optInfoBox(ctx,8,8,192,['V='+Vv+' V,  d='+dcm()+' cm','E=V/d='+(E/1000).toFixed(1)+' kV/m','שדה אחיד: חצים מקבילים','a = qE/m — אותו כוח בכל נקודה']);
     requestAnimationFrame(draw);
   }requestAnimationFrame(draw);
 }
@@ -30560,7 +30562,7 @@ function simElcCap(canvas){
       var yy=cy-phH/2+14+(phH-28)*i/Math.max(1,nA-1);
       simArrow(ctx,LX+4,yy,RX-6,yy,'rgba(251,191,36,.45)',1.5,6);
     }
-    optLabel(ctx,'d = '+dmm().toFixed(1)+' mm ↔ גרור',(LX+RX)/2,cy+phH/2+(kappa===3?30:16),'#94a3b8',9);
+    optLabel(ctx,'d = '+dmm().toFixed(1)+' mm ↔ גררו',(LX+RX)/2,cy+phH/2+(kappa===3?30:16),'#94a3b8',9);
     if(!touched&&animT<8)optLabel(ctx,'✋ גררו את הלוח הכחול',RX+20,cy-phH/2-14,'#fbbf24',10);
     // Battery, centred under the plates: + terminal (long plate) to the red plate,
     // − terminal to the blue one. It used to sit off to the right, so the blue
