@@ -34066,7 +34066,7 @@ window.chkStep=(si)=>{
   const inp=String(ps.inputs[si]||'').trim();
   // nothing typed, or nothing that reads as a number, is not an attempt: it
   // used to count toward the three that give the solution away for free
-  if(!inp){ps.feedback[si]='✏️ הקלידו תשובה ואז לחצו "בדוק".';render();_say(ps.feedback[si]);return;}
+  if(!inp){ps.feedback[si]='✏️ הקלידו תשובה ואז לחצו "בדקו".';render();_say(ps.feedback[si]);return;}
   if(step.tolerance===-1){
     if(_wordNorm(inp)===_wordNorm(step.answer))_stepSolved(ps,si,content);
     else{ps.feedback[si]='❌ לא נכון. נסו שוב.';render();_say(ps.feedback[si]);}return;
@@ -34103,8 +34103,8 @@ window.chkStep=(si)=>{
     const a=(ps.attempts[si]||0)+1; ps.attempts[si]=a;
     // the third miss opens the hint and the worked solution above the field
     // (it used to repeat the hint here as well)
-    if(a>=3){ps.feedback[si]=`❌ לא מדויק (נסיון ${a}). הרמז והפתרון המודרך נפתחו מעל לשדה — עברו עליהם ונסו שוב.`;ps.hints[si]=2;}
-    else ps.feedback[si]=`❌ לא מדויק (נסיון ${a}/3). נסו שוב.`;
+    if(a>=3){ps.feedback[si]=`❌ לא מדויק (ניסיון ${a}). הרמז והפתרון המודרך נפתחו מעל לשדה — עברו עליהם ונסו שוב.`;ps.hints[si]=2;}
+    else ps.feedback[si]=`❌ לא מדויק (ניסיון ${a}/3). נסו שוב.`;
     render();_say(ps.feedback[si]);}
 };
 window.resetProblem=()=>{state.problemState[`${state.chapter}.${state.section}`]={idx:0,inputs:[],solved:[],hints:[],feedback:[],done:false,attempts:[]};render();};
