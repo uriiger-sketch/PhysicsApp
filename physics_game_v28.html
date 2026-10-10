@@ -20701,11 +20701,11 @@ runAnim('anim-axis',(canvas,ctx,W,H,t)=>{
   ctx.beginPath(); ctx.moveTo(toX(0),ay-36); ctx.lineTo(toX(0),ay+36); ctx.stroke(); ctx.setLineDash([]); ctx.restore();
   label(ctx,'O',toX(0),ay+32,'#7d8da6',9);
   label(ctx,'שלילי',L+28,ay-32,'#f87171',8); label(ctx,'חיובי',R-28,ay-32,'#34d399',8);
-  // Displacement arrow
+  // Position: the arrow from the origin O to the body is the position x
+  // (it was labelled Δx -- displacement is a change of position, not this)
   if(Math.abs(xv)>0.5){
     const ox=toX(0);
     arrow(ctx,ox,ay-40,bx,ay-40,col,2.5,9);
-    label(ctx,'Δx='+(xv>=0?'+':'')+xv.toFixed(1)+'m',(ox+bx)/2,ay-46,col,8);
   }
   // Ball
   ctx.save(); ctx.shadowColor=col; ctx.shadowBlur=14;
@@ -20713,11 +20713,9 @@ runAnim('anim-axis',(canvas,ctx,W,H,t)=>{
   g2.addColorStop(0,'#bfdbfe'); g2.addColorStop(1,'#1e3a8a');
   circle(ctx,bx,ay,13,g2,'#60a5fa',2); ctx.restore();
   // Position label
-  ctx.save(); ctx.fillStyle='rgba(8,18,36,.88)'; ctx.strokeStyle=col; ctx.lineWidth=1;
-  ctx.beginPath(); ctx.roundRect(bx-36,ay-72,72,20,4); ctx.fill(); ctx.stroke(); ctx.restore();
-  label(ctx,'x='+(xv>=0?'+':'')+xv.toFixed(2)+'m',bx,ay-59,col,9);
+  label(ctx,'x = '+(xv>=0?'+':'')+xv.toFixed(1)+' m',Math.max(L+30,Math.min(R-30,(toX(0)+bx)/2)),ay-48,col,10);
   // Footer
-  label(ctx,'מיקום: חיובי, שלילי, או אפס',W/2,H-4,'#334e68',8);
+  label(ctx,'המיקום x נמדד מהראשית O: חיובי, שלילי או אפס',W/2,H-4,'#94a3b8',9);
 });
 
 // CH1 ANIM 2: העתק vs דרך
@@ -20750,9 +20748,9 @@ runAnim('anim-disp',(canvas,ctx,W,H,t)=>{
   }ctx.restore();
   if(Math.abs(x2)>0.2){
     arrow(ctx,startX,ay-32,bx,ay-32,'#34d399',2.5,9);
-    label(ctx,'Δx='+(x2>=0?'+':'')+x2.toFixed(1)+'m',(startX+bx)/2,ay-42,'#34d399',9);
+    label(ctx,'Δx = '+(x2>=0?'+':'')+x2.toFixed(1)+' m',(startX+bx)/2,ay-42,'#34d399',10);
   }
-  if(phase>2.5){label(ctx,'s='+path.toFixed(1)+'m (דרך)',(startX+toX(8))/2,ay+30,'#fbbf24',9);}
+  if(phase>2.5){label(ctx,'s = '+path.toFixed(1)+' m (דרך)',(startX+toX(8))/2,ay+30,'#fbbf24',10);}
   ctx.save(); ctx.shadowColor='#3b82f6'; ctx.shadowBlur=10;
   circle(ctx,bx,ay,12,'#1d4ed8','#60a5fa',2); ctx.restore();
   label(ctx,'‏ירוק — ההעתק Δx · צהוב — הדרך s',W/2,H-4,'#7d8da6',8);
@@ -20799,9 +20797,8 @@ runAnim('anim-cv',(canvas,ctx,W,H,t)=>{
   const midY=(grT+grB)/2;
   ctx.save(); ctx.strokeStyle='#1e3a52'; ctx.lineWidth=0.8;
   ctx.beginPath(); ctx.moveTo(grL,midY); ctx.lineTo(grR,midY); ctx.stroke(); ctx.restore();
-  label(ctx,'x(t)',grL+10,grT+10,'#7d8da6',8,'left');
-  label(ctx,'t (s) →',grR-4,grB-2,'#7d8da6',7,'right');
-  label(ctx,'x (m) ↑',grL+2,grT+20,'#3b82f6',7,'left');
+  label(ctx,'x (m)',grL+6,grT+12,'#94a3b8',9,'left');
+  label(ctx,'t →',grR-4,grB+12,'#94a3b8',9,'right');
   label(ctx,'+10',grL-2,grT+9,'#7d8da6',7,'right'); label(ctx,'-10',grL-2,grB-3,'#7d8da6',7,'right');
   const toGx=tt2=>grL+(tt2/PERIOD)*(grR-grL);
   const toGy=xv=>midY-(xv/10)*(grB-grT)/2;
@@ -20812,9 +20809,7 @@ runAnim('anim-cv',(canvas,ctx,W,H,t)=>{
   for(let i=0;i<=200;i++){const ti=i/200*tt;const xi=x0+v*ti;if(xi<-10.5||xi>10.5)continue;i===0?ctx.moveTo(toGx(ti),toGy(xi)):ctx.lineTo(toGx(ti),toGy(xi));}
   ctx.stroke(); ctx.restore();
   if(xPos>=-10&&xPos<=10) circle(ctx,toGx(tt),toGy(xPos),4,'#3b82f6');
-  ctx.save(); ctx.fillStyle='rgba(8,18,36,.9)'; ctx.strokeStyle='#fbbf24'; ctx.lineWidth=1;
-  ctx.beginPath(); ctx.roundRect(grL+2,grT+2,108,16,4); ctx.fill(); ctx.stroke(); ctx.restore();
-  label(ctx,'שיפוע=v='+v+' m/s',grL+(grR-grL)/2,grT+12,'#fbbf24',8);
+  label(ctx,'שיפוע = v = '+v+' m/s',grR-8,grB-10,'#fbbf24',9,'right');
   label(ctx,'קו ישר = מהירות קבועה',W/2,H-4,'#7d8da6',8);
 });
 
@@ -20874,11 +20869,11 @@ runAnim('anim-avgv',(canvas,ctx,W,H,t)=>{
   // Info panel
   ctx.save(); ctx.fillStyle='rgba(6,14,28,.92)'; ctx.strokeStyle='#1e4060'; ctx.lineWidth=1;
   ctx.beginPath(); ctx.roundRect(GL+2,GT+1,218,converged?66:50,5); ctx.fill(); ctx.stroke(); ctx.restore();
-  label(ctx,'v̄ = '+vavg.toFixed(3)+' m/s (צהוב)',GL+111,GT+13,'#fbbf24',8,'center');
-  label(ctx,'v_inst='+vinst.toFixed(3)+' m/s (ירוק)',GL+111,GT+26,'#34d399',8,'center');
-  label(ctx,'|Δv|='+Math.abs(vavg-vinst).toFixed(4),GL+111,GT+38,'#94a3b8',7,'center');
-  if(converged){ctx.save();ctx.fillStyle='rgba(52,211,153,.12)';ctx.strokeStyle='#34d399';ctx.lineWidth=1;ctx.beginPath();ctx.roundRect(GL+2,GT+44,218,20,4);ctx.fill();ctx.stroke();ctx.restore();label(ctx,'Δt→0 : v_avg→v_inst (הנגזרת!)',GL+111,GT+56,'#34d399',8,'center');}
-  label(ctx,'‏Δt מתכווץ מאליו · P0 ירוקה · P1 צהובה',W/2,H-5,'#7d8da6',7,'center');
+  label(ctx,'מיתר:  v̄ = '+vavg.toFixed(3)+' m/s',GL+111,GT+13,'#fbbf24',9,'center');
+  label(ctx,'משיק:  v(t₀) = '+vinst.toFixed(3)+' m/s',GL+111,GT+27,'#34d399',9,'center');
+  label(ctx,'|v̄ − v(t₀)| = '+Math.abs(vavg-vinst).toFixed(3)+' m/s',GL+111,GT+40,'#cbd5e1',9,'center');
+  if(converged){ctx.save();ctx.fillStyle='rgba(52,211,153,.12)';ctx.strokeStyle='#34d399';ctx.lineWidth=1;ctx.beginPath();ctx.roundRect(GL+2,GT+44,218,20,4);ctx.fill();ctx.stroke();ctx.restore();label(ctx,'Δt → 0  ⇒  v̄ → v(t₀) = dx/dt',GL+111,GT+57,'#34d399',9,'center');}
+  label(ctx,'Δt מתכווץ: המיתר הצהוב הופך למשיק הירוק',GR-8,GT+14,'#94a3b8',9,'right');
 });
 
 // CH1 ANIM 5: תאוצה
@@ -20899,15 +20894,14 @@ runAnim('anim-accel',(canvas,ctx,W,H,t)=>{
   for(let i=1;i<=5;i++){const ti=i/5*PERIOD;const xi=0.5*a*ti*ti;const spx=toXpx(xi);ctx.save();ctx.strokeStyle='rgba(139,92,246,.25)';ctx.lineWidth=1;ctx.setLineDash([2,3]);ctx.beginPath();ctx.moveTo(spx,ay-16);ctx.lineTo(spx,ay+6);ctx.stroke();ctx.setLineDash([]);ctx.restore();}
   // v arrow
   const arVLen=Math.min(vv*7,78);
-  if(arVLen>3){arrow(ctx,bx,ay-22,bx+arVLen,ay-22,'#34d399',2.5,10);label(ctx,'v='+vv.toFixed(1),bx+arVLen+3,ay-22,'#34d399',8,'left');}
+  if(arVLen>3){arrow(ctx,bx,ay-22,bx+arVLen,ay-22,'#34d399',2.5,10);label(ctx,'v = '+vv.toFixed(1)+' m/s',bx+arVLen+4,ay-18,'#34d399',9,'left');}
   // a arrow
   arrow(ctx,bx,ay+20,bx+a*7,ay+20,'#f59e0b',2.5,9);
-  label(ctx,'a='+a+' m/s²',bx+a*7+4,ay+24,'#f59e0b',8,'left');
+  label(ctx,'a = '+a+' m/s²',bx+a*7+4,ay+24,'#f59e0b',9,'left');
   // Ball
   ctx.save(); ctx.shadowColor='rgba(99,102,241,.7)'; ctx.shadowBlur=12;
   circle(ctx,bx,ay,12,'#4f46e5','#a78bfa',2); ctx.restore();
-  ctx.save(); ctx.fillStyle='#e0e7ff'; ctx.font='bold 9px Courier New'; ctx.textAlign='center'; ctx.fillText(vv.toFixed(1),bx,ay+3); ctx.restore();
-  label(ctx,'t='+tt.toFixed(2)+'s',L+2,panH-4,'#94a3b8',8,'left');
+  label(ctx,'t = '+tt.toFixed(2)+' s',L+2,panH-4,'#94a3b8',9,'left');
   // Dual graphs
   const grT=panH+6, grB=H-5, gW2=Math.floor((W-36)/2);
   // v(t)
@@ -20949,7 +20943,7 @@ runAnim('anim-fall',(canvas,ctx,W,H,t)=>{
   // h_max dashed
   ctx.save(); ctx.strokeStyle='rgba(52,211,153,.4)'; ctx.lineWidth=1.2; ctx.setLineDash([4,4]);
   ctx.beginPath(); ctx.moveTo(28,toY(hMax)); ctx.lineTo(W-28,toY(hMax)); ctx.stroke(); ctx.setLineDash([]); ctx.restore();
-  label(ctx,'h_max='+hMax.toFixed(1)+'m',W-32,toY(hMax)-5,'#34d399',8,'right');
+  label(ctx,'h_max = '+hMax.toFixed(1)+' m',W-32,toY(hMax)-5,'#34d399',9,'right');
   // y axis
   ctx.save(); ctx.strokeStyle='#2d5275'; ctx.lineWidth=1.5;
   ctx.beginPath(); ctx.moveTo(26,groundY+3); ctx.lineTo(26,ceilY-2); ctx.stroke(); ctx.restore();
@@ -20966,17 +20960,17 @@ runAnim('anim-fall',(canvas,ctx,W,H,t)=>{
     for(let i=1;i<10;i++){const tp=Math.max(0,phase-i*0.07);const yg=Math.max(0,v0f*tp-0.5*g*tp*tp);const gpy=toY(yg);if(gpy<ceilY)continue;ctx.save();ctx.globalAlpha=(10-i)/14;circle(ctx,b.bx,gpy,b.r,'rgba(255,255,255,.05)');ctx.restore();}
     ctx.save(); ctx.shadowColor=b.col; ctx.shadowBlur=8;
     circle(ctx,b.bx,by,b.r,b.col,'rgba(255,255,255,.3)',1.5); ctx.restore();
-    label(ctx,b.lbl,b.bx,by+b.r+11,'#e2e8f0',9);
+    label(ctx,b.lbl,b.bx+b.r+6,by+4,'#e2e8f0',9,'left');
     if(Math.abs(vy)>0.8){const arLen=Math.min(Math.abs(vy)*2.5,28);const yd=vy>0?-arLen:arLen;arrow(ctx,b.bx,by+(vy>0?-b.r-1:b.r+1),b.bx,by+(vy>0?-b.r-1:b.r+1)+yd,vy>0?'#34d399':'#f87171',1.8,6);}
   });
   if(Math.abs(vy)<1.6){label(ctx,'v=0 שיא! כל המסות יחד',W/2,toY(hMax)+14,'#fbbf24',10);}
   // Info bar top
   ctx.save(); ctx.fillStyle='rgba(8,18,36,.82)'; ctx.fillRect(0,0,W,18); ctx.restore();
   const rising=phase<Tpeak;
-  label(ctx,'t='+phase.toFixed(2)+'s y='+yM.toFixed(1)+'m v='+vy.toFixed(1)+'m/s ('+(rising?'↑':'↓')+')',W/2,12,'#94a3b8',8);
+  label(ctx,'t = '+phase.toFixed(2)+' s     y = '+yM.toFixed(1)+' m     v = '+vy.toFixed(1)+' m/s '+(rising?'↑':'↓'),W/2,12,'#cbd5e1',9);
   // Symmetry banner
-  if(tt>Ttotal+0.3&&tt<Ttotal+1.6){ctx.save();ctx.fillStyle='rgba(8,18,36,.92)';ctx.strokeStyle='#fbbf24';ctx.lineWidth=1.2;ctx.beginPath();ctx.roundRect(W/2-90,H/2-12,180,22,6);ctx.fill();ctx.stroke();ctx.restore();label(ctx,'t_עלייה=t_ירידה='+Tpeak.toFixed(2)+'s',W/2,H/2+2,'#fbbf24',10);}
-  label(ctx,'גלילאו: a=g=9.8m/s² לכל המסות',W/2,H-5,'#7d8da6',8);
+  if(tt>Ttotal+0.3&&tt<Ttotal+1.6){ctx.save();ctx.fillStyle='rgba(8,18,36,.92)';ctx.strokeStyle='#fbbf24';ctx.lineWidth=1.2;ctx.beginPath();ctx.roundRect(W/2-110,H/2-12,220,22,6);ctx.fill();ctx.stroke();ctx.restore();label(ctx,'זמן עלייה = זמן ירידה = '+Tpeak.toFixed(2)+' s',W/2,H/2+2,'#fbbf24',10);}
+  label(ctx,'a = g = 9.8 m/s² לכל המסות',34,34,'#94a3b8',9,'left');
 });
 
 runAnim('anim-inertia',(canvas,ctx,W,H,t)=>{
@@ -23230,10 +23224,10 @@ runAnim('anim-vecscale',(canvas,ctx,W,H,t)=>{
   label(ctx,'c = '+c.toFixed(2),W*0.5,13,col2,8.5);
   // c goes negative for part of every cycle and the arrow visibly flips, so the
   // caption cannot claim unconditionally that the direction is preserved.
-  label(ctx, Math.abs(c)<0.06 ? 'c = 0  →  הווקטור האפס'
-           : c>0 ? 'c > 0:  הכיוון נשמר, הגודל ×c'
-                 : 'c < 0:  הכיוון מתהפך! הגודל ×|c|',
-        W/2,H-6, Math.abs(c)<0.06?'#94a3b8':(c>0?'#34d399':'#f97316'),7.5);
+  // Hebrew first, the maths as one run after it: the mixed caption came out scrambled
+  var _cc=Math.abs(c)<0.06?'#94a3b8':(c>0?'#34d399':'#f97316');
+  label(ctx, Math.abs(c)<0.06 ? 'וקטור האפס' : c>0 ? 'הכיוון נשמר' : 'הכיוון מתהפך', W/2,H-24,_cc,10);
+  label(ctx, Math.abs(c)<0.06 ? 'c = 0' : (c>0?'c > 0':'c < 0')+'     |c·v| = |c|·|v|', W/2,H-8,_cc,9.5);
 });
 
 runAnim('anim-vecdiff',(canvas,ctx,W,H,t)=>{
