@@ -3593,7 +3593,7 @@ const CONTENT={
         5. גוף שכבר <b>נע</b> אינו בודק שוב את הסף הסטטי: כל עוד ${M('F>f_k')} הוא מאיץ, ואם ${M('F<f_k')} הוא מאט — גם כש-${M('F')} קטן מ-${M('f_{s,\\max}')}.</p>
       </div>
       ${fBox('a = \\frac{F - \\mu_k N}{m}','תאוצה תחת כוח עם חיכוך קינטי')}
-      ${animCanvas('anim-friction-comb',192,'סטטי→קינטי — מעבר תנועה')}
+      ${animCanvas('anim-friction-comb',230,'מחיכוך סטטי לקינטי ובחזרה')}
       <p class="anim-note">ABS מונע נעילת גלגלים: הצמיג ממשיך להתגלגל ונקודת המגע שלו נשארת ב<b>חיכוך סטטי</b> (μs > μk). כך הנהג שומר על יכולת ההיגוי, ועל כביש סלול גם מרחק הבלימה מתקצר.</p>
       ${animCanvas('anim-friction3',178,'ABS מול גלישה')}
       <div class="info-grid">
@@ -21946,17 +21946,21 @@ runAnim('anim-kinetic-frict',(canvas,ctx,W,H,t)=>{
   bGrad2.addColorStop(0,'rgba(109,40,217,.9)');bGrad2.addColorStop(1,'rgba(91,33,182,.5)');
   ctx.save();ctx.beginPath();ctx.roundRect(bx-bW/2,bTop,bW,bH,4);ctx.fillStyle=bGrad2;ctx.fill();
   ctx.strokeStyle='#a78bfa';ctx.lineWidth=1.5;ctx.stroke();ctx.restore();
-  label(ctx,m+'kg',bx,GND-bH/2+5,'#ede9fe',8.5);
+  label(ctx,m+' kg',bx,GND-bH/2+5,'#ede9fe',9);
+  const sliding=tt<tStop;
 
-  // Velocity arrow
+  // Velocity arrow, above the block
   if(v>0.3){
     const vLen=Math.min(v*3.5,65);
-    arrow(ctx,bx+bW/2+4,GND-bH/2,bx+bW/2+4+vLen,GND-bH/2,'#34d399',2.5,9);
-    label(ctx,v.toFixed(1)+'m/s',bx+bW/2+vLen+8,GND-bH/2,'#6ee7b7',8,'left');
+    arrow(ctx,bx,bTop-8,bx+vLen,bTop-8,'#34d399',2.5,9);
+    label(ctx,'v = '+v.toFixed(1)+' m/s',bx+vLen/2,bTop-16,'#6ee7b7',9,'center');
   }
-  // fk arrow
-  arrow(ctx,bx-bW/2-4,GND-bH/2,bx-bW/2-4-fk*0.65,GND-bH/2,'#ef4444',2.5,9);
-  label(ctx,'f_k='+fk.toFixed(0)+'N',bx-bW/2-fk*0.65-8,GND-bH/2,'#fca5a5',8,'right');
+  // Kinetic friction along the bottom face, only while the block slides: at rest,
+  // with nothing pushing it, there is no friction at all (it used to stay drawn)
+  if(sliding){
+    arrow(ctx,bx,GND-3,bx-fk*1.6,GND-3,'#ef4444',2.5,9);
+    label(ctx,'f_k = '+fk.toFixed(1)+' N',bx-bW/2-6,GND-bH/2-2,'#fca5a5',9,'right');
+  }
 
   // v(t) graph
   const gL=14,gR=W-14,gT=H*0.62,gB=H-14;
@@ -21967,8 +21971,9 @@ runAnim('anim-kinetic-frict',(canvas,ctx,W,H,t)=>{
   ctx.save();ctx.strokeStyle='#2d5275';ctx.lineWidth=1;
   ctx.beginPath();ctx.moveTo(gL+8,gB-8);ctx.lineTo(gR-4,gB-8);ctx.stroke();
   ctx.beginPath();ctx.moveTo(gL+8,gT+4);ctx.lineTo(gL+8,gB-8);ctx.stroke();ctx.restore();
-  label(ctx,'t (s) →',gR-4,gB-2,'#7d8da6',7.5,'right');
-  label(ctx,'v (m/s) ↑',gL+10,gT+9,'#7d8da6',7.5,'left');
+  label(ctx,'t (s)',gR-4,gB-2,'#7d8da6',9,'right');
+  label(ctx,'v (m/s)',gL+12,gT+11,'#7d8da6',9,'left');
+  label(ctx,v0+'',gL+6,gT+12,'#7d8da6',9,'right');
   // Theoretical line
   ctx.save();ctx.strokeStyle='rgba(52,211,153,.3)';ctx.lineWidth=1.5;
   ctx.beginPath();
@@ -21985,25 +21990,38 @@ runAnim('anim-kinetic-frict',(canvas,ctx,W,H,t)=>{
   const curPx=gL+8+(curT/tStop)*(gW-12);
   const curPy=gB-8-(v/v0)*(gH-12);
   circle(ctx,curPx,Math.max(gT+5,curPy),5,'#fbbf24');
-  label(ctx,'v='+v.toFixed(1)+'m/s  a='+a.toFixed(2)+'m/s²',W/2,gT+11,'#22d3ee',8);
-  label(ctx,v<0.2?'נעצר — כל E_k הפכה לחום!':'חיכוך קינטי קבוע ← ירידה לינארית ב-v',W/2,H*0.59,v<0.2?'#f87171':'#94a3b8',8);
+  label(ctx,'v = '+v.toFixed(1)+' m/s    a = '+(sliding?a.toFixed(2):'0')+' m/s²',W/2,gT+12,'#22d3ee',9);
+  label(ctx,sliding?'החיכוך הקינטי קבוע, ולכן המהירות יורדת בקצב קבוע':'הגוף נעצר: כל האנרגיה הקינטית הפכה לחום, ואין עוד חיכוך',W/2,14,sliding?'#94a3b8':'#f87171',9.5);
 });
 
 // ── ANIM 5: Combined Friction — static→kinetic transition diagram
 runAnim('anim-friction-comb',(canvas,ctx,W,H,t)=>{
   bg(ctx,W,H);
+  // The solution algorithm, step by step, on m = 5 kg (μs = 0.60, μk = 0.42):
+  //  A  0–2.5 s  F ramps up to fs,max = 29.4 N; the block rests, fs = F.
+  //  B  2.5–4.5  it slips; the push is eased to 25 N < fs,max, yet F > fk = 20.6 N,
+  //              so it keeps ACCELERATING (a moving body never re-checks fs,max).
+  //  C  4.5–     the push drops to 10 N < fk: it decelerates and stops.
+  //  D  at rest  static again, fs = F = 10 N.
+  // The block used to move at a speed proportional to F, i.e. at constant velocity
+  // while the graph beside it showed a growing net force.
   const mu_s=0.60,mu_k=0.42,m=5,g=9.8,N=m*g;
   const fs_max=mu_s*N,fk=mu_k*N;
-  const PERIOD=6.5,tt=t%PERIOD;
-  const Fapp=Math.min((tt/PERIOD)*2.5*fs_max,2.5*fs_max);
-  const moving=Fapp>fs_max;
-  const f_act=moving?fk:Fapp;
-  const Fmax=2.6*fs_max;
+  const PERIOD=8,tt=t%PERIOD;
+  const tS=2.5,F2=25,tB=4.5,F3=10;
+  const aB=(F2-fk)/m, vB=aB*(tB-tS), xB=0.5*aB*(tB-tS)*(tB-tS);
+  const aC=(F3-fk)/m, tStop=tB+vB/(-aC), xEnd=xB+vB*vB/(2*(-aC));
+  let F,f,v,x,acc,phase;
+  if(tt<tS){F=fs_max*tt/tS;f=F;v=0;x=0;acc=0;phase=0;}
+  else if(tt<tB){const u=tt-tS;F=F2;f=fk;v=aB*u;x=0.5*aB*u*u;acc=aB;phase=1;}
+  else if(tt<tStop){const u=tt-tB;F=F3;f=fk;v=vB+aC*u;x=xB+vB*u+0.5*aC*u*u;acc=aC;phase=2;}
+  else {F=F3;f=F3;v=0;x=xEnd;acc=0;phase=3;}
+  const moving=(phase===1||phase===2);
 
-  // Block scene (small, upper portion)
-  const GND=H*0.45,bH=26,bW=48;
-  let bx=W*0.48+(moving?(Fapp-fs_max)*0.45:0);
-  bx=Math.min(bx,W-bW/2-10);
+  // Block scene
+  const GND=74,bH=24,bW=46;
+  const PPM=(W*0.30)/xEnd;
+  const bx=W*0.36+x*PPM;
   ctx.save();ctx.fillStyle='#0f1e30';ctx.fillRect(10,GND,W-20,6);ctx.restore();
   ctx.save();ctx.strokeStyle='#2d5275';ctx.lineWidth=1.2;
   ctx.beginPath();ctx.moveTo(10,GND);ctx.lineTo(W-10,GND);ctx.stroke();ctx.restore();
@@ -22012,72 +22030,58 @@ runAnim('anim-friction-comb',(canvas,ctx,W,H,t)=>{
   bGrad3.addColorStop(1,moving?'rgba(153,27,27,.5)':'rgba(23,62,172,.5)');
   ctx.save();ctx.beginPath();ctx.roundRect(bx-bW/2,GND-bH,bW,bH,3);
   ctx.fillStyle=bGrad3;ctx.fill();ctx.strokeStyle=moving?'#ef4444':'#60a5fa';ctx.lineWidth=1.5;ctx.stroke();ctx.restore();
-  if(Fapp>0.5){
-    const fLen=Math.min(Fapp*0.55,56);
-    arrow(ctx,bx-bW/2-4-fLen,GND-bH/2,bx-bW/2-4,GND-bH/2,'#f59e0b',2.5,8);
-    label(ctx,'F='+Fapp.toFixed(0),bx-bW/2-fLen/2-4,GND-bH/2-10,'#fbbf24',7.5,'center');
+  label(ctx,m+' kg',bx,GND-bH/2+4,'#e0f2fe',9);
+  const KF=1.2;
+  if(F>0.5){
+    arrow(ctx,bx-bW/2-2-F*KF,GND-bH/2,bx-bW/2-2,GND-bH/2,'#f59e0b',2.5,8);
+    label(ctx,'F = '+F.toFixed(0)+' N',bx-bW/2-2-F*KF/2,GND-bH/2-11,'#fbbf24',9,'center');
   }
-  if(f_act>0.5){
-    const fLen2=Math.min(f_act*0.55,50);
-    arrow(ctx,bx+bW/2+4+fLen2,GND-bH/2,bx+bW/2+4,GND-bH/2,'#a78bfa',2.5,8);
-    label(ctx,'f='+f_act.toFixed(0),bx+bW/2+fLen2/2+4,GND-bH/2-10,'#c4b5fd',7.5,'center');
+  if(f>0.5){
+    arrow(ctx,bx,GND-3,bx-f*KF,GND-3,'#a78bfa',2.5,8);
+    label(ctx,(moving?'f_k = ':'f_s = ')+f.toFixed(1)+' N',bx+bW/2+6,GND-bH/2+4,'#c4b5fd',9,'left');
   }
+  if(v>0.05){
+    arrow(ctx,bx,GND-bH-7,bx+v*22,GND-bH-7,'#34d399',2,7);
+  }
+  label(ctx,'v = '+v.toFixed(2)+' m/s    a = '+acc.toFixed(2)+' m/s²',W/2,GND+20,'#94a3b8',9);
 
-  // Main f(F) graph (lower portion)
-  const gL=14,gR=W-14,gT=H*0.51,gB=H-12;
+  // f(F) graph: the same F can go with two different f, depending on history
+  const gL=14,gR=W-14,gT=GND+28,gB=H-6;
   const gW=gR-gL,gH=gB-gT;
-  const toX=v=>gL+10+(v/Fmax)*(gW-20);
-  const toY=v=>gB-8-(v/(fs_max*1.2))*(gH-16);
-
+  const Fmax=1.3*fs_max;
+  const toX=val=>gL+12+(val/Fmax)*(gW-24);
+  const toY=val=>gB-10-(val/(fs_max*1.15))*(gH-18);
   ctx.save();ctx.fillStyle='rgba(6,14,28,.9)';ctx.strokeStyle='#1e4060';ctx.lineWidth=1;
   ctx.beginPath();ctx.roundRect(gL,gT,gW,gH,5);ctx.fill();ctx.stroke();ctx.restore();
-
-  // Region shading
-  ctx.save();ctx.fillStyle='rgba(37,99,235,.07)';
-  ctx.fillRect(toX(0),toY(fs_max),toX(fs_max)-toX(0),gB-8-toY(fs_max));ctx.restore();
-  ctx.save();ctx.fillStyle='rgba(239,68,68,.07)';
-  ctx.fillRect(toX(fs_max),gT+4,gR-14-toX(fs_max),gB-8-gT-4);ctx.restore();
-
-  // Axes
   ctx.save();ctx.strokeStyle='#2d5275';ctx.lineWidth=1;
-  ctx.beginPath();ctx.moveTo(gL+10,gB-8);ctx.lineTo(gR-4,gB-8);ctx.stroke();
-  ctx.beginPath();ctx.moveTo(gL+10,gT+4);ctx.lineTo(gL+10,gB-8);ctx.stroke();ctx.restore();
-  label(ctx,'F (N) מופעל →',gR-5,gB-1,'#7d8da6',7,'right');
-  label(ctx,'f (N) ↑',gL+12,gT+10,'#7d8da6',7,'left');
-
-  // fs_max vertical dashed line
-  ctx.save();ctx.strokeStyle='rgba(96,165,250,.25)';ctx.lineWidth=0.8;ctx.setLineDash([3,4]);
-  ctx.beginPath();ctx.moveTo(toX(fs_max),gT+4);ctx.lineTo(toX(fs_max),gB-8);ctx.stroke();ctx.setLineDash([]);ctx.restore();
-
-  // Static slope: f=F
+  ctx.beginPath();ctx.moveTo(toX(0),toY(0));ctx.lineTo(gR-4,toY(0));ctx.stroke();
+  ctx.beginPath();ctx.moveTo(toX(0),gT+4);ctx.lineTo(toX(0),toY(0));ctx.stroke();ctx.restore();
+  label(ctx,'F (N)',gR-4,gB-1,'#7d8da6',9,'right');
+  label(ctx,'f (N)',toX(0)+4,gT+12,'#7d8da6',9,'left');
+  // at rest: f = F up to fs,max
   ctx.save();ctx.strokeStyle='#3b82f6';ctx.lineWidth=2.5;
   ctx.beginPath();ctx.moveTo(toX(0),toY(0));ctx.lineTo(toX(fs_max),toY(fs_max));ctx.stroke();ctx.restore();
-  label(ctx,'f_s = F',toX(fs_max*0.38),toY(fs_max*0.38)-9,'#93c5fd',7.5);
-
-  // Drop
-  ctx.save();ctx.strokeStyle='rgba(239,68,68,.55)';ctx.lineWidth=1.5;ctx.setLineDash([2,3]);
-  ctx.beginPath();ctx.moveTo(toX(fs_max),toY(fs_max));ctx.lineTo(toX(fs_max),toY(fk));ctx.stroke();ctx.setLineDash([]);ctx.restore();
-
-  // Kinetic plateau
+  label(ctx,'במנוחה',toX(fs_max*0.3)-4,toY(fs_max*0.3)-4,'#93c5fd',9,'right');
+  // sliding: f = fk whatever F is (solid beyond the threshold, dashed below it)
   ctx.save();ctx.strokeStyle='#ef4444';ctx.lineWidth=2.5;
-  ctx.beginPath();ctx.moveTo(toX(fs_max),toY(fk));ctx.lineTo(toX(Fmax*0.96),toY(fk));ctx.stroke();ctx.restore();
+  ctx.beginPath();ctx.moveTo(toX(fs_max),toY(fk));ctx.lineTo(toX(Fmax*0.97),toY(fk));ctx.stroke();
+  ctx.lineWidth=1.5;ctx.setLineDash([4,4]);
+  ctx.beginPath();ctx.moveTo(toX(0),toY(fk));ctx.lineTo(toX(fs_max),toY(fk));ctx.stroke();
+  ctx.strokeStyle='rgba(239,68,68,.55)';ctx.setLineDash([2,3]);
+  ctx.beginPath();ctx.moveTo(toX(fs_max),toY(fs_max));ctx.lineTo(toX(fs_max),toY(fk));ctx.stroke();
+  ctx.setLineDash([]);ctx.restore();
+  label(ctx,'בהחלקה',toX(fs_max*0.45),toY(fk)-5,'#fca5a5',9,'center');
+  label(ctx,'f_s,max = '+fs_max.toFixed(1),toX(fs_max)+4,toY(fs_max)+3,'#60a5fa',9,'left');
+  label(ctx,'f_k = '+fk.toFixed(1),toX(Fmax*0.97),toY(fk)-5,'#fca5a5',9,'right');
+  circle(ctx,toX(F),toY(f),5.5,'#fbbf24');
 
-  // Labels
-  label(ctx,'fs_max',toX(fs_max)+2,toY(fs_max)-7,'#60a5fa',7,'left');
-  label(ctx,'fk (קבוע)',toX(Fmax*0.72),toY(fk)-7,'#fca5a5',7.5);
-
-  // μ values
-  label(ctx,'μ_s='+mu_s+'  μ_k='+mu_k,gL+12,gT+10+9,'#6e8099',7,'left');
-
-  // Animated dot
-  circle(ctx,toX(Math.min(Fapp,Fmax*0.95)),toY(f_act),5.5,'#fbbf24');
-
-  // State label
-  const stateCol=moving?'#f87171':Fapp>=fs_max*0.96?'#fbbf24':'#34d399';
-  const stateStr=moving?'נע — f_k='+fk.toFixed(0)+'N (קבוע)':Fapp>=fs_max*0.95?'בסף!':'שיווי משקל — f_s='+f_act.toFixed(0)+'N';
-  ctx.save();ctx.fillStyle='rgba(6,14,28,.88)';ctx.strokeStyle=stateCol+'44';ctx.lineWidth=1;
-  ctx.beginPath();ctx.roundRect(W/2-120,H*0.47,240,14,4);ctx.fill();ctx.stroke();ctx.restore();
-  label(ctx,stateStr,W/2,H*0.47+9.5,stateCol,8.5);
+  // State line (top)
+  const msgs=['הגוף נח, החיכוך הסטטי שווה לכוח:  f_s = F',
+              'מחליק ומאיץ, אף שהכוח קטן מהסף הסטטי:  F > f_k',
+              'מחליק ומאט:  F < f_k',
+              'נעצר, והחיכוך שוב סטטי:  f_s = F = 10 N'];
+  const cols=['#34d399','#f87171','#fbbf24','#60a5fa'];
+  label(ctx,msgs[phase],W/2,14,cols[phase],9.5);
 });
 
 // ── ANIM 6: Momentum Conservation — elastic collision
@@ -23768,43 +23772,50 @@ runAnim('anim-static2',(canvas,ctx,W,H,t)=>{
 
 runAnim('anim-kinetic2',(canvas,ctx,W,H,t)=>{
   bg(ctx,W,H);
+  // Two identical blocks pulled at constant speed, 12 m/s and 3 m/s. Constant speed
+  // means ΣF = 0, so the pull F equals the kinetic friction — and it is the same
+  // 13.7 N at both speeds. (The blocks used to glide at constant speed with only
+  // friction drawn on them: a net force and no change in velocity.)
   var g=9.8,mu=0.35,m=4,N=m*g,fk=mu*N;
-  // Two tracks: fast v=12 on bottom, slow v=3 on top
-  var LANE1=H*0.70;  // bottom lane
-  var LANE2=H*0.35;  // top lane
-  ctx.save();ctx.fillStyle='#0f2035';ctx.fillRect(0,LANE1,W,8);ctx.restore();
-  ctx.save();ctx.strokeStyle='#2d5275';ctx.lineWidth=1.5;
-  ctx.beginPath();ctx.moveTo(0,LANE1);ctx.lineTo(W,LANE1);ctx.stroke();ctx.restore();
-  ctx.save();ctx.strokeStyle='rgba(45,82,117,.5)';ctx.lineWidth=1;ctx.setLineDash([5,4]);
-  ctx.beginPath();ctx.moveTo(0,LANE2);ctx.lineTo(W,LANE2);ctx.stroke();ctx.setLineDash([]);ctx.restore();
-  var v1=12,v2=3;
-  var p1=(t*v1*3)%(W+60)-30;
-  var b1W=44,b1H=32;
-  ctx.save();ctx.fillStyle='rgba(239,68,68,.75)';ctx.strokeStyle='#f87171';ctx.lineWidth=2;
-  ctx.beginPath();ctx.roundRect(p1-b1W/2,LANE1-b1H,b1W,b1H,3);ctx.fill();ctx.stroke();ctx.restore();
-  label(ctx,'v='+v1+' m/s',p1,LANE1-b1H-14,'#fca5a5',8);
-  arrow(ctx,p1+b1W/2+4,LANE1-b1H/2,p1+b1W/2+4+Math.min(v1*2.2,52),LANE1-b1H/2,'#22d3ee',2,8);
-  var fkLen=Math.min(55,fk*1.1);
-  arrow(ctx,p1-b1W/2-2,LANE1-b1H*0.5,p1-b1W/2-2-fkLen,LANE1-b1H*0.5,'#f87171',2,9);
-  label(ctx,'fk='+fk.toFixed(0)+'N',p1-fkLen/2,LANE1-b1H*0.5-12,'#f87171',8);
-  var p2=(t*v2*3)%(W+60)-30;
-  var b2W=44,b2H=32;
-  ctx.save();ctx.fillStyle='rgba(59,130,246,.75)';ctx.strokeStyle='#60a5fa';ctx.lineWidth=2;
-  ctx.beginPath();ctx.roundRect(p2-b2W/2,LANE2-b2H,b2W,b2H,3);ctx.fill();ctx.stroke();ctx.restore();
-  label(ctx,'v='+v2+' m/s',p2,LANE2-b2H-14,'#bfdbfe',8);
-  arrow(ctx,p2+b2W/2+4,LANE2-b2H/2,p2+b2W/2+4+Math.min(v2*2.2,18),LANE2-b2H/2,'#22d3ee',2,8);
-  arrow(ctx,p2-b2W/2-2,LANE2-b2H*0.5,p2-b2W/2-2-fkLen,LANE2-b2H*0.5,'#60a5fa',2,9);
-  label(ctx,'fk='+fk.toFixed(0)+'N',p2-fkLen/2,LANE2-b2H*0.5-12,'#60a5fa',8);
+  var LANE2=Math.round(H*0.42), LANE1=H-26;
+  [LANE1,LANE2].forEach(function(L){
+    ctx.save();ctx.fillStyle='#0f2035';ctx.fillRect(0,L,W,6);
+    ctx.strokeStyle='#2d5275';ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(0,L);ctx.lineTo(W,L);ctx.stroke();ctx.restore();
+  });
+  var KF=2.4;                       // px per newton, F and f_k alike
+  var fLen=fk*KF;
+  function bWfL(frac){return W*frac+44+fLen;}   // start offset that puts a block at frac·W
+  function block(v,L,fill,stroke,txt,off){
+    var bW=44,bH=28;
+    var span=W+2*bW+2*fLen;
+    var p=((t*v*6+off)%span)-bW-fLen;   // enters from the left, leaves on the right
+    label(ctx,txt,W-8,L+18,stroke,9.5,'right');
+    if(p<-bW/2-fLen||p>W+bW/2+fLen) return;   // off canvas: no stray labels at the edge
+    ctx.save();ctx.fillStyle=fill;ctx.strokeStyle=stroke;ctx.lineWidth=2;
+    ctx.beginPath();ctx.roundRect(p-bW/2,L-bH,bW,bH,3);ctx.fill();ctx.stroke();ctx.restore();
+    label(ctx,m+' kg',p,L-bH/2+4,'#f1f5f9',9,'center');
+    // pull on the front face
+    arrow(ctx,p+bW/2,L-bH/2,p+bW/2+fLen,L-bH/2,'#fbbf24',2.2,8);
+    label(ctx,'F',p+bW/2+fLen+4,L-bH/2+4,'#fbbf24',10,'left');
+    // kinetic friction along the bottom face
+    arrow(ctx,p,L-3,p-fLen,L-3,'#f87171',2.2,8);
+    label(ctx,'f_k',p-fLen-4,L-2,'#f87171',10,'right');
+    // velocity above
+    arrow(ctx,p-bW/2,L-bH-7,p-bW/2+v*5,L-bH-7,'#22d3ee',2,6);
+    label(ctx,'v',p-bW/2+v*5+5,L-bH-4,'#22d3ee',9,'left');
+  }
+  block(12,LANE1,'rgba(239,68,68,.75)','#f87171','מהיר:  v = 12 m/s',bWfL(0.15));
+  block(3,LANE2,'rgba(59,130,246,.75)','#60a5fa','איטי:  v = 3 m/s',bWfL(0.30));
   ctx.save();ctx.fillStyle='rgba(6,14,28,.9)';ctx.strokeStyle='rgba(251,191,36,.3)';ctx.lineWidth=1.5;
   ctx.beginPath();ctx.roundRect(4,4,W-8,20,3);ctx.fill();ctx.stroke();ctx.restore();
-  label(ctx,'fk = \u03bc\u1d4dN = '+fk.toFixed(1)+' N \u2014 \u05d6\u05d4\u05d4 \u05dc\u05db\u05dc \u05de\u05d4\u05d9\u05e8\u05d5\u05ea! (v=3 \u05d5-v=12)',W/2,13,'#fbbf24',8);
+  label(ctx,'בשתי המהירויות אותו חיכוך:  F = f_k = μ_k·N = '+fk.toFixed(1)+' N',W/2,15,'#fbbf24',9.5);
 });
 
 runAnim('anim-friction3',(canvas,ctx,W,H,t)=>{
   bg(ctx,W,H);
   var g=9.8,muK=0.45,muS=0.75,v0=20;
-  var ROAD_Y=H*0.55;
-  ctx.save();ctx.fillStyle='#0f2035';ctx.fillRect(0,ROAD_Y,W,H*0.30);ctx.restore();
+  var ROAD_Y=H-46;  // the top car used to sit under the banner
+  ctx.save();ctx.fillStyle='#0f2035';ctx.fillRect(0,ROAD_Y,W,H-ROAD_Y);ctx.restore();
   ctx.save();ctx.strokeStyle='#2d5275';ctx.lineWidth=1.5;
   ctx.beginPath();ctx.moveTo(0,ROAD_Y);ctx.lineTo(W,ROAD_Y);ctx.stroke();ctx.restore();
   var aK=muK*g,aS=muS*g,tStop1=v0/aK,dStop1=v0*v0/(2*aK),dStop2=v0*v0/(2*aS);
@@ -23814,27 +23825,34 @@ runAnim('anim-friction3',(canvas,ctx,W,H,t)=>{
   var d2=Math.min(dStop2,Math.max(0,v0*simT-0.5*aS*simT*simT));
   var startX=W*0.08,cW=46,cH=22;
   var p1=startX+d1*scale,p2=startX+d2*scale;
-  var lane1=ROAD_Y-cH-10,lane2=lane1-cH-22;
+  var lane1=ROAD_Y-cH-8,lane2=lane1-cH-26;
   if(simT>0.3){
     ctx.save();ctx.strokeStyle='rgba(239,68,68,.2)';ctx.lineWidth=3;
     ctx.beginPath();ctx.moveTo(startX,lane1+cH);ctx.lineTo(p1,lane1+cH);ctx.stroke();ctx.restore();
   }
   ctx.save();ctx.fillStyle=d1>=dStop1?'rgba(239,68,68,.5)':'rgba(239,68,68,.8)';ctx.strokeStyle='#f87171';ctx.lineWidth=2;
   ctx.beginPath();ctx.roundRect(p1-cW/2,lane1,cW,cH,3);ctx.fill();ctx.stroke();ctx.restore();
-  label(ctx,'\u05d2\u05dc\u05d9\u05e9\u05d4',p1,lane1-10,'#f87171',7.5);
+  label(ctx,'גלגלים נעולים',p1,lane1-6,'#f87171',9);
   ctx.save();ctx.fillStyle=d2>=dStop2?'rgba(52,211,153,.5)':'rgba(52,211,153,.8)';ctx.strokeStyle='#34d399';ctx.lineWidth=2;
   ctx.beginPath();ctx.roundRect(p2-cW/2,lane2,cW,cH,3);ctx.fill();ctx.stroke();ctx.restore();
-  label(ctx,'ABS',p2,lane2-10,'#34d399',7.5);
+  label(ctx,'ABS',p2,lane2-6,'#34d399',9.5);
   var stopD1=startX+dStop1*scale,stopD2=startX+dStop2*scale;
   ctx.save();ctx.strokeStyle='rgba(239,68,68,.4)';ctx.lineWidth=1;ctx.setLineDash([3,4]);
   ctx.beginPath();ctx.moveTo(stopD1,lane1-4);ctx.lineTo(stopD1,ROAD_Y+10);ctx.stroke();ctx.setLineDash([]);ctx.restore();
   ctx.save();ctx.strokeStyle='rgba(52,211,153,.4)';ctx.lineWidth=1;ctx.setLineDash([3,4]);
   ctx.beginPath();ctx.moveTo(stopD2,lane2-4);ctx.lineTo(stopD2,ROAD_Y+10);ctx.stroke();ctx.setLineDash([]);ctx.restore();
-  label(ctx,'d='+dStop1.toFixed(0)+'m',stopD1,ROAD_Y+18,'#f87171',7.5);
-  label(ctx,'d='+dStop2.toFixed(0)+'m',stopD2,ROAD_Y+30,'#34d399',7.5);
+  label(ctx,'d = '+dStop1.toFixed(0)+' m  (μ_k = '+muK+')',stopD1,ROAD_Y+16,'#f87171',9,'right');
+  label(ctx,'d = '+dStop2.toFixed(0)+' m  (μ_s = '+muS+')',stopD2,ROAD_Y+32,'#34d399',9,'right');
+  label(ctx,'v₀ = '+v0+' m/s',startX-cW/2,ROAD_Y+16,'#94a3b8',9,'left');
   ctx.save();ctx.fillStyle='rgba(6,14,28,.9)';ctx.strokeStyle='#1e4060';ctx.lineWidth=1;
-  ctx.beginPath();ctx.roundRect(4,4,W-8,20,3);ctx.fill();ctx.stroke();ctx.restore();
-  label(ctx,'ABS \u05e9\u05d5\u05de\u05e8 \u05d2\u05dc\u05d2\u05dc\u05d9\u05dd \u05de\u05e1\u05ea\u05d5\u05d1\u05d1\u05d9\u05dd \u2192 \u05d7\u05d9\u05db\u05d5\u05da \u05e1\u05d8\u05d8\u05d9 \u2192 \u05e2\u05e6\u05d9\u05e8\u05d4 \u05de\u05d4\u05d9\u05e8\u05d4 \u05d9\u05d5\u05ea\u05e8',W/2,13,'#fbbf24',7.5);
+  if(W>=560){
+    ctx.beginPath();ctx.roundRect(4,4,W-8,20,3);ctx.fill();ctx.stroke();ctx.restore();
+    label(ctx,'מערכת ABS מונעת נעילת גלגלים: המגע נשאר בחיכוך סטטי, והבלימה קצרה יותר',W/2,15,'#fbbf24',9);
+  } else {
+    ctx.beginPath();ctx.roundRect(4,4,W-8,34,3);ctx.fill();ctx.stroke();ctx.restore();
+    label(ctx,'מערכת ABS מונעת נעילת גלגלים:',W/2,16,'#fbbf24',9);
+    label(ctx,'המגע נשאר בחיכוך סטטי, והבלימה קצרה יותר',W/2,30,'#fbbf24',9);
+  }
 });
 
 // ── OPTICS THEORY MINI-ANIMS ───────────────────────────────────────────────
