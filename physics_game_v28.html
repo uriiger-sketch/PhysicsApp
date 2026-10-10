@@ -2642,7 +2642,7 @@ const CONTENT={
       <p>במהירות קבועה, בעלייה או בירידה, המאזניים מראים בדיוק ${M('mg')}.</p>`
     }
   },
-  sim:{type:'tension',title:'מתיחות — גוף בחוט',desc:'שנו מסה ותאוצה של מעלית. ראו T=m(g+a). FBD חי.'},
+  sim:{type:'tension',title:'מתיחות — גוף בחוט',desc:'משמאל מכונת אטווד (לחצו ״שחרר!״); מימין גוף התלוי בחוט מתקרת מעלית מואצת. שנו מסות ותאוצה וראו ש-T = m(g+a), ושבאטווד W₁ < T < W₂.'},
   example:{title:'מתיחות בחוט',text:`גוף שמסתו ${M('5\\,\\text{kg}')} תלוי בחוט, והחוט מאיץ אותו כלפי מעלה בתאוצה ${M('2\\,\\text{m/s}^2')}. (${M('g=9.8\\,\\text{m/s}^2')})`,steps:[
     {q:'מהי המתיחות בחוט?',a:`החוק השני כלפי מעלה: ${M('T-mg=ma\\Rightarrow T=m(g+a)=5\\times11.8=59\\,\\text{N}')}`},
     {q:'למה המתיחות גדולה מהמשקל (49 N)?',a:'כדי שהגוף יאיץ כלפי מעלה, הכוח השקול חייב לפנות מעלה — ולכן החוט מושך חזק יותר מהכובד. בתנועה במהירות קבועה המתיחות הייתה שווה בדיוק למשקל.'},
@@ -10549,7 +10549,7 @@ function simTension(canvas){
   // PEDAGOGY: Interactive Atwood machine. Student changes masses, watches them accelerate,
   // sees T calculated live. Also shows elevator mode. Core concept: T = m(g+a) NOT just mg.
   // Student can see that tension is NOT equal to weight when there's acceleration.
-  const H=360; const {ctx,W,dpr}=setupCanvas(canvas,H);
+  const H=420; const {ctx,W,dpr}=setupCanvas(canvas,H);
   const id=canvas.id;
   const g=9.8;
   let pT=null, t=0;
@@ -10559,7 +10559,7 @@ function simTension(canvas){
   var vel=0; // atwood velocity (positive = m2 going down)
   var running=false;
   var mEl=3, aEl=0; // elevator mass and accel
-  var boxY=220, boxVel=0;
+  var boxY=252, boxVel=0;
 
   function getM1(){var e=document.getElementById('inp-ten-m1'); return e?parseFloat(e.value):m1;}
   function getM2(){var e=document.getElementById('inp-ten-m2'); return e?parseFloat(e.value):m2;}
@@ -10573,16 +10573,16 @@ function simTension(canvas){
   var launchBtn=document.getElementById('btn-ten-launch');
   var resetBtn=document.getElementById('btn-ten-reset');
   if(launchBtn)launchBtn.addEventListener('click',function(){running=!running;if(!running)resetAtwood();});
-  if(resetBtn)resetBtn.addEventListener('click',function(){resetAtwood();boxY=220;boxVel=0;});
+  if(resetBtn)resetBtn.addEventListener('click',function(){resetAtwood();boxY=252;boxVel=0;});
 
   function resetAtwood(){pos1=110;pos2=110;vel=0;running=false;if(launchBtn)launchBtn.textContent='▶ שחרר!';}
 
   resetAtwood();
 
   // Pulley position
-  const PUL_X=W*0.50, PUL_Y=62, PUL_R=22;
+  const PUL_X=W*0.30, PUL_Y=102, PUL_R=22;
   const LEFT_X=PUL_X-PUL_R-4, RIGHT_X=PUL_X+PUL_R+4;
-  const CEIL_Y=30;
+  const CEIL_Y=84;
   // Elevator
   const ELV_X=W*0.55, ELV_CEIL=30;
 
@@ -10601,7 +10601,7 @@ function simTension(canvas){
       vel+=a*dt;
       var _vm=0.5*(_v0t+vel);                     // trapezoid: exact for constant a
       pos2+=_vm*dt*55; pos1-=_vm*dt*55;
-      var maxPos=H-100, minPos=80;
+      var maxPos=H-PUL_Y-100, minPos=80;
       if(pos2>maxPos||pos1>maxPos){running=false;}
       pos2=Math.min(pos2,maxPos); pos1=Math.min(pos1,maxPos);
       pos2=Math.max(pos2,minPos); pos1=Math.max(pos1,minPos);
@@ -10610,8 +10610,9 @@ function simTension(canvas){
     // It used to accelerate into a position clamp and then sit there with a
     // non-zero velocity, while the panel went on printing T = m(g+a) for an
     // acceleration nothing was undergoing.
-    boxVel+=aEl*dt; boxY+=boxVel*dt*36;
-    if(boxY<=ELV_CEIL+50||boxY>=H-60){ boxY=(ELV_CEIL+50+H-60)/2; boxVel=0; }
+    // the car moves up for positive a (canvas y grows downward)
+    boxVel+=aEl*dt; boxY-=boxVel*dt*36;
+    if(boxY<=CEIL_Y+70||boxY>=H-70){ boxY=(CEIL_Y+70+H-70)/2; boxVel=0; }
 
     var a_atw=(m2-m1)/(m1+m2)*g;
     var T_atw=2*m1*m2/(m1+m2)*g;
@@ -10640,14 +10641,14 @@ function simTension(canvas){
 
     // Ropes
     ctx.save(); ctx.strokeStyle='#94a3b8'; ctx.lineWidth=2.5;
-    ctx.beginPath(); ctx.moveTo(LEFT_X,PUL_Y); ctx.lineTo(LEFT_X,PUL_Y+pos1-PUL_R); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(RIGHT_X,PUL_Y); ctx.lineTo(RIGHT_X,PUL_Y+pos2-PUL_R); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(LEFT_X,PUL_Y); ctx.lineTo(LEFT_X,PUL_Y+pos1); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(RIGHT_X,PUL_Y); ctx.lineTo(RIGHT_X,PUL_Y+pos2); ctx.stroke();
     ctx.restore();
     // Rope tension coloring
     var tNorm=Math.min(1,T_atw/(Math.max(m1,m2)*g*1.2));
     ctx.save(); ctx.strokeStyle='rgba('+Math.round(34+221*tNorm)+','+Math.round(211-150*tNorm)+','+Math.round(238-200*tNorm)+',0.5)'; ctx.lineWidth=1.5;
-    ctx.beginPath(); ctx.moveTo(LEFT_X+1,PUL_Y); ctx.lineTo(LEFT_X+1,PUL_Y+pos1-PUL_R);
-    ctx.moveTo(RIGHT_X+1,PUL_Y); ctx.lineTo(RIGHT_X+1,PUL_Y+pos2-PUL_R); ctx.stroke(); ctx.restore();
+    ctx.beginPath(); ctx.moveTo(LEFT_X+1,PUL_Y); ctx.lineTo(LEFT_X+1,PUL_Y+pos1);
+    ctx.moveTo(RIGHT_X+1,PUL_Y); ctx.lineTo(RIGHT_X+1,PUL_Y+pos2); ctx.stroke(); ctx.restore();
 
     // Mass 1 (left)
     var bW=Math.max(36,m1*10), bH=36;
@@ -10657,11 +10658,13 @@ function simTension(canvas){
     ctx.beginPath(); ctx.roundRect(LEFT_X-bW/2,m1Y,bW,bH,4); ctx.fill(); ctx.stroke();
     ctx.shadowBlur=0; ctx.restore();
     simText(ctx,'m₁='+m1+' kg',LEFT_X,m1Y+bH/2+4,'#bfdbfe',9.5,undefined,true);
-    // T arrow up on m1
-    var t1len=Math.min(50,T_atw*2);
-    simArrow(ctx,LEFT_X,m1Y,LEFT_X,m1Y-t1len,'#22d3ee',2.5,10);
-    // W arrow down on m1
-    simArrow(ctx,LEFT_X,m1Y+bH,LEFT_X,m1Y+bH+Math.min(40,m1*g*1.5),'#fbbf24',2,8);
+    // One scale for T, W1 and W2: W1 < T < W2 must be visible. (Every arrow
+    // used to hit its length cap, so all four looked the same.)
+    var kA=Math.min(1.5,58/(Math.max(m1,m2)*g));
+    var t1len=T_atw*kA;
+    simArrow(ctx,LEFT_X-7,m1Y,LEFT_X-7,m1Y-t1len,'#22d3ee',2.5,10);
+    simArrow(ctx,LEFT_X,m1Y+bH,LEFT_X,m1Y+bH+m1*g*kA,'#fbbf24',2,8);
+    simText(ctx,'W₁',LEFT_X-8,m1Y+bH+m1*g*kA*0.6,'#fbbf24',10,'right',true);
 
     // Mass 2 (right)
     var bW2=Math.max(36,m2*10);
@@ -10671,54 +10674,56 @@ function simTension(canvas){
     ctx.beginPath(); ctx.roundRect(RIGHT_X-bW2/2,m2Y,bW2,bH,4); ctx.fill(); ctx.stroke();
     ctx.shadowBlur=0; ctx.restore();
     simText(ctx,'m₂='+m2+' kg',RIGHT_X,m2Y+bH/2+4,'#fca5a5',9.5,undefined,true);
-    var t2len=Math.min(50,T_atw*2);
-    simArrow(ctx,RIGHT_X,m2Y,RIGHT_X,m2Y-t2len,'#22d3ee',2.5,10);
-    simArrow(ctx,RIGHT_X,m2Y+bH,RIGHT_X,m2Y+bH+Math.min(40,m2*g*1.5),'#fbbf24',2,8);
+    var t2len=T_atw*kA;
+    simArrow(ctx,RIGHT_X+7,m2Y,RIGHT_X+7,m2Y-t2len,'#22d3ee',2.5,10);
+    simArrow(ctx,RIGHT_X,m2Y+bH,RIGHT_X,m2Y+bH+m2*g*kA,'#fbbf24',2,8);
+    simText(ctx,'W₂',RIGHT_X+8,m2Y+bH+m2*g*kA*0.6,'#fbbf24',10,'left',true);
 
     // T label between pulleys
-    simText(ctx,'T='+T_atw.toFixed(1)+'N',PUL_X,PUL_Y-26,'#22d3ee',9.5,undefined,true);
+    simText(ctx,'T = '+T_atw.toFixed(1)+' N',PUL_X,PUL_Y+PUL_R+14,'#22d3ee',10,undefined,true);
 
-    // ── RIGHT: ELEVATOR ──────────────────────────────────────
-    var EVX=W*0.75;
-    // Ceiling
-    ctx.save(); ctx.fillStyle='#1e3a52'; ctx.fillRect(EVX-30,CEIL_Y,60,12); ctx.restore();
-    // Rope
-    ctx.save(); ctx.strokeStyle='#94a3b8'; ctx.lineWidth=2.5;
-    ctx.beginPath(); ctx.moveTo(EVX,CEIL_Y+12); ctx.lineTo(EVX,boxY-20); ctx.stroke(); ctx.restore();
-    // Elevator box
-    var eW=52, eH=44;
-    ctx.save();
+    // ── RIGHT: A BODY HANGING IN AN ACCELERATING ELEVATOR ─────
+    // The car moves; the body of mass m hangs from its ceiling by a string.
+    // The string must give the body the car's acceleration: T − mg = ma.
+    var EVX=W*0.76, eW=Math.min(96,W*0.22), eH=128;
     var eCol=aEl>0.1?'#34d399':aEl<-0.1?'#f87171':'#60a5fa';
-    ctx.fillStyle=eCol+'88'; ctx.strokeStyle=eCol; ctx.lineWidth=2;
-    // Elevator shaft outline
-    ctx.strokeStyle='rgba(30,58,82,.4)'; ctx.setLineDash([4,6]);
-    ctx.strokeRect(EVX-30,CEIL_Y+14,60,H-CEIL_Y-50); ctx.setLineDash([]); ctx.restore();
-    ctx.save(); ctx.fillStyle=eCol+'cc'; ctx.strokeStyle=eCol; ctx.lineWidth=2;
-    ctx.beginPath(); ctx.roundRect(EVX-eW/2,boxY-eH/2,eW,eH,5); ctx.fill(); ctx.stroke(); ctx.restore();
-    simText(ctx,mEl+'kg',EVX,boxY+4,'#f0f9ff',9.5,undefined,true);
-    // T and W on elevator
-    var tel=Math.min(52,T_el*1.2);
-    var well=Math.min(42,mEl*g*1.2);
-    simArrow(ctx,EVX,boxY-eH/2,EVX,boxY-eH/2-tel,'#22d3ee',2.5,10);
-    simText(ctx,'T',EVX+8,boxY-eH/2-tel/2,'#22d3ee',8,'left');
-    simArrow(ctx,EVX,boxY+eH/2,EVX,boxY+eH/2+well,'#fbbf24',2,8);
-    simText(ctx,'W',EVX+8,boxY+eH/2+well/2,'#fbbf24',8,'left');
-    // Accel arrow
+    ctx.save(); ctx.strokeStyle='rgba(61,100,128,.5)'; ctx.setLineDash([4,6]); ctx.lineWidth=1;
+    ctx.strokeRect(EVX-eW/2-6,CEIL_Y,eW+12,H-CEIL_Y-6); ctx.setLineDash([]); ctx.restore();
+    // cable to the car
+    ctx.save(); ctx.strokeStyle='#64748b'; ctx.lineWidth=2;
+    ctx.beginPath(); ctx.moveTo(EVX,CEIL_Y); ctx.lineTo(EVX,boxY-eH/2); ctx.stroke(); ctx.restore();
+    // car
+    ctx.save(); ctx.fillStyle='rgba(15,32,53,.85)'; ctx.strokeStyle=eCol; ctx.lineWidth=2;
+    ctx.beginPath(); ctx.roundRect(EVX-eW/2,boxY-eH/2,eW,eH,6); ctx.fill(); ctx.stroke(); ctx.restore();
+    // body hanging from the car's ceiling
+    var sTop=boxY-eH/2, bY=boxY-6, bw=38, bh=26;
+    ctx.save(); ctx.strokeStyle='#94a3b8'; ctx.lineWidth=2;
+    ctx.beginPath(); ctx.moveTo(EVX,sTop); ctx.lineTo(EVX,bY-bh/2); ctx.stroke(); ctx.restore();
+    ctx.save(); ctx.fillStyle='rgba(99,102,241,.9)'; ctx.strokeStyle='#a5b4fc'; ctx.lineWidth=2;
+    ctx.beginPath(); ctx.roundRect(EVX-bw/2,bY-bh/2,bw,bh,4); ctx.fill(); ctx.stroke(); ctx.restore();
+    simText(ctx,mEl+' kg',EVX,bY+4,'#f0f9ff',10,undefined,true);
+    // T and W on the body, one scale
+    var kE=Math.min(1.4,44/(mEl*(g+5)));
+    var tel=T_el*kE, well=mEl*g*kE;
+    simArrow(ctx,EVX+10,bY-bh/2,EVX+10,bY-bh/2-tel,'#22d3ee',2.5,9);
+    simText(ctx,'T',EVX+16,bY-bh/2-tel/2,'#22d3ee',10,'left',true);
+    simArrow(ctx,EVX,bY+bh/2,EVX,bY+bh/2+well,'#fbbf24',2.5,9);
+    simText(ctx,'W',EVX+8,bY+bh/2+well*0.6,'#fbbf24',10,'left',true);
+    // the car's acceleration, beside it
     if(Math.abs(aEl)>0.1){
-      var alen=Math.min(36,Math.abs(aEl)*8);
-      simArrow(ctx,EVX-eW/2-8,boxY,EVX-eW/2-8,boxY+(aEl>0?-1:1)*alen,eCol,2,8);
-      simText(ctx,'a='+aEl.toFixed(1),EVX-eW/2-26,boxY,eCol,7.5,undefined,true);
+      var alen=Math.min(40,Math.abs(aEl)*8);
+      simArrow(ctx,EVX-eW/2-14,boxY,EVX-eW/2-14,boxY+(aEl>0?-1:1)*alen,eCol,2.5,9);
+      simText(ctx,'a',EVX-eW/2-22,boxY,eCol,11,'right',true);
     }
-    // Elevator T value
-    simText(ctx,'T='+T_el.toFixed(1)+'N',EVX,boxY+eH/2+well+14,'#22d3ee',9,undefined,true);
-    simText(ctx,aEl>0.1?'עולה: T>W':aEl<-0.1?'יורד: T<W':'נייח: T=W',EVX,boxY+eH/2+well+26,eCol,8,undefined,true);
+    simText(ctx,aEl>0.1?'תאוצה מעלה: T > W':aEl<-0.1?'תאוצה מטה: T < W':'a = 0: T = W',EVX,72,eCol,10,undefined,true);
+    simText(ctx,a_atw>0.02?'m₂ יורדת, m₁ עולה':a_atw<-0.02?'m₁ יורדת, m₂ עולה':'m₁ = m₂: a = 0',PUL_X,72,'#fbbf24',10,undefined,true);
 
     // ── Formula panel ─────────────────────────────────────
     ctx.save(); ctx.fillStyle='rgba(6,14,28,.92)'; ctx.strokeStyle='#1e4060'; ctx.lineWidth=1.5;
-    ctx.beginPath(); ctx.roundRect(8,6,W-16,46,6); ctx.fill(); ctx.stroke(); ctx.restore();
-    simText(ctx,'מתיחות — מכונת אטווד משמאל, מעלית מימין',W/2,18,'#22d3ee',10,undefined,true);
-    simText(ctx,'מכונת אטווד: T = 2m₁m₂g/(m₁+m₂) = '+T_atw.toFixed(1)+'N  |  a = (m₂-m₁)g/(m₁+m₂) = '+a_atw.toFixed(2)+' m/s²',W/2,32,'#94a3b8',8.5,undefined,true);
-    simText(ctx,'מעלית: T = m(g+a) = '+mEl+'×(9.8+('+aEl.toFixed(1)+')) = '+T_el.toFixed(1)+' N',W/2,44,'#60a5fa',8.5,undefined,true);
+    ctx.beginPath(); ctx.roundRect(8,6,W-16,48,6); ctx.fill(); ctx.stroke(); ctx.restore();
+    simText(ctx,'אטווד:  a = '+a_atw.toFixed(2)+' m/s²   ·   T = 2m₁m₂g/(m₁+m₂) = '+T_atw.toFixed(1)+' N',W/2,22,'#cbd5e1',10,undefined,true);
+    var _as=(aEl>=0?'+ ':'− ')+Math.abs(aEl).toFixed(1);
+    simText(ctx,'במעלית:  T = m(g + a) = '+mEl+'×(9.8 '+_as+') = '+T_el.toFixed(1)+' N',W/2,42,'#93c5fd',10,undefined,true);
 
     requestAnimationFrame(draw);
   }
@@ -32703,7 +32708,7 @@ function buildSim(sim){
   else if(sim.type==='newton3')extra=C(rng('n3-mA',1,15,3,0.5,'m_A',' kg')+rng('n3-mB',1,15,6,0.5,'m_B',' kg')+rng('n3-F',50,600,300,10,'כוח דחיפה',' N')+btn('n3-push','💥 דחוף!')+btn('n3-reset','↺ אפס','btn-secondary'));
   else if(sim.type==='normal-force')extra=C(rng('nf-theta',0,70,0,1,'זווית θ','°')+rng('nf-mass',1,12,4,0.5,'מסה m',' kg')+rng('nf-mu',0,0.7,0,0.05,'חיכוך μ')+btn('nf-reset','↺ אפס','btn-secondary'));
   else if(sim.type==='incline')extra=C(rng('inc-theta',5,75,30,1,'זווית θ','°')+rng('inc-mu',0,0.8,0,0.05,'חיכוך μ')+rng('inc-m',0.5,10,3,0.5,'מסה m',' kg')+rng('inc-m1',0.5,10,3,0.5,'m₁ אטווד',' kg')+rng('inc-m2',0.5,10,5,0.5,'m₂ אטווד',' kg')+btn('inc-atwood','⚖️ מכונת אטווד','btn-secondary')+btn('inc-reset','↺ אפס','btn-secondary'));
-  else if(sim.type==='tension')extra=C(rng('ten-m1',0.5,12,3,0.5,'m₁ אטווד',' kg')+rng('ten-m2',0.5,12,5,0.5,'m₂ אטווד',' kg')+rng('ten-el',0.5,5,3,0.5,'מסת מעלית',' kg')+rng('ten-ea',-5,5,0,0.5,'תאוצת מעלית',' m/s²')+btn('ten-launch','▶ שחרר!')+btn('ten-reset','↺ אפס','btn-secondary'));
+  else if(sim.type==='tension')extra=C(rng('ten-m1',0.5,12,3,0.5,'m₁ אטווד',' kg')+rng('ten-m2',0.5,12,5,0.5,'m₂ אטווד',' kg')+rng('ten-el',0.5,5,3,0.5,'מסת הגוף במעלית',' kg')+rng('ten-ea',-5,5,0,0.5,'תאוצת המעלית',' m/s²')+btn('ten-launch','▶ שחרר!')+btn('ten-reset','↺ אפס','btn-secondary'));
   else if(sim.type==='fbd')extra=C(rng('fbd-F',-10,25,0,0.5,'כוח נוסף על הגוף (+ מעלה)',' N')+btn('fbd-reset','↺ נקה הכל','btn-secondary'));
   else if(sim.type==='momentum')extra=C(rng('mom-mass',0.5,8,2,0.5,'מסה',' kg')+rng('mom-vel',-10,10,4,1,'מהירות',' m/s'));
   else if(sim.type==='momentum-cons')extra=C(rng('mc-m1',1,8,3,0.5,'m₁',' kg')+rng('mc-m2',1,8,2,0.5,'m₂',' kg')+rng('mc-v1',-8,8,4,1,'v₁',' m/s')+rng('mc-v2',-8,8,-2,1,'v₂',' m/s')+btn('mc-reset','↺ אפס','btn-secondary'));
