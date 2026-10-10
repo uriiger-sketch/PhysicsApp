@@ -14429,18 +14429,32 @@ function simElcDeflect(canvas){
 
 function simElcMillikan(canvas){
   // SECTION: elc-motion.elc-millikan
-  // PEDAGOGY: the drop carries a whole number of electrons, chosen at random
-  // and NOT revealed. The learner tunes V until it hovers and reads the charge
-  // off mgd/V, then checks that q/e came out an integer -- which is the actual
-  // logic of the experiment rather than a stated result.
+  // PEDAGOGY: the experiment as it was actually done -- two measurements on one
+  // drop, neither of which can be skipped. (1) Field off: the drop falls at its
+  // terminal speed, where Stokes drag balances the weight, 6*pi*eta*r*v = mg =
+  // rho*(4/3)*pi*r^3*g; that speed gives r, and r gives m. (2) Field on: tune V
+  // until the drop hovers, qE = mg, which gives q. Every new drop has its own
+  // size and its own whole number of electrons, both hidden; the learner
+  // measures m, then q, and checks that q/e came out an integer. (The mass used
+  // to be a constant the simulation simply knew -- the very quantity Millikan
+  // had no way to weigh.)
   const H=500; const {ctx,W,dpr}=setupCanvas(canvas,H);
   const id=canvas.id;
-  const m_d=3.2e-15, d_m=0.005, g=10, e_c=1.6e-19;
-  // Stokes drag on a micron drop in air: chosen so that a fully unbalanced
-  // drop (net force = mg) drifts across the 5 mm gap in about two seconds.
-  const bDrag=(m_d*g)/(d_m/2.0);
-  var nEl=2, y=0.5, vy=0, revealed=false, Vbal=0;
-  function newDrop(){nEl=1+Math.floor(Math.random()*5);y=0.5;vy=0;revealed=false;Vbal=0;}
+  const d_m=0.005, g=10, e_c=1.6e-19, ETA=1.8e-5, RHO=900;
+  const TL=25;                 // on screen the motion runs 25 times faster than life
+  var nEl=2, rD=1e-6, mD=1e-15, bD=1e-10, y=0.5, revealed=false, Vbal=0, bestF=0, mMeas=null, vFall=0;
+  function newDrop(){
+    for(var k=0;k<60;k++){
+      nEl=1+Math.floor(Math.random()*5);
+      rD=(0.75+Math.random()*0.45)*1e-6;
+      mD=RHO*4/3*Math.PI*rD*rD*rD;
+      var vb=mD*g*d_m/(nEl*e_c);           // its balance voltage: must be on the slider
+      if(vb>80&&vb<960)break;
+      nEl=2;rD=0.95e-6;mD=RHO*4/3*Math.PI*rD*rD*rD;
+    }
+    bD=6*Math.PI*ETA*rD;
+    y=0.5;revealed=false;Vbal=0;bestF=0;mMeas=null;vFall=0;
+  }
   var nb=document.getElementById('btn-mk-new');
   if(nb)nb.addEventListener('click',newDrop);
   function gV(){var e=document.getElementById('inp-mk-V');return e?parseFloat(e.value):300;}
@@ -14453,19 +14467,32 @@ function simElcMillikan(canvas){
   function draw(){
     if(_simStop[id])return;
     var V=gV(), E=V/d_m, q=nEl*e_c;
-    var Fe=q*E, Fg=m_d*g, Fnet=Fe-Fg;
-    // small drop in air: viscous drag dominates, so it reaches terminal speed
-    vy=Fnet/bDrag;                       // m/s, positive = upward
-    y+=vy*0.016/d_m;                     // fraction of the gap per frame
-    if(y>0.76){y=0.76;} if(y<0.24){y=0.24;}
+    var Fe=q*E, Fg=mD*g, Fnet=Fe-Fg;
+    // A micron-sized drop reaches its terminal speed within microseconds, so its
+    // velocity simply follows the net force: v = (qE - mg)/(6*pi*eta*r).
+    var vy=Fnet/bD;                      // m/s, positive = upward
+    y+=vy*TL*0.016/d_m;                  // fraction of the gap per frame
+    // the microscope's field of view: the drop is watched between two lines
+    var YLO=0.38, YHI=0.72, edge=0;
+    if(y>=YHI){y=YHI;edge=vy>0?1:0;} if(y<=YLO){y=YLO;edge=vy<0?-1:0;}
+    var off=V<0.5;
+    if(off){                             // measurement 1: the fall speed -> r -> m
+      vFall=-vy;
+      var rM=Math.sqrt(9*ETA*vFall/(2*RHO*g));
+      mMeas=RHO*4/3*Math.PI*rM*rM*rM;
+    }
     // The measurement IS the balance voltage, so record it when balance is
     // reached and keep it; recomputing from a later slider position would
     // report a charge the drop never had.
-    var bal=Math.abs(Fnet)<Fg*0.03;
-    if(bal){revealed=true;Vbal=V;}
+    // While it hovers, keep the voltage at which it hovered BEST, so fine-tuning
+    // (the slider moves in 1 V steps; dragging on the drop is finer still)
+    // improves the result instead of freezing the first rough hit.
+    var bal=!off&&Math.abs(Fnet)<Fg*0.015;
+    if(bal&&mMeas!==null&&(!revealed||Math.abs(Fnet)<bestF)){revealed=true;Vbal=V;bestF=Math.abs(Fnet);}
+    if(bal)edge=0;
     ctx.clearRect(0,0,W,H);
     ctx.fillStyle='#0f1c2e';ctx.fillRect(0,0,W,H);
-    var PL=W*0.16, PR=W*0.72, PT=H*0.13, PB=H*0.60;
+    var PL=W*0.16, PR=W*0.72, PT=H*0.13, PB=H*0.58;
     ctx.fillStyle='#ef4444';ctx.fillRect(PL,PT-10,PR-PL,10);
     ctx.fillStyle='#3b82f6';ctx.fillRect(PL,PB,PR-PL,10);
     slTxt(ctx,'+',PL-18,PT-1,'#ef4444',17,'center',true);
@@ -14473,30 +14500,52 @@ function simElcMillikan(canvas){
     slTxt(ctx,'d = 5 mm',PR+14,(PT+PB)/2,'#7d8da6',11,'left');
     ctx.save();ctx.strokeStyle='#334155';ctx.setLineDash([3,4]);ctx.lineWidth=1;
     ctx.beginPath();ctx.moveTo(PR+6,PT);ctx.lineTo(PR+6,PB);ctx.stroke();ctx.restore();
+    // the reticle lines the drop is timed between
+    ctx.save();ctx.strokeStyle='rgba(148,163,184,.28)';ctx.setLineDash([2,5]);ctx.lineWidth=1;
+    [YLO,YHI].forEach(function(f){var yy=PB-(PB-PT)*f;ctx.beginPath();ctx.moveTo(PL+10,yy);ctx.lineTo(PR-10,yy);ctx.stroke();});
+    ctx.restore();
     // the drop
-    var dy=PB-(PB-PT)*y;
-    ctx.fillStyle='#fbbf24';ctx.beginPath();ctx.arc((PL+PR)/2,dy,9,0,6.2832);ctx.fill();
+    var cx=(PL+PR)/2, dy=PB-(PB-PT)*y;
+    ctx.fillStyle='#fbbf24';ctx.beginPath();ctx.arc(cx,dy,9,0,6.2832);ctx.fill();
     ctx.strokeStyle='#f59e0b';ctx.lineWidth=1.5;ctx.stroke();
-    // force arrows, on a shared scale
-    var sc=52/Math.max(Fg,Fe,1e-30);
-    simArrow(ctx,(PL+PR)/2-30,dy,(PL+PR)/2-30,dy+Fg*sc,'#ef4444',2.5,9);
-    slTxt(ctx,'mg',(PL+PR)/2-36,dy+Fg*sc+13,'#ef4444',11,'right',true);
-    simArrow(ctx,(PL+PR)/2+30,dy,(PL+PR)/2+30,dy-Fe*sc,'#10b981',2.5,9);
-    slTxt(ctx,'qE',(PL+PR)/2+36,dy-Fe*sc-6,'#10b981',11,'left',true);
-    simText(ctx,bal?'⚖ מרחפת — הכוחות מאוזנים':(Fnet>0?'עולה — הכוח החשמלי גובר':'יורדת — המשקל גובר'),
-      W/2,H*0.68,bal?'#10b981':'#94a3b8',14,'center',true);
-    var by=H-88;
-    slTxt(ctx,'E = V/d = '+E.toFixed(0)+' V/m',W/2,by,'#94a3b8',12,'center');
-    if(revealed){
-      var qm=m_d*g*d_m/Vbal;
-      slTxt(ctx,'q = mgd/V = '+sciTxt(qm)+' C   (V = '+Vbal.toFixed(0)+' V)',
-        W/2,by+22,'#dde6f0',13.5,'center',true);
-      slTxt(ctx,'n = q/e = '+(qm/e_c).toFixed(2),W/2,by+44,'#fbbf24',14,'center',true);
-      simText(ctx,'מספר שלם — הטיפה נושאת '+Math.round(qm/e_c)+' אלקטרונים עודפים',
-        W/2,by+66,'#10b981',11.5,'center',true);
-    } else {
-      simText(ctx,'כווננו את המתח עד שהטיפה תעצור — ואז ייחשב המטען',W/2,by+30,'#7d8da6',12,'center');
+    // all three forces on one scale: at terminal speed they sum to zero
+    var Fd=-Fnet, sc=52/Math.max(Fg,Fe,1e-30);
+    simArrow(ctx,cx-30,dy,cx-30,dy+Fg*sc,'#ef4444',2.5,9);
+    slTxt(ctx,'mg',cx-36,dy+Fg*sc+13,'#ef4444',11,'right',true);
+    if(Fe>Fg*0.005){
+      simArrow(ctx,cx+30,dy,cx+30,dy-Fe*sc,'#10b981',2.5,9);
+      slTxt(ctx,'qE',cx+36,dy-Fe*sc-6,'#10b981',11,'left',true);
     }
+    if(Math.abs(Fd)*sc>5){
+      simArrow(ctx,cx+62,dy,cx+62,dy-Fd*sc,'#94a3b8',2,8);
+      slTxt(ctx,'גרר',cx+70,dy-Fd*sc/2,'#94a3b8',10.5,'left',true);
+    }
+    simText(ctx,off?'השדה כבוי: נופלת במהירות קבועה — הגרר מאזן את המשקל'
+      :bal?'⚖ מרחפת — qE = mg':(Fnet>0?'עולה במהירות קבועה — qE > mg, והגרר מאזן את ההפרש':'יורדת במהירות קבועה — mg > qE, והגרר מאזן את ההפרש'),
+      W/2,H*0.655,bal?'#10b981':'#94a3b8',13,'center',true);
+    simText(ctx,edge?(edge<0?'הטיפה בתחתית שדה הראייה — העלו את המתח כדי להחזיר אותה':'הטיפה בראש שדה הראייה — הורידו את המתח')
+      :'על המסך התנועה מואצת פי '+TL,W/2,H*0.655+19,edge?'#f59e0b':'#7d8da6',10,'center');
+    var by=H-112;
+    slTxt(ctx,'E = V/d = '+E.toFixed(0)+' V/m      v = '+(Math.abs(vy)*1000).toFixed(3)+' mm/s '+(Math.abs(vy)<1e-7?'':(vy>0?'↑':'↓')),
+      W/2,by,'#94a3b8',11.5,'center');
+    if(mMeas===null){
+      simText(ctx,'שלב 1: הורידו את המתח ל-0 — מהירות הנפילה תיתן את מסת הטיפה',W/2,by+24,'#fbbf24',12,'center',true);
+    } else {
+      var rM2=Math.cbrt(3*mMeas/(4*Math.PI*RHO));
+      slTxt(ctx,'v₀ = '+(vFall*1000).toFixed(3)+' mm/s  ⇒  r = √(9ηv₀/2ρg) = '+(rM2*1e6).toFixed(2)+' μm  ⇒  m = '+sciTxt(mMeas)+' kg',
+        W/2,by+24,'#dde6f0',12,'center',true);
+    }
+    if(revealed){
+      var qm=mMeas*g*d_m/Vbal;
+      slTxt(ctx,'q = mgd/V = '+sciTxt(qm)+' C   (V = '+Vbal.toFixed(0)+' V)',W/2,by+48,'#dde6f0',13,'center',true);
+      slTxt(ctx,'n = q/e = '+(qm/e_c).toFixed(2)+'  ≈  '+Math.round(qm/e_c),W/2,by+70,'#fbbf24',13.5,'center',true);
+      simText(ctx,'מספר שלם — על הטיפה '+Math.round(qm/e_c)+' אלקטרונים עודפים',W/2,by+92,'#10b981',11.5,'center',true);
+    } else if(mMeas!==null){
+      simText(ctx,'שלב 2: העלו את המתח עד שהטיפה תעצור — ואז ייחשב המטען',W/2,by+52,'#7d8da6',12,'center');
+    } else if(bal){
+      simText(ctx,'הטיפה מרחפת — אבל q = mgd/V דורש את m: התחילו בשלב 1',W/2,by+52,'#f59e0b',12,'center',true);
+    }
+    slTxt(ctx,'η = 1.8×10⁻⁵ Pa·s    ρ = 900 kg/m³    g = 10 m/s²',W/2,H-6,'#7d8da6',9.5,'center');
     requestAnimationFrame(draw);
   }
   newDrop(); draw();
@@ -32706,7 +32755,7 @@ function buildSim(sim){
   else if(sim.type==='projectile')extra=C(rng('proj-angle',10,80,45,1,'זווית θ','°')+rng('proj-v0',5,35,20,1,'מהירות v₀',' m/s')+btn('proj-launch','▶ שגר!','btn-primary')+btn('proj-reset','↺ אפס','btn-secondary'));
   else if(sim.type==='elc-dielectric')extra=C(rng('di-k',1,8,4,0.5,'קבוע דיאלקטרי κ')+rng('di-f',0,1,0,0.05,'הכנסת הלוח')+btn('di-mode','🔌 הסוללה מחוברת','btn-secondary'));
   else if(sim.type==='elc-deflect')extra=C(rng('df-V',0,300,100,10,'מתח V',' V')+rng('df-v0',1,5,2,0.25,'v₀',' ×10⁷ m/s')+rng('df-L',4,14,10,1,'אורך הלוחות',' cm')+btn('df-part','🔁 החלף לפרוטון','btn-secondary'));
-  else if(sim.type==='elc-millikan')extra=C(rng('mk-V',0,1000,300,10,'מתח V',' V')+btn('mk-new','🎲 טיפה חדשה','btn-primary'));
+  else if(sim.type==='elc-millikan')extra=C(rng('mk-V',0,1000,300,1,'מתח V',' V')+btn('mk-new','🎲 טיפה חדשה','btn-primary'));
   else if(sim.type==='statics-torque')extra=C(rng('tq-r',0.05,0.50,0.30,0.01,'מרחק r',' m')+rng('tq-F',5,60,30,1,'כוח F',' N')+rng('tq-th',0,180,60,5,'זווית θ',' °'));
   else if(sim.type==='statics-beam')extra=C(rng('bm-P',0,600,300,10,'עומס P',' N')+rng('bm-xp',0,4,3,0.1,'מיקום העומס',' m')+rng('bm-W',0,400,200,20,'משקל הקורה',' N')+rng('bm-xb',1.5,4,4,0.1,'מיקום משען B',' m'));
   else if(sim.type==='statics-com')extra=C(rng('cm-w',0.15,0.9,0.30,0.05,'רוחב w',' m')+rng('cm-h',0.2,1.2,0.50,0.05,'גובה h',' m')+rng('cm-mu',0.05,1.2,0.40,0.05,'חיכוך μs')+rng('cm-th',0,55,15,1,'זווית המדרון',' °'));
