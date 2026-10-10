@@ -30682,6 +30682,21 @@ document.addEventListener('visibilitychange',function(){
   // unknown length. Stop, and let the learner start a fresh run.
   if(document.hidden&&_sl.run&&_sl.stopFn)_sl.stopFn();
 });
+// Latin with real subscripts, 'x_cm' or 'a_c' or 'x_{cm}': the base, then the
+// subscript smaller and lowered. simText only knows the few letters Unicode
+// has subscripts for, and printed the rest -- 'a_c', 'x_cm' -- literally.
+function slTxtSub(ctx,txt,x,y,col,sz,align,bold){
+  var parts=[],re=/_(\{[^}]*\}|[A-Za-z0-9]+)/g,last=0,m;
+  while((m=re.exec(txt))){if(m.index>last)parts.push([txt.slice(last,m.index),0]);
+    parts.push([m[1].replace(/[{}]/g,''),1]);last=re.lastIndex;}
+  if(last<txt.length)parts.push([txt.slice(last),0]);
+  ctx.save();ctx.direction='ltr';ctx.fillStyle=col;ctx.textAlign='left';
+  var font=function(sub){return (bold?'bold ':'')+(sub?Math.round(sz*0.72):sz)+'px Heebo';},wsum=0,i;
+  for(i=0;i<parts.length;i++){ctx.font=font(parts[i][1]);parts[i].push(ctx.measureText(parts[i][0]).width);wsum+=parts[i][2];}
+  var x0=align==='center'?x-wsum/2:align==='right'?x-wsum:x;
+  for(i=0;i<parts.length;i++){ctx.font=font(parts[i][1]);
+    ctx.fillText(parts[i][0],x0,y+(parts[i][1]?sz*0.25:0));x0+=parts[i][2];}
+  ctx.restore();}
 // A fixed-length rolling window of samples.
 function slTrace(n){return {n:n,d:[],push:function(v){this.d.push(v);if(this.d.length>this.n)this.d.shift();},
                             clear:function(){this.d=[];},last:function(){return this.d.length?this.d[this.d.length-1]:0;}};}
@@ -31012,11 +31027,11 @@ var SENSOR_LABS={
 
  'statics.center-mass':{t:'com-balance',h:330,
    ttl:'אתרו את מרכז המסה של הטלפון עצמו',
-   how:'השעינו את הטלפון <b>לרוחבו</b> על עיפרון, והזיזו עד שיישאר <b>מאוזן</b>. מדדו בסרגל את המרחק מהקצה, הזינו במחוון ולחצו <b>רשום</b>. חזרו 3–4 פעמים.',
+   how:'הניחו עיפרון עגול על השולחן ואת הטלפון עליו, מסך למעלה, כשהעיפרון <b>חוצה אותו לרוחבו</b>. הזיזו את הטלפון עד שיישאר <b>מאוזן</b>, מדדו בסרגל את המרחק מהקצה התחתון עד העיפרון, הזינו במחוון ולחצו <b>רשום</b>. חזרו 3–4 פעמים. (ב״מדידה לרוחב״ העיפרון מונח לאורך הטלפון.)',
    pred:'לפני המדידה: האם נקודת האיזון תהיה בדיוק באמצע הטלפון? חשבו איפה יושבת הסוללה — החלק הכבד ביותר במכשיר.',
-   note:'גוף על ציר בשיווי משקל כאשר <b>סכום המומנטים מתאפס</b>: כל '+M('m_i')+' תורם '+M('m_i g x_i')+', והסכום מתאפס בדיוק כשהציר מתחת ל-'+M('x_{cm}')+'. זו <b>ההגדרה המעבדתית</b> של מרכז המסה.<br><br>מד-התאוצה משמש כאן <b>פלס</b> בלבד. הריצוד שנשאר מסגיר <b>שיווי משקל רופף</b> — מרכז המסה מעל הציר, וכל סטייה מגדילה את עצמה. ואם יצא שאינו באמצע — נכון: הסוללה מושכת לצד אחד.',
+   note:'גוף על ציר בשיווי משקל כאשר <b>סכום המומנטים מתאפס</b>: כל '+M('m_i')+' תורם '+M('m_i g x_i')+', והסכום מתאפס בדיוק כשהציר מתחת ל-'+M('x_{cm}')+'. זו <b>ההגדרה המעבדתית</b> של מרכז המסה.<br><br>מד-התאוצה משמש כאן <b>פלס</b> בלבד. על עיפרון עגול שיווי המשקל כמעט <b>אדיש</b> (רדיוס העיפרון קרוב לחצי עובי הטלפון): הטלפון נח מאוזן רק כשמרכז המסה ממש מעל קו המגע, והזזה של מילימטרים מטה אותו לצד אחד — ולכן הפלס רגיש כל כך. ואם יצא שאינו באמצע — נכון: הסוללה מושכת לצד אחד.',
    chips:[['tl','הטיה','°'],['wb','ריצוד','°'],['f','x_cm/L','%'],['n','מדידות','']],
-   ctrl:'<button class="sl-sec" id="sl-axl">לאורך</button><button class="sl-sec" id="sl-axw">לרוחב</button><span class="sl-slider">מרחק מהקצה <input id="sl-d" type="range" min="1" max="20" step="0.1" value="7.5"><span id="sl-dv">7.5 cm</span></span><span class="sl-slider">אורך הטלפון <input id="sl-len" type="range" min="8" max="22" step="0.1" value="15.0"><span id="sl-lenv">15.0 cm</span></span><button class="sl-sec" id="sl-rec">➕ רשום</button><button class="sl-sec" id="sl-clr">🗑 נקה</button>'},
+   ctrl:'<button class="sl-sec" id="sl-axl">מדידה לאורך</button><button class="sl-sec" id="sl-axw">מדידה לרוחב</button><span class="sl-slider">מרחק מהקצה <input id="sl-d" type="range" min="1" max="20" step="0.1" value="7.5"><span id="sl-dv">7.5 cm</span></span><span class="sl-slider"><span id="sl-lenl" style="color:inherit;font-weight:inherit;min-width:0">אורך הטלפון</span> <input id="sl-len" type="range" min="5" max="22" step="0.1" value="15.0"><span id="sl-lenv">15.0 cm</span></span><button class="sl-sec" id="sl-rec">➕ רשום</button><button class="sl-sec" id="sl-clr">🗑 נקה</button>'},
 
  'planar.circular':{t:'spin-fit',h:306,minHz:25,
    ttl:'מדדו את '+M('a_c=\\omega^2 r')+' — והוציאו את r מהשיפוע',
@@ -31876,7 +31891,7 @@ var SL_IMPL={
     var f=Math.max(0.03,Math.min(0.97,V.f));
     var ang=Math.max(-0.42,Math.min(0.42,st.th*Math.PI/180*3));
     ctx.save();ctx.translate(cx,cy);ctx.rotate(ang);
-    ctx.fillStyle=slCss('--card','#16202e');ctx.strokeStyle=bd;ctx.lineWidth=1.5;
+    ctx.fillStyle=slCss('--panel2','#162236');ctx.strokeStyle=bd;ctx.lineWidth=1.5;
     var x0=-f*Ls;
     ctx.beginPath();ctx.rect(x0,-T,Ls,T);ctx.fill();ctx.stroke();
     ctx.fillStyle=c1;ctx.globalAlpha=.20;ctx.fillRect(x0,-T,Ls,T);ctx.globalAlpha=1;
@@ -31896,7 +31911,7 @@ var SL_IMPL={
     // be crossed by the x_cm marker exactly when the two agree. The strip below
     // carries the wording.
     slTxt(ctx,'L/2',cx+(0.5-f)*Ls,cy-T-14,mu,8.5,'center');
-    if(M2)slTxt(ctx,'x(cm)',cx+(M2.f-f)*Ls,cy-T-30,gd,9.5,'center',true);
+    if(M2)slTxtSub(ctx,'x_cm',cx+(M2.f-f)*Ls,cy-T-30,gd,10,'center',true);
     // the pencil
     ctx.fillStyle=gd;ctx.beginPath();
     ctx.moveTo(cx,cy+1);ctx.lineTo(cx-9,cy+16);ctx.lineTo(cx+9,cy+16);ctx.closePath();ctx.fill();
@@ -31937,21 +31952,21 @@ var SL_IMPL={
       // the same result in centimetres beside the centre of a uniform slab --
       // whether those two differ is the entire point of the measurement
       var xcm=M2.f*V.L,dev=(M2.f-0.5)*V.L;
-      slTxt(ctx,'x(cm) = '+xcm.toFixed(2)+' cm     L/2 = '+(V.L/2).toFixed(2)+' cm',
+      slTxtSub(ctx,'x_cm = '+xcm.toFixed(2)+' cm     L/2 = '+(V.L/2).toFixed(2)+' cm',
         W/2,sy+sh+42,tx,11,'center',true);
       simText(ctx,Math.abs(dev)<0.15
         ? 'מרכז המסה יצא בערך במרכז הגאומטרי — הטלפון קרוב לגוף אחיד לאורכו'
-        : ('מרכז המסה מוסט ב-'+Math.abs(dev).toFixed(2)+' ס״מ מהמרכז — הטלפון אינו אחיד'),
+        : ('מרכז המסה רחוק '+Math.abs(dev).toFixed(2)+' cm מהאמצע — הטלפון אינו אחיד'),
         W/2,sy+sh+60,mu,10.5,'center');}
     // ── status ──
     var y=H-10;
     if(!st.win.length)simText(ctx,'לחצו ▶ והשעינו את הטלפון על העיפרון',W/2,y,mu,12,'center',true);
     else if(!st.up)simText(ctx,'⚠ הטלפון הפוך — הניחו אותו כשהמסך כלפי מעלה',W/2,y,rd,11.5,'center',true);
     else if(st.ok&&st.sd<0.03)
-      simText(ctx,'מאוזן — אך ללא ריצוד כלל. ודאו שהוא נשען על העיפרון ולא על השולחן',W/2,y,gd,11,'center',true);
+      simText(ctx,'✓ מאוזן ושקט לגמרי — ודאו שהוא נשען רק על העיפרון, ורשמו',W/2,y,gr,11,'center',true);
     else if(st.ok)simText(ctx,'✓ מאוזן ויציב — מדדו בסרגל, כווננו את המחוון ולחצו ״רשום״',W/2,y,gr,11.5,'center',true);
     else if(Math.abs(st.mean)>=1.5)
-      simText(ctx,'צד אחד צונח — הזיזו את הטלפון על העיפרון לכיוון הצד היורד',W/2,y,gd,11.5,'center',true);
+      simText(ctx,'צד אחד צונח — מרכז המסה בצד הזה: הזיזו את הטלפון מעט לכיוון הצד הגבוה',W/2,y,gd,11,'center',true);
     else simText(ctx,'כמעט — המתינו שהתנודות ידעכו',W/2,y,gd,11.5,'center',true);}},
 
 // The angle at which it lets go IS the coefficient: mu_s = tan(theta).
@@ -32517,7 +32532,12 @@ function initSensorLab(key){
       var b=document.getElementById(a[0]);if(b)b.className='sl-sec'+(st.mode===a[1]?' on':'');});};
     [['sl-axl',0],['sl-axw',1]].forEach(function(a){
       var b=document.getElementById(a[0]);
-      if(b)b.addEventListener('click',function(){st.mode=a[1];st.win=[];st.ok=false;cm();});});
+      if(b)b.addEventListener('click',function(){st.mode=a[1];st.win=[];st.ok=false;cm();
+        // across the width the phone is some 7 cm, not 15: the slider says
+        // which dimension it wants, and starts from a sensible one
+        var ll=document.getElementById('sl-lenl'),li=document.getElementById('sl-len'),lv=document.getElementById('sl-lenv');
+        if(ll)ll.textContent=a[1]?'רוחב הטלפון':'אורך הטלפון';
+        if(li){li.value=a[1]?'7.0':'15.0';if(lv)lv.textContent=parseFloat(li.value).toFixed(1)+' cm';}});});
     cm();
     var rb2=document.getElementById('sl-rec');
     if(rb2)rb2.addEventListener('click',function(){
