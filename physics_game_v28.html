@@ -12362,7 +12362,9 @@ function simNormalForce(canvas){
   // PEDAGOGY: Focus is on WHY normal force exists (surface pushes back) and how it changes
   // with angle. Student rotates the incline and watches N decrease. Block slides when N insufficient.
   // Key visual: weight decomposition arrows W_perp and W_par shown as components.
-  const H=500; const {ctx,W,dpr}=setupCanvas(canvas,H);
+  const _cvN=setupCanvas(canvas,500), W=_cvN.W, dpr=_cvN.dpr;
+  // a phone puts the readout panel under the ramp instead of beside it
+  const PHN=W<480, H=PHN?650:500, ctx=PHN?setupCanvas(canvas,H).ctx:_cvN.ctx;
   const id=canvas.id;
   const g=9.8;
   let pT=null, t=0;
@@ -12376,8 +12378,10 @@ function simNormalForce(canvas){
   var resetBtn=document.getElementById('btn-nf-reset');
   if(resetBtn)resetBtn.addEventListener('click',function(){sPos=0;sVel=0;});
 
-  const BASE_X=W*0.08, BASE_Y=H-46;
-  const INCL=Math.min(W*0.74,320);
+  // the ramp keeps clear of the readout column on the right at every angle,
+  // and its foot sits high enough for the weight arrow and the notes below it
+  const BASE_X=W*0.06, BASE_Y=PHN?372:H-118;
+  const INCL=PHN?W*0.8:Math.min(W*0.58,330);
   // ── Direct manipulation: grab the surface and tilt it ──
   var dragRamp=false;
   function _rampHit(p){var d=Math.hypot(p.x-BASE_X,p.y-BASE_Y);var a=Math.atan2(BASE_Y-p.y,p.x-BASE_X)*180/Math.PI;
@@ -12436,7 +12440,7 @@ function simNormalForce(canvas){
 
     // Incline fill
     ctx.save(); ctx.fillStyle='rgba(15,32,53,.85)';
-    ctx.beginPath(); ctx.moveTo(BASE_X,BASE_Y); ctx.lineTo(topX,topY); ctx.lineTo(BASE_X,BASE_Y); ctx.closePath(); ctx.fill(); ctx.restore();
+    ctx.beginPath(); ctx.moveTo(BASE_X,BASE_Y); ctx.lineTo(topX,topY); ctx.lineTo(topX,BASE_Y); ctx.closePath(); ctx.fill(); ctx.restore();
     ctx.save(); ctx.strokeStyle='#3d6480'; ctx.lineWidth=2.5;
     ctx.beginPath(); ctx.moveTo(BASE_X,BASE_Y); ctx.lineTo(topX,topY); ctx.stroke(); ctx.restore();
     // Surface micro-texture
@@ -12447,8 +12451,8 @@ function simNormalForce(canvas){
     }
     // Theta arc
     ctx.save(); ctx.strokeStyle='#fbbf24'; ctx.lineWidth=1.5;
-    ctx.beginPath(); ctx.arc(BASE_X,BASE_Y,42,Math.PI,Math.PI+th); ctx.stroke(); ctx.restore();
-    simText(ctx,theta.toFixed(0)+'°',BASE_X+26,BASE_Y-9,'#fbbf24',9.5,undefined,true);
+    ctx.beginPath(); ctx.arc(BASE_X,BASE_Y,42,-th,0); ctx.stroke(); ctx.restore();
+    simText(ctx,theta.toFixed(0)+'°',BASE_X+54,BASE_Y-8,'#fbbf24',10,'left',true);
 
     // Block (rotated)
     ctx.save(); ctx.translate(bCX,bCY); ctx.rotate(-th);
@@ -12456,103 +12460,105 @@ function simNormalForce(canvas){
     bG.addColorStop(0,'rgba(59,130,246,.9)'); bG.addColorStop(1,'rgba(29,78,216,.65)');
     ctx.fillStyle=bG; ctx.strokeStyle='#60a5fa'; ctx.lineWidth=2;
     ctx.beginPath(); ctx.roundRect(-bS/2,-bS/2,bS,bS,4); ctx.fill(); ctx.stroke(); ctx.restore();
-    simText(ctx,m+'kg',bCX,bCY+4,'#bfdbfe',8.5,undefined,true);
+    simText(ctx,m+' kg',bCX,bCY+4,'#e0e7ff',9,undefined,true);
 
-    // ── FORCE VECTORS ─────────────────────────────────────
-    var arSc=2.2;
-    // W_total (gravity, straight down)
-    var wLen=Math.min(64,W_grav*arSc);
-    simArrow(ctx,bCX,bCY,bCX,bCY+wLen,'#fbbf24',2.5,10);
-    simText(ctx,'W='+W_grav.toFixed(0)+'N',bCX+6,bCY+wLen+4,'#fbbf24',8,'left');
-
-    // W decomposition: dashed components
-    // W_par: along slope downward = (cosT, -sinT) direction
-    var wpLen=Math.min(52,W_par*arSc);
-    ctx.save(); ctx.strokeStyle='rgba(251,191,36,.45)'; ctx.lineWidth=1.5; ctx.setLineDash([3,4]);
-    ctx.beginPath(); ctx.moveTo(bCX,bCY+wLen); ctx.lineTo(bCX-cosT*wpLen,bCY+wLen+sinT*wpLen); ctx.stroke(); ctx.setLineDash([]); ctx.restore();
-    ctx.save(); ctx.strokeStyle='rgba(251,191,36,.45)'; ctx.lineWidth=1.5; ctx.setLineDash([3,4]);
-    var wnpLen=Math.min(52,N*arSc);
-    ctx.beginPath(); ctx.moveTo(bCX,bCY+wLen); ctx.lineTo(bCX-sinT*wnpLen,bCY+wLen-cosT*wnpLen); ctx.stroke(); ctx.setLineDash([]); ctx.restore();
-    simText(ctx,'W∥='+W_par.toFixed(1)+'N',bCX-cosT*wpLen/2+8,bCY+wLen+sinT*wpLen/2+4,'rgba(251,191,36,.65)',7.5,'left');
-
-    // Normal force (perpendicular OUT from surface)
-    var nnx=-sinT, nny=-cosT;
-    var nLen=Math.min(62,N*arSc);
-    simArrow(ctx,bCX,bCY,bCX+nnx*nLen,bCY+nny*nLen,'#a78bfa',2.5,10);
-    simText(ctx,'N='+N.toFixed(1)+'N',bCX+nnx*(nLen+5),bCY+nny*(nLen+5),'#a78bfa',9.5,'center');
-
-    // Friction if any (up slope)
-    if(mu>0.01&&f_show>0.3&&theta>0.5){
-      var fLen=Math.min(46,f_show*arSc);
-      simArrow(ctx,bCX,bCY,bCX+cosT*fLen,bCY-sinT*fLen,'#f87171',2,8);
-      simText(ctx,(isStatic?'f_s=mg·sinθ=':'f_k=μN=')+f_show.toFixed(1)+'N',
-              bCX+cosT*fLen/2+6,bCY-sinT*fLen/2-8,'#f87171',7.5,undefined,true);
+    // ── FORCE VECTORS, all from the block's centre, one scale ──
+    var arSc=Math.min(2.2,64/W_grav);
+    var wLen=W_grav*arSc;
+    // components of W: along the slope (down-slope) and into the surface
+    var dpx=-cosT, dpy=sinT;          // down-slope unit vector (canvas)
+    var inx=sinT, iny=cosT;           // into-the-surface unit vector (canvas)
+    var wpL=W_par*arSc, wnL=N*arSc;
+    ctx.save(); ctx.strokeStyle='rgba(251,191,36,.35)'; ctx.lineWidth=1; ctx.setLineDash([2,4]);
+    ctx.beginPath(); ctx.moveTo(bCX,bCY+wLen); ctx.lineTo(bCX+dpx*wpL,bCY+dpy*wpL);
+    ctx.moveTo(bCX,bCY+wLen); ctx.lineTo(bCX+inx*wnL,bCY+iny*wnL); ctx.stroke(); ctx.setLineDash([]); ctx.restore();
+    if(theta>0.5){
+      ctx.save(); ctx.setLineDash([5,4]); ctx.strokeStyle='#fbbf24'; ctx.lineWidth=1.8;
+      ctx.beginPath(); ctx.moveTo(bCX,bCY); ctx.lineTo(bCX+dpx*wpL,bCY+dpy*wpL);
+      ctx.moveTo(bCX,bCY); ctx.lineTo(bCX+inx*wnL,bCY+iny*wnL); ctx.stroke(); ctx.setLineDash([]); ctx.restore();
+      simText(ctx,'W∥',bCX+dpx*(wpL+12),bCY+dpy*(wpL+12)+4,'#fde68a',10,'center',true);
+      simText(ctx,'W⊥',bCX+inx*(wnL+10)+8,bCY+iny*(wnL+10)+4,'#fde68a',10,'left',true);
     }
-    if(isStatic&&theta>0.5)simText(ctx,'סטטי — הגוש נשאר במקום (mg·sinθ ≤ μN)',W/2,H-10,'#4ade80',9.5,'center');
+    simArrow(ctx,bCX,bCY,bCX,bCY+wLen,'#fbbf24',2.5,10);
+    simText(ctx,'W = '+W_grav.toFixed(0)+' N',bCX-8,bCY+wLen+12,'#fbbf24',10,'right',true);
+
+    // Normal force: perpendicular to the surface, out of it
+    var nLen=N*arSc;
+    simArrow(ctx,bCX,bCY,bCX-inx*nLen,bCY-iny*nLen,'#a78bfa',2.5,10);
+    simText(ctx,'N = '+N.toFixed(1)+' N',bCX-inx*(nLen+8),bCY-iny*(nLen+8)-4,'#c4b5fd',10,'center',true);
+
+    // Friction (up the slope): static while held, kinetic while sliding
+    if(mu>0.01&&f_show>0.3&&theta>0.5){
+      var fLen=f_show*arSc;
+      simArrow(ctx,bCX,bCY,bCX-dpx*fLen,bCY-dpy*fLen,'#f87171',2.2,8);
+      simText(ctx,(isStatic?'fₛ = ':'fₖ = ')+f_show.toFixed(1)+' N',bCX-dpx*(fLen+10),bCY-dpy*(fLen+10)-8,'#fca5a5',10,'center',true);
+    }
+    // Notes under the ramp
+    var NY=BASE_Y+24, NX=PHN?W/2:W*0.34;
+    if(isStatic&&theta>0.5)simText(ctx,'הגוש נשאר במקום: החיכוך הסטטי מאזן את W∥',NX,NY,'#4ade80',10,'center',true);
+    else if(theta>0.5&&!isStatic)simText(ctx,'הגוש מחליק: W∥ גדול מהחיכוך',NX,NY,'#fbbf24',10,'center',true);
     // μ used to matter only while the block was sliding, and this section opens
     // at θ=0 where nothing slides — so the friction slider was inert exactly
     // where a learner first meets it. State what μ determines at any angle: the
     // static friction available, and the angle of repose at which it gives way.
     if(mu>0.001){
       var _slip=Math.atan(mu)*180/Math.PI;
-      simText(ctx,'\u200eחיכוך סטטי מרבי: f_max = μN = '+(mu*N).toFixed(1)+' N',W/2,H-36,'#a78bfa',9,'center',true);
-      simText(ctx,'\u200eזווית ההחלקה: θ_slip = arctan μ = '+_slip.toFixed(1)+'°'+
-                  (theta>_slip?'  ←  כבר עברנו אותה, הגוש מחליק':'  ←  העלו את θ מעליה כדי להחליק'),
-              W/2,H-24,theta>_slip?'#fbbf24':'#4ade80',9,'center',true);
+      simText(ctx,'חיכוך סטטי מרבי:  μN = '+(mu*N).toFixed(1)+' N',NX,NY+20,'#c4b5fd',10,'center',true);
+      simText(ctx,'זווית ההחלקה:  θ = arctan μ = '+_slip.toFixed(1)+'°',NX,NY+38,theta>_slip?'#fbbf24':'#4ade80',10,'center',true);
+      simText(ctx,theta>_slip?'עברנו אותה — הגוש מחליק':'העלו את θ מעליה, והגוש יחליק',NX,NY+56,theta>_slip?'#fbbf24':'#4ade80',10,'center');
+    } else if(theta<=0.5) {
+      simText(ctx,'גררו את המדרון או הזיזו את θ',NX,NY+20,'#94a3b8',10,'center');
     }
 
     // ── Right panel ────────────────────────────────────────
-    var PX=topX+12, PW=W-PX-10, PY=8;
-    if(PW<85){PX=W*0.68;PW=W-PX-8;}
+    var PX=PHN?8:W*0.66, PW=PHN?W-16:W-PX-8, PY=PHN?H-196:8, PHH=PHN?188:H-PY-8;
     ctx.save(); ctx.fillStyle='rgba(6,14,28,.93)'; ctx.strokeStyle='#1e4060'; ctx.lineWidth=1.5;
-    ctx.beginPath(); ctx.roundRect(PX,PY,PW,H-PY-8,6); ctx.fill(); ctx.stroke(); ctx.restore();
-    var PC=PX+PW/2;
-    simText(ctx,'כוח נורמלי',PC,PY+13,'#22d3ee',10,undefined,true);
-    simText(ctx,'N = mg·cosθ',PC,PY+27,'#a78bfa',10,undefined,true);
+    ctx.beginPath(); ctx.roundRect(PX,PY,PW,PHH,6); ctx.fill(); ctx.stroke(); ctx.restore();
+    // on a phone: readouts in the right half, the N(θ) graph in the left half
+    var PC=PHN?PX+PW*0.74:PX+PW/2;
+    simText(ctx,'N = mg·cosθ',PC,PY+18,'#c4b5fd',11,undefined,true);
     ctx.save(); ctx.strokeStyle='#1e4060'; ctx.lineWidth=1;
-    ctx.beginPath(); ctx.moveTo(PX+5,PY+33); ctx.lineTo(PX+PW-5,PY+33); ctx.stroke(); ctx.restore();
-    simText(ctx,'θ='+theta.toFixed(0)+'°',PC,PY+44,'#fbbf24',9,undefined,true);
-    simText(ctx,'m='+m+' kg',PC,PY+57,'#60a5fa',9,undefined,true);
-    simText(ctx,'cosθ='+cosT.toFixed(3),PC,PY+70,'#7d8da6',8.5,undefined,true);
-    simText(ctx,'N='+N.toFixed(2)+'N',PC,PY+84,'#a78bfa',11,undefined,true);
-    simText(ctx,'W∥='+W_par.toFixed(1)+'N',PC,PY+98,'#fbbf24',8.5,undefined,true);
+    ctx.beginPath(); ctx.moveTo(PX+5,PY+28); ctx.lineTo(PX+PW-5,PY+28); ctx.stroke(); ctx.restore();
+    [['θ = '+theta.toFixed(0)+'°','#fbbf24'],['m = '+m+' kg','#93c5fd'],['cosθ = '+cosT.toFixed(3),'#cbd5e1'],
+     ['N = '+N.toFixed(1)+' N','#c4b5fd'],['W = mg = '+W_grav.toFixed(1)+' N','#fbbf24'],['W∥ = mg·sinθ = '+W_par.toFixed(1)+' N','#fde68a']]
+    .forEach(function(r,k){ simText(ctx,r[0],PC,PY+46+k*(PHN?22:18),r[1],k===3?12:10,undefined,true); });
+    if(!PHN){
     ctx.save(); ctx.strokeStyle='#1e4060'; ctx.lineWidth=1;
-    ctx.beginPath(); ctx.moveTo(PX+5,PY+104); ctx.lineTo(PX+PW-5,PY+104); ctx.stroke(); ctx.restore();
-    // Insight labels
-    simText(ctx,'θ=0°: N=mg',PC,PY+115,'#7d8da6',8,undefined,true);
-    simText(ctx,'θ=90°: N=0',PC,PY+127,'#7d8da6',8,undefined,true);
-    simText(ctx,'מדרון תלול →',PC,PY+140,'#7d8da6',8,undefined,true);
-    simText(ctx,'N קטנה!',PC,PY+152,'#f87171',8.5,undefined,true);
+    ctx.beginPath(); ctx.moveTo(PX+5,PY+152); ctx.lineTo(PX+PW-5,PY+152); ctx.stroke(); ctx.restore();
+    simText(ctx,'θ = 0°:  N = mg',PC,PY+170,'#94a3b8',10,undefined,true);
+    simText(ctx,'θ = 90°:  N = 0',PC,PY+188,'#94a3b8',10,undefined,true);
+    simText(ctx,'מדרון תלול יותר — N קטן יותר',PC,PY+206,'#fca5a5',10,undefined,true);
+    }
 
     // N(θ) mini graph
-    var GY=PY+160, GH=78;
+    var GY=PHN?PY+30:PY+222, GH=PHN?PHH-52:Math.min(150,H-GY-24);
+    var _px0=PX, PW0=PW; if(PHN){ PW=PW0*0.48; }
     ctx.save(); ctx.fillStyle='rgba(3,12,21,.8)'; ctx.strokeStyle='#1e3a52'; ctx.lineWidth=1;
-    ctx.beginPath(); ctx.roundRect(PX+3,GY,PW-6,GH,3); ctx.fill(); ctx.stroke(); ctx.restore();
-    simText(ctx,'N(θ) — ניצב כפונקציה של זווית',PX+3+PW/2,GY+10,'#7d8da6',7.5,undefined,true);
-    simText(ctx,'N (N) ↑',PX+5,GY+18,'#a78bfa',7,'left');
-    simText(ctx,'θ (°) →',PX+PW-3,GY+GH-3,'#7d8da6',7,'right');
-    ctx.save(); ctx.strokeStyle='rgba(167,139,250,.6)'; ctx.lineWidth=1.5;
+    ctx.beginPath(); ctx.roundRect(PX+4,GY,PW-8,GH,3); ctx.fill(); ctx.stroke(); ctx.restore();
+    simText(ctx,'N(θ)',PX+10,GY+14,'#c4b5fd',10,'left',true);
+    ctx.save(); ctx.strokeStyle='rgba(167,139,250,.7)'; ctx.lineWidth=1.8;
     ctx.beginPath();
     for(var dth=0;dth<=90;dth+=2){
       var dthr=dth*Math.PI/180;
-      var px2=PX+5+(dth/90)*(PW-10);
-      var py2=GY+GH-6-Math.cos(dthr)*(GH-16);
+      var px2=PX+8+(dth/90)*(PW-16);
+      var py2=GY+GH-8-Math.cos(dthr)*(GH-26);
       dth===0?ctx.moveTo(px2,py2):ctx.lineTo(px2,py2);
     }
     ctx.stroke(); ctx.restore();
-    // Current point
-    var cpx=PX+5+(theta/90)*(PW-10);
-    var cpy=GY+GH-6-cosT*(GH-16);
+    var cpx=PX+8+(theta/90)*(PW-16), cpy=GY+GH-8-cosT*(GH-26);
     ctx.save(); ctx.fillStyle='#fbbf24'; ctx.strokeStyle='#030c15'; ctx.lineWidth=1.5;
-    ctx.beginPath(); ctx.arc(Math.max(PX+5,Math.min(PX+PW-5,cpx)),Math.max(GY+8,Math.min(GY+GH-6,cpy)),5,0,Math.PI*2); ctx.fill(); ctx.stroke(); ctx.restore();
-    simText(ctx,'0',PX+4,GY+GH-2,'#7d8da6',7,'left');
-    simText(ctx,'90°',PX+PW-3,GY+GH-2,'#7d8da6',7,'right');
+    ctx.beginPath(); ctx.arc(cpx,cpy,5,0,Math.PI*2); ctx.fill(); ctx.stroke(); ctx.restore();
+    simText(ctx,'0°',PX+8,GY+GH+12,'#94a3b8',9,'left');
+    simText(ctx,'90°',PX+PW-8,GY+GH+12,'#94a3b8',9,'right');
+    simText(ctx,'mg',PX+PW-10,GY+22,'#94a3b8',9,'right');
+    PW=PW0;
 
     // Top banner
+    var BW=PHN?W-16:PX-16;
     ctx.save(); ctx.fillStyle='rgba(6,14,28,.92)'; ctx.strokeStyle='#1e4060'; ctx.lineWidth=1.5;
-    ctx.beginPath(); ctx.roundRect(8,6,topX-14,36,6); ctx.fill(); ctx.stroke(); ctx.restore();
-    simText(ctx,'N = mg·cosθ = '+N.toFixed(1)+' N',BASE_X+(topX-BASE_X)/2,22,'#a78bfa',10,undefined,true);
-    simText(ctx,'כוח הנורמל = רכיב כבידה ניצב למשטח',BASE_X+(topX-BASE_X)/2,34,'#7d8da6',8,undefined,true);
+    ctx.beginPath(); ctx.roundRect(8,6,BW,38,6); ctx.fill(); ctx.stroke(); ctx.restore();
+    simText(ctx,'N = mg·cosθ = '+N.toFixed(1)+' N',8+BW/2,21,'#c4b5fd',11,undefined,true);
+    simText(ctx,'N מאזן את רכיב המשקל הניצב למשטח',8+BW/2,37,'#94a3b8',9,undefined,true);
 
     requestAnimationFrame(draw);
   }
