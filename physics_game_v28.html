@@ -11459,410 +11459,188 @@ function simCollision(canvas){
 // ENERGY: roller coaster track
 // ─────────────────────────────────────────────────────────────
 function simEnergy(canvas){
-  // ── Canvas: taller to give room for track + graph + formula ──────
-  const H=580; const {ctx,W,dpr}=setupCanvas(canvas,H);
+  // A cart on a frictionless (or rough) track, driven by the track's own
+  // physics. The track is 12 m long, rises to 4.0 m at both ends and has a
+  // 2.8 m hill in the middle, so any release turns around on the track itself
+  // (its ends used to be at ground level, where the cart hit an invisible wall).
+  const H=560; const {ctx,W,dpr}=setupCanvas(canvas,H);
   const id=canvas.id;
-  const g=9.8;
+  const g=9.8, LX=12;                 // m/s², track length in metres
   var m=1.0;
 
-  // ── Layout zones ──────────────────────────────────────────────────
-  // Zone 1: track scene   (top)    y: 0        .. SCENE_BOT
-  // Zone 2: formula strip (middle) y: SCENE_BOT .. FORMULA_BOT
-  // Zone 3: graph         (bottom) y: FORMULA_BOT .. H
-  const SCENE_BOT  = 340;   // track scene bottom
-  const FORMULA_BOT= 372;   // formula strip bottom
-  const FLOOR_Y    = SCENE_BOT; // ground line = scene bottom
+  const FLOOR_Y=290, STRIP_BOT=374;
+  const PXY=(FLOOR_Y-34)/4.0;         // vertical px per metre
+  function hOf(xf){return 2.4+1.6*Math.cos(4*Math.PI*xf)-1.2*Math.pow(Math.sin(Math.PI*xf),2);}
+  function TX(xf){return 14+xf*(W-28);}
+  function TY(h){return FLOOR_Y-h*PXY;}
 
-  // ── Track profile (fits inside scene zone) ────────────────────────
-  const TRACK_TOP  = 18;    // highest track point y
-  const TRACK_AMP  = FLOOR_Y - TRACK_TOP;  // ~322 px amplitude
-  const PX_PER_M   = 55;   // pixels per metre
+  // physical track table: arc length s, height h, slope angle th, curvature k
+  const N=800;
+  var S=[0],Hm=[],TH=[],K=[];
+  for(var i=0;i<N;i++){
+    var xf=i/(N-1), d=1e-4;
+    var hp=(hOf(Math.min(1,xf+d))-hOf(Math.max(0,xf-d)))/((Math.min(1,xf+d)-Math.max(0,xf-d))*LX);
+    var hpp=(hOf(Math.min(1,xf+d))-2*hOf(xf)+hOf(Math.max(0,xf-d)))/Math.pow(d*LX,2);
+    if(i===0||i===N-1)hpp=K.length?K[K.length-1]*Math.pow(1+hp*hp,1.5):0;
+    Hm.push(hOf(xf)); TH.push(Math.atan(hp)); K.push(hpp/Math.pow(1+hp*hp,1.5));
+    if(i>0){var dx=LX/(N-1), dh=Hm[i]-Hm[i-1]; S.push(S[i-1]+Math.sqrt(dx*dx+dh*dh));}
+  }
+  var SMAX=S[N-1];
+  function idxAt(s){
+    var lo=0,hi=N-1; s=Math.max(0,Math.min(SMAX,s));
+    while(hi-lo>1){var md=(lo+hi)>>1; if(S[md]<=s)lo=md; else hi=md;}
+    var f=(s-S[lo])/Math.max(1e-9,S[hi]-S[lo]); return {i:lo,f:f};
+  }
+  function at(arr,s){var q=idxAt(s);return arr[q.i]*(1-q.f)+arr[Math.min(N-1,q.i+1)]*q.f;}
+  function xfAt(s){var q=idxAt(s);return (q.i+q.f)/(N-1);}
 
-  function trackY(xf){
-    return FLOOR_Y - TRACK_AMP*(
-      0.52*Math.pow(Math.sin(xf*Math.PI),     2) +
-      0.28*Math.pow(Math.sin(xf*Math.PI*2),   2) +
-      0.14*Math.pow(Math.sin(xf*Math.PI*3.1), 2)
-    );
-  }
+  // state: arc position s (m), signed speed v (m/s, + toward the right end)
+  var s0=S[Math.round(0.08*(N-1))];
+  var s=s0, v=0, Emech=null, Q=0, dragging=false, pT=null, atRest=false;
+  function getMu(){var e=document.getElementById('inp-energy-mu');return e?Math.max(0,parseFloat(e.value)||0):0;}
+  function getMass(){var e=document.getElementById('inp-energy-m');return e?Math.max(0.1,parseFloat(e.value)):m;}
+  function release(){m=getMass(); v=0; Q=0; atRest=false; Emech=m*g*at(Hm,s);}
+  release();
 
-  const N=600;
-  var TRACK=[];
-  for(var ti=0;ti<N;ti++){
-    var xf=ti/(N-1);
-    TRACK.push({x:xf*W, y:trackY(xf)});
+  // ── drag the cart along the track
+  function closestS(px,py){
+    var best=s,bd=Infinity;
+    for(var j=0;j<N;j+=2){var d=Math.hypot(TX(j/(N-1))-px,TY(Hm[j])-py);if(d<bd){bd=d;best=S[j];}}
+    return {s:best,d:bd};
   }
-  var minTrackY=Infinity;
-  for(var ti=0;ti<N;ti++) if(TRACK[ti].y<minTrackY) minTrackY=TRACK[ti].y;
-
-  // Arc-length table for speed↔dbt/dt conversion
-  var arcLen=[0];
-  for(var ai=1;ai<N;ai++){
-    var adx=TRACK[ai].x-TRACK[ai-1].x, ady=TRACK[ai].y-TRACK[ai-1].y;
-    arcLen.push(arcLen[ai-1]+Math.sqrt(adx*adx+ady*ady));
-  }
-  var totalArc=arcLen[N-1]; // total px
-
-  // ── Physics state ─────────────────────────────────────────────────
-  var bt=0.80;      // position along track [0..1]
-  var trackVel=0;   // SIGNED speed in px/s along track (+bt = rightward)
-  var pT=null;
-  var dragging=false;
-  var E_total=null; // conserved total energy in Joules, set on release
-  var E_therm=0;                       // heat produced by friction, in joules
-  function getMu(){
-    var e=document.getElementById('inp-energy-mu');
-    return e?Math.max(0,parseFloat(e.value)||0):0;
-  }
-  var graphPE=[], graphKE=[], graphBT=[]; // PE, KE, position
-  var MAX_G=320;
-
-  function getMass(){
-    var e=document.getElementById('inp-energy-m');
-    return e ? Math.max(0.1, parseFloat(e.value)) : m;
-  }
-
-  // ── Geometry helpers ──────────────────────────────────────────────
-  function ballPos(bv){
-    bv=Math.max(0,Math.min(1,bv));
-    var idx=Math.min(Math.floor(bv*(N-1)),N-2);
-    var frac=bv*(N-1)-idx;
-    return {
-      x: TRACK[idx].x*(1-frac)+TRACK[idx+1].x*frac,
-      y: TRACK[idx].y*(1-frac)+TRACK[idx+1].y*frac
-    };
-  }
-  function heightAt(bv){
-    return Math.max(0,(FLOOR_Y - ballPos(bv).y) / PX_PER_M);
-  }
-  // Slope angle in radians: positive = track rises going rightward (+bt)
-  function slopeAt(bv){
-    var idx=Math.min(Math.floor(bv*(N-1)),N-2);
-    var sdx=TRACK[idx+1].x-TRACK[idx].x;
-    var sdy=TRACK[idx+1].y-TRACK[idx].y; // screen y: positive = downward
-    return Math.atan2(-sdy, sdx);
-  }
-  // Arc-length rate at bt: d(arc_px)/d(bt)
-  function arcRateAt(bv){
-    var idx=Math.min(Math.floor(bv*(N-1)),N-2);
-    return Math.max(1, arcLen[idx+1]-arcLen[idx]);
-  }
-
-  // ── Drag interaction ──────────────────────────────────────────────
-  function canvasXY(ev){
-    var r=canvas.getBoundingClientRect();
-    var scl=(canvas.width/dpr)/r.width;
-    return {
-      x:((ev.touches?ev.touches[0].clientX:ev.clientX)-r.left)*scl,
-      y:((ev.touches?ev.touches[0].clientY:ev.clientY)-r.top)*scl
-    };
-  }
-  function closestBt(cx,cy){
-    var best=bt, bestD=Infinity;
-    for(var ci=0;ci<N;ci++){
-      var d=Math.hypot(TRACK[ci].x-cx,TRACK[ci].y-cy);
-      if(d<bestD){bestD=d;best=ci/(N-1);}
-    }
-    return {bt:best,dist:bestD};
-  }
-  function onDown(ev){
-    ev.preventDefault();
-    var p=canvasXY(ev);
-    if(p.y > FLOOR_Y+6) return; // ignore clicks in formula/graph zones
-    var c=closestBt(p.x,p.y);
-    if(c.dist<36){
-      dragging=true; bt=c.bt; trackVel=0;
-      E_total=null; graphPE=[]; graphKE=[];
-    E_therm=0;
-    }
-  }
-  function onMove(ev){
-    if(!dragging) return;
-    ev.preventDefault();
-    var p=canvasXY(ev);
-    var c=closestBt(p.x,p.y);
-    bt=c.bt; trackVel=0;
-  }
-  function onUp(){
-    if(!dragging) return;
-    dragging=false;
-    m=getMass();
-    E_total=m*g*heightAt(bt);
-    trackVel=0; graphPE=[]; graphKE=[];
-    E_therm=0;
-  }
-  canvas.addEventListener('mousedown',onDown);
-  canvas.addEventListener('touchstart',onDown,{passive:false});
-  canvas.addEventListener('mousemove',onMove);
-  canvas.addEventListener('touchmove',onMove,{passive:false});
-  canvas.addEventListener('mouseup',onUp);
-  canvas.addEventListener('touchend',onUp);
-
-  // Reset button
+  function onDown(ev){var p=simPointerXY(canvas,dpr,ev); if(p.y>FLOOR_Y+6)return;
+    var c=closestS(p.x,p.y); if(c.d<40){dragging=true; s=c.s; v=0; Emech=null; Q=0; ev.preventDefault();}}
+  function onMove(ev){if(!dragging)return; ev.preventDefault(); var p=simPointerXY(canvas,dpr,ev); s=closestS(p.x,p.y).s;}
+  function onUp(){if(!dragging)return; dragging=false; release();}
+  canvas.addEventListener('mousedown',onDown);canvas.addEventListener('touchstart',onDown,{passive:false});
+  canvas.addEventListener('mousemove',onMove);canvas.addEventListener('touchmove',onMove,{passive:false});
+  canvas.addEventListener('mouseup',onUp);canvas.addEventListener('mouseleave',onUp);canvas.addEventListener('touchend',onUp);
   var resetBtn=document.getElementById('btn-energy-reset');
-  if(resetBtn) resetBtn.addEventListener('click',function(){
-    bt=0.80; trackVel=0; E_total=null; pT=null; graphPE=[]; graphKE=[];
-    E_therm=0;
-    m=getMass(); E_total=m*g*heightAt(bt);
-  });
+  if(resetBtn)resetBtn.addEventListener('click',function(){s=s0;pT=null;release();});
 
-  // Initialise
-  m=getMass();
-  E_total=m*g*heightAt(bt);
-
-  // ── Physics update ────────────────────────────────────────────────
-  // Proper constrained-track dynamics:
-  //   a_tangential = -g * sin(slope)       [m/s²]
-  //   trackVel is SIGNED speed in px/s along track
-  //   dbt/dt  = trackVel / arcRateAt(bt)   [bt/s]
-  // After each step: clamp |trackVel| to energy-conserved value,
-  //   preserving sign — this makes the simulation numerically stable
-  //   while keeping correct physics.
-
-  function physicsStep(dt){
-    if(dragging || E_total===null) return;
-
-    var m_new=getMass();
-    // A mass change scales EVERY energy term by m_new/m. The previous rescale
-    // divided by (1 − min(0.99, KE_frac)); at the bottom of a valley KE_frac→1
-    // so E_total collapsed to 0 and the ball froze forever.
-    if(m>0 && Math.abs(m_new-m)>1e-6){ E_total *= m_new/m; E_therm *= m_new/m; }
-    m=m_new;
-
-    var slope   = slopeAt(bt);
-    var a_tang  = -g * Math.sin(slope) * PX_PER_M; // px/s² (along track)
-    trackVel   += a_tang * dt;
-
-    // Move along track
-    var arcR = arcRateAt(bt);
-    bt += (trackVel / arcR) * dt;
-
-    // Boundary reflection
-    if(bt <= 0){ bt=0.001; trackVel = Math.abs(trackVel)*0.98; }
-    if(bt >= 1){ bt=0.999; trackVel = -Math.abs(trackVel)*0.98; }
-
-    // Friction (μ from the slider) removes dQ = μ·m·g·cosθ·ds from the
-    // mechanical budget and books it as heat, so E_k+E_p+Q stays constant.
-    var mu_f=getMu();
-    if(mu_f>0){
-      var ds_m=Math.abs(trackVel)*dt/PX_PER_M;
-      var dQ=mu_f*m*g*Math.cos(slope)*ds_m;
-      var PE_here=m*g*heightAt(bt);
-      if(E_total-dQ<PE_here) dQ=Math.max(0,E_total-PE_here);
-      E_total-=dQ; E_therm+=dQ;
+  // ── physics: tangential dynamics, then the speed is taken from the energy
+  // budget, so E_p + E_k + Q is exact by construction and the integrator only
+  // decides the direction of travel. Friction acts on the normal force, which on
+  // a curved track is m(g·cosθ + v²κ) — in a valley the track presses harder
+  // than the weight does, exactly as a rider feels it.
+  function step(dt){
+    var mu=getMu();
+    for(var k=0;k<8;k++){
+      var h=dt/8;
+      var th=at(TH,s), kap=at(K,s);
+      var nOverM=Math.abs(g*Math.cos(th)+v*v*kap);
+      var a=-g*Math.sin(th)-(v!==0?Math.sign(v):0)*mu*nOverM;
+      v+=a*h;
+      var ds=v*h;
+      s+=ds;
+      if(s<=0){s=0;v=Math.abs(v);} if(s>=SMAX){s=SMAX;v=-Math.abs(v);}
+      if(mu>0){
+        var dQ=mu*m*nOverM*Math.abs(ds);
+        var floorE=m*g*at(Hm,s);
+        if(Emech-dQ<floorE)dQ=Math.max(0,Emech-floorE);
+        Emech-=dQ; Q+=dQ;
+      }
+      var KE=Emech-m*g*at(Hm,s);
+      if(KE>1e-9) v=(v<0?-1:1)*Math.sqrt(2*KE/m);
+      else v=-(v<0?-1:1)*1e-4;                  // turning point: reverse
     }
-    // Energy conservation correction: keep |trackVel| consistent with KE
-    var PE_now = m * g * heightAt(bt);
-    var KE_target = Math.max(0, E_total - PE_now);
-    var v_target = Math.sqrt(2 * KE_target / m) * PX_PER_M; // px/s magnitude
-    // Minimum nudge to prevent numerical sticking at hilltops
-    if(v_target<0.8&&KE_target<0.01&&Math.abs(slopeAt(bt))>0.05) v_target=1.2;
-
-    // Energy-corrected velocity — 100% conserved
-    if(v_target > 0){
-      // Correct speed to conserved value, preserve direction
-      trackVel = Math.sign(trackVel || 1) * v_target;
-    } else {
-      // Turning point: PE >= E_total, reverse direction without energy loss
-      trackVel = -Math.sign(trackVel || 1) * 0.01; // tiny reverse; next frame corrects
-    }
+    // static friction holds a cart that has come to rest where it can
+    var thr=at(TH,s);
+    if(mu>0&&Math.abs(v)<0.02&&Math.abs(Math.tan(thr))<=mu){v=0;atRest=true;Emech=m*g*at(Hm,s);}
   }
 
-  // ── Draw ──────────────────────────────────────────────────────────
   function draw(ts){
-    if(_simStop[id]) return;
-    if(!pT) pT=ts;
-    var dt=Math.min((ts-pT)/1000, 0.025); pT=ts;
+    if(_simStop[id])return;
+    if(!pT)pT=ts;
+    var dt=Math.min((ts-pT)/1000,0.025); pT=ts;
+    var mNew=getMass();
+    if(Emech!==null&&Math.abs(mNew-m)>1e-9){Emech*=mNew/m;Q*=mNew/m;}
+    m=mNew;
+    if(!dragging&&Emech!==null&&!atRest)step(dt);
 
-    physicsStep(dt);
+    var h=at(Hm,s), PE=m*g*h, E=Emech===null?PE:Emech, KE=Math.max(0,E-PE), E0=E+Q;
+    var bxf=xfAt(s), bx=TX(bxf), by=TY(h);
 
-    m=getMass();
-    var h   = heightAt(bt);
-    var PE  = m*g*h;
-    var KE  = E_total!==null ? Math.max(0,E_total-PE) : 0;
-    var Etot= E_total!==null ? E_total : PE;
-
-    // Record graph
-    if(!dragging && E_total!==null){
-      graphPE.push(PE); graphKE.push(KE); graphBT.push(bt);
-      if(graphPE.length>MAX_G){ graphPE.shift(); graphKE.shift(); graphBT.shift(); }
-    }
-
-    var Emax = Math.max(Etot, 0.1);
     simBg(ctx,W,H);
-
-    // ── Zone 1: Track scene ─────────────────────────────────────────
-    // Terrain fill clipped to scene zone
+    // ── track and ground
     ctx.save();
-    ctx.beginPath(); ctx.rect(0,0,W,FLOOR_Y+2); ctx.clip();
-    var tgrad=ctx.createLinearGradient(0,minTrackY,0,FLOOR_Y);
-    tgrad.addColorStop(0,'rgba(6,55,18,.8)'); tgrad.addColorStop(1,'rgba(4,28,10,.95)');
-    ctx.beginPath();
-    for(var ti=0;ti<N;ti++){
-      ti===0?ctx.moveTo(TRACK[ti].x,TRACK[ti].y):ctx.lineTo(TRACK[ti].x,TRACK[ti].y);
+    var tg=ctx.createLinearGradient(0,34,0,FLOOR_Y);
+    tg.addColorStop(0,'rgba(6,55,18,.8)');tg.addColorStop(1,'rgba(4,28,10,.95)');
+    ctx.beginPath();ctx.moveTo(TX(0),FLOOR_Y);
+    for(var j=0;j<N;j+=2)ctx.lineTo(TX(j/(N-1)),TY(Hm[j]));
+    ctx.lineTo(TX(1),FLOOR_Y);ctx.closePath();ctx.fillStyle=tg;ctx.fill();
+    ctx.beginPath();for(var j2=0;j2<N;j2+=2){var X=TX(j2/(N-1)),Y=TY(Hm[j2]);j2===0?ctx.moveTo(X,Y):ctx.lineTo(X,Y);}
+    ctx.strokeStyle='#22c55e';ctx.lineWidth=2.5;ctx.stroke();ctx.restore();
+    ctx.save();ctx.strokeStyle='#166534';ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(0,FLOOR_Y);ctx.lineTo(W,FLOOR_Y);ctx.stroke();ctx.restore();
+    // height ticks
+    for(var hm=1;hm<=4;hm++){simText(ctx,hm+' m',W-4,TY(hm)+3,'#4b6a85',8,'right');
+      ctx.save();ctx.strokeStyle='rgba(75,106,133,.25)';ctx.setLineDash([2,6]);ctx.beginPath();ctx.moveTo(W*0.42,TY(hm));ctx.lineTo(W*0.58,TY(hm));ctx.stroke();ctx.restore();}
+    // the level the energy can reach: where the cart will turn round
+    if(Emech!==null&&!dragging){
+      var hTop=E/(m*g);
+      ctx.save();ctx.strokeStyle='rgba(52,211,153,.55)';ctx.setLineDash([6,5]);ctx.lineWidth=1.3;
+      ctx.beginPath();ctx.moveTo(14,TY(hTop));ctx.lineTo(W-14,TY(hTop));ctx.stroke();ctx.restore();
+      simText(ctx,'הגובה שהאנרגיה מאפשרת',W/2,TY(hTop)-5,'#34d399',8,'center');
     }
-    ctx.lineTo(W,FLOOR_Y); ctx.lineTo(0,FLOOR_Y); ctx.closePath();
-    ctx.fillStyle=tgrad; ctx.fill();
-    ctx.strokeStyle='#22c55e'; ctx.lineWidth=2.5; ctx.stroke();
-    ctx.restore();
-
-    // Ground line
-    ctx.save(); ctx.strokeStyle='#166534'; ctx.lineWidth=1.5;
-    ctx.beginPath(); ctx.moveTo(0,FLOOR_Y); ctx.lineTo(W,FLOOR_Y); ctx.stroke();
-    ctx.restore();
-
-    // Height dashed line
-    var bp=ballPos(bt);
-    if(h > 0.05){
-      ctx.save(); ctx.strokeStyle='rgba(251,191,36,.35)'; ctx.lineWidth=1; ctx.setLineDash([2,4]);
-      ctx.beginPath(); ctx.moveTo(bp.x,bp.y); ctx.lineTo(bp.x,FLOOR_Y); ctx.stroke();
-      ctx.setLineDash([]); ctx.restore();
-      var hx = bp.x<W*0.55 ? bp.x+9 : bp.x-9;
-      var ha = bp.x<W*0.55 ? 'left' : 'right';
-      simText(ctx,'h='+h.toFixed(2)+'m', hx, bp.y+14, '#fbbf24', 8.5, ha);
-    }
-
-    // Ball
-    var bR=15;
-    var bg3=ctx.createRadialGradient(bp.x-5,bp.y-6,2,bp.x,bp.y,bR);
-    bg3.addColorStop(0,'#fde68a'); bg3.addColorStop(1,dragging?'#7c3aed':'#d97706');
-    ctx.save(); ctx.shadowColor=dragging?'#a78bfa':'#fbbf24'; ctx.shadowBlur=dragging?18:10;
-    simCircle(ctx,bp.x,bp.y,bR,bg3,'#fbbf24',2.5);
-    ctx.restore();
-    if(dragging) simText(ctx,'גררו ושחרר',bp.x,bp.y-bR-18,'#a78bfa',8.5,undefined,true);
-
-    // Velocity arrow (tangent to track)
-    var spd_ms = Math.sqrt(2*KE/Math.max(m,0.01));
-    if(spd_ms>0.08 && !dragging && E_total!==null){
-      var sl2  = slopeAt(bt);
-      var vdir = trackVel>=0 ? 1 : -1;
-      var vLen = Math.min(58, spd_ms*10);
-      simArrow(ctx,bp.x,bp.y,
-               bp.x+vdir*Math.cos(sl2)*vLen,
-               bp.y-vdir*Math.sin(sl2)*vLen, '#22d3ee',2.5,10);
+    // height line under the cart
+    ctx.save();ctx.strokeStyle='rgba(251,191,36,.4)';ctx.setLineDash([2,4]);ctx.beginPath();ctx.moveTo(bx,by);ctx.lineTo(bx,FLOOR_Y);ctx.stroke();ctx.restore();
+    simText(ctx,'h='+h.toFixed(2)+' m',bx<W*0.5?bx+18:bx-18,Math.min(FLOOR_Y-6,by+24),'#fbbf24',8.5,bx<W*0.5?'left':'right');
+    // cart
+    var bg3=ctx.createRadialGradient(bx-5,by-6,2,bx,by,13);
+    bg3.addColorStop(0,'#fde68a');bg3.addColorStop(1,dragging?'#7c3aed':'#d97706');
+    ctx.save();ctx.shadowColor=dragging?'#a78bfa':'#fbbf24';ctx.shadowBlur=dragging?18:10;
+    simCircle(ctx,bx,by,13,bg3,'#fbbf24',2.5);ctx.restore();
+    if(dragging)simText(ctx,'גררו ושחררו',bx,by-28,'#a78bfa',8.5,undefined,true);
+    // velocity arrow along the drawn tangent
+    if(Math.abs(v)>0.05&&!dragging){
+      var q=idxAt(s),i2=Math.min(N-1,q.i+1);
+      var tx=TX(i2/(N-1))-TX(q.i/(N-1)), ty=TY(Hm[i2])-TY(Hm[q.i]), tl=Math.hypot(tx,ty)||1;
+      var L=Math.min(56,Math.abs(v)*6)*(v>0?1:-1);
+      simArrow(ctx,bx,by,bx+tx/tl*L,by+ty/tl*L,'#22d3ee',2.5,10);
+      simText(ctx,'v='+Math.abs(v).toFixed(1)+' m/s',bx,by-22,'#22d3ee',8.5,'center');
     }
 
-    // ── Energy bars: right side of scene, clear of track peak ────────
-    // Bars sit in a panel on the right, vertically within scene zone
-    var BW=28, BH=FLOOR_Y-30, BY_b=12, barGap=10;
-    var BX_ep=W-BW*2-barGap-16;  // EP bar left edge
-    var BX_ek=BX_ep+BW+barGap;   // EK bar left edge
+    // ── energy strip: one bar of fixed length E0, split E_p | E_k | Q
+    var sy=FLOOR_Y+6;
+    ctx.save();ctx.fillStyle='rgba(6,14,28,.92)';ctx.strokeStyle='#1e4060';ctx.lineWidth=1.5;
+    ctx.beginPath();ctx.roundRect(6,sy,W-12,STRIP_BOT-sy-2,5);ctx.fill();ctx.stroke();ctx.restore();
+    var mu=getMu();
+    simText(ctx,'E_p = mgh = '+m.toFixed(1)+'×9.8×'+h.toFixed(2)+' = '+PE.toFixed(1)+' J   E_k = '+KE.toFixed(1)+' J'+(mu>0?'   Q = '+Q.toFixed(1)+' J':''),W/2,sy+13,'#cbd5e1',9,'center',true);
+    var bx0=16,bw=W-32,byy=sy+22,bh=16, E0s=Math.max(E0,1e-6);
+    var segs=[[PE,'#818cf8'],[KE,'#fbbf24'],[Q,'#fb923c']], acc=0;
+    segs.forEach(function(sg){var w=bw*sg[0]/E0s; ctx.fillStyle=sg[1]; ctx.fillRect(bx0+acc,byy,Math.max(0,w),bh); acc+=w;});
+    ctx.save();ctx.strokeStyle='rgba(203,213,225,.6)';ctx.lineWidth=1;ctx.strokeRect(bx0,byy,bw,bh);ctx.restore();
+    simText(ctx,mu>0?'E_p + E_k + Q = '+E0.toFixed(1)+' J — קבוע; האנרגיה המכנית E_p + E_k יורדת':'E_p + E_k = '+E0.toFixed(1)+' J — קבוע',W/2,byy+bh+13,mu>0?'#fb923c':'#34d399',9,'center',true);
 
-    // Background panel
-    ctx.save(); ctx.fillStyle='rgba(6,14,28,.90)'; ctx.strokeStyle='#1e4060'; ctx.lineWidth=1.5;
-    ctx.beginPath(); ctx.roundRect(BX_ep-12,BY_b-6,BW*2+barGap+24,BH+40,7);
-    ctx.fill(); ctx.stroke(); ctx.restore();
-    simText(ctx,'אנרגיה (J)', BX_ep+BW+barGap/2, BY_b+8, '#22d3ee', 8.5, undefined, true);
-
-    // EP bar (purple)
-    var peH=Math.min(BH-20,(PE/Emax)*(BH-20));
-    ctx.save(); ctx.fillStyle='rgba(99,102,241,.85)';
-    ctx.beginPath(); ctx.roundRect(BX_ep, BY_b+20+BH-20-peH, BW, peH, 3); ctx.fill();
-    ctx.strokeStyle='#818cf8'; ctx.lineWidth=1.5;
-    ctx.beginPath(); ctx.roundRect(BX_ep, BY_b+20, BW, BH-20, 3); ctx.stroke(); ctx.restore();
-    simText(ctx,'EP',  BX_ep+BW/2, BY_b+20+BH-20+13, '#818cf8', 8, undefined, true);
-    simText(ctx,PE.toFixed(1)+'J', BX_ep+BW/2, BY_b+20+BH-20+24, '#818cf8', 7.5, undefined, true);
-
-    // EK bar (yellow)
-    var keH=Math.min(BH-20,(KE/Emax)*(BH-20));
-    ctx.save(); ctx.fillStyle='rgba(251,191,36,.85)';
-    ctx.beginPath(); ctx.roundRect(BX_ek, BY_b+20+BH-20-keH, BW, keH, 3); ctx.fill();
-    ctx.strokeStyle='#fbbf24'; ctx.lineWidth=1.5;
-    ctx.beginPath(); ctx.roundRect(BX_ek, BY_b+20, BW, BH-20, 3); ctx.stroke(); ctx.restore();
-    simText(ctx,'EK',  BX_ek+BW/2, BY_b+20+BH-20+13, '#fbbf24', 8, undefined, true);
-    simText(ctx,KE.toFixed(1)+'J', BX_ek+BW/2, BY_b+20+BH-20+24, '#fbbf24', 7.5, undefined, true);
-
-    // E_total horizontal line across both bars
-    var etH2=Math.min(BH-20,(Etot/Emax)*(BH-20));
-    var etLineY=BY_b+20+BH-20-etH2;
-    ctx.save(); ctx.strokeStyle='#34d399'; ctx.lineWidth=2; ctx.setLineDash([4,3]);
-    ctx.beginPath(); ctx.moveTo(BX_ep-4, etLineY); ctx.lineTo(BX_ek+BW+4, etLineY);
-    ctx.stroke(); ctx.setLineDash([]); ctx.restore();
-    simText(ctx,'E='+Etot.toFixed(1), BX_ep+BW+barGap/2, etLineY-7, '#34d399', 7.5, undefined, true);
-
-    // ── Zone 2: Formula strip ──────────────────────────────────────
-    ctx.save(); ctx.fillStyle='rgba(6,14,28,.92)'; ctx.strokeStyle='#1e4060'; ctx.lineWidth=1.5;
-    ctx.beginPath(); ctx.roundRect(6, FLOOR_Y+3, W-12, FORMULA_BOT-FLOOR_Y-5, 5);
-    ctx.fill(); ctx.stroke(); ctx.restore();
-    var fmid=FLOOR_Y+(FORMULA_BOT-FLOOR_Y)/2;
-    simText(ctx,
-      'EP = mgh = '+m.toFixed(1)+'×9.8×'+h.toFixed(2)+' = '+PE.toFixed(2)+' J',
-      W/2, fmid-7, '#818cf8', 9, undefined, true);
-    simText(ctx,
-      'EK = ½mv² = '+KE.toFixed(2)+' J   |   E_כולל = '+Etot.toFixed(2)+' J = קבוע',
-      W/2, fmid+8, '#34d399', 9, undefined, true);
-
-    // ── Zone 3: EP+EK vs position graph ──────────────────────────────
-    // x-axis = position along track (shows where ball is)
-    // y-axis = energy. EP curve traces the potential energy landscape.
-    // EP+EK = constant line shows conservation.
-    var GX=6, GY=FORMULA_BOT+2, GW=W-12, GH=H-GY-6;
-    ctx.save(); ctx.fillStyle='rgba(6,14,28,.90)'; ctx.strokeStyle='#1e3a52'; ctx.lineWidth=1;
-    ctx.beginPath(); ctx.roundRect(GX,GY,GW,GH,5); ctx.fill(); ctx.stroke(); ctx.restore();
-
-    if(graphPE.length > 4){
-      var gAX=GX+10, gAY=GY+GH-12, gW2=GW-18, gH2=GH-24;
-      var emax2=Math.max(Etot*1.05,0.1);
-
-      // Draw axis lines
-      ctx.save(); ctx.strokeStyle='#1e3a52'; ctx.lineWidth=1.2;
-      ctx.beginPath(); ctx.moveTo(gAX,GY+4); ctx.lineTo(gAX,gAY); ctx.lineTo(gAX+gW2,gAY); ctx.stroke();
-      ctx.restore();
-
-      // E_total flat reference line
-      var etRefY=gAY-(Etot/emax2)*gH2;
-      ctx.save(); ctx.strokeStyle='rgba(52,211,153,.45)'; ctx.lineWidth=1.8; ctx.setLineDash([5,4]);
-      ctx.beginPath(); ctx.moveTo(gAX,etRefY); ctx.lineTo(gAX+gW2,etRefY); ctx.stroke();
-      ctx.setLineDash([]); ctx.restore();
-      simText(ctx,'E='+Etot.toFixed(1)+'J (קבוע)',gAX+gW2-4,etRefY-5,'#34d399',7,'right');
-
-      // EP scatter plot vs position (purple dots) — builds up the potential energy landscape
-      ctx.save(); ctx.fillStyle='rgba(129,140,248,.7)';
-      for(var gi=0;gi<graphBT.length;gi+=2){
-        var gx=gAX+graphBT[gi]*gW2;
-        var gy=Math.max(GY+4, gAY-(graphPE[gi]/emax2)*gH2);
-        ctx.beginPath(); ctx.arc(gx,gy,1.8,0,Math.PI*2); ctx.fill();
-      }
-      ctx.restore();
-
-      // EK scatter plot vs position (yellow dots)
-      ctx.save(); ctx.fillStyle='rgba(251,191,36,.7)';
-      for(var gi=0;gi<graphBT.length;gi+=2){
-        var gx=gAX+graphBT[gi]*gW2;
-        var gy=Math.max(GY+4, gAY-(graphKE[gi]/emax2)*gH2);
-        ctx.beginPath(); ctx.arc(gx,gy,1.8,0,Math.PI*2); ctx.fill();
-      }
-      ctx.restore();
-
-      // Current dot — EP (purple, larger)
-      var curGX=gAX+bt*gW2;
-      var curGY_pe=Math.max(GY+4,gAY-(PE/emax2)*gH2);
-      ctx.save(); ctx.fillStyle='#818cf8'; ctx.strokeStyle='#fff'; ctx.lineWidth=1.5;
-      ctx.beginPath(); ctx.arc(curGX,curGY_pe,5,0,Math.PI*2); ctx.fill(); ctx.stroke(); ctx.restore();
-
-      // Current dot — EK (yellow, larger)
-      var curGY_ke=Math.max(GY+4,gAY-(KE/emax2)*gH2);
-      ctx.save(); ctx.fillStyle='#fbbf24'; ctx.strokeStyle='#fff'; ctx.lineWidth=1.5;
-      ctx.beginPath(); ctx.arc(curGX,curGY_ke,5,0,Math.PI*2); ctx.fill(); ctx.stroke(); ctx.restore();
-
-      // Legend
-      simText(ctx,'● EP (J)',GX+14,GY+13,'#818cf8',7.5,'left');
-      simText(ctx,'● EK (J)',GX+60,GY+13,'#fbbf24',7.5,'left');
-      simText(ctx,'מיקום לאורך המסלול →',gAX+gW2,gAY+10,'#7d8da6',7,'right');
-      simText(ctx,'E (J) ↑',gAX+2,GY+22,'#7d8da6',7,'left');
-      // EP and EK current values
-      simText(ctx,'EP='+PE.toFixed(2)+'J  EK='+KE.toFixed(2)+'J',GX+GW-10,GY+13,'#94a3b8',7,'right');
-
-    } else {
-      simText(ctx,
-        E_total!==null ? 'רץ — ממתין לנתונים…' : 'גררו כדור למיקום גבוה ושחרר → הגרף יתמלא',
-        GX+GW/2, GY+GH/2, '#7d8da6', 9.5, undefined, true);
-    }
+    // ── energy diagram: E_p(x) for the whole track, and the energy the cart has
+    var GX=6,GY=STRIP_BOT+2,GW=W-12,GH=H-GY-6;
+    ctx.save();ctx.fillStyle='rgba(6,14,28,.9)';ctx.strokeStyle='#1e3a52';ctx.lineWidth=1;
+    ctx.beginPath();ctx.roundRect(GX,GY,GW,GH,5);ctx.fill();ctx.stroke();ctx.restore();
+    var gAX=GX+30,gAY=GY+GH-14,gW=GW-40,gH=GH-34, Emax=m*g*4.0*1.08;
+    function ey(e){return gAY-e/Emax*gH;}
+    ctx.save();ctx.strokeStyle='#2d4a66';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(gAX,gAY-gH);ctx.lineTo(gAX,gAY);ctx.lineTo(gAX+gW,gAY);ctx.stroke();ctx.restore();
+    simText(ctx,'E (J)',gAX-4,GY+12,'#7d8da6',8,'right');
+    simText(ctx,'מיקום לאורך המסלול →',gAX+gW,gAY+11,'#7d8da6',8,'right');
+    ctx.save();ctx.strokeStyle='#818cf8';ctx.lineWidth=2;ctx.beginPath();
+    for(var j3=0;j3<N;j3+=4){var X3=gAX+j3/(N-1)*gW,Y3=ey(m*g*Hm[j3]);j3===0?ctx.moveTo(X3,Y3):ctx.lineTo(X3,Y3);}
+    ctx.stroke();ctx.restore();
+    simText(ctx,'E_p(x) = mgh(x)',gAX+gW*0.5,ey(m*g*2.8)+16,'#a5b4fc',8.5,'center');
+    if(Emech!==null&&!dragging){
+      if(Q>0.005){ctx.save();ctx.strokeStyle='rgba(148,163,184,.45)';ctx.setLineDash([3,4]);ctx.beginPath();ctx.moveTo(gAX,ey(E0));ctx.lineTo(gAX+gW,ey(E0));ctx.stroke();ctx.restore();
+        simText(ctx,'E₀',gAX-4,ey(E0)+3,'#94a3b8',8,'right');}
+      ctx.save();ctx.strokeStyle='#34d399';ctx.lineWidth=1.8;ctx.setLineDash([6,4]);ctx.beginPath();ctx.moveTo(gAX,ey(E));ctx.lineTo(gAX+gW,ey(E));ctx.stroke();ctx.restore();
+      simText(ctx,'E = E_p + E_k',gAX+4,ey(E)-5,'#34d399',8.5,'left');
+      var cx=gAX+bxf*gW;
+      ctx.save();ctx.strokeStyle='#fbbf24';ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(cx,ey(PE));ctx.lineTo(cx,ey(E));ctx.stroke();ctx.restore();
+      if(KE>0.02*E0)simText(ctx,'E_k',cx+(bxf<0.85?6:-6),(ey(PE)+ey(E))/2+3,'#fbbf24',9,bxf<0.85?'left':'right',true);
+      ctx.save();ctx.fillStyle='#818cf8';ctx.beginPath();ctx.arc(cx,ey(PE),4.5,0,6.2832);ctx.fill();ctx.restore();
+    } else simText(ctx,'גררו את העגלה לנקודה כלשהי על המסלול ושחררו',GX+GW/2,GY+GH/2,'#7d8da6',9.5,'center',true);
 
     requestAnimationFrame(draw);
   }
   requestAnimationFrame(draw);
 }
+
 
 // ─────────────────────────────────────────────────────────────
 // SPRING: interactive drag, T slider
@@ -32708,7 +32486,7 @@ function buildSim(sim){
   else if(sim.type==='collision')extra=C(rng('col-e',0,1,1,0.05,'מקדם התקומה e (0 נצמדים, 1 אלסטית)')+rng('col-m1',1,8,3,0.5,'m₁',' kg')+rng('col-m2',1,8,2,0.5,'m₂',' kg')+rng('col-v1',0,8,4,0.5,'v₁ התחלתית',' m/s')+rng('col-v2',-8,0,-2,0.5,'v₂ התחלתית',' m/s')+btn('col-reset','↺ אפס','btn-secondary'));
   else if(sim.type==='energy-kinetic')extra=C(rng('ek-F',2,50,10,1,'כוח F',' N')+rng('ek-m',0.5,10,2,0.5,'מסה m',' kg')+btn('ek-launch','▶ הפעל!','btn-primary')+btn('ek-reset','↺ אפס','btn-secondary'));
   else if(sim.type==='energy-potential')extra=C(rng('ep-m',0.5,8,2,0.5,'מסה m',' kg')+rng('ep-g',1.6,25,9.8,0.5,'g',' m/s²')+btn('ep-elastic','⚡ אנרגיה אלסטית','btn-secondary')+btn('ep-reset','↺ אפס','btn-secondary'));
-  else if(sim.type==='energy')extra=C(rng('energy-m',0.5,4,1,0.5,'מסה m',' kg')+rng('energy-mu',0,0.25,0,0.01,'מקדם חיכוך μ','')+btn('energy-reset','↺ אפס','btn-secondary'));
+  else if(sim.type==='energy')extra=C(rng('energy-m',0.5,4,1,0.5,'מסה m',' kg')+rng('energy-mu',0,0.1,0,0.005,'מקדם חיכוך μ','')+btn('energy-reset','↺ אפס','btn-secondary'));
   else if(sim.type==='shm-def')extra=C(rng('shm-A',20,130,80,5,'אמפליטודה A',' px')+rng('shm-T',0.5,5,2,0.1,'מחזור T',' s')+btn('shm-reset','↺ אפס','btn-secondary'));
   else if(sim.type==='vec-ops')extra=C(rng('vo-scalar',-3,3,2,0.1,'מכפיל c')+btn('vo-sub','A−B')+btn('vo-scalar','c·A','btn-secondary')+btn('vo-dot','A·B','btn-secondary')+btn('vo-reset','↺ אפס','btn-secondary'));
   else if(sim.type==='vec-components')extra=C(rng('vc-mag',0.5,4,2.8,0.1,'גודל |A|')+rng('vc-ang',0,360,32,1,'זווית θ','°')+btn('vc-reset','↺ אפס','btn-secondary'));
