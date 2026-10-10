@@ -22582,7 +22582,9 @@ runAnim('anim-impulse',(canvas,ctx,W,H,t)=>{
     ctx.restore();
 
     // Shaded area label
-    if(pulseW>90)label(ctx,'J=F·Δt='+J+' N·s',graphX+2+pulseW/2,graphY+graphH-pulseH/2+3,sc.col,7.5,'center');
+    // a long, low pulse is a strip a few pixels tall: its label goes above it,
+    // not onto its own blue edge
+    if(pulseW>90)label(ctx,'J=F·Δt='+J+' N·s',graphX+2+pulseW/2,graphY+graphH-pulseH-(pulseH<14?6:-pulseH/2-3),sc.col,7.5,'center');
     else label(ctx,'J=F·Δt='+J+' N·s',graphX+pulseW+10,graphY+graphH-pulseH/2+3,sc.col,7.5,'left');
 
     // Δp bar (right side)
