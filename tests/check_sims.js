@@ -56,9 +56,15 @@ const t = (name, got, want) => {
           return n2;
         };
         const rect = cv.getBoundingClientRect();
-        const at = (ty, fx, fy) => cv.dispatchEvent(new MouseEvent(ty, {
-          clientX: rect.left + rect.width * fx, clientY: rect.top + rect.height * fy,
-          bubbles: true, cancelable: true }));
+        // mouse events, and the pointer events a sim may listen for instead
+        // (the flux sim turns its loop on pointermove with a button held)
+        const at = (ty, fx, fy) => {
+          const o = { clientX: rect.left + rect.width * fx, clientY: rect.top + rect.height * fy,
+            bubbles: true, cancelable: true, buttons: ty === 'mouseup' || ty === 'click' ? 0 : 1 };
+          cv.dispatchEvent(new MouseEvent(ty, o));
+          const pt = { mousedown: 'pointerdown', mousemove: 'pointermove', mouseup: 'pointerup' }[ty];
+          if (pt && window.PointerEvent) cv.dispatchEvent(new PointerEvent(pt, Object.assign({ pointerId: 1, isPrimary: true }, o)));
+        };
         await new Promise(r2 => setTimeout(r2, 120));
         // try a few strokes: a sim may take the pointer only on its own object
         // a sim may only take the pointer on its own handle, so sweep a grid
@@ -78,7 +84,28 @@ const t = (name, got, want) => {
           }
           return false;
         };
-        responded = await sweep(3, 3, 200) || await sweep(7, 6, 90);
+        // A grid can still fall between two 26 px handles, so ask the sim where
+        // it draws them: simHandle marks every drag point, and a stroke that
+        // starts on one is the stroke a learner makes.
+        const handles = async () => {
+          const seen = [], orig = window.simHandle;
+          if (typeof orig !== 'function') return false;
+          window.simHandle = function (c, x, y) { if (c && c.canvas === cv) seen.push([x, y]); return orig.apply(this, arguments); };
+          await new Promise(r2 => setTimeout(r2, 250));
+          window.simHandle = orig;
+          const W = rect.width, Hh = rect.height;      // sims draw in CSS pixels
+          const uniq = seen.filter((q, i) => seen.findIndex(s => Math.hypot(s[0] - q[0], s[1] - q[1]) < 4) === i).slice(0, 6);
+          for (const [x, y] of uniq) {
+            const fx = x / W, fy = y / Hh, before = snap();
+            at('mousedown', fx, fy);
+            at('mousemove', Math.min(0.97, fx + 0.06), Math.min(0.97, fy + 0.06));
+            at('mouseup', Math.min(0.97, fx + 0.06), Math.min(0.97, fy + 0.06));
+            await new Promise(r2 => setTimeout(r2, 120));
+            if (diff(before, snap()) > 40) return true;
+          }
+          return false;
+        };
+        responded = await sweep(3, 3, 200) || await handles() || await sweep(7, 6, 90);
       }
       return { drag, ctrls, responded, hint };
     }, [ch.id, se]);
