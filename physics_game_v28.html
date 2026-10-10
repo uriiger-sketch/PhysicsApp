@@ -28730,8 +28730,8 @@ function simDcLoop(canvas){
          el[0]>=Math.min(p0[0],p1[0])-1&&el[0]<=Math.max(p0[0],p1[0])+1&&
          el[1]>=Math.min(p0[1],p1[1])-1&&el[1]<=Math.max(p0[1],p1[1])+1){sc=acc+Math.hypot(el[0]-p0[0],el[1]-p0[1]);break;}
       acc+=sl[q2-1];}
-    var hw=el[2];
-    var dd=wf<0.28?wf/0.28*(sc-hw):(wf<0.72?sc-hw+(wf-0.28)/0.44*2*hw:sc+hw+(wf-0.72)/0.28*(st-sc-hw)),m2=0;
+    var hw=el[2],bare=E2()<0.05&&wi===(dir>0?3:0);      // no second cell: that leg is plain wire
+    var dd=bare?wf*st:(wf<0.28?wf/0.28*(sc-hw):(wf<0.72?sc-hw+(wf-0.28)/0.44*2*hw:sc+hw+(wf-0.72)/0.28*(st-sc-hw))),m2=0;
     while(m2<sl.length-1&&dd>sl[m2]){dd-=sl[m2];m2++;}
     var fr=sl[m2]?dd/sl[m2]:0, wx=pl[m2][0]+(pl[m2+1][0]-pl[m2][0])*fr, wy=pl[m2][1]+(pl[m2+1][1]-pl[m2][1])*fr;
     ctx.save();ctx.fillStyle='#f8fafc';ctx.strokeStyle='#0f172a';ctx.lineWidth=2.5;
