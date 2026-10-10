@@ -14525,9 +14525,10 @@ function simCircular(canvas){
   var trail=[];
   var paused=false;
 
-  // Center of circle on canvas
-  var CX=W*0.42, CY=H*0.50;
-  var PX_PER_M=Math.min(CX-50,CY-50)/2.5; // pixels per meter
+  // Centre of the free area left of the panel and below the banner, scaled
+  // so the 3 m maximum radius fits it (it ran over both at r = 3 m).
+  var CX=W*0.35, CY=(56+H-8)/2;
+  var PX_PER_M=Math.min(CX-26,(H-64)/2-24)/3; // pixels per metre
 
   function getR(){var e=document.getElementById('inp-circ-r'); return e?parseFloat(e.value):r;}
   function getV(){var e=document.getElementById('inp-circ-v'); return e?parseFloat(e.value):v;}
@@ -14589,7 +14590,7 @@ function simCircular(canvas){
     // Radius line
     ctx.save(); ctx.strokeStyle='rgba(100,116,139,.25)'; ctx.lineWidth=1;
     ctx.beginPath(); ctx.moveTo(CX,CY); ctx.lineTo(px,py); ctx.stroke(); ctx.restore();
-    simText(ctx,'r='+r.toFixed(1)+'m',(CX+px)/2+6,(CY+py)/2-8,'#7d8da6',8,'left');
+    simText(ctx,'r = '+r.toFixed(1)+' m',(CX+px)/2+6,(CY+py)/2-8,'#7d8da6',8,'left');
 
     // ── Comet tail ────────────────────────────────────
     for(var i=1;i<trail.length;i++){
@@ -14635,7 +14636,7 @@ function simCircular(canvas){
       }
       ctx.restore();
     }
-    simText(ctx,'\u200ea_c = '+ac.toFixed(1)+' m/s²'+(acClip?'  (החץ מקוצר)':''),
+    simText(ctx,'\u200eac = '+ac.toFixed(1)+' m/s²'+(acClip?'  (החץ מקוצר)':''),
             px+ax_dir*(ae+8),py+ay_dir*(ae+8),'#f87171',9,undefined,true);
 
     // ── Right panel ───────────────────────────────────
