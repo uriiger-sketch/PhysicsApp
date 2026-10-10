@@ -31141,6 +31141,7 @@ function render(){
   // undid them, and refunded the hint.
   saveState();
   var _fk=_focusKey();
+  _renderT=Date.now();
   document.getElementById('app').innerHTML=buildPage(ch,sec,content);
   _restoreFocus(_fk);
   _syncHash();
@@ -33781,6 +33782,17 @@ function attachEvents(){
   // every re-render: answering a question must not jump the page)
 }
 
+// A double click -- or a double tap the browser reads as one -- on a button
+// that rebuilds the page spent its second click on whatever the new page
+// put under the pointer: "got it -- on to the simulation" clicked twice also
+// pressed the simulation's "I'm done" and skipped it; "next" clicked twice
+// answered the next question. The second click of a double click on a
+// button, just after a render, is dropped.
+var _renderT=0;
+document.addEventListener('click',function(e){
+  var bt=e.detail>1&&e.isTrusted&&Date.now()-_renderT<700&&e.target&&e.target.closest&&e.target.closest('#app button');
+  if(bt){e.stopPropagation();e.preventDefault();if(document.activeElement===bt)bt.blur();}
+},true);
 window.navigate=(c,s)=>{
   var same=state.chapter===c&&state.section===s;
   state.chapter=c; state.section=s; state.tab='theory';
