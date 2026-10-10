@@ -9259,6 +9259,21 @@ function _cvSubDraw(ctx,info,x,y,draw){
   });
   ctx.restore();
 }
+// ── A canvas font that names only the web font ──────────────────────────
+// Labels ask for 'Heebo' and nothing after it. Before Google Fonts has
+// arrived, or wherever it is blocked, a canvas then fell back to the
+// browser's default face -- a serif, Times -- for every label of every sim
+// and animation, while the page around them is sans. The font setter adds
+// the generic family the page itself falls back to; with Heebo loaded
+// nothing changes.
+(function(){
+  var P=window.CanvasRenderingContext2D&&CanvasRenderingContext2D.prototype;
+  var d=P&&Object.getOwnPropertyDescriptor(P,'font');
+  if(!d||!d.set||P._fontHooked)return;P._fontHooked=true;
+  var G=/(^|[\s,])(sans-serif|serif|monospace|cursive|fantasy|system-ui)\s*$/i;
+  Object.defineProperty(P,'font',{configurable:true,enumerable:d.enumerable,get:d.get,
+    set:function(v){d.set.call(this,(typeof v==='string'&&!G.test(v))?v+', sans-serif':v);}});
+})();
 (function(){
   var P=window.CanvasRenderingContext2D&&CanvasRenderingContext2D.prototype;
   if(!P||P._rdHooked)return;P._rdHooked=true;
