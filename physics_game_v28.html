@@ -3245,7 +3245,7 @@ const CONTENT={
         ['v_y','רכיב אנכי',''],
       ])}
       ${animCanvas('anim-vcomp',180,'שנו זווית — ראו פירוק')}
-      <p class="anim-note">כל וקטור A שווה Ax·î + Ay·ĵ — הרכיבים הם ההיטלים על הצירים. גררו את קצה A כדי לראות שינוי בזמן אמת.</p>
+      <p class="anim-note">כל וקטור A שווה Ax·î + Ay·ĵ — הרכיבים הם ההיטלים על הצירים. גררו על האיור ימינה ושמאלה כדי לסובב את A ולראות את שני הרכיבים משתנים.</p>
       ${animCanvas('anim-vcomp2',168,'רכיבים î,ĵ')}
       ${fBox('v = \\sqrt{v_x^2 + v_y^2}\\;,\\quad \\tan\\theta = \\tfrac{v_y}{v_x}','שחזור הווקטור — ואת הרביע קובעים לפי סימני הרכיבים')}
       <p><b>יתרון:</b> ${M('\\vec{R}=\\vec{A}+\\vec{B}')} הופך ל: ${M('R_x=A_x+B_x')}, ${M('R_y=A_y+B_y')} — חיבור פשוט של מספרים.</p>
@@ -4088,7 +4088,7 @@ const CONTENT={
       ${fBox('m_1v_{1i}+m_2v_{2i} = (m_1+m_2)v_f','התאחדות (e=0)',[
         ['v_f','מהירות משותפת','פתרון ישיר — משוואה אחת'],
       ])}
-      ${animCanvas('anim-collision-types',185,'השוואת סוגי התנגשות: e=1 מול e=0')}
+      ${animCanvas('anim-collision-types',236,'השוואת סוגי התנגשות: e=1 מול e=0')}
       ${fBox('e = \\frac{|v_{1f}-v_{2f}|}{|v_{1i}-v_{2i}|}','מקדם התקומה e',[
         ['e=1','אלסטית','מהירות יחסית נשמרת'],
         ['e=0','היצמדות','מהירות יחסית = 0'],
@@ -19659,6 +19659,13 @@ function _drawEnergyTrack(ctx,W,H,s,withFric){
   var BW=Math.max(10,Math.min(38,(avail-(nB-1)*gapB)/nB));
   var groupW=nB*BW+(nB-1)*gapB;
   var BX=x0+(avail-groupW)/2, BH=H-84, BY=30;
+  // Whole joules that add up: rounded one by one, 0 + 19 + 9 printed under a
+  // total of 29. The largest remainders take the missing units.
+  var parts=withFric?[s.Ek,s.Ep,s.Q]:[s.Ek,s.Ep], tot=Math.round(parts.reduce(function(a,b){return a+b;},0));
+  var shown=parts.map(Math.floor), left=tot-shown.reduce(function(a,b){return a+b;},0);
+  parts.map(function(v,i){return [v-Math.floor(v),i];}).sort(function(a,b){return b[0]-a[0];})
+    .forEach(function(r){if(left>0){shown[r[1]]++;left--;}});
+  shown.push(tot);
   function bar(idx,lab,val,col){
     var X=BX+idx*(BW+gapB);
     ctx.save();ctx.fillStyle='rgba(148,163,184,.12)';ctx.fillRect(X,BY,BW,BH);
@@ -19666,7 +19673,7 @@ function _drawEnergyTrack(ctx,W,H,s,withFric){
     ctx.fillRect(X,BY+BH*(1-f),BW,BH*f);
     ctx.strokeStyle='rgba(148,163,184,.4)';ctx.lineWidth=1;ctx.strokeRect(X,BY,BW,BH);ctx.restore();
     optLabel(ctx,lab,X+BW/2,BY-8,col,9.5);
-    optLabel(ctx,val.toFixed(0),X+BW/2,BY+BH+12,col,9);
+    optLabel(ctx,String(shown[idx]),X+BW/2,BY+BH+12,col,9);
   }
   bar(0,'E_k',s.Ek,'#4ade80');
   bar(1,'E_p',s.Ep,'#f87171');
@@ -20678,16 +20685,20 @@ runAnim('anim-eq-couple',(canvas,ctx,W,H,t)=>{
   arrow(ctx,L,0,L,-AR,'#34d399',3,11);
   arrow(ctx,-L,0,-L,AR,'#34d399',3,11);
   ctx.restore();
-  label(ctx,'ΣF = 0',cx,H-32,'#34d399',12);
-  label(ctx,'Στ ≠ 0  →  מתחיל להסתובב, ומהר יותר ויותר',cx,H-14,'#f87171',12);
+  // on a phone each half gets two short lines: the long caption ran into the
+  // other half and the two printed over each other
+  const nar=W<480, fz=nar?10:12;
+  label(ctx,'ΣF = 0',cx,H-(nar?44:32),'#34d399',fz);
+  if(nar){label(ctx,'Στ ≠ 0  →  מסתובב,',cx,H-29,'#f87171',fz);label(ctx,'ומהר יותר ויותר',cx,H-15,'#f87171',fz);}
+  else label(ctx,'Στ ≠ 0  →  מתחיל להסתובב, ומהר יותר ויותר',cx,H-14,'#f87171',12);
   // the counter-example: same two forces on one line, and nothing happens
   const sx=W*0.74;
   ctx.save();ctx.strokeStyle='#475569';ctx.lineWidth=7;ctx.lineCap='round';
   ctx.beginPath();ctx.moveTo(sx-L,cy);ctx.lineTo(sx+L,cy);ctx.stroke();ctx.restore();
   arrow(ctx,sx-L,cy,sx-L-AR,cy,'#60a5fa',3,11);
   arrow(ctx,sx+L,cy,sx+L+AR,cy,'#60a5fa',3,11);
-  label(ctx,'אותו קו פעולה',sx,H-32,'#60a5fa',12);
-  label(ctx,'Στ = 0  →  נשאר במקום',sx,H-14,'#94a3b8',12);
+  label(ctx,'אותו קו פעולה',sx,H-(nar?44:32),'#60a5fa',fz);
+  label(ctx,'Στ = 0  →  נשאר במקום',sx,H-(nar?29:14),'#94a3b8',fz);
 });
 
 // STATICS ANIM 3: a tumbling body, its centre of mass on a clean parabola
@@ -20888,7 +20899,10 @@ runAnim('anim-avgv',(canvas,ctx,W,H,t)=>{
   arrow(ctx,GL,GT+1,GL,GT-1,'#2d5275',1.5,6); arrow(ctx,GR-1,GB,GR+1,GB,'#2d5275',1.5,6);
   for(let tv=0;tv<=TMax;tv++){const px=toGx(tv);ctx.save();ctx.strokeStyle='#3d6480';ctx.lineWidth=1.2;ctx.beginPath();ctx.moveTo(px,GB-5);ctx.lineTo(px,GB+5);ctx.stroke();ctx.restore();label(ctx,tv,px,GB+14,'#7d8da6',8);}
   ctx.save(); ctx.strokeStyle='#1a3a5c'; ctx.lineWidth=1.5; ctx.strokeRect(GL,GT,GR-GL,GB-GT); ctx.restore();
-  label(ctx,'t (s) →',GR+2,GB+4,'#7d8da6',7,'left'); label(ctx,'x='+A+'t²',GL+36,GT+11,'#818cf8',8,'center');
+  label(ctx,'t (s) →',GR+2,GB+4,'#7d8da6',7,'left');
+  // the curve's equation goes bottom right, where the parabola never is, and
+  // the caption into the panel: at the top right both sat under the panel
+  label(ctx,'x = '+A+'t²',GR-8,GB-22,'#818cf8',8,'right');
   label(ctx,'x (m) ↑',GL-2,GT+8,'#7d8da6',7,'right');
   // Parabola
   ctx.save(); ctx.strokeStyle='#4f46e5'; ctx.lineWidth=3; ctx.lineJoin='round'; ctx.beginPath();
@@ -20921,12 +20935,12 @@ runAnim('anim-avgv',(canvas,ctx,W,H,t)=>{
   if(dt>0.1){ctx.save(); ctx.shadowColor='#f59e0b'; ctx.shadowBlur=6; circle(ctx,p1.px,p1.py,6,'#f59e0b','#fde68a',1.5); ctx.restore();}
   // Info panel
   ctx.save(); ctx.fillStyle='rgba(6,14,28,.92)'; ctx.strokeStyle='#1e4060'; ctx.lineWidth=1;
-  ctx.beginPath(); ctx.roundRect(GL+2,GT+1,218,converged?66:50,5); ctx.fill(); ctx.stroke(); ctx.restore();
+  ctx.beginPath(); ctx.roundRect(GL+2,GT+1,218,converged?66:62,5); ctx.fill(); ctx.stroke(); ctx.restore();
   label(ctx,'מיתר:  v̄ = '+vavg.toFixed(3)+' m/s',GL+111,GT+13,'#fbbf24',9,'center');
   label(ctx,'משיק:  v(t₀) = '+vinst.toFixed(3)+' m/s',GL+111,GT+27,'#34d399',9,'center');
   label(ctx,'|v̄ − v(t₀)| = '+Math.abs(vavg-vinst).toFixed(3)+' m/s',GL+111,GT+40,'#cbd5e1',9,'center');
   if(converged){ctx.save();ctx.fillStyle='rgba(52,211,153,.12)';ctx.strokeStyle='#34d399';ctx.lineWidth=1;ctx.beginPath();ctx.roundRect(GL+2,GT+44,218,20,4);ctx.fill();ctx.stroke();ctx.restore();label(ctx,'Δt → 0  ⇒  v̄ → v(t₀) = dx/dt',GL+111,GT+57,'#34d399',9,'center');}
-  label(ctx,'Δt מתכווץ: המיתר הצהוב הופך למשיק הירוק',GR-8,GT+14,'#94a3b8',9,'right');
+  else label(ctx,'Δt מתכווץ: המיתר הצהוב הופך למשיק הירוק',GL+111,GT+54,'#94a3b8',9,'center');
 });
 
 // CH1 ANIM 5: תאוצה
@@ -21118,9 +21132,11 @@ runAnim('anim-momentum',(canvas,ctx,W,H,t)=>{
 
   // Three balls: light-fast, medium, heavy-slow
   const balls=[
-    {m:1, v:12, col:'#60a5fa', lbl:'1 kg', y:H*0.25},
-    {m:3, v:8,  col:'#f59e0b', lbl:'3 kg', y:H*0.50},
-    {m:6, v:4,  col:'#ef4444', lbl:'6 kg', y:H*0.75},
+    // rows and balls sized so a ball's velocity label clears the bar above
+    // (the 6 kg ball's "4 m/s" printed over the 3 kg row's readout)
+    {m:1, v:12, col:'#60a5fa', lbl:'1 kg', y:H*0.27},
+    {m:3, v:8,  col:'#f59e0b', lbl:'3 kg', y:H*0.53},
+    {m:6, v:4,  col:'#ef4444', lbl:'6 kg', y:H*0.79},
   ];
 
   balls.forEach(b=>{
@@ -21149,7 +21165,7 @@ runAnim('anim-momentum',(canvas,ctx,W,H,t)=>{
     ctx.beginPath();ctx.roundRect(barX,b.y+16,barW,barH,3);ctx.stroke();ctx.restore();
 
     // Ball with glow
-    const r=7+b.m*2.2;
+    const r=6+b.m*1.1;
     const grd=ctx.createRadialGradient(bx-r*0.3,b.y-r*0.3,r*0.1,bx,b.y,r);
     grd.addColorStop(0,'rgba(255,255,255,.55)');grd.addColorStop(1,b.col+'cc');
     circle(ctx,bx,b.y,r,grd,b.col,1.8);
@@ -21157,17 +21173,17 @@ runAnim('anim-momentum',(canvas,ctx,W,H,t)=>{
 
     // Velocity arrow
     const aLen=b.v*2.8*(goRight?1:-1);
-    arrow(ctx,bx,b.y-r-5,bx+aLen,b.y-r-5,goRight?'#34d399':'#a78bfa',2,8);
-    label(ctx,b.v+' m/s',bx+aLen+(goRight?5:-5),b.y-r-5,goRight?'#6ee7b7':'#c4b5fd',8,goRight?'left':'right');
+    arrow(ctx,bx,b.y-r-4,bx+aLen,b.y-r-4,goRight?'#34d399':'#a78bfa',2,8);
+    label(ctx,b.v+' m/s',bx+aLen+(goRight?5:-5),b.y-r-4,goRight?'#6ee7b7':'#c4b5fd',8,goRight?'left':'right');
 
-    // p readout
-    label(ctx,'p = '+b.m+'×'+b.v+' = '+p+' kg·m/s',barX+barW-2,b.y+22,b.col,8,'right');
+    // the bar is the SIZE of p: the direction is the arrow's, and flips at each wall
+    label(ctx,'|p| = '+b.m+'×'+b.v+' = '+p+' kg·m/s',barX+barW-2,b.y+22,b.col,8,'right');
   });
 
   // Title banner
   ctx.save();ctx.fillStyle='rgba(6,14,28,.88)';ctx.strokeStyle='rgba(251,191,36,.3)';ctx.lineWidth=0.8;
   ctx.beginPath();ctx.roundRect(8,4,W-16,16,3);ctx.fill();ctx.stroke();ctx.restore();
-  label(ctx,'תנע p = mv — כל גוף מוצג עם עמודת תנע',W/2,13,'#94a3b8',7.5);
+  label(ctx,'גודל התנע |p| = m·|v| — עמודה לכל גוף',W/2,13,'#94a3b8',7.5);
 });
 
 // CH2 ANIM: חוק שלישי — כוחות פעולה ותגובה
@@ -22098,7 +22114,7 @@ runAnim('anim-mcons',(canvas,ctx,W,H,t)=>{
   const v1f=((m1-m2)*v1i+2*m2*v2i)/(m1+m2);
   const v2f=(2*m1*v1i+(m2-m1)*v2i)/(m1+m2);
   const r1=14, r2=11;
-  const ay=H*0.46;
+  const ay=H*0.53;
   const GND=ay+Math.max(r1,r2)+6;
 
   // The collision used to fire at a fixed tC = 2.2 s while the balls, drawn at
@@ -22142,7 +22158,7 @@ runAnim('anim-mcons',(canvas,ctx,W,H,t)=>{
   ctx.restore();
 
   // ── Momentum bars panel (top)
-  const barPanel={x:12,y:8,w:W-24,h:36};
+  const barPanel={x:12,y:8,w:W-24,h:44};
   ctx.save();ctx.fillStyle='rgba(6,14,28,.88)';ctx.strokeStyle='#1e3a52';ctx.lineWidth=1;
   ctx.beginPath();ctx.roundRect(barPanel.x,barPanel.y,barPanel.w,barPanel.h,5);ctx.fill();ctx.stroke();ctx.restore();
 
@@ -22172,28 +22188,30 @@ runAnim('anim-mcons',(canvas,ctx,W,H,t)=>{
   // Labels in bar panel
   label(ctx,'p₁='+p1.toFixed(1),midX-4,barPanel.y+14,'#93c5fd',7.5,'right');
   label(ctx,'p₂='+p2.toFixed(1),midX+4,barPanel.y+28,'#fcd34d',7.5,'left');
-  label(ctx,'תנע כולל = '+pNow.toFixed(1)+' ✓',midX,barPanel.y+37,'#fbbf24',7.5,'center');
+  label(ctx,'תנע כולל = '+pNow.toFixed(1)+' ✓',midX,barPanel.y+40,'#fbbf24',7.5,'center');
 
   // ── Ball 1 (blue)
   const g1=ctx.createRadialGradient(x1-r1*0.35,ay-r1*0.35,r1*0.08,x1,ay,r1);
   g1.addColorStop(0,'#bfdbfe');g1.addColorStop(1,'rgba(29,78,216,.85)');
   circle(ctx,x1,ay,r1,g1,'#60a5fa',2);
-  label(ctx,'m₁='+m1+'kg',x1,ay+r1+10,'#93c5fd',7.5);
+  label(ctx,'m₁ = '+m1+' kg',x1,ay+r1+10,'#93c5fd',7.5);
   if(Math.abs(v1c)>0.3){
     const al=v1c*2.2;
     arrow(ctx,x1,ay-r1-6,x1+al,ay-r1-6,'#34d399',2,7);
-    label(ctx,v1c.toFixed(1)+'m/s',x1+al+(v1c>0?4:-4),ay-r1-6,'#6ee7b7',7.5,v1c>0?'left':'right');
+    label(ctx,v1c.toFixed(1)+' m/s',x1+al+(v1c>0?4:-4),ay-r1-6,'#6ee7b7',7.5,v1c>0?'left':'right');
   }
 
   // ── Ball 2 (red)
   const g2=ctx.createRadialGradient(x2-r2*0.35,ay-r2*0.35,r2*0.08,x2,ay,r2);
   g2.addColorStop(0,'#fecaca');g2.addColorStop(1,'rgba(185,28,28,.85)');
   circle(ctx,x2,ay,r2,g2,'#f87171',2);
-  label(ctx,'m₂='+m2+'kg',x2,ay+r2+10,'#fca5a5',7.5);
+  label(ctx,'m₂ = '+m2+' kg',x2,ay+r2+10,'#fca5a5',7.5);
   if(Math.abs(v2c)>0.3){
-    const al2=v2c*2.2;
-    arrow(ctx,x2,ay-r2-6,x2+al2,ay-r2-6,'#f59e0b',2,7);
-    label(ctx,v2c.toFixed(1)+'m/s',x2+al2+(v2c>0?4:-4),ay-r2-6,'#fbbf24',7.5,v2c>0?'left':'right');
+    // a row above ball 1's: as the balls close in, the two speeds used to
+    // print on top of each other between them
+    const al2=v2c*2.2, y2L=ay-r1-18;
+    arrow(ctx,x2,y2L,x2+al2,y2L,'#f59e0b',2,7);
+    label(ctx,v2c.toFixed(1)+' m/s',x2+al2+(v2c>0?4:-4),y2L,'#fbbf24',7.5,v2c>0?'left':'right');
   }
 
   // Collision flash
@@ -22247,7 +22265,10 @@ runAnim('anim-vec',(canvas,ctx,W,H,t)=>{
   // Rotating vector — shows gודl and כיוון
   const angle=-tt*0.7;
   const mag=62;
-  const vx=mag*Math.cos(angle), vy=mag*Math.sin(angle);
+  // drawn to fit the gap between the two panels: on a phone a 62 px arrow
+  // swept into them and its labels piled up; the numbers stay 62 m/s
+  const PW0=W*0.30, R=Math.max(24,Math.min(62,(W-PW0*2-20)/2-8,CY-16)), k=R/mag;
+  const vx=R*Math.cos(angle), vy=R*Math.sin(angle);
 
   // ── Left panel: Scalar examples
   const PW=W*0.30, PH=H-14;
@@ -22294,14 +22315,14 @@ runAnim('anim-vec',(canvas,ctx,W,H,t)=>{
   ctx.beginPath();ctx.moveTo(CCX+vx,CCY);ctx.lineTo(CCX+vx,CCY+vy);ctx.stroke();
   ctx.beginPath();ctx.moveTo(CCX,CCY+vy);ctx.lineTo(CCX+vx,CCY+vy);ctx.stroke();
   ctx.setLineDash([]);ctx.restore();
-  label(ctx,'vₓ='+vx.toFixed(0),CCX+vx/2,CCY+8,'#60a5fa',7.5,'center');
+  label(ctx,'vₓ='+(vx/k).toFixed(0),CCX+vx/2,CCY+8,'#60a5fa',7.5,'center');
   // vy is a SCREEN component (canvas y grows downward). Negate for the label
   // only — the draw calls above must keep using CCY+vy.
-  label(ctx,'vᵧ='+(-vy).toFixed(0),CCX+vx+(vx>0?5:-20),CCY+vy/2,'#f87171',7.5);
+  label(ctx,'vᵧ='+(-vy/k).toFixed(0),CCX+vx+(vx>0?5:-20),CCY+vy/2,'#f87171',7.5);
 
   // Origin dot
   circle(ctx,CCX,CCY,3,'#fff','#94a3b8',1.5);
-  label(ctx,'ראשית',CCX+4,CCY-6,'#7d8da6',7,'left');
+  label(ctx,'ראשית',CCX,CCY+20,'#7d8da6',7,'center');
 });
 
 // ── CH3 ANIM: anim-tension — rope tension, T=m(g±a)
@@ -22526,7 +22547,9 @@ runAnim('anim-impulse',(canvas,ctx,W,H,t)=>{
     {F:60,  dt:1.0,  col:'#3b82f6', lbl:'כוח קטן, זמן ארוך'},
   ];
   const J=60; // same impulse for both: F×dt=60
-  const panel_h=H/2-4;
+  // the shared verdict gets its own row at the bottom: drawn across the seam
+  // of the two panels it covered the second one's title
+  const BAN=21, panel_h=(H-BAN)/2-3;
 
   scenarios.forEach((sc,idx)=>{
     const panelY=idx*(panel_h+4)+2;
@@ -22537,7 +22560,7 @@ runAnim('anim-impulse',(canvas,ctx,W,H,t)=>{
     ctx.beginPath();ctx.roundRect(bx,panelY,bw,panel_h-2,5);ctx.fill();ctx.stroke();ctx.restore();
 
     // Label
-    label(ctx,sc.lbl+' — F='+sc.F+'N, Δt='+sc.dt+'s',bx+bw/2,panelY+11,sc.col,8,'center');
+    label(ctx,sc.lbl+' — F = '+sc.F+' N, Δt = '+sc.dt+' s',bx+bw/2,panelY+11,sc.col,8,'center');
 
     // F-t graph (force vs time)
     const graphX=bx+10, graphY=panelY+16, graphW=bw*0.46, graphH=panel_h-28;
@@ -22562,20 +22585,21 @@ runAnim('anim-impulse',(canvas,ctx,W,H,t)=>{
 
     // Δp bar (right side)
     const dpX=bx+bw*0.60, dpW=bw*0.35;
-    label(ctx,'Δp = '+J+' kg·m/s',dpX+dpW/2,panelY+14,sc.col,7.5,'center');
+    // under its bar, clear of the panel title it used to share a row with
+    label(ctx,'Δp = '+J+' kg·m/s',dpX+dpW/2,panelY+41,sc.col,7.5,'center');
     // Bar background
     ctx.save();ctx.fillStyle='rgba(15,30,55,.7)';
-    ctx.beginPath();ctx.roundRect(dpX,panelY+18,dpW,12,3);ctx.fill();ctx.restore();
+    ctx.beginPath();ctx.roundRect(dpX,panelY+20,dpW,12,3);ctx.fill();ctx.restore();
     // Animated fill
     // Δt differs by 10:1 between the panels (0.1 s against 1.0 s) but the
     // meters used to fill at 2:1, flattening the very contrast the figure is
     // built on. Real ratio: the hard, brief hit is over almost at once.
     const fillFrac=Math.min(1,(tt/(PERIOD*0.6))/sc.dt);
     ctx.save();ctx.fillStyle=sc.col+'cc';
-    ctx.beginPath();ctx.roundRect(dpX,panelY+18,dpW*fillFrac,12,3);ctx.fill();ctx.restore();
+    ctx.beginPath();ctx.roundRect(dpX,panelY+20,dpW*fillFrac,12,3);ctx.fill();ctx.restore();
 
     // Ball with momentum arrow
-    const ballY=panelY+panel_h-20;
+    const ballY=panelY+panel_h-15;
     const v=J/2; // p/m, m=2kg assumed
     const ballX=dpX+14+fillFrac*(dpW-28);
     circle(ctx,ballX,ballY,9,sc.col+'bb',sc.col,1.8);
@@ -22586,8 +22610,8 @@ runAnim('anim-impulse',(canvas,ctx,W,H,t)=>{
 
   // Shared result banner
   ctx.save();ctx.fillStyle='rgba(6,14,28,.9)';ctx.strokeStyle='rgba(251,191,36,.4)';ctx.lineWidth=1;
-  ctx.beginPath();ctx.roundRect(W/2-100,H/2-10,200,18,4);ctx.fill();ctx.stroke();ctx.restore();
-  label(ctx,'שניהם: Δp = J = 60 kg·m/s — שווה!',W/2,H/2+2,'#fbbf24',8,'center');
+  ctx.beginPath();ctx.roundRect(W/2-100,H-BAN+1,200,18,4);ctx.fill();ctx.stroke();ctx.restore();
+  label(ctx,'שניהם: Δp = J = 60 kg·m/s — שווה!',W/2,H-BAN+13,'#fbbf24',8,'center');
 });
 
 // ── CH7 ANIM: Rocket propulsion — conservation of momentum
@@ -22665,9 +22689,12 @@ runAnim('anim-rocket',(canvas,ctx,W,H,t)=>{
   // The caption below asserts m_r·v_r = −m_g·v_g while two velocity arrows of
   // very different lengths sit above it. Say what the momenta actually are.
   const _mR=800, _vR=phase*12, _mG=_mR*_vR/80;
-  label(ctx,'\u200ep_רקטה = '+(_mR*_vR).toFixed(0)+'   |   p_גז = −'+(_mG*80).toFixed(0)+
-            '   |   סכום = 0 kg·m/s',W/2,H-33,'#94a3b8',8,'center');
-  label(ctx,'תנע הרקטה + תנע הגז = 0',W/2,H-18,'#fbbf24',8.5,'center',true);
+  // One line of maths, one of Hebrew: mixed in one label (p_רקטה = … | סכום
+  // = 0) the right-to-left page shuffled the pieces out of order. The
+  // subscripts are the theory box's own, m_rocket and m_gas.
+  const _pR=(_mR*_vR).toFixed(0);
+  label(ctx,'\u200ep_rocket + p_gas = '+_pR+' + (−'+_pR+') = 0 kg·m/s',W/2,H-33,'#94a3b8',8,'center');
+  label(ctx,'תנע הרקטה ותנע הגז: שווים בגודלם והפוכים בכיוונם',W/2,H-17,'#fbbf24',8.5,'center',true);
 
   // Phase progress bar
   ctx.save();ctx.fillStyle='rgba(15,30,55,.6)';
@@ -22708,20 +22735,25 @@ runAnim('anim-collision-types',(canvas,ctx,W,H,t)=>{
   var SPX=Math.max(0.5,(((W-r2-8)-m2_pos)/vfMax+K)/(CYCLE-0.4));
   var tC=K/SPX;
 
+  // Each row needs its title, a line for the speeds, the balls and their
+  // floor; at 185 px the speeds printed inside the titles and the first title
+  // sat under the header. The canvas is taller now and the rows are spaced
+  // from its height.
+  var RT=26, RSTEP=(H-RT-46-20)/2, rowAt=function(i){return RT+46+i*RSTEP;};
   var rows=[
     {label:'אלסטית לחלוטין (e=1) — E_k נשמרת',
      v1f:v1f_e, v2f:v2f_e, merged:false,
-     col1:'#60a5fa', col2:'#34d399', ecol:'#34d399', y:H*0.22,
+     col1:'#60a5fa', col2:'#34d399', ecol:'#34d399', y:rowAt(0),
      ek_before:0.5*m1*v1i*v1i+0.5*m2*v2i*v2i,
      ek_after:0.5*m1*v1f_e*v1f_e+0.5*m2*v2f_e*v2f_e},
     {label:'אי-אלסטית חלקית (e=0.5)',
      v1f:v1f_s, v2f:v2f_s, merged:false,
-     col1:'#f59e0b', col2:'#fb923c', ecol:'#f59e0b', y:H*0.50,
+     col1:'#f59e0b', col2:'#fb923c', ecol:'#f59e0b', y:rowAt(1),
      ek_before:0.5*m1*v1i*v1i,
      ek_after:0.5*m1*v1f_s*v1f_s+0.5*m2*v2f_s*v2f_s},
     {label:'אי-אלסטית לחלוטין (e=0) — הגופים נצמדים',
      v1f:vf_in, v2f:vf_in, merged:true,
-     col1:'#f87171', col2:'#f87171', ecol:'#f87171', y:H*0.78,
+     col1:'#f87171', col2:'#f87171', ecol:'#f87171', y:rowAt(2),
      ek_before:0.5*m1*v1i*v1i,
      ek_after:0.5*(m1+m2)*vf_in*vf_in},
   ];
@@ -22736,8 +22768,8 @@ runAnim('anim-collision-types',(canvas,ctx,W,H,t)=>{
 
     // Row label
     ctx.save();ctx.fillStyle='rgba(6,14,28,.85)';ctx.strokeStyle=row.ecol+'44';ctx.lineWidth=1;
-    ctx.beginPath();ctx.roundRect(10,rowY-r1-20,W-20,15,3);ctx.fill();ctx.stroke();ctx.restore();
-    label(ctx,row.label,W/2,rowY-r1-10,row.ecol,7.5,'center');
+    ctx.beginPath();ctx.roundRect(10,rowY-48,W-20,15,3);ctx.fill();ctx.stroke();ctx.restore();
+    label(ctx,row.label,W/2,rowY-38,row.ecol,7.5,'center');
 
     // Compute positions
     var x1,x2,v1c,v2c;
@@ -22803,15 +22835,17 @@ runAnim('anim-collision-types',(canvas,ctx,W,H,t)=>{
       var lostPct=Math.round((1-row.ek_after/row.ek_before)*100);
       var pB=(m1*v1i+m2*v2i), pA=row.merged?(m1+m2)*row.v1f:m1*row.v1f+m2*row.v2f;
       var pOK=Math.abs(pB-pA)<0.2;
-      label(ctx,'p: '+pB.toFixed(1)+'→'+pA.toFixed(1)+' '+(pOK?'✅':' '),W*0.80,rowY-r1-2,'#22d3ee',7,'right');
-      label(ctx,'E_k: −'+lostPct+'% '+(lostPct===0?'✅':''),W*0.80,rowY+r1+2,row.ecol,7,'right');
+      // at the left, which every ball has left by now (on the right they ran
+      // into the outgoing ball's speed)
+      label(ctx,'p: '+pB.toFixed(1)+' → '+pA.toFixed(1)+' kg·m/s '+(pOK?'✅':''),14,rowY-3,'#22d3ee',7,'left');
+      label(ctx,'E_k: −'+lostPct+'% '+(lostPct===0?'✅':''),14,rowY+9,row.ecol,7,'left');
     }
   });
 
   // Header
   ctx.save();ctx.fillStyle='rgba(6,14,28,.88)';ctx.strokeStyle='#1e4060';ctx.lineWidth=1;
   ctx.beginPath();ctx.roundRect(6,4,W-12,18,3);ctx.fill();ctx.stroke();ctx.restore();
-  label(ctx,'m₁='+m1+'kg מתנגש עם m₂='+m2+'kg נייח | v₁='+v1i+' m/s | e = מקדם התקומה',W/2,13,'#7d8da6',7.5);
+  label(ctx,'גוף של '+m1+' kg פוגע במהירות '+v1i+' m/s בגוף נייח של '+m2+' kg',W/2,13,'#7d8da6',7.5);
 });
 
 
@@ -25052,8 +25086,9 @@ runAnim('anim-ep-spring',(cv,ctx,W,H,t)=>{
   ctx.stroke();ctx.restore();
   ctx.save();ctx.fillStyle='#38bdf8';ctx.fillRect(wallX+Lp,gy-16,16,32);ctx.restore();
   simArrow(ctx,wallX+Lp+40,gy,wallX+Lp+18,gy,'#f87171',2.6,10);
-  oLbl(ctx,'x = '+(x*100).toFixed(0)+' cm',wallX+Lp/2,gy+30,'#94a3b8',9.5);
-  oLbl(ctx,'F = kx = '+F.toFixed(0)+' N',wallX+Lp+64,gy-14,'#f87171',9.5);
+  // to the millimetre, so ½·x·(kx) can be checked against the printed area
+  oLbl(ctx,'x = '+(x*100).toFixed(1)+' cm',wallX+Lp/2,gy+30,'#94a3b8',9.5);
+  oLbl(ctx,'F = kx = '+F.toFixed(1)+' N',wallX+Lp+64,gy-14,'#f87171',9.5);
   // F(x) graph with the area shaded — the area IS the energy
   var gx=W*0.52,gyy=H*0.20,gw=W*0.40,gh=H*0.54;
   var xMax=0.18, FMax=k*xMax;
