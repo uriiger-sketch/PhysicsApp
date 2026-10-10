@@ -9682,7 +9682,8 @@ function simAvgInstant(canvas){
     for(var tv=0;tv<=TMax;tv++){var px=toGx(tv); ctx.save(); ctx.strokeStyle='#3d6480'; ctx.lineWidth=1.5; ctx.beginPath(); ctx.moveTo(px,GB-6); ctx.lineTo(px,GB+6); ctx.stroke(); ctx.restore(); simText(ctx,tv,px,GB+17,'#7d8da6',10);}
     ctx.save(); ctx.strokeStyle='#1a3a5c'; ctx.lineWidth=1.5; ctx.strokeRect(GL,GT,GR-GL,GB-GT); ctx.restore();
     simText(ctx,'t (s)',GR,GB+30,'#94a3b8',10,'right'); simText(ctx,'x (m)',GL-6,GT+2,'#94a3b8',10,'right');
-    simText(ctx,'x = '+A.toFixed(2)+'t²',GR-8,GT+16,'#a5b4fc',11,'right',true);
+    // bottom right, where the parabola never goes: top right is under the panel on a phone
+    simText(ctx,'x = '+A.toFixed(2)+'t²',GR-8,GB-10,'#a5b4fc',11,'right',true);
     // Shaded Δt
     ctx.save(); ctx.fillStyle='rgba(251,191,36,.07)'; ctx.fillRect(toGx(t0),GT,Math.max(toGx(t1)-toGx(t0),2),GB-GT); ctx.restore();
     // Δt bracket
@@ -13333,8 +13334,9 @@ function simKineticFriction(canvas){
     var stopX=80+dTheory*PPM;
     if(stopX<W-10&&stopX>80){
       ctx.save(); ctx.strokeStyle='rgba(34,211,153,.7)'; ctx.lineWidth=1.5; ctx.setLineDash([4,4]);
-      ctx.beginPath(); ctx.moveTo(stopX,FLOOR_Y-56); ctx.lineTo(stopX,FLOOR_Y+4); ctx.stroke(); ctx.setLineDash([]); ctx.restore();
-      simText(ctx,'d = '+dTheory.toFixed(1)+' m',stopX,FLOOR_Y-62,'#22d3ee',10,undefined,true);
+      // a row above the block's own a-label, which arrives here as it stops
+      ctx.beginPath(); ctx.moveTo(stopX,FLOOR_Y-72); ctx.lineTo(stopX,FLOOR_Y+4); ctx.stroke(); ctx.setLineDash([]); ctx.restore();
+      simText(ctx,'d = '+dTheory.toFixed(1)+' m',stopX,FLOOR_Y-78,'#22d3ee',10,undefined,true);
     }
 
     // Heat sparks while moving
@@ -13406,7 +13408,8 @@ function simKineticFriction(canvas){
       });
       ctx.stroke(); ctx.restore();
       simText(ctx,'t (s) →',GX+GW-6,GY+GH-4,'#7d8da6',7,'right');
-    simText(ctx,'v (m/s) ↑',GX+8,GY+6,'#34d399',7,'left');
+    // a row under the panel title, which they shared on a phone and overprinted
+    simText(ctx,'v (m/s) ↑',GX+GW-8,GY+21,'#34d399',7,'right');
       simText(ctx,'v₀ = '+v0.toFixed(0)+' m/s',GX+18,GY+GH-14-(v0/vMax)*(GH-20)+14,'#34d399',9,'left');
     } else {
       ctx.save(); ctx.fillStyle='rgba(6,14,28,.5)'; ctx.strokeStyle='#1e3a52'; ctx.lineWidth=1;
@@ -13421,7 +13424,7 @@ function simKineticFriction(canvas){
     ctx.beginPath(); ctx.roundRect(GX2,GY,GW2,GH,4); ctx.fill(); ctx.stroke(); ctx.restore();
     simText(ctx,'a(t) — קו אופקי! (קבוע)',GX2+GW2/2,GY+9,'#7d8da6',8,undefined,true);
     simText(ctx,'t (s) →',GX2+GW2-6,GY+GH-4,'#7d8da6',7,'right');
-    simText(ctx,'a (m/s²) ↑',GX2+8,GY+6,'#ef4444',7,'left');
+    simText(ctx,'a (m/s²) ↑',GX2+8,GY+21,'#ef4444',7,'left');
     if(aData.length>2){
       var tMax2=Math.max(tClock,v0/Math.abs(a));
       ctx.save(); ctx.strokeStyle='#ef4444'; ctx.lineWidth=2;
@@ -13434,7 +13437,8 @@ function simKineticFriction(canvas){
       ctx.stroke(); ctx.restore();
       ctx.save(); ctx.strokeStyle='rgba(30,58,82,.4)'; ctx.lineWidth=1;
       ctx.beginPath(); ctx.moveTo(GX2+6,GY+GH/2); ctx.lineTo(GX2+GW2-6,GY+GH/2); ctx.stroke(); ctx.restore();
-      simText(ctx,'a='+a.toFixed(2),GX2+GW2-8,GY+GH/2-a/(Math.abs(a)*2)*(GH-20)+(a<0?12:-4),'#ef4444',7,'right');   // beside the line (a<0 sits BELOW zero; the label used to sit above it)
+      // just above the line, at its start: below it, a < 0 printed off the panel onto the t axis
+      simText(ctx,'a = '+a.toFixed(2)+' m/s²',GX2+10,GY+GH/2-a/(Math.abs(a)*2)*(GH-20)-5,'#ef4444',7,'left');
     } else {
       simText(ctx,'גרף a(t)',GX2+GW2/2,GY+GH/2,'#7d8da6',8.5,undefined,true);
       simText(ctx,'יופיע לאחר שיגור',GX2+GW2/2,GY+GH/2+12,'#7d8da6',8,undefined,true);
@@ -14067,7 +14071,9 @@ function simProjectile(canvas){
     // — could not be seen; and it slid the target across the screen while the
     // learner was aiming at it.
     var maxH2=v0*v0*Math.sin(rad2)*Math.sin(rad2)/(2*g);
-    var _tRef=targetX>0?targetX*1.35:Math.max(6,maxRange);
+    // at least 45 m in view, so the default shot (40.8 m) lands on the canvas
+    // even when the target is near; a 27 m target used to send it off the edge
+    var _tRef=targetX>0?Math.max(45,targetX*1.35):Math.max(6,maxRange);
     SCALE=Math.max(3,Math.min(26,(W-80)/Math.max(1,_tRef)));
     // Only concession: keep a very steep, very fast shot's apex on screen,
     // otherwise the arc leaves the canvas entirely.
@@ -14110,11 +14116,13 @@ function simProjectile(canvas){
     // Grid: ticks at round numbers of metres. A fixed 60 px pitch labelled
     // with rounded values read "15 m, 17 m, 20 m" — uneven steps of 2.9 m.
     var _stp=[1,2,5,10,20,50,100].find(function(q){return q*SCALE>=48;})||100;
+    // the range marker's label sits on this row: the tick beside it gives way
+    var _rxR=LAUNCH_X+v0*v0*Math.sin(2*angle*Math.PI/180)/g*SCALE; _rxR=_rxR<W-20?Math.min(_rxR,W-34):-1e3;
     for(var xm=0;LAUNCH_X+xm*SCALE<W-14;xm+=_stp){
       var xi=xm*SCALE;
       ctx.save(); ctx.strokeStyle='rgba(30,58,82,.2)'; ctx.lineWidth=1;
       ctx.beginPath(); ctx.moveTo(LAUNCH_X+xi,GND_Y-4); ctx.lineTo(LAUNCH_X+xi,GND_Y+4); ctx.stroke();
-      simText(ctx,xm+' m',LAUNCH_X+xi,GND_Y+14,'#7d8da6',7,undefined,true);
+      if(Math.abs(LAUNCH_X+xi-_rxR)>32)simText(ctx,xm+' m',LAUNCH_X+xi,GND_Y+14,'#7d8da6',7,undefined,true);
       ctx.restore();
     }
     for(var ym=_stp;ym*SCALE<GND_Y-70;ym+=_stp){
@@ -14183,7 +14191,7 @@ function simProjectile(canvas){
       simArrow(ctx,LAUNCH_X,GND_Y,LAUNCH_X+Math.cos(ar3)*al3,GND_Y-Math.sin(ar3)*al3,'#fbbf24',3.5,14);
       simText(ctx,'שחררו לשיגור!',LAUNCH_X+Math.cos(ar3)*al3+12,GND_Y-Math.sin(ar3)*al3-10,'#fbbf24',10,'left');
     } else if(!launched){
-      simText(ctx,'✋ גררו מהתותח כדי לכוון — שחררו לירי',LAUNCH_X+6,GND_Y-74+Math.sin(t*3)*3,'#fbbf24',9,'left');
+      simText(ctx,'✋ גררו מהתותח כדי לכוון — שחררו לירי',LAUNCH_X+6,GND_Y-104+Math.sin(t*3)*3,'#fbbf24',9,'left');
     }
     // ── Target challenge ──────────────────────────────
     if(targetX>0){
@@ -14701,7 +14709,12 @@ function simStaticsTorque(canvas){
     ctx.save();ctx.strokeStyle='#f59e0b';ctx.lineWidth=2.5;ctx.setLineDash([5,4]);
     ctx.beginPath();ctx.moveTo(PX,PY);ctx.lineTo(fx,fy);ctx.stroke();ctx.restore();
     var _dShort=Math.hypot(fx-PX,fy-PY)<70;
-    slTxt(ctx,'d = '+d.toFixed(3)+' m',_dShort?PX:(PX+fx)/2,_dShort?PY-40:(PY+fy)/2-14,'#f59e0b',12,'center',true);
+    // d is labelled on the side of its segment away from the bar, where the
+    // r label lives: on a phone the two used to print on top of each other
+    var _mx=(PX+fx)/2,_my=(PY+fy)/2,_dl=Math.hypot(fx-PX,fy-PY)||1,_nx=-(fy-PY)/_dl,_ny=(fx-PX)/_dl,
+        _side=_nx*(a.x-_mx)+_ny*(a.y-_my);
+    if(_side>1e-6||(Math.abs(_side)<=1e-6&&_ny>0)){_nx=-_nx;_ny=-_ny;}
+    slTxt(ctx,'d = '+d.toFixed(3)+' m',_dShort?PX:_mx+_nx*20,_dShort?PY-40:_my+_ny*20+4,'#f59e0b',12,'center',true);
     simArrow(ctx,a.x,a.y,tip.x,tip.y,'#3b82f6',3.5,13);
     simHandle(ctx,tip.x,tip.y,'#93c5fd',22);      // drag to set the angle
     simHandle(ctx,a.x,a.y,'#fbbf24',22);          // drag along the bar
@@ -14787,7 +14800,8 @@ function simStaticsBeam(canvas){
     var xl=X0+xp*PPM;
     ctx.fillStyle='#3b82f6';ctx.strokeStyle='#93c5fd';ctx.lineWidth=2;
     ctx.beginPath();ctx.rect(xl-22,BY-52,44,42);ctx.fill();ctx.stroke();
-    slTxt(ctx,P.toFixed(0)+' N',xl,BY-27,'#fff',12,'center',true);
+    // the handle's dot sat on the middle digit: the value goes above the box
+    slTxt(ctx,'P = '+P.toFixed(0)+' N',xl,BY-60,'#bfdbfe',12,'center',true);
     simHandle(ctx,xl,BY-30,'#bfdbfe',28);         // the load is what you drag
     simArrow(ctx,xl,BY-8,xl,BY-8+P*sc,'#3b82f6',2.5,10);
     // scale
@@ -14987,7 +15001,7 @@ function simCircular(canvas){
     // Radius line
     ctx.save(); ctx.strokeStyle='rgba(100,116,139,.25)'; ctx.lineWidth=1;
     ctx.beginPath(); ctx.moveTo(CX,CY); ctx.lineTo(px,py); ctx.stroke(); ctx.restore();
-    simText(ctx,'r = '+r.toFixed(1)+' m',(CX+px)/2+6,(CY+py)/2-8,'#7d8da6',8,'left');
+    simText(ctx,'R = '+r.toFixed(1)+' m',(CX+px)/2+6,(CY+py)/2-8,'#7d8da6',8,'left');
 
     // ── Comet tail ────────────────────────────────────
     for(var i=1;i<trail.length;i++){
@@ -15044,14 +15058,14 @@ function simCircular(canvas){
     simText(ctx,'תנועה מעגלית',PC,PY2+14,'#22d3ee',10.5,undefined,true);
     ctx.save(); ctx.strokeStyle='#1e4060'; ctx.lineWidth=1;
     ctx.beginPath(); ctx.moveTo(PX2+6,PY2+20); ctx.lineTo(PX2+PW2-6,PY2+20); ctx.stroke(); ctx.restore();
-    simText(ctx,'r = '+r.toFixed(1)+' m',PC,PY2+32,'#60a5fa',9.5,undefined,true);
+    simText(ctx,'R = '+r.toFixed(1)+' m',PC,PY2+32,'#60a5fa',9.5,undefined,true);
     simText(ctx,'v = '+v.toFixed(1)+' m/s',PC,PY2+46,'#34d399',9.5,undefined,true);
     simText(ctx,'ω = '+omega.toFixed(2)+' rad/s',PC,PY2+60,'#a78bfa',9,undefined,true);
     simText(ctx,'T = '+T.toFixed(2)+' s',PC,PY2+74,'#fbbf24',9,undefined,true);
     ctx.save(); ctx.strokeStyle='#1e4060'; ctx.lineWidth=1;
     ctx.beginPath(); ctx.moveTo(PX2+6,PY2+80); ctx.lineTo(PX2+PW2-6,PY2+80); ctx.stroke(); ctx.restore();
     simText(ctx,'תאוצה צנטריפטלית:',PC,PY2+92,'#22d3ee',9,undefined,true);
-    simText(ctx,'ac = v²/r',PC,PY2+106,'#f87171',10,undefined,true);
+    simText(ctx,'ac = v²/R',PC,PY2+106,'#f87171',10,undefined,true);
     simText(ctx,'= '+v.toFixed(1)+'²/'+r.toFixed(1),PC,PY2+120,'#94a3b8',8.5,undefined,true);
     simText(ctx,'= '+ac.toFixed(2)+' m/s²',PC,PY2+134,'#f87171',11,undefined,true);
     ctx.save(); ctx.strokeStyle='#1e4060'; ctx.lineWidth=1;
@@ -15062,8 +15076,8 @@ function simCircular(canvas){
     ctx.save(); ctx.strokeStyle='#1e4060'; ctx.lineWidth=1;
     ctx.beginPath(); ctx.moveTo(PX2+6,PY2+190); ctx.lineTo(PX2+PW2-6,PY2+190); ctx.stroke(); ctx.restore();
     simText(ctx,'θ = '+(theta%(2*Math.PI)*180/Math.PI).toFixed(0)+'°',PC,PY2+202,'#7d8da6',8.5,undefined,true);
-    simText(ctx,'ω = v/r',PC,PY2+216,'#7d8da6',8,undefined,true);
-    simText(ctx,'T = 2πr/v',PC,PY2+230,'#7d8da6',8,undefined,true);
+    simText(ctx,'ω = v/R',PC,PY2+216,'#7d8da6',8,undefined,true);
+    simText(ctx,'T = 2πR/v',PC,PY2+230,'#7d8da6',8,undefined,true);
 
     // Legend: v vs ac direction
     simText(ctx,'ירוק: מהירות (משיק)',PC,PY2+248,'#34d399',8,undefined,true);
@@ -15072,9 +15086,13 @@ function simCircular(canvas){
 
     // ── Top banner ────────────────────────────────────
     ctx.save(); ctx.fillStyle='rgba(6,14,28,.92)'; ctx.strokeStyle='#1e4060'; ctx.lineWidth=1.5;
-    ctx.beginPath(); ctx.roundRect(8,6,W*0.62,44,6); ctx.fill(); ctx.stroke(); ctx.restore();
-    simText(ctx,'תנועה מעגלית אחידה — ac = v²/r',W*0.31,20,'#22d3ee',11,undefined,true);
-    simText(ctx,'המהירות תמיד משיקה למעגל, והתאוצה תמיד מכוונת למרכז',W*0.31,36,'#94a3b8',8.5,undefined,true);
+    // on a phone the subtitle is two lines: as one it ran out of the banner
+    var _bn=W<480;
+    ctx.beginPath(); ctx.roundRect(8,6,W*0.62,_bn?54:44,6); ctx.fill(); ctx.stroke(); ctx.restore();
+    simText(ctx,'תנועה מעגלית אחידה — ac = v²/R',W*0.31,20,'#22d3ee',11,undefined,true);
+    if(_bn){simText(ctx,'המהירות תמיד משיקה למעגל,',W*0.31,35,'#94a3b8',8.5,undefined,true);
+      simText(ctx,'והתאוצה תמיד מכוונת למרכז',W*0.31,48,'#94a3b8',8.5,undefined,true);}
+    else simText(ctx,'המהירות תמיד משיקה למעגל, והתאוצה תמיד מכוונת למרכז',W*0.31,36,'#94a3b8',8.5,undefined,true);
 
     requestAnimationFrame(draw);
   }
@@ -16168,7 +16186,8 @@ function simVecComponents(canvas){
     ctx.save(); ctx.fillStyle=dragging?'#fbbf24':'#60a5fa'; ctx.strokeStyle='#fff'; ctx.lineWidth=2;
     ctx.beginPath(); ctx.arc(CX+vx,CY+vy,10,0,Math.PI*2); ctx.fill(); ctx.stroke(); ctx.restore();
     simText(ctx,'A',CX+vx+(vx>=0?16:-16),CY+vy+(vy<=0?-10:16),'#93c5fd',12,vx>=0?'left':'right',true);
-    if(!dragging&&t<6)simText(ctx,'גררו את הקצה',CX+vx,CY+vy+(vy<=0?28:-22),'#fbbf24',10,'center');
+    // beyond the tip, clear of the handle ring; below it, it printed over the Ay label
+    if(!dragging&&t<6)simText(ctx,'גררו את הקצה',CX+vx,CY+vy+(vy<=0?-34:40),'#fbbf24',10,'center');
 
     // Angle arc
     if(mag>25){
@@ -33158,7 +33177,7 @@ function buildSim(sim){
   else if(sim.type==='momentum-cons')extra=C(rng('mc-m1',1,8,3,0.5,'m₁',' kg')+rng('mc-m2',1,8,2,0.5,'m₂',' kg')+rng('mc-v1',-8,8,4,1,'v₁',' m/s')+rng('mc-v2',-8,8,-2,1,'v₂',' m/s')+btn('mc-reset','↺ איפוס','btn-secondary'));
   else if(sim.type==='collision')extra=C(rng('col-e',0,1,1,0.05,'מקדם התקומה e (0 נצמדים, 1 אלסטית)')+rng('col-m1',1,8,3,0.5,'m₁',' kg')+rng('col-m2',1,8,2,0.5,'m₂',' kg')+rng('col-v1',0,8,4,0.5,'v₁ התחלתית',' m/s')+rng('col-v2',-8,0,-2,0.5,'v₂ התחלתית',' m/s')+btn('col-reset','↺ איפוס','btn-secondary'));
   else if(sim.type==='energy-kinetic')extra=C(rng('ek-F',2,50,10,1,'כוח F',' N')+rng('ek-m',0.5,10,2,0.5,'מסה m',' kg')+btn('ek-launch','▶ הפעילו!','btn-primary')+btn('ek-reset','↺ איפוס','btn-secondary'));
-  else if(sim.type==='energy-potential')extra=C(rng('ep-m',0.5,8,2,0.5,'מסה m',' kg')+rng('ep-g',1.6,25,9.8,0.5,'g',' m/s²')+btn('ep-elastic','⚡ אנרגיה אלסטית','btn-secondary')+btn('ep-reset','↺ איפוס','btn-secondary'));
+  else if(sim.type==='energy-potential')extra=C(rng('ep-m',0.5,8,2,0.5,'מסה m',' kg')+rng('ep-g',1.6,25,9.8,0.2,'g',' m/s²')+btn('ep-elastic','⚡ אנרגיה אלסטית','btn-secondary')+btn('ep-reset','↺ איפוס','btn-secondary'));
   else if(sim.type==='energy')extra=C(rng('energy-m',0.5,4,1,0.5,'מסה m',' kg')+rng('energy-mu',0,0.1,0,0.005,'מקדם חיכוך μ','')+btn('energy-reset','↺ איפוס','btn-secondary'));
   else if(sim.type==='shm-def')extra=C(rng('shm-A',2,13,8,0.5,'אמפליטודה A',' cm')+rng('shm-T',0.5,5,2,0.1,'מחזור T',' s')+btn('shm-reset','↺ איפוס','btn-secondary'));
   else if(sim.type==='vec-ops')extra=C(rng('vo-scalar',-3,3,2,0.1,'מכפיל c')+btn('vo-add','A+B')+btn('vo-sub','A−B','btn-secondary')+btn('vo-scalar','c·A','btn-secondary')+btn('vo-dot','A·B','btn-secondary')+btn('vo-reset','↺ איפוס','btn-secondary'));
@@ -33169,7 +33188,7 @@ function buildSim(sim){
   else if(sim.type==='static-friction')extra=C(rng('sft-mu',0.1,0.9,0.55,0.05,'μ_s')+rng('sft-mass',1,15,3,0.5,'מסה m',' kg')+rng('sft-F',0,80,0,1,'כוח F',' N')+btn('sft-reset','↺ איפוס','btn-secondary'));
   else if(sim.type==='kinetic-friction')extra=C(rng('kf-v0',2,20,10,1,'מהירות v₀',' m/s')+rng('kf-mass',1,15,5,0.5,'מסה m',' kg')+rng('kf-mu',0.1,0.8,0.38,0.02,'μ_k')+btn('kf-launch','▶ שגרו!','btn-primary')+btn('kf-reset','↺ איפוס','btn-secondary'));
   else if(sim.type==='friction-combined')extra=C(rng('fc-theta',5,70,20,1,'זווית θ','°')+rng('fc-F',0,80,0,2,'כוח F',' N')+rng('fc-mu',0.05,0.8,0.45,0.05,'μ')+rng('fc-m',0.5,10,5,0.5,'מסה m',' kg')+btn('fc-reset','↺ איפוס','btn-secondary'));
-  else if(sim.type==='pendulum')extra=C(rng('pend-L',0.3,3,1,0.1,'אורך L',' m')+rng('pend-g',1.6,25,9.8,0.5,'g',' m/s²')+rng('pend-damp',0,0.1,0,0.005,'ריסון b',' 1/s')+btn('pend-reset','↺ איפוס','btn-secondary'));
+  else if(sim.type==='pendulum')extra=C(rng('pend-L',0.3,3,1,0.1,'אורך L',' m')+rng('pend-g',1.6,25,9.8,0.2,'g',' m/s²')+rng('pend-damp',0,0.1,0,0.005,'ריסון b',' 1/s')+btn('pend-reset','↺ איפוס','btn-secondary'));
   else if(sim.type==='projectile')extra=C(rng('proj-angle',10,80,45,1,'זווית θ','°')+rng('proj-v0',5,35,20,1,'מהירות v₀',' m/s')+btn('proj-launch','▶ שגרו!','btn-primary')+btn('proj-reset','↺ איפוס','btn-secondary'));
   else if(sim.type==='elc-dielectric')extra=C(rng('di-k',1,8,4,0.5,'קבוע דיאלקטרי κ')+rng('di-f',0,1,0,0.05,'הכנסת הלוח')+btn('di-mode','🔌 הסוללה מחוברת','btn-secondary'));
   else if(sim.type==='elc-deflect')extra=C(rng('df-V',0,300,100,10,'מתח V',' V')+rng('df-v0',1,5,2,0.25,'v₀',' ×10⁷ m/s')+rng('df-L',4,14,10,1,'אורך הלוחות',' cm')+btn('df-part','🔁 החליפו לפרוטון','btn-secondary'));
@@ -33177,7 +33196,7 @@ function buildSim(sim){
   else if(sim.type==='statics-torque')extra=C(rng('tq-r',0.05,0.50,0.30,0.01,'מרחק r',' m')+rng('tq-F',5,60,30,1,'כוח F',' N')+rng('tq-th',0,180,60,5,'זווית θ',' °'));
   else if(sim.type==='statics-beam')extra=C(rng('bm-P',0,600,300,10,'עומס P',' N')+rng('bm-xp',0,4,3,0.1,'מיקום העומס',' m')+rng('bm-W',0,400,200,20,'משקל הקורה',' N')+rng('bm-xb',1.5,4,4,0.1,'מיקום משען B',' m'));
   else if(sim.type==='statics-com')extra=C(rng('cm-w',0.15,0.9,0.30,0.05,'רוחב w',' m')+rng('cm-h',0.2,1.2,0.50,0.05,'גובה h',' m')+rng('cm-mu',0.05,1.2,0.40,0.05,'חיכוך μs')+rng('cm-th',0,55,15,1,'זווית המדרון',' °'));
-  else if(sim.type==='circular')extra=C(rng('circ-r',0.5,3,1.2,0.1,'רדיוס r',' m')+rng('circ-v',2,15,6,0.5,'מהירות v',' m/s')+btn('circ-pause','⏸ עצרו','btn-secondary'));
+  else if(sim.type==='circular')extra=C(rng('circ-r',0.5,3,1.2,0.1,'רדיוס R',' m')+rng('circ-v',2,15,6,0.5,'מהירות v',' m/s')+btn('circ-pause','⏸ עצרו','btn-secondary'));
   else if(sim.type==='atwood')extra=C(rng('atw-m1',0.5,10,3,0.5,'m₁',' kg')+rng('atw-m2',0.5,10,5,0.5,'m₂',' kg')+btn('atw-launch','▶ שחררו!','btn-primary')+btn('atw-reset','↺ איפוס','btn-secondary'));
   // OPTICS CONTROLS
   else if(sim.type==='opt-em-wave')extra=C(rng('emw-wl',380,700,500,5,'אורך גל λ',' nm'));
