@@ -1587,7 +1587,11 @@ function _subifyDom(root){
 // number unless a Hebrew letter precedes it (ב-45° is a prefix, not −45).
 // No lookbehind: older iOS Safari cannot parse it, and one bad regex would
 // stop the whole app.
-var _MR_C='A-Za-z0-9⁰-₟²³¹¼-¾⅐-⅞Ͱ-Ͽ√∞∑ℓ';
+// ᵢ ᵣ ᵤ ᵥ and the Greek subscripts (U+1D62–1D6A) are letters of a symbol
+// too: without them "vᵢₙₛₜ" broke after the v and the index was flung to the
+// far end of the label. U+E000–E0FF are placeholders for subscripts that
+// have no Unicode form (see _cvSubSplit); they never occur in page text.
+var _MR_C='A-Za-z0-9⁰-₟²³¹¼-¾⅐-⅞Ͱ-Ͽ√∞∑ℓ\u1D62-\u1D6A\uE000-\uE0FF';
 var _MR_K='̀-ͯ⃐-⃿';
 var _MR_ATOM='['+_MR_C+'(\\[{|](?:['+_MR_C+_MR_K+'()\\[\\]{}.,^_|°%′″]*['+_MR_C+_MR_K+')\\]}°%′″|])?';
 var _MR_OP='[=≈≠<>≤≥±+\\-−×·*/^⇒→←⇔∝∥⊥–]';
@@ -8980,26 +8984,87 @@ function _cvLight(col){
   else if((m=/^rgba?\(([^)]+)\)$/.exec(col))){var q=m[1].split(',').map(parseFloat);if(q.length<4||q[3]>0.6)c=q.slice(0,3);}
   return (_cvLightCache[col]=!!c&&_cvLum(c)>0.3);
 }
+// ── Subscripts that Unicode does not have ───────────────────────────────
+// _cvSub turns v_0, a_x, θ_i into real subscript characters, but there are
+// none for c, b, d, f, g, q, w, y, z, for capitals or for Hebrew -- a_c,
+// k_eff, F_AB and p_כולל printed their underscore. Such a label is drawn
+// in pieces instead: each subscript in a smaller size, set below the line.
+// The pieces are laid out the way the browser lays out the whole label:
+// left to right without Hebrew; with Hebrew, right to left, every maths run
+// (an isolate) reading left to right inside.
+var _CV_SUBRE=/([A-Za-z\u0370-\u03FF\u1D62-\u1D6A\u2090-\u209C])_(\{[^{}]{1,8}\}|[A-Za-z0-9]{1,6}|[\u05D0-\u05EA\u05F3\u05F4]{1,10})/g;
+function _cvSubSplit(t){
+  var s=String(t).replace(/[\u2066-\u2069]/g,''),subs=[];
+  if(s.indexOf('_')<0)return null;
+  s=s.replace(_CV_SUBRE,function(m,a,b){
+    if(b.charAt(0)==='{')b=b.slice(1,-1);
+    subs.push(b);return a+String.fromCharCode(0xE000+subs.length-1);});
+  if(!subs.length||subs.length>200)return null;
+  // the placeholders count as letters, so a formula stays one maths run
+  return {s:_mathIso(s),subs:subs};
+}
+function _cvSubDraw(ctx,info,x,y,draw){
+  var s=info.s,font=ctx.font,m=/(\d*\.?\d+)px/.exec(font),px=m?parseFloat(m[1]):11;
+  var small=m?font.replace(m[0],(px*0.72).toFixed(2)+'px'):font,dy=px*0.25;
+  var heb=/[\u0590-\u05FF]/.test(s),pieces=[],re=/\u2066([^\u2069]*)\u2069/g,last=0,mm;
+  if(!heb)pieces.push({ltr:true,s:s.replace(/[\u2066-\u2069]/g,'')});
+  else{
+    while((mm=re.exec(s))){
+      if(mm.index>last)pieces.push({ltr:false,s:s.slice(last,mm.index)});
+      pieces.push({ltr:true,s:mm[1]});last=re.lastIndex;}
+    if(last<s.length)pieces.push({ltr:false,s:s.slice(last)});
+  }
+  var seg=function(str){var out=[],buf='';
+    for(var i=0;i<str.length;i++){var c=str.charCodeAt(i);
+      if(c>=0xE000&&c<0xE100){if(buf)out.push([buf,0]);buf='';out.push([info.subs[c-0xE000]||'',1]);}
+      else buf+=str.charAt(i);}
+    if(buf)out.push([buf,0]);return out;};
+  ctx.save();
+  var dir=ctx.direction;
+  if(dir!=='ltr'&&dir!=='rtl'){try{dir=getComputedStyle(ctx.canvas).direction;}catch(e){dir='ltr';}}
+  var widths=pieces.map(function(p){
+    if(!p.ltr){ctx.font=font;return ctx.measureText(p.s).width;}
+    p.seg=seg(p.s);
+    return p.seg.reduce(function(a,g){ctx.font=g[1]?small:font;return a+ctx.measureText(g[0]).width;},0);});
+  var W=widths.reduce(function(a,b){return a+b;},0),al=ctx.textAlign;
+  var L=al==='center'?x-W/2:al==='right'?x-W:al==='left'?x:al==='end'?(dir==='rtl'?x:x-W):(dir==='rtl'?x-W:x);
+  ctx.textAlign='left';
+  var cur=heb?L+W:L;
+  pieces.forEach(function(p,i){
+    var pw=widths[i],x0;
+    if(heb){cur-=pw;x0=cur;}else{x0=cur;cur+=pw;}
+    if(!p.ltr){ctx.direction='rtl';ctx.font=font;draw(p.s,x0,y);return;}
+    ctx.direction='ltr';var xx=x0;
+    p.seg.forEach(function(g){ctx.font=g[1]?small:font;draw(g[0],xx,g[1]?y+dy:y);xx+=ctx.measureText(g[0]).width;});
+  });
+  ctx.restore();
+}
 (function(){
   var P=window.CanvasRenderingContext2D&&CanvasRenderingContext2D.prototype;
   if(!P||P._rdHooked)return;P._rdHooked=true;
   var orig=P.fillText;
   P.fillText=function(t,x,y,w){
-    var cv=this.canvas;
+    var cv=this.canvas,self=this;
     if(cv&&cv._themed===undefined)cv._themed=!!(cv.closest&&cv.closest('.sensor-lab'));
     if(cv&&!cv._themed){
       var fs=this.fillStyle;
       if(typeof fs==='string'){var r=_cvReadable(fs);if(r!==fs)this.fillStyle=fs=r;}
       if(typeof t==='string')t=_mathIso(_cvSub(t));
+      var split=(typeof t==='string'&&t.indexOf('_')>=0)?_cvSubSplit(t):null;
       // a light label that crosses a coloured shape (a block, a bar, a ball)
       // keeps a thin dark halo, so it reads on the shape as well as beside it
-      if(typeof fs==='string'&&!this.shadowBlur&&_cvLight(fs)){
-        var sc=this.shadowColor,sb=this.shadowBlur,sx=this.shadowOffsetX,sy=this.shadowOffsetY;
+      var halo=typeof fs==='string'&&!this.shadowBlur&&_cvLight(fs),sc,sb,sx,sy,res;
+      if(halo){
+        sc=this.shadowColor;sb=this.shadowBlur;sx=this.shadowOffsetX;sy=this.shadowOffsetY;
         this.shadowColor='rgba(0,0,0,.75)';this.shadowBlur=3;this.shadowOffsetX=0;this.shadowOffsetY=0;
-        var res=w===undefined?orig.call(this,t,x,y):orig.call(this,t,x,y,w);
-        this.shadowColor=sc;this.shadowBlur=sb;this.shadowOffsetX=sx;this.shadowOffsetY=sy;
-        return res;
       }
+      try{
+        if(split)_cvSubDraw(this,split,x,y,function(s2,x2,y2){orig.call(self,s2,x2,y2);});
+        else res=w===undefined?orig.call(this,t,x,y):orig.call(this,t,x,y,w);
+      }finally{
+        if(halo){this.shadowColor=sc;this.shadowBlur=sb;this.shadowOffsetX=sx;this.shadowOffsetY=sy;}
+      }
+      return res;
     }
     return w===undefined?orig.call(this,t,x,y):orig.call(this,t,x,y,w);
   };
