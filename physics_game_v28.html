@@ -24931,13 +24931,14 @@ runAnim('anim-grating-t',function(canvas,ctx,W,H,t){
     var sinTh=m*wl/d;
     if(Math.abs(sinTh)>0.9)return;
     var th=Math.asin(sinTh);
-    var dx=(W*0.88-gX),dy=dx*Math.tan(th);
-    if(Math.abs(ax+dy)<H*0.08||Math.abs(ax+dy)>H*0.92)return;
+    // run each order to the screen, or to the top/bottom edge if it leaves first
+    var ex=W*0.88,ey=ax+(ex-gX)*Math.tan(th),avail=H/2-22;
+    if(Math.abs(ey-ax)>avail){ey=ax+Math.sign(th)*avail;ex=gX+(ey-ax)/Math.tan(th);}
     ctx.save();if(m!==0)optGlow(ctx,col,6);
-    oRay(ctx,gX,ax,W*0.88,ax+dy,m===0?'rgba(255,255,255,0.7)':col,m===0?2:2);
+    oRay(ctx,gX,ax,ex,ey,m===0?'rgba(255,255,255,0.7)':col,2);
     if(m!==0)optNoGlow(ctx);
     ctx.restore();
-    oLbl(ctx,'m='+m,W*0.88+8,ax+dy,col,8);
+    oLbl(ctx,'m='+m,ex+(m===0?16:22),ey,col,8);
   });
   oLbl(ctx,'d·sinθ=mλ',W/2,H-6,'#94a3b8',8);
   oLbl(ctx,'λ='+Math.round(wl)+'nm',W*0.18,ax-12,lHex,9);
