@@ -12136,17 +12136,26 @@ function simSpringForce(canvas){
       if(!dragging&&Math.abs(x)<0.004&&Math.abs(vel)<0.02){x=0.14;vel=0;dataPoints=[];}
     });
   });
+  // The graph mode is this simulation's own state (it used to be a global that
+  // survived leaving the section, so the button could name the mode on screen).
+  var signedMode=false;
   var fmodeBtn=document.getElementById('btn-sf-fmode');
-  if(fmodeBtn) fmodeBtn.addEventListener('click',function(){
-    window._springForceModeAbs=!window._springForceModeAbs;
-    fmodeBtn.textContent=window._springForceModeAbs?'📐 הצג |F|=k|x|':'📐 הצג F=-kx';
-  });
+  if(fmodeBtn){ fmodeBtn.textContent='📐 הצג F = −kx (עם סימן)';
+    fmodeBtn.addEventListener('click',function(){
+      signedMode=!signedMode;
+      fmodeBtn.textContent=signedMode?'📐 הצג |F| = k|x|':'📐 הצג F = −kx (עם סימן)';
+    });
+  }
 
-  // Spring anchor on left wall
-  var WALL_X=W*0.12, SPRING_Y=H*0.42;
-  var EQ_X=WALL_X+W*0.35; // equilibrium position of mass
+  // Layout: spring on the left and the F(x) graph on the right; on a phone the
+  // graph goes under the spring. The scale is set so ±22 cm fills the track
+  // (it was 200 px/m: the whole motion was ±44 px and the tick labels overlapped).
+  var PHS=W<480;
+  var WALL_X=PHS?26:W*0.06, SPRING_Y=PHS?150:H*0.42;
+  var GX0=PHS?8:W*0.62;
   var MASS_R=20;
-  var PX_PER_M=200; // pixels per meter of displacement
+  var EQ_X=PHS?W*0.52:WALL_X+(GX0-WALL_X)*0.5;
+  var PX_PER_M=((PHS?W-14:GX0-8)-MASS_R-EQ_X)/0.22; // pixels per metre of displacement
 
   function getMouseX(evt){
     var r=canvas.getBoundingClientRect();
@@ -12195,9 +12204,7 @@ function simSpringForce(canvas){
     var massPx=EQ_X+x*PX_PER_M;
     simBg(ctx,W,H);
 
-    simText(ctx,'\u200eω₀ = √(k/m) = '+_w0.toFixed(2)+' rad/s    T = '+_Tsp.toFixed(2)+' s',W/2,16,'#94a3b8',9.5,'center',true);
-    simText(ctx,'\u200eב_קריטי = 2√(km) = '+_bc.toFixed(2)+'    b = '+b.toFixed(2)+'  →  '+_regime,
-            W/2,29,b>_bc*0.999?'#fbbf24':'#4ade80',9,'center',true);
+
     // ── WALL ─────────────────────────────────────────────
     ctx.save(); ctx.fillStyle='#1e3a52'; ctx.fillRect(WALL_X-16,SPRING_Y-60,16,120); ctx.restore();
     for(var yi=SPRING_Y-60;yi<SPRING_Y+60;yi+=14){
@@ -12206,7 +12213,7 @@ function simSpringForce(canvas){
     }
     // Floor guide line
     ctx.save(); ctx.strokeStyle='rgba(30,58,82,.3)'; ctx.lineWidth=1;
-    ctx.beginPath(); ctx.moveTo(WALL_X,SPRING_Y+MASS_R+4); ctx.lineTo(W*0.85,SPRING_Y+MASS_R+4); ctx.stroke(); ctx.restore();
+    ctx.beginPath(); ctx.moveTo(WALL_X,SPRING_Y+MASS_R+4); ctx.lineTo(EQ_X+0.23*PX_PER_M,SPRING_Y+MASS_R+4); ctx.stroke(); ctx.restore();
 
     // ── SPRING ─────────────────────────────────────────────
     var sx1=WALL_X, sy=SPRING_Y;
@@ -12228,26 +12235,26 @@ function simSpringForce(canvas){
     // ── EQUILIBRIUM MARKER ─────────────────────────────────
     ctx.save(); ctx.strokeStyle='rgba(34,211,153,.4)'; ctx.lineWidth=1; ctx.setLineDash([4,5]);
     ctx.beginPath(); ctx.moveTo(EQ_X,SPRING_Y-50); ctx.lineTo(EQ_X,SPRING_Y+50); ctx.stroke(); ctx.setLineDash([]); ctx.restore();
-    simText(ctx,'x=0',EQ_X,SPRING_Y-52,'rgba(34,211,153,.6)',8,undefined,true);
+    simText(ctx,'x = 0',EQ_X,SPRING_Y-54,'#34d399',10,undefined,true);
 
     // Displacement indicator
     if(Math.abs(x)>0.005){
       ctx.save(); ctx.strokeStyle='rgba(251,191,36,.6)'; ctx.lineWidth=1.5; ctx.setLineDash([3,4]);
       ctx.beginPath(); ctx.moveTo(EQ_X,SPRING_Y-30); ctx.lineTo(massPx,SPRING_Y-30); ctx.stroke(); ctx.setLineDash([]); ctx.restore();
       simArrow(ctx,EQ_X,SPRING_Y-30,massPx,SPRING_Y-30,'#fbbf24',1.5,7);
-      simText(ctx,(x>=0?'+':'')+(x*100).toFixed(1)+' cm',(EQ_X+massPx)/2,SPRING_Y-40,'#fbbf24',8.5,undefined,true);
+      simText(ctx,'x = '+(x>=0?'+':'')+(x*100).toFixed(1)+' cm',(EQ_X+massPx)/2,SPRING_Y-40,'#fbbf24',10,undefined,true);
     }
 
     // x labels
-    for(var xi2=-20;xi2<=20;xi2+=5){
-      if(xi2===0)continue;
+    var _tk=0.05*PX_PER_M>=26?5:10;
+    for(var xi2=-20;xi2<=20;xi2+=_tk){
       var xpx=EQ_X+xi2*0.01*PX_PER_M;
-      if(xpx<WALL_X+10||xpx>W*0.85)continue;
-      ctx.save(); ctx.strokeStyle='rgba(30,58,82,.4)'; ctx.lineWidth=1;
+      if(xpx<WALL_X+10)continue;
+      ctx.save(); ctx.strokeStyle='rgba(61,100,128,.6)'; ctx.lineWidth=1;
       ctx.beginPath(); ctx.moveTo(xpx,SPRING_Y+MASS_R+4); ctx.lineTo(xpx,SPRING_Y+MASS_R+10); ctx.stroke(); ctx.restore();
-      simText(ctx,xi2+'',xpx,SPRING_Y+MASS_R+20,'#7d8da6',7,undefined,true);
+      simText(ctx,(xi2>0?'+':'')+xi2,xpx,SPRING_Y+MASS_R+22,'#94a3b8',9,undefined,true);
     }
-    simText(ctx,'cm',EQ_X+22*0.01*PX_PER_M,SPRING_Y+MASS_R+20,'#7d8da6',7,'left');
+    simText(ctx,'x (cm)',EQ_X+0.2*PX_PER_M,SPRING_Y+MASS_R+38,'#94a3b8',9,'center');
 
     // ── MASS ─────────────────────────────────────────────
     var mGrad=ctx.createRadialGradient(massPx,sy,4,massPx,sy,MASS_R);
@@ -12257,29 +12264,28 @@ function simSpringForce(canvas){
     ctx.fillStyle=mGrad; ctx.strokeStyle=springCol; ctx.lineWidth=2.5;
     ctx.beginPath(); ctx.arc(massPx,sy,MASS_R,0,Math.PI*2); ctx.fill(); ctx.stroke();
     ctx.shadowBlur=0; ctx.restore();
-    simText(ctx,m.toFixed(1)+'kg',massPx,sy+MASS_R+13,springCol,8,undefined,true);
-    if(dragging) simText(ctx,'מושך...',massPx,sy-MASS_R-10,'#fbbf24',8.5,undefined,true);
-    else if(t<4) simText(ctx,'← גרור',massPx,sy-MASS_R-10,'#fbbf24',8.5,undefined,true);
+    simText(ctx,m.toFixed(1)+' kg',massPx,sy+4,'#0b1220',9,undefined,true);
+    if(!dragging&&t<5&&Math.abs(x)<0.004) simText(ctx,'גררו את המסה',massPx,sy-MASS_R-12,'#fbbf24',10,undefined,true);
 
     // ── FORCE ARROW ──────────────────────────────────────
     if(Math.abs(F)>0.5){
       var fDir=Math.sign(F); // positive = rightward (toward eq)
       var fLen=Math.min(80,Math.abs(F)*1.2);
       simArrow(ctx,massPx,sy,massPx+fDir*fLen,sy,springCol,3,12);
-      simText(ctx,'F='+F.toFixed(1)+'N',massPx+fDir*(fLen+4),sy-10,springCol,9.5,fDir>0?'left':'right');
+      simText(ctx,'F = '+F.toFixed(1)+' N',massPx+fDir*(fLen+4),sy-10,springCol,10,fDir>0?'left':'right',true);
     }
 
     // ── TOP FORMULA PANEL ─────────────────────────────────
     ctx.save(); ctx.fillStyle='rgba(6,14,28,.92)'; ctx.strokeStyle='#1e4060'; ctx.lineWidth=1.5;
-    ctx.beginPath(); ctx.roundRect(8,6,W-16,50,6); ctx.fill(); ctx.stroke(); ctx.restore();
-    simText(ctx,'חוק הוק: F = −kx',W/2,18,'#22d3ee',12,undefined,true);
-    simText(ctx,'k = '+k+' N/m  |  x = '+(x*100).toFixed(1)+' cm  |  F = '+F.toFixed(2)+' N',W/2,32,'#94a3b8',9,undefined,true);
-    var state=compressed?'דחיסה (F כיוון חיובי ← מחזיר)':stretched?'מתיחה (F כיוון שלילי ← מחזיר)':'שיווי משקל';
-    simText(ctx,state,W/2,46,compressed?'#60a5fa':stretched?'#f87171':'#34d399',8.5,undefined,true);
+    ctx.beginPath(); ctx.roundRect(8,6,W-16,74,6); ctx.fill(); ctx.stroke(); ctx.restore();
+    simText(ctx,'חוק הוק:  F = −kx',W/2,20,'#22d3ee',12,undefined,true);
+    simText(ctx,'k = '+k+' N/m     x = '+(x>=0?'+':'')+(x*100).toFixed(1)+' cm     F = '+F.toFixed(2)+' N',W/2,37,'#e2e8f0',10.5,undefined,true);
+    var state=compressed?'דחיסה: F חיובי — הקפיץ דוחף חזרה אל x = 0':stretched?'מתיחה: F שלילי — הקפיץ מושך חזרה אל x = 0':'שיווי משקל: F = 0';
+    simText(ctx,state,W/2,54,compressed?'#60a5fa':stretched?'#f87171':'#34d399',10,undefined,true);
+    simText(ctx,_regime+'   ·   T = 2π√(m/k) = '+_Tsp.toFixed(2)+' s',W/2,70,b>_bc*0.999?'#fbbf24':'#94a3b8',9.5,undefined,true);
 
     // ── F(x) GRAPH — Hooke's law: |F|=k|x| (default) or signed F=−kx (toggle) ──
-    var signedMode=!!window._springForceModeAbs;
-    var GX=W*0.64, GY=SPRING_Y-20, GW=W-GX-12, GH=H-GY-12;
+    var GX=GX0, GY=PHS?SPRING_Y+MASS_R+52:SPRING_Y-20, GW=W-GX-(PHS?8:12), GH=H-GY-12;
     ctx.save(); ctx.fillStyle='rgba(6,14,28,.9)'; ctx.strokeStyle='#1e4060'; ctx.lineWidth=1.5;
     ctx.beginPath(); ctx.roundRect(GX,GY,GW,GH,5); ctx.fill(); ctx.stroke(); ctx.restore();
     simText(ctx,signedMode?'F = −kx  (חוק הוק)':'|F| = k|x|  (חוק הוק)',GX+GW/2,GY+11,'#22d3ee',8,undefined,true);
@@ -32649,7 +32655,7 @@ function buildSim(sim){
   else if(sim.type==='vec-components')extra=C(rng('vc-mag',0.5,4,2.8,0.1,'גודל |A|')+rng('vc-ang',0,360,32,1,'זווית θ','°')+btn('vc-reset','↺ אפס','btn-secondary'));
   else if(sim.type==='spring')extra=C(rng('spring-k',0.1,25,2,0.1,'k (N/m)')+rng('spring-m',0.1,2,0.5,0.1,'מסה',' kg'));
   else if(sim.type==='gravity-force')extra=C(rng('gf-m',1,200,70,1,'מסה m',' kg'));
-  else if(sim.type==='spring-force')extra=C(rng('sf-k',5,200,40,5,'k קשיחות',' N/m')+rng('sf-m',0.1,2,0.4,0.05,'מסה m',' kg')+rng('sf-damp',0,2,0.8,0.1,'ריסון b')+btn('sf-reset','↺ אפס','btn-secondary')+btn('sf-fmode','📐 הצג |F|=k|x|','btn-secondary'));
+  else if(sim.type==='spring-force')extra=C(rng('sf-k',5,200,40,5,'k קשיחות',' N/m')+rng('sf-m',0.1,2,0.4,0.05,'מסה m',' kg')+rng('sf-damp',0,2,0.8,0.1,'ריסון b')+btn('sf-reset','↺ אפס','btn-secondary')+btn('sf-fmode','📐 הצג F = −kx (עם סימן)','btn-secondary'));
   else if(sim.type==='static-friction')extra=C(rng('sft-mu',0.1,0.9,0.55,0.05,'μ_s')+rng('sft-mass',1,15,3,0.5,'מסה m',' kg')+rng('sft-F',0,80,0,1,'כוח F',' N')+btn('sft-reset','↺ אפס','btn-secondary'));
   else if(sim.type==='kinetic-friction')extra=C(rng('kf-v0',2,20,10,1,'מהירות v₀',' m/s')+rng('kf-mass',1,15,5,0.5,'מסה m',' kg')+rng('kf-mu',0.1,0.8,0.38,0.02,'μ_k')+btn('kf-launch','▶ שגר!','btn-primary')+btn('kf-reset','↺ אפס','btn-secondary'));
   else if(sim.type==='friction-combined')extra=C(rng('fc-theta',5,70,20,1,'זווית θ','°')+rng('fc-F',0,80,0,2,'כוח F',' N')+rng('fc-mu',0.05,0.8,0.45,0.05,'μ')+rng('fc-m',0.5,10,5,0.5,'מסה m',' kg')+btn('fc-reset','↺ אפס','btn-secondary'));
