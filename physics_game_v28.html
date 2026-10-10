@@ -26952,14 +26952,14 @@ MAG_SIMS['mag-generator']=function(canvas){
     simText(ctx,slow>1.01?'הדמיה בהילוך איטי ×'+slow.toFixed(0):'מהירות אמיתית',W/2,ry+50,'#64748b',9,'center');
     // Φ(t) and ε(t): two periods, time in real milliseconds
     var gx=44,gw=W-60,g1=H*0.56,g2=H*0.78,gh=H*0.17,Tp=1/f;
-    [[g1,'Φ(t) = NBA·cosωt',1,'#818cf8',Pm,'Wb'],[g2,rings?'ε(t) = NBAω·sinωt':'המוצא אחרי מחליף הכיוון: |ε(t)|',2,'#f87171',Em,'V']].forEach(function(G){
+    [[g1,'NΦ(t) = NBA·cosωt',1,'#818cf8',Pm,'Wb'],[g2,rings?'ε(t) = NBAω·sinωt':'המוצא אחרי מחליף הכיוון: |ε(t)|',2,'#f87171',Em,'V']].forEach(function(G){
       magPlotBox(ctx,gx-36,G[0]-14,gw+46,gh+10,G[1],G[3]);
       var Y=function(q){return G[0]+gh/2-q*(gh/2-8);};
       ctx.save();ctx.strokeStyle='#1e3a52';ctx.beginPath();ctx.moveTo(gx,Y(0));ctx.lineTo(gx+gw,Y(0));ctx.stroke();ctx.restore();
       var c=hist.map(function(h){var v=h[G[2]];if(G[2]===2&&!rings)v=Math.abs(v);return [gx+gw-(ph-h[0])/2*gw,Y(v)];});magPoly(ctx,c,G[3],2);
       simText(ctx,(G[2]===1?G[4].toFixed(2):G[4].toFixed(0))+' '+G[5],gx-4,Y(1)+3,'#64748b',8.5,'right');});
-    for(var k=0;k<=4;k++)simText(ctx,'−'+(Tp*1000*(2-k/2)).toFixed(Tp<0.02?1:0)+' ms',gx+k/4*gw,H-4,'#64748b',8.5,'center');
-    simText(ctx,'ε מקסימלי כשהשטף עובר דרך אפס, ואפס כשהשטף בשיאו',W/2,g2-26,'#64748b',9,'center');
+    for(var k=0;k<=4;k++)simText(ctx,k===4?'0':'−'+(Tp*1000*(2-k/2)).toFixed(Tp<0.02?1:0)+' ms',gx+k/4*gw,H-4,'#64748b',8.5,'center');
+    simText(ctx,'ε מקסימלי כשהשטף עובר דרך אפס, ואפס כשהשטף בשיאו',W/2,g2-20,'#64748b',9,'center');
     requestAnimationFrame(draw);
   }
   requestAnimationFrame(draw);
@@ -27221,7 +27221,7 @@ runAnim('anim-mag-motor',(cv,ctx,W,H,t)=>{
   for(var h=0;h<2;h++){var a0=phi+Math.PI/2+h*Math.PI+0.2;ctx.save();ctx.strokeStyle=h?'#f59e0b':'#eab308';ctx.lineWidth=6;ctx.beginPath();ctx.arc(kx,ky,kr,-(a0+Math.PI-0.4),-a0);ctx.stroke();ctx.restore();}
   ctx.save();ctx.fillStyle='#94a3b8';ctx.fillRect(kx-kr-13,ky-4,8,8);ctx.fillRect(kx+kr+5,ky-4,8,8);ctx.restore();
   label(ctx,'מחליף הכיוון',kx,ky+38,'#94a3b8',10);
-  label(ctx,'τ = NBIA·|cos| ≥ 0 — תמיד באותו כיוון',W*0.72,H-8,'#fb923c',10);
+  label(ctx,'τ = NBIA·sinθ ≥ 0 — תמיד באותו כיוון',W*0.72,H-8,'#fb923c',10);
 });
 
 // a loop turning in a uniform field: count the lines through it
@@ -27314,16 +27314,22 @@ runAnim('anim-mag-motional',(cv,ctx,W,H,t)=>{
 // generator: the coil turns and ε(t) is drawn as it goes
 runAnim('anim-mag-generator',(cv,ctx,W,H,t)=>{
   bg(ctx,W,H);
-  var th=1.4*t,cx=W*0.20,cy=H/2,R=H*0.30,nx=Math.cos(th),ny=Math.sin(th),e=Math.sin(th);
+  var th=1.4*t,R=Math.min(H*0.30,W*0.12),cx=Math.max(W*0.20,R+46),cy=H/2,nx=Math.cos(th),ny=Math.sin(th),e=Math.sin(th);
   ctx.save();ctx.fillStyle='#dc2626';ctx.fillRect(cx-R-40,cy-R,24,2*R);ctx.fillStyle='#2563eb';ctx.fillRect(cx+R+16,cy-R,24,2*R);ctx.restore();
+  label(ctx,'N',cx-R-28,cy+4,'#fff',12);label(ctx,'S',cx+R+28,cy+4,'#fff',12);
+  // the normal n̂ (the side at n̂ turned +90° carries ⊙ while ε > 0)
+  ctx.save();ctx.setLineDash([3,3]);arrow(ctx,cx,cy,cx+nx*R*0.7,cy-ny*R*0.7,'rgba(52,211,153,.85)',1.5,6);ctx.restore();
+  label(ctx,'n̂',cx+nx*(R*0.7+10),cy-ny*(R*0.7+10)+4,'#34d399',10);
   var ax=cx-R*ny,ay=cy-R*nx,bx=cx+R*ny,by=cy+R*nx;
   ctx.save();ctx.strokeStyle='rgba(251,191,36,.6)';ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(ax,ay);ctx.lineTo(bx,by);ctx.stroke();ctx.restore();
   if(Math.abs(e)>0.05){magDot(ctx,ax,ay,8,e>0,'#fbbf24','#1e293b');magDot(ctx,bx,by,8,e<0,'#fbbf24','#1e293b');}
-  var gx=W*0.40,gw=W*0.56,gy=H/2,A=H*0.36,T=2*Math.PI/1.4,span=2*T,ec=[],pc=[];
+  var gx=Math.max(W*0.40,cx+R+56),gw=W-gx-12,gy=H/2,A=H*0.36,T=2*Math.PI/1.4,span=2*T,ec=[],pc=[];
   for(var k=0;k<=120;k++){var tk=t-span+span*k/120;if(tk<0)continue;var xx=gx+k/120*gw;ec.push([xx,gy-A*Math.sin(1.4*tk)]);pc.push([xx,gy-A*Math.cos(1.4*tk)]);}
   ctx.save();ctx.strokeStyle='#1e3a52';ctx.beginPath();ctx.moveTo(gx,gy);ctx.lineTo(gx+gw,gy);ctx.stroke();ctx.restore();
   magPoly(ctx,pc,'rgba(129,140,248,.55)',1.4,[4,4]);magPoly(ctx,ec,'#f87171',2.2);circle(ctx,gx+gw,gy-A*e,5,'#f87171');
   label(ctx,'ε(t)',gx+gw-10,14,'#f87171',11,'right');label(ctx,'Φ(t) מקווקו',gx+10,14,'#818cf8',10,'left');
+  var cc=Math.abs(nx),st=cc>0.97?'מישור הסליל ניצב ל-B: Φ בשיאו, ε = 0':cc<0.26?'מישור הסליל מקביל ל-B: Φ = 0, ε בשיאו':'';
+  if(st)label(ctx,st,gx+gw/2,H-6,'#94a3b8',10);
 });
 
 // transformer: the same alternating flux through both coils
