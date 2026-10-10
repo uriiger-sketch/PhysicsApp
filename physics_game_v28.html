@@ -15396,13 +15396,17 @@ function simEnergyPotential(canvas){
         // velocity loses ½g²·dt² per step — ~6% of the energy of a 2 m drop
         // every second at dt=0.025 — while the panel plots PE, KE and their sum
         // for the learner to watch stay flat.
-        var _v0e=vel;
+        var _v0e=vel, _y0e=objY;
         vel+=g*PX_PER_M*dt;
         objY+=0.5*(_v0e+vel)*dt;
         // Hit floor
         if(objY>=FLOOR_POS){
+          // The speed AT the floor, from energy over the part of the step that
+          // was actually fallen. Taking |vel| after the step overshot the floor
+          // handed the ball the extra m·g·δ of the overshoot on every bounce,
+          // so it climbed higher and higher — in the section on Ep = mgh.
+          contactVelOut=Math.sqrt(Math.max(0,_v0e*_v0e+2*g*PX_PER_M*(FLOOR_POS-_y0e)));
           objY=FLOOR_POS;
-          contactVelOut=Math.abs(vel); // store for elastic rebound
           vel=0;
           contactTimer=dt; // start contact phase
         }
@@ -15431,8 +15435,15 @@ function simEnergyPotential(canvas){
     // (a second 'conserved total' from a fixed drop height used to be computed
     //  here and never used; E_tot_display below is the one that is drawn)
     // Better: E_elastic = kinetic energy transferred to floor spring (goes from KE_impact→0→KE_impact)
-    var contactFrac=contactTimer>0?Math.sin(Math.PI*contactTimer/CONTACT_DUR):0;
-    var E_elastic=contactTimer>0?0.5*m*Math.pow(contactVelOut/PX_PER_M,2)*contactFrac*contactFrac:0;
+    // The contact is half a cycle of a stiff spring: the ball's speed goes as
+    // cos and the compression as sin, so Ek falls as cos² while E_el rises as
+    // sin², and their sum is the impact energy at every instant. (Ek used to be
+    // forced to zero for the whole contact while E_el rose from zero, so the
+    // drawn total dropped to nothing at both ends of every bounce.)
+    var contactFrac=contactTimer>0?Math.sin(Math.PI*Math.min(1,contactTimer/CONTACT_DUR)):0;
+    var KE_imp=0.5*m*Math.pow(contactVelOut/PX_PER_M,2);
+    var E_elastic=contactTimer>0?KE_imp*contactFrac*contactFrac:0;
+    if(contactTimer>0)KE=KE_imp-E_elastic;
     var E_tot_display=PE+KE+E_elastic;
 
     simBg(ctx,W,H);
@@ -15441,7 +15452,7 @@ function simEnergyPotential(canvas){
     ctx.save();ctx.fillStyle='#0f2035';ctx.fillRect(0,GROUND_Y,W,H-GROUND_Y);ctx.restore();
     ctx.save();ctx.strokeStyle='#2d5275';ctx.lineWidth=2;
     ctx.beginPath();ctx.moveTo(0,GROUND_Y);ctx.lineTo(W,GROUND_Y);ctx.stroke();ctx.restore();
-    simText(ctx,'h=0 (אפס פוטנציאל)',W/2,GROUND_Y+12,'#7d8da6',8,undefined,true);
+    simText(ctx,'h=0 — רמת הייחוס',W/2,GROUND_Y+12,'#7d8da6',8,undefined,true);
 
     // Visual floor compression during contact
     if(contactTimer>0){
@@ -15536,9 +15547,9 @@ function simEnergyPotential(canvas){
       simText(ctx,E.toFixed(2),x+BW/2,BY+BH+26,col,7.5,undefined,true);
     }
 
-    drawBar2(BX,PE,'#fbbf24','EP');
-    drawBar2(BX+BW+10,KE,'#34d399','EK');
-    if(showElasticBar) drawBar2(BX+(BW+10)*2,E_elastic,'#a78bfa','Eאל');
+    drawBar2(BX,PE,'#fbbf24','E_p');
+    drawBar2(BX+BW+10,KE,'#34d399','E_k');
+    if(showElasticBar) drawBar2(BX+(BW+10)*2,E_elastic,'#a78bfa','E_el');
 
     // E_total line
     var etH=Math.min(BH,(E_tot_display/Emax)*BH);
@@ -15550,11 +15561,12 @@ function simEnergyPotential(canvas){
     // Formula panel
     ctx.save();ctx.fillStyle='rgba(6,14,28,.92)';ctx.strokeStyle='#1e4060';ctx.lineWidth=1.5;
     ctx.beginPath();ctx.roundRect(8,6,W*0.55,54,6);ctx.fill();ctx.stroke();ctx.restore();
-    simText(ctx,'EP = mgh = '+m.toFixed(1)+'×'+g.toFixed(1)+'×'+h.toFixed(2)+' = '+PE.toFixed(2)+' J',W*0.275,20,'#fbbf24',9.5,undefined,true);
-    simText(ctx,'EK = ½mv² = ½×'+m.toFixed(1)+'×'+spd2.toFixed(2)+'² = '+KE.toFixed(2)+' J',W*0.275,34,'#34d399',9.5,undefined,true);
-    simText(ctx,showElasticBar?'Eאל='+E_elastic.toFixed(2)+' J  |  E=EP+EK+Eאל='+E_tot_display.toFixed(2)+' J':'E = EP + EK = '+E_tot_display.toFixed(2)+' J  (שמור)',W*0.275,48,'#94a3b8',8,undefined,true);
+    var spdShow=contactTimer>0?Math.sqrt(2*KE/m):spd2;
+    simText(ctx,'E_p = mgh = '+m.toFixed(1)+'×'+g.toFixed(1)+'×'+h.toFixed(2)+' = '+PE.toFixed(2)+' J',W*0.275,20,'#fbbf24',9.5,undefined,true);
+    simText(ctx,'E_k = ½mv² = ½×'+m.toFixed(1)+'×'+spdShow.toFixed(2)+'² = '+KE.toFixed(2)+' J',W*0.275,34,'#34d399',9.5,undefined,true);
+    simText(ctx,showElasticBar?'E_el = '+E_elastic.toFixed(2)+' J  |  E = '+E_tot_display.toFixed(2)+' J':'E = E_p + E_k = '+E_tot_display.toFixed(2)+' J  (נשמרת)',W*0.275,48,'#94a3b8',8,undefined,true);
 
-    if(dragging) simText(ctx,'שחרר לנפילה',ballX,objY-BALL_R-14,'#fbbf24',8.5,undefined,true);
+    if(dragging) simText(ctx,'שחררו לנפילה',ballX,objY-BALL_R-14,'#fbbf24',8.5,undefined,true);
 
     requestAnimationFrame(draw);
   }
