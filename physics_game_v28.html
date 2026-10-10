@@ -29917,9 +29917,13 @@ function simElcPlane(canvas){
     Vs.forEach(function(q,i){var yy=gy0+gh-6-(q[1]-vmin)/span*(gh-16);
       i?ctx.lineTo(q[0],yy):ctx.moveTo(q[0],yy);});
     ctx.stroke();ctx.restore();
+    // "all the field trapped inside" / "zero inside" hold only for EQUAL
+    // magnitudes; with 6 and -4 the outside keeps the difference, 1/2 of
+    // (6-4)/eps0, and the caption must not deny the arrows drawn there
+    var eqM=Math.abs(Math.abs(S1)-Math.abs(S2))<1e-9;
     simText(ctx,!two?'לוח בודד — שדה קבוע לשני הכיוונים'
-      :(S1*S2<0?'מטענים מנוגדים — קבל: כל השדה כלוא בפנים'
-        :(S1*S2>0?'מטענים זהים — השדה נדחף החוצה, ובפנים מתאפס':'אחד הלוחות נייטרלי')),
+      :(S1*S2<0?(eqM?'מטענים מנוגדים ושווים — קבל: כל השדה כלוא בפנים':'מנוגדים אך לא שווים — בפנים הסכום, ובחוץ נשאר ההפרש')
+        :(S1*S2>0?(eqM?'מטענים זהים — השדה נדחף החוצה, ובפנים מתאפס':'אותו סימן, גדלים שונים — בחוץ הסכום, ובפנים רק ההפרש'):'אחד הלוחות נייטרלי')),
       W/2,H-10,'#a78bfa',10.5,'center',true);
     simText(ctx,two?('ΔV בין הלוחות = '+Math.abs(Etot((x1+x2)/2)*D_M).toFixed(0)+' V   (d = 2 cm)')
       :'לוח בודד: הפרש הפוטנציאלים גדל ליניארית ללא גבול',
