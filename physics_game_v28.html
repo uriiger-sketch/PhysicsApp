@@ -2864,7 +2864,7 @@ const CONTENT={
       <p>בלי תיקון, המטוס יסטה כ-7° דרומה ממסלולו. לכן טייסים ״מכוונים לתוך הרוח״ — מסובבים את חרטום המטוס מעט צפונה, כך שהסכום הווקטורי יצביע בדיוק אל היעד.</p>`
     }
   },
-  sim:{type:'vec-ops',title:'חיבור וקטורים',desc:'בחרו: חיסור, כפל סקלרי, או מכפלה סקלרית. גררו חצים.'},
+  sim:{type:'vec-ops',title:'פעולות על וקטורים',desc:'בחרו פעולה: חיבור A+B, חיסור A−B, כפל בסקלר c·A או מכפלה סקלרית A·B, וגררו את ראשי החצים.'},
   example:{title:'חיבור וקטורים ברכיבים',text:`נתונים ${M('\\vec A=(3,\\,4)')} ו-${M('\\vec B=(1,\\,-2)')}. חשבו את ${M('\\vec A+\\vec B')} ואת גודלו.`,steps:[
     {q:'מהו הסכום?',a:`מחברים רכיב לרכיב: ${M('\\vec A+\\vec B=(3+1,\\;4-2)=(4,\\,2)')}`},
     {q:'מהו גודל הסכום?',a:`${M('|\\vec A+\\vec B|=\\sqrt{4^2+2^2}=\\sqrt{20}\\approx4.47')}`},
@@ -15719,8 +15719,9 @@ function simVecOps(canvas){
   const H=490; const {ctx,W,dpr}=setupCanvas(canvas,H);
   const id=canvas.id;
   let pT=null, t=0;
-  var op='sub'; // 'sub' | 'scalar' | 'dot'
-  var CX=W*0.38, CY=H*0.50;
+  // Addition is the section's first operation and had no mode of its own.
+  var op='add'; // 'add' | 'sub' | 'scalar' | 'dot'
+  var CX=W*0.45, CY=H*0.54;
   var vA={x:90,y:-40}, vB={x:50,y:60};
   var scalar=2.0;
   var dragging=null, dragStart={x:0,y:0}, vecStart={x:0,y:0};
@@ -15741,12 +15742,15 @@ function simVecOps(canvas){
     if(m<14){var s=14/(m||1);v.x*=s;v.y*=s;}
     return v;
   }
-  ['btn-vo-sub','btn-vo-scalar','btn-vo-dot'].forEach(function(bid){
+  var _opBtns=['btn-vo-add','btn-vo-sub','btn-vo-scalar','btn-vo-dot'];
+  function _markOp(){ _opBtns.forEach(function(bid){ var b=document.getElementById(bid); if(b){ b.classList.toggle('btn-primary',bid==='btn-vo-'+op); b.classList.toggle('btn-secondary',bid!=='btn-vo-'+op); } }); }
+  _opBtns.forEach(function(bid){
     var btn=document.getElementById(bid);
     if(btn) btn.addEventListener('click',function(){
-      op=bid.replace('btn-vo-','');
+      op=bid.replace('btn-vo-',''); _markOp();
     });
   });
+  _markOp();
 
   function getXY(evt){
     var r=canvas.getBoundingClientRect();
@@ -15757,15 +15761,16 @@ function simVecOps(canvas){
   function onDown(e){
     e.preventDefault();
     var p=getXY(e);
-    if(Math.abs(p.x-(CX+vA.x))<16&&Math.abs(p.y-(CY+vA.y))<16){dragging='A';dragStart=p;vecStart={x:vA.x,y:vA.y};}
-    else if(Math.abs(p.x-(CX+vB.x))<16&&Math.abs(p.y-(CY+vB.y))<16){dragging='B';dragStart=p;vecStart={x:vB.x,y:vB.y};}
+    var dA=Math.hypot(p.x-(CX+vA.x),p.y-(CY+vA.y)), dB=Math.hypot(p.x-(CX+vB.x),p.y-(CY+vB.y));
+    if(op==='scalar')dB=1e9;            // only A is drawn in this mode
+    if(Math.min(dA,dB)<26){ if(dA<=dB){dragging='A';vecStart={x:vA.x,y:vA.y};} else {dragging='B';vecStart={x:vB.x,y:vB.y};} dragStart=p; }
   }
   function onMove(e){
     if(!dragging)return; e.preventDefault();
     var p=getXY(e);
     var dx=p.x-dragStart.x, dy=p.y-dragStart.y;
     if(dragging==='A'){vA.x=vecStart.x+dx;vA.y=vecStart.y+dy;_voClamp(vA);}
-    else{vB.x=vecStart.x+dx;vB.y=vecStart.y+dy;}
+    else{vB.x=vecStart.x+dx;vB.y=vecStart.y+dy;_voClamp(vB);}
   }
   function onUp(){dragging=null;}
   canvas.addEventListener('mousedown',onDown); canvas.addEventListener('touchstart',onDown,{passive:false});
@@ -15796,7 +15801,28 @@ function simVecOps(canvas){
     ctx.save(); ctx.fillStyle='#334155';
     ctx.beginPath(); ctx.arc(CX,CY,5,0,Math.PI*2); ctx.fill(); ctx.restore();
 
-    if(op==='sub'){
+    if(op==='add'){
+      var Rs={x:vA.x+vB.x,y:vA.y+vB.y};
+      // head to tail: B moved to the tip of A, and A to the tip of B
+      ctx.save(); ctx.lineWidth=1.6; ctx.setLineDash([5,4]);
+      ctx.strokeStyle='rgba(96,165,250,.8)'; ctx.beginPath(); ctx.moveTo(CX+vA.x,CY+vA.y); ctx.lineTo(CX+Rs.x,CY+Rs.y); ctx.stroke();
+      ctx.strokeStyle='rgba(248,113,113,.6)'; ctx.beginPath(); ctx.moveTo(CX+vB.x,CY+vB.y); ctx.lineTo(CX+Rs.x,CY+Rs.y); ctx.stroke();
+      ctx.setLineDash([]); ctx.restore();
+      ctx.save(); ctx.fillStyle='rgba(52,211,153,.08)';
+      ctx.beginPath(); ctx.moveTo(CX,CY); ctx.lineTo(CX+vA.x,CY+vA.y); ctx.lineTo(CX+Rs.x,CY+Rs.y); ctx.lineTo(CX+vB.x,CY+vB.y); ctx.closePath(); ctx.fill(); ctx.restore();
+      simArrow(ctx,CX,CY,CX+vA.x,CY+vA.y,'#ef4444',2.5,11);
+      simText(ctx,'A',CX+vA.x+12,CY+vA.y,'#f87171',11,'left',true);
+      simArrow(ctx,CX,CY,CX+vB.x,CY+vB.y,'#3b82f6',2.5,11);
+      simText(ctx,'B',CX+vB.x+12,CY+vB.y,'#60a5fa',11,'left',true);
+      simArrow(ctx,CX,CY,CX+Rs.x,CY+Rs.y,'#34d399',3,13);
+      simText(ctx,'A+B',CX+Rs.x+12,CY+Rs.y,'#34d399',11,'left',true);
+      var cth=((vA.x*vB.x+vA.y*vB.y)/((magA*magB)||1)), thd=Math.acos(Math.max(-1,Math.min(1,cth)))*180/Math.PI;
+      ctx.save(); ctx.fillStyle='rgba(6,14,28,.92)'; ctx.strokeStyle='#1e4060'; ctx.lineWidth=1.5;
+      ctx.beginPath(); ctx.roundRect(8,6,W-16,70,6); ctx.fill(); ctx.stroke(); ctx.restore();
+      simText(ctx,'חיבור וקטורים — ראש אל זנב, או כלל המקבילית',W/2,20,'#22d3ee',10.5,undefined,true);
+      simText(ctx,'A = ('+(vA.x/PPU).toFixed(2)+', '+(-vA.y/PPU).toFixed(2)+')     B = ('+(vB.x/PPU).toFixed(2)+', '+(-vB.y/PPU).toFixed(2)+')     A+B = ('+(Rs.x/PPU).toFixed(2)+', '+(-Rs.y/PPU).toFixed(2)+')',W/2,38,'#e2e8f0',10,undefined,true);
+      simText(ctx,'|A+B| = √(A² + B² + 2AB·cosθ) = '+(Math.hypot(Rs.x,Rs.y)/PPU).toFixed(2)+'   (θ = '+thd.toFixed(0)+'°)',W/2,56,'#34d399',10,undefined,true);
+    } else if(op==='sub'){
       // A - B = A + (-B)
       var negB={x:-vB.x,y:-vB.y};
       var R={x:vA.x+negB.x,y:vA.y+negB.y};
@@ -15813,6 +15839,8 @@ function simVecOps(canvas){
       simText(ctx,'B',CX+vB.x+10,CY+vB.y,'#3b82f6',10,'left');
       simArrow(ctx,CX,CY,CX+R.x,CY+R.y,'#a78bfa',3,13);
       simText(ctx,'A−B',CX+R.x+10,CY+R.y,'#a78bfa',10,'left');
+      // the same vector, drawn from the tip of B to the tip of A
+      ctx.save(); ctx.globalAlpha=.75; simArrow(ctx,CX+vB.x,CY+vB.y,CX+vA.x,CY+vA.y,'#c4b5fd',2,10); ctx.restore();
       // Result panel
       ctx.save(); ctx.fillStyle='rgba(6,14,28,.92)'; ctx.strokeStyle='#1e4060'; ctx.lineWidth=1.5;
       ctx.beginPath(); ctx.roundRect(8,6,W-16,54,6); ctx.fill(); ctx.stroke(); ctx.restore();
@@ -15867,8 +15895,9 @@ function simVecOps(canvas){
       simText(ctx,dot_physics>0?'A·B > 0 (זווית חדה)':dot_physics<0?'A·B < 0 (זווית קהה)':'A·B = 0 (ניצבים!)',W/2,60,dot_physics===0?'#34d399':dot_physics>0?'#22d3ee':'#f87171',9,undefined,true);
     }
 
-    // Op hint
-    simText(ctx,'גררו את החצים!',CX,H-18,'#7d8da6',8.5,undefined,true);
+    simHandle(ctx,CX+vA.x,CY+vA.y,'#ef4444');
+    if(op!=='scalar')simHandle(ctx,CX+vB.x,CY+vB.y,'#3b82f6');
+    simText(ctx,op==='scalar'?'גררו את ראש החץ A, ושנו את c במחוון':'גררו את ראשי החצים A ו-B',W/2,H-14,'#94a3b8',10,undefined,true);
     requestAnimationFrame(draw);
   }
   requestAnimationFrame(draw);
@@ -32643,7 +32672,7 @@ function buildSim(sim){
   else if(sim.type==='energy-potential')extra=C(rng('ep-m',0.5,8,2,0.5,'מסה m',' kg')+rng('ep-g',1.6,25,9.8,0.5,'g',' m/s²')+btn('ep-elastic','⚡ אנרגיה אלסטית','btn-secondary')+btn('ep-reset','↺ אפס','btn-secondary'));
   else if(sim.type==='energy')extra=C(rng('energy-m',0.5,4,1,0.5,'מסה m',' kg')+rng('energy-mu',0,0.25,0,0.01,'מקדם חיכוך μ','')+btn('energy-reset','↺ אפס','btn-secondary'));
   else if(sim.type==='shm-def')extra=C(rng('shm-A',20,130,80,5,'אמפליטודה A',' px')+rng('shm-T',0.5,5,2,0.1,'מחזור T',' s')+btn('shm-reset','↺ אפס','btn-secondary'));
-  else if(sim.type==='vec-ops')extra=C(rng('vo-scalar',-3,3,2,0.1,'מכפיל c')+btn('vo-sub','A−B')+btn('vo-scalar','c·A','btn-secondary')+btn('vo-dot','A·B','btn-secondary')+btn('vo-reset','↺ אפס','btn-secondary'));
+  else if(sim.type==='vec-ops')extra=C(rng('vo-scalar',-3,3,2,0.1,'מכפיל c')+btn('vo-add','A+B')+btn('vo-sub','A−B','btn-secondary')+btn('vo-scalar','c·A','btn-secondary')+btn('vo-dot','A·B','btn-secondary')+btn('vo-reset','↺ אפס','btn-secondary'));
   else if(sim.type==='vec-components')extra=C(rng('vc-mag',0.5,4,2.8,0.1,'גודל |A|')+rng('vc-ang',0,360,32,1,'זווית θ','°')+btn('vc-reset','↺ אפס','btn-secondary'));
   else if(sim.type==='spring')extra=C(rng('spring-k',0.1,25,2,0.1,'k (N/m)')+rng('spring-m',0.1,2,0.5,0.1,'מסה',' kg'));
   else if(sim.type==='gravity-force')extra=C(rng('gf-m',1,200,70,1,'מסה m',' kg'));
