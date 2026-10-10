@@ -4171,7 +4171,7 @@ const CONTENT={
         ['\\theta','זווית השיגור','נמדדת מהאופק'],
         ['g','תאוצת הכובד','9.8 m/s²'],
       ])}
-      ${animCanvas('anim-projectile-arc',186,'עקום שלכת — שנו מהירות/זווית')}
+      ${animCanvas('anim-projectile-arc',236,'חמש זריקות באותה מהירות ובזוויות שונות — באותו קנה מידה')}
       ${fBox('\\begin{cases}x(t)=v_0\\cos\\theta\\cdot t\\\\y(t)=v_0\\sin\\theta\\cdot t-\\tfrac12gt^2\\end{cases}','משוואות תנועה')}
       <p>בביטול t מהמשוואות: ${M('y=x\\tan\\theta - \\frac{gx^2}{2v_0^2\\cos^2\\theta}')} — פרבולה!</p>
       ${fBox('R=\\frac{v_0^2\\sin2\\theta}{g}','טווח אופקי — נחיתה בגובה השיגור',[
@@ -19298,30 +19298,31 @@ function drawAxis(ctx,ax1,ay,ax2,ticks,W,unit){
 }
 
 // ── Energy-track model shared by the two conservation animations. ──
-// The cart is driven by energy, not by a scripted path:
-//   h(x) = 0.75(x−2)²   metres, released from rest at x=0 (h=3 m)
-//   v    = sqrt(2(E/m − gh))
-// With friction, the loss per horizontal step is exactly μ·m·g·|dx| on this
-// geometry — the cosθ in the normal force and the secθ in the arc length cancel.
+//   h(x) = 0.75(x−2)²   metres, released from rest near x=0 (h≈3 m)
+// Friction acts on the normal force of a CURVED track, N = m(g·cosθ + v²κ):
+// the valley presses harder than the weight. (The loss was taken as μ·m·g·|dx|,
+// i.e. N = mg·cosθ, which is the normal force of a flat incline only.) Per
+// unit time that is dQ/dt = μ·m·|ẋ|·(g + f''·ẋ²), integrated with the motion.
 var _mechTrackCache={};
 // Constrained dynamics on the curve y=f(x), f(x)=0.75(x-2)^2 (metres):
 //   xddot = [ -g f' - f' f'' xdot^2 ] / (1 + f'^2)          (frictionless)
-// friction adds  -sign(xdot) * mu * g / (1 + f'^2)
+// friction adds  -sign(xdot) * mu * (g + f'' xdot^2) / (1 + f'^2)
 // Deriving speed from energy instead would stall at the turning points, where
 // the released-from-rest cart starts with exactly zero margin.
 function _mechTrackTraj(withFric){
   var key=withFric?'f':'n';
   if(_mechTrackCache[key])return _mechTrackCache[key];
-  var m=1,g=9.8,mu=withFric?0.16:0;
+  var m=1,g=9.8,mu=withFric?0.07:0;
   var f  =function(x){return 0.75*(x-2)*(x-2);};
   var fp =function(x){return 1.5*(x-2);};
   var fpp=1.5;
   function acc(x,xd){
     var p=fp(x),den=1+p*p;
     var a=(-g*p-p*fpp*xd*xd)/den;
-    if(mu>0&&Math.abs(xd)>1e-9)a-=Math.sign(xd)*mu*g/den;
+    if(mu>0&&Math.abs(xd)>1e-9)a-=Math.sign(xd)*mu*(g+fpp*xd*xd)/den;
     return a;
   }
+  function qdot(xd){return mu*m*Math.abs(xd)*(g+fpp*xd*xd);}
   // RK4 — forward Euler drifted 21% here, which would visibly break the one
   // claim this animation exists to make. RK4 at dt=0.002 holds Ek+Ep to 0.0000%.
   var x=0.02,xd=0,dt=0.002,out=[],Q=0;
@@ -19335,8 +19336,8 @@ function _mechTrackTraj(withFric){
     var dx=(k1x+2*k2x+2*k3x+k4x)*dt/6;
     var dv=(k1v+2*k2v+2*k3v+k4v)*dt/6;
     var xdN=xd+dv;
+    if(mu>0)Q+=(qdot(xd)+2*qdot(xd+k1v*dt/2)+2*qdot(xd+k2v*dt/2)+qdot(xd+k3v*dt))*dt/6;
     if(mu>0&&xd*xdN<0&&Math.abs(xdN)<0.02)xdN=0;   // static friction holds it
-    if(mu>0)Q+=mu*m*g*Math.abs(dx);                // = mu*N*ds on this geometry
     x+=dx; xd=xdN;
     if(x<0.02){x=0.02;xd=Math.abs(xd);}
     if(x>3.98){x=3.98;xd=-Math.abs(xd);}
@@ -20321,7 +20322,9 @@ runAnim('anim-eq-couple',(canvas,ctx,W,H,t)=>{
   bg(ctx,W,H);
   // A bar that turns needs vertical room equal to its half-length plus the
   // arrow, so both are measured against H rather than W.
-  const cy=H*0.42, AR=H*0.17, L=Math.min(W*0.18,H*0.22), cx=W*0.34, a=t*0.9;
+  // A net torque gives an angular ACCELERATION: the bar starts from rest and
+  // spins up (θ = ½αt²); it used to turn at a constant rate from the start.
+  const cy=H*0.42, AR=H*0.17, L=Math.min(W*0.18,H*0.22), cx=W*0.34, tc=t%5, a=0.25*tc*tc;
   ctx.save();ctx.translate(cx,cy);ctx.rotate(a);
   ctx.strokeStyle='#475569';ctx.lineWidth=7;ctx.lineCap='round';
   ctx.beginPath();ctx.moveTo(-L,0);ctx.lineTo(L,0);ctx.stroke();
@@ -20330,7 +20333,7 @@ runAnim('anim-eq-couple',(canvas,ctx,W,H,t)=>{
   arrow(ctx,-L,0,-L,AR,'#34d399',3,11);
   ctx.restore();
   label(ctx,'ΣF = 0',cx,H-32,'#34d399',12);
-  label(ctx,'Στ ≠ 0  →  מסתובב',cx,H-14,'#f87171',12);
+  label(ctx,'Στ ≠ 0  →  מתחיל להסתובב, ומהר יותר ויותר',cx,H-14,'#f87171',12);
   // the counter-example: same two forces on one line, and nothing happens
   const sx=W*0.74;
   ctx.save();ctx.strokeStyle='#475569';ctx.lineWidth=7;ctx.lineCap='round';
@@ -20805,8 +20808,8 @@ runAnim('anim-momentum',(canvas,ctx,W,H,t)=>{
   ];
 
   balls.forEach(b=>{
-    // Ball bounces left↔right
-    const phase=tt*b.v*0.04;
+    // Ball bounces left↔right (continuous in t: the modulo on t made them jump)
+    const phase=t*b.v*0.04;
     const rawX=Math.abs(((phase % 2) - 1));
     const bx=22 + rawX*(W-44);
     const p=b.m*b.v;
@@ -20855,55 +20858,36 @@ runAnim('anim-momentum',(canvas,ctx,W,H,t)=>{
 
 runAnim('anim-ek',(canvas,ctx,W,H,t)=>{
   bg(ctx,W,H);
-  // Three blocks with same F but different masses → different speeds/Ek
-  const PERIOD=5.5, tt=t%PERIOD;
-  const masses=[1,3,6], cols=['#ef4444','#f59e0b','#3b82f6'], F_app=20;
-  const yPos=[H*0.22,H*0.50,H*0.78];
-  // ONE full scale for all three bars. Each row used to divide by ½·m·v_ref²,
-  // a normaliser that grows with that row's own mass, so energies really in the
-  // ratio 1 : ⅓ : ⅙ were drawn as 1 : 0.11 : 0.028 — in the one figure whose
-  // purpose is comparing E_k between the rows.
-  const tMax=PERIOD*0.55;
-  const ekFull=F_app*F_app*tMax*tMax/(2*masses[0]);   // lightest block, end of run
-
+  // The same force over the same DISTANCE: every block arrives with the same
+  // E_k = F·d, the light one fast and the heavy one slow. (This used to
+  // compare the blocks after equal TIMES under the title "smaller mass ->
+  // larger E_k" — true only because the light block had also gone further,
+  // i.e. received more work, which is exactly what the section goes on to say.)
+  const PERIOD=4.6, tt=t%PERIOD, F=20, D=10;          // N, m
+  const masses=[1,3,6], cols=['#ef4444','#f59e0b','#3b82f6'];
+  const yPos=[H*0.24,H*0.50,H*0.76];
+  const X0=46, XL=W*0.70, PXM=(XL-X0)/D, EK=F*D;
+  // finish line
+  ctx.save();ctx.strokeStyle='rgba(52,211,153,.6)';ctx.setLineDash([4,4]);ctx.lineWidth=1.3;
+  ctx.beginPath();ctx.moveTo(XL,H*0.12);ctx.lineTo(XL,H-6);ctx.stroke();ctx.restore();
+  label(ctx,'d = '+D+' m',XL,H*0.12-3,'#34d399',9);
   masses.forEach((m,i)=>{
-    const a=F_app/m;
-    // Stop the CLOCK, not the readouts: x used to keep growing as t² for the
-    // full period while v was capped, so the block accelerated across the screen
-    // beside a frozen arrow, a frozen v and a frozen Ek bar.
-    const tRun=Math.min(tt,PERIOD*0.55);
-    const v=a*tRun;
-    const ek=0.5*m*v*v;
-    const bx=Math.min(20+0.5*a*tRun*tRun*2.2, W-28);
-    const by=yPos[i];
-    const col=cols[i];
-
-    // Track line
+    const a=F/m, tD=Math.sqrt(2*D/a);
+    const tr=Math.min(tt,tD), x=0.5*a*tr*tr, v=a*tr, ek=0.5*m*v*v;
+    const bx=X0+x*PXM, by=yPos[i], col=cols[i];
     ctx.save(); ctx.strokeStyle='rgba(30,58,82,.4)'; ctx.lineWidth=1;
-    ctx.beginPath(); ctx.moveTo(12,by); ctx.lineTo(W-12,by); ctx.stroke(); ctx.restore();
-
-    // Block
-    ctx.save(); ctx.shadowColor=col+'88'; ctx.shadowBlur=7;
-    ctx.fillStyle=col+'44'; ctx.strokeStyle=col; ctx.lineWidth=1.8;
+    ctx.beginPath(); ctx.moveTo(12,by+10); ctx.lineTo(XL+8,by+10); ctx.stroke(); ctx.restore();
+    ctx.save(); ctx.fillStyle=col+'44'; ctx.strokeStyle=col; ctx.lineWidth=1.8;
     ctx.beginPath(); ctx.roundRect(bx-14,by-10,28,20,3); ctx.fill(); ctx.stroke(); ctx.restore();
-    label(ctx,m+'kg',bx,by+2,'#f1f5f9',7.5);
-
-    // Velocity arrow
-    if(v>0.5){ arrow(ctx,bx+16,by,Math.min(bx+16+v*3.5,W-6),by,col,2,8); }
-
-    // Ek bar
-    const barW=Math.min((ek/ekFull)*(W-32),W-32);
-    const barY=by+13;
-    ctx.save(); ctx.fillStyle=col+'33'; ctx.fillRect(16,barY,W-32,7); ctx.restore();
-    ctx.save(); ctx.fillStyle=col+'88'; ctx.fillRect(16,barY,Math.max(0,barW),7); ctx.restore();
-    ctx.save(); ctx.strokeStyle=col+'55'; ctx.lineWidth=0.8; ctx.strokeRect(16,barY,W-32,7); ctx.restore();
-    label(ctx,'Ek=½×'+m+'×'+v.toFixed(1)+'²='+ek.toFixed(0)+'J',W-14,barY+6,col,7.5,'right');
+    label(ctx,m+' kg',bx,by+3,'#f1f5f9',9);
+    if(tt<tD)arrow(ctx,bx-34,by,bx-16,by,'#34d399',2,7);       // the push, while it lasts
+    // E_k column on the right: one scale for all three
+    const cx0=XL+18, cw=W-cx0-10, f=ek/EK;
+    ctx.save(); ctx.fillStyle=col+'33'; ctx.fillRect(cx0,by-9,cw,8); ctx.fillStyle=col+'cc'; ctx.fillRect(cx0,by-9,cw*f,8); ctx.restore();
+    label(ctx,'E_k = '+ek.toFixed(0)+' J',cx0+cw/2,by+12,col,9);
+    label(ctx,'v = '+v.toFixed(1)+' m/s',Math.min(bx,XL-40),by-16,col,9);
   });
-
-  // Title
-  ctx.save(); ctx.fillStyle='rgba(6,14,28,.82)'; ctx.strokeStyle='rgba(251,191,36,.3)'; ctx.lineWidth=1;
-  ctx.beginPath(); ctx.roundRect(W/2-120,2,240,14,3); ctx.fill(); ctx.stroke(); ctx.restore();
-  label(ctx,'F='+F_app+'N קבוע — מסה קטנה → Ek גדול יותר',W/2,11,'#fbbf24',7.5);
+  label(ctx,'אותו כוח לאורך אותו מרחק: אותה E_k = F·d — במהירויות שונות',W/2,H-6,'#fbbf24',9.5);
 });
 
 runAnim('anim-force-intro',(canvas,ctx,W,H,t)=>{
@@ -21982,20 +21966,20 @@ runAnim('anim-spring',(canvas,ctx,W,H,t)=>{
   ctx.save();ctx.strokeStyle='rgba(255,255,255,.1)';ctx.lineWidth=1;ctx.setLineDash([3,4]);
   ctx.beginPath();ctx.moveTo(eqX,H/2-50);ctx.lineTo(eqX,H/2+50);ctx.stroke();ctx.setLineDash([]);ctx.restore();
   circle(ctx,mx,H/2,15,'#f59e0b','#fbbf24',2);
-  const Fval=-k*x;
+  const xm=x/100, Fval=-k*xm;               // 100 px per metre: x = ±0.55 m
   // energy bars
   const Ek=0.5*m*Math.pow(-omega*amp*Math.sin(omega*t),2);
   const Ep=0.5*k*x*x;
   const Etot=0.5*k*amp*amp;
-  const barsX=W-88,barsY=H/2-24;
+  const barsX=W-88,barsY=10;          // above the spring: beside it they covered the mass on a phone
   ctx.save();
   ctx.fillStyle='rgba(124,58,237,.5)';ctx.fillRect(barsX,barsY,(Ek/Etot)*75,10);
   ctx.fillStyle='rgba(245,158,11,.5)';ctx.fillRect(barsX,barsY+14,(Ep/Etot)*75,10);
   ctx.strokeStyle='#1e3a52';ctx.lineWidth=1;ctx.strokeRect(barsX,barsY,75,10);ctx.strokeRect(barsX,barsY+14,75,10);
-  label(ctx,'Ek',barsX-16,barsY+9,'#a78bfa',9,'right');
-  label(ctx,'Ep',barsX-16,barsY+23,'#fbbf24',9,'right');
+  label(ctx,'E_k',barsX-16,barsY+9,'#a78bfa',9,'right');
+  label(ctx,'E_p',barsX-16,barsY+23,'#fbbf24',9,'right');
   ctx.restore();
-  label(ctx,`F=-kx=${Fval.toFixed(0)}N  T=2π/ω=${(2*Math.PI/omega).toFixed(2)}s`,W/2,H-7,'#7d8da6',10);
+  label(ctx,`x=${xm.toFixed(2)} m   F=−kx=${Fval.toFixed(2)} N   T=2π√(m/k)=${(2*Math.PI/omega).toFixed(2)} s`,W/2,H-7,'#7d8da6',10);
 });
 
 runAnim('anim-vec',(canvas,ctx,W,H,t)=>{
@@ -22315,7 +22299,8 @@ runAnim('anim-impulse',(canvas,ctx,W,H,t)=>{
     ctx.restore();
 
     // Shaded area label
-    label(ctx,'J=F·Δt='+J+' N·s',graphX+2+pulseW/2,graphY+graphH-pulseH/2+3,sc.col,7.5,'center');
+    if(pulseW>90)label(ctx,'J=F·Δt='+J+' N·s',graphX+2+pulseW/2,graphY+graphH-pulseH/2+3,sc.col,7.5,'center');
+    else label(ctx,'J=F·Δt='+J+' N·s',graphX+pulseW+10,graphY+graphH-pulseH/2+3,sc.col,7.5,'left');
 
     // Δp bar (right side)
     const dpX=bx+bw*0.60, dpW=bw*0.35;
@@ -22428,9 +22413,9 @@ runAnim('anim-rocket',(canvas,ctx,W,H,t)=>{
 
   // Phase progress bar
   ctx.save();ctx.fillStyle='rgba(15,30,55,.6)';
-  ctx.beginPath();ctx.roundRect(14,H*0.80,W-28,6,2);ctx.fill();ctx.restore();
+  ctx.beginPath();ctx.roundRect(14,5,W-28,4,2);ctx.fill();ctx.restore();
   ctx.save();ctx.fillStyle='#818cf8';
-  ctx.beginPath();ctx.roundRect(14,H*0.80,(W-28)*phase,6,2);ctx.fill();ctx.restore();
+  ctx.beginPath();ctx.roundRect(14,5,(W-28)*phase,4,2);ctx.fill();ctx.restore();
 });
 
 // ── CH7 ANIM: Collision types comparison e=1 vs e=0
@@ -22466,17 +22451,17 @@ runAnim('anim-collision-types',(canvas,ctx,W,H,t)=>{
   var tC=K/SPX;
 
   var rows=[
-    {label:'התנגשות אלסטית (e=1) — Ek נשמרת',
+    {label:'אלסטית לחלוטין (e=1) — E_k נשמרת',
      v1f:v1f_e, v2f:v2f_e, merged:false,
      col1:'#60a5fa', col2:'#34d399', ecol:'#34d399', y:H*0.22,
      ek_before:0.5*m1*v1i*v1i+0.5*m2*v2i*v2i,
      ek_after:0.5*m1*v1f_e*v1f_e+0.5*m2*v2f_e*v2f_e},
-    {label:'התנגשות חצי-אלסטית (e=0.5)',
+    {label:'אי-אלסטית חלקית (e=0.5)',
      v1f:v1f_s, v2f:v2f_s, merged:false,
      col1:'#f59e0b', col2:'#fb923c', ecol:'#f59e0b', y:H*0.50,
      ek_before:0.5*m1*v1i*v1i,
      ek_after:0.5*m1*v1f_s*v1f_s+0.5*m2*v2f_s*v2f_s},
-    {label:'התנגשות לא-אלסטית מושלמת (e=0) — מתאחדים',
+    {label:'אי-אלסטית לחלוטין (e=0) — הגופים נצמדים',
      v1f:vf_in, v2f:vf_in, merged:true,
      col1:'#f87171', col2:'#f87171', ecol:'#f87171', y:H*0.78,
      ek_before:0.5*m1*v1i*v1i,
@@ -22561,7 +22546,7 @@ runAnim('anim-collision-types',(canvas,ctx,W,H,t)=>{
       var pB=(m1*v1i+m2*v2i), pA=row.merged?(m1+m2)*row.v1f:m1*row.v1f+m2*row.v2f;
       var pOK=Math.abs(pB-pA)<0.2;
       label(ctx,'p: '+pB.toFixed(1)+'→'+pA.toFixed(1)+' '+(pOK?'✅':' '),W*0.80,rowY-r1-2,'#22d3ee',7,'right');
-      label(ctx,'Ek: -'+lostPct+'% '+(lostPct===0?'✅':''),W*0.80,rowY+r1+2,row.ecol,7,'right');
+      label(ctx,'E_k: −'+lostPct+'% '+(lostPct===0?'✅':''),W*0.80,rowY+r1+2,row.ecol,7,'right');
     }
   });
 
@@ -22579,127 +22564,46 @@ runAnim('anim-collision-types',(canvas,ctx,W,H,t)=>{
 // ── CH6 ANIM 1: projectile arc (single trajectory, interactive)
 runAnim('anim-projectile-arc',(canvas,ctx,W,H,t)=>{
   bg(ctx,W,H);
-  const g=9.8, v0=22;
-  // Angle cycles smoothly 20°→70°→20° every 6 s
-  const PERIOD=6;
-  const phase=(t%PERIOD)/PERIOD;
-  const theta_deg=20+50*Math.abs(Math.sin(phase*Math.PI));
-  const theta=theta_deg*Math.PI/180;
-  const cosT=Math.cos(theta), sinT=Math.sin(theta);
-  const totalT=2*v0*sinT/g;
-  const R=v0*v0*Math.sin(2*theta)/g;
-  const Hmax=v0*v0*sinT*sinT/(2*g);
-
-  // Fixed layout: origin at lower-left, scale so max range fits nicely
-  const ORIG_X=W*0.07, GND=H-28;
-  // Scale: range R→(W*0.86), height Hmax→max available height
-  const scaleX=(W*0.86)/Math.max(R,1);
-  const availH=GND-36;
-  const scaleY=availH/Math.max(Hmax,1)*0.88;
-  const scale=Math.min(scaleX, scaleY); // uniform scale
-
-  // Ground line
-  ctx.save();
-  ctx.strokeStyle='#1e4060'; ctx.lineWidth=2;
-  ctx.beginPath(); ctx.moveTo(ORIG_X-8,GND); ctx.lineTo(ORIG_X+R*scale+30,GND); ctx.stroke();
-  // hatching under ground
-  ctx.strokeStyle='rgba(30,64,96,.4)'; ctx.lineWidth=1;
-  for(var xi=ORIG_X-8;xi<ORIG_X+R*scale+30;xi+=14){
-    ctx.beginPath(); ctx.moveTo(xi,GND); ctx.lineTo(xi+8,GND+8); ctx.stroke();
+  const g=9.8, v0=22, ANG=[20,45,70,35,55];
+  // One real parabola per flight, one angle per flight, all on ONE scale, so
+  // the ranges can be compared (45° goes furthest, 20° and 70° land together).
+  // The angle used to change during the flight -- the ball rode a parabola
+  // that morphed under it -- and every arc was zoomed to fill the canvas.
+  const fl=ANG.map(d=>{const th=d*Math.PI/180;return {d:d,th:th,T:2*v0*Math.sin(th)/g};});
+  const cyc=fl.reduce((s,f)=>s+f.T+0.9,0);
+  let tc=t%cyc, k=0; while(tc>fl[k].T+0.9){tc-=fl[k].T+0.9;k++;}
+  const cur=fl[k], tNow=Math.min(tc,cur.T);
+  const Rmax=v0*v0/g, Hmax=v0*v0*Math.pow(Math.sin(70*Math.PI/180),2)/(2*g);
+  const ORIG_X=W*0.07, GND=H-30;
+  const scale=Math.min((W*0.86)/Rmax,(GND-44)/Hmax);
+  const P=(f,tt)=>[ORIG_X+v0*Math.cos(f.th)*tt*scale, GND-(v0*Math.sin(f.th)*tt-0.5*g*tt*tt)*scale];
+  ctx.save(); ctx.strokeStyle='#1e4060'; ctx.lineWidth=2;
+  ctx.beginPath(); ctx.moveTo(ORIG_X-8,GND); ctx.lineTo(ORIG_X+Rmax*scale+20,GND); ctx.stroke(); ctx.restore();
+  // the flights already made in this cycle, faint, with their landing points
+  for(let j=0;j<=k;j++){
+    const f=fl[j], cur2=(j===k);
+    ctx.save(); ctx.strokeStyle=cur2?'rgba(96,165,250,.35)':'rgba(148,163,184,.22)'; ctx.lineWidth=1.6; ctx.setLineDash([5,6]);
+    ctx.beginPath();
+    for(let i=0;i<=60;i++){const q=P(f,f.T*i/60); i===0?ctx.moveTo(q[0],q[1]):ctx.lineTo(q[0],q[1]);}
+    ctx.stroke(); ctx.restore();
+    if(!cur2||tc>cur.T){const R=v0*v0*Math.sin(2*f.th)/g, lx=ORIG_X+R*scale;
+      ctx.save();ctx.fillStyle=cur2?'#60a5fa':'#64748b';ctx.beginPath();ctx.arc(lx,GND,3,0,6.2832);ctx.fill();ctx.restore();
+      label(ctx,f.d+'°',lx,GND+12+(j%2)*10,cur2?'#93c5fd':'#7d8da6',9);}
   }
-  ctx.restore();
-
-  // Dashed trajectory arc
-  ctx.save(); ctx.strokeStyle='rgba(96,165,250,.28)'; ctx.lineWidth=2; ctx.setLineDash([5,6]);
-  ctx.beginPath();
-  for(var i=0;i<=80;i++){
-    var ti=i/80*totalT;
-    var px=ORIG_X+v0*cosT*ti*scale;
-    var py=GND-(v0*sinT*ti-0.5*g*ti*ti)*scale;
-    i===0?ctx.moveTo(px,py):ctx.lineTo(px,py);
-  }
-  ctx.stroke(); ctx.setLineDash([]); ctx.restore();
-
-  // Trail dots
-  var tNow=Math.min((t%PERIOD)/(PERIOD/(totalT)), totalT);
-  for(var ti2=tNow-0.6;ti2<tNow;ti2+=0.08){
-    if(ti2<0)continue;
-    var tpa=Math.min(ti2,totalT);
-    var trx=ORIG_X+v0*cosT*tpa*scale;
-    var try2=GND-(v0*sinT*tpa-0.5*g*tpa*tpa)*scale;
-    var alpha=(ti2-(tNow-0.6))/0.6*0.5;
-    ctx.save(); ctx.globalAlpha=alpha; ctx.fillStyle='#fbbf24';
-    ctx.beginPath(); ctx.arc(trx,try2,3,0,Math.PI*2); ctx.fill(); ctx.restore();
-  }
-
-  // Current ball
-  var bx=ORIG_X+v0*cosT*tNow*scale;
-  var by=GND-(v0*sinT*tNow-0.5*g*tNow*tNow)*scale;
-  var vx2=v0*cosT, vy2=v0*sinT-g*tNow;
-
-  // Ball glow
-  var grd=ctx.createRadialGradient(bx,by,0,bx,by,12);
-  grd.addColorStop(0,'rgba(250,204,21,.95)'); grd.addColorStop(1,'rgba(217,119,6,0)');
-  ctx.save(); ctx.fillStyle=grd;
-  ctx.beginPath(); ctx.arc(bx,by,12,0,Math.PI*2); ctx.fill(); ctx.restore();
-  circle(ctx,bx,by,7,'#f59e0b','#fde68a',2);
-
-  // Velocity vectors
-  var VS=2.2;
-  // Total v (green)
-  arrow(ctx,bx,by,bx+vx2*VS,by-vy2*VS,'#34d399',2.5,9);
-  // vx (blue, horizontal)
-  if(Math.abs(vx2)>0.5){
-    arrow(ctx,bx,by,bx+vx2*VS,by,'#60a5fa',1.8,7);
-    label(ctx,'vx='+vx2.toFixed(1),bx+vx2*VS/2,by+13,'#60a5fa',8);
-  }
-  // vy (red, vertical)
-  if(Math.abs(vy2)>0.5){
-    arrow(ctx,bx,by,bx,by-vy2*VS,'#f87171',1.8,7);
-    var vy_label_x=bx+(vy2>0?12:-12)*0;
-    label(ctx,'vy='+vy2.toFixed(1),bx+14,by-vy2*VS/2,'#f87171',8,'left');
-  }
-
-  // Angle arc and label at origin
+  const b=P(cur,tNow), vx=v0*Math.cos(cur.th), vy=v0*Math.sin(cur.th)-g*tNow, VS=2.0;
+  arrow(ctx,b[0],b[1],b[0]+vx*VS,b[1],'#60a5fa',1.8,7);
+  if(Math.abs(vy)>0.5)arrow(ctx,b[0],b[1],b[0],b[1]-vy*VS,'#f87171',1.8,7);
+  label(ctx,'vx='+vx.toFixed(1),b[0]+vx*VS/2,b[1]+13,'#60a5fa',9);
+  if(Math.abs(vy)>0.5)label(ctx,'vy='+vy.toFixed(1),b[0]+8,b[1]-vy*VS/2,'#f87171',9,'left');
+  circle(ctx,b[0],b[1],7,'#f59e0b','#fde68a',2);
+  // launch angle, between the ground and the launch direction
   ctx.save(); ctx.strokeStyle='#fbbf24'; ctx.lineWidth=1.8;
-  ctx.beginPath(); ctx.arc(ORIG_X,GND,24,-theta,0,true); ctx.stroke(); ctx.restore();
-  label(ctx,theta_deg.toFixed(0)+'°',ORIG_X+28,GND-10,'#fbbf24',9.5);
-
-  // Launch arrow at origin
-  arrow(ctx,ORIG_X,GND,ORIG_X+cosT*36,GND-sinT*36,'#fbbf24',2,8);
-
-  // Height marker at apex
-  var tApex=v0*sinT/g;
-  var apexX=ORIG_X+v0*cosT*tApex*scale;
-  var apexY=GND-Hmax*scale;
-  if(apexX<W-24 && apexY>30){
-    ctx.save(); ctx.strokeStyle='rgba(167,139,250,.5)'; ctx.lineWidth=1; ctx.setLineDash([3,4]);
-    ctx.beginPath(); ctx.moveTo(apexX,apexY); ctx.lineTo(apexX,GND); ctx.stroke();
-    ctx.setLineDash([]); ctx.restore();
-    // H dimension arrows
-    arrow(ctx,apexX+14,GND,apexX+14,apexY+4,'#a78bfa',1.5,6);
-    label(ctx,'H='+Hmax.toFixed(1)+'m',apexX+22,apexY+Math.min(Hmax*scale/2,40),'#a78bfa',8.5,'left');
-  }
-
-  // Range marker at landing
-  var landX=ORIG_X+R*scale;
-  if(landX<W-10){
-    ctx.save(); ctx.strokeStyle='rgba(248,113,133,.4)'; ctx.lineWidth=1; ctx.setLineDash([3,4]);
-    ctx.beginPath(); ctx.moveTo(landX,GND-4); ctx.lineTo(landX,GND+12); ctx.stroke();
-    ctx.setLineDash([]); ctx.restore();
-    // R dimension arrow
-    ctx.save(); ctx.strokeStyle='rgba(248,113,133,.6)'; ctx.lineWidth=1.5;
-    ctx.beginPath(); ctx.moveTo(ORIG_X,GND+18); ctx.lineTo(landX,GND+18); ctx.stroke(); ctx.restore();
-    arrow(ctx,ORIG_X,GND+18,ORIG_X+8,GND+18,'rgba(248,113,133,.7)',1.5,5);
-    arrow(ctx,landX,GND+18,landX-8,GND+18,'rgba(248,113,133,.7)',1.5,5);
-    label(ctx,'R='+R.toFixed(1)+'m',(ORIG_X+landX)/2,GND+26,'#f87171',8);
-  }
-
-  // Info banner (top)
+  ctx.beginPath(); ctx.arc(ORIG_X,GND,22,-cur.th,0,false); ctx.stroke(); ctx.restore();
+  arrow(ctx,ORIG_X,GND,ORIG_X+Math.cos(cur.th)*34,GND-Math.sin(cur.th)*34,'#fbbf24',2,8);
+  const R=v0*v0*Math.sin(2*cur.th)/g, Hm=Math.pow(v0*Math.sin(cur.th),2)/(2*g);
   ctx.save(); ctx.fillStyle='rgba(6,12,24,.88)'; ctx.strokeStyle='rgba(30,58,82,.8)'; ctx.lineWidth=1;
-  ctx.beginPath(); ctx.roundRect(6,6,W-12,28,4); ctx.fill(); ctx.stroke(); ctx.restore();
-  var speed=Math.sqrt(vx2*vx2+vy2*vy2);
-  label(ctx,'θ='+theta_deg.toFixed(0)+'°   v₀='+v0+' m/s   R='+R.toFixed(1)+'m   H='+Hmax.toFixed(1)+'m   |v|='+speed.toFixed(1)+'m/s',W/2,19,'#94a3b8',8.5);
+  ctx.beginPath(); ctx.roundRect(6,6,W-12,24,4); ctx.fill(); ctx.stroke(); ctx.restore();
+  label(ctx,'θ='+cur.d+'°   v₀='+v0+' m/s   R='+R.toFixed(1)+' m   H='+Hm.toFixed(1)+' m   |v|='+Math.hypot(vx,vy).toFixed(1)+' m/s',W/2,18,'#94a3b8',9);
 });
 
 // ── CH6 ANIM 2: range vs angle
@@ -22775,10 +22679,13 @@ runAnim('anim-circular',(canvas,ctx,W,H,t)=>{
   const CX=W*0.46, CY=H*0.52;
   const R=Math.min(W,H)*0.28;
   const omega=0.8; // rad/s
+  // physical values: a 5 m radius drawn at whatever size fits. The radius in
+  // PIXELS used to be printed as metres, so a phone and a desktop disagreed.
+  const Rm=5;
   const angle=omega*t;
   const px=CX+R*Math.cos(angle);
   const py=CY+R*Math.sin(angle);
-  const v=R*omega; // speed
+  const v=Rm*omega; // speed, m/s
 
   // Circle track
   ctx.save();ctx.strokeStyle='#1e3a52';ctx.lineWidth=2;
@@ -22813,13 +22720,13 @@ runAnim('anim-circular',(canvas,ctx,W,H,t)=>{
   circle(ctx,px,py,10,grd,'#fbbf24',2);
 
   // Info panel
-  const ac=v*v/R;
+  const ac=v*v/Rm;
   ctx.save();ctx.fillStyle='rgba(6,14,28,.88)';ctx.strokeStyle='#1e3a52';ctx.lineWidth=1;
-  ctx.beginPath();ctx.roundRect(W-110,6,104,58,5);ctx.fill();ctx.stroke();ctx.restore();
-  label(ctx,'v = '+(v).toFixed(2)+' m/s',W-58,20,'#34d399',9);
-  label(ctx,'R = '+R.toFixed(0)+' m',W-58,34,'#60a5fa',9);
-  label(ctx,'ac = '+(ac).toFixed(2)+' m/s²',W-58,48,'#f87171',9);
-  label(ctx,'ω = '+omega+' rad/s',W-58,62,'#94a3b8',9);
+  ctx.beginPath();ctx.roundRect(W-118,6,112,64,5);ctx.fill();ctx.stroke();ctx.restore();
+  label(ctx,'R = '+Rm+' m',W-62,20,'#60a5fa',9);
+  label(ctx,'ω = '+omega+' rad/s',W-62,34,'#94a3b8',9);
+  label(ctx,'v = ωR = '+v.toFixed(1)+' m/s',W-62,48,'#34d399',9);
+  label(ctx,'ac = v²/R = '+ac.toFixed(2)+' m/s²',W-62,62,'#f87171',9);
 
   // Angle indicator
   ctx.save();ctx.strokeStyle='rgba(250,204,21,.4)';ctx.lineWidth=1.2;
@@ -24822,25 +24729,27 @@ runAnim('anim-work-thm',(cv,ctx,W,H,t)=>{
   var tt=Math.min(cyc,3.2);
   var x=0.5*a*tt*tt, v=a*tt;               // m, m/s
   var Wj=F*x, Ek=0.5*m*v*v;                // J — identical by construction of the physics
-  var gnd=H*0.60, PXM=26;
+  // the run (15.4 m) is scaled to the space left of the bars; at a fixed
+  // 26 px per metre it crossed the bars on a phone
+  var gnd=H*0.60, X0=54, PXM=Math.max(4,(W*0.62-X0-18)/(0.5*a*3.2*3.2));
   ctx.save();ctx.strokeStyle='rgba(148,163,184,.5)';ctx.lineWidth=2;
   ctx.beginPath();ctx.moveTo(14,gnd);ctx.lineTo(W*0.62,gnd);ctx.stroke();ctx.restore();
-  var bx=26+x*PXM, bw=30;
-  // applied force
-  simArrow(ctx,bx-bw/2-4,gnd-16,bx-bw/2-4-30,gnd-16,'#f87171',3,11);
-  oLbl(ctx,'F='+F+'N',bx-bw/2-40,gnd-30,'#f87171',9.5);
+  var bx=X0+x*PXM, bw=30;
+  // applied force: it PUSHES the block forward (the arrow used to point backward)
+  simArrow(ctx,bx-bw/2-36,gnd-15,bx-bw/2-3,gnd-15,'#f87171',3,11);
+  oLbl(ctx,'F='+F+'N',bx-bw/2-20,gnd-30,'#f87171',9.5);
   ctx.save();ctx.fillStyle='#38bdf8';ctx.strokeStyle='#7dd3fc';ctx.lineWidth=1.5;
   ctx.beginPath();ctx.roundRect(bx-bw/2,gnd-30,bw,30,4);ctx.fill();ctx.stroke();ctx.restore();
   oLbl(ctx,m+'kg',bx,gnd-15,'#04101f',9);
   // distance bracket
   ctx.save();ctx.strokeStyle='#94a3b8';ctx.lineWidth=1;ctx.setLineDash([3,3]);
-  ctx.beginPath();ctx.moveTo(26,gnd+10);ctx.lineTo(bx,gnd+10);ctx.stroke();ctx.setLineDash([]);ctx.restore();
-  oLbl(ctx,'x='+x.toFixed(2)+'m',(26+bx)/2,gnd+22,'#94a3b8',9);
+  ctx.beginPath();ctx.moveTo(X0,gnd+10);ctx.lineTo(bx,gnd+10);ctx.stroke();ctx.setLineDash([]);ctx.restore();
+  oLbl(ctx,'x='+x.toFixed(2)+'m',Math.max(X0+30,(X0+bx)/2),gnd+22,'#94a3b8',9);
   oLbl(ctx,'v='+v.toFixed(2)+'m/s',bx,gnd-40,'#38bdf8',9.5);
   // the two bars
   var Emax=F*(0.5*a*3.2*3.2);
   function bar(X,lab,val,col){
-    var BW=42,BH=H*0.52,BY=H*0.18;
+    var BW=Math.min(42,W*0.12),BH=H*0.48,BY=H*0.24;
     ctx.save();ctx.fillStyle='rgba(148,163,184,.12)';ctx.fillRect(X,BY,BW,BH);
     ctx.fillStyle=col;ctx.fillRect(X,BY+BH*(1-Math.min(1,val/Emax)),BW,BH*Math.min(1,val/Emax));
     ctx.strokeStyle='rgba(148,163,184,.4)';ctx.lineWidth=1;ctx.strokeRect(X,BY,BW,BH);ctx.restore();
@@ -24850,8 +24759,8 @@ runAnim('anim-work-thm',(cv,ctx,W,H,t)=>{
   bar(W*0.70,'W = F·x',Wj,'#fbbf24');
   bar(W*0.84,'ΔE_k',Ek,'#4ade80');
   ctx.save();ctx.strokeStyle='rgba(255,255,255,.55)';ctx.setLineDash([3,3]);ctx.lineWidth=1;
-  var yTop=H*0.18+H*0.52*(1-Math.min(1,Wj/Emax));
-  ctx.beginPath();ctx.moveTo(W*0.70,yTop);ctx.lineTo(W*0.84+42,yTop);ctx.stroke();ctx.setLineDash([]);ctx.restore();
+  var yTop=H*0.24+H*0.48*(1-Math.min(1,Wj/Emax));
+  ctx.beginPath();ctx.moveTo(W*0.70,yTop);ctx.lineTo(W*0.84+Math.min(42,W*0.12),yTop);ctx.stroke();ctx.setLineDash([]);ctx.restore();
   oLbl(ctx,'משפט עבודה-אנרגיה: כל ג׳אול של עבודה הופך לג׳אול של אנרגיה קינטית',W/2,14,'#94a3b8',10.5);
   oLbl(ctx,'שני הסרגלים עולים יחד ונשארים שווים — תמיד',W/2,H-8,'#a78bfa',10);
 });
