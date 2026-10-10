@@ -11069,14 +11069,20 @@ function simMomentumCons(canvas){
   var H=480; var setup=setupCanvas(canvas,H); var ctx=setup.ctx; var W=setup.W;
   var id=canvas.id;
   var m1=3, m2=2, v1i=5, v2i=-2;
-  var pT=null, state='before', collTimer=0;
+  var pT=null, state='before', collTimer=0, clock=0, endT=-1;
   var x1, x2, v1, v2;
-  var p_trace=[];
+  var hist=[];                 // {t, p1, p2}
+  var WIN=6;                   // seconds of history on the graph
+  var PPS=28;                  // px per (m/s) per second
 
+  // The two balls are the whole system. They used to bounce off the canvas
+  // edges, and each bounce is an impulse from OUTSIDE the system: the total
+  // jumped while the banner kept saying "conserved". Now the run ends when a
+  // ball reaches an edge, holds the result, and starts again.
   function reset(){
     x1=W*0.22; x2=W*0.78;
     v1=v1i; v2=v2i;
-    state='before'; collTimer=0; p_trace=[];
+    state='before'; collTimer=0; clock=0; endT=-1; hist=[];
   }
   reset();
 
@@ -11100,8 +11106,8 @@ function simMomentumCons(canvas){
   if(resetBtn) resetBtn.addEventListener('click',function(){readSliders(); reset();});
   readSliders();
 
-  var GND=H-80;
-  var GRAPH_TOP=GND+14, GRAPH_H=H-GRAPH_TOP-8;
+  var GND=Math.round(H*0.46);
+  var GRAPH_TOP=GND+34, GRAPH_H=H-GRAPH_TOP-8;
 
   function getElastic(m1v,m2v,v1in,v2in){
     return {
@@ -11118,27 +11124,33 @@ function simMomentumCons(canvas){
 
     var r1=Math.max(16,m1*4.5);
     var r2=Math.max(14,m2*4.5);
+    var approaching=v1i>v2i;
 
-    x1+=v1*dt*28; x2+=v2*dt*28;
-
-    // Collision detection
-    if(x1+r1>=x2-r2 && state==='before'){
-      var res=getElastic(m1,m2,v1,v2);
-      v1=res.v1f; v2=res.v2f;
-      state='after'; collTimer=0;
-    }
+    if(endT<0){
+      // sub-steps, so a fast pair cannot pass through each other in one frame
+      for(var k=0;k<4;k++){
+        var h=dt/4;
+        x1+=v1*h*PPS; x2+=v2*h*PPS;
+        if(state==='before'&&x1+r1>=x2-r2&&v1>v2){
+          var res=getElastic(m1,m2,v1,v2);
+          v1=res.v1f; v2=res.v2f;
+          var ov=x1+r1-(x2-r2); x1-=ov/2; x2+=ov/2;
+          state='after'; collTimer=0;
+        }
+      }
+      clock+=dt;
+      hist.push({t:clock,p1:m1*v1,p2:m2*v2});
+      while(hist.length&&clock-hist[0].t>WIN)hist.shift();
+      if(x1-r1<=6||x1+r1>=W-6||x2-r2<=6||x2+r2>=W-6){
+        x1=Math.max(r1+6,Math.min(W-r1-6,x1)); x2=Math.max(r2+6,Math.min(W-r2-6,x2));
+        endT=clock;
+      }
+    } else if(clock-endT>3.2){ reset(); }
+    else clock+=dt;
     collTimer+=dt;
-
-    // Wall bounces
-    if(x1<=r1+8){x1=r1+8; v1=Math.abs(v1);}
-    if(x1>=W-r1-8){x1=W-r1-8; v1=-Math.abs(v1);}
-    if(x2<=r2+8){x2=r2+8; v2=Math.abs(v2);}
-    if(x2>=W-r2-8){x2=W-r2-8; v2=-Math.abs(v2);}
 
     var p_before=m1*v1i+m2*v2i;
     var p_now=m1*v1+m2*v2;
-    p_trace.push({before:p_before, now:p_now});
-    if(p_trace.length>160) p_trace.shift();
 
     simBg(ctx,W,H);
     simGround(ctx,W,GND);
@@ -11146,29 +11158,26 @@ function simMomentumCons(canvas){
     // ── Info banner
     ctx.save();ctx.fillStyle='rgba(6,14,28,.92)';ctx.strokeStyle='#1e3a52';ctx.lineWidth=1;
     ctx.beginPath();ctx.roundRect(10,8,W-20,52,6);ctx.fill();ctx.stroke();ctx.restore();
-    simText(ctx,'שימור תנע: התנע לפני = התנע אחרי',W/2,21,'#7d8da6',9,'center');
-    simText(ctx,'תנע לפני = '+p_before.toFixed(2)+' kg·m/s',W/2,35,'#fbbf24',10,'center',true);
-    simText(ctx,'תנע כעת = '+p_now.toFixed(2)+' kg·m/s   '+(Math.abs(p_before-p_now)<0.15?'✅ שמור!':''),W/2,50,'#22d3ee',10,'center',true);
+    simText(ctx,'שימור תנע: על שני הגופים יחד אין כוח חיצוני אופקי',W/2,21,'#7d8da6',9,'center');
+    simText(ctx,'Σp לפני = '+p_before.toFixed(2)+' kg·m/s',W/2,35,'#fbbf24',10,'center',true);
+    simText(ctx,'Σp עכשיו = '+p_now.toFixed(2)+' kg·m/s'+(Math.abs(p_before-p_now)<0.01?'  ✅ נשמר':''),W/2,50,'#22d3ee',10,'center',true);
 
     // ── Ball 1
     var g1=ctx.createRadialGradient(x1-r1*0.3,GND-r1-r1*0.3,r1*0.08,x1,GND-r1,r1);
     g1.addColorStop(0,'#bfdbfe'); g1.addColorStop(1,'rgba(29,78,216,.85)');
     simCircle(ctx,x1,GND-r1,r1,g1,'#60a5fa',2);
-    simText(ctx,m1+'kg',x1,GND-r1+5,state==='after'?'#22d3ee':'#fff',9,undefined,true);
-    simText(ctx,'v₁='+v1.toFixed(1),x1,GND-r1*2-14,'#93c5fd',8.5,undefined,true);
-    if(Math.abs(v1)>0.2){
-      simArrow(ctx,x1,GND-r1*2-5,x1+v1*12,GND-r1*2-5,v1>=0?'#60a5fa':'#818cf8',2.5,9);
-    }
+    simText(ctx,m1+' kg',x1,GND-r1+4,'#fff',9,undefined,true);
+    var cl=function(x){return Math.max(6,Math.min(W-6,x));}, cT=function(x){return Math.max(44,Math.min(W-44,x));};
+    simText(ctx,'v₁='+v1.toFixed(1)+' m/s',cT(x1),GND-r1*2-20,'#93c5fd',8.5,undefined,true);
+    if(Math.abs(v1)>0.2) simArrow(ctx,x1,GND-r1*2-7,cl(x1+v1*10),GND-r1*2-7,'#60a5fa',2.5,9);
 
     // ── Ball 2
     var g2=ctx.createRadialGradient(x2-r2*0.3,GND-r2-r2*0.3,r2*0.08,x2,GND-r2,r2);
     g2.addColorStop(0,'#fecaca'); g2.addColorStop(1,'rgba(185,28,28,.85)');
     simCircle(ctx,x2,GND-r2,r2,g2,'#f87171',2);
-    simText(ctx,m2+'kg',x2,GND-r2+5,state==='after'?'#22d3ee':'#fff',9,undefined,true);
-    simText(ctx,'v₂='+v2.toFixed(1),x2,GND-r2*2-14,'#fca5a5',8.5,undefined,true);
-    if(Math.abs(v2)>0.2){
-      simArrow(ctx,x2,GND-r2*2-5,x2+v2*12,GND-r2*2-5,v2>=0?'#f87171':'#fbbf24',2.5,9);
-    }
+    simText(ctx,m2+' kg',x2,GND-r2+4,'#fff',9,undefined,true);
+    simText(ctx,'v₂='+v2.toFixed(1)+' m/s',cT(x2),GND-r2*2-20,'#fca5a5',8.5,undefined,true);
+    if(Math.abs(v2)>0.2) simArrow(ctx,x2,GND-r2*2-7,cl(x2+v2*10),GND-r2*2-7,'#f87171',2.5,9);
 
     // Collision flash
     if(state==='after'&&collTimer<0.4){
@@ -11178,31 +11187,35 @@ function simMomentumCons(canvas){
       gf.addColorStop(0,'#fbbf24');gf.addColorStop(1,'transparent');
       ctx.fillStyle=gf;ctx.beginPath();ctx.arc((x1+x2)/2,GND-r1,26,0,Math.PI*2);ctx.fill();ctx.restore();
     }
+    var note=!approaching?'v₁ ≤ v₂: הגופים אינם מתקרבים זה לזה, ולכן לא יתנגשו':
+             (endT>=0?(state==='after'?'אחרי ההתנגשות: כל תנע לחוד השתנה — הסכום לא':'גוף הגיע לקצה — מתחילים מחדש'):'');
+    if(note) simText(ctx,note,W/2,GND+18,'#a78bfa',9,'center',true);
 
-    // ── p trace graph
+    // ── p(t) graph: each momentum keeps its sign about a zero line
     ctx.save();ctx.fillStyle='rgba(6,14,28,.78)';ctx.strokeStyle='#1e3a52';ctx.lineWidth=1;
     ctx.beginPath();ctx.roundRect(12,GRAPH_TOP,W-24,GRAPH_H,4);ctx.fill();ctx.stroke();ctx.restore();
-    simText(ctx,'תנע כולל לאורך זמן',W/2,GRAPH_TOP+10,'#7d8da6',7.5,'center');
-
-    if(p_trace.length>2){
-      var pMax=Math.max.apply(null,p_trace.map(function(p){return Math.abs(p.before)*1.2;}))||1;
-      // Before line (gold, flat)
-      ctx.save();ctx.strokeStyle='rgba(251,191,36,.6)';ctx.lineWidth=1.5;ctx.setLineDash([4,5]);
+    simText(ctx,'תנע לאורך זמן — p₁ (כחול), p₂ (אדום), Σp (צהוב)',W/2,GRAPH_TOP+11,'#7d8da6',8,'center');
+    var gL=40, gR=W-18, gMid=GRAPH_TOP+GRAPH_H/2+6, gAmp=GRAPH_H/2-16;
+    var pMax=Math.max(Math.abs(p_before),Math.abs(m1*v1i),Math.abs(m2*v2i),Math.abs(m1*v1),Math.abs(m2*v2),1)*1.1;
+    ctx.save();ctx.strokeStyle='rgba(255,255,255,.16)';ctx.lineWidth=1;ctx.setLineDash([3,5]);
+    ctx.beginPath();ctx.moveTo(gL,gMid);ctx.lineTo(gR,gMid);ctx.stroke();ctx.setLineDash([]);ctx.restore();
+    simText(ctx,'0',gL-6,gMid+3,'#7d8da6',8,'right');
+    simText(ctx,'+'+(pMax).toFixed(0),gL-6,gMid-gAmp+3,'#7d8da6',8,'right');
+    simText(ctx,'−'+(pMax).toFixed(0),gL-6,gMid+gAmp+3,'#7d8da6',8,'right');
+    simText(ctx,'t →',gR,gMid+gAmp+12,'#7d8da6',8,'right');
+    function curve(key,col,dash){
+      if(hist.length<2)return;
+      ctx.save();ctx.strokeStyle=col;ctx.lineWidth=2;if(dash)ctx.setLineDash([6,4]);
       ctx.beginPath();
-      var refY=GRAPH_TOP+GRAPH_H-6-(p_before/pMax)*(GRAPH_H-14);
-      ctx.moveTo(18,refY);ctx.lineTo(W-18,refY);
-      ctx.stroke();ctx.setLineDash([]);ctx.restore();
-      simText(ctx,'התנע נשמר',W-20,refY-4,'#fbbf24',7,'right');
-
-      // Now line
-      ctx.save();ctx.strokeStyle='#22d3ee';ctx.lineWidth=2;ctx.beginPath();
-      p_trace.forEach(function(pt,i){
-        var px2=18+(W-36)*i/(p_trace.length-1);
-        var py2=GRAPH_TOP+GRAPH_H-6-(pt.now/pMax)*(GRAPH_H-14);
-        i===0?ctx.moveTo(px2,py2):ctx.lineTo(px2,py2);
+      hist.forEach(function(q,i){
+        var px=gL+(q.t-hist[0].t)/WIN*(gR-gL);
+        var v=key==='s'?q.p1+q.p2:q[key];
+        var py=gMid-v/pMax*gAmp;
+        i===0?ctx.moveTo(px,py):ctx.lineTo(px,py);
       });
       ctx.stroke();ctx.restore();
     }
+    curve('p1','#60a5fa');curve('p2','#f87171');curve('s','#fbbf24',true);
 
     requestAnimationFrame(draw);
   }
