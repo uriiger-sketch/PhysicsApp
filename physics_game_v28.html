@@ -27151,7 +27151,11 @@ MAG_SIMS['mag-transformer']=function(canvas){
     // source and load
     ctx.save();ctx.strokeStyle='#64748b';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(cx0-T/2-10,cy0+T+14);ctx.lineTo(cx0-60,cy0+T+14);ctx.lineTo(cx0-60,cy1-T-14);ctx.lineTo(cx0-T/2-10,cy1-T-14);
     ctx.moveTo(cx1+T/2+10,cy0+T+14);ctx.lineTo(cx1+60,cy0+T+14);ctx.lineTo(cx1+60,cy1-T-14);ctx.lineTo(cx1+T/2+10,cy1-T-14);ctx.stroke();ctx.restore();
-    simCircle(ctx,cx0-60,(cy0+cy1)/2,18,'#0f172a','#fb923c',2);simText(ctx,ac?'~':'⎓',cx0-60,(cy0+cy1)/2+1,'#fb923c',16,'center',true);
+    simCircle(ctx,cx0-60,(cy0+cy1)/2,18,'#0f172a','#fb923c',2);
+    // the DC sign is drawn (a solid bar over a dashed one): U+2393 is missing from many phone fonts
+    if(ac)simText(ctx,'~',cx0-60,(cy0+cy1)/2+1,'#fb923c',16,'center',true);
+    else{var dx0=cx0-60,dy0=(cy0+cy1)/2;ctx.save();ctx.strokeStyle='#fb923c';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(dx0-8,dy0-3);ctx.lineTo(dx0+8,dy0-3);
+      for(var k=0;k<3;k++){ctx.moveTo(dx0-8+k*6,dy0+3);ctx.lineTo(dx0-4+k*6,dy0+3);}ctx.stroke();ctx.restore();}
     simText(ctx,V1.toFixed(0)+' V',cx0-60,(cy0+cy1)/2+32,'#fb923c',10,'center',true);
     var Pn=ac?1:Math.pow(Math.exp(-(t-tsw)/TAU),2),br=Math.min(1,Pn);
     ctx.save();var gr=ctx.createRadialGradient(cx1+60,(cy0+cy1)/2,2,cx1+60,(cy0+cy1)/2,40);gr.addColorStop(0,'rgba(253,224,71,'+(0.1+0.8*br)+')');gr.addColorStop(1,'rgba(253,224,71,0)');ctx.fillStyle=gr;ctx.beginPath();ctx.arc(cx1+60,(cy0+cy1)/2,40,0,6.2832);ctx.fill();ctx.restore();
