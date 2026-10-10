@@ -30771,6 +30771,13 @@ function slResample(rows,n,col){var T=0,i,ts=[];
     out.push(rows[j][col]+(rows[j+1][col]-rows[j][col])*Math.max(0,Math.min(1,f)));}
   return {d:out,T:T};}
 function slSet(id,txt){var e=document.getElementById(id);if(e)e.textContent=txt;}
+// How far the page is turned from the phone's natural (portrait) orientation,
+// in degrees counter-clockwise: 0, 90, 180 or 270. The motion axes never turn
+// with the page; a picture of the device has to.
+function slScreenAngle(){
+  try{var a=(screen.orientation&&typeof screen.orientation.angle==='number')?screen.orientation.angle
+    :(typeof window.orientation==='number'?window.orientation:0);
+    return ((Math.round(a/90)*90)%360+360)%360;}catch(e){return 0;}}
 // A chip reads label, value, unit. With a Hebrew label it reads right to
 // left -- 'v ממוצעת 0.350 m/s' -- or the label itself comes out backwards
 // ('ממוצעת v'); the value and the unit are left-to-right runs either way.
@@ -32281,35 +32288,44 @@ var SL_IMPL={
     slSet('slv-th',(st.th*180/Math.PI).toFixed(1));slSet('slv-gx',(st.gx||0).toFixed(2));
     slSet('slv-gy',(st.gy||0).toFixed(2));slSet('slv-rs',(st.gp||0).toFixed(2));},
   draw:function(ctx,W,H,st){
-    var ph=Math.min(W*0.14,52),pv=Math.min(H*0.40,108),cx=W/2,cy=pv+22,th=st.th||0;
+    // The motion axes belong to the device, the picture to the screen. Tilted
+    // past 45° a phone turns its page to landscape, and the picture must turn
+    // back with it or g is drawn a quarter turn off. So the portrait picture
+    // is drawn rotated by the screen's own angle.
+    var ang=slScreenAngle()*Math.PI/180,turned=Math.abs(Math.sin(ang))>0.5;
+    var ph=Math.min(W*0.14,52),pv=Math.min((turned?W:H)*0.40,108),cx=W/2,cy=turned?H/2:pv+22,th=st.th||0;
+    var ca=Math.cos(-ang),sa=Math.sin(-ang),P=function(x,y){return [cx+x*ca-y*sa,cy+x*sa+y*ca];};
     var c1=slCss('--accent','#3b82f6'),c2=slCss('--green','#10b981'),c3=slCss('--red','#ef4444'),
         mu=slCss('--muted','#889'),gd=slCss('--gold','#f59e0b');
     if(st.flat){
       simText(ctx,'📱 הטלפון שוכב שטוח — הכובד ניצב למסך',W/2,H/2-10,gd,13,'center',true);
       simText(ctx,'החזיקו אותו במאונך והטו אותו במישור המסך',W/2,H/2+14,mu,11.5,'center');return;}
-    // the phone itself, square to the screen it is drawn on, with its axes
-    ctx.save();ctx.strokeStyle=mu;ctx.lineWidth=2;ctx.beginPath();
-    if(ctx.roundRect)ctx.roundRect(cx-ph,cy-pv,ph*2,pv*2,9);else ctx.rect(cx-ph,cy-pv,ph*2,pv*2);
-    ctx.stroke();
-    ctx.setLineDash([3,3]);ctx.lineWidth=1;
-    ctx.beginPath();ctx.moveTo(cx,cy-pv-4);ctx.lineTo(cx,cy+pv+4);ctx.moveTo(cx-ph-8,cy);ctx.lineTo(cx+ph+8,cy);ctx.stroke();
-    ctx.restore();
-    slTxt(ctx,'y',cx,cy-pv-8,mu,10,'center',true);slTxt(ctx,'x',cx+ph+16,cy+4,mu,10,'center',true);
     var sc=Math.min(W*0.42,pv-14)/9.81,gL=(st.gp||9.8)*sc,dx=st.dc[0],dy=st.dc[1];
     var Gx=gL*dx,Gy=gL*dy;                      // the tip of g, from the centre
-    // the angle θ between g and the phone's y axis
     var a0=dy>=0?Math.PI/2:-Math.PI/2,a1=Math.atan2(dy,dx);
-    ctx.save();ctx.strokeStyle=mu;ctx.lineWidth=1;ctx.beginPath();ctx.arc(cx,cy,26,Math.min(a0,a1),Math.max(a0,a1));
-    if(Math.abs(a1-a0)<Math.PI)ctx.stroke();ctx.restore();
-    var am=(a0+a1)/2;slTxt(ctx,'θ',cx+36*Math.cos(am),cy+36*Math.sin(am)+4,mu,11,'center',true);
+    ctx.save();ctx.translate(cx,cy);ctx.rotate(-ang);
+    // the phone itself, square to the screen it is drawn on, with its axes
+    ctx.strokeStyle=mu;ctx.lineWidth=2;ctx.beginPath();
+    if(ctx.roundRect)ctx.roundRect(-ph,-pv,ph*2,pv*2,9);else ctx.rect(-ph,-pv,ph*2,pv*2);
+    ctx.stroke();
+    ctx.setLineDash([3,3]);ctx.lineWidth=1;
+    ctx.beginPath();ctx.moveTo(0,-pv-4);ctx.lineTo(0,pv+4);ctx.moveTo(-ph-8,0);ctx.lineTo(ph+8,0);ctx.stroke();
+    // the angle θ between g and the phone's y axis
+    ctx.setLineDash([]);ctx.beginPath();ctx.arc(0,0,26,Math.min(a0,a1),Math.max(a0,a1));
+    if(Math.abs(a1-a0)<Math.PI)ctx.stroke();
     // projections onto the two axes, and the components that add up to g
-    ctx.save();ctx.strokeStyle=mu;ctx.setLineDash([2,4]);ctx.lineWidth=1;
-    ctx.beginPath();ctx.moveTo(cx+Gx,cy+Gy);ctx.lineTo(cx+Gx,cy);ctx.moveTo(cx+Gx,cy+Gy);ctx.lineTo(cx,cy+Gy);ctx.stroke();
+    ctx.setLineDash([2,4]);
+    ctx.beginPath();ctx.moveTo(Gx,Gy);ctx.lineTo(Gx,0);ctx.moveTo(Gx,Gy);ctx.lineTo(0,Gy);ctx.stroke();
+    ctx.setLineDash([]);
+    simArrow(ctx,0,0,0,Gy,c2,2.5,9);
+    simArrow(ctx,0,Gy,Gx,Gy,c1,2.5,9);
+    simArrow(ctx,0,0,Gx,Gy,c3,3,11);
     ctx.restore();
-    simArrow(ctx,cx,cy,cx,cy+Gy,c2,2.5,9);
-    simArrow(ctx,cx,cy+Gy,cx+Gx,cy+Gy,c1,2.5,9);
-    simArrow(ctx,cx,cy,cx+Gx,cy+Gy,c3,3,11);
-    slTxt(ctx,'g',cx+Gx+(dx>=0?9:-9),cy+Gy+(dy>=0?12:-6),c3,12,dx>=0?'left':'right',true);
+    var q=P(0,-pv-8);slTxt(ctx,'y',q[0],q[1]+4,mu,10,'center',true);
+    q=P(ph+16,0);slTxt(ctx,'x',q[0],q[1]+4,mu,10,'center',true);
+    var am=(a0+a1)/2;q=P(36*Math.cos(am),36*Math.sin(am));slTxt(ctx,'θ',q[0],q[1]+4,mu,11,'center',true);
+    q=P(Gx*(1+12/gL),Gy*(1+12/gL));slTxt(ctx,'g',q[0],q[1]+4,c3,12,'center',true);
+    q=P(dx,dy);st.gScreen=[q[0]-cx,q[1]-cy];   // where g points on the glass, kept for the tests
     slTxt(ctx,'g·cosθ = '+(st.gy||0).toFixed(2),12,20,c2,11,'left',true);
     slTxt(ctx,'g·sinθ = '+(st.gx||0).toFixed(2),12,37,c1,11,'left',true);
     slTxt(ctx,'θ = '+((th*180/Math.PI)||0).toFixed(1)+'°',12,54,mu,11,'left',true);

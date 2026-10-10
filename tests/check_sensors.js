@@ -119,6 +119,21 @@ const S = p => p.evaluate(() => JSON.parse(JSON.stringify(_sl.st, (k, v) =>
     t(`gravity drawn toward the floor, phone ${name}`, dc, want);
   }
 
+  // tilted past 45° the page turns to landscape; the picture must turn back
+  const land = await p.evaluate(async () => {
+    const d = Object.getOwnPropertyDescriptor(Screen.prototype, 'orientation');
+    Object.defineProperty(screen, 'orientation', { configurable: true, get: () => ({ angle: 90, type: 'landscape-primary' }) });
+    const st = _sl.st, impl = SL_IMPL['tilt-components'];
+    // turned a quarter turn counter-clockwise: the phone's +x now points up
+    for (let i = 0; i < 6; i++) impl.sample({ dt: 0.02, t: 0, exact: true, hz: 50, ax: 0, ay: 0, az: 0,
+      gx: 9.81, gy: 0, gz: 0, Gx: 9.81, Gy: 0, Gz: 0, ra: 0, rb: 0, rg: 0 }, st);
+    await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+    const gs = st.gScreen.map(v => (Math.abs(v) < 5e-3 ? 0 : v).toFixed(2)).join(',');
+    delete screen.orientation; if (d) Object.defineProperty(Screen.prototype, 'orientation', d);
+    return gs;
+  });
+  t('page turned to landscape: g still drawn toward the floor', land, '0.00,1.00');
+
   console.log('\n4) forces.normal-force — N and F∥ on a real incline');
   await openLab(p, 'forces.normal-force');
   await p.evaluate(() => { const e = document.getElementById('sl-m'); if (e) e.value = '2'; });
