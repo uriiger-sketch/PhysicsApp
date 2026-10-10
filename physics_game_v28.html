@@ -33772,7 +33772,7 @@ function buildProblem(prob){
         <div class="step-inp-row">
           <input class="step-inp${fb==='correct'?' ok':fb?' err':''}" type="text" id="si${si}" value="${String(inp).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;')}" placeholder="תשובה…" dir="auto" aria-labelledby="sq${si}" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="done" oninput="upInp(${si},this.value)" onkeydown="if(event.key==='Enter')chkStep(${si})" ${locked?'disabled':''}>
           ${st2.unit?`<span class="unit-lbl">${st2.unit}</span>`:''}
-          <span class="step-btns">${showBtn?`<button class="hint-btn" onclick="showHint(${si})">${lvl===0?'💡 רמז':'✏️ פתרון מלא'} (−5 XP)</button>`:''}
+          <span class="step-btns">${showBtn?`<button class="hint-btn" onclick="showHint(${si})">${lvl===0?'💡 רמז':'✏️ רמז נוסף'} (−5 XP)</button>`:''}
           ${!locked?`<button class="btn btn-primary" style="padding:7px 14px" onclick="chkStep(${si})">בדקו</button>`:''}</span>
         </div>
         ${fb&&fb!=='correct'?`<div class="step-fb err">${_ltSafe(fb)}</div>`:''}`
@@ -34106,7 +34106,7 @@ window.chkStep=(si)=>{
     const a=(ps.attempts[si]||0)+1; ps.attempts[si]=a;
     // the third miss opens the hint and the worked solution above the field
     // (it used to repeat the hint here as well)
-    if(a>=3){ps.feedback[si]=`❌ לא מדויק (ניסיון ${a}). הרמז והפתרון המודרך נפתחו מעל לשדה — עברו עליהם ונסו שוב.`;ps.hints[si]=2;}
+    if(a>=3){ps.feedback[si]=`❌ לא מדויק (ניסיון ${a}). ${step.nudge?'שני הרמזים נפתחו':'הרמז נפתח'} מעל לשדה — עברו ${step.nudge?'עליהם':'עליו'} ונסו שוב.`;ps.hints[si]=2;}
     else ps.feedback[si]=`❌ לא מדויק (ניסיון ${a}/3). נסו שוב.`;
     render();_say(ps.feedback[si]);}
 };
