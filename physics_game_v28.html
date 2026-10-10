@@ -8871,7 +8871,19 @@ Object.assign(CONTENT, MAG_CONTENT);
 // ══════════════════════════════════════════════
 // QUIZ / PROBLEM STATE
 // ══════════════════════════════════════════════
-function getQS(c,s){const k=`${c}.${s}`;if(!state.quizState[k])state.quizState[k]={cur:0,ans:[],done:false};return state.quizState[k];}
+// A saved entry comes back from storage, and storage holds whatever an older
+// version or a hand edit left there: {"cur":-3}, "ans":"x", a bare {"idx":1}
+// threw inside render() and left a blank page on every reload after. Each
+// entry is repaired to the shape the code reads before anything reads it.
+function _okIdx(v){return typeof v==='number'&&v>=0&&isFinite(v)?Math.floor(v):0;}
+function getQS(c,s){const k=`${c}.${s}`;var q=state.quizState[k];
+  if(!q||typeof q!=='object'||Array.isArray(q))q=state.quizState[k]={cur:0,ans:[],done:false};
+  if(!Array.isArray(q.ans))q.ans=[];
+  else if(q.ans.some(function(a){return a!==undefined&&typeof a!=='number';}))
+    q.ans=q.ans.map(function(a){return typeof a==='number'?a:undefined;});
+  q.cur=_okIdx(q.cur);q.done=q.done===true;
+  if(q.hints!==undefined&&(!q.hints||typeof q.hints!=='object'))q.hints={};
+  return q;}
 
 // ── Option order ────────────────────────────────────────────────────────────
 // The AUTHORED position of the correct option, measured over all 259 items,
@@ -8945,9 +8957,13 @@ function hintMax(step){return (step&&step.nudge)?2:1;}
 // attempts is an ARRAY, one entry per step. It used to be a single counter for
 // the whole problem that was never reset, so three misses anywhere caused every
 // later step to reveal its hint on the learner's first wrong answer.
-function getPS(c,s){const k=`${c}.${s}`;if(!state.problemState[k])state.problemState[k]={idx:0,inputs:[],solved:[],hints:[],feedback:[],done:false,attempts:[]};
-  if(!Array.isArray(state.problemState[k].attempts))state.problemState[k].attempts=[];
-  return state.problemState[k];}
+// tried[si] is the last wrong answer checked, so the same answer checked again
+// (a double click, a held Enter) is not a second attempt.
+function getPS(c,s){const k=`${c}.${s}`;var p=state.problemState[k];
+  if(!p||typeof p!=='object'||Array.isArray(p))p=state.problemState[k]={idx:0,inputs:[],solved:[],hints:[],feedback:[],done:false,attempts:[]};
+  ['inputs','solved','hints','feedback','attempts','tried'].forEach(function(f){if(!Array.isArray(p[f]))p[f]=[];});
+  p.idx=_okIdx(p.idx);p.done=p.done===true;
+  return p;}
 
 // ══════════════════════════════════════════════
 // SIMULATION REGISTRY
@@ -33806,7 +33822,7 @@ window.chkStep=(si)=>{
   const ps=getPS(state.chapter,state.section);
   const content=CONTENT[`${state.chapter}.${state.section}`];
   const step=content.problem.steps[si];
-  const inp=(ps.inputs[si]||'').trim();
+  const inp=String(ps.inputs[si]||'').trim();
   // nothing typed, or nothing that reads as a number, is not an attempt: it
   // used to count toward the three that give the solution away for free
   if(!inp){ps.feedback[si]='✏️ הקלידו תשובה ואז לחצו "בדוק".';render();return;}
@@ -33838,6 +33854,11 @@ window.chkStep=(si)=>{
   else{
     // Per step: a stumble on an earlier step must not hand out this step's hint,
     // and solving a step clears its own tally.
+    // The answer already marked wrong, checked again, is the same attempt: a
+    // double click on "check" spent two of the three tries before the worked
+    // solution opens, and a held Enter all three.
+    if(ps.attempts[si]&&ps.tried[si]===inp){render();return;}
+    ps.tried[si]=inp;
     const a=(ps.attempts[si]||0)+1; ps.attempts[si]=a;
     // the third miss opens the hint and the worked solution above the field
     // (it used to repeat the hint here as well)
