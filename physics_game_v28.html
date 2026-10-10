@@ -26476,12 +26476,13 @@ MAG_SIMS['mag-wireforce']=function(canvas){
     var dt=pT?Math.min(0.04,(ts-pT)/1000):0;pT=ts;
     var I=magV('mgf-I',2),B=magV('mgf-B',0.4),L=magV('mgf-L',0.1),m=magV('mgf-m',20)/1000,th=magV('mgf-th',90)*Math.PI/180,g=9.8;
     var F0=B*I*L*Math.sin(th)*flip;                // + → to the right (I⊙ with B down)
-    // the field exists only between the pole faces: a wire swung out of the
-    // gap feels no force and falls back
-    var gapOK=function(p){return LP*(1-Math.cos(p))<92&&Math.abs(LP*Math.sin(p))<W*0.25-8;};
-    for(var i=0;i<8;i++){var h=dt/8,Fi=gapOK(phi)?F0:0,al=(Fi*Math.cos(phi)-m*g*Math.sin(phi))/(m*ELL)-2.2*om;om+=al*h;phi+=om*h;}
-    var inGap=gapOK(phi),F=inGap?F0:0;
-    phi=Math.max(-1.45,Math.min(1.45,phi));
+    // the wide poles keep the wire in the field, but it cannot rise through
+    // the upper pole: there it is stopped, pressed against the pole face
+    var pStop=Math.acos(1-(96-16)/LP),pinned=false;
+    for(var i=0;i<8;i++){var h=dt/8,al=(F0*Math.cos(phi)-m*g*Math.sin(phi))/(m*ELL)-2.2*om;om+=al*h;phi+=om*h;
+      if(Math.abs(phi)>pStop){phi=Math.sign(phi)*pStop;om=0;}}
+    var phEq=Math.atan(Math.abs(F0)/(m*g));pinned=phEq>pStop-1e-3&&Math.abs(phi)>=pStop-1e-3;
+    var inGap=true,F=F0;
     simBg(ctx,W,H);
     var wx=PX+LP*Math.sin(phi),wy=PY+LP*Math.cos(phi);
     // poles
@@ -26492,7 +26493,8 @@ MAG_SIMS['mag-wireforce']=function(canvas){
     for(var x=PX-pw/2+20;x<PX+pw/2;x+=34){var y0=flip>0?py0:py1,y1=flip>0?py1:py0;
       ctx.save();ctx.strokeStyle='rgba(129,140,248,.28)';ctx.beginPath();ctx.moveTo(x,py0);ctx.lineTo(x,py1);ctx.stroke();ctx.restore();
       simArrow(ctx,x,(py0+py1)/2-8*flip,x,(py0+py1)/2+8*flip,'rgba(129,140,248,.6)',1.4,7);}
-    simText(ctx,'B'+(th<Math.PI/2-0.01?'·sinθ':''),PX+pw/2+18,(py0+py1)/2,'#818cf8',11,'left',true);
+    if(W<600)simText(ctx,'B'+(th<Math.PI/2-0.01?'·sinθ':''),PX+pw/2-6,py0+14,'#818cf8',11,'right',true);
+    else simText(ctx,'B'+(th<Math.PI/2-0.01?'·sinθ':''),PX+pw/2+18,(py0+py1)/2,'#818cf8',11,'left',true);
     // pivot, thread, wire
     ctx.save();ctx.fillStyle='#475569';ctx.fillRect(PX-40,PY-10,80,8);ctx.restore();
     ctx.save();ctx.strokeStyle='#cbd5e1';ctx.lineWidth=1.6;ctx.beginPath();ctx.moveTo(PX,PY);ctx.lineTo(wx,wy);ctx.stroke();ctx.restore();
@@ -26504,16 +26506,19 @@ MAG_SIMS['mag-wireforce']=function(canvas){
     simText(ctx,'F',wx+Math.sign(F||1)*(sc(Math.abs(F))+12),wy-6,'#fb923c',12,'center',true);
     simText(ctx,'mg',wx+16,wy+56,'#94a3b8',10.5,'left',true);simText(ctx,'T',wx+(PX-wx)/LP*(sc(T)+12),wy+(PY-wy)/LP*(sc(T)+12),'#22d3ee',11,'center',true);
     // the angle between wire and B, seen from the side
-    var ix=W-110,iy=70;ctx.save();ctx.fillStyle='rgba(2,8,16,.88)';ctx.fillRect(ix-96,iy-56,196,140);ctx.restore();
+    // (on a phone: a narrower panel, to the right of the poles)
+    var ph=W<600,iw=ph?Math.min(132,W-PX-pw/2-10):196,k=iw/196,ix=W-iw/2-6,iy=ph?H*0.50:70;
+    ctx.save();ctx.fillStyle='rgba(2,8,16,.88)';ctx.fillRect(ix-iw/2,iy-56,iw,140);ctx.restore();
     simText(ctx,'מבט מהצד: התיל ו-B',ix,iy-42,'#94a3b8',9.5,'center',true);
-    ctx.save();ctx.strokeStyle='#fbbf24';ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(ix-70,iy+10);ctx.lineTo(ix+70,iy+10);ctx.stroke();ctx.restore();
-    simArrow(ctx,ix+40,iy+10,ix+62,iy+10,'#fbbf24',2,7);simText(ctx,'I',ix+66,iy,'#fbbf24',10,'center',true);
-    var bxv=Math.cos(th),byv=Math.sin(th);simArrow(ctx,ix-20,iy+10,ix-20+bxv*60,iy+10+byv*flip*60,'#818cf8',2.6,9);
-    simText(ctx,'θ = '+(th*180/Math.PI).toFixed(0)+'°',ix-20,iy+34,'#818cf8',10,'center',true);
+    ctx.save();ctx.strokeStyle='#fbbf24';ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(ix-70*k,iy+10);ctx.lineTo(ix+70*k,iy+10);ctx.stroke();ctx.restore();
+    var sI=I<0?-1:1;simArrow(ctx,ix+51*k-sI*11,iy+10,ix+51*k+sI*11,iy+10,'#fbbf24',2,7);simText(ctx,'I',ix+51*k,iy,'#fbbf24',10,'center',true);
+    var bxv=Math.cos(th),byv=Math.sin(th),bo=ix-20*k;simArrow(ctx,bo,iy+10,bo+bxv*46*k,iy+10+byv*flip*46*k,'#818cf8',2.6,9);
+    if(th>0.02){ctx.save();ctx.strokeStyle='#818cf8';ctx.lineWidth=1.2;ctx.beginPath();ctx.arc(bo,iy+10,20*k,flip>0?0:-th,flip>0?th:0);ctx.stroke();ctx.restore();}
+    simText(ctx,'θ = '+(th*180/Math.PI).toFixed(0)+'°',ix-62*k,iy+(flip>0?28:-6),'#818cf8',10,'center',true);
     simText(ctx,th<0.02?'B מקביל לתיל — אין כוח':'רק רכיב B הניצב לתיל דוחף',ix,iy+64,'#94a3b8',9,'center');
     var y0=H*0.85;magPlotBox(ctx,8,y0,W-16,H-y0-6,'',null);
     simText(ctx,'F = BIL·sinθ = '+Math.abs(F).toFixed(3)+' N   ·   mg = '+(m*g).toFixed(3)+' N   ·   tanφ = F/mg ⇒ φ = '+(Math.atan(Math.abs(F)/(m*g))*180/Math.PI).toFixed(1)+'°',W/2,y0+20,'#e2e8f0',10.5,'center',true);
-    simText(ctx,!inGap?'התיל יצא מבין הקטבים — שם אין שדה, ואין כוח':'הכוח ניצב לשדה ולתיל: '+(Math.abs(F)<1e-4?'אין כוח':(F>0?'ימינה':'שמאלה'))+' — לעולם לא אל אחד הקטבים',W/2,y0+42,inGap?'#94a3b8':'#fbbf24',10,'center',!inGap);
+    simText(ctx,pinned?'F גדול מדי: התיל נעצר על פני הקוטב העליון — לפני שהגיע לזווית שיווי המשקל':'הכוח ניצב לשדה ולתיל: '+(Math.abs(F)<1e-4?'אין כוח':(F>0?'ימינה':'שמאלה'))+' — לעולם לא אל אחד הקטבים',W/2,y0+42,pinned?'#fbbf24':'#94a3b8',10,'center',pinned);
     requestAnimationFrame(draw);
   }
   requestAnimationFrame(draw);
