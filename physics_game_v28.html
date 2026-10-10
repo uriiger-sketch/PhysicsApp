@@ -26686,6 +26686,16 @@ MAG_CTRL['mag-flux']=function(){return rng('mgx-th',0,360,0,1,'זווית θ ב�
 // magnet give flux along m, as they must.
 function magDipFlux(m,a,z){return MU0*m*a*a/(2*Math.pow(a*a+z*z,1.5));}
 function magDipFluxD(m,a,z){return -1.5*MU0*m*a*a*z/Math.pow(a*a+z*z,2.5);}
+// The same for a BAR magnet of moment m whose poles ±m/l sit a distance l
+// apart (N toward +x), z = x_loop − x_centre. Each pole sends through the loop
+// the solid-angle share of its flux; the flux carried inside the magnet makes
+// the total continuous as a pole passes through the loop, which leaves
+//   Φ = (μ₀m/2l)·[u_S/√(u_S²+a²) − u_N/√(u_N²+a²)],  u = z ± l/2.
+// Far away it is the dipole's flux; close in, the flux changes fastest as a
+// POLE crosses the loop — where a real magnet's does, not at its centre.
+function magBarFlux(m,l,a,z){var uN=z-l/2,uS=z+l/2;return MU0*m/(2*l)*(uS/Math.sqrt(uS*uS+a*a)-uN/Math.sqrt(uN*uN+a*a));}
+function magBarFluxD(m,l,a,z){var uN=z-l/2,uS=z+l/2;return MU0*m*a*a/(2*l)*(1/Math.pow(uS*uS+a*a,1.5)-1/Math.pow(uN*uN+a*a,1.5));}
+function magBarFluxDmax(m,l,a){var b=0;for(var z=-0.3;z<=0.3;z+=0.0005)b=Math.max(b,Math.abs(magBarFluxD(m,l,a,z)));return b;}
 
 // ── mag-induction.mag-faraday ─────────────────────────────────────────────
 // ε = −N dΦ/dt with Φ(z), z = x_coil − x_magnet: ε = N·Φ′(z)·v_magnet.
@@ -26693,7 +26703,8 @@ function magDipFluxD(m,a,z){return -1.5*MU0*m*a*a*z/Math.pow(a*a+z*z,2.5);}
 MAG_SIMS['mag-faraday']=function(canvas){
   var id=canvas.id,_g=_simGen[id];
   const H=520; const {ctx,W,dpr}=setupCanvas(canvas,H);
-  var s=W*0.9/0.60, X0=W*0.05+0.36*s, YS=H*0.22, A=0.02, MD=2, RR=10;
+  // a strong 8 cm bar magnet (poles 7 cm apart, m = 6 A·m²) and a 2 cm coil
+  var s=W*0.9/0.60, X0=W*0.05+0.36*s, YS=H*0.22, A=0.02, MD=6, LPm=0.07, RR=10, DMX=magBarFluxDmax(MD,LPm,A);
   var xm=-0.26, vm=0, auto=false, adir=1, flip=1, drag=false, lastX=null, lastT=0, hist=[], tt=0, pT=null;
   var toSx=function(x){return X0+x*s;};
   magBtn('mgy-auto',function(b){auto=!auto;b.textContent=auto?'⏸ עצור תנועה':'▶ תנועה אוטומטית';});
@@ -26708,7 +26719,7 @@ MAG_SIMS['mag-faraday']=function(canvas){
     else if(drag){if(lastX!==null&&dt>0){var v=(xm-lastX)/dt;vm=vm*0.6+v*0.4;}lastX=xm;}
     else vm=0;
     if(!drag)lastX=null;
-    var z=0-xm,m=MD*flip,Phi=magDipFlux(m,A,z),eps=N*magDipFluxD(m,A,z)*vm;if(Math.abs(eps)<5e-4)eps=0;var I=eps/RR;
+    var z=0-xm,m=MD*flip,Phi=magBarFlux(m,LPm,A,z),eps=N*magBarFluxD(m,LPm,A,z)*vm;if(Math.abs(eps)<5e-4)eps=0;var I=eps/RR;
     if(dt>0){hist.push([tt,N*Phi,eps]);while(hist.length&&tt-hist[0][0]>6)hist.shift();}
     simBg(ctx,W,H);
     // coil (short), galvanometer and wires
@@ -26724,24 +26735,29 @@ MAG_SIMS['mag-faraday']=function(canvas){
     var na=-Math.PI/2+Math.max(-0.75,Math.min(0.75,I/0.04*0.75));
     ctx.save();ctx.strokeStyle='#f87171';ctx.lineWidth=2.4;ctx.beginPath();ctx.moveTo(gX,gY+6);ctx.lineTo(gX+Math.cos(na)*28,gY+Math.sin(na)*28);ctx.stroke();ctx.restore();
     simText(ctx,'0',gX,gY-14,'#64748b',9,'center');simText(ctx,(I*1000).toFixed(1)+' mA',gX,gY+20,'#f87171',10,'center',true);
-    // induced current in the coil, and the pole it presents to the magnet
+    // induced current in the coil, and the pole it presents to the magnet:
+    // its own field leaves the coil on the side it points to (that face is N),
+    // and the letter is drawn on whichever side the magnet is
     if(Math.abs(I)>2e-4){magDot(ctx,cx,YS-cr,7,I>0,'#fbbf24','#1e293b');magDot(ctx,cx,YS+cr,7,I<0,'#fbbf24','#1e293b');
-      var face=I<0?'N':'S';simText(ctx,face,cx-cw/2-14,YS-cr-12,face==='N'?'#f87171':'#60a5fa',13,'center',true);
-      simArrow(ctx,cx,YS,cx+(I>0?1:-1)*Math.min(46,10+Math.abs(I)/0.04*36),YS,'rgba(52,211,153,.9)',2.4,9);
-      simText(ctx,'B מושרה',cx+(I>0?1:-1)*30,YS-12,'#34d399',9,'center');}
+      var dI=I>0?1:-1,sideM=xm>0?1:-1,face=sideM===dI?'N':'S',La=Math.min(46,10+Math.abs(I)/0.04*36);
+      simText(ctx,face,cx+sideM*(cw/2+14),YS-cr-12,face==='N'?'#f87171':'#60a5fa',13,'center',true);
+      // above the coil, where the magnet never hides it
+      var yb=YS-cr-30;simArrow(ctx,cx-dI*La/2,yb,cx+dI*La/2,yb,'rgba(52,211,153,.9)',2.4,9);
+      simText(ctx,'B מושרה',cx+dI*(La/2+30),yb,'#34d399',9,'center');}
     // magnet
     magBar(ctx,toSx(xm),YS,0.08*s,Math.max(12,0.012*s),flip>0?0:Math.PI);
     simHandle(ctx,toSx(xm),YS,'#e2e8f0',16);
     if(Math.abs(vm)>0.02)simArrow(ctx,toSx(xm),YS-26,toSx(xm)+Math.sign(vm)*Math.min(60,20+Math.abs(vm)*60),YS-26,'#e2e8f0',2,8);
-    ctx.save();ctx.fillStyle='rgba(2,8,16,.85)';ctx.fillRect(8,8,W*0.42,48);ctx.restore();
-    simText(ctx,'NΦ = '+(N*Phi*1000).toFixed(2)+' mWb   ·   ε = '+(eps*1000).toFixed(0)+' mV',8+W*0.21,26,'#e2e8f0',11.5,'center',true);
+    var RBW=W<600?W-16:W*0.42;
+    ctx.save();ctx.fillStyle='rgba(2,8,16,.85)';ctx.fillRect(8,8,RBW,48);ctx.restore();
+    simText(ctx,'NΦ = '+(N*Phi*1000).toFixed(2)+' mWb   ·   ε = '+(eps*1000).toFixed(0)+' mV',8+RBW/2,26,'#e2e8f0',11.5,'center',true);
     // approaching = the distance |z| is shrinking (from the motion, not from ε)
     var appr=(z>=0?1:-1)*vm>0;
-    simText(ctx,Math.abs(vm)<0.02?'המגנט עומד ⇒ השטף לא משתנה ⇒ ε = 0':(appr?'מתקרב: השטף גדל — הסליל דוחה':'מתרחק: השטף קטן — הסליל מושך'),8+W*0.21,46,'#94a3b8',9.5,'center');
+    simText(ctx,Math.abs(vm)<0.02?'המגנט עומד ⇒ השטף לא משתנה ⇒ ε = 0':(appr?'מתקרב: השטף גדל — הסליל דוחה':'מתרחק: השטף קטן — הסליל מושך'),8+RBW/2,46,'#94a3b8',9.5,'center');
     // Φ(t) and ε(t)
     var gx=44,gw=W-60,g1=H*0.56,g2=H*0.79,gh=H*0.19,Tm=6;
-    // scales: the largest |Φ′| of a dipole is 0.43·μ₀m/a² (at z = a/2)
-    var P1=N*MU0*MD/(2*A),Em=N*0.43*MU0*MD/(A*A)*Math.max(0.3,sp)*1.15;
+    // scales: the largest NΦ (magnet centred in the coil) and the largest |ε| at this speed
+    var P1=N*magBarFlux(MD,LPm,A,0)*1.1,Em=N*DMX*Math.max(0.3,sp)*1.15;
     [[g1,'NΦ(t)',1,P1,'#818cf8'],[g2,'ε(t) = −N·ΔΦ/Δt',2,Em,'#f87171']].forEach(function(G){
       magPlotBox(ctx,gx-36,G[0]-14,gw+46,gh+8,G[1],G[4]);
       var Y=function(v){return G[0]+gh/2-v/G[3]*(gh/2-8);};
@@ -26764,7 +26780,7 @@ MAG_CTRL['mag-faraday']=function(){return rng('mgy-N',50,500,200,10,'ליפופ�
 MAG_SIMS['mag-lenz']=function(canvas){
   var id=canvas.id,_g=_simGen[id];
   const H=480; const {ctx,W,dpr}=setupCanvas(canvas,H);
-  var s=W*0.86/0.50, X0=W*0.66, YR=H*0.46, A=0.03, MD=10, RR=5e-4, MR=0.01, ELL=0.5;
+  var s=W*0.86/0.50, X0=W*0.66, YR=H*0.46, A=0.03, MD=10, LPm=0.07, RR=5e-4, MR=0.01, ELL=0.5;   // 8 cm bar, poles 7 cm apart
   var xr=0, vr=0, xm=-0.20, vm=0, flip=1, cut=false, drag=false, lastX=null, push=0, pT=null, heat=0, I=0;
   var toSx=function(x){return X0+x*s;};
   magBtn('mgn-flip',function(b){flip=-flip;b.textContent=flip>0?'🔄 הפוך מגנט (N פונה לטבעת)':'🔄 הפוך מגנט (S פונה לטבעת)';});
@@ -26781,10 +26797,10 @@ MAG_SIMS['mag-lenz']=function(canvas){
     else if(drag){if(lastX!==null&&dt>0)vm=vm*0.5+(xm-lastX)/dt*0.5;lastX=xm;}
     else vm=0;
     var m=MD*flip;
-    for(var i=0;i<20;i++){var h=dt/20,z=xr-xm,dP=magDipFluxD(m,A,z);
+    for(var i=0;i<20;i++){var h=dt/20,z=xr-xm,dP=magBarFluxD(m,LPm,A,z);
       I=cut?0:-dP*(vr-vm)/RR;var F=I*dP;
       vr+=(F-MR*9.8/ELL*xr-0.004*vr)/MR*h;xr+=vr*h;heat+=I*I*RR*h;}
-    var zf=xr-xm,dPf=magDipFluxD(m,A,zf),Fr=I*dPf;
+    var zf=xr-xm,dPf=magBarFluxD(m,LPm,A,zf),Fr=I*dPf;
     simBg(ctx,W,H);
     // magnet
     magBar(ctx,toSx(xm),YR,0.08*s,Math.max(16,0.02*s),flip>0?0:Math.PI);
@@ -26798,8 +26814,10 @@ MAG_SIMS['mag-lenz']=function(canvas){
     if(cut){ctx.ellipse(rx,YR,8,rr,0,-1.2,1.2+Math.PI*0.9,false);}else ctx.ellipse(rx,YR,8,rr,0,0,6.2832);ctx.stroke();ctx.restore();
     if(cut)simText(ctx,'✂ חתוכה — אין זרם',rx,YR+rr+22,'#fbbf24',10,'center',true);
     if(Math.abs(I)>0.02){magDot(ctx,rx,YR-rr,7,I>0,'#fbbf24','#1e293b');magDot(ctx,rx,YR+rr,7,I<0,'#fbbf24','#1e293b');
-      var face=I<0?'N':'S';simText(ctx,face,rx-22,YR,face==='N'?'#f87171':'#60a5fa',15,'center',true);
-      simText(ctx,'הטבעת מציגה '+face,rx-22,YR+rr+22,face==='N'?'#f87171':'#60a5fa',9.5,'center',true);}
+      // the face toward the magnet: N on the side the ring's own field points to
+      var sideM=xm>xr?1:-1,face=sideM===(I>0?1:-1)?'N':'S';
+      simText(ctx,face,rx+sideM*22,YR,face==='N'?'#f87171':'#60a5fa',15,'center',true);
+      simText(ctx,'הטבעת מציגה '+face,rx+sideM*22,YR+rr+22,face==='N'?'#f87171':'#60a5fa',9.5,'center',true);}
     if(Math.abs(Fr)>1e-4)simArrow(ctx,rx,YR-rr-20,rx+Math.sign(Fr)*Math.min(70,14+Math.abs(Fr)*900),YR-rr-20,'#fb923c',3,10);
     var BXW=Math.min(W-16,Math.max(W*0.56,340));ctx.save();ctx.fillStyle='rgba(2,8,16,.85)';ctx.fillRect(8,8,BXW,70);ctx.restore();
     var rel=vr-vm,zz=xr-xm,closing=(zz>=0?1:-1)*rel<0;     // |z| shrinking
@@ -27206,16 +27224,27 @@ runAnim('anim-mag-flux',(cv,ctx,W,H,t)=>{
 runAnim('anim-mag-faraday',(cv,ctx,W,H,t)=>{
   bg(ctx,W,H);
   // the magnet's centre travels from the left until it sits inside the coil
-  var ph=t%6,x,v,cx=W*0.62,cy=H*0.34,A=18,x0=W*0.10,sp=(cx-x0)/1.2;
+  var ph=t%6,x,v,cx=W*0.62,cy=H*0.34,A=24,x0=Math.max(W*0.10,cx-170),sp=(cx-x0)/1.2;
   if(ph<1.2){x=x0+sp*ph;v=sp;}else if(ph<3){x=cx;v=0;}else if(ph<4.2){x=cx-sp*(ph-3);v=-sp;}else{x=x0;v=0;}
-  var z=cx-x,dPhi=-1.5*A*A*z/Math.pow(A*A+z*z,2.5),e=dPhi*v*0.75*A*A/(0.429*sp);   // ε ∝ Φ′(z)·v, scaled to ±0.75 rad
+  // ε ∝ Φ′(z)·v for the 80 px bar (poles 64 px apart, as magBarFluxD), scaled
+  // so that the pole crossing the coil swings the needle to ±0.75 rad
+  var z=cx-x,DF=function(q){return magBarFluxD(1,64,A,q);},DM=0;for(var q=0;q<=120;q+=1)DM=Math.max(DM,Math.abs(DF(q)));
+  var e=DF(z)*v*0.75/(DM*sp);
   for(var k=0;k<6;k++){ctx.save();ctx.strokeStyle='#d97706';ctx.lineWidth=2.2;ctx.beginPath();ctx.ellipse(cx-10+k*4,cy,3,A+4,0,0,6.2832);ctx.stroke();ctx.restore();}
   magBar(ctx,x,cy,80,14,0);
   if(v)arrow(ctx,x,cy-20,x+Math.sign(v)*34,cy-20,'#e2e8f0',2,7);
+  // the induced current: ε > 0 drives the current whose own field points
+  // along +x (⊙ on top). Approaching, ε < 0: the coil's left face becomes N and
+  // repels the magnet; leaving, ε > 0: that face is S and pulls it back.
+  if(Math.abs(e)>0.06){var up=e>0,face=up?'S':'N';
+    magDot(ctx,cx,cy-A-5,6,up,'#fbbf24','#1e293b');magDot(ctx,cx,cy+A+5,6,!up,'#fbbf24','#1e293b');
+    label(ctx,face,cx-24,cy-A-12,face==='N'?'#f87171':'#60a5fa',12);
+    arrow(ctx,up?cx+16:cx+42,cy,up?cx+42:cx+16,cy,'#34d399',2,6);label(ctx,'B מושרה',cx+48,cy+4,'#34d399',9.5,'left');}
   var gX=cx,gY=H*0.78;ctx.save();ctx.strokeStyle='#64748b';ctx.lineWidth=1.6;ctx.beginPath();ctx.moveTo(cx-10,cy+A);ctx.lineTo(cx-10,gY);ctx.moveTo(cx+10,cy+A);ctx.lineTo(cx+10,gY);ctx.stroke();ctx.restore();
   circle(ctx,gX,gY,24,'#0f172a','#94a3b8',2);var na=-Math.PI/2+Math.max(-0.8,Math.min(0.8,e));
   ctx.save();ctx.strokeStyle='#f87171';ctx.lineWidth=2.2;ctx.beginPath();ctx.moveTo(gX,gY+4);ctx.lineTo(gX+Math.cos(na)*20,gY+Math.sin(na)*20);ctx.stroke();ctx.restore();
-  label(ctx,ph<1.2?'נכנס — המחוג זז':ph<3?'עומד בתוך הסליל — אפס!':ph<4.2?'יוצא — המחוג זז לצד השני':'עומד בחוץ — אפס',W*0.26,H*0.80,v?'#fbbf24':'#94a3b8',11);
+  label(ctx,ph<1.2?'נכנס — המחוג זז':ph<3?'עומד בתוך הסליל — אפס!':ph<4.2?'יוצא — המחוג זז לצד השני':'עומד בחוץ — אפס',W*0.26,H*0.72,v?'#fbbf24':'#94a3b8',11);
+  if(v)label(ctx,v>0?'הסליל מציג N — ודוחה':'הסליל מציג S — ומושך',W*0.26,H*0.86,v>0?'#f87171':'#60a5fa',10);
 });
 
 // a magnet falling through copper vs plastic tube. The magnet falls N up,
