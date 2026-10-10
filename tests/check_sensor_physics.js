@@ -250,6 +250,28 @@ const rest = n => Array.from({ length: n }, () => ({ a: [0, 0, 0], g: [0, 0, G],
     if (r) { t('Δv over the contact = gT', r.dv, vImp, 0.04); t('reference v = gT', r.vf, vImp, 0.03); }
   }
 
+  // ── 4b. the phone tumbled 40° on the way down ───────────────────────────
+  console.log('\n4b) same drop, but the phone lands turned 40° from how it was calibrated');
+  {
+    const key = 'momentum.momentum-def';
+    await open(p, key);
+    const S = rest(80), Tf = 0.25, vImp = G * Tf, tb2 = 0.10, aUp = vImp / tb2, c = Math.cos(0.698), sn = Math.sin(0.698);
+    for (let i = 0; i < Math.round(Tf / DT); i++) S.push({ a: [0, 0, 0], g: [0, 0, 0] });
+    // the cushion still pushes straight up; in the turned phone's frame that is
+    // partly along y
+    for (let i = 0; i < Math.round(tb2 / DT); i++) S.push({ a: [0, 0, 0], g: [0, (G + aUp) * sn, (G + aUp) * c] });
+    for (let i = 0; i < 40; i++) S.push({ a: [0, 0, 0], g: [0, G * sn, G * c], G: [0, G * sn, G * c] });
+    await p.evaluate(() => { document.getElementById('sl-pm').value = '0.2'; });
+    await feed(p, key, S);
+    const r = await p.evaluate(() => _sl.st.last);
+    tb('a landing was recorded', !!r);
+    if (r) {
+      t('Δv over the contact = gT, however the phone turned', r.dv, vImp, 0.04);
+      t('Δp = m·Δv (kg·m/s)', r.dp, 0.2 * vImp, 0.01);
+      t('average net force = Δp/Δt (N)', r.F, 0.2 * vImp / r.dt, 0.01);
+    }
+  }
+
   // ── 5. lift ride: a jerk-limited profile with a gentle ramp ───────────────
   console.log('\n5) lift: ramps of 0.6 s up to 0.7 m/s², coast, and back — height known exactly');
   {

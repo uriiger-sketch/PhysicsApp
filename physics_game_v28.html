@@ -30884,7 +30884,11 @@ function slPlot(ctx,x,y,w,h,traces,opt){
     }
     ctx.restore();
   }
+  // the symbol and unit on the left, read left to right; the Hebrew words on
+  // the right, read right to left. One mixed string comes out in an order
+  // that neither reader expects ("(m/s²) |a| — 0 בנפילה").
   if(opt.title)slTxt(ctx,opt.title,px0+4,y+12,traces[0]?traces[0].c:mu,10.5,'left',true);
+  if(opt.sub)simText(ctx,opt.sub,x+w-(_slZoom!==1?40:6),y+12,mu,9.5,'right');
   if(_slZoom!==1)slTxt(ctx,'×'+(_slZoom<1?_slZoom.toFixed(2):_slZoom.toFixed(1)),x+w-6,y+12,slCss('--gold','#f59e0b'),9,'right',true);
   ctx.restore();
   return {cy:cy,sc:sc,m:m,x0:px0,pw:pw};
@@ -30962,11 +30966,11 @@ var SENSOR_LABS={
 
  'momentum.momentum-def':{t:'impulse-land',h:342,minHz:40,
    ttl:'אותו '+M('\\Delta p')+', זמן אחר — וכוח אחר',
-   how:'הפילו מגובה קבוע (20–30 ס״מ) על <b>משטח רך</b> — כרית, מגבת, ספה. חזרו על אותה נפילה על משטחים ברכות שונה והשוו.',
+   how:'הזינו את מסת הטלפון (במפרט היצרן, כ-0.2 kg). החזיקו אותו שטוח, מסך למעלה, ושחררו בלי לדחוף מגובה קבוע (20–30 cm) אל <b>משטח רך</b> — כרית, שמיכה מקופלת, ספה. <b>לעולם לא על רצפה או שולחן.</b> חזרו על אותה נפילה על משטחים ברכות שונה והשוו.',
    pred:'לפני הנפילה השנייה: אם תפילו מאותו גובה בדיוק על משטח רך יותר — מה ישתנה? המהירות בפגיעה, שינוי התנע, משך הנחיתה, או הכוח?',
-   note:'מגובה נתון מהירות הפגיעה קבועה, ולכן <b>'+M('\\Delta p')+' זהה בכל נחיתה</b>. מה שמשתנה הוא <b>המשך</b>, ולפי '+M('F\\,\\Delta t=\\Delta p')+' זמן כפול פירושו כוח חצי. זה כל הרעיון של כרית אוויר, קסדה ואזור מעיכה: איש מהם אינו מקטין את '+M('\\Delta p')+' — כולם מותחים אותו על זמן ארוך יותר.<br><br>המהירות מחושבת בשתי דרכים בלתי תלויות ('+M('v=gT')+' ואינטגרל הנחיתה); ההסכמה ביניהן היא הבדיקה. <b>רק על משטח רך</b> — נחיתה קשה קצרה מדי לקצב הדגימה.',
-   chips:[['dv','Δv','m/s'],['dt','משך נחיתה','s'],['ag','תאוצה ממוצעת','g'],['n','נחיתות','']],
-   ctrl:'<button class="sl-sec" id="sl-clr">🗑 נקה</button>'},
+   note:'מגובה נתון מהירות הפגיעה קבועה, ולכן <b>'+M('\\Delta p')+' זהה בכל נחיתה</b>. מה שמשתנה הוא <b>המשך</b>, ולפי '+M('F\\,\\Delta t=\\Delta p')+' זמן כפול פירושו כוח חצי. (כאן '+M('F')+' הוא הכוח השקול; הכרית עצמה דוחפת ב-'+M('\\bar F+mg')+'.) זה כל הרעיון של כרית אוויר, קסדה ואזור מעיכה: איש מהם אינו מקטין את '+M('\\Delta p')+' — כולם מותחים אותו על זמן ארוך יותר.<br><br>המהירות מחושבת בשתי דרכים בלתי תלויות ('+M('v=gT')+' ואינטגרל הנחיתה); ההסכמה ביניהן היא הבדיקה. <b>רק על משטח רך</b> — נחיתה קשה קצרה מדי לקצב הדגימה, ועלולה לשבור את הטלפון.',
+   chips:[['dp','Δp','kg·m/s'],['dt','משך נחיתה','s'],['F','F̄ שקול','N'],['n','נחיתות','']],
+   ctrl:'<span class="sl-slider">מסת הטלפון <input id="sl-pm" type="range" min="0.10" max="0.30" step="0.005" value="0.20"><span id="sl-pmv">0.200 kg</span></span><button class="sl-sec" id="sl-clr">🗑 נקה</button>'},
 
  'forces2.static-friction':{t:'slip-angle',h:300,
    ttl:'מדדו את '+M('\\mu_s')+' מזווית ההחלקה',
@@ -31252,9 +31256,10 @@ var SL_IMPL={
         ctx.globalAlpha=.35;ctx.beginPath();ctx.moveTo(px,gy);ctx.lineTo(px+pw,gy);ctx.stroke();
         ctx.globalAlpha=1;slTxt(ctx,slFmt(k*stp,stp),px-4,gy+3,mu,8,'right');}
       ctx.restore();
-      slTxt(ctx,ttl,px+4,y0-4,col,9.5,'left',true);}
-    frame(vy,vh,vmn,vmx,VY,'v (m/s)  — משיק',gr);
-    frame(xy,xh,xmn,xmx,XY,'x (m)  — מיתר',gd);
+      slTxt(ctx,ttl[0],px+4,y0-4,col,9.5,'left',true);
+      simText(ctx,ttl[1],px+pw,y0-4,col,9.5,'right',true);}
+    frame(vy,vh,vmn,vmx,VY,['v  (m/s)','שיפוע המשיק = רגעית'],gr);
+    frame(xy,xh,xmn,xmx,XY,['x  (m)','שיפוע המיתר = ממוצעת'],gd);
     var ts=slNiceStep(d/3.2);
     for(var tt=0;tt<=d+1e-6;tt+=ts)slTxt(ctx,slFmt(tt,ts)+'s',XT(tt),xy+xh+11,mu,8,'center');
     ctx.save();ctx.beginPath();ctx.rect(px,vy,pw,vh);ctx.clip();
@@ -31418,8 +31423,8 @@ var SL_IMPL={
     var hp=Math.round(H*0.30);
     // the phone's own acceleration in front, the raw sensor reading behind
     slPlot(ctx,8,6,W-16,hp,[{tr:st.trR,c:c2,lw:1.5},{tr:st.tr,c:c1,lw:2.4}],
-      {title:'a  (m/s²)   מטה חיובי',floor:12,hold:st.h});
-    slTxt(ctx,'— תאוצת הטלפון',W-14,20,c1,9,'right',true);
+      {title:'a  (m/s²)',floor:12,hold:st.h});
+    slTxt(ctx,'— תאוצת הטלפון, מטה חיובי',W-14,20,c1,9,'right',true);
     slTxt(ctx,'— קריאת החיישן',W-14,32,c2,9,'right');
     // the captured toss: v(t) with two draggable markers
     var vy=hp+16,vh=H-hp-74,vx=40,vw=W-52;
@@ -31572,7 +31577,7 @@ var SL_IMPL={
       return;}
     var hp=Math.round(H*0.26);
     slPlot(ctx,8,6,W-16,hp,[{tr:st.tr,c:c1}],
-      {title:'T / mg   משקל מדומה',floor:.3,hold:st.h,offset:1});
+      {title:'T / mg',sub:'משקל מדומה',floor:.3,hold:st.h,offset:1});
     var C=st.cap;
     // two quantities share this frame, so each gets its own axis: height on the
     // left, velocity on the right. Without the right-hand scale the dashed curve
@@ -31988,10 +31993,10 @@ var SL_IMPL={
       simText(ctx,'⏳ מכייל בשקט ('+Math.round(st.calN/50*100)+'%) — הניחו ואל תזיזו',W/2,H/2-8,gd,13,'center',true);
       simText(ctx,'הכיול קובע איפה ״מעלה״ ומהו g',W/2,H/2+16,mu,11.5,'center');return;}
     var hp=Math.round(H*0.42);
-    slPlot(ctx,8,6,W-16,hp,[{tr:st.tr,c:c1}],{title:'רכיב אופקי / g  =  μ',floor:.4,hold:st.h,positive:true});
+    slPlot(ctx,8,6,W-16,hp,[{tr:st.tr,c:c1}],{title:'μ',sub:'הרכיב האופקי של הקריאה, חלקי g',floor:.4,hold:st.h,positive:true});
     if(st.run>0.05){
       ctx.save();ctx.fillStyle='rgba(16,185,129,.12)';ctx.fillRect(W-90,8,80,hp-10);ctx.restore();
-      slTxt(ctx,'מחליק',W-50,22,gr,10,'center',true);}
+      slTxt(ctx,'מחליק',W-50,8+hp/2,gr,10,'center',true);}
     // the recorded slides, as bars
     var by=hp+22,bh=H-hp-72;
     if(st.pts.length){
@@ -32031,8 +32036,12 @@ var SL_IMPL={
         st.g0=Math.hypot(u[0],u[1],u[2])||9.81;
         st.u=[u[0]/st.g0,u[1]/st.g0,u[2]/st.g0];st.ph='run';}
       return;}
-    var Au=A[0]*st.u[0]+A[1]*st.u[1]+A[2]*st.u[2];
-    var aUp=Au-st.g0;                      // upward acceleration of the phone
+    // The phone's upward acceleration is (cushion force)/m − g, and the cushion
+    // pushes up, so it is |reading| − g. Projecting the reading on the 'up'
+    // found at calibration assumed the phone fell without turning; a drop that
+    // tumbled by 40° lost a quarter of its Δv that way. The magnitude does not
+    // care how the phone lands.
+    var aUp=mag-st.g0;
     st.cur=mag;st.tr.push(mag);
     if(!st.inHit){
       if(mag<2.5){ if(!st.inFall){st.inFall=true;st.fallT=0;} st.fallT+=s.dt; }
@@ -32054,7 +32063,8 @@ var SL_IMPL={
         st.inHit=false;
         var dur=Math.max(0,st.hitT-st.settle);
         if(dur>0.02&&st.hitI>0.3){
-          var rec={dv:st.hitI,dt:dur,ag:(st.hitI/dur)/st.g0,
+          var pm=document.getElementById('sl-pm'),m=pm?parseFloat(pm.value):0.2;
+          var rec={dv:st.hitI,dt:dur,ag:(st.hitI/dur)/st.g0,m:m,dp:m*st.hitI,F:m*st.hitI/dur,
                    pk:st.pk/st.g0,vf:st.g0*st.Tf};   // released from rest: v = gT
           st.last=rec;st.pts.push(rec);if(st.pts.length>6)st.pts.shift();}
         st.fallT=0;
@@ -32062,9 +32072,9 @@ var SL_IMPL={
     }},
   chips:function(st){
     var r=st.last;
-    slSet('slv-dv',r?r.dv.toFixed(2):'—');
+    slSet('slv-dp',r?r.dp.toFixed(3):'—');
     slSet('slv-dt',r?r.dt.toFixed(3):'—');
-    slSet('slv-ag',r?r.ag.toFixed(1):'—');
+    slSet('slv-F',r?r.F.toFixed(1):'—');
     slSet('slv-n',String(st.pts.length));},
   draw:function(ctx,W,H,st){
     var c1=slCss('--accent','#3b82f6'),mu=slCss('--muted','#889'),tx=slCss('--text','#dde'),
@@ -32073,27 +32083,28 @@ var SL_IMPL={
       simText(ctx,'⏳ מכייל בשקט ('+Math.round(st.calN/50*100)+'%) — הניחו ואל תזיזו',W/2,H/2-8,gd,13,'center',true);
       return;}
     var hp=Math.round(H*0.30);
-    slPlot(ctx,8,6,W-16,hp,[{tr:st.tr,c:c1}],{title:'|a|  (m/s²)  — 0 בנפילה, שיא בנחיתה',floor:20,hold:st.h,positive:true});
-    // one column per landing: force above, duration below, delta-v on top
+    slPlot(ctx,8,6,W-16,hp,[{tr:st.tr,c:c1}],{title:'|a|  (m/s²)',sub:'אפס בנפילה, שיא בנחיתה',floor:20,hold:st.h,positive:true});
+    // one column per landing: the average net force, its duration under it,
+    // and the change in momentum -- the same every time -- under that
     var by=hp+30,bh=H-hp-96;
     if(st.pts.length){
-      var mx=Math.max.apply(null,st.pts.map(function(r){return r.ag;}).concat([2]))*1.2;
+      var mx=Math.max.apply(null,st.pts.map(function(r){return r.F;}).concat([1]))*1.2;
       var bw=Math.min(46,(W-44)/st.pts.length-10);
       st.pts.forEach(function(r,i){
-        var x=24+i*(bw+10),h2=bh*(r.ag/mx);
+        var x=24+i*(bw+10),h2=bh*(r.F/mx);
         ctx.fillStyle=i===st.pts.length-1?gd:c1;ctx.globalAlpha=.82;
         ctx.fillRect(x,by+bh-h2,bw,h2);ctx.globalAlpha=1;
-        slTxt(ctx,r.ag.toFixed(1)+'g',x+bw/2,by+bh-h2-5,tx,9.5,'center',true);
-        slTxt(ctx,(r.dt*1000).toFixed(0)+'ms',x+bw/2,by+bh+12,mu,9,'center');
-        slTxt(ctx,'Δv '+r.dv.toFixed(1),x+bw/2,by+bh+24,gr,8.5,'center');});
-      slTxt(ctx,'תאוצה ממוצעת בנחיתה',W-14,by-6,mu,9.5,'right');
+        slTxt(ctx,r.F.toFixed(1)+' N',x+bw/2,by+bh-h2-5,tx,9.5,'center',true);
+        slTxt(ctx,(r.dt*1000).toFixed(0)+' ms',x+bw/2,by+bh+12,mu,9,'center');
+        slTxt(ctx,'Δp '+r.dp.toFixed(2),x+bw/2,by+bh+24,gr,8.5,'center');});
+      slTxt(ctx,'הכוח השקול הממוצע בנחיתה',W-14,by-6,mu,9.5,'right');
     } else simText(ctx,'הפילו מגובה קבוע על משטח רך',W/2,by+bh/2,mu,12,'center',true);
     var r2=st.last;
     if(r2){
-      slTxt(ctx,'Δv = '+r2.dv.toFixed(2)+' m/s     Δt = '+(r2.dt*1000).toFixed(0)+
-        ' ms     שיא '+r2.pk.toFixed(1)+'g',W/2,H-28,tx,11.5,'center',true);
+      slTxt(ctx,'Δp = '+r2.dp.toFixed(3)+' kg·m/s    Δt = '+(r2.dt*1000).toFixed(0)+
+        ' ms    F̄ = '+r2.F.toFixed(1)+' N',W/2,H-28,tx,11.5,'center',true);
       var agree=r2.vf>0.2&&Math.abs(r2.dv-r2.vf)/r2.vf<0.3;
-      simText(ctx,agree?('✓ מסכים עם v = gT מזמן הנפילה ('+r2.vf.toFixed(2)+' m/s)')
+      simText(ctx,agree?('✓ Δv = '+r2.dv.toFixed(2)+' m/s מסכים עם v = gT מזמן הנפילה ('+r2.vf.toFixed(2)+' m/s)')
                       :'נסו נפילה נקייה יותר — שחררו בלי לדחוף',
         W/2,H-9,agree?gr:gd,11,'center',true);
     } else simText(ctx,'אותו גובה, משטחים ברכות שונה — והשוו את העמודות',W/2,H-12,mu,11,'center');}},
@@ -32157,7 +32168,7 @@ var SL_IMPL={
     var c1=slCss('--accent','#3b82f6'),mu=slCss('--muted','#889'),tx=slCss('--text','#dde'),
         gr=slCss('--green','#10b981'),gd=slCss('--gold','#f59e0b'),rd=slCss('--red','#ef4444');
     var hp=Math.round(H*0.30);
-    slPlot(ctx,8,6,W-16,hp,[{tr:st.tr,c:c1}],{title:'|a| ללא כובד  (m/s²)  — קפיצה = החלקה',floor:1,hold:st.h,positive:true});
+    slPlot(ctx,8,6,W-16,hp,[{tr:st.tr,c:c1}],{title:'|a|  (m/s²)',sub:'ללא כובד — קפיצה היא החלקה',floor:1,hold:st.h,positive:true});
     // the board, drawn at the measured tilt
     var th=st.th||0,BX=W*0.12,BY=H-64,RL=W*0.62;
     ctx.save();ctx.strokeStyle=mu;ctx.lineWidth=3;
@@ -32426,7 +32437,7 @@ var SL_IMPL={
     var c1=slCss('--accent2','#06b6d4'),mu=slCss('--muted','#889'),tx=slCss('--text','#dde'),
         gr=slCss('--green','#10b981'),gd=slCss('--gold','#f59e0b');
     var hp=Math.round(H*0.30);
-    slPlot(ctx,8,6,W-16,hp,[{tr:st.tr,c:c1}],{title:st.gyro?'ω  (°/s) — קצב הסיבוב של הנדנוד':'a  (m/s²) — רכיב משיקי',floor:st.gyro?10:.5,hold:st.h});
+    slPlot(ctx,8,6,W-16,hp,[{tr:st.tr,c:c1}],{title:st.gyro?'ω  (°/s)':'a  (m/s²)',sub:st.gyro?'קצב הסיבוב של הנדנוד':'רכיב משיקי',floor:st.gyro?10:.5,hold:st.h});
     var s=st.pts.length?slFitOrigin(st.pts):0;
     slScatter(ctx,8,hp+12,W-16,H-hp-56,st.pts,s,{xl:'L  (m)',yl:'T²  (s²)',xmin:.4,ymin:.4});
     var Tp=2*Math.PI*Math.sqrt((st.L||0.5)/9.81);
@@ -32466,7 +32477,7 @@ function initSensorLab(key){
   }
   _sl.onResize=resize;
 
-  [['sl-m','sl-mv',' kg',1],['sl-L','sl-Lv',' m',2],['sl-h','sl-hv',' m',2],
+  [['sl-m','sl-mv',' kg',1],['sl-L','sl-Lv',' m',2],['sl-h','sl-hv',' m',2],['sl-pm','sl-pmv',' kg',3],
    ['sl-d','sl-dv',' cm',1],['sl-len','sl-lenv',' cm',1]].forEach(function(a){
     var i=document.getElementById(a[0]),o=document.getElementById(a[1]);
     if(i&&o)i.addEventListener('input',function(){o.textContent=parseFloat(i.value).toFixed(a[3])+a[2];});});
