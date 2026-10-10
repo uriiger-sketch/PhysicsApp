@@ -18730,57 +18730,61 @@ function simOptColorMix(canvas){
     ctx.fillStyle='#060c18';ctx.fillRect(0,0,W,H);
     ctx.fillStyle='#475569';ctx.font='bold 10px Heebo';ctx.textAlign='center';
     ctx.fillText(_mathIso('ערבוב חיבורי — אור (R+G+B)'),W/2,14);
-    var cy=H*0.41,rr=Math.min(W,H)*0.22;
-    var rX=W*0.35+drift+cOff.r.x,rY=cy+rr*0.4+cOff.r.y;
-    var gX=W*0.65-drift+cOff.g.x,gY=cy+rr*0.4+cOff.g.y;
-    var bX=W*0.5+cOff.b.x, bY=cy-rr*0.48+cOff.b.y;
-    var cr=rr*0.92;
+    // three overlapping beams, as on a stage: centres on a small triangle so
+    // every pair overlaps and all three meet in the middle (they used to sit
+    // so far apart that no colour ever mixed until the learner dragged them)
+    var cy=H*0.42,cr=Math.min(W*0.2,H*0.27),rho=cr*0.62;
+    var rX=W/2-0.866*rho+drift*0.4+cOff.r.x,rY=cy+0.5*rho+cOff.r.y;
+    var gX=W/2+0.866*rho-drift*0.4+cOff.g.x,gY=cy+0.5*rho+cOff.g.y;
+    var bX=W/2+cOff.b.x, bY=cy-rho+cOff.b.y;
     cPos.r={x:rX,y:rY,r:cr};cPos.g={x:gX,y:gY,r:cr};cPos.b={x:bX,y:bY,r:cr};
     if(!touchedC&&animT<9){
       ctx.save();ctx.fillStyle='#fbbf24';ctx.font='bold 10px Heebo';ctx.textAlign='center';
-      ctx.fillText('✋ גררו את העיגולים — צור חפיפות חדשות!',W/2,H*0.8);ctx.restore();
+      ctx.fillText('✋ גררו את העיגולים — צרו חפיפות חדשות!',W/2,H*0.8);ctx.restore();
     }
     ctx.save();ctx.globalCompositeOperation='lighter';
     // Red
     var ri=Math.round(rv*255);
     var gRed=ctx.createRadialGradient(rX,rY,0,rX,rY,cr);
     gRed.addColorStop(0,'rgba('+ri+',0,0,'+Math.min(1,rv+0.1).toFixed(2)+')');
-    gRed.addColorStop(0.65,'rgba('+ri+',0,0,'+(rv*0.25).toFixed(2)+')');
+    gRed.addColorStop(0.72,'rgba('+ri+',0,0,'+Math.min(1,rv+0.1).toFixed(2)+')');
     gRed.addColorStop(1,'rgba('+ri+',0,0,0)');
     ctx.beginPath();ctx.arc(rX,rY,cr,0,Math.PI*2);ctx.fillStyle=gRed;ctx.fill();
     // Green
     var gi=Math.round(gv*255);
     var gGrn=ctx.createRadialGradient(gX,gY,0,gX,gY,cr);
     gGrn.addColorStop(0,'rgba(0,'+gi+',0,'+Math.min(1,gv+0.1).toFixed(2)+')');
-    gGrn.addColorStop(0.65,'rgba(0,'+gi+',0,'+(gv*0.25).toFixed(2)+')');
+    gGrn.addColorStop(0.72,'rgba(0,'+gi+',0,'+Math.min(1,gv+0.1).toFixed(2)+')');
     gGrn.addColorStop(1,'rgba(0,'+gi+',0,0)');
     ctx.beginPath();ctx.arc(gX,gY,cr,0,Math.PI*2);ctx.fillStyle=gGrn;ctx.fill();
     // Blue
     var bi=Math.round(bv*255);
     var gBlu=ctx.createRadialGradient(bX,bY,0,bX,bY,cr);
     gBlu.addColorStop(0,'rgba(0,0,'+bi+','+Math.min(1,bv+0.1).toFixed(2)+')');
-    gBlu.addColorStop(0.65,'rgba(0,0,'+bi+',' +(bv*0.25).toFixed(2)+')');
+    gBlu.addColorStop(0.72,'rgba(0,0,'+bi+','+Math.min(1,bv+0.1).toFixed(2)+')');
     gBlu.addColorStop(1,'rgba(0,0,'+bi+',0)');
     ctx.beginPath();ctx.arc(bX,bY,cr,0,Math.PI*2);ctx.fillStyle=gBlu;ctx.fill();
     ctx.restore();
     // Spotlight source dots (above circles)
     ctx.save();
-    var sY=H*0.05;
+    var sY=H*0.09;
     [[rX,'#ff4444','אדום'],[gX,'#44ff44','ירוק'],[bX,'#4488ff','כחול']].forEach(function(arr){
       var sx=arr[0],col=arr[1],lbl=arr[2];
       ctx.fillStyle=col;ctx.beginPath();ctx.arc(sx,sY,7*pulse,0,Math.PI*2);ctx.fill();
       ctx.strokeStyle='#334155';ctx.lineWidth=0.5;
       ctx.beginPath();ctx.moveTo(sx,sY+7);ctx.lineTo(sx,H*0.18);ctx.stroke();
-      ctx.fillStyle=col;ctx.font='bold 10px Heebo';ctx.textAlign='center';
-      ctx.fillText(lbl,sx,sY-10);
     });
     ctx.restore();
     // Overlap region labels
     ctx.save();ctx.font='bold 9px Heebo';ctx.textAlign='center';
-    ctx.fillStyle='rgba(255,255,80,0.9)';ctx.fillText('צהוב',(rX+gX)/2,rY+5);
-    ctx.fillStyle='rgba(80,255,255,0.9)';ctx.fillText('ציאן',(gX+bX)/2,(gY+bY)/2);
-    ctx.fillStyle='rgba(255,80,255,0.9)';ctx.fillText('ורוד',(rX+bX)/2,(rY+bY)/2);
-    ctx.fillStyle='rgba(255,255,255,0.9)';ctx.fillText('לבן',(rX+gX+bX)/3,(rY+gY+bY)/3+4);
+    // name a mixture only where the two (or three) beams really overlap
+    function ov(ax,ay,bx,by){return Math.hypot(ax-bx,ay-by)<cr*1.45;}
+    var oRG=ov(rX,rY,gX,gY),oGB=ov(gX,gY,bX,bY),oRB=ov(rX,rY,bX,bY);
+    ctx.fillStyle='#0b1220';
+    if(oRG)ctx.fillText('צהוב',(rX+gX)/2,(rY+gY)/2+22);
+    if(oGB)ctx.fillText('ציאן',(gX+bX)/2+10,(gY+bY)/2);
+    if(oRB)ctx.fillText('מגנטה',(rX+bX)/2-10,(rY+bY)/2);
+    if(oRG&&oGB&&oRB)ctx.fillText('לבן',(rX+gX+bX)/3,(rY+gY+bY)/3+4);
     ctx.restore();
     // Info box
     ctx.save();ctx.fillStyle='rgba(10,22,40,0.9)';ctx.strokeStyle='#1e293b';ctx.lineWidth=1;
