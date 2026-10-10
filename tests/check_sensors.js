@@ -52,7 +52,7 @@ const push = (p, key, n, src) => p.evaluate(([key, n, src]) => {
   const f = eval(src), type = SENSOR_LABS[key].t, impl = SL_IMPL[type], st = _sl.st;
   for (let i = 0; i < n; i++) {
     const o = f(i), g = o.g, a = o.a || [0, 0, 0], r = o.r || [0, 0, 0];
-    impl.sample({ dt: 0.02, t: i * 0.02, exact: true, hz: 50,
+    impl.sample({ dt: 0.02, t: i * 0.02, exact: true, gyro: true, hz: 50,
       ax: a[0], ay: a[1], az: a[2],
       gx: g[0], gy: g[1], gz: g[2],
       Gx: g[0], Gy: g[1], Gz: g[2],
@@ -109,6 +109,31 @@ const S = p => p.evaluate(() => JSON.parse(JSON.stringify(_sl.st, (k, v) =>
     t(`  Pythagoras still closes`, Math.hypot(s.gx, s.gy), 9.81, 0.02);
   }
 
+  // the picture is the phone's own screen: gravity must be drawn toward the
+  // floor in screen coordinates (x right, y DOWN), however the phone is held
+  for (const [name, g, want] of [['upright', [0, 9.81, 0], '0.00,1.00'],
+      ['upside down', [0, -9.81, 0], '0.00,-1.00'],
+      ['turned so its top points right', [-9.81, 0, 0], '1.00,0.00']]) {
+    await push(p, 'vectors.vec-components', 6, `()=>({g:${JSON.stringify(g)}})`);
+    const dc = await p.evaluate(() => _sl.st.dc.map(v => (Math.abs(v) < 5e-3 ? 0 : v).toFixed(2)).join(','));
+    t(`gravity drawn toward the floor, phone ${name}`, dc, want);
+  }
+
+  // tilted past 45° the page turns to landscape; the picture must turn back
+  const land = await p.evaluate(async () => {
+    const d = Object.getOwnPropertyDescriptor(Screen.prototype, 'orientation');
+    Object.defineProperty(screen, 'orientation', { configurable: true, get: () => ({ angle: 90, type: 'landscape-primary' }) });
+    const st = _sl.st, impl = SL_IMPL['tilt-components'];
+    // turned a quarter turn counter-clockwise: the phone's +x now points up
+    for (let i = 0; i < 6; i++) impl.sample({ dt: 0.02, t: 0, exact: true, hz: 50, ax: 0, ay: 0, az: 0,
+      gx: 9.81, gy: 0, gz: 0, Gx: 9.81, Gy: 0, Gz: 0, ra: 0, rb: 0, rg: 0 }, st);
+    await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+    const gs = st.gScreen.map(v => (Math.abs(v) < 5e-3 ? 0 : v).toFixed(2)).join(',');
+    delete screen.orientation; if (d) Object.defineProperty(Screen.prototype, 'orientation', d);
+    return gs;
+  });
+  t('page turned to landscape: g still drawn toward the floor', land, '0.00,1.00');
+
   console.log('\n4) forces.normal-force — N and F∥ on a real incline');
   await openLab(p, 'forces.normal-force');
   await p.evaluate(() => { const e = document.getElementById('sl-m'); if (e) e.value = '2'; });
@@ -163,6 +188,9 @@ const S = p => p.evaluate(() => JSON.parse(JSON.stringify(_sl.st, (k, v) =>
   await push(p, 'forces2.kinetic-friction', 60, '()=>({g:[0,0,9.81]})');
   t('calibrated', (await S(p)).ph, 'run');
   for (const MU of [0.35, 0.22]) {
+    // every free slide starts with a push, and friction then reads AGAINST it:
+    // pushed toward -x, the slide reads +x
+    await push(p, 'forces2.kinetic-friction', 6, '()=>({g:[-4,0,9.81]})');
     await push(p, 'forces2.kinetic-friction', 40, `()=>({g:[${MU * 9.81},0,9.81]})`);
     t(`instantaneous μ during a ${MU} slide`, (await S(p)).mu, MU, 0.005);
     await push(p, 'forces2.kinetic-friction', 25, '()=>({g:[0,0,9.81]})');
@@ -180,9 +208,23 @@ const S = p => p.evaluate(() => JSON.parse(JSON.stringify(_sl.st, (k, v) =>
   }), false);
   const nB = (await S(p)).pts.length;
   await push(p, 'forces2.kinetic-friction', 60, '()=>({g:[0,0,9.81]})');   // settle back
+  await push(p, 'forces2.kinetic-friction', 6, '()=>({g:[-4,0,9.81]})');
   await push(p, 'forces2.kinetic-friction', 6, '()=>({g:[3.4,0,9.81]})');  // too brief
   await push(p, 'forces2.kinetic-friction', 20, '()=>({g:[0,0,9.81]})');
   t('a slide too short to be steady is not recorded', (await S(p)).pts.length, nB);
+  // a hand that pushes steadily reads like friction in size, but along the push
+  await push(p, 'forces2.kinetic-friction', 30, '()=>({g:[2.9,0,9.81]})');
+  await push(p, 'forces2.kinetic-friction', 30, '()=>({g:[0,0,9.81]})');
+  t('a steady push is not a free slide', (await S(p)).pts.length, nB);
+  // a slide that turns as it goes: friction keeps its direction in the room,
+  // so in the phone's frame it swings round at the turn rate (a turn a second)
+  await push(p, 'forces2.kinetic-friction', 6, '()=>({g:[-4,0,9.81]})');
+  await push(p, 'forces2.kinetic-friction', 40,
+    'i=>{const a=-(i+1)*0.02*2*Math.PI;return {g:[2.5*Math.cos(a),2.5*Math.sin(a),9.81],r:[360,0,0]};}');
+  await push(p, 'forces2.kinetic-friction', 30, '()=>({g:[0,0,9.81]})');
+  s = await S(p);
+  t('a slide that turns is still followed, by the gyroscope', s.pts.length, nB + 1);
+  t('  and measured', s.pts[s.pts.length - 1], 2.5 / 9.81, 0.01);
 
   console.log('\n7) momentum.momentum-def — same Δv, different Δt, different force');
   await openLab(p, 'momentum.momentum-def');
@@ -237,6 +279,14 @@ const S = p => p.evaluate(() => JSON.parse(JSON.stringify(_sl.st, (k, v) =>
     amp * amp / 16 * 100 > 1, true);
   t('g from the slope of T² against L', s.g, 9.81, 0.4);
   t('and the fit is a straight line', s.r2 > 0.99, true);
+  t('a single swing is not yet a period to record', await p.evaluate(() => {
+    const st = _sl.st, impl = SL_IMPL['pendulum-fit'];
+    impl.reset(st);
+    for (let i = 0; i < 170; i++) impl.sample({ dt: 0.02, t: 100 + i * 0.02, exact: true, hz: 50,
+      ax: 0.8 * Math.sin(2 * Math.PI * i * 0.02 / 1.42), ay: 0, az: 0, gx: 0, gy: 0, gz: 9.81,
+      Gx: 0, Gy: 0, Gz: 9.81, ra: 0, rb: 0, rg: 0 }, st);
+    return [st.T > 0, impl.record(st)].join(',');
+  }), 'true,false');
 
   console.log('\n10) kinematics.freefall — the toss');
   await openLab(p, 'kinematics.freefall');
@@ -353,14 +403,16 @@ const S = p => p.evaluate(() => JSON.parse(JSON.stringify(_sl.st, (k, v) =>
   console.log('\n13b) energy.energy-cons — a_r/g = 3 − 2cos θ₀');
   await openLab(p, 'energy.energy-cons');
   // an exact pendulum: theta'' = -(g/L) sin(theta); the reading along the string
-  // is g(3cos th - 2cos th0), which peaks at the bottom
-  const swing = (deg, quiet = 40) => push(p, 'energy.energy-cons', quiet + 400, `(()=>{
+  // is g(3cos th - 2cos th0), which peaks at the bottom. The string is along z,
+  // so the swing turns the phone about x (beta); `twist` adds a steady turn of
+  // the bag about the string itself (alpha), which is not part of the swing.
+  const swing = (deg, quiet = 40, twist = 0) => push(p, 'energy.energy-cons', quiet + 400, `(()=>{
     let th=${deg}/57.29578, w=0, n=0, L=0.5, G=9.81, th0=th;
     return i=>{
       if(i>=${quiet}){ for(let k=0;k<4;k++){ const dt=0.005;
         const a1=-(G/L)*Math.sin(th); w+=a1*dt; th+=w*dt; } }
       const ar=G*(3*Math.cos(th)-2*Math.cos(th0));
-      return { g:[0,0,ar], a:[0,0,0], r:[Math.abs(w)*57.29578,0,0] };
+      return { g:[0,0,ar], a:[0,0,0], r:[${twist},w*57.29578,0] };
     };
   })()`);
   await push(p, 'energy.energy-cons', 60, '()=>({g:[0,0,9.81],a:[0,0,0],r:[0,0,0]})');
@@ -387,8 +439,17 @@ const S = p => p.evaluate(() => JSON.parse(JSON.stringify(_sl.st, (k, v) =>
   // waved by hand: the rate never passes through a turning point, so there is
   // no release from rest and nothing may be recorded
   await push(p, 'energy.energy-cons', 300,
-    'i=>({g:[0,0,9.81*(1.6+0.5*Math.sin(i/9))],a:[0,0,0],r:[(60+40*Math.sin(i/9)),0,0]})');
+    'i=>({g:[0,0,9.81*(1.6+0.5*Math.sin(i/9))],a:[0,0,0],r:[0,(60+40*Math.sin(i/9)),0]})');
   t('a phone that is merely waved is not a released swing', (await S(p)).pts.length, n0);
+  // a bag that twists on its string at 45°/s all the while: the rate never
+  // drops below the turning-point bar unless the twist is taken out
+  await p.evaluate(() => document.getElementById('sl-clr').click());
+  await push(p, 'energy.energy-cons', 60, '()=>({g:[0,0,9.81],a:[0,0,0],r:[45,0,0]})');
+  await swing(40, 40, 45);
+  s = await S(p);
+  t('a twisting bag: its half swings are still recorded', s.pts.length >= 2, true);
+  t('  with θ₀ from the swing alone (°)', s.pts.length ? s.pts[0].th * 57.29578 : NaN, 40, 0.6);
+  t('  and the reading on the curve', s.pts.length ? s.pts[0].r : NaN, 3 - 2 * Math.cos(40 / 57.29578), 0.02);
 
   console.log('\n13c) forces.tension — a lift ride, T = m(g±a)');
   await openLab(p, 'forces.tension');
@@ -471,6 +532,47 @@ const S = p => p.evaluate(() => JSON.parse(JSON.stringify(_sl.st, (k, v) =>
   t('every empty event is rejected', st2.rejected, 20);
   t('  and not one of them reaches a lab as data', st2.reached, 0);
 
+  console.log('\n15b) a busy page delivers readings in bursts — the clock must not run fast');
+  const burst = await p.evaluate(async () => {
+    let sum = 0, n = 0, gyro = [];
+    sensorStart(s => { sum += s.dt; n++; gyro.push(s.gyro); });
+    const fire = (rot) => window.dispatchEvent(new DeviceMotionEvent('devicemotion', {
+      acceleration: { x: 0, y: 0, z: 0 }, accelerationIncludingGravity: { x: 0, y: 0, z: 9.81 },
+      rotationRate: rot, interval: 16 }));
+    const t0 = performance.now();
+    fire(null);
+    // 12 bursts of 5 readings, one burst every 80 ms: 0.96 s of real time
+    for (let k = 0; k < 12; k++) {
+      await new Promise(r => setTimeout(r, 80));
+      for (let i = 0; i < 5; i++) fire(null);
+    }
+    const wall = (performance.now() - t0) / 1000, noGyro = gyro.every(x => x === false);
+    const out = { sum, wall, n, noGyro };
+    for (let i = 0; i < 3; i++) fire({ alpha: 0, beta: 0, gamma: 0 });
+    out.gyroNow = gyro[gyro.length - 1];
+    sensorStop();
+    return out;
+  });
+  t('every reading arrived', burst.n, 61);
+  t('summed dt follows the wall clock, not 5 nominal periods per burst', burst.sum, burst.wall, 0.08);
+  t('  (charging each burst reading 16 ms would have given ~' + (burst.wall + 12 * 4 * 0.016).toFixed(2) + ' s)',
+    burst.sum < burst.wall + 0.3, true);
+  t('a phone that sends rotationRate null has no gyroscope', burst.noGyro, true);
+  t('  and one that sends numbers has one, zeros included', burst.gyroNow, true);
+
+  console.log('\n15c) freezing in the middle of a trial abandons it, it does not stitch across the gap');
+  await openLab(p, 'kinematics.acceleration');
+  await push(p, 'kinematics.acceleration', 70, '()=>({g:[0,0,9.81],a:[0,0,0]})');
+  await push(p, 'kinematics.acceleration', 20, '()=>({g:[0,1,9.81],a:[0,1,0]})');
+  const fr = await p.evaluate(() => {
+    const ph0 = _sl.st.ph, hb = document.getElementById('sl-hold');
+    hb.click(); hb.click();
+    return { ph0, ph1: _sl.st.ph, rec: _sl.st.rec.length };
+  });
+  t('the trial was running', fr.ph0, 'run');
+  t('after the freeze it is armed again, calibration kept', fr.ph1, 'armed');
+  t('  and the half-measured record is gone', fr.rec, 0);
+
   console.log('\n16) lifecycle');
   await openLab(p, 'planar.circular');
   const life = await p.evaluate(() => {
@@ -484,6 +586,38 @@ const S = p => p.evaluate(() => JSON.parse(JSON.stringify(_sl.st, (k, v) =>
   t('the animation frame is cancelled', life.after.raf, null);
   t('not running', life.after.run, false);
   t('the resize handler is released', life.after.resize, false);
+
+  console.log('\n16a) a permission granted after the learner has left starts nothing');
+  await openLab(p, 'forces.tension', false);
+  const late = await p.evaluate(async () => {
+    let release; const orig = DeviceMotionEvent.requestPermission;
+    DeviceMotionEvent.requestPermission = () => new Promise(r => { release = r; });
+    document.getElementById('sl-start').click();         // the sheet is now 'open'
+    state.chapter = 'forces2'; state.section = 'gravity-force'; state.tab = 'theory'; render();
+    await new Promise(r => setTimeout(r, 400));
+    release('granted');
+    await new Promise(r => setTimeout(r, 50));
+    const out = { run: _sl.run, stream: !!_sensor.stop };
+    if (orig) DeviceMotionEvent.requestPermission = orig; else delete DeviceMotionEvent.requestPermission;
+    return out;
+  });
+  t('no lab running', late.run, false);
+  t('no sensor stream left open', late.stream, false);
+
+  console.log('\n16b) a lab that is not running repaints when the theme changes');
+  await openLab(p, 'forces.tension', false);
+  await p.waitForTimeout(1200);          // let the page finish booting the lab
+  const rp = await p.evaluate(async () => {
+    let n = 0;
+    for (let k = 0; k < 2; k++) {
+      const f = _sl.onResize; _sl.onResize = () => { n++; f(); };
+      applyTheme(state.theme === 'dark' ? 'light' : 'dark');
+      await new Promise(r => setTimeout(r, 30));
+      _sl.onResize = f;
+    }
+    return n;
+  });
+  t('repainted on each switch', rp, 2);
 
   console.log('\n17) every lab renders on a phone');
   const painted = await p.evaluate(async () => {

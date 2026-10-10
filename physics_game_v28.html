@@ -30957,16 +30957,31 @@ function _slPlatformSign(){
 function sensorStart(cb,ev0){
   sensorStop();
   if(ev0===undefined)ev0=0;
-  var g=null,last=null,tsum=0,hasLin=false,nom=(ev0>1&&ev0<200)?ev0/1000:1/60,hzN=0,hzT=0;
+  var g=null,last=null,tsum=0,hasLin=false,hasRot=false,nom=(ev0>1&&ev0<200)?ev0/1000:1/60,hzN=0,hzT=0;
+  // The event's own stamp is when the reading was handed over, which a busy
+  // page may deliver late; use it whenever it is on performance.now()'s clock.
+  function clock(ev){
+    var pn=(window.performance&&performance.now)?performance.now():Date.now(),ts=ev.timeStamp;
+    if(typeof ts==='number'&&isFinite(ts)&&ts>0&&ts<=pn+1&&pn-ts<1000)return ts/1000;
+    return pn/1000;
+  }
   function onMotion(ev){
-    var now=(window.performance&&performance.now?performance.now():Date.now())/1000;
+    var now=clock(ev);
     if(ev.interval>1&&ev.interval<200)nom=ev.interval/1000;
-    // Real elapsed time is what an integral needs. `interval` is only the
-    // nominal period, so it is the fallback: first sample, or a delta the
-    // clock could not plausibly have produced (a throttled or resumed tab).
+    // Real elapsed time is what an integral needs; `interval` is only the
+    // nominal period. A page that was busy hands over the queued readings in
+    // one burst, a few microseconds apart: charging each of them a nominal
+    // period made the clock run up to twice as fast as the wall. So `last` is
+    // the time this stream has already accounted for, and a burst only borrows
+    // a quarter period per reading, paid back from the next normal gap -- the
+    // summed dt stays on the wall clock. A gap no live stream produces (a
+    // throttled or resumed tab) is not integrated across: it restarts the clock.
     var dt=nom;
-    if(last!==null){var w=now-last; if(w>0.002&&w<0.25)dt=w;}
-    last=now; tsum+=dt; _sensor.got++;
+    if(last===null)last=now;
+    else{var w=now-last;
+      if(w>0.25||w<-0.25)last=now;
+      else{dt=Math.max(w,nom*0.25);last+=dt;}}
+    tsum+=dt; _sensor.got++;
     hzT+=dt; hzN++; if(hzT>0.75){_sensor.hz=hzN/hzT;hzN=0;hzT=0;}
     var G=ev.accelerationIncludingGravity;
     // An event with no payload is not a reading of zero, it is the absence of
@@ -30982,7 +30997,9 @@ function sensorStart(cb,ev0){
     if(hasLin&&fin){lx=SG*L.x;ly=SG*L.y;lz=SG*L.z;}
     else{lx=gx-g[0];ly=gy-g[1];lz=gz-g[2];}
     var R=ev.rotationRate||{};
-    cb({dt:dt,t:tsum,exact:hasLin,
+    // a phone without a gyroscope sends rotationRate null, not zeros
+    if(typeof R.alpha==='number'||typeof R.beta==='number'||typeof R.gamma==='number')hasRot=true;
+    cb({dt:dt,t:tsum,exact:hasLin,gyro:hasRot,
         ax:lx,ay:ly,az:lz,                 // linear acceleration, gravity removed
         gx:gx,gy:gy,gz:gz,                 // raw, gravity included
         Gx:g[0],Gy:g[1],Gz:g[2],           // the gravity estimate itself
@@ -31017,6 +31034,12 @@ function slStopAll(){
 window.addEventListener('resize',function(){
   if(_sl.onResize&&document.getElementById('sl-canvas'))_sl.onResize();
 });
+// A lab that is not running is painted once, in the theme's colours of that
+// moment; switching theme left its labels in the old colours on the new
+// background (light text on the light theme's page). Repaint it.
+try{new MutationObserver(function(){
+  if(_sl.onResize&&!_sl.run&&document.getElementById('sl-canvas'))_sl.onResize();
+}).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});}catch(e){}
 
 // Every simulation and every theory animation sizes its bitmap and works out
 // its coordinates ONCE, when it boots. Turning the phone changes the canvas's
@@ -31044,13 +31067,57 @@ document.addEventListener('visibilitychange',function(){
   // unknown length. Stop, and let the learner start a fresh run.
   if(document.hidden&&_sl.run&&_sl.stopFn)_sl.stopFn();
 });
+// Latin with real subscripts, 'x_cm' or 'a_c' or 'x_{cm}': the base, then the
+// subscript smaller and lowered. simText only knows the few letters Unicode
+// has subscripts for, and printed the rest -- 'a_c', 'x_cm' -- literally.
+function slTxtSub(ctx,txt,x,y,col,sz,align,bold){
+  var parts=[],re=/_(\{[^}]*\}|[A-Za-z0-9]+)/g,last=0,m;
+  while((m=re.exec(txt))){if(m.index>last)parts.push([txt.slice(last,m.index),0]);
+    parts.push([m[1].replace(/[{}]/g,''),1]);last=re.lastIndex;}
+  if(last<txt.length)parts.push([txt.slice(last),0]);
+  ctx.save();ctx.direction='ltr';ctx.fillStyle=col;ctx.textAlign='left';
+  var font=function(sub){return (bold?'bold ':'')+(sub?Math.round(sz*0.72):sz)+'px Heebo';},wsum=0,i;
+  for(i=0;i<parts.length;i++){ctx.font=font(parts[i][1]);parts[i].push(ctx.measureText(parts[i][0]).width);wsum+=parts[i][2];}
+  var x0=align==='center'?x-wsum/2:align==='right'?x-wsum:x;
+  for(i=0;i<parts.length;i++){ctx.font=font(parts[i][1]);
+    ctx.fillText(parts[i][0],x0,y+(parts[i][1]?sz*0.25:0));x0+=parts[i][2];}
+  ctx.restore();}
 // A fixed-length rolling window of samples.
 function slTrace(n){return {n:n,d:[],push:function(v){this.d.push(v);if(this.d.length>this.n)this.d.shift();},
                             clear:function(){this.d=[];},last:function(){return this.d.length?this.d[this.d.length-1]:0;}};}
 // Latin-only labels must not inherit the page's RTL direction, or digits and
-// signs get reordered ("+1.8" drawn as "1.8+").
+// signs get reordered ("+1.8" drawn as "1.8+"). A label with Hebrew in it is
+// the opposite case: forced left-to-right, "θ = 34.4° (מציר y של הטלפון)"
+// came out as "(של הטלפון y מציר)", so it keeps the page's direction, where
+// simText isolates the maths runs.
 function slTxt(ctx,txt,x,y,col,sz,align,bold){
+  if(/[\u0590-\u05FF]/.test(String(txt))){simText(ctx,txt,x,y,col,sz,align,bold);return;}
   ctx.save();ctx.direction='ltr';simText(ctx,txt,x,y,col,sz,align,bold);ctx.restore();}
+// A slide along the table is measured on the RAW axis (gravity included)
+// minus its value at rest: the phone lies flat and does not turn, so gravity's
+// share of that axis is a constant the calibration takes out. The gravity-free
+// channel cannot stand in for it. Where the phone has no gyroscope-fused one,
+// that channel (and this file's own fallback) is the reading minus a low-pass
+// of itself -- a high-pass filter -- and a high-passed acceleration integrates
+// twice into a high-passed POSITION, which creeps back toward zero once the
+// phone has stopped. Fused channels lean the same way, only more slowly.
+function slAxisCal(s,st){
+  var raw=[s.gx,s.gy,s.gz][st.ax],lin=Math.hypot(s.ax,s.ay,s.az);
+  if(lin>0.16||Math.hypot(s.rb||0,s.rg||0)>3){st.calN=0;st.calS=0;st.calR=[0,0];return;}
+  st.calN++;st.calS+=raw;st.calR[0]+=s.rb||0;st.calR[1]+=s.rg||0;
+  if(st.calN>=55){st.bias=st.calS/st.calN;st.gb=[st.calR[0]/st.calN,st.calR[1]/st.calN];st.ph='armed';}
+}
+// Tilt leaks gravity into that axis -- one degree is 0.17 m/s², an order of
+// magnitude above the noise -- so a trial in which the phone rocked is flagged.
+// The tilt is read off the gyroscope: the turn about the phone's two in-plane
+// axes since the trial began. (The direction of the low-passed reading, used
+// before, leans toward any push, and a firm 1 m/s² shove for half a second was
+// reported as a 4° tilt that never happened.) No gyroscope, no flag.
+function slAxisTilt(s,st){
+  if(!s.gyro)return;
+  st.tx+=((s.rb||0)-st.gb[0])*s.dt;st.ty+=((s.rg||0)-st.gb[1])*s.dt;
+  var tl=Math.hypot(st.tx,st.ty)*Math.PI/180;if(tl>st.tilt)st.tilt=tl;
+}
 // While a lab waits for motion it keeps the last `win` seconds of samples. The
 // trigger fires only once |a| crosses a threshold, but a push ramps up from
 // zero, and every sample below the threshold was simply lost — a step error in
@@ -31083,7 +31150,19 @@ function slResample(rows,n,col){var T=0,i,ts=[];
     out.push(rows[j][col]+(rows[j+1][col]-rows[j][col])*Math.max(0,Math.min(1,f)));}
   return {d:out,T:T};}
 function slSet(id,txt){var e=document.getElementById(id);if(e)e.textContent=txt;}
-function slChip(id,lbl,unit){return '<span class="sl-chip"><i>'+lbl+'</i><b id="slv-'+id+'">—</b><u>'+unit+'</u></span>';}
+// How far the page is turned from the phone's natural (portrait) orientation,
+// in degrees counter-clockwise: 0, 90, 180 or 270. The motion axes never turn
+// with the page; a picture of the device has to.
+function slScreenAngle(){
+  try{var a=(screen.orientation&&typeof screen.orientation.angle==='number')?screen.orientation.angle
+    :(typeof window.orientation==='number'?window.orientation:0);
+    return ((Math.round(a/90)*90)%360+360)%360;}catch(e){return 0;}}
+// A chip reads label, value, unit. With a Hebrew label it reads right to
+// left -- 'v ממוצעת 0.350 m/s' -- or the label itself comes out backwards
+// ('ממוצעת v'); the value and the unit are left-to-right runs either way.
+function slChip(id,lbl,unit){
+  var rtl=/[\u0590-\u05FF]/.test(lbl)?' style="direction:rtl"':'';
+  return '<span class="sl-chip"'+rtl+'><i>'+lbl+'</i><b id="slv-'+id+'">—</b><u>'+unit+'</u></span>';}
 function slCss(v,f){try{var c=getComputedStyle(document.documentElement).getPropertyValue(v).trim();return c||f;}catch(e){return f;}}
 
 // Median is the right average for a set of measured intervals: one mistimed
@@ -31136,8 +31215,10 @@ function slScatter(ctx,x,y,w,h,pts,s,opt){
   ctx.restore();
   ctx.restore();
   if(_slZoom!==1)slTxt(ctx,'×'+(_slZoom<1?_slZoom.toFixed(2):_slZoom.toFixed(1)),x+w-8,y+14,slCss('--gold','#f59e0b'),9,'right',true);
-  if(opt.xl)slTxt(ctx,opt.xl,X(mx/2),y+h-9,mu,10,'center');
-  if(opt.yl)slTxt(ctx,opt.yl,x+4,y+13,mu,10,'left',true);
+  // the axis name sits just above the axis at its right end -- the corner a
+  // law through the origin leaves empty; under the axis it lay on the ticks
+  if(opt.xl)slTxt(ctx,opt.xl,x+w-8,Y(0)-6,mu,10,'right');
+  if(opt.yl)slTxtSub(ctx,opt.yl,x+4,y+13,mu,10,'left',true);
   return {X:X,Y:Y};
 }
 
@@ -31215,7 +31296,11 @@ function slPlot(ctx,x,y,w,h,traces,opt){
     }
     ctx.restore();
   }
+  // the symbol and unit on the left, read left to right; the Hebrew words on
+  // the right, read right to left. One mixed string comes out in an order
+  // that neither reader expects ("(m/s²) |a| — 0 בנפילה").
   if(opt.title)slTxt(ctx,opt.title,px0+4,y+12,traces[0]?traces[0].c:mu,10.5,'left',true);
+  if(opt.sub)simText(ctx,opt.sub,x+w-(_slZoom!==1?40:6),y+12,mu,9.5,'right');
   if(_slZoom!==1)slTxt(ctx,'×'+(_slZoom<1?_slZoom.toFixed(2):_slZoom.toFixed(1)),x+w-6,y+12,slCss('--gold','#f59e0b'),9,'right',true);
   ctx.restore();
   return {cy:cy,sc:sc,m:m,x0:px0,pw:pw};
@@ -31261,72 +31346,72 @@ var SENSOR_LABS={
 
  'kinematics.acceleration':{t:'motion-trial',h:338,
    ttl:'ניסוי מדוד: מ-a אל v ואל x',
-   how:'הניחו את הטלפון על שולחן חלק ואל תזיזו אותו — הוא <b>מכייל</b> את עצמו כשנייה. כשייכתב ״מוכן״, <b>החליקו אותו לאורך הציר הנבחר ועצרו אותו</b>. הניסוי נסגר מעצמו כשהטלפון שוקט.',
+   how:'הניחו את הטלפון על שולחן חלק ואל תזיזו אותו — הוא <b>מכייל</b> את עצמו כשנייה. כשייכתב ״מוכן״, <b>החליקו אותו לאורך הציר הנבחר ועצרו אותו</b> (Y — לאורך הטלפון, X — לרוחבו), בלי להרים ובלי לסובב. הניסוי נסגר מעצמו כשהטלפון שוקט.',
    pred:'לפני שמחליקים: הניחו סרגל על השולחן והחליטו לכמה ס״מ אתם מתכוונים להזיז את הטלפון. בסוף הניסוי השוו למה שהאינטגרל חישב.',
-   note:'הטלפון מודד <b>תאוצה בלבד</b> — '+M('v')+' ו-'+M('x')+' מחושבים ממנה באינטגרל. הניסוי מתחיל ונגמר במנוחה, ולכן כל מהירות שנשארה בסוף היא <b>שגיאה מצטברת</b>, וממנה מתקנים גם את ההעתק. זו הסיבה שניווט אינרציאלי מדויק לדקות בלבד וזקוק ל-GPS שיאפס אותו.',
+   note:'הטלפון מודד <b>תאוצה בלבד</b> — '+M('v')+' ו-'+M('x')+' מחושבים ממנה באינטגרל. הניסוי מתחיל ונגמר במנוחה, ולכן כל מהירות שנשארה בסוף היא <b>שגיאה מצטברת</b>, וממנה מתקנים גם את ההעתק. זו גם הבעיה של ניווט אינרציאלי: שגיאה קבועה '+M('b=0.02\\ \\text{m/s}^2')+' בתאוצה גדלה בהעתק כ-'+M('\\tfrac12 bt^2')+' — מטר שלם אחרי עשר שניות — ולכן טלפון זקוק ל-GPS שיאפס אותו.',
    chips:[['ph','מצב',''],['x','Δx מתוקן','m'],['vm','v מרבי','m/s'],['dr','סחיפה','m/s']],
    ctrl:'<button class="sl-sec" id="sl-axx">X</button><button class="sl-sec" id="sl-axy">Y</button><button class="sl-sec" id="sl-axz">Z</button>'},
 
  'kinematics.avg-instant-vel':{t:'avg-inst',h:348,minHz:25,
    ttl:'מיתר מול משיק: ממוצעת מול רגעית',
-   how:'הניחו על שולחן חלק ואל תזיזו — הטלפון מכייל את עצמו. כשייכתב ״מוכן״: <b>החליקו, עצרו לרגע, החליקו שוב ועצרו</b>. בסוף גררו את שני הסמנים על '+M('x(t)')+'.',
+   how:'הניחו על שולחן חלק ואל תזיזו — הטלפון מכייל את עצמו. כשייכתב ״מוכן״: <b>החליקו לאורך הטלפון, עצרו לרגע, החליקו שוב ועצרו</b>. בסוף גררו את שני הסמנים על '+M('x(t)')+'.',
    pred:'לפני שמחליקים: אם תעצרו באמצע הדרך לשנייה שלמה, מה יקרה למהירות <b>הממוצעת</b> על כל המסלול? ומה למהירות <b>הרגעית</b> באותו רגע עצירה?',
    note:'<b>ממוצעת = שיפוע המיתר</b> בין שתי נקודות על '+M('x(t)')+', ולכן תלויה רק בקצוות: '+M('\\bar v=\\Delta x/\\Delta t')+'. עצירה באמצע אינה משנה אותה. <b>רגעית = שיפוע המשיק</b>, גבול המיתר כאשר '+M('\\Delta t\\to 0')+'.<br><br>הקו המקווקו בגרף '+M('v(t)')+' הוא '+M('\\bar v')+'; כל חיתוך שלו הוא רגע שבו הרגעית שווה לממוצעת — משפט הערך הממוצע על הנתונים שלכם.',
    chips:[['ph','מצב',''],['va','v ממוצעת','m/s'],['v1','v רגעית ①','m/s'],['v2','v רגעית ②','m/s']],
-   ctrl:'<button class="sl-sec" id="sl-axx">X</button><button class="sl-sec" id="sl-axy">Y</button><button class="sl-sec" id="sl-axz">Z</button><button class="sl-sec" id="sl-mid">📌 מרכז סמנים</button>'},
+   ctrl:'<button class="sl-sec" id="sl-axx">X</button><button class="sl-sec" id="sl-axy">Y</button><button class="sl-sec" id="sl-axz">Z</button><button class="sl-sec" id="sl-mid">📌 מרכזו את הסמנים</button>'},
 
  'kinematics.freefall':{t:'freefall-toss',h:352,minHz:40,
    ttl:'זרקו ותפסו — ו-g מהשיפוע של v(t)',
-   how:'עמדו מעל מיטה או ספה, <b>זרקו בעדינות מעלה וקלטו</b>. הזריקה נלכדת אוטומטית וגרף המהירות נעצר — גררו את שני הסמנים אל תוך המעוף וקראו את השיפוע.',
+   how:'החזיקו את הטלפון שטוח, מסך למעלה, ועמדו מעל מיטה או ספה. <b>זרקו בעדינות 20–30 cm מעלה, בלי לסובב, וקלטו בשתי ידיים</b>. הזריקה נלכדת אוטומטית וגרף המהירות נעצר — גררו את שני הסמנים אל תוך המעוף וקראו את השיפוע.',
    pred:'לפני הזריקה: איך ייראה גרף המהירות בזמן המעוף — קו ישר, פרבולה, או משהו אחר? ומה יהיה השיפוע שלו?',
-   note:'שני העקומים העליונים הם אותה תופעה משני צדדים. הכהה — מה שהחיישן <b>קורא</b>: 9.8 במנוחה, אפס באוויר (כך טלפון מזהה נפילה). הבהיר — <b>תאוצת הטלפון</b>, '+M('a=g_0-\\vec A\\cdot\\hat u')+': אפס במנוחה, 9.8 מטה בנפילה.<br><br>בגרף התחתון '+M('v(t)')+' ישר במעוף — זו המשמעות של תאוצה קבועה. השיפוע מחושב מהכיול במנוחה, ולכן זו <b>בדיקת עקביות</b>, לא מדידה חוזרת של '+M('g')+'.',
+   note:'שני העקומים העליונים הם אותה תופעה משני צדדים. הכהה — מה שהחיישן <b>קורא</b>: 9.8 במנוחה, אפס באוויר (כך טלפון מזהה נפילה). הבהיר — <b>תאוצת הטלפון</b>, '+M('a=g_0-|\\vec A|')+': אפס במנוחה, 9.8 מטה בנפילה.<br><br>בגרף התחתון '+M('v(t)')+' ישר במעוף — זו המשמעות של תאוצה קבועה. בשיא (הנקודה הירוקה) '+M('v=0')+', אבל הקריאה לא זזה: גם שם התאוצה היא '+M('g')+'. מהירות אפס אינה תאוצה אפס. השיפוע מחושב מהכיול במנוחה, ולכן זו <b>בדיקת עקביות</b>, לא מדידה חוזרת של '+M('g')+'.',
    chips:[['T','זמן מעוף','s'],['a','תאוצה במעוף','m/s²'],['g','שיפוע v(t)','m/s²'],['g0','g במנוחה','m/s²']],
-   ctrl:'<button class="sl-sec" id="sl-mid">📌 מרכז סמנים</button>'},
+   ctrl:'<button class="sl-sec" id="sl-mid">📌 מרכזו את הסמנים</button>'},
 
  'forces2.kinetic-friction':{t:'slide-mu',h:300,minHz:25,
    ttl:'מדדו את '+M('\\mu_k')+' ישירות מההאטה',
-   how:'הניחו על שולחן <b>ישר</b>, לחצו <b>אפס</b> במנוחה, ואז <b>דחפו והרפו</b>. קטע ההחלקה החופשית מזוהה ונמדד לבד.',
-   pred:'לפני המדידה: נחשו אם '+M('\\mu_k')+' שתמדדו יהיה גדול או קטן מ-'+M('\\mu_s')+' שמדדתם בסעיף הקודם. ולמה?',
-   note:'בהחלקה חופשית על מישור אופקי הכוח האופקי היחיד הוא החיכוך, ולכן <b>הרכיב האופקי של הקריאה חלקי '+M('g')+' הוא ישירות '+M('\\mu_k')+'</b> — בלי אינטגרציה, בלי מסה ובלי אורך. קטע הדחיפה מוחרג: שם היד מוסיפה כוח. השוו למקדם הסטטי: '+M('\\mu_k<\\mu_s')+' כמעט תמיד, ולכן קשה יותר להזיז רהיט מאשר להמשיך להזיזו.',
+   how:'הניחו מסך למעלה על משטח <b>ישר</b> — שולחן, או הלוח מהסעיף הקודם מונח שטוח — לחצו <b>↺ איפוס</b> במנוחה, ואז <b>דחפו והרפו</b>, כך שיחליק כמה עשרות סנטימטרים ויעצור על המשטח. קטע ההחלקה החופשית מזוהה ונמדד לבד.',
+   pred:'לפני המדידה: נחשו אם '+M('\\mu_k')+' שתמדדו יהיה גדול או קטן מ-'+M('\\mu_s')+' שמדדתם בסעיף הקודם — על אותו משטח. ולמה?',
+   note:'בהחלקה חופשית על מישור אופקי הכוח האופקי היחיד הוא החיכוך, ולכן <b>הרכיב האופקי של הקריאה חלקי '+M('g')+' הוא ישירות '+M('\\mu_k')+'</b> — בלי אינטגרציה, בלי מסה ובלי אורך. קטע הדחיפה מוחרג: שם היד מוסיפה כוח, והקריאה מצביעה <b>עם</b> הדחיפה — בהחלקה החופשית היא מצביעה <b>נגדה</b>, כי החיכוך מנוגד לתנועה. השוו למקדם הסטטי: '+M('\\mu_k<\\mu_s')+' כמעט תמיד, ולכן קשה יותר להזיז רהיט מאשר להמשיך להזיזו.',
    chips:[['mu','μ רגעי',''],['muk','μk ממוצע',''],['n','החלקות',''],['tl','מישוריות','']],
-   ctrl:'<button class="sl-sec" id="sl-clr">🗑 נקה</button>'},
+   ctrl:'<button class="sl-sec" id="sl-clr">🗑 נקו</button>'},
 
  'momentum.momentum-def':{t:'impulse-land',h:342,minHz:40,
    ttl:'אותו '+M('\\Delta p')+', זמן אחר — וכוח אחר',
-   how:'הפילו מגובה קבוע (20–30 ס״מ) על <b>משטח רך</b> — כרית, מגבת, ספה. חזרו על אותה נפילה על משטחים ברכות שונה והשוו.',
+   how:'הזינו את מסת הטלפון (במפרט היצרן, כ-0.2 kg). החזיקו אותו שטוח, מסך למעלה, ושחררו בלי לדחוף מגובה קבוע (20–30 cm) אל <b>משטח רך</b> — כרית, שמיכה מקופלת, ספה. <b>לעולם לא על רצפה או שולחן.</b> חזרו על אותה נפילה על משטחים ברכות שונה והשוו.',
    pred:'לפני הנפילה השנייה: אם תפילו מאותו גובה בדיוק על משטח רך יותר — מה ישתנה? המהירות בפגיעה, שינוי התנע, משך הנחיתה, או הכוח?',
-   note:'מגובה נתון מהירות הפגיעה קבועה, ולכן <b>'+M('\\Delta p')+' זהה בכל נחיתה</b>. מה שמשתנה הוא <b>המשך</b>, ולפי '+M('F\\,\\Delta t=\\Delta p')+' זמן כפול פירושו כוח חצי. זה כל הרעיון של כרית אוויר, קסדה ואזור מעיכה: איש מהם אינו מקטין את '+M('\\Delta p')+' — כולם מותחים אותו על זמן ארוך יותר.<br><br>המהירות מחושבת בשתי דרכים בלתי תלויות ('+M('v=gT')+' ואינטגרל הנחיתה); ההסכמה ביניהן היא הבדיקה. <b>רק על משטח רך</b> — נחיתה קשה קצרה מדי לקצב הדגימה.',
-   chips:[['dv','Δv','m/s'],['dt','משך נחיתה','s'],['ag','תאוצה ממוצעת','g'],['n','נחיתות','']],
-   ctrl:'<button class="sl-sec" id="sl-clr">🗑 נקה</button>'},
+   note:'מגובה נתון מהירות הפגיעה קבועה, ולכן <b>'+M('\\Delta p')+' זהה בכל נחיתה</b>. מה שמשתנה הוא <b>המשך</b>, ולפי '+M('F\\,\\Delta t=\\Delta p')+' זמן כפול פירושו כוח חצי. (כאן '+M('F')+' הוא הכוח השקול; הכרית עצמה דוחפת ב-'+M('\\bar F+mg')+'.) זה כל הרעיון של כרית אוויר, קסדה ואזור מעיכה: איש מהם אינו מקטין את '+M('\\Delta p')+' — כולם מותחים אותו על זמן ארוך יותר.<br><br>המהירות מחושבת בשתי דרכים בלתי תלויות ('+M('v=gT')+' ואינטגרל הנחיתה); ההסכמה ביניהן היא הבדיקה. <b>רק על משטח רך</b> — נחיתה קשה קצרה מדי לקצב הדגימה, ועלולה לשבור את הטלפון.',
+   chips:[['dp','Δp','kg·m/s'],['dt','משך נחיתה','s'],['F','F̄ שקול','N'],['n','נחיתות','']],
+   ctrl:'<span class="sl-slider">מסת הטלפון <input id="sl-pm" type="range" min="0.10" max="0.30" step="0.005" value="0.20"><span id="sl-pmv">0.200 kg</span></span><button class="sl-sec" id="sl-clr">🗑 נקו</button>'},
 
  'forces2.static-friction':{t:'slip-angle',h:300,
    ttl:'מדדו את '+M('\\mu_s')+' מזווית ההחלקה',
-   how:'הניחו את הטלפון על לוח או ספר <b>שטוח</b>, והרימו קצה אחד <b>לאט מאוד</b>. ברגע שהטלפון מתחיל להחליק, האפליקציה קופאת על הזווית שבה זה קרה.',
+   how:'הניחו את הטלפון, מסך למעלה, על לוח או ספר <b>שטוח</b>, ושימו <b>מגבת או כרית בתחתית</b> — שם הוא ייעצר. הרימו קצה אחד <b>לאט מאוד</b>. ברגע שהטלפון מתחיל להחליק, האפליקציה קופאת על הזווית שבה זה קרה.',
    pred:'לפני הניסוי: נחשו את הזווית שבה הטלפון יתחיל להחליק על העץ. ואז נסו משטח אחר — נייר, בד, זכוכית — ובדקו מי מהם ״דביק״ יותר.',
    note:'ברגע ההחלקה '+M('mg\\sin\\theta=\\mu_s\\,mg\\cos\\theta')+', המסה מצטמצמת, ולכן '+M('\\mu_s=\\tan\\theta')+' <b>ללא תלות במסה</b> — אותו מקדם לכל גוף על אותו זוג משטחים. הרימו <b>לאט</b>: הרמה מהירה מוסיפה תאוצה ומזייפת את הזווית.',
    chips:[['th','זווית','°'],['mu','μs = tanθ','' ],['thm','זווית ההחלקה','°'],['n','מדידות','']],
-   ctrl:'<button class="sl-sec" id="sl-clr">🗑 נקה</button>'},
+   ctrl:'<button class="sl-sec" id="sl-clr">🗑 נקו</button>'},
 
  'vectors.vec-components':{t:'tilt-components',h:272,
    ttl:'פירוק וקטור הכובד לרכיבים',
    how:'החזיקו את הטלפון במאונך והטו אותו לאט <b>במישור המסך</b>. וקטור הכובד ממשיך להצביע מטה — מה שמסתובב הם צירי הטלפון, ואיתם הרכיבים.',
    pred:'לפני שמטים: באיזו זווית יהיו שני הרכיבים <b>שווים</b> זה לזה? ובאיזו זווית ייעלם אחד מהם לגמרי? נחשו, ואז בדקו.',
-   note:'סכום ריבועי הרכיבים נשאר '+M('9.81')+' בכל זווית — הפירוק משנה את התיאור, לא את הווקטור. השורה התחתונה היא בדיקת פיתגורס על המדידה עצמה: הסטייה מ-9.81 היא <b>רעש המכשיר</b>, לא שגיאה בפיזיקה.',
-   chips:[['th','θ','°'],['gx','g·sinθ','m/s²'],['gy','g·cosθ','m/s²'],['rs','שארית פיתגורס','m/s²']],ctrl:''},
+   note:'השורש של סכום ריבועי הרכיבים, '+M('\\sqrt{g_x^2+g_y^2}')+', נשאר כ-'+M('9.8\\ \\text{m/s}^2')+' בכל זווית — הפירוק משנה את התיאור, לא את הווקטור. זו בדיקת פיתגורס על המדידה עצמה: סטייה קטנה היא <b>שגיאת הכיול והרעש</b> של החיישן, לא שגיאה בפיזיקה. ואם המסך נוטה לאחור, חלק מ-'+M('g')+' יוצא מהמישור (רכיב '+M('z')+') והשורש יוצא קטן יותר.',
+   chips:[['th','θ','°'],['gx','g·sinθ','m/s²'],['gy','g·cosθ','m/s²'],['rs','√(gx²+gy²)','m/s²']],ctrl:''},
 
  'forces.tension':{t:'lift-ride',h:344,minHz:25,
    ttl:'נסיעה במעלית — '+M('T=m(g\\pm a)'),
-   how:'החזיקו <b>שטוח על כף היד</b>, לחצו <b>אפס</b> כשהמעלית עומדת, וסעו קומה או שתיים בלי להזיז את היד. הנסיעה נחתכת מעצמה בעצירה.',
+   how:'החזיקו <b>שטוח על כף היד</b> (או, מדויק יותר, הניחו על רצפת המעלית), לחצו <b>↺ איפוס</b> כשהמעלית עומדת, וסעו קומה או שתיים בלי להזיז את היד. הנסיעה נחתכת מעצמה בעצירה.',
    pred:'לפני הנסיעה: בעלייה — מתי תרגישו כבדים יותר, בתחילת הנסיעה או בסופה? ומה יקרה באמצע, כשהמעלית נוסעת במהירות קבועה?',
-   note:'טלפון על כף היד הוא גוף התלוי על חוט: '+M('T=m(g+a)')+', ולכן הקריאה חלקי '+M('g')+' היא בדיוק '+M('T/mg')+' — <b>המשקל המדומה</b>. בעלייה: גדול מ-1 בהתחלה, קטן מ-1 בסוף, ובאמצע בדיוק 1.<br><br>זו הנקודה: <b>מהירות אינה מורגשת, רק תאוצה</b>. אמצע הנסיעה זהה לעמידה, ומכאן קצרה הדרך לעקרון השקילות. הגובה והמהירות מחושבים באינטגרל, והמהירות שנשארה בסוף היא הסחיפה.',
+   note:'טלפון על כף היד מתנהג בדיוק כמו גוף התלוי על חוט: הכוח שנושא אותו הוא '+M('T=m(g+a)')+', ולכן הקריאה חלקי '+M('g')+' היא בדיוק '+M('T/mg')+' — <b>המשקל המדומה</b>. בעלייה: גדול מ-1 בהתחלה, קטן מ-1 בסוף, ובאמצע בדיוק 1.<br><br>זו הנקודה: <b>מהירות אינה מורגשת, רק תאוצה</b>. אמצע הנסיעה זהה לעמידה, ומכאן קצרה הדרך לעקרון השקילות. הגובה והמהירות מחושבים באינטגרל, והמהירות שנשארה בסוף היא הסחיפה.',
    chips:[['ph','מצב',''],['tm','T/mg מרבי',''],['tn','T/mg מזערי',''],['h','גובה','m']],
-   ctrl:'<button class="sl-sec" id="sl-clr">🗑 נקה</button>'},
+   ctrl:'<button class="sl-sec" id="sl-clr">🗑 נקו</button>'},
 
  'forces.normal-force':{t:'incline-forces',h:292,
    ttl:'N ו-F∥ על מדרון אמיתי',
    how:'הניחו את הטלפון <b>שטוח על ספר</b> והרימו לאט את קצה הספר. הטלפון מודד את זווית המדרון מכיוון הכובד, והתרשים מציג את הכוחות על גוף במסה שתבחרו.',
    pred:'לפני שמרימים: בזווית 30°, איזה משני הכוחות יהיה גדול יותר — N או F∥? ופי כמה? ובאיזו זווית הם יתחלפו?',
-   note:'<b>'+M('N')+' קטן מהמשקל בכל זווית שאינה אפס</b> — המדרון נושא רק את הרכיב הניצב אליו. השורה '+M('N/mg')+' ו-'+M('F_\\parallel/mg')+' היא '+M('\\cos\\theta')+' ו-'+M('\\sin\\theta')+' עצמם, ולכן הם מתחלפים ב-45° ולא באמצע הטווח.',
+   note:'<b>'+M('N')+' קטן מהמשקל בכל זווית שאינה אפס</b> — המדרון נושא רק את הרכיב הניצב אליו. השורה '+M('N/mg')+' ו-'+M('F_\\parallel/mg')+' היא '+M('\\cos\\theta')+' ו-'+M('\\sin\\theta')+' עצמם, ולכן הם מתחלפים ב-45° ולא באמצע הטווח.<br><br>והטלפון עצמו הוא הגוף שעל המדרון: הרכיב של קריאתו הניצב למסך הוא בדיוק '+M('N/m')+', והרכיב שלאורך המסך הוא החיכוך הסטטי ליחידת מסה, '+M('f_s/m=g\\sin\\theta')+' — הכוחות שהספר מפעיל עליו.',
    chips:[['th','θ','°'],['N','N','N'],['Fp','F∥','N'],['rt','N/mg · F∥/mg','']],
    ctrl:'<span class="sl-slider">מסה <input id="sl-m" type="range" min="0.5" max="10" step="0.5" value="2"><span id="sl-mv">2.0 kg</span></span>'},
 
@@ -31334,39 +31419,39 @@ var SENSOR_LABS={
    ttl:'מדדו את g — ואת דיוק המדידה',
    how:'הניחו את הטלפון <b>בשקט מוחלט</b> על שולחן וחכו. ככל שנאספות יותר דגימות, אי-הוודאות של הממוצע קטנה.',
    pred:'לפני שמסתכלים: כמה ספרות אחרי הנקודה אתם מצפים לקבל נכונות? האם מד-תאוצה של טלפון יכול להתחרות במטוטלת?',
-   note:'מד-התאוצה אינו מודד כבידה אלא את <b>הכוח הנורמלי</b> ליחידת מסה: במנוחה 9.8, ובנפילה חופשית אפס — חוסר המשקל של אסטרונאוט. הבחינו בין <b>פיזור</b> (רעש, קטן עם הממוצע) לבין <b>סטייה</b> קבועה מ-9.81 (שגיאת כיול, שממוצע לא יתקן לעולם).',
+   note:'מד-התאוצה אינו מודד כבידה אלא את <b>הכוח הנורמלי</b> ליחידת מסה: במנוחה 9.8, ובנפילה חופשית אפס — חוסר המשקל של אסטרונאוט. הבחינו בין <b>פיזור</b> (רעש, קטן עם הממוצע) לבין <b>סטייה</b> קבועה (שגיאת כיול, שממוצע לא יתקן לעולם). הסטייה מחושבת ביחס ל-'+M('g')+' בישראל, כ-'+M('9.795\\ \\text{m/s}^2')+'; הערך העגול 9.81 מתאים לקווי הרוחב של מרכז אירופה.',
    chips:[['g','נוכחי','m/s²'],['gm','ממוצע','m/s²'],['se','אי-ודאות ±','m/s²'],['er','סטייה','%']],ctrl:''},
 
  'statics.center-mass':{t:'com-balance',h:330,
    ttl:'אתרו את מרכז המסה של הטלפון עצמו',
-   how:'השעינו את הטלפון <b>לרוחבו</b> על עיפרון, והזיזו עד שיישאר <b>מאוזן</b>. מדדו בסרגל את המרחק מהקצה, הזינו במחוון ולחצו <b>רשום</b>. חזרו 3–4 פעמים.',
+   how:'הניחו עיפרון עגול על השולחן ואת הטלפון עליו, מסך למעלה, כשהעיפרון <b>חוצה אותו לרוחבו</b>. הזיזו את הטלפון עד שיישאר <b>מאוזן</b>, מדדו בסרגל את המרחק מהקצה התחתון עד העיפרון, הזינו במחוון ולחצו <b>רשמו</b>. חזרו 3–4 פעמים. (ב״מדידה לרוחב״ העיפרון מונח לאורך הטלפון.)',
    pred:'לפני המדידה: האם נקודת האיזון תהיה בדיוק באמצע הטלפון? חשבו איפה יושבת הסוללה — החלק הכבד ביותר במכשיר.',
-   note:'גוף על ציר בשיווי משקל כאשר <b>סכום המומנטים מתאפס</b>: כל '+M('m_i')+' תורם '+M('m_i g x_i')+', והסכום מתאפס בדיוק כשהציר מתחת ל-'+M('x_{cm}')+'. זו <b>ההגדרה המעבדתית</b> של מרכז המסה.<br><br>מד-התאוצה משמש כאן <b>פלס</b> בלבד. הריצוד שנשאר מסגיר <b>שיווי משקל רופף</b> — מרכז המסה מעל הציר, וכל סטייה מגדילה את עצמה. ואם יצא שאינו באמצע — נכון: הסוללה מושכת לצד אחד.',
+   note:'גוף על ציר בשיווי משקל כאשר <b>סכום המומנטים מתאפס</b>: כל '+M('m_i')+' תורם '+M('m_i g x_i')+', והסכום מתאפס בדיוק כשהציר מתחת ל-'+M('x_{cm}')+'. זו <b>ההגדרה המעבדתית</b> של מרכז המסה.<br><br>מד-התאוצה משמש כאן <b>פלס</b> בלבד. על עיפרון עגול שיווי המשקל כמעט <b>אדיש</b> (רדיוס העיפרון קרוב לחצי עובי הטלפון): הטלפון נח מאוזן רק כשמרכז המסה ממש מעל קו המגע, והזזה של מילימטרים מטה אותו לצד אחד — ולכן הפלס רגיש כל כך. ואם יצא שאינו באמצע — נכון: הסוללה מושכת לצד אחד.',
    chips:[['tl','הטיה','°'],['wb','ריצוד','°'],['f','x_cm/L','%'],['n','מדידות','']],
-   ctrl:'<button class="sl-sec" id="sl-axl">לאורך</button><button class="sl-sec" id="sl-axw">לרוחב</button><span class="sl-slider">מרחק מהקצה <input id="sl-d" type="range" min="1" max="20" step="0.1" value="7.5"><span id="sl-dv">7.5 cm</span></span><span class="sl-slider">אורך הטלפון <input id="sl-len" type="range" min="8" max="22" step="0.1" value="15.0"><span id="sl-lenv">15.0 cm</span></span><button class="sl-sec" id="sl-rec">➕ רשום</button><button class="sl-sec" id="sl-clr">🗑 נקה</button>'},
+   ctrl:'<button class="sl-sec" id="sl-axl">מדידה לאורך</button><button class="sl-sec" id="sl-axw">מדידה לרוחב</button><span class="sl-slider">מרחק מהקצה <input id="sl-d" type="range" min="1" max="20" step="0.1" value="7.5"><span id="sl-dv">7.5 cm</span></span><span class="sl-slider"><span id="sl-lenl" style="color:inherit;font-weight:inherit;min-width:0">אורך הטלפון</span> <input id="sl-len" type="range" min="5" max="22" step="0.1" value="15.0"><span id="sl-lenv">15.0 cm</span></span><button class="sl-sec" id="sl-rec">➕ רשמו</button><button class="sl-sec" id="sl-clr">🗑 נקו</button>'},
 
  'planar.circular':{t:'spin-fit',h:306,minHz:25,
    ttl:'מדדו את '+M('a_c=\\omega^2 r')+' — והוציאו את r מהשיפוע',
-   how:'הניחו את הטלפון על <b>כיסא משרדי מסתובב</b> (או סחררו אותו על שולחן חלק), סובבו חזק — ותנו לו להאט מעצמו. תוך כדי ההאטה נאספות נקודות בכל קצב סיבוב, מהמהיר עד לאיטי.',
-   pred:'לפני הסיבוב: מדדו בסרגל את המרחק מציר הסיבוב עד לטלפון. השיפוע שהגרף ימצא אמור לצאת בדיוק המספר הזה.',
-   note:'ההאטה היא היתרון: היא סורקת טווח שלם של '+M('\\omega')+'. נקודות על ישר בגרף '+M('a_c')+' מול '+M('\\omega^2')+' מאשרות תלות <b>ריבועית</b>, והשיפוע הוא הרדיוס. איננו קוראים מהערוץ ללא-כובד: סיבוב יציב הוא תאוצה מתמדת שכל מסנן כובד בולע תוך שנייה. במקום זה '+M('a_c=\\sqrt{|G|^2-g_0^2}')+', שאינו תלוי כלל בכיוון הטלפון.',
+   how:'הניחו את הטלפון, מסך למעלה, על מושב של <b>כיסא משרדי מסתובב</b>, כ-20–30 cm מהציר, ו<b>הצמידו אותו</b> — בסרט דביק או בתוך קופסה: בסיבוב מהיר טלפון חופשי מחליק ועף. הניחו לו לכייל בשקט, סובבו בתנופה מתונה (עד סיבוב בשנייה) ותנו לכיסא להאט מעצמו. תוך כדי ההאטה נאספות נקודות בכל קצב סיבוב.',
+   pred:'לפני הסיבוב: מדדו בסרגל את המרחק מציר הסיבוב עד מרכז הטלפון. השיפוע שהגרף ימצא אמור לצאת קרוב למספר הזה — בתוך סנטימטרים ספורים, כי החיישן יושב איפשהו בתוך הטלפון ולא בדיוק במרכזו.',
+   note:'ההאטה היא היתרון: היא סורקת טווח שלם של '+M('\\omega')+'. נקודות על ישר בגרף '+M('a_c')+' מול '+M('\\omega^2')+' מאשרות תלות <b>ריבועית</b>, והשיפוע הוא הרדיוס. איננו קוראים מהערוץ ללא-כובד: סיבוב יציב הוא תאוצה מתמדת שמסנן הכובד בולע תוך שניות. במקום זה '+M('a_c=\\sqrt{|G|^2-g_0^2}')+', שאינו תלוי כלל בכיוון הטלפון. זהו הפרש של ריבועים, ולכן בסיבוב איטי הנקודות מתפזרות יותר — הן הקטנות ביותר, והשיפוע נקבע בעיקר מהמהירות.',
    chips:[['w','ω','rad/s'],['ac','a_c','m/s²'],['r','r מהשיפוע','m'],['n','נקודות','']],ctrl:''},
 
  'energy.energy-cons':{t:'swing-energy',h:330,minHz:25,
    ttl:'שימור אנרגיה — בלי לדעת את המסה ואת האורך',
-   how:'תלו את הטלפון בשקית על חוט, משכו הצידה <b>ושחררו בעדינות</b> — בלי דחיפה. כל חצי-תנודה נמדדת בנפרד, והתנודה הדועכת סורקת מעצמה טווח של זוויות.',
+   how:'הכניסו את הטלפון לשקית, קשרו היטב לחוט חזק (חצי מטר ומעלה) ונדנדו <b>מעל מיטה או ספה</b>. משכו הצידה <b>ושחררו בעדינות</b> — בלי דחיפה. כל חצי-תנודה נמדדת בנפרד, והתנודה הדועכת סורקת מעצמה טווח של זוויות.',
    pred:'לפני השחרור: אם תשחררו מ-60° במקום מ-30°, פי כמה תגדל הקריאה בנקודה הנמוכה? נחשו מספר, ואז בדקו בגרף.',
-   note:'בנקודה הנמוכה '+M('a_r=g+v^2/L')+', ושימור אנרגיה נותן '+M('v^2=2gL(1-\\cos\\theta_0)')+'. ההצבה מבטלת גם את '+M('L')+' וגם את '+M('m')+':<br>'+M('a_r/g=3-2\\cos\\theta_0')+'<br><b>תחזית ללא אף פרמטר</b> — בלי מסה, בלי אורך ובלי שעון. נקודות על העקומה מאשרות שימור; נקודות מתחתיה הן האנרגיה שהלכה לחיכוך.<br><br>הזווית נמדדת באינטגרל של הג׳ירוסקופ מרגע השחרור עד הנקודה הנמוכה.',
-   chips:[['th','θ₀ אחרון','°'],['ar','a_r/g נמדד',''],['pr','3−2cosθ₀ חזוי',''],['n','חצאי תנודה','']],
-   ctrl:'<button class="sl-sec" id="sl-clr">🗑 נקה</button>'},
+   note:'בנקודה הנמוכה החוט מושך ב-'+M('T=mg+mv^2/L')+', ושימור אנרגיה נותן '+M('v^2=2gL(1-\\cos\\theta_0)')+'. ההצבה מבטלת גם את '+M('L')+' וגם את '+M('m')+':<br>'+M('T/mg=3-2\\cos\\theta_0')+'<br><b>תחזית ללא אף פרמטר</b> — בלי מסה, בלי אורך ובלי שעון. מד-התאוצה קורא בדיוק את '+M('T/m')+' (הכוח שאינו הכובד, ליחידת מסה), ולכן הקריאה חלקי '+M('g')+' היא '+M('T/mg')+'. נקודות על העקומה מאשרות שימור; נקודות מתחתיה — אנרגיה שאבדה בדרך (חיכוך, גרירת אוויר), או שקית שאינה מתנהגת כמסה נקודתית.<br><br>הזווית נמדדת באינטגרל של הג׳ירוסקופ מרגע השחרור עד הנקודה הנמוכה.',
+   chips:[['th','θ₀ אחרון','°'],['ar','T/mg נמדד',''],['pr','3−2cosθ₀ חזוי',''],['n','חצאי תנודה','']],
+   ctrl:'<button class="sl-sec" id="sl-clr">🗑 נקו</button>'},
 
  'shm.pendulum':{t:'pendulum-fit',h:312,minHz:25,
    ttl:'מטוטלת: מדדו את g מהשיפוע',
-   how:'הכניסו את הטלפון לשקית ותלו אותה על חוט. מדדו את <b>L</b> עד מרכז הטלפון, הזינו אותו, הניעו בתנודה קטנה, המתינו שה-T יתייצב ולחצו <b>רשום נקודה</b>. חזרו על כך ב-3–4 אורכים שונים.',
+   how:'הכניסו את הטלפון לשקית, קשרו היטב לחוט ותלו <b>מעל מיטה או ספה</b>. מדדו את <b>L</b> עד מרכז הטלפון, הזינו אותו, הניעו בתנודה קטנה, המתינו שה-T יתייצב ולחצו <b>רשמו נקודה</b>. חזרו על כך ב-3–4 אורכים שונים.',
    pred:'לפני המדידה השנייה: אם תכפילו את אורך החוט, פי כמה יגדל זמן המחזור? (רמז: לא פי שניים)',
    note:'נקודה בודדת אינה ניסוי — היא לא מבחינה בין חוק נכון לשגיאה שיטתית. '+M('T^2=(4\\pi^2/g)L')+' הוא <b>ישר דרך הראשית</b>, ולכן כמה אורכים בודקים גם את צורת החוק וגם נותנים את '+M('g')+' מהשיפוע. ישר יפה עם '+M('g')+' רחוק מ-9.81 פירושו ש-L לא נמדד עד מרכז המסה. מעל כ-20° המחזור מתחיל להתארך, והאפליקציה מודדת את האמפליטודה ומתריעה.',
    chips:[['T','T נמדד','s'],['g','g מהשיפוע','m/s²'],['r2','R²',''],['n','נקודות','']],
-   ctrl:'<span class="sl-slider">L <input id="sl-L" type="range" min="0.1" max="2" step="0.01" value="0.50"><span id="sl-Lv">0.50 m</span></span><button class="sl-sec" id="sl-rec">➕ רשום נקודה</button><button class="sl-sec" id="sl-clr">🗑 נקה</button>'}
+   ctrl:'<span class="sl-slider">L <input id="sl-L" type="range" min="0.1" max="2" step="0.01" value="0.50"><span id="sl-Lv">0.50 m</span></span><button class="sl-sec" id="sl-rec">➕ רשמו נקודה</button><button class="sl-sec" id="sl-clr">🗑 נקו</button>'}
 };
 
 function sensorLabCard(key){
@@ -31380,12 +31465,12 @@ function sensorLabCard(key){
     '<div class="sl-head">📱 מעבדת חיישנים <small>— '+L.ttl+'</small></div>'+
     '<div class="sl-how">'+L.how+'</div>'+
     (L.pred?'<div class="sl-pred">🔮 <b>נחשו קודם:</b> '+L.pred+'</div>':'')+
-    '<div class="sl-ctrl"><button id="sl-start">▶ הפעל חיישן</button>'+
-      '<button class="sl-sec" id="sl-zero">↺ אתחל</button>'+L.ctrl+
-      '<button class="sl-sec" id="sl-hold">⏸ הקפא</button>'+
-      '<span class="sl-zoom"><button class="sl-sec" id="sl-zout">🔍−</button>'+
-      '<button class="sl-sec" id="sl-zin">🔍+</button>'+
-      '<button class="sl-sec" id="sl-zrst">⤢</button></span></div>'+
+    '<div class="sl-ctrl"><button id="sl-start">▶ הפעילו חיישן</button>'+
+      '<button class="sl-sec" id="sl-zero">↺ איפוס</button>'+L.ctrl+
+      '<button class="sl-sec" id="sl-hold">⏸ הקפיאו</button>'+
+      '<span class="sl-zoom"><button class="sl-sec" id="sl-zout" title="הקטינו" aria-label="הקטינו את הגרף">🔍−</button>'+
+      '<button class="sl-sec" id="sl-zin" title="הגדילו" aria-label="הגדילו את הגרף">🔍+</button>'+
+      '<button class="sl-sec" id="sl-zrst" title="תצוגה מלאה" aria-label="תצוגה מלאה">⤢</button></span></div>'+
     '<div class="sl-read">'+chips+'</div>'+
     '<canvas id="sl-canvas" height="'+L.h+'"></canvas>'+
     '<div class="sl-err" id="sl-err" style="display:none"></div>'+
@@ -31399,23 +31484,17 @@ var SL_IMPL={
 // a run that starts and ends at rest has a known answer for the final
 // velocity -- zero -- so the leftover is a measurement of the error itself.
 'motion-trial':{
+  resume:function(st){if(st.ph==='run'||st.ph==='armed'){var b=st.bias,g=st.gb;st.reset(st);st.bias=b;st.gb=g;st.ph='armed';}},
   init:function(st){st.ax=1;st.tr=[slTrace(220),slTrace(220),slTrace(220)];
     st.h=[{v:.5},{v:.2},{v:.1}];st.reset(st);},
-  reset:function(st){st.ph='cal';st.calN=0;st.calS=0;st.bias=0;st.gref=null;st.tilt=0;
+  reset:function(st){st.ph='cal';st.calN=0;st.calS=0;st.calR=[0,0];st.bias=0;st.gb=[0,0];st.tilt=0;st.tx=0;st.ty=0;
     st.v=0;st.x=0;st.ap=0;st.still=0;st.dur=0;st.rec=[];st.res=null;st.pre=[];
     if(st.tr)for(var i=0;i<3;i++)st.tr[i].clear();},
   sample:function(s,st){
-    var raw=[s.ax,s.ay,s.az][st.ax],lin=Math.hypot(s.ax,s.ay,s.az);
-    var gm=Math.hypot(s.Gx,s.Gy,s.Gz)||9.81,gu=[s.Gx/gm,s.Gy/gm,s.Gz/gm];
-    if(st.ph==='cal'){
-      // Calibration is only valid while genuinely still, so any movement
-      // restarts it rather than baking a wrong bias into the whole trial.
-      if(lin>0.16){st.calN=0;st.calS=0;return;}
-      st.calN++;st.calS+=raw;st.gref=gu;
-      if(st.calN>=55){st.bias=st.calS/st.calN;st.ph='armed';}
-      return;
-    }
-    var a=raw-st.bias;
+    // Calibration is only valid while genuinely still, so any movement
+    // restarts it rather than baking a wrong bias into the whole trial.
+    if(st.ph==='cal'){slAxisCal(s,st);return;}
+    var a=[s.gx,s.gy,s.gz][st.ax]-st.bias;
     if(st.ph==='armed'){
       if(Math.abs(a)>0.3){
         // replay the quiet lead-in: the phone was at rest at its start
@@ -31426,10 +31505,7 @@ var SL_IMPL={
         st.pre=[];
       } else {slPreBuf(st.pre,s.dt,a,0.35);return;}}
     if(st.ph!=='run')return;
-    // Tilt leaks gravity into the measured axis: one degree is 0.17 m/s², an
-    // order of magnitude above the noise, so the trial is flagged if it moved.
-    if(st.gref){var d=gu[0]*st.gref[0]+gu[1]*st.gref[1]+gu[2]*st.gref[2];
-      var tl=Math.acos(Math.max(-1,Math.min(1,d)));if(tl>st.tilt)st.tilt=tl;}
+    slAxisTilt(s,st);
     st.dur+=s.dt;st.rec.push([s.dt,a]);
     var vp=st.v;st.v+=(st.ap+a)/2*s.dt;st.x+=(vp+st.v)/2*s.dt;st.ap=a;
     st.tr[0].push(a);st.tr[1].push(st.v);st.tr[2].push(st.x);
@@ -31462,12 +31538,12 @@ var SL_IMPL={
     var y=H-30,r=st.res;
     if(st.ph==='cal')simText(ctx,'⏳ מכייל — אל תזיזו ('+Math.round(st.calN/55*100)+'%)',W/2,y,c3,12.5,'center',true);
     else if(st.ph==='armed')simText(ctx,'✅ מוכן — החליקו את הטלפון ואז עצרו אותו',W/2,y,c2,12.5,'center',true);
-    else if(st.ph==='run')simText(ctx,'🔴 מודד… ('+st.dur.toFixed(1)+' ש)',W/2,y,slCss('--red','#ef4444'),12.5,'center',true);
+    else if(st.ph==='run')simText(ctx,'🔴 מודד… ('+st.dur.toFixed(1)+' s)',W/2,y,slCss('--red','#ef4444'),12.5,'center',true);
     else if(r){
       slTxt(ctx,'Δx = '+(r.xc*100).toFixed(1)+' cm   (גולמי '+(r.xr*100).toFixed(1)+')',W/2,y-13,tx,11.5,'center',true);
       var bad=r.tilt>2.5;
       simText(ctx,bad?('⚠ הטלפון הוטה ב-'+r.tilt.toFixed(1)+'° — הכובד דלף לציר; נסו שוב שטוח')
-                    :('סחיפה '+Math.abs(r.drift).toFixed(3)+' m/s על פני '+r.T.toFixed(1)+' ש — זו שגיאת המדידה'),
+                    :('סחיפה '+Math.abs(r.drift).toFixed(3)+' m/s על פני '+r.T.toFixed(1)+' s — זו שגיאת המדידה'),
         W/2,y+5,bad?c3:mu,11,'center',bad);}
     if(st.ph!=='done'&&st.ph!=='cal'&&st.ph!=='armed'&&st.ph!=='run')
       simText(ctx,'לחצו ▶ כדי להתחיל',W/2,y,mu,12,'center',true);},
@@ -31483,20 +31559,15 @@ var SL_IMPL={
 // TANGENT; a trial with a deliberate pause in the middle separates them, and the
 // crossings of the mean line are the mean value theorem drawn on real data.
 'avg-inst':{
+  resume:function(st){if(st.ph==='run'||st.ph==='armed'){var b=st.bias,g=st.gb;st.reset(st);st.bias=b;st.gb=g;st.ph='armed';}},
   init:function(st){st.ax=1;st.tr=[slTrace(220),slTrace(220)];st.h=[{v:.2},{v:.1}];st.reset(st);},
-  reset:function(st){st.ph='cal';st.calN=0;st.calS=0;st.bias=0;st.gref=null;st.tilt=0;
+  reset:function(st){st.ph='cal';st.calN=0;st.calS=0;st.calR=[0,0];st.bias=0;st.gb=[0,0];st.tilt=0;st.tx=0;st.ty=0;
     st.v=0;st.x=0;st.ap=0;st.still=0;st.dur=0;st.rec=[];st.cap=null;st.pre=[];
     st.m1=0.20;st.m2=0.80;st.drag=0;
     if(st.tr){st.tr[0].clear();st.tr[1].clear();}},
   sample:function(s,st){
-    var raw=[s.ax,s.ay,s.az][st.ax],lin=Math.hypot(s.ax,s.ay,s.az);
-    var gm=Math.hypot(s.Gx,s.Gy,s.Gz)||9.81,gu=[s.Gx/gm,s.Gy/gm,s.Gz/gm];
-    if(st.ph==='cal'){
-      if(lin>0.16){st.calN=0;st.calS=0;return;}
-      st.calN++;st.calS+=raw;st.gref=gu;
-      if(st.calN>=55){st.bias=st.calS/st.calN;st.ph='armed';}
-      return;}
-    var a=raw-st.bias;
+    if(st.ph==='cal'){slAxisCal(s,st);return;}
+    var a=[s.gx,s.gy,s.gz][st.ax]-st.bias;
     if(st.ph==='armed'){
       if(Math.abs(a)>0.3){
         st.ph='run';st.v=0;st.x=0;st.ap=st.pre.length?st.pre[0][1]:a;
@@ -31506,9 +31577,7 @@ var SL_IMPL={
         st.pre=[];
       } else {slPreBuf(st.pre,s.dt,a,0.35);return;}}
     if(st.ph!=='run')return;
-    // one degree of tilt leaks 0.17 m/s2 into the axis, far above the noise
-    if(st.gref){var dp=gu[0]*st.gref[0]+gu[1]*st.gref[1]+gu[2]*st.gref[2];
-      var tl=Math.acos(Math.max(-1,Math.min(1,dp)));if(tl>st.tilt)st.tilt=tl;}
+    slAxisTilt(s,st);
     st.dur+=s.dt;st.rec.push([s.dt,a]);
     var vp=st.v;st.v+=(st.ap+a)/2*s.dt;st.x+=(vp+st.v)/2*s.dt;st.ap=a;
     st.tr[0].push(st.v);st.tr[1].push(st.x);
@@ -31576,7 +31645,7 @@ var SL_IMPL={
       var y=H-10;
       if(st.ph==='cal')simText(ctx,'⏳ מכייל — אל תזיזו ('+Math.round(st.calN/55*100)+'%)',W/2,y,gd,12.5,'center',true);
       else if(st.ph==='armed')simText(ctx,'✅ מוכן — החליקו, עצרו לרגע, החליקו שוב ועצרו',W/2,y,gr,12.5,'center',true);
-      else if(st.ph==='run')simText(ctx,'🔴 מודד… ('+st.dur.toFixed(1)+' ש) — סיימו בעצירה מלאה',W/2,y,slCss('--red','#ef4444'),12.5,'center',true);
+      else if(st.ph==='run')simText(ctx,'🔴 מודד… ('+st.dur.toFixed(1)+' s) — סיימו בעצירה מלאה',W/2,y,slCss('--red','#ef4444'),12.5,'center',true);
       else simText(ctx,'לחצו ▶ כדי להתחיל',W/2,y,mu,12,'center',true);
       return;}
     var P=st.cap.p,d=st.cap.dur,i,C=SL_IMPL['avg-inst'].chord(st);
@@ -31585,7 +31654,7 @@ var SL_IMPL={
       if(P[i].x<xmn)xmn=P[i].x;if(P[i].x>xmx)xmx=P[i].x;
       if(P[i].v<vmn)vmn=P[i].v;if(P[i].v>vmx)vmx=P[i].v;}
     var px=42,pw=W-54;
-    var vy=16,vh=Math.round(H*0.26),xy=vy+vh+26,xh=H-xy-46;
+    var vy=16,vh=Math.round(H*0.26),xy=vy+vh+26,xh=H-xy-58;   // room for the time ticks above the readout
     st.xr={x:px,y:xy,w:pw,h:xh};
     var vpd=(vmx-vmn)*0.18+0.02;vmn-=vpd;vmx+=vpd;
     var xpd=(xmx-xmn)*0.12+0.005;xmn-=xpd;xmx+=xpd;
@@ -31599,9 +31668,10 @@ var SL_IMPL={
         ctx.globalAlpha=.35;ctx.beginPath();ctx.moveTo(px,gy);ctx.lineTo(px+pw,gy);ctx.stroke();
         ctx.globalAlpha=1;slTxt(ctx,slFmt(k*stp,stp),px-4,gy+3,mu,8,'right');}
       ctx.restore();
-      slTxt(ctx,ttl,px+4,y0-4,col,9.5,'left',true);}
-    frame(vy,vh,vmn,vmx,VY,'v (m/s)  — משיק',gr);
-    frame(xy,xh,xmn,xmx,XY,'x (m)  — מיתר',gd);
+      slTxt(ctx,ttl[0],px+4,y0-4,col,9.5,'left',true);
+      simText(ctx,ttl[1],px+pw,y0-4,col,9.5,'right',true);}
+    frame(vy,vh,vmn,vmx,VY,['v  (m/s)','שיפוע המשיק = רגעית'],gr);
+    frame(xy,xh,xmn,xmx,XY,['x  (m)','שיפוע המיתר = ממוצעת'],gd);
     var ts=slNiceStep(d/3.2);
     for(var tt=0;tt<=d+1e-6;tt+=ts)slTxt(ctx,slFmt(tt,ts)+'s',XT(tt),xy+xh+11,mu,8,'center');
     ctx.save();ctx.beginPath();ctx.rect(px,vy,pw,vh);ctx.clip();
@@ -31635,7 +31705,7 @@ var SL_IMPL={
         ctx.save();ctx.strokeStyle=gd;ctx.globalAlpha=.8;ctx.lineWidth=1.5;
         ctx.beginPath();ctx.moveTo(mx,vy+1);ctx.lineTo(mx,xy+xh-1);ctx.stroke();ctx.restore();
         ctx.fillStyle=gd;ctx.beginPath();ctx.arc(mx,xy+xh-7,7,0,6.2832);ctx.fill();
-        slTxt(ctx,mk[1],mx,xy+xh-4,'#7d8da6',9,'center',true);});
+        slTxt(ctx,mk[1],mx,xy+xh-4,slCss('--bg','#07101f'),9,'center',true);});
       slTxt(ctx,'Δx = '+(C.B.x-C.A.x).toFixed(3)+' m     Δt = '+(C.B.t-C.A.t).toFixed(2)+
         ' s     Δx/Δt = '+C.va.toFixed(3)+' m/s',W/2,H-26,tx,11.5,'center',true);
       var d1=Math.abs(C.A.v-C.va),d2=Math.abs(C.B.v-C.va);
@@ -31651,6 +31721,7 @@ var SL_IMPL={
 // to near zero, which is what "weightless" means; timing it gives T, and a
 // measured height turns several tosses into a value for g.
 'freefall-toss':{
+  resume:function(st){st.buf=[];st.inFall=false;st.fallT=0;st.pend=null;},
   init:function(st){st.tr=slTrace(220);st.trR=slTrace(220);st.h={v:12};st.reset(st);},
   reset:function(st){
     if(st.tr){st.tr.clear();st.trR.clear();}
@@ -31675,8 +31746,11 @@ var SL_IMPL={
       return;
     }
     st.tacc+=s.dt;
-    var Au=A[0]*st.u[0]+A[1]*st.u[1]+A[2]*st.u[2];
-    var aDown=st.g0-Au;                 // 0 at rest, +g in free fall, <0 while thrown
+    // The hand pushes up, so the phone's downward acceleration is g − |reading|
+    // whatever way the phone faces. Projecting the reading on the 'up' found
+    // at calibration counted only cos θ of the throw and of the catch for a
+    // phone that turned in the hand by θ, and moved the top of the flight.
+    var aDown=st.g0-mag;                // 0 at rest, +g in free fall, <0 while thrown
     st.aNow=aDown;st.rawNow=mag;
     st.tr.push(aDown);st.trR.push(mag);
     st.buf.push({t:st.tacc,a:aDown});if(st.buf.length>1200)st.buf.shift();
@@ -31764,15 +31838,15 @@ var SL_IMPL={
     var hp=Math.round(H*0.30);
     // the phone's own acceleration in front, the raw sensor reading behind
     slPlot(ctx,8,6,W-16,hp,[{tr:st.trR,c:c2,lw:1.5},{tr:st.tr,c:c1,lw:2.4}],
-      {title:'a  (m/s²)   מטה חיובי',floor:12,hold:st.h});
-    slTxt(ctx,'— תאוצת הטלפון',W-14,20,c1,9,'right',true);
+      {title:'a  (m/s²)',floor:12,hold:st.h});
+    slTxt(ctx,'— תאוצת הטלפון, מטה חיובי',W-14,20,c1,9,'right',true);
     slTxt(ctx,'— קריאת החיישן',W-14,32,c2,9,'right');
     // the captured toss: v(t) with two draggable markers
     var vy=hp+16,vh=H-hp-74,vx=40,vw=W-52;
     st.vr={x:vx,y:vy,w:vw,h:vh};
     ctx.save();ctx.strokeStyle=slCss('--border','#2a3d55');ctx.lineWidth=1;ctx.strokeRect(vx+.5,vy+.5,vw-1,vh-1);ctx.restore();
     if(!st.cap){
-      simText(ctx,st.inFall?('🕊 באוויר… '+st.fallT.toFixed(2)+' ש'):'זרקו בעדינות וקלטו — מעל משטח רך',
+      simText(ctx,st.inFall?('🕊 באוויר… '+st.fallT.toFixed(2)+' s'):'זרקו בעדינות וקלטו — מעל משטח רך',
         vx+vw/2,vy+vh/2,st.inFall?gd:mu,13,'center',true);
     } else {
       var P=st.cap.p,d=st.cap.dur,i,vmin=1e9,vmax=-1e9;
@@ -31785,9 +31859,11 @@ var SL_IMPL={
       slTxt(ctx,'מעוף חופשי',(X(st.cap.fs)+X(st.cap.fe))/2,vy+13,gr,9.5,'center',true);
       // value gridlines
       var stp=slNiceStep((vmax-vmin)/3.2),k0=Math.ceil(vmin/stp);
-      ctx.save();ctx.strokeStyle=slCss('--border','#2a3d55');ctx.globalAlpha=.35;
+      ctx.save();ctx.strokeStyle=slCss('--border','#2a3d55');
       for(var k=k0;k*stp<=vmax;k++){var gy=Y(k*stp);
+        ctx.globalAlpha=k?.35:.8;   // the zero line is the one the apex sits on
         ctx.beginPath();ctx.moveTo(vx,gy);ctx.lineTo(vx+vw,gy);ctx.stroke();
+        ctx.globalAlpha=1;          // the value itself at full strength
         slTxt(ctx,slFmt(k*stp,stp),vx-4,gy+3,mu,8,'right');}
       ctx.restore();
       var ts=slNiceStep(d/3.2);
@@ -31821,9 +31897,9 @@ var SL_IMPL={
         ctx.save();ctx.strokeStyle=gd;ctx.lineWidth=1.5;ctx.globalAlpha=.85;
         ctx.beginPath();ctx.moveTo(mx,vy+1);ctx.lineTo(mx,vy+vh-1);ctx.stroke();ctx.restore();
         ctx.fillStyle=gd;ctx.beginPath();ctx.arc(mx,vy+vh-7,7,0,6.2832);ctx.fill();
-        slTxt(ctx,mk[1],mx,vy+vh-4,'#7d8da6',9,'center',true);
+        slTxt(ctx,mk[1],mx,vy+vh-4,slCss('--bg','#07101f'),9,'center',true);
       });
-      slTxt(ctx,'v (m/s, מטה)',vx+4,vy-3,c1,9.5,'left',true);
+      slTxt(ctx,'v  (m/s)   מטה חיובי',vx+4,vy-3,c1,9.5,'left',true);
     }
     // readout
     var s2=SL_IMPL['freefall-toss'].slope(st);
@@ -31841,15 +31917,19 @@ var SL_IMPL={
 // weight. A lift ride shows all three phases, and the middle one -- constant
 // velocity, reading back to exactly g -- is the whole point.
 'lift-ride':{
+  resume:function(st){if(st.ph==='run'){st.ph='ready';st.rec=[];st.v=0;st.ap=0;st.quiet=0;}st.pre=[];},
   init:function(st){st.tr=slTrace(400);st.h={v:.3};st.reset(st);},
   reset:function(st){if(st.tr)st.tr.clear();
     st.ph='cal';st.calN=0;st.calS=[0,0,0];st.g0=0;st.u=null;
-    st.a=0;st.v=0;st.ap=0;st.run=0;st.quiet=0;st.rec=[];st.cap=null;st.pre=[];},
+    st.a=0;st.af=0;st.lf=0;st.v=0;st.ap=0;st.run=0;st.quiet=0;st.rec=[];st.cap=null;st.pre=[];},
   clear:function(st){st.cap=null;st.rec=[];st.run=0;},
   sample:function(s,st){
     var A=[s.gx,s.gy,s.gz],i;
     if(st.ph==='cal'){
-      if(Math.hypot(s.ax,s.ay,s.az)>0.25){st.calN=0;st.calS=[0,0,0];return;}
+      // still enough is judged on a 0.15 s average too: a hand's tremor kept
+      // resetting a sample-by-sample test, and its mean is zero anyway
+      st.lf=(st.lf||0)+Math.min(1,s.dt/0.15)*(Math.hypot(s.ax,s.ay,s.az)-(st.lf||0));
+      if(st.lf>0.25){st.calN=0;st.calS=[0,0,0];return;}
       st.calN++;for(i=0;i<3;i++)st.calS[i]+=A[i];
       if(st.calN>=50){
         var u=[st.calS[0]/st.calN,st.calS[1]/st.calN,st.calS[2]/st.calN];
@@ -31864,8 +31944,14 @@ var SL_IMPL={
     // line; the plot re-adds the 1 on its labels (opt.offset) so the numbers
     // still read as T/mg.
     st.tr.push(st.tw-1);
+    // A hand is never still: its tremor alone shakes a held phone by a few
+    // tenths of a m/s², which started 'rides' at random and kept a real one
+    // from ever reading quiet enough to end. A lift's own acceleration builds
+    // over half a second or more, so the start and the end are judged on a
+    // 0.15 s average; the integral still takes every sample as it came.
+    var kf=Math.min(1,s.dt/0.15);st.af+=kf*(st.a-st.af);
     if(st.ph==='ready'){
-      if(Math.abs(st.a)>0.15){
+      if(Math.abs(st.af)>0.15){
         st.ph='run';st.quiet=0;st.v=0;st.rec=st.pre.slice();st.pre=[];
         st.ap=st.rec.length?st.rec[0][1]:st.a;
         for(var q=0;q<st.rec.length;q++){st.v+=(st.ap+st.rec[q][1])/2*st.rec[q][0];st.ap=st.rec[q][1];}
@@ -31878,7 +31964,7 @@ var SL_IMPL={
     // lesson -- so acceleration alone cannot say the ride is over, and waiting
     // on it cut every journey in half at the coast. A stopped lift is the one
     // with no acceleration AND no speed left in the integral.
-    st.quiet=(Math.abs(st.a)<0.08&&Math.abs(st.v)<0.08)?st.quiet+s.dt:0;
+    st.quiet=(Math.abs(st.af)<0.08&&Math.abs(st.v)<0.08)?st.quiet+s.dt:0;
     if((st.quiet>1.2&&st.rec.length>40)||st.rec.length>3500)
       SL_IMPL['lift-ride'].finish(st);},
   finish:function(st){
@@ -31891,8 +31977,18 @@ var SL_IMPL={
       var a=r[i][1]-b,dt=r[i][0],vp=v2;
       v2+=(ap2+a)/2*dt;ap2=a;h2+=(vp+v2)/2*dt;t+=dt;
       P.push({t:t,a:a,v:v2,h:h2});
-      if(first<0&&Math.abs(a)>0.08)first=P.length-1;
-      if(a>amx)amx=a; if(a<amn)amn=a; if(Math.abs(v2)>Math.abs(vmx))vmx=v2;}
+      if(Math.abs(v2)>Math.abs(vmx))vmx=v2;}
+    // The heaviest and lightest moments are read off a 0.3 s running mean:
+    // the extremes of the raw samples were the lift's acceleration PLUS the
+    // largest twitch of the hand, and overstated both by its tremor.
+    var j0=0,j1=0,sum=0,sm=[];
+    for(i=0;i<P.length;i++){
+      while(j1<P.length&&P[j1].t<=P[i].t+0.15){sum+=P[j1].a;j1++;}
+      while(P[j0].t<P[i].t-0.15){sum-=P[j0].a;j0++;}
+      sm.push(sum/(j1-j0));}
+    for(i=0;i<P.length;i++){P[i].a=sm[i];
+      if(first<0&&Math.abs(sm[i])>0.08)first=i;
+      if(sm[i]>amx)amx=sm[i]; if(sm[i]<amn)amn=sm[i];}
     P=slTrimHead(P,first,0.2,['h']);  // the 0.8 s pre-buffer is mostly stillness
     h2=P[P.length-1].h; t=P[P.length-1].t;
     st.cap={p:P,dur:t||1,amx:amx,amn:amn,vmx:vmx,h:h2,drift:v,
@@ -31915,7 +32011,7 @@ var SL_IMPL={
       return;}
     var hp=Math.round(H*0.26);
     slPlot(ctx,8,6,W-16,hp,[{tr:st.tr,c:c1}],
-      {title:'T / mg   משקל מדומה',floor:.3,hold:st.h,offset:1});
+      {title:'T / mg',sub:'משקל מדומה',floor:.3,hold:st.h,offset:1});
     var C=st.cap;
     // two quantities share this frame, so each gets its own axis: height on the
     // left, velocity on the right. Without the right-hand scale the dashed curve
@@ -31982,10 +32078,12 @@ var SL_IMPL={
     } else simText(ctx,'החזיקו שטוח על כף היד ואל תזיזו אותה',W/2,y,mu,11,'center');}},
 
 // Energy conservation with every parameter cancelled out: at the bottom of a
-// swing a_r = g + v^2/L, and v^2 = 2gL(1-cos th0) turns that into a_r/g =
+// swing the string pulls with T/m = g + v^2/L -- which is what the
+// accelerometer reads along it -- and v^2 = 2gL(1-cos th0) turns that into T/mg =
 // 3 - 2cos(th0). No mass, no length, no timing -- only the release angle, which
 // the gyroscope supplies by integrating the rate from release to the bottom.
 'swing-energy':{
+  resume:function(st){st.inSw=false;st.still=false;st.pre=0;},
   init:function(st){st.tr=slTrace(240);st.h={v:1};st.pts=[];st.reset(st);},
   reset:function(st){if(st.tr)st.tr.clear();
     st.ph='cal';st.calN=0;st.calS=[0,0,0];st.g0=0;st.u=null;
@@ -31999,8 +32097,12 @@ var SL_IMPL={
     if(w>st.gyro)st.gyro=w;                      // is there a gyroscope at all?
     if(st.ph==='cal'){
       // hanging still: the string direction in the phone's frame is wherever
-      // the accelerometer points, and it stays that way as the phone swings
-      if(Math.hypot(s.ax,s.ay,s.az)>0.4||w>0.25){st.calN=0;st.calS=[0,0,0];return;}
+      // the accelerometer points, and it stays that way as the phone swings.
+      // A bag that slowly twists on its string is still hanging still -- the
+      // twist turns the phone ABOUT that direction -- so only the
+      // accelerometer decides; waiting for the gyroscope to read zero never
+      // ended for a string that was unwinding.
+      if(Math.hypot(s.ax,s.ay,s.az)>0.4){st.calN=0;st.calS=[0,0,0];return;}
       st.calN++;for(i=0;i<3;i++)st.calS[i]+=A[i];
       if(st.calN>=50){
         var u=[st.calS[0]/st.calN,st.calS[1]/st.calN,st.calS[2]/st.calN];
@@ -32008,6 +32110,15 @@ var SL_IMPL={
         st.u=[u[0]/st.g0,u[1]/st.g0,u[2]/st.g0];st.ph='run';}
       return;}
     var Au=A[0]*st.u[0]+A[1]*st.u[1]+A[2]*st.u[2];
+    // The swing turns the phone about a horizontal axis, square to the string;
+    // a twist of the bag turns it about the string itself. Only the first is
+    // the pendulum. Counting both (|ω|) overstated the rate, and a bag that
+    // twisted at a few tens of °/s never came below the turning-point bar, so
+    // not one half swing was recorded. Remove the part along the string.
+    // (rotationRate: beta about x, gamma about y, alpha about z.)
+    var wx=s.rb*Math.PI/180,wy=s.rg*Math.PI/180,wz=s.ra*Math.PI/180,
+        wu=wx*st.u[0]+wy*st.u[1]+wz*st.u[2];
+    w=Math.hypot(wx-wu*st.u[0],wy-wu*st.u[1],wz-wu*st.u[2]);
     st.w=w;st.ar=Au/st.g0;st.tr.push(st.ar);
     // Every half swing starts at a turning point, where the phone really is
     // momentarily at rest -- so each of them is a release, and the natural
@@ -32075,7 +32186,7 @@ var SL_IMPL={
       simText(ctx,'הכיול קובע את כיוון החוט במערכת הצירים של הטלפון',W/2,H/2+16,mu,11.5,'center');
       return;}
     var hp=Math.round(H*0.24);
-    slPlot(ctx,8,6,W-16,hp,[{tr:st.tr,c:c1}],{title:'a_r / g   לאורך החוט',floor:.5,hold:st.h,positive:true});
+    slPlot(ctx,8,6,W-16,hp,[{tr:st.tr,c:c1}],{title:'T / mg',floor:.5,hold:st.h,positive:true});
     // ── the prediction curve, with the measurements on top of it ──
     var px=44,py=hp+26,pw=W-58,ph2=H-py-52;
     var TH=80,RM=3-2*Math.cos(TH*Math.PI/180);
@@ -32101,7 +32212,7 @@ var SL_IMPL={
       ctx.fillStyle=(i===st.pts.length-1)?gd:c1;
       ctx.beginPath();ctx.arc(X(d),Y(q.r),(i===st.pts.length-1)?5:3.5,0,6.2832);ctx.fill();});
     ctx.restore();
-    slTxt(ctx,'a_r / g',px+4,py-4,tx,9.5,'left',true);
+    slTxt(ctx,'T / mg',px+4,py-4,tx,9.5,'left',true);
     // the axis name goes UNDER the axis it names; the legend had been sitting on
     // top of it in the same corner
     slTxt(ctx,'θ₀',px+pw-2,py+ph2+11,tx,9.5,'left',true);
@@ -32180,7 +32291,7 @@ var SL_IMPL={
     var f=Math.max(0.03,Math.min(0.97,V.f));
     var ang=Math.max(-0.42,Math.min(0.42,st.th*Math.PI/180*3));
     ctx.save();ctx.translate(cx,cy);ctx.rotate(ang);
-    ctx.fillStyle=slCss('--card','#16202e');ctx.strokeStyle=bd;ctx.lineWidth=1.5;
+    ctx.fillStyle=slCss('--panel2','#162236');ctx.strokeStyle=bd;ctx.lineWidth=1.5;
     var x0=-f*Ls;
     ctx.beginPath();ctx.rect(x0,-T,Ls,T);ctx.fill();ctx.stroke();
     ctx.fillStyle=c1;ctx.globalAlpha=.20;ctx.fillRect(x0,-T,Ls,T);ctx.globalAlpha=1;
@@ -32200,7 +32311,7 @@ var SL_IMPL={
     // be crossed by the x_cm marker exactly when the two agree. The strip below
     // carries the wording.
     slTxt(ctx,'L/2',cx+(0.5-f)*Ls,cy-T-14,mu,8.5,'center');
-    if(M2)slTxt(ctx,'x(cm)',cx+(M2.f-f)*Ls,cy-T-30,gd,9.5,'center',true);
+    if(M2)slTxtSub(ctx,'x_cm',cx+(M2.f-f)*Ls,cy-T-30,gd,10,'center',true);
     // the pencil
     ctx.fillStyle=gd;ctx.beginPath();
     ctx.moveTo(cx,cy+1);ctx.lineTo(cx-9,cy+16);ctx.lineTo(cx+9,cy+16);ctx.closePath();ctx.fill();
@@ -32241,32 +32352,33 @@ var SL_IMPL={
       // the same result in centimetres beside the centre of a uniform slab --
       // whether those two differ is the entire point of the measurement
       var xcm=M2.f*V.L,dev=(M2.f-0.5)*V.L;
-      slTxt(ctx,'x(cm) = '+xcm.toFixed(2)+' cm     L/2 = '+(V.L/2).toFixed(2)+' cm',
+      slTxtSub(ctx,'x_cm = '+xcm.toFixed(2)+' cm     L/2 = '+(V.L/2).toFixed(2)+' cm',
         W/2,sy+sh+42,tx,11,'center',true);
       simText(ctx,Math.abs(dev)<0.15
         ? 'מרכז המסה יצא בערך במרכז הגאומטרי — הטלפון קרוב לגוף אחיד לאורכו'
-        : ('מרכז המסה מוסט ב-'+Math.abs(dev).toFixed(2)+' ס״מ מהמרכז — הטלפון אינו אחיד'),
+        : ('מרכז המסה רחוק '+Math.abs(dev).toFixed(2)+' cm מהאמצע — הטלפון אינו אחיד'),
         W/2,sy+sh+60,mu,10.5,'center');}
     // ── status ──
     var y=H-10;
     if(!st.win.length)simText(ctx,'לחצו ▶ והשעינו את הטלפון על העיפרון',W/2,y,mu,12,'center',true);
     else if(!st.up)simText(ctx,'⚠ הטלפון הפוך — הניחו אותו כשהמסך כלפי מעלה',W/2,y,rd,11.5,'center',true);
     else if(st.ok&&st.sd<0.03)
-      simText(ctx,'מאוזן — אך ללא ריצוד כלל. ודאו שהוא נשען על העיפרון ולא על השולחן',W/2,y,gd,11,'center',true);
-    else if(st.ok)simText(ctx,'✓ מאוזן ויציב — מדדו בסרגל, כווננו את המחוון ולחצו ״רשום״',W/2,y,gr,11.5,'center',true);
+      simText(ctx,'✓ מאוזן ושקט לגמרי — ודאו שהוא נשען רק על העיפרון, ורשמו',W/2,y,gr,11,'center',true);
+    else if(st.ok)simText(ctx,'✓ מאוזן ויציב — מדדו בסרגל, כווננו את המחוון ולחצו ״רשמו״',W/2,y,gr,11.5,'center',true);
     else if(Math.abs(st.mean)>=1.5)
-      simText(ctx,'צד אחד צונח — הזיזו את הטלפון על העיפרון לכיוון הצד היורד',W/2,y,gd,11.5,'center',true);
+      simText(ctx,'צד אחד צונח — מרכז המסה בצד הזה: הזיזו את הטלפון מעט לכיוון הצד הגבוה',W/2,y,gd,11,'center',true);
     else simText(ctx,'כמעט — המתינו שהתנודות ידעכו',W/2,y,gd,11.5,'center',true);}},
 
 // The angle at which it lets go IS the coefficient: mu_s = tan(theta).
 // mu_k straight off the reading: on the level, the horizontal part of proper
 // acceleration during a free slide is mu_k*g and nothing else.
 'slide-mu':{
+  resume:function(st){st.run=0;st.sum=0;st.cnt=0;st.muPrev=undefined;st.dir=null;st.rest=0;},
   init:function(st){st.tr=slTrace(240);st.h={v:.6};st.pts=[];st.reset(st);},
   reset:function(st){if(st.tr)st.tr.clear();
     st.ph='cal';st.calN=0;st.calS=[0,0,0];st.g0=0;st.u=null;
     st.mu=0;st.run=0;st.sum=0;st.cnt=0;st.flatOK=true;
-    st.muPrev=undefined;st.auF=undefined;st.tiltMu=0;},
+    st.muPrev=undefined;st.auF=undefined;st.tiltMu=0;st.dir=null;st.rest=0;},
   clear:function(st){st.pts=[];},
   sample:function(s,st){
     var A=[s.gx,s.gy,s.gz],i;
@@ -32292,9 +32404,25 @@ var SL_IMPL={
     var cs=Math.min(1,Math.abs(st.auF)/st.g0);
     st.tiltMu=Math.sqrt(Math.max(0,1-cs*cs));
     st.flatOK=st.tiltMu<0.06;
-    // a free slide is a steady horizontal reading in a plausible band; a hand
-    // pushing gives a much larger and far more erratic one
-    var ok=st.flatOK&&st.mu>0.03&&st.mu<1.2&&Math.abs(st.mu-(st.muPrev||st.mu))<0.05;
+    // Which way is the push? While the hand pushes, the reading points along
+    // the push; once it lets go, the only horizontal force left is friction,
+    // which points AGAINST the motion -- so a free slide reads the opposite way
+    // to the push that started it. Without this, a hand pushing steadily was
+    // indistinguishable from friction and was recorded as a mu_k. The push
+    // direction is the first clear horizontal reading after a rest; a phone
+    // that turns while it slides carries it round by the gyroscope's turn
+    // about the vertical (a world-fixed direction turns the other way in the
+    // phone's frame). A rest of 0.3 s ends the trial.
+    if(st.mu<0.05){st.rest+=s.dt;if(st.rest>0.3)st.dir=null;}
+    else{st.rest=0;if(!st.dir&&st.mu>0.15)st.dir=[hx/ah,hy/ah,hz/ah];}
+    if(st.dir&&s.gyro){
+      var u=st.u,wu=(s.rb*u[0]+s.rg*u[1]+s.ra*u[2])*Math.PI/180,ph=-wu*s.dt,c=Math.cos(ph),sn=Math.sin(ph),d=st.dir;
+      var cx=u[1]*d[2]-u[2]*d[1],cy=u[2]*d[0]-u[0]*d[2],cz=u[0]*d[1]-u[1]*d[0];
+      st.dir=[d[0]*c+cx*sn,d[1]*c+cy*sn,d[2]*c+cz*sn];}
+    var against=!!st.dir&&ah>0&&(hx*st.dir[0]+hy*st.dir[1]+hz*st.dir[2])/ah<-0.7;
+    // a free slide is a steady horizontal reading in a plausible band, pointing
+    // against the push; a hand pushing gives a larger, erratic one along it
+    var ok=st.flatOK&&against&&st.mu>0.03&&st.mu<1.2&&Math.abs(st.mu-(st.muPrev||st.mu))<0.05;
     st.muPrev=st.muPrev===undefined?st.mu:st.muPrev+(st.mu-st.muPrev)*0.25;
     if(ok){st.run+=s.dt;st.sum+=st.mu;st.cnt++;}
     else{
@@ -32315,10 +32443,10 @@ var SL_IMPL={
       simText(ctx,'⏳ מכייל בשקט ('+Math.round(st.calN/50*100)+'%) — הניחו ואל תזיזו',W/2,H/2-8,gd,13,'center',true);
       simText(ctx,'הכיול קובע איפה ״מעלה״ ומהו g',W/2,H/2+16,mu,11.5,'center');return;}
     var hp=Math.round(H*0.42);
-    slPlot(ctx,8,6,W-16,hp,[{tr:st.tr,c:c1}],{title:'רכיב אופקי / g  =  μ',floor:.4,hold:st.h,positive:true});
+    slPlot(ctx,8,6,W-16,hp,[{tr:st.tr,c:c1}],{title:'μ',sub:'הרכיב האופקי של הקריאה, חלקי g',floor:.4,hold:st.h,positive:true});
     if(st.run>0.05){
       ctx.save();ctx.fillStyle='rgba(16,185,129,.12)';ctx.fillRect(W-90,8,80,hp-10);ctx.restore();
-      slTxt(ctx,'מחליק',W-50,22,gr,10,'center',true);}
+      slTxt(ctx,'מחליק',W-50,8+hp/2,gr,10,'center',true);}
     // the recorded slides, as bars
     var by=hp+22,bh=H-hp-72;
     if(st.pts.length){
@@ -32342,6 +32470,7 @@ var SL_IMPL={
 // Same drop, different softness: delta-v is fixed, the time is not, so the
 // force is not either. This is the airbag, stated as a measurement.
 'impulse-land':{
+  resume:function(st){st.inFall=false;st.fallT=0;st.inHit=false;},
   init:function(st){st.tr=slTrace(260);st.h={v:20};st.pts=[];st.reset(st);},
   reset:function(st){if(st.tr)st.tr.clear();
     st.ph='cal';st.calN=0;st.calS=[0,0,0];st.g0=0;st.u=null;
@@ -32357,8 +32486,12 @@ var SL_IMPL={
         st.g0=Math.hypot(u[0],u[1],u[2])||9.81;
         st.u=[u[0]/st.g0,u[1]/st.g0,u[2]/st.g0];st.ph='run';}
       return;}
-    var Au=A[0]*st.u[0]+A[1]*st.u[1]+A[2]*st.u[2];
-    var aUp=Au-st.g0;                      // upward acceleration of the phone
+    // The phone's upward acceleration is (cushion force)/m − g, and the cushion
+    // pushes up, so it is |reading| − g. Projecting the reading on the 'up'
+    // found at calibration assumed the phone fell without turning; a drop that
+    // tumbled by 40° lost a quarter of its Δv that way. The magnitude does not
+    // care how the phone lands.
+    var aUp=mag-st.g0;
     st.cur=mag;st.tr.push(mag);
     if(!st.inHit){
       if(mag<2.5){ if(!st.inFall){st.inFall=true;st.fallT=0;} st.fallT+=s.dt; }
@@ -32380,7 +32513,8 @@ var SL_IMPL={
         st.inHit=false;
         var dur=Math.max(0,st.hitT-st.settle);
         if(dur>0.02&&st.hitI>0.3){
-          var rec={dv:st.hitI,dt:dur,ag:(st.hitI/dur)/st.g0,
+          var pm=document.getElementById('sl-pm'),m=pm?parseFloat(pm.value):0.2;
+          var rec={dv:st.hitI,dt:dur,ag:(st.hitI/dur)/st.g0,m:m,dp:m*st.hitI,F:m*st.hitI/dur,
                    pk:st.pk/st.g0,vf:st.g0*st.Tf};   // released from rest: v = gT
           st.last=rec;st.pts.push(rec);if(st.pts.length>6)st.pts.shift();}
         st.fallT=0;
@@ -32388,9 +32522,9 @@ var SL_IMPL={
     }},
   chips:function(st){
     var r=st.last;
-    slSet('slv-dv',r?r.dv.toFixed(2):'—');
+    slSet('slv-dp',r?r.dp.toFixed(3):'—');
     slSet('slv-dt',r?r.dt.toFixed(3):'—');
-    slSet('slv-ag',r?r.ag.toFixed(1):'—');
+    slSet('slv-F',r?r.F.toFixed(1):'—');
     slSet('slv-n',String(st.pts.length));},
   draw:function(ctx,W,H,st){
     var c1=slCss('--accent','#3b82f6'),mu=slCss('--muted','#889'),tx=slCss('--text','#dde'),
@@ -32399,66 +32533,80 @@ var SL_IMPL={
       simText(ctx,'⏳ מכייל בשקט ('+Math.round(st.calN/50*100)+'%) — הניחו ואל תזיזו',W/2,H/2-8,gd,13,'center',true);
       return;}
     var hp=Math.round(H*0.30);
-    slPlot(ctx,8,6,W-16,hp,[{tr:st.tr,c:c1}],{title:'|a|  (m/s²)  — 0 בנפילה, שיא בנחיתה',floor:20,hold:st.h,positive:true});
-    // one column per landing: force above, duration below, delta-v on top
+    slPlot(ctx,8,6,W-16,hp,[{tr:st.tr,c:c1}],{title:'|a|  (m/s²)',sub:'אפס בנפילה, שיא בנחיתה',floor:20,hold:st.h,positive:true});
+    // one column per landing: the average net force, its duration under it,
+    // and the change in momentum -- the same every time -- under that
     var by=hp+30,bh=H-hp-96;
     if(st.pts.length){
-      var mx=Math.max.apply(null,st.pts.map(function(r){return r.ag;}).concat([2]))*1.2;
+      var mx=Math.max.apply(null,st.pts.map(function(r){return r.F;}).concat([1]))*1.2;
       var bw=Math.min(46,(W-44)/st.pts.length-10);
       st.pts.forEach(function(r,i){
-        var x=24+i*(bw+10),h2=bh*(r.ag/mx);
+        var x=24+i*(bw+10),h2=bh*(r.F/mx);
         ctx.fillStyle=i===st.pts.length-1?gd:c1;ctx.globalAlpha=.82;
         ctx.fillRect(x,by+bh-h2,bw,h2);ctx.globalAlpha=1;
-        slTxt(ctx,r.ag.toFixed(1)+'g',x+bw/2,by+bh-h2-5,tx,9.5,'center',true);
-        slTxt(ctx,(r.dt*1000).toFixed(0)+'ms',x+bw/2,by+bh+12,mu,9,'center');
-        slTxt(ctx,'Δv '+r.dv.toFixed(1),x+bw/2,by+bh+24,gr,8.5,'center');});
-      slTxt(ctx,'תאוצה ממוצעת בנחיתה',W-14,by-6,mu,9.5,'right');
+        slTxt(ctx,r.F.toFixed(1)+' N',x+bw/2,by+bh-h2-5,tx,9.5,'center',true);
+        slTxt(ctx,(r.dt*1000).toFixed(0)+' ms',x+bw/2,by+bh+12,mu,9,'center');
+        slTxt(ctx,'Δp '+r.dp.toFixed(2),x+bw/2,by+bh+24,gr,8.5,'center');});
+      slTxt(ctx,'הכוח השקול הממוצע בנחיתה',W-14,by-6,mu,9.5,'right');
     } else simText(ctx,'הפילו מגובה קבוע על משטח רך',W/2,by+bh/2,mu,12,'center',true);
     var r2=st.last;
     if(r2){
-      slTxt(ctx,'Δv = '+r2.dv.toFixed(2)+' m/s     Δt = '+(r2.dt*1000).toFixed(0)+
-        ' ms     שיא '+r2.pk.toFixed(1)+'g',W/2,H-28,tx,11.5,'center',true);
+      slTxt(ctx,'Δp = '+r2.dp.toFixed(3)+' kg·m/s    Δt = '+(r2.dt*1000).toFixed(0)+
+        ' ms    F̄ = '+r2.F.toFixed(1)+' N',W/2,H-28,tx,11.5,'center',true);
       var agree=r2.vf>0.2&&Math.abs(r2.dv-r2.vf)/r2.vf<0.3;
-      simText(ctx,agree?('✓ מסכים עם v = gT מזמן הנפילה ('+r2.vf.toFixed(2)+' m/s)')
+      simText(ctx,agree?('✓ Δv = '+r2.dv.toFixed(2)+' m/s מסכים עם v = gT מזמן הנפילה ('+r2.vf.toFixed(2)+' m/s)')
                       :'נסו נפילה נקייה יותר — שחררו בלי לדחוף',
         W/2,H-9,agree?gr:gd,11,'center',true);
     } else simText(ctx,'אותו גובה, משטחים ברכות שונה — והשוו את העמודות',W/2,H-12,mu,11,'center');}},
 
 'slip-angle':{
+  resume:function(st){st.quiet=0;st.inB=false;},
   init:function(st){st.tr=slTrace(240);st.h={v:1};st.pts=[];st.reset(st);},
   reset:function(st){if(st.tr)st.tr.clear();st.th=0;st.slip=0;st.hold=0;st.quiet=0;
-    st.thMin=0;st.algn=0;},
+    st.thMin=0;st.thQ=0;st.inB=false;st.bq=0;st.bt=0;st.dnT=0;st.dnN=0;st.dnS=0;st.fired=false;
+    st.tt=0;st.qh=[];},
   clear:function(st){st.pts=[];st.slip=0;},
   sample:function(s,st){
     var g=Math.hypot(s.gx,s.gy,s.gz)||9.81;
-    st.th=Math.acos(Math.min(1,Math.abs(s.gz)/g));          // tilt of the board
+    var th=Math.acos(Math.min(1,Math.abs(s.gz)/g));          // tilt of the board
     var lin=Math.hypot(s.ax,s.ay,s.az);
     st.tr.push(lin);
-    // The board must have been RAISED for this attempt. A knock on the table
-    // also gives a burst after a quiet stretch, and without this it was accepted
-    // as a slip and recorded at whatever angle the board happened to rest at.
-    // Testing "rising right now" was wrong: it lost the slip of anyone who paused
-    // at the angle before the block let go. Measure the rise instead -- from the
-    // lowest tilt seen since the last slip, which re-bases every time the board
-    // is lowered, so each trial needs its own lift and a bump at a standing tilt
-    // (where the board never came down and back up) still counts for nothing.
-    if(st.th<st.thMin)st.thMin=st.th;
-    // ...and the burst must point DOWN THE SLOPE, which is where a slipping
-    // phone accelerates and where a knock on the table has no reason to point.
+    // A slip is a SUSTAINED acceleration DOWN THE SLOPE after a still stretch.
     // At rest the in-plane part of the reading is -g*sin(theta) along the slope,
-    // so down-slope is the direction opposite to it.
-    var dn=Math.hypot(s.gx,s.gy),an=Math.hypot(s.ax,s.ay);
-    st.algn=(dn>0.3&&an>0.2)?-(s.ax*s.gx+s.ay*s.gy)/(dn*an):0;
-    if(lin<0.35){st.quiet+=s.dt;} else {
-      if(st.quiet>0.5&&lin>1.2&&st.th>0.08&&st.hold<=0&&st.th-st.thMin>0.05&&st.algn>0.5){
-        // one reading per slide: the burst lasts a fraction of a second, and the
-        // 0.5 s of stillness required beforehand already prevents re-triggering
-        // within the same slip, so a long lockout would only block the next trial
-        st.slip=st.th;st.hold=0.8;st.thMin=st.th;
-        st.pts.push([st.th*180/Math.PI,Math.tan(st.th)]);
+    // so down-slope is the direction opposite to it; a knock on the table has
+    // no reason to point that way, nor to last. The bar used to be a single
+    // sample above 1.2 m/s², but a phone that lets go slides off at
+    // a = g(sin θ − μk cos θ), typically 0.5–1 m/s², and its onset can take a
+    // sample or two: most real slips were never seen.
+    var dn=Math.hypot(s.gx,s.gy),ad=dn>0.3?-(s.ax*s.gx+s.ay*s.gy)/dn:0;
+    st.tt+=s.dt;
+    if(lin<0.35){
+      // The angle is read only while the phone is still. Once it slides, the
+      // reading carries the slip acceleration too and the same formula says
+      // ~14° for a phone that let go at 25°.
+      st.th=th;st.qh.push([st.tt,th]);
+      while(st.qh.length>2&&st.qh[0][0]<st.tt-0.5)st.qh.shift();
+      // The board must have been RAISED for this attempt: the rise is measured
+      // from the lowest still tilt since the last slip, which re-bases whenever
+      // the board is lowered, so a bump at a standing tilt counts for nothing.
+      if(th<st.thMin)st.thMin=th;
+      st.quiet+=s.dt;st.inB=false;
+    } else {
+      if(!st.inB){st.inB=true;st.bq=st.quiet;st.bt=0;st.dnT=0;st.dnN=0;st.dnS=0;st.fired=false;
+        // and not the very last still sample either: the first few hundredths
+        // of a second of a slip are still below the stillness bar, and already
+        // pull the angle down. Take it from 60 ms before the burst.
+        st.thQ=st.qh.length?st.qh[st.qh.length-1][1]:th;
+        for(var q=st.qh.length-1;q>=0;q--)if(st.qh[q][0]<=st.tt-s.dt-0.06){st.thQ=st.qh[q][1];break;}}
+      st.quiet=0;st.bt+=s.dt;
+      if(ad>0.35){st.dnT+=s.dt;st.dnN++;st.dnS+=ad;}else{st.dnT=0;st.dnN=0;st.dnS=0;}
+      if(!st.fired&&st.bq>0.5&&st.bt<0.4&&st.dnN>=3&&st.dnT>=0.045&&st.dnS/st.dnN>0.5&&
+         st.thQ>0.08&&st.hold<=0&&st.thQ-st.thMin>0.05){
+        // one reading per slide, at the angle of the last still moment before it
+        st.fired=true;st.slip=st.thQ;st.hold=0.8;st.thMin=st.thQ;
+        st.pts.push([st.thQ*180/Math.PI,Math.tan(st.thQ)]);
         if(st.pts.length>12)st.pts.shift();
       }
-      st.quiet=0;
     }
     if(st.hold>0)st.hold-=s.dt;},
   chips:function(st){
@@ -32470,7 +32618,7 @@ var SL_IMPL={
     var c1=slCss('--accent','#3b82f6'),mu=slCss('--muted','#889'),tx=slCss('--text','#dde'),
         gr=slCss('--green','#10b981'),gd=slCss('--gold','#f59e0b'),rd=slCss('--red','#ef4444');
     var hp=Math.round(H*0.30);
-    slPlot(ctx,8,6,W-16,hp,[{tr:st.tr,c:c1}],{title:'|a| ללא כובד  (m/s²)  — קפיצה = החלקה',floor:1,hold:st.h,positive:true});
+    slPlot(ctx,8,6,W-16,hp,[{tr:st.tr,c:c1}],{title:'|a|  (m/s²)',sub:'ללא כובד — קפיצה היא החלקה',floor:1,hold:st.h,positive:true});
     // the board, drawn at the measured tilt
     var th=st.th||0,BX=W*0.12,BY=H-64,RL=W*0.62;
     ctx.save();ctx.strokeStyle=mu;ctx.lineWidth=3;
@@ -32498,57 +32646,74 @@ var SL_IMPL={
 
 'tilt-components':{
   init:function(st){st.reset(st);},
-  reset:function(st){st.th=0;st.gp=9.81;st.gx=0;st.gy=0;st.gm=0;st.res=0;},
+  reset:function(st){st.th=0;st.gp=9.81;st.gx=0;st.gy=0;st.gm=0;st.gz=0;st.dc=[0,1];st.flat=false;},
   sample:function(s,st){
     var gx=s.Gx,gy=s.Gy,gp=Math.hypot(gx,gy);
     st.gp=gp;
-    // The accelerometer reading points OPPOSITE to gravity, so gravity in the
-    // phone's own frame is -G. Taking the full-range angle of that direction
-    // (not atan2 of an absolute value, which folds at the vertical) gives the
-    // phone's true attitude through every orientation, upside-down included.
-    st.al=Math.atan2(-gx,-gy);
+    // The canvas IS the phone's screen: its x is the phone's x, its y the
+    // phone's y turned downward. The reading points opposite to gravity, so
+    // gravity on the screen is (−Gx, +Gy) -- straight down while the phone is
+    // upright, and still toward the floor however the phone is turned. So the
+    // picture is a plumb line: the arrow keeps pointing down, the screen's
+    // edges (the phone's axes) turn with the phone. (The picture used to turn
+    // the phone outline instead, by an angle that drew an upright phone upside
+    // down, with gravity glued to the screen's own bottom edge.)
+    st.dc=gp>1e-6?[-gx/gp,gy/gp]:[0,1];
     st.flat=gp<1.5;                    // lying flat: the in-plane angle is meaningless
     st.gx=Math.abs(gx);st.gy=Math.abs(gy);          // components along the phone's own axes
     st.th=Math.atan2(st.gx,st.gy||1e-9);            // tilt from the phone's y axis, 0..90
-    st.gm=Math.hypot(s.Gx,s.Gy,s.Gz);
-    st.res=Math.hypot(st.gx,st.gy)-gp;},
+    st.gm=Math.hypot(s.Gx,s.Gy,s.Gz);st.gz=s.Gz;},
   chips:function(st){
     slSet('slv-th',(st.th*180/Math.PI).toFixed(1));slSet('slv-gx',(st.gx||0).toFixed(2));
-    slSet('slv-gy',(st.gy||0).toFixed(2));slSet('slv-rs',((st.gm||0)-9.81).toFixed(3));},
+    slSet('slv-gy',(st.gy||0).toFixed(2));slSet('slv-rs',(st.gp||0).toFixed(2));},
   draw:function(ctx,W,H,st){
-    var cx=W/2,cy=H/2-8,ph=Math.min(W*0.17,52),pv=ph*1.9,th=st.th||0,al=st.al||0;
-    var c1=slCss('--accent','#3b82f6'),c2=slCss('--green','#10b981'),c3=slCss('--red','#ef4444'),mu=slCss('--muted','#889');
+    // The motion axes belong to the device, the picture to the screen. Tilted
+    // past 45° a phone turns its page to landscape, and the picture must turn
+    // back with it or g is drawn a quarter turn off. So the portrait picture
+    // is drawn rotated by the screen's own angle.
+    var ang=slScreenAngle()*Math.PI/180,turned=Math.abs(Math.sin(ang))>0.5;
+    var ph=Math.min(W*0.14,52),pv=Math.min((turned?W:H)*0.40,108),cx=W/2,cy=turned?H/2:pv+22,th=st.th||0;
+    var ca=Math.cos(-ang),sa=Math.sin(-ang),P=function(x,y){return [cx+x*ca-y*sa,cy+x*sa+y*ca];};
+    var c1=slCss('--accent','#3b82f6'),c2=slCss('--green','#10b981'),c3=slCss('--red','#ef4444'),
+        mu=slCss('--muted','#889'),gd=slCss('--gold','#f59e0b');
     if(st.flat){
-      simText(ctx,'📱 הטלפון שוכב שטוח — הכובד ניצב למסך',W/2,H/2-10,slCss('--gold','#f59e0b'),13,'center',true);
+      simText(ctx,'📱 הטלפון שוכב שטוח — הכובד ניצב למסך',W/2,H/2-10,gd,13,'center',true);
       simText(ctx,'החזיקו אותו במאונך והטו אותו במישור המסך',W/2,H/2+14,mu,11.5,'center');return;}
-    ctx.save();ctx.translate(cx,cy);ctx.rotate(al);
+    var sc=Math.min(W*0.42,pv-14)/9.81,gL=(st.gp||9.8)*sc,dx=st.dc[0],dy=st.dc[1];
+    var Gx=gL*dx,Gy=gL*dy;                      // the tip of g, from the centre
+    var a0=dy>=0?Math.PI/2:-Math.PI/2,a1=Math.atan2(dy,dx);
+    ctx.save();ctx.translate(cx,cy);ctx.rotate(-ang);
+    // the phone itself, square to the screen it is drawn on, with its axes
     ctx.strokeStyle=mu;ctx.lineWidth=2;ctx.beginPath();
     if(ctx.roundRect)ctx.roundRect(-ph,-pv,ph*2,pv*2,9);else ctx.rect(-ph,-pv,ph*2,pv*2);
     ctx.stroke();
-    // a notch at the top edge, so a flip is visible rather than merely implied
-    ctx.fillStyle=mu;ctx.beginPath();
-    ctx.roundRect?ctx.roundRect(-ph*0.30,-pv+5,ph*0.60,5,2.5):ctx.rect(-ph*0.30,-pv+5,ph*0.60,5);
-    ctx.fill();
-    slTxt(ctx,'y',0,-pv-7,mu,10,'center',true);slTxt(ctx,'x',ph+11,4,mu,10,'center',true);
-    ctx.strokeStyle=mu;ctx.setLineDash([3,3]);ctx.lineWidth=1;
+    ctx.setLineDash([3,3]);ctx.lineWidth=1;
     ctx.beginPath();ctx.moveTo(0,-pv-4);ctx.lineTo(0,pv+4);ctx.moveTo(-ph-8,0);ctx.lineTo(ph+8,0);ctx.stroke();
-    ctx.setLineDash([]);ctx.restore();
-    var sc=(Math.min(W,H)*0.29)/9.81,gL=(st.gp||9.8)*sc;
-    // exact projections of a straight-down g onto the phone's drawn axes
-    var ux=-Math.sin(al),uy=Math.cos(al),vx=Math.cos(al),vy=Math.sin(al);
-    var ky=gL*uy,kx=gL*vy,Ax=ky*ux,Ay=ky*uy,Bx=kx*vx,By=kx*vy;
-    ctx.save();ctx.strokeStyle=mu;ctx.setLineDash([2,4]);ctx.lineWidth=1;
-    ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(cx+Bx,cy+By);
-    ctx.lineTo(cx+Ax+Bx,cy+Ay+By);ctx.stroke();ctx.setLineDash([]);ctx.restore();
-    simArrow(ctx,cx,cy,cx,cy+gL,c3,3,11);
-    slTxt(ctx,'g',cx+13,cy+gL-4,c3,12,'left',true);
-    simArrow(ctx,cx,cy,cx+Ax,cy+Ay,c2,2.5,9);
-    simArrow(ctx,cx+Ax,cy+Ay,cx+Ax+Bx,cy+Ay+By,c1,2.5,9);
+    // the angle θ between g and the phone's y axis
+    ctx.setLineDash([]);ctx.beginPath();ctx.arc(0,0,26,Math.min(a0,a1),Math.max(a0,a1));
+    if(Math.abs(a1-a0)<Math.PI)ctx.stroke();
+    // projections onto the two axes, and the components that add up to g
+    ctx.setLineDash([2,4]);
+    ctx.beginPath();ctx.moveTo(Gx,Gy);ctx.lineTo(Gx,0);ctx.moveTo(Gx,Gy);ctx.lineTo(0,Gy);ctx.stroke();
+    ctx.setLineDash([]);
+    simArrow(ctx,0,0,0,Gy,c2,2.5,9);
+    simArrow(ctx,0,Gy,Gx,Gy,c1,2.5,9);
+    simArrow(ctx,0,0,Gx,Gy,c3,3,11);
+    ctx.restore();
+    var q=P(0,-pv-8);slTxt(ctx,'y',q[0],q[1]+4,mu,10,'center',true);
+    q=P(ph+16,0);slTxt(ctx,'x',q[0],q[1]+4,mu,10,'center',true);
+    var am=(a0+a1)/2;q=P(36*Math.cos(am),36*Math.sin(am));slTxt(ctx,'θ',q[0],q[1]+4,mu,11,'center',true);
+    q=P(Gx*(1+12/gL),Gy*(1+12/gL));slTxt(ctx,'g',q[0],q[1]+4,c3,12,'center',true);
+    q=P(dx,dy);st.gScreen=[q[0]-cx,q[1]-cy];   // where g points on the glass, kept for the tests
     slTxt(ctx,'g·cosθ = '+(st.gy||0).toFixed(2),12,20,c2,11,'left',true);
     slTxt(ctx,'g·sinθ = '+(st.gx||0).toFixed(2),12,37,c1,11,'left',true);
-    slTxt(ctx,'θ = '+((th*180/Math.PI)||0).toFixed(1)+'°  (מציר y של הטלפון)',12,54,mu,11,'left',true);
+    slTxt(ctx,'θ = '+((th*180/Math.PI)||0).toFixed(1)+'°',12,54,mu,11,'left',true);
     var eq=Math.abs(Math.abs(st.gx-st.gy))<0.25;
-    if(eq)simText(ctx,'⇦ כאן הרכיבים שווים — 45°',W-12,20,slCss('--gold','#f59e0b'),11,'right',true);
+    if(eq)simText(ctx,'כאן הרכיבים שווים — 45°',W-12,20,gd,11,'right',true);
+    // Only the part of g in the screen's plane is being taken apart. A phone
+    // leaning back puts the rest along z, and the root below falls short of g.
+    if(Math.abs(st.gz||0)>0.17*(st.gm||9.81))
+      simText(ctx,'⚠ המסך נוטה — חלק מ-g יוצא ממנו (g_z = '+Math.abs(st.gz).toFixed(1)+'); החזיקו זקוף',W/2,H-27,gd,10.5,'center',true);
     slTxt(ctx,'√('+(st.gx||0).toFixed(2)+'² + '+(st.gy||0).toFixed(2)+'²) = '+
       Math.hypot(st.gx||0,st.gy||0).toFixed(2)+' m/s²',W/2,H-9,mu,10.5,'center');}},
 
@@ -32614,7 +32779,8 @@ var SL_IMPL={
   chips:function(st){
     slSet('slv-g',(st.cur||0).toFixed(3));slSet('slv-gm',st.mean?st.mean.toFixed(3):'—');
     slSet('slv-se',st.mean?st.se.toFixed(4):'—');
-    slSet('slv-er',st.mean?((st.mean-9.81)/9.81*100).toFixed(2):'—');},
+    // relative to g in Israel (latitude 31-33°, near sea level), not 9.81
+    slSet('slv-er',st.mean?((st.mean-9.795)/9.795*100).toFixed(2):'—');},
   draw:function(ctx,W,H,st){
     var mu=slCss('--muted','#889'),c1=slCss('--accent','#3b82f6'),
         gr=slCss('--green','#10b981'),gd=slCss('--gold','#f59e0b');
@@ -32628,31 +32794,44 @@ var SL_IMPL={
 
 // a_c from |G|, which no gravity filter can eat, and r read off the slope
 'spin-fit':{
-  init:function(st){st.pts=[];st.r=0;st.r2=0;st.g0=0;st.calN=0;st.calS=0;st.acc=0;st.accN=0;st.wS=0;st.reset(st);},
-  reset:function(st){st.pts=[];st.r=0;st.r2=0;st.g0=0;st.calN=0;st.calS=0;st.ph='cal';
-    st.w=0;st.ac=0;st.acc=0;st.accN=0;st.wS=0;st.wLast=0;},
+  resume:function(st){st.acc=0;st.wLast=0;st.G2s=0;st.W2s=0;st.Wn=0;},
+  init:function(st){st.reset(st);},
+  reset:function(st){st.pts=[];st.r=0;st.r2=0;st.g0=0;st.g02=0;st.calN=0;st.calS=0;st.calS2=0;st.ph='cal';
+    st.w=0;st.ac=0;st.acc=0;st.wS=0;st.wLast=0;st.G2s=0;st.W2s=0;st.Wn=0;},
   sample:function(s,st){
     var G=Math.hypot(s.gx,s.gy,s.gz),lin=Math.hypot(s.ax,s.ay,s.az);
+    var w=Math.hypot(s.ra,s.rb,s.rg)*Math.PI/180;      // magnitude: attitude-free
     if(st.ph==='cal'){
-      if(lin>0.3){st.calN=0;st.calS=0;return;}
-      st.calN++;st.calS+=G;
-      if(st.calN>=55){st.g0=st.calS/st.calN;st.ph='run';}
+      if(lin>0.3){st.calN=0;st.calS=0;st.calS2=0;return;}
+      st.calN++;st.calS+=G;st.calS2+=G*G;
+      if(st.calN>=55){st.g0=st.calS/st.calN;st.g02=st.calS2/st.calN;st.ph='run';}
       return;
     }
-    // |G|² = g² + a_c² for a horizontal circle, whatever the phone's attitude
-    var ac=Math.sqrt(Math.max(0,G*G-st.g0*st.g0));
-    var w=Math.hypot(s.ra,s.rb,s.rg)*Math.PI/180;      // magnitude: attitude-free
+    // |G|² = g² + a_c² for a horizontal circle, whatever the phone's attitude.
+    // a_c is then a DIFFERENCE of squares, so an error δ in the resting value
+    // is an error δ in a_c² -- 55 samples leave δ near 0.08 m²/s⁴. The phone
+    // therefore goes on calibrating for as long as it lies still before the
+    // spin, |G|² is averaged over each 0.25 s point, and it is compared with
+    // the resting MEAN SQUARE, in which the noise adds the same σ². That
+    // halves the scatter of r against sqrt(G² − g0²) taken sample by sample.
+    if(w<0.15&&lin<0.3&&st.calN<1500){st.calN++;st.calS+=G;st.calS2+=G*G;
+      st.g0=st.calS/st.calN;st.g02=st.calS2/st.calN;}
     var k=Math.min(1,s.dt/0.12);
-    st.w+=k*(w-st.w);st.ac+=k*(ac-st.ac);
+    st.w+=k*(w-st.w);
+    st.G2s+=G*G;st.W2s+=w*w;st.Wn++;
     st.acc+=s.dt;st.wS+=s.dt;
     if(st.wS>0.25){st.wS=0;
+      st.ac=Math.sqrt(Math.max(0,st.G2s/st.Wn-st.g02));
+      var w2=st.W2s/st.Wn;st.G2s=0;st.W2s=0;st.Wn=0;
       // a_c = omega^2 r describes a steady circle, so a point is only taken
       // once the filters have settled and while the rate is barely changing.
       // Spin-up points sit far off the law and, being the fastest, would carry
-      // the most weight of any point in a fit through the origin.
+      // the most weight of any point in a fit through the origin. Points are
+      // chosen by the RATE alone: keeping only those whose a_c came out large
+      // enough would keep the slow points that the noise happened to push up.
       var settled=st.acc>1.0, steady=(st.wLast>0)&&(Math.abs(st.w-st.wLast)<0.12*st.w);
-      if(settled&&steady&&st.w>0.8&&st.ac>0.05&&st.pts.length<200){
-        st.pts.push([st.w*st.w,st.ac]);
+      if(settled&&steady&&st.w>0.8&&st.pts.length<200){
+        st.pts.push([w2,st.ac]);
         st.r=slFitOrigin(st.pts);st.r2=slR2(st.pts,st.r);}
       st.wLast=st.w;}},
   chips:function(st){
@@ -32662,29 +32841,40 @@ var SL_IMPL={
     var mu=slCss('--muted','#889'),tx=slCss('--text','#dde'),gd=slCss('--gold','#f59e0b'),c3=slCss('--green','#10b981');
     if(st.ph==='cal'){
       simText(ctx,'⏳ מכייל בשקט ('+Math.round(st.calN/55*100)+'%) — אל תזיזו',W/2,H/2,gd,13,'center',true);
-      simText(ctx,'אחר כך סובבו חזק ותנו להאט',W/2,H/2+22,mu,11.5,'center');return;}
+      simText(ctx,'אחר כך סובבו בתנופה מתונה ותנו להאט',W/2,H/2+22,mu,11.5,'center');return;}
     slScatter(ctx,8,8,W-16,H-52,st.pts,st.r,{xl:'ω²  (rad²/s²)',yl:'a_c  (m/s²)',xmin:1,ymin:.5});
     if(st.pts.length>3){
-      slTxt(ctx,'a(c) = '+st.r.toFixed(3)+' · ω²    →    r = '+st.r.toFixed(3)+' m',W/2,H-31,tx,12,'center',true);
+      slTxtSub(ctx,'a_c = '+st.r.toFixed(3)+' · ω²    →    r = '+st.r.toFixed(3)+' m',W/2,H-31,tx,12,'center',true);
       simText(ctx,'התאמה R² = '+st.r2.toFixed(3)+(st.r2>0.9?'  ✓ הנקודות על ישר — התאוצה אכן כ-ω²':'  — סובבו עוד כדי לפרוש טווח רחב'),
         W/2,H-11,st.r2>0.9?c3:mu,11,'center',st.r2>0.9);
     }else simText(ctx,'סובבו את הטלפון — '+st.pts.length+' נקודות נאספו עד כה',W/2,H-20,mu,12,'center',true);}},
 
 // T from crossings, then T² against L, and g off the slope
 'pendulum-fit':{
+  resume:function(st){if(st.pd)st.pd.reset();st.T=0;},
   init:function(st){st.tr=slTrace(220);st.pd=slPeriod();st.h={v:1};st.pts=[];st.g=0;st.r2=0;st.reset(st);},
   reset:function(st){if(st.pd)st.pd.reset();if(st.tr)st.tr.clear();
     st.T=0;st.sp=0;st.va=[0,0,0];st.vr=[0,0,0];st.L=0.5;st.amp=0;st.pkA=0;st.pkT=0;st.gyro=false;},
   clear:function(st){st.pts=[];st.g=0;st.r2=0;},
   record:function(st){
-    if(!st.T)return false;
+    // one interval is not yet a period anyone should fit a law to: three are
+    // the least for the median to mean anything
+    if(!st.T||!st.pd||st.pd.per.length<3)return false;
     var e=document.getElementById('sl-L'),L=e?parseFloat(e.value):0.5;
     st.pts.push([L,st.T*st.T]);
     var s=slFitOrigin(st.pts);st.g=s>0?4*Math.PI*Math.PI/s:0;st.r2=slR2(st.pts,s);
     st.pd.reset();st.T=0;return true;},
   sample:function(s,st){
     var e=document.getElementById('sl-L');st.L=e?parseFloat(e.value):0.5;
-    var a=[s.ax,s.ay,s.az],r=[s.ra,s.rb,s.rg],i,kk=Math.min(1,s.dt/1.5);
+    // The swing turns the phone about an axis square to the string; a bag that
+    // twists turns it about the string itself, and a steady twist of a few
+    // tens of °/s was the 'largest' rotation, chosen over the swing, so no
+    // period was ever found. The string is along the reading (the pull of the
+    // string is all a hanging phone feels), so the part of ω along it is taken
+    // out first. (rotationRate: beta about x, gamma about y, alpha about z.)
+    var gm=Math.hypot(s.gx,s.gy,s.gz)||1,ux=s.gx/gm,uy=s.gy/gm,uz=s.gz/gm;
+    var wu=s.rb*ux+s.rg*uy+s.ra*uz;
+    var a=[s.ax,s.ay,s.az],r=[s.rb-wu*ux,s.rg-wu*uy,s.ra-wu*uz],i,kk=Math.min(1,s.dt/1.5);
     for(i=0;i<3;i++){st.va[i]+=kk*(a[i]*a[i]-st.va[i]);st.vr[i]+=kk*(r[i]*r[i]-st.vr[i]);}
     // The swing's own angular velocity oscillates at exactly the pendulum's
     // frequency, on every phone. The accelerometer does only when the OS supplies
@@ -32717,7 +32907,7 @@ var SL_IMPL={
     var c1=slCss('--accent2','#06b6d4'),mu=slCss('--muted','#889'),tx=slCss('--text','#dde'),
         gr=slCss('--green','#10b981'),gd=slCss('--gold','#f59e0b');
     var hp=Math.round(H*0.30);
-    slPlot(ctx,8,6,W-16,hp,[{tr:st.tr,c:c1}],{title:st.gyro?'ω  (°/s) — קצב הסיבוב של הנדנוד':'a  (m/s²) — רכיב משיקי',floor:st.gyro?10:.5,hold:st.h});
+    slPlot(ctx,8,6,W-16,hp,[{tr:st.tr,c:c1}],{title:st.gyro?'ω  (°/s)':'a  (m/s²)',sub:st.gyro?'קצב הסיבוב של הנדנוד':'רכיב משיקי',floor:st.gyro?10:.5,hold:st.h});
     var s=st.pts.length?slFitOrigin(st.pts):0;
     slScatter(ctx,8,hp+12,W-16,H-hp-56,st.pts,s,{xl:'L  (m)',yl:'T²  (s²)',xmin:.4,ymin:.4});
     var Tp=2*Math.PI*Math.sqrt((st.L||0.5)/9.81);
@@ -32734,7 +32924,8 @@ var SL_IMPL={
     else if(st.pts.length>1)
       simText(ctx,'שיפוע → g = '+st.g.toFixed(2)+' m/s²   ·   R² = '+st.r2.toFixed(3),
         W/2,H-9,Math.abs(st.g-9.81)<0.5?gr:gd,11.5,'center',true);
-    else simText(ctx,st.T?'ה-T התייצב — לחצו ״רשום נקודה״, ואז שנו את L':'נדנדו בתנודה קטנה…',
+    else simText(ctx,st.T&&st.pd.per.length>=3?'ה-T התייצב — לחצו ״רשמו נקודה״, ואז שנו את L'
+      :(st.T?'מודד מחזורים… '+st.pd.per.length+' מתוך 3':'נדנדו בתנודה קטנה…'),
       W/2,H-9,mu,11.5,'center',true);}}
 };
 
@@ -32749,15 +32940,25 @@ function initSensorLab(key){
   var btn=document.getElementById('sl-start'),err=document.getElementById('sl-err');
   function say(m){if(err){err.style.display=m?'':'none';err.innerHTML=m||'';}}
 
+  // Before the first start there is nothing to show: drawing the lab's own
+  // first state put an empty plot, '0.0 N' forces or a 'calibrating 0%'
+  // banner under the prompt, the two texts printed over each other.
+  function paintIdle(){
+    ctx.clearRect(0,0,W,H);
+    if(st.started){impl.draw(ctx,W,H,st);return;}
+    var mu=slCss('--muted','#889');
+    simText(ctx,'לחצו ▶ הפעילו חיישן כדי להתחיל למדוד',W/2,H/2-8,mu,13,'center',true);
+    simText(ctx,'הגרפים והמדידות יופיעו כאן',W/2,H/2+16,mu,11,'center');
+  }
   // The canvas is sized once from its CSS width, so a rotation to landscape
   // would otherwise leave it drawing into the old, narrower bitmap.
   function resize(){
     var s2=setupCanvas(cv,L.h);ctx=s2.ctx;W=s2.W;H=s2.H;
-    if(!_sl.run){ctx.clearRect(0,0,W,H);impl.draw(ctx,W,H,st);}
+    if(!_sl.run)paintIdle();
   }
   _sl.onResize=resize;
 
-  [['sl-m','sl-mv',' kg',1],['sl-L','sl-Lv',' m',2],['sl-h','sl-hv',' m',2],
+  [['sl-m','sl-mv',' kg',1],['sl-L','sl-Lv',' m',2],['sl-h','sl-hv',' m',2],['sl-pm','sl-pmv',' kg',3],
    ['sl-d','sl-dv',' cm',1],['sl-len','sl-lenv',' cm',1]].forEach(function(a){
     var i=document.getElementById(a[0]),o=document.getElementById(a[1]);
     if(i&&o)i.addEventListener('input',function(){o.textContent=parseFloat(i.value).toFixed(a[3])+a[2];});});
@@ -32778,7 +32979,12 @@ function initSensorLab(key){
       var b=document.getElementById(a[0]);if(b)b.className='sl-sec'+(st.mode===a[1]?' on':'');});};
     [['sl-axl',0],['sl-axw',1]].forEach(function(a){
       var b=document.getElementById(a[0]);
-      if(b)b.addEventListener('click',function(){st.mode=a[1];st.win=[];st.ok=false;cm();});});
+      if(b)b.addEventListener('click',function(){st.mode=a[1];st.win=[];st.ok=false;cm();
+        // across the width the phone is some 7 cm, not 15: the slider says
+        // which dimension it wants, and starts from a sensible one
+        var ll=document.getElementById('sl-lenl'),li=document.getElementById('sl-len'),lv=document.getElementById('sl-lenv');
+        if(ll)ll.textContent=a[1]?'רוחב הטלפון':'אורך הטלפון';
+        if(li){li.value=a[1]?'7.0':'15.0';if(lv)lv.textContent=parseFloat(li.value).toFixed(1)+' cm';}});});
     cm();
     var rb2=document.getElementById('sl-rec');
     if(rb2)rb2.addEventListener('click',function(){
@@ -32810,7 +33016,11 @@ function initSensorLab(key){
   var hb=document.getElementById('sl-hold');
   if(hb)hb.addEventListener('click',function(){
     _sl.paused=!_sl.paused;
-    hb.textContent=_sl.paused?'▶ המשך':'⏸ הקפא';
+    // Readings that arrived while frozen were dropped, so a trial that was in
+    // progress would now integrate straight across the gap as if no time had
+    // passed. Labs that integrate abandon the half-measured trial instead.
+    if(!_sl.paused&&impl.resume)impl.resume(st);
+    hb.textContent=_sl.paused?'▶ המשיכו':'⏸ הקפיאו';
     hb.className='sl-sec'+(_sl.paused?' on':'');});
   // zoom is shared by both plot kinds, so one control serves the whole card
   [['sl-zin',1.6],['sl-zout',1/1.6],['sl-zrst',0]].forEach(function(a){
@@ -32824,7 +33034,7 @@ function initSensorLab(key){
     impl.draw(ctx,W,H,st);
     _sl.raf=requestAnimationFrame(loop);}
 
-  function stop(){slStopAll();_sl.st=st;_sl.onResize=resize;btn.textContent='▶ הפעל חיישן';btn.className='';}
+  function stop(){slStopAll();_sl.st=st;_sl.onResize=resize;btn.textContent='▶ הפעילו חיישן';btn.className='';}
   function go(){
     if(_sl.run){stop();return;}
     if(!window.isSecureContext&&location.protocol!=='file:'){
@@ -32832,18 +33042,22 @@ function initSensorLab(key){
     btn.disabled=true;
     sensorRequest().then(function(r){
       btn.disabled=false;
-      if(r==='denied'){say('ההרשאה לחיישני התנועה נדחתה. אפשר לאשר אותה מחדש בהגדרות האתר בדפדפן.');return;}
+      // The permission sheet can stay open while the learner moves on; a grant
+      // that arrives for a lab no longer on the page must not start a stream
+      // and an animation loop for it (nor leave _sl.run set for the next one).
+      if(_sl.st!==st||!cv.isConnected)return;
+      if(r==='denied'){say('ההרשאה לחיישני התנועה נדחתה. באייפון: סגרו את הלשונית, פתחו את הדף מחדש ואשרו כשתישאלו.');return;}
       if(r==='error'){say('לא ניתן לבקש הרשאה לחיישנים בדפדפן זה.');return;}
-      say('');_sensor.got=0;_sl.paused=false;st.reset(st);
+      say('');_sensor.got=0;_sl.paused=false;st.reset(st);st.started=true;
       var _hb=document.getElementById('sl-hold');
-      if(_hb){_hb.textContent='⏸ הקפא';_hb.className='sl-sec';}
+      if(_hb){_hb.textContent='⏸ הקפיאו';_hb.className='sl-sec';}
       sensorStart(function(s){if(_sl.st===st&&!_sl.paused)impl.sample(s,st);});
-      _sl.run=true;btn.textContent='⏹ עצור';btn.className='on';
+      _sl.run=true;btn.textContent='⏹ עצרו';btn.className='on';
       _sl.stopFn=stop; slWakeOn();
       _sl.raf=requestAnimationFrame(loop);
       setTimeout(function(){
         if(!_sl.run)return;
-        if(_sensor.got===0)say('לא מתקבלים נתונים ממד-התאוצה. ייתכן שהמכשיר אינו כולל חיישן זמין לדפדפן.');
+        if(_sensor.got===0)say('לא מתקבלים נתונים מחיישני התנועה. בדקו שהגישה ל״חיישני תנועה״ מותרת בהגדרות האתר בדפדפן; אם כן — כנראה שאין במכשיר חיישן שהדפדפן יכול לקרוא.');
         else if(_sensor.bad>_sensor.got*0.8)say('החיישן מדווח אירועים ריקים. נסו דפדפן אחר, או בדקו שההרשאה אושרה.');
         else if(L.minHz&&_sensor.hz&&_sensor.hz<L.minHz)
           // a period needs ~10 samples a cycle and an impact needs a shape;
@@ -32854,8 +33068,7 @@ function initSensorLab(key){
     });
   }
   if(btn)btn.addEventListener('click',go);
-  ctx.clearRect(0,0,W,H);impl.draw(ctx,W,H,st);
-  simText(ctx,'לחצו ▶ כדי להתחיל למדוד',W/2,H/2,slCss('--muted','#889'),12.5,'center',true);
+  paintIdle();
 }
 
 function _ltSafe(s){
