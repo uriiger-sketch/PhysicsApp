@@ -16768,7 +16768,7 @@ function simOptPlaneMirror(canvas){
     ctx.beginPath();ctx.moveTo(imgX,cy-arrowH/2);ctx.lineTo(imgX-9,cy-arrowH/2+17);ctx.lineTo(imgX+9,cy-arrowH/2+17);ctx.closePath();ctx.fill();
     ctx.setLineDash([]);optNoGlow(ctx);ctx.restore();
     optLabel(ctx,'תמונה',imgX,cy+arrowH/2+16,'#34d399',11);
-    optLabel(ctx,'|dᵢ| = '+dist.toFixed(1)+' m',imgX-doPx/2,cy-arrowH/2-20,'#fbbf24',10);
+    optLabel(ctx,'|dᵢ| = '+dist.toFixed(1)+' m',imgX-doPx/2,cy-arrowH/2-(doPx<70?36:20),'#fbbf24',10);
     // Reflection rays. The eye looks INTO the mirror, so it sits on the object's
     // side (it used to sit behind the mirror, and the rays went straight through
     // the glass to reach it). Each ray leaves the object, reflects where the line
@@ -17609,8 +17609,11 @@ function simOptEye(canvas){
   var es=Math.min(1,(W*0.28-8)/118);   // shrink the eye to fit a phone-width canvas
   var cx=W*0.72,cy=H*0.46,Rx=118*es,Ry=92*es;
   var eyeFront=cx-Rx,retinaX=cx+Rx*0.72;
-  function distToX(d){return eyeFront-90-(Math.log(d/0.25)/Math.log(24))*(eyeFront-150);}
-  function xToDist(x){return 0.25*Math.pow(24,(eyeFront-90-x)/(eyeFront-150));}
+  // the log distance axis runs from _xL (6 m) to _xR (0.25 m); on a phone the
+  // old fixed margins left it 5 px long, so dragging hardly moved the object
+  var _xR=eyeFront-Math.max(60,90*es),_xL=Math.min(60,W*0.08);
+  function distToX(d){return _xR-(Math.log(d/0.25)/Math.log(24))*(_xR-_xL);}
+  function xToDist(x){return 0.25*Math.pow(24,(_xR-x)/(_xR-_xL));}
   // ── Direct manipulation: drag the object closer/farther ──
   var dragObj=false,hasDragged=false;
   function _hit(p){var ox=distToX(getDist());return Math.abs(p.x-ox)<28&&p.y>cy-96&&p.y<cy+22;}
@@ -17646,10 +17649,10 @@ function simOptEye(canvas){
     // Distance axis
     ctx.save();ctx.strokeStyle='rgba(51,65,85,.5)';ctx.lineWidth=1;
     ctx.beginPath();ctx.moveTo(40,cy+58);ctx.lineTo(eyeFront-20,cy+58);ctx.stroke();ctx.restore();
-    [0.25,0.5,1,2,4,6].forEach(function(dm){
-      var xm=distToX(dm);if(xm<44)return;
+    (_xR-_xL<200?[0.25,1,6]:[0.25,0.5,1,2,4,6]).forEach(function(dm){
+      var xm=distToX(dm);if(xm<20)return;
       ctx.save();ctx.strokeStyle='rgba(51,65,85,.6)';ctx.beginPath();ctx.moveTo(xm,cy+54);ctx.lineTo(xm,cy+62);ctx.stroke();ctx.restore();
-      optLabel(ctx,dm+'m',xm,cy+72,'#7d8da6',8);
+      optLabel(ctx,dm+' m',xm,cy+72,'#7d8da6',8);
     });
     // ── EYE ──────────────────────────────────────────────
     ctx.save();
@@ -17903,13 +17906,13 @@ function simOptInterference(canvas){
 function simOptYoungs(canvas){
   const H=460;const{ctx,W,dpr}=setupCanvas(canvas,H);
   const id=canvas.id;var animT=0;
-  var slitX=90,cy=H/2;
+  var slitX=W<520?56:90,cy=H/2,_LG=W<520?80:150,_RG=W<520?44:70;   // margins that leave a phone a usable range of L
   function getVals(){
     var lE=document.getElementById('inp-ys-lambda'),dE=document.getElementById('inp-ys-d'),LE=document.getElementById('inp-ys-L');
     return{lambda:lE?parseFloat(lE.value):500,d:dE?parseFloat(dE.value):0.3,L:LE?parseFloat(LE.value):1};
   }
-  function LtoX(L){return slitX+150+(L-0.5)/2.5*(W-70-(slitX+150));}
-  function XtoL(x){return 0.5+2.5*(x-(slitX+150))/(W-70-(slitX+150));}
+  function LtoX(L){return slitX+_LG+(L-0.5)/2.5*(W-_RG-(slitX+_LG));}
+  function XtoL(x){return 0.5+2.5*(x-(slitX+_LG))/(W-_RG-(slitX+_LG));}
   function calc(){
     var v=getVals();
     var lam_m=v.lambda*1e-9,d_m=v.d*1e-3,L_m=v.L;
@@ -18813,7 +18816,7 @@ function simOptLaser(canvas){
       ctx.fillText('מתחת לסף — פליטה ספונטנית',W/2,cavY+cavH+22);
     }
     // Population inversion meter
-    var meterX=W*0.87,meterY=cavY+cavH,meterH=cavH*1.2;
+    var meterX=W<520?W-20:W*0.87,meterY=cavY+cavH,meterH=cavH*1.2;
     ctx.fillStyle='rgba(30,41,59,.8)';ctx.beginPath();ctx.roundRect(meterX-14,meterY-meterH,28,meterH,4);ctx.fill();
     ctx.strokeStyle='#475569';ctx.lineWidth=1;ctx.beginPath();ctx.roundRect(meterX-14,meterY-meterH,28,meterH,4);ctx.stroke();
     var fillH=Math.max(4,inversion*meterH);
@@ -18826,7 +18829,7 @@ function simOptLaser(canvas){
     ctx.save();ctx.strokeStyle='#fbbf24';ctx.lineWidth=1;ctx.setLineDash([3,3]);
     ctx.beginPath();ctx.moveTo(meterX-14,meterY-threshold*meterH);ctx.lineTo(meterX+14,meterY-threshold*meterH);ctx.stroke();ctx.setLineDash([]);ctx.restore();
     // Info box
-    optInfoBox(ctx,20,H-86,W*0.82-20,['שאיבה: '+Math.round(pump*100)+'%   ·   '+wl+' nm','מצב: '+(aboveThresh?'★ לייזר פעיל — ההיפוך ננעל בערך הסף, ועודף השאיבה הופך לקרן':'מתחת לסף — ההגברה קטנה מההפסדים'),
+    optInfoBox(ctx,W<520?10:20,H-86,W<520?W-20:W*0.82-20,['שאיבה: '+Math.round(pump*100)+'%   ·   '+wl+' nm','מצב: '+(aboveThresh?'★ לייזר פעיל — ההיפוך ננעל בערך הסף, ועודף השאיבה הופך לקרן':'מתחת לסף — ההגברה קטנה מההפסדים'),
       'הספק יציאה: '+Math.round(outP*100)+'% מהמרבי','שלושתם לייזרי 4 רמות: הרמה התחתונה מתרוקנת מהר']);
     requestAnimationFrame(draw);
   }
@@ -19387,7 +19390,7 @@ function simOptGrating(canvas){
     ctx.fillStyle='#080e1a';ctx.fillRect(0,0,W,H);
     // the drawing lives between the formula strip (top) and the read-out (bottom)
     var T=50,B=H-84,ax=(T+B)/2;
-    var grX=W*0.28,scrX=W*0.85;
+    var grX=W*0.28,scrX=W<520?W*0.76:W*0.85;
     var scrH=(B-T)*0.94,scrTop=ax-scrH/2;
     // === GRATING (vertical lines) ===
     // The rulings used to sit at a fixed 3 px pitch no matter what d was, so the
@@ -33206,7 +33209,7 @@ function buildSim(sim){
   else if(sim.type==='opt-em-spectrum')extra=C(rng('ems-pos',0,100,45,1,'מיקום בספקטרום','%'));
   else if(sim.type==='opt-polarization')extra=C(rng('pol-angle',0,180,45,1,'זווית מנתח θ','°')+rng('pol-i0',20,100,80,5,'עוצמה ראשונית I₀','%'));
   else if(sim.type==='opt-doppler')extra=C(rng('dop-v',0,80,20,1,'מהירות מקור (% c)','%')+rng('dop-wl',400,700,550,5,'אורך גל מקורי λ₀',' nm'));
-  else if(sim.type==='opt-laser')extra=C(rng('laser-pump',0,100,60,5,'עוצמת שאיבה','%')+'<div class="range-wrap"><label>סוג לייזר:</label><select id="inp-laser-type" style="background:#1e293b;color:#e2e8f0;border:1px solid #334155;border-radius:6px;padding:4px 8px;font-size:.85rem"><option value="633">He-Ne (633nm)</option><option value="514">Ar⁺ (514nm)</option><option value="1064">Nd:YAG (1064nm)</option></select></div>');
+  else if(sim.type==='opt-laser')extra=C(rng('laser-pump',0,100,60,5,'עוצמת שאיבה','%')+'<div class="range-wrap"><label>סוג לייזר:</label><select id="inp-laser-type" style="background:var(--chip);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:4px 8px;font-size:.85rem"><option value="633">He-Ne (633nm)</option><option value="514">Ar⁺ (514nm)</option><option value="1064">Nd:YAG (1064nm)</option></select></div>');
   else if(sim.type==='opt-color-mix')extra=C(rng('cm-red',0,100,80,5,'אדום R','%')+rng('cm-green',0,100,80,5,'ירוק G','%')+rng('cm-blue',0,100,80,5,'כחול B','%'));
   else if(sim.type==='opt-fiber')extra=C(rng('fib-n1',1.30,1.80,1.50,0.01,'מדד שבירה ליבה n₁','')+rng('fib-n2',1.20,1.70,1.46,0.01,'מדד שבירה מעטה n₂','')+rng('fib-ang',2,40,20,1,'זווית כניסה','°'));
   else if(sim.type==='opt-telescope')extra=C(rng('tel-fo',30,300,150,5,'מוקד אובייקטיב fₒ',' mm')+rng('tel-fe',5,60,25,5,'מוקד עדשת עין fₑ',' mm'));
