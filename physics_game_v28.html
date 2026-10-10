@@ -31185,9 +31185,14 @@ function slTxt(ctx,txt,x,y,col,sz,align,bold){
 // of itself -- a high-pass filter -- and a high-passed acceleration integrates
 // twice into a high-passed POSITION, which creeps back toward zero once the
 // phone has stopped. Fused channels lean the same way, only more slowly.
+// Stillness is judged on a 0.1 s average of |a|: tested sample by sample, the
+// noise of an ordinary accelerometer (0.05 m/s² per axis) crossed the bar
+// often enough that 55 quiet samples in a row never came, and the lab sat on
+// 'calibrating' for good. A real nudge still lifts the average well past it.
 function slAxisCal(s,st){
   var raw=[s.gx,s.gy,s.gz][st.ax],lin=Math.hypot(s.ax,s.ay,s.az);
-  if(lin>0.16||Math.hypot(s.rb||0,s.rg||0)>3){st.calN=0;st.calS=0;st.calR=[0,0];return;}
+  st.calF=(st.calF||0)+Math.min(1,s.dt/0.1)*(lin-(st.calF||0));
+  if(st.calF>0.16||Math.hypot(s.rb||0,s.rg||0)>3){st.calN=0;st.calS=0;st.calR=[0,0];return;}
   st.calN++;st.calS+=raw;st.calR[0]+=s.rb||0;st.calR[1]+=s.rg||0;
   if(st.calN>=55){st.bias=st.calS/st.calN;st.gb=[st.calR[0]/st.calN,st.calR[1]/st.calN];st.ph='armed';}
 }
@@ -32457,12 +32462,12 @@ var SL_IMPL={
 // mu_k straight off the reading: on the level, the horizontal part of proper
 // acceleration during a free slide is mu_k*g and nothing else.
 'slide-mu':{
-  resume:function(st){st.run=0;st.sum=0;st.cnt=0;st.muPrev=undefined;st.dir=null;st.rest=0;},
+  resume:function(st){st.run=0;st.seg=[];st.dir=null;st.rest=0;st.still=0;},
   init:function(st){st.tr=slTrace(240);st.h={v:.6};st.pts=[];st.reset(st);},
   reset:function(st){if(st.tr)st.tr.clear();
     st.ph='cal';st.calN=0;st.calS=[0,0,0];st.g0=0;st.u=null;
-    st.mu=0;st.run=0;st.sum=0;st.cnt=0;st.flatOK=true;
-    st.muPrev=undefined;st.auF=undefined;st.tiltMu=0;st.dir=null;st.rest=0;},
+    st.mu=0;st.run=0;st.seg=[];st.flatOK=true;
+    st.tiltMu=0;st.tilt0=0;st.muR=0;st.lf=0;st.still=0;st.gt=[0,0,0];st.dir=null;st.rest=0;},
   clear:function(st){st.pts=[];},
   sample:function(s,st){
     var A=[s.gx,s.gy,s.gz],i;
@@ -32478,16 +32483,6 @@ var SL_IMPL={
     var hx=A[0]-Au*st.u[0],hy=A[1]-Au*st.u[1],hz=A[2]-Au*st.u[2];
     var ah=Math.hypot(hx,hy,hz);
     st.mu=ah/st.g0;st.tr.push(st.mu);
-    // The phone must still lie the same way up, or "horizontal" is a lie: a tilt
-    // of th leaks g*sin(th) into the horizontal reading, which is indistinguishable
-    // from friction. Au/g0 = cos(th), so sqrt(1-(Au/g0)^2) IS that spurious mu --
-    // test against it directly rather than against a tolerance in m/s^2, whose
-    // meaning changes with the angle. Smooth first: vibration from the sliding
-    // surface moves Au sample to sample, a tilt does not.
-    st.auF=st.auF===undefined?Au:st.auF+(Au-st.auF)*0.15;
-    var cs=Math.min(1,Math.abs(st.auF)/st.g0);
-    st.tiltMu=Math.sqrt(Math.max(0,1-cs*cs));
-    st.flatOK=st.tiltMu<0.06;
     // Which way is the push? While the hand pushes, the reading points along
     // the push; once it lets go, the only horizontal force left is friction,
     // which points AGAINST the motion -- so a free slide reads the opposite way
@@ -32504,15 +32499,39 @@ var SL_IMPL={
       var cx=u[1]*d[2]-u[2]*d[1],cy=u[2]*d[0]-u[0]*d[2],cz=u[0]*d[1]-u[1]*d[0];
       st.dir=[d[0]*c+cx*sn,d[1]*c+cy*sn,d[2]*c+cz*sn];}
     var against=!!st.dir&&ah>0&&(hx*st.dir[0]+hy*st.dir[1]+hz*st.dir[2])/ah<-0.7;
-    // a free slide is a steady horizontal reading in a plausible band, pointing
-    // against the push; a hand pushing gives a larger, erratic one along it
-    var ok=st.flatOK&&against&&st.mu>0.03&&st.mu<1.2&&Math.abs(st.mu-(st.muPrev||st.mu))<0.05;
-    st.muPrev=st.muPrev===undefined?st.mu:st.muPrev+(st.mu-st.muPrev)*0.25;
-    if(ok){st.run+=s.dt;st.sum+=st.mu;st.cnt++;}
+    // The phone must still lie the same way up, or "horizontal" is a lie: a tilt
+    // of th leaks g*sin(th) into the horizontal reading, which is indistinguishable
+    // from friction. While the phone lies still its reading IS gravity, so the
+    // horizontal part of it is exactly that leak: sin(th) = mu at rest. During a
+    // slide the gyroscope carries it on -- the turn about the two horizontal
+    // axes since the last still moment. (sqrt(1-(Au/g0)^2), used before, is
+    // second order in th: 3° moves Au by 0.14 % of g, and the vibration of any
+    // real slide moves it more than that, so a slide with as little as
+    // 0.1 m/s² of jitter was flagged as tilted and none was ever recorded.)
+    var lin=Math.hypot(s.ax,s.ay,s.az);
+    st.lf+=Math.min(1,s.dt/0.15)*(lin-st.lf);
+    st.muR+=Math.min(1,s.dt/0.2)*(st.mu-st.muR);
+    st.still=st.lf<0.25?st.still+s.dt:0;
+    if(st.still>0.3&&!against){st.tilt0=st.muR;st.gt=[0,0,0];st.tiltMu=st.tilt0;}
+    else if(s.gyro){var uu=st.u,w0=[s.rb||0,s.rg||0,s.ra||0],wn=w0[0]*uu[0]+w0[1]*uu[1]+w0[2]*uu[2];
+      for(i=0;i<3;i++)st.gt[i]+=(w0[i]-wn*uu[i])*s.dt;
+      st.tiltMu=st.tilt0+Math.sin(Math.min(1.5,Math.hypot(st.gt[0],st.gt[1],st.gt[2])*Math.PI/180));}
+    st.flatOK=st.tiltMu<0.06;
+    // A free slide is a horizontal reading in a plausible band, pointing against
+    // the push; a hand pushing gives one along it. Its value is the mean over
+    // the middle 60 % of the slide, clear of the release and the stop, of the
+    // reading's component AGAINST the push: vibration across the motion then
+    // adds nothing, where the magnitude would have grown with it. (Each
+    // sample used to have to sit within 0.05 of a running mean, and the
+    // vibration of a phone sliding on a table broke every slide into pieces
+    // too short to keep.)
+    var ok=st.flatOK&&against&&st.mu>0.03&&st.mu<1.2;
+    if(ok){st.run+=s.dt;st.seg.push(-(hx*st.dir[0]+hy*st.dir[1]+hz*st.dir[2])/st.g0);}
     else{
-      if(st.run>0.22&&st.cnt>4){
-        st.pts.push(st.sum/st.cnt);if(st.pts.length>10)st.pts.shift();}
-      st.run=0;st.sum=0;st.cnt=0;}},
+      if(st.run>0.22&&st.seg.length>4){
+        var n=st.seg.length,mid=st.seg.slice(Math.floor(n*0.2),Math.ceil(n*0.8));
+        st.pts.push(mid.reduce(function(a,b){return a+b;},0)/mid.length);if(st.pts.length>10)st.pts.shift();}
+      st.run=0;st.seg=[];}},
   chips:function(st){
     slSet('slv-mu',st.ph==='cal'?'—':(st.mu||0).toFixed(3));
     var m=st.pts.length?st.pts.reduce(function(a,b){return a+b;},0)/st.pts.length:0;
@@ -32646,7 +32665,7 @@ var SL_IMPL={
 'slip-angle':{
   resume:function(st){st.quiet=0;st.inB=false;},
   init:function(st){st.tr=slTrace(240);st.h={v:1};st.pts=[];st.reset(st);},
-  reset:function(st){if(st.tr)st.tr.clear();st.th=0;st.slip=0;st.hold=0;st.quiet=0;
+  reset:function(st){if(st.tr)st.tr.clear();st.th=0;st.slip=0;st.hold=0;st.quiet=0;st.lf=0;
     st.thMin=0;st.thQ=0;st.inB=false;st.bq=0;st.bt=0;st.dnT=0;st.dnN=0;st.dnS=0;st.fired=false;
     st.tt=0;st.qh=[];},
   clear:function(st){st.pts=[];st.slip=0;},
@@ -32664,6 +32683,12 @@ var SL_IMPL={
     // sample or two: most real slips were never seen.
     var dn=Math.hypot(s.gx,s.gy),ad=dn>0.3?-(s.ax*s.gx+s.ay*s.gy)/dn:0;
     st.tt+=s.dt;
+    // The still stretch that must come before a slip is judged on a 0.15 s
+    // average: a hand raising the board shakes it by a few tenths of a m/s²,
+    // and every twitch above the bar reset the count, so with a tremor of
+    // 0.3 m/s² no slip was ever caught. The angle itself is still read only
+    // from samples that are individually still.
+    st.lf=(st.lf||0)+Math.min(1,s.dt/0.15)*(lin-(st.lf||0));
     if(lin<0.35){
       // The angle is read only while the phone is still. Once it slides, the
       // reading carries the slip acceleration too and the same formula says
@@ -32682,7 +32707,7 @@ var SL_IMPL={
         // pull the angle down. Take it from 60 ms before the burst.
         st.thQ=st.qh.length?st.qh[st.qh.length-1][1]:th;
         for(var q=st.qh.length-1;q>=0;q--)if(st.qh[q][0]<=st.tt-s.dt-0.06){st.thQ=st.qh[q][1];break;}}
-      st.quiet=0;st.bt+=s.dt;
+      if(st.lf>=0.35)st.quiet=0;st.bt+=s.dt;
       if(ad>0.35){st.dnT+=s.dt;st.dnN++;st.dnS+=ad;}else{st.dnT=0;st.dnN=0;st.dnS=0;}
       if(!st.fired&&st.bq>0.5&&st.bt<0.4&&st.dnN>=3&&st.dnT>=0.045&&st.dnS/st.dnN>0.5&&
          st.thQ>0.08&&st.hold<=0&&st.thQ-st.thMin>0.05){
