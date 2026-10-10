@@ -10948,114 +10948,86 @@ function simFBD(canvas){
 function simMomentumDisplay(canvas){
   var H=460; var setup=setupCanvas(canvas,H); var ctx=setup.ctx; var W=setup.W;
   var id=canvas.id;
-  var mass=2, vel=4, pos=W*0.3, pT=null;
-  var pHistory=[], vHistory=[];
+  var mass=2, vel=4, pos=W*0.3, pT=null, clock=0;
+  var hist=[], WIN=10;               // seconds of p(t) on the graph
+  var PPS=(W-60)/8;                  // px per (m/s) per second: 1 m/s crosses in about 8 s
+  var kick=null;                     // the last wall impulse, for its label
 
   function readSliders(){
     var mS=document.getElementById('inp-mom-mass');
     var vS=document.getElementById('inp-mom-vel');
-    if(mS){mass=parseFloat(mS.value);var l=document.getElementById('lbl-mom-mass');if(l)l.textContent=mass+' kg';}
-    if(vS){vel=parseFloat(vS.value);var l2=document.getElementById('lbl-mom-vel');if(l2)l2.textContent=vel+' m/s';}
+    if(mS){mass=parseFloat(mS.value);}
+    if(vS){vel=parseFloat(vS.value);}      // only on input: the walls flip the sign in between
   }
   ['inp-mom-mass','inp-mom-vel'].forEach(function(sid){
     var el=document.getElementById(sid);
-    if(el) el.addEventListener('input',readSliders);
+    if(el) el.addEventListener('input',function(){readSliders();hist=[];clock=0;kick=null;});
   });
   readSliders();
 
-  var GND=H-70;
-  var GRAPH_TOP=GND+14, GRAPH_H=H-GRAPH_TOP-8;
+  var GND=Math.round(H*0.47);
+  var GRAPH_TOP=GND+26, GRAPH_H=H-GRAPH_TOP-8;
 
   function draw(ts){
     if(_simStop[id]) return;
     if(!pT) pT=ts;
     var dt=Math.min((ts-pT)/1000, 0.04); pT=ts;
-    readSliders();
+    clock+=dt;
 
-    // Physics: ball bounces
-    pos += vel*dt*26;
     var r=Math.max(16, mass*5.5);
-    if(pos>W-r){pos=W-r; vel=-Math.abs(vel);}
-    if(pos<r){pos=r; vel=Math.abs(vel);}
-
-    // Momentum is a VECTOR: the history keeps its sign, so every wall bounce
-    // shows as the jump +p → −p (Δp = −2p, the wall's impulse). Plotting |p| drew
-    // a flat line and hid the one event on screen where momentum changes.
+    pos += vel*dt*PPS;
+    // each wall reverses p: the wall's impulse on the ball is Δp = −2p
+    if(pos>W-r){pos=W-r; if(vel>0){kick={t:clock,dp:-2*mass*vel,x:W-r};} vel=-Math.abs(vel);}
+    if(pos<r){pos=r; if(vel<0){kick={t:clock,dp:-2*mass*vel,x:r};} vel=Math.abs(vel);}
     var p=mass*Math.abs(vel), pS=mass*vel;
-    pHistory.push(pS); vHistory.push(vel);
-    if(pHistory.length>180){pHistory.shift(); vHistory.shift();}
+    hist.push({t:clock,p:pS});
+    while(hist.length&&clock-hist[0].t>WIN)hist.shift();
 
     simBg(ctx,W,H);
-
-    // ── Ground + hatching
     simGround(ctx,W,GND);
 
-    // ── Ball with radial gradient glow
+    // ball
     var g=ctx.createRadialGradient(pos-r*0.35,GND-r-r*0.35,r*0.05,pos,GND-r,r);
     g.addColorStop(0,'#bfdbfe'); g.addColorStop(0.6,'#2563eb'); g.addColorStop(1,'rgba(15,30,80,.7)');
     simCircle(ctx,pos,GND-r,r,g,'#60a5fa',2);
-    simText(ctx,mass+' kg',pos,GND-r+5,'#fff',Math.min(11,r*0.65),undefined,true);
-
-    // ── Velocity arrow above ball
-    var arrowLen=vel*10;
+    simText(ctx,mass+' kg',pos,GND-r+4,'#fff',Math.min(11,r*0.65),undefined,true);
     if(Math.abs(vel)>0.1){
-      simArrow(ctx,pos,GND-r*2-8,pos+arrowLen,GND-r*2-8,vel>=0?'#34d399':'#f87171',2.5,10);
-      simText(ctx,'v='+Math.abs(vel).toFixed(1)+' m/s',pos+arrowLen+(arrowLen>0?6:-6),GND-r*2-8,vel>=0?'#6ee7b7':'#fca5a5',9,undefined,false);
+      var aEnd=Math.max(6,Math.min(W-6,pos+vel*10));
+      simArrow(ctx,pos,GND-r*2-10,aEnd,GND-r*2-10,vel>=0?'#34d399':'#f87171',2.5,10);
+      simText(ctx,'v = '+(vel>=0?'+':'−')+Math.abs(vel).toFixed(1)+' m/s',Math.max(50,Math.min(W-50,pos)),GND-r*2-24,vel>=0?'#6ee7b7':'#fca5a5',9,'center');
+    }
+    if(kick&&clock-kick.t<1.4){
+      simText(ctx,'מתקף הקיר: Δp = '+(kick.dp>=0?'+':'−')+Math.abs(kick.dp).toFixed(1)+' kg·m/s',Math.max(110,Math.min(W-110,kick.x)),Math.max(97,GND-r*2-44),'#fbbf24',9.5,'center',true);
     }
 
-    // ── Big info panel
+    // info panel: p = m·v, and a strip whose fill IS the product
     ctx.save();ctx.fillStyle='rgba(6,14,28,.92)';ctx.strokeStyle='#1e3a52';ctx.lineWidth=1;
-    ctx.beginPath();ctx.roundRect(10,8,W-20,64,6);ctx.fill();ctx.stroke();ctx.restore();
+    ctx.beginPath();ctx.roundRect(10,8,W-20,76,6);ctx.fill();ctx.stroke();ctx.restore();
+    simText(ctx,'p = m · v = '+mass+' × '+(vel>=0?'':'(−')+Math.abs(vel).toFixed(1)+(vel>=0?'':')')+' = '+(pS>=0?'+':'−')+p.toFixed(1)+' kg·m/s',W/2,26,'#22d3ee',12,'center',true);
+    simText(ctx,pS>=0?'התנע ימינה — בכיוון המהירות':'התנע שמאלה — בכיוון המהירות',W/2,42,'#7d8da6',9,'center');
+    var barY=52, barX=20, barW=W-40;
+    var mFrac=Math.min(mass/10,1), vFrac=Math.min(Math.abs(vel)/12,1), pFrac=mFrac*vFrac;   // = |p| / 120
+    ctx.save();ctx.fillStyle='rgba(15,30,55,.7)';ctx.beginPath();ctx.roundRect(barX,barY,barW,10,3);ctx.fill();ctx.restore();
+    var pg=ctx.createLinearGradient(barX,0,barX+barW,0); pg.addColorStop(0,'#3b82f6cc'); pg.addColorStop(1,'#34d399cc');
+    ctx.save();ctx.fillStyle=pg;ctx.beginPath();ctx.roundRect(barX,barY,barW*pFrac,10,3);ctx.fill();ctx.restore();
+    simText(ctx,'גודל התנע — הפס המלא: 120 kg·m/s',W/2,barY+23,'#7d8da6',8,'center');
 
-    simText(ctx,'p = m × v',W/2,22,'#7d8da6',9,'center',true);
-    simText(ctx,'p = '+mass+' × '+Math.abs(vel).toFixed(1)+' = '+p.toFixed(1)+' kg·m/s',W/2,38,'#22d3ee',13,'center',true);
-
-    // Decomposition display
-    var barY=50, barTotal=W-40;
-    // mass bar segment
-    var mFrac=Math.min(mass/10,1);
-    var vFrac=Math.min(Math.abs(vel)/12,1);
-    ctx.save();ctx.fillStyle='rgba(15,30,55,.7)';ctx.beginPath();ctx.roundRect(20,barY,barTotal,10,3);ctx.fill();ctx.restore();
-    // The two segments used to total mFrac + vFrac − mFrac·vFrac — the union
-    // formula, not a product — so at m=5 kg and v=6 m/s the bar read 75% full
-    // while p was 30 of a possible 120, a quarter. This strip sits directly
-    // under the caption "p = m × v", so it has to be the product.
-    var pFrac=mFrac*vFrac;                        // = p / p_max
-    var pg=ctx.createLinearGradient(20,0,20+barTotal,0);
-    pg.addColorStop(0,'#3b82f6cc');pg.addColorStop(1,'#34d399cc');
-    ctx.save();ctx.fillStyle=pg;ctx.beginPath();ctx.roundRect(20,barY,barTotal*pFrac,10,3);ctx.fill();ctx.restore();
-    // the two inputs, kept visible as ticks on the same strip
-    ctx.save();ctx.strokeStyle='#93c5fd';ctx.lineWidth=1.5;
-    ctx.beginPath();ctx.moveTo(20+barTotal*mFrac,barY-3);ctx.lineTo(20+barTotal*mFrac,barY+13);ctx.stroke();
-    ctx.strokeStyle='#6ee7b7';
-    ctx.beginPath();ctx.moveTo(20+barTotal*vFrac,barY-3);ctx.lineTo(20+barTotal*vFrac,barY+13);ctx.stroke();ctx.restore();
-    simText(ctx,'\u200em='+mass+' kg',22,barY+8,'#93c5fd',7.5,undefined,false);
-    simText(ctx,'\u200ev='+Math.abs(vel).toFixed(1)+' m/s',W-22,barY+8,'#6ee7b7',7.5,'right',false);
-    simText(ctx,'\u200eסקאלה מלאה: 120 kg·m/s',W/2,barY+20,'#7d8da6',7,'center',true);
-
-    // ── p graph (bottom)
-    ctx.save();ctx.fillStyle='rgba(6,14,28,.75)';ctx.strokeStyle='#1e3a52';ctx.lineWidth=1;
+    // p(t), signed, over a fixed 10 s window
+    ctx.save();ctx.fillStyle='rgba(6,14,28,.78)';ctx.strokeStyle='#1e3a52';ctx.lineWidth=1;
     ctx.beginPath();ctx.roundRect(12,GRAPH_TOP,W-24,GRAPH_H,4);ctx.fill();ctx.stroke();ctx.restore();
-    simText(ctx,'p(t) — תנע עם סימן: בכל התנגשות בקיר p מתהפך',W/2,GRAPH_TOP+10,'#7d8da6',7.5,'center');
-
-    if(pHistory.length>2){
-      var maxP=1; pHistory.forEach(function(q){maxP=Math.max(maxP,Math.abs(q)*1.15);});
-      var gMid=GRAPH_TOP+GRAPH_H/2+3, gAmp=GRAPH_H/2-9;
-      // Zero line (p = 0) through the middle: + is to the right, − to the left
-      ctx.save();ctx.strokeStyle='rgba(255,255,255,.14)';ctx.lineWidth=1;ctx.setLineDash([3,5]);
-      ctx.beginPath();ctx.moveTo(18,gMid);ctx.lineTo(W-18,gMid);ctx.stroke();ctx.setLineDash([]);ctx.restore();
-      simText(ctx,'+',12,gMid-gAmp+6,'#6ee7b7',8,'left');simText(ctx,'0',12,gMid+3,'#7d8da6',7,'left');simText(ctx,'−',12,gMid+gAmp,'#fca5a5',8,'left');
-      // p curve
+    simText(ctx,'p(t) עם סימן: בכל פגיעה בקיר p מתהפך, והקפיצה היא מתקף הקיר',W/2,GRAPH_TOP+12,'#7d8da6',8.5,'center');
+    var gL=46, gR=W-20, gMid=GRAPH_TOP+GRAPH_H/2+8, gAmp=GRAPH_H/2-22, pMax=Math.max(1,p)*1.2;
+    ctx.save();ctx.strokeStyle='rgba(255,255,255,.16)';ctx.lineWidth=1;ctx.setLineDash([3,5]);
+    ctx.beginPath();ctx.moveTo(gL,gMid);ctx.lineTo(gR,gMid);ctx.stroke();ctx.setLineDash([]);ctx.restore();
+    simText(ctx,'0',gL-6,gMid+3,'#7d8da6',8,'right');
+    simText(ctx,'+'+p.toFixed(1),gL-6,gMid-p/pMax*gAmp+3,'#6ee7b7',8,'right');
+    simText(ctx,'−'+p.toFixed(1),gL-6,gMid+p/pMax*gAmp+3,'#fca5a5',8,'right');
+    simText(ctx,'t →',gR,GRAPH_TOP+GRAPH_H-6,'#7d8da6',8,'right');
+    if(hist.length>1){
       ctx.save();ctx.strokeStyle='#22d3ee';ctx.lineWidth=2;ctx.beginPath();
-      pHistory.forEach(function(pv,i){
-        var px2=18+(W-36)*i/(pHistory.length-1);
-        var py2=gMid-(pv/maxP)*gAmp;
-        i===0?ctx.moveTo(px2,py2):ctx.lineTo(px2,py2);
-      });
+      hist.forEach(function(q,i){var px=gL+(q.t-hist[0].t)/WIN*(gR-gL), py=gMid-q.p/pMax*gAmp; i===0?ctx.moveTo(px,py):ctx.lineTo(px,py);});
       ctx.stroke();ctx.restore();
-      simText(ctx,'\u200ep = '+(pS>=0?'+':'−')+p.toFixed(1)+' kg·m/s',W-18,GRAPH_TOP+14,'#22d3ee',8,'right',true);
     }
-
     requestAnimationFrame(draw);
   }
   requestAnimationFrame(draw);
