@@ -27218,7 +27218,13 @@ runAnim('anim-mag-faraday',(cv,ctx,W,H,t)=>{
   label(ctx,ph<1.2?'נכנס — המחוג זז':ph<3?'עומד בתוך הסליל — אפס!':ph<4.2?'יוצא — המחוג זז לצד השני':'עומד בחוץ — אפס',W*0.26,H*0.80,v?'#fbbf24':'#94a3b8',11);
 });
 
-// a magnet falling through copper vs plastic tube
+// a magnet falling through copper vs plastic tube. The magnet falls N up,
+// S down. Below it the S pole approaches: the upward flux grows, so that ring
+// circulates clockwise seen from above (its field points down, its top face is
+// S and repels). Above it the N pole recedes: the upward flux shrinks, that
+// ring circulates counter-clockwise (top face N, bottom face S, which pulls the
+// N pole back). Both push the magnet UP, against its fall. On the near (lower)
+// edge of each ellipse, clockwise-from-above runs to the LEFT.
 runAnim('anim-mag-lenz',(cv,ctx,W,H,t)=>{
   bg(ctx,W,H);
   var ph=t%5,top=14,bot=H-12,len=bot-top-28;
@@ -27228,7 +27234,9 @@ runAnim('anim-mag-lenz',(cv,ctx,W,H,t)=>{
     ctx.strokeStyle=q[1];ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(x-22,top);ctx.lineTo(x-22,bot);ctx.moveTo(x+22,top);ctx.lineTo(x+22,bot);ctx.stroke();ctx.restore();
     var my=top+14+q[3];magBar(ctx,x,my,28,14,-Math.PI/2);
     if(q[4]&&q[3]<len-2){[-1,1].forEach(function(sd){var ey=my+sd*22;ctx.save();ctx.strokeStyle='rgba(251,191,36,.8)';ctx.lineWidth=1.6;ctx.beginPath();ctx.ellipse(x,ey,20,4,0,0,6.2832);ctx.stroke();ctx.restore();
-      arrow(ctx,x+(sd>0?-6:6),ey+4,x+(sd>0?6:-6),ey+4,'#fbbf24',1.4,5);});}
+      arrow(ctx,x+(sd>0?6:-6),ey+4,x+(sd>0?-6:6),ey+4,'#fbbf24',1.4,5);});
+      // the braking force on the magnet: up, against the fall
+      arrow(ctx,x+15,my+12,x+15,my-16,'#fb923c',2.2,6);label(ctx,'F',x+30,my-4,'#fb923c',10.5,'left');}
     label(ctx,q[2],x+30,top+10,q[1],11,'left');});
   label(ctx,'זרמי מערבולת',W*0.30-30,H*0.5,'#fbbf24',9.5,'right');
   label(ctx,'בנחושת: הזרמים המושרים',W*0.50,H*0.40,'#fbbf24',10);
