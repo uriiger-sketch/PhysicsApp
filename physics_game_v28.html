@@ -27096,13 +27096,14 @@ MAG_CTRL['mag-transformer']=function(){return rng('mgt-V1',6,240,230,1,'מתח �
 var _magAnimCache={};
 // field lines of a set of coaxial loops (radius a, axial positions T) in a
 // W×H box at scale s px/m; cached, since they depend only on the geometry
-function _magLoopLines(key,T,a,s,W,H,nSeed){
+function _magLoopLines(key,T,a,s,W,H,nSeed,nmax){
+  if(!nmax)nmax=900;
   if(_magAnimCache[key])return _magAnimCache[key];
   var F=function(u,v){var bu=0,bv=0;for(var k=0;k<T.length;k++){var b=magLoopB(a,1,Math.abs(v),u-T[k]);bu+=b[1];bv+=b[0];}return [bu,(v<0?-1:1)*bv];};
   var box=[-W/2/s,W/2/s,-H/2/s,H/2/s],L=[];
   var stop=function(u,v){if(Math.abs(Math.abs(v)-a)>a*0.08)return false;for(var j=0;j<T.length;j++)if(Math.abs(u-T[j])<a*0.07)return true;return false;};
   for(var i=0;i<nSeed;i++){var v0=(i+0.5)/nSeed*0.9*a;
-    [v0,-v0].forEach(function(v){var f=magTrace(F,0,v,1,a*0.04,900,box,stop),b=magTrace(F,0,v,-1,a*0.04,900,box,stop);L.push(b.reverse().concat(f));});}
+    [v0,-v0].forEach(function(v){var f=magTrace(F,0,v,1,a*0.04,nmax,box,stop),b=magTrace(F,0,v,-1,a*0.04,nmax,box,stop);L.push(b.reverse().concat(f));});}
   _magAnimCache[key]=L;return L;
 }
 // a dot travelling along a polyline, at fraction f of its length
@@ -27120,7 +27121,7 @@ runAnim('anim-mag-magnets',(cv,ctx,W,H,t)=>{
   bg(ctx,W,H);
   var ang=0.28*t,cx=W/2,cy=H/2,Lm=108,a=11,ca=Math.cos(ang),sa=Math.sin(ang),T=[];
   for(var k=0;k<9;k++)T.push(-Lm/2+(k+0.5)*Lm/9);
-  var D=Math.hypot(W,H),L=_magLoopLines('bar'+Math.round(D),T,a,1,D,D,4);
+  var D=Math.hypot(W,H),L=_magLoopLines('bar'+Math.round(D),T,a,1,D,D,4,2600);   // long enough to close or leave the picture
   // local magnet frame (u along S→N, v across) → screen
   var toS=function(u,v){return [cx+u*ca-v*sa,cy-(u*sa+v*ca)];};
   var Bloc=function(u,v){var bu=0,bv=0;for(var j=0;j<T.length;j++){var b=magLoopB(a,1,Math.abs(v),u-T[j]);bu+=b[1];bv+=b[0];}return [bu,(v<0?-1:1)*bv];};
