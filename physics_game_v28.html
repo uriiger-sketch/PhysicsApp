@@ -33759,7 +33759,7 @@ function buildProblem(prob){
       <div class="step-hdr"><div class="step-num${solved?' done':''}">${solved?'✓':si+1}</div><div class="step-q" id="sq${si}">${_ltSafe(st2.q)}</div></div>
       ${!solved?`${hintHTML}
         <div class="step-inp-row">
-          <input class="step-inp${fb==='correct'?' ok':fb?' err':''}" type="text" id="si${si}" value="${String(inp).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;')}" placeholder="תשובה…" aria-labelledby="sq${si}" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="done" oninput="upInp(${si},this.value)" onkeydown="if(event.key==='Enter')chkStep(${si})" ${locked?'disabled':''}>
+          <input class="step-inp${fb==='correct'?' ok':fb?' err':''}" type="text" id="si${si}" value="${String(inp).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;')}" placeholder="תשובה…" dir="auto" aria-labelledby="sq${si}" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="done" oninput="upInp(${si},this.value)" onkeydown="if(event.key==='Enter')chkStep(${si})" ${locked?'disabled':''}>
           ${st2.unit?`<span class="unit-lbl">${st2.unit}</span>`:''}
           <span class="step-btns">${showBtn?`<button class="hint-btn" onclick="showHint(${si})">${lvl===0?'💡 רמז':'✏️ פתרון מלא'} (−5 XP)</button>`:''}
           ${!locked?`<button class="btn btn-primary" style="padding:7px 14px" onclick="chkStep(${si})">בדקו</button>`:''}</span>
@@ -34010,8 +34010,11 @@ function _numCands(s){
   t=t.replace(/^([-+]?)10\^/,'$11e');    // a bare 10^-16 -> 1e-16
   const reads=[];
   const one=function(u){
-    const f=/^([-+]?(?:\d+(?:\.\d*)?|\.\d+))\/(\d+(?:\.\d*)?)$/.exec(u.replace(/[^0-9.eE+\-\/]/g,''));
-    if(f&&+f[2]){reads.push(+f[1]/+f[2]);return;}       // a fraction, 2/3
+    // a fraction, 2/3 or (2/3) -- at the start of what was typed: with the
+    // letters stripped first, an answer with its unit, "-5 m/s²", read as
+    // the fraction -5/2 and was marked wrong
+    const f=/^[(\[]?([-+]?(?:\d+(?:\.\d*)?|\.\d+))\/(\d+(?:\.\d*)?)(?![\d.eE^])/.exec(u);
+    if(f&&+f[2]){reads.push(+f[1]/+f[2]);return;}
     const m=/[-+]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][-+]?\d+)?/.exec(u);
     if(m)reads.push(parseFloat(m[0]));
   };
