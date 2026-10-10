@@ -8656,9 +8656,12 @@ function setupCanvas(canvas, H){
 // ── Pointer helpers: dpr-safe canvas coords + drag→slider sync ──
 function simPointerXY(canvas,dpr,evt){
   var r=canvas.getBoundingClientRect();
-  var scl=(canvas.width/dpr)/r.width;
-  return {x:((evt.touches?evt.touches[0].clientX:evt.clientX)-r.left)*scl,
-          y:((evt.touches?evt.touches[0].clientY:evt.clientY)-r.top)*scl};
+  var scl=r.width?(canvas.width/dpr)/r.width:1;
+  // a touchend carries no touches, only changedTouches: reading touches[0]
+  // there threw, in any sim that asks where the finger was lifted
+  var pt=(evt.touches&&evt.touches[0])||(evt.changedTouches&&evt.changedTouches[0])||evt;
+  return {x:(pt.clientX-r.left)*scl,
+          y:(pt.clientY-r.top)*scl};
 }
 // One place for "this canvas takes the pointer": mouse and touch together, a
 // release that only releases (a position read from an up-event snaps whatever
