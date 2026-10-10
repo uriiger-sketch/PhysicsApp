@@ -31017,15 +31017,15 @@ var SENSOR_LABS={
 
  'energy.energy-cons':{t:'swing-energy',h:330,minHz:25,
    ttl:'שימור אנרגיה — בלי לדעת את המסה ואת האורך',
-   how:'תלו את הטלפון בשקית על חוט, משכו הצידה <b>ושחררו בעדינות</b> — בלי דחיפה. כל חצי-תנודה נמדדת בנפרד, והתנודה הדועכת סורקת מעצמה טווח של זוויות.',
+   how:'הכניסו את הטלפון לשקית, קשרו היטב לחוט חזק (חצי מטר ומעלה) ונדנדו <b>מעל מיטה או ספה</b>. משכו הצידה <b>ושחררו בעדינות</b> — בלי דחיפה. כל חצי-תנודה נמדדת בנפרד, והתנודה הדועכת סורקת מעצמה טווח של זוויות.',
    pred:'לפני השחרור: אם תשחררו מ-60° במקום מ-30°, פי כמה תגדל הקריאה בנקודה הנמוכה? נחשו מספר, ואז בדקו בגרף.',
-   note:'בנקודה הנמוכה '+M('a_r=g+v^2/L')+', ושימור אנרגיה נותן '+M('v^2=2gL(1-\\cos\\theta_0)')+'. ההצבה מבטלת גם את '+M('L')+' וגם את '+M('m')+':<br>'+M('a_r/g=3-2\\cos\\theta_0')+'<br><b>תחזית ללא אף פרמטר</b> — בלי מסה, בלי אורך ובלי שעון. נקודות על העקומה מאשרות שימור; נקודות מתחתיה הן האנרגיה שהלכה לחיכוך.<br><br>הזווית נמדדת באינטגרל של הג׳ירוסקופ מרגע השחרור עד הנקודה הנמוכה.',
-   chips:[['th','θ₀ אחרון','°'],['ar','a_r/g נמדד',''],['pr','3−2cosθ₀ חזוי',''],['n','חצאי תנודה','']],
+   note:'בנקודה הנמוכה החוט מושך ב-'+M('T=mg+mv^2/L')+', ושימור אנרגיה נותן '+M('v^2=2gL(1-\\cos\\theta_0)')+'. ההצבה מבטלת גם את '+M('L')+' וגם את '+M('m')+':<br>'+M('T/mg=3-2\\cos\\theta_0')+'<br><b>תחזית ללא אף פרמטר</b> — בלי מסה, בלי אורך ובלי שעון. מד-התאוצה קורא בדיוק את '+M('T/m')+' (הכוח שאינו הכובד, ליחידת מסה), ולכן הקריאה חלקי '+M('g')+' היא '+M('T/mg')+'. נקודות על העקומה מאשרות שימור; נקודות מתחתיה — אנרגיה שאבדה בדרך (חיכוך, גרירת אוויר), או שקית שאינה מתנהגת כמסה נקודתית.<br><br>הזווית נמדדת באינטגרל של הג׳ירוסקופ מרגע השחרור עד הנקודה הנמוכה.',
+   chips:[['th','θ₀ אחרון','°'],['ar','T/mg נמדד',''],['pr','3−2cosθ₀ חזוי',''],['n','חצאי תנודה','']],
    ctrl:'<button class="sl-sec" id="sl-clr">🗑 נקה</button>'},
 
  'shm.pendulum':{t:'pendulum-fit',h:312,minHz:25,
    ttl:'מטוטלת: מדדו את g מהשיפוע',
-   how:'הכניסו את הטלפון לשקית ותלו אותה על חוט. מדדו את <b>L</b> עד מרכז הטלפון, הזינו אותו, הניעו בתנודה קטנה, המתינו שה-T יתייצב ולחצו <b>רשום נקודה</b>. חזרו על כך ב-3–4 אורכים שונים.',
+   how:'הכניסו את הטלפון לשקית, קשרו היטב לחוט ותלו <b>מעל מיטה או ספה</b>. מדדו את <b>L</b> עד מרכז הטלפון, הזינו אותו, הניעו בתנודה קטנה, המתינו שה-T יתייצב ולחצו <b>רשום נקודה</b>. חזרו על כך ב-3–4 אורכים שונים.',
    pred:'לפני המדידה השנייה: אם תכפילו את אורך החוט, פי כמה יגדל זמן המחזור? (רמז: לא פי שניים)',
    note:'נקודה בודדת אינה ניסוי — היא לא מבחינה בין חוק נכון לשגיאה שיטתית. '+M('T^2=(4\\pi^2/g)L')+' הוא <b>ישר דרך הראשית</b>, ולכן כמה אורכים בודקים גם את צורת החוק וגם נותנים את '+M('g')+' מהשיפוע. ישר יפה עם '+M('g')+' רחוק מ-9.81 פירושו ש-L לא נמדד עד מרכז המסה. מעל כ-20° המחזור מתחיל להתארך, והאפליקציה מודדת את האמפליטודה ומתריעה.',
    chips:[['T','T נמדד','s'],['g','g מהשיפוע','m/s²'],['r2','R²',''],['n','נקודות','']],
@@ -31631,7 +31631,8 @@ var SL_IMPL={
     } else simText(ctx,'החזיקו שטוח על כף היד ואל תזיזו אותה',W/2,y,mu,11,'center');}},
 
 // Energy conservation with every parameter cancelled out: at the bottom of a
-// swing a_r = g + v^2/L, and v^2 = 2gL(1-cos th0) turns that into a_r/g =
+// swing the string pulls with T/m = g + v^2/L -- which is what the
+// accelerometer reads along it -- and v^2 = 2gL(1-cos th0) turns that into T/mg =
 // 3 - 2cos(th0). No mass, no length, no timing -- only the release angle, which
 // the gyroscope supplies by integrating the rate from release to the bottom.
 'swing-energy':{
@@ -31649,8 +31650,12 @@ var SL_IMPL={
     if(w>st.gyro)st.gyro=w;                      // is there a gyroscope at all?
     if(st.ph==='cal'){
       // hanging still: the string direction in the phone's frame is wherever
-      // the accelerometer points, and it stays that way as the phone swings
-      if(Math.hypot(s.ax,s.ay,s.az)>0.4||w>0.25){st.calN=0;st.calS=[0,0,0];return;}
+      // the accelerometer points, and it stays that way as the phone swings.
+      // A bag that slowly twists on its string is still hanging still -- the
+      // twist turns the phone ABOUT that direction -- so only the
+      // accelerometer decides; waiting for the gyroscope to read zero never
+      // ended for a string that was unwinding.
+      if(Math.hypot(s.ax,s.ay,s.az)>0.4){st.calN=0;st.calS=[0,0,0];return;}
       st.calN++;for(i=0;i<3;i++)st.calS[i]+=A[i];
       if(st.calN>=50){
         var u=[st.calS[0]/st.calN,st.calS[1]/st.calN,st.calS[2]/st.calN];
@@ -31658,6 +31663,15 @@ var SL_IMPL={
         st.u=[u[0]/st.g0,u[1]/st.g0,u[2]/st.g0];st.ph='run';}
       return;}
     var Au=A[0]*st.u[0]+A[1]*st.u[1]+A[2]*st.u[2];
+    // The swing turns the phone about a horizontal axis, square to the string;
+    // a twist of the bag turns it about the string itself. Only the first is
+    // the pendulum. Counting both (|ω|) overstated the rate, and a bag that
+    // twisted at a few tens of °/s never came below the turning-point bar, so
+    // not one half swing was recorded. Remove the part along the string.
+    // (rotationRate: beta about x, gamma about y, alpha about z.)
+    var wx=s.rb*Math.PI/180,wy=s.rg*Math.PI/180,wz=s.ra*Math.PI/180,
+        wu=wx*st.u[0]+wy*st.u[1]+wz*st.u[2];
+    w=Math.hypot(wx-wu*st.u[0],wy-wu*st.u[1],wz-wu*st.u[2]);
     st.w=w;st.ar=Au/st.g0;st.tr.push(st.ar);
     // Every half swing starts at a turning point, where the phone really is
     // momentarily at rest -- so each of them is a release, and the natural
@@ -31725,7 +31739,7 @@ var SL_IMPL={
       simText(ctx,'הכיול קובע את כיוון החוט במערכת הצירים של הטלפון',W/2,H/2+16,mu,11.5,'center');
       return;}
     var hp=Math.round(H*0.24);
-    slPlot(ctx,8,6,W-16,hp,[{tr:st.tr,c:c1}],{title:'a_r / g   לאורך החוט',floor:.5,hold:st.h,positive:true});
+    slPlot(ctx,8,6,W-16,hp,[{tr:st.tr,c:c1}],{title:'T / mg',floor:.5,hold:st.h,positive:true});
     // ── the prediction curve, with the measurements on top of it ──
     var px=44,py=hp+26,pw=W-58,ph2=H-py-52;
     var TH=80,RM=3-2*Math.cos(TH*Math.PI/180);
@@ -31751,7 +31765,7 @@ var SL_IMPL={
       ctx.fillStyle=(i===st.pts.length-1)?gd:c1;
       ctx.beginPath();ctx.arc(X(d),Y(q.r),(i===st.pts.length-1)?5:3.5,0,6.2832);ctx.fill();});
     ctx.restore();
-    slTxt(ctx,'a_r / g',px+4,py-4,tx,9.5,'left',true);
+    slTxt(ctx,'T / mg',px+4,py-4,tx,9.5,'left',true);
     // the axis name goes UNDER the axis it names; the legend had been sitting on
     // top of it in the same corner
     slTxt(ctx,'θ₀',px+pw-2,py+ph2+11,tx,9.5,'left',true);

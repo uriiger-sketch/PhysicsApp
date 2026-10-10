@@ -353,14 +353,16 @@ const S = p => p.evaluate(() => JSON.parse(JSON.stringify(_sl.st, (k, v) =>
   console.log('\n13b) energy.energy-cons — a_r/g = 3 − 2cos θ₀');
   await openLab(p, 'energy.energy-cons');
   // an exact pendulum: theta'' = -(g/L) sin(theta); the reading along the string
-  // is g(3cos th - 2cos th0), which peaks at the bottom
-  const swing = (deg, quiet = 40) => push(p, 'energy.energy-cons', quiet + 400, `(()=>{
+  // is g(3cos th - 2cos th0), which peaks at the bottom. The string is along z,
+  // so the swing turns the phone about x (beta); `twist` adds a steady turn of
+  // the bag about the string itself (alpha), which is not part of the swing.
+  const swing = (deg, quiet = 40, twist = 0) => push(p, 'energy.energy-cons', quiet + 400, `(()=>{
     let th=${deg}/57.29578, w=0, n=0, L=0.5, G=9.81, th0=th;
     return i=>{
       if(i>=${quiet}){ for(let k=0;k<4;k++){ const dt=0.005;
         const a1=-(G/L)*Math.sin(th); w+=a1*dt; th+=w*dt; } }
       const ar=G*(3*Math.cos(th)-2*Math.cos(th0));
-      return { g:[0,0,ar], a:[0,0,0], r:[Math.abs(w)*57.29578,0,0] };
+      return { g:[0,0,ar], a:[0,0,0], r:[${twist},w*57.29578,0] };
     };
   })()`);
   await push(p, 'energy.energy-cons', 60, '()=>({g:[0,0,9.81],a:[0,0,0],r:[0,0,0]})');
@@ -387,8 +389,17 @@ const S = p => p.evaluate(() => JSON.parse(JSON.stringify(_sl.st, (k, v) =>
   // waved by hand: the rate never passes through a turning point, so there is
   // no release from rest and nothing may be recorded
   await push(p, 'energy.energy-cons', 300,
-    'i=>({g:[0,0,9.81*(1.6+0.5*Math.sin(i/9))],a:[0,0,0],r:[(60+40*Math.sin(i/9)),0,0]})');
+    'i=>({g:[0,0,9.81*(1.6+0.5*Math.sin(i/9))],a:[0,0,0],r:[0,(60+40*Math.sin(i/9)),0]})');
   t('a phone that is merely waved is not a released swing', (await S(p)).pts.length, n0);
+  // a bag that twists on its string at 45°/s all the while: the rate never
+  // drops below the turning-point bar unless the twist is taken out
+  await p.evaluate(() => document.getElementById('sl-clr').click());
+  await push(p, 'energy.energy-cons', 60, '()=>({g:[0,0,9.81],a:[0,0,0],r:[45,0,0]})');
+  await swing(40, 40, 45);
+  s = await S(p);
+  t('a twisting bag: its half swings are still recorded', s.pts.length >= 2, true);
+  t('  with θ₀ from the swing alone (°)', s.pts.length ? s.pts[0].th * 57.29578 : NaN, 40, 0.6);
+  t('  and the reading on the curve', s.pts.length ? s.pts[0].r : NaN, 3 - 2 * Math.cos(40 / 57.29578), 0.02);
 
   console.log('\n13c) forces.tension — a lift ride, T = m(g±a)');
   await openLab(p, 'forces.tension');
