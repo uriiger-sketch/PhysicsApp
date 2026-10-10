@@ -203,6 +203,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 #app sup{top:-.45em}
 .math-ltr{direction:ltr;display:inline-flex;align-items:center;vertical-align:middle;margin:0 3px;font-size:1.05em;}
 .ltr-run{direction:ltr;unicode-bidi:isolate;}
+.ltr-run.nb{white-space:nowrap;}
 .sum-open{background:rgba(96,165,250,.07);border-right:3px solid rgba(96,165,250,.5);
   border-radius:8px;padding:9px 14px;margin:8px 0 14px;font-size:.9rem;color:var(--t-sum);line-height:1.9;}
 .sum-open b{color:var(--t-sumb);}
@@ -1855,7 +1856,10 @@ function fixInlineMath(root){
       var run=s.slice(r[0],r[1]);
       if(run.length<2||HEB.test(run)||r[0]<last)return;
       parts.push(document.createTextNode(s.slice(last,r[0])));
-      var sp=document.createElement('span');sp.className='ltr-run';sp.textContent=run;
+      // a short run -- "24 cm", "9.795 m/s²", "I = 2 A" -- is one word: it
+      // broke at its space, the number ending one line and the unit opening
+      // the next
+      var sp=document.createElement('span');sp.className='ltr-run'+(run.length<=14&&/\s/.test(run)?' nb':'');sp.textContent=run;
       parts.push(sp);last=r[1];any=true;
     });
     if(!any)return;
