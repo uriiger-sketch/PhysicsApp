@@ -950,6 +950,11 @@ html{scroll-padding-top:72px;}
      separators: they may break there rather than scroll */
   .formula-box .tex-fb{white-space:normal;}
 }
+/* A slider readout, an answer's unit, a stat value: "85 mm" laid out in the
+   right-to-left page came out as "mm 85", and "-3" as "3-". Each takes its
+   direction from its own first letter: Latin units read left to right, a
+   Hebrew unit (ס״מ) right to left, a bare number left to right. */
+.range-val,.range-wrap span,.unit-lbl,.sim-stat .sval{unicode-bidi:plaintext;}
 /* "Enter" means nothing on a touch screen */
 @media (pointer:coarse){ .quiz-card kbd{display:none;} }
 /* Reduced motion: no pulsing, popping or sliding; the theory animations
