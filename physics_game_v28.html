@@ -10742,7 +10742,9 @@ function simFBD(canvas){
   // PEDAGOGY: Force is measured with a spring scale (dynamometer). Student drags real
   // objects onto the hanging scale and watches the needle deflect, reading W=mg live.
   // Then can apply an additional push force to see net force concept.
-  const H=500; const {ctx,W,dpr}=setupCanvas(canvas,H);
+  const _cvF=setupCanvas(canvas,500); const W=_cvF.W, dpr=_cvF.dpr;
+  // a phone gets the readout under the scale instead of a sliver beside it
+  const PH=W<480, H=PH?620:500; const ctx=PH?setupCanvas(canvas,H).ctx:_cvF.ctx;
   const id=canvas.id;
   const g=9.8;
   let pT=null, t=0;
@@ -10750,14 +10752,14 @@ function simFBD(canvas){
   let activeObj=null;
 
   const OBJ=[
-    {label:'קוביה',    m:0.5, col:'#d97706', emoji:'🟫', ox:W*0.09, oy:H*0.53},
-    {label:'אבן',      m:2.0, col:'#64748b', emoji:'🪨', ox:W*0.09, oy:H*0.68},
-    {label:'ספר',      m:1.0, col:'#2563eb', emoji:'📘', ox:W*0.09, oy:H*0.83},
+    {label:'קובייה',   m:0.5, col:'#d97706', emoji:'🟫', ox:Math.max(32,W*0.09), oy:PH?250:H*0.53},
+    {label:'אבן',      m:2.0, col:'#64748b', emoji:'🪨', ox:Math.max(32,W*0.09), oy:PH?325:H*0.68},
+    {label:'ספר',      m:1.0, col:'#2563eb', emoji:'📘', ox:Math.max(32,W*0.09), oy:PH?400:H*0.83},
   ];
   OBJ.forEach(o=>{o.x=o.ox; o.y=o.oy; o.onScale=false;});
   let dragObj=null, dragOX=0, dragOY=0;
 
-  const SCALE_X=W*0.50, SCALE_TOP=72, SCALE_H=130, SCALE_W=48;
+  const SCALE_X=PH?W*0.56:W*0.50, SCALE_TOP=72, SCALE_H=130, SCALE_W=48;
   const SCALE_CY=SCALE_TOP+90;
 
   function getXY(evt){
@@ -10834,10 +10836,11 @@ function simFBD(canvas){
 
     // Background shelf guide
     ctx.save(); ctx.strokeStyle='rgba(30,58,82,.4)'; ctx.lineWidth=1; ctx.setLineDash([4,8]);
-    ctx.beginPath(); ctx.moveTo(W*0.03,H*0.47); ctx.lineTo(W*0.25,H*0.47); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(W*0.03,H*0.90); ctx.lineTo(W*0.25,H*0.90); ctx.stroke();
+    var _sh0=OBJ[0].oy-40, _sh1=OBJ[2].oy+48;
+    ctx.beginPath(); ctx.moveTo(6,_sh0); ctx.lineTo(Math.max(72,W*0.25),_sh0); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(6,_sh1); ctx.lineTo(Math.max(72,W*0.25),_sh1); ctx.stroke();
     ctx.setLineDash([]); ctx.restore();
-    simText(ctx,'גופים לשקילה',W*0.14,H*0.44,'#7d8da6',8,undefined,true);
+    simText(ctx,'גופים לשקילה',Math.max(40,W*0.14),_sh0-8,'#94a3b8',10,undefined,true);
 
     // ── SPRING SCALE ──────────────────────────────────────────
     const scaleMaxN=30, extMax=88;
@@ -10853,36 +10856,37 @@ function simFBD(canvas){
     ctx.save(); ctx.strokeStyle='#94a3b8'; ctx.lineWidth=2.5;
     ctx.beginPath(); ctx.moveTo(SCALE_X,SCALE_TOP); ctx.lineTo(SCALE_X,SCALE_TOP+16); ctx.stroke(); ctx.restore();
 
-    // Spring (inside scale — stretch visible)
-    drawSpring(SCALE_X,SCALE_TOP+16,SCALE_X,SCALE_CY-SCALE_H/2,10,12,'#60a5fa',2);
-
-    // Scale body
+    // A real spring balance: the case hangs still, the spring inside it
+    // stretches, the pointer moves DOWN the scale and the hook rod comes out
+    // of the bottom. (The case used to stretch while the pointer rose.)
     const bY=SCALE_CY-SCALE_H/2;
+    ctx.save(); ctx.strokeStyle='#94a3b8'; ctx.lineWidth=2;
+    ctx.beginPath(); ctx.moveTo(SCALE_X,SCALE_TOP+16); ctx.lineTo(SCALE_X,bY); ctx.stroke(); ctx.restore();
     ctx.save(); ctx.fillStyle='rgba(15,32,53,.9)'; ctx.strokeStyle='#3d6480'; ctx.lineWidth=2;
-    ctx.beginPath(); ctx.roundRect(SCALE_X-SCALE_W/2,bY,SCALE_W,SCALE_H+ext,9); ctx.fill(); ctx.stroke(); ctx.restore();
-    // Scale face markings
+    ctx.beginPath(); ctx.roundRect(SCALE_X-SCALE_W/2,bY,SCALE_W,SCALE_H,9); ctx.fill(); ctx.stroke(); ctx.restore();
+    var needleY=bY+8+(SCALE_H-16)*Math.min(scaleReading,scaleMaxN)/scaleMaxN;
+    drawSpring(SCALE_X+8,bY+4,SCALE_X+8,needleY,9,5,'#60a5fa',1.6);
+    // Scale face markings: 0 at the top
     for(var fi=0;fi<=scaleMaxN;fi+=5){
-      var ty=bY+8+(SCALE_H-16)*(1-fi/scaleMaxN);
+      var ty=bY+8+(SCALE_H-16)*(fi/scaleMaxN);
       var isMain=(fi%10===0);
       ctx.save(); ctx.strokeStyle=isMain?'#94a3b8':'#2d5275'; ctx.lineWidth=isMain?1.5:1;
       ctx.beginPath(); ctx.moveTo(SCALE_X-SCALE_W/2+4,ty); ctx.lineTo(SCALE_X-SCALE_W/2+(isMain?16:8),ty); ctx.stroke(); ctx.restore();
-      if(isMain) simText(ctx,fi+'',SCALE_X-SCALE_W/2+20,ty+3,'#7d8da6',7,'left');
+      if(isMain) simText(ctx,fi+'',SCALE_X-SCALE_W/2+20,ty+3,'#94a3b8',9,'left');
     }
     // Needle
-    var needleY=bY+8+(SCALE_H-16)*(1-Math.min(scaleReading,scaleMaxN)/scaleMaxN);
     ctx.save(); ctx.strokeStyle='#ef4444'; ctx.lineWidth=3;
     ctx.beginPath(); ctx.moveTo(SCALE_X-SCALE_W/2+4,needleY); ctx.lineTo(SCALE_X+SCALE_W/2-4,needleY); ctx.stroke(); ctx.restore();
     // Reading display
     ctx.save(); ctx.fillStyle='rgba(0,0,0,.85)'; ctx.strokeStyle='#ef4444'; ctx.lineWidth=1;
-    ctx.beginPath(); ctx.roundRect(SCALE_X-24,needleY-11,48,15,3); ctx.fill(); ctx.stroke(); ctx.restore();
-    simText(ctx,scaleReading.toFixed(2)+' N',SCALE_X,needleY-1,'#ef4444',9,undefined,true);
-    // Scale title
-    simText(ctx,'N',SCALE_X,bY+SCALE_H+ext-6,'#7d8da6',8,undefined,true);
+    ctx.beginPath(); ctx.roundRect(SCALE_X+SCALE_W/2+4,needleY-9,64,17,3); ctx.fill(); ctx.stroke(); ctx.restore();
+    simText(ctx,scaleReading.toFixed(2)+' N',SCALE_X+SCALE_W/2+36,needleY+3,'#f87171',10,undefined,true);
+    simText(ctx,'(N)',SCALE_X-SCALE_W/2-6,bY+12,'#94a3b8',9,'right');
 
-    // Bottom wire
+    // Hook rod: tied to the pointer, it comes out of the case as the spring stretches
     var wireBot=bY+SCALE_H+ext;
     ctx.save(); ctx.strokeStyle='#94a3b8'; ctx.lineWidth=2;
-    ctx.beginPath(); ctx.moveTo(SCALE_X,wireBot); ctx.lineTo(SCALE_X,wireBot+18); ctx.stroke(); ctx.restore();
+    ctx.beginPath(); ctx.moveTo(SCALE_X,needleY); ctx.lineTo(SCALE_X,wireBot+18); ctx.stroke(); ctx.restore();
     // Bottom hook
     ctx.save(); ctx.strokeStyle='#94a3b8'; ctx.lineWidth=2.5;
     ctx.beginPath(); ctx.arc(SCALE_X,wireBot+22,4,Math.PI,0); ctx.stroke(); ctx.restore();
@@ -10898,15 +10902,7 @@ function simFBD(canvas){
       ctx.shadowBlur=0; ctx.restore();
       ctx.save(); ctx.font='18px serif'; ctx.textAlign='center';
       ctx.fillText(activeObj.emoji,SCALE_X,activeObj.y+6); ctx.restore();
-      // Weight arrow down
-      var wLen=Math.min(54,activeObj.m*g*2);
-      simArrow(ctx,SCALE_X,activeObj.y+bS/2+2,SCALE_X,activeObj.y+bS/2+2+wLen,'#fbbf24',2.5,10);
-      simText(ctx,'W=mg='+( activeObj.m*g).toFixed(1)+'N',SCALE_X+7,activeObj.y+bS/2+wLen/2+2,'#fbbf24',8.5,'left');
-      // Tension arrow up
-      simArrow(ctx,SCALE_X,activeObj.y-bS/2-2,SCALE_X,activeObj.y-bS/2-34,'#22d3ee',2.5,9);
-      simText(ctx,'T='+scaleReading.toFixed(1)+'N',SCALE_X+7,activeObj.y-bS/2-20,'#22d3ee',8.5,'left');
-      // Object label
-      simText(ctx,activeObj.label+' | '+activeObj.m+' kg',SCALE_X,activeObj.y+bS/2+wLen+14,activeObj.col,8,undefined,true);
+      simText(ctx,activeObj.m+' kg',SCALE_X-bS/2-6,activeObj.y+4,'#e2e8f0',10,'right',true);
     }
 
     // ── Draggable shelf objects ─────────────────────────────
@@ -10918,8 +10914,7 @@ function simFBD(canvas){
       ctx.shadowBlur=0; ctx.restore();
       ctx.save(); ctx.font='16px serif'; ctx.textAlign='center';
       ctx.fillText(obj.emoji,obj.x,obj.y+5); ctx.restore();
-      simText(ctx,obj.label,obj.x,obj.y+28,obj.col,7.5,undefined,true);
-      simText(ctx,obj.m+' kg',obj.x,obj.y+38,'#7d8da6',7.5,undefined,true);
+      simText(ctx,obj.label+' · '+obj.m+' kg',obj.x,obj.y+34,'#cbd5e1',9,undefined,true);
     });
     if(dragObj){
       ctx.save(); ctx.globalAlpha=0.8; ctx.shadowColor=dragObj.col; ctx.shadowBlur=18;
@@ -10930,54 +10925,43 @@ function simFBD(canvas){
       ctx.fillText(dragObj.emoji,dragObj.x,dragObj.y+5); ctx.restore();
     }
 
-    // ── Right panel ─────────────────────────────────────────
-    var PX=W*0.73, PW=W-PX-10, PY=46;
-    ctx.save(); ctx.fillStyle='rgba(6,14,28,.92)'; ctx.strokeStyle='#1e4060'; ctx.lineWidth=1.5;
-    ctx.beginPath(); ctx.roundRect(PX,PY,PW,H-PY-8,6); ctx.fill(); ctx.stroke(); ctx.restore();
-    var PC=PX+PW/2;
-    simText(ctx,'נוסחה',PC,PY+14,'#22d3ee',10,undefined,true);
-    simText(ctx,'W = m × g',PC,PY+30,'#fbbf24',11,undefined,true);
-    ctx.save(); ctx.strokeStyle='#1e4060'; ctx.lineWidth=1;
-    ctx.beginPath(); ctx.moveTo(PX+6,PY+36); ctx.lineTo(PX+PW-6,PY+36); ctx.stroke(); ctx.restore();
-    simText(ctx,'g = 9.8 m/s²',PC,PY+48,'#7d8da6',8.5,undefined,true);
+    // ── Free-body diagram on the hanging body: T up, W down, F (if any) ──
     if(activeObj){
-      simText(ctx,'m='+activeObj.m+' kg',PC,PY+62,'#60a5fa',9,undefined,true);
-      simText(ctx,'W=',PC,PY+76,'#94a3b8',9,undefined,true);
-      simText(ctx,( activeObj.m*g).toFixed(2)+' N',PC,PY+92,'#fbbf24',12,undefined,true);
-      simText(ctx,'\u200eכוח נוסף: '+(Fextra>=0?'+':'')+Fextra.toFixed(1)+' N',PC,PY+106,'#4ade80',8.5,undefined,true);
-      simText(ctx,'מד קורא T:',PC,PY+119,'#94a3b8',8,undefined,true);
-      simText(ctx,'\u200e'+scaleReading.toFixed(2)+' N',PC,PY+132,'#ef4444',11,undefined,true);
-      // ΣF on the hanging body: T up, W down, and the extra force.
-      var _sum=scaleTarget+Fextra-activeObj.m*g;
-      simText(ctx,'\u200eΣF = T + F − W = '+_sum.toFixed(1)+' N',PC,PY+148,
-              Math.abs(_sum)<0.05?'#4ade80':'#fbbf24',8,undefined,true);
-      simText(ctx,liftedOff?'הגוף התרומם — המד מתאפס':'שיווי משקל: T = W − F',PC,PY+160,
-              liftedOff?'#f87171':'#4ade80',8,undefined,true);
-      // The FBD itself, drawn on the hanging object.
-      var _ox=activeObj.x, _oy=activeObj.y;
-      simArrow(ctx,_ox,_oy-24,_ox,_oy-24-scaleReading*3.2,'#22d3ee',2.5,9);
-      simText(ctx,'\u200eT='+scaleReading.toFixed(1)+' N',_ox-30,_oy-30-scaleReading*1.6,'#22d3ee',8.5,'right');
-      simArrow(ctx,_ox,_oy+24,_ox,_oy+24+activeObj.m*g*3.2,'#ef4444',2.5,9);
-      simText(ctx,'\u200eW='+(activeObj.m*g).toFixed(1)+' N',_ox+30,_oy+30+activeObj.m*g*1.6,'#fca5a5',8.5,'left');
+      var _ox=activeObj.x, _oy=activeObj.y, kF=2.2;
+      simArrow(ctx,_ox-8,_oy-24,_ox-8,_oy-24-scaleReading*kF,'#22d3ee',2.5,9);
+      simText(ctx,'T = '+scaleReading.toFixed(1)+' N',_ox-14,_oy-30-scaleReading*kF*0.5,'#22d3ee',10,'right',true);
+      simArrow(ctx,_ox,_oy+24,_ox,_oy+24+activeObj.m*g*kF,'#fbbf24',2.5,9);
+      simText(ctx,'W = mg = '+(activeObj.m*g).toFixed(1)+' N',_ox+8,_oy+30+activeObj.m*g*kF*0.5,'#fbbf24',10,'left',true);
       if(Math.abs(Fextra)>0.05){
-        simArrow(ctx,_ox+16,_oy,_ox+16,_oy-Fextra*3.2,'#4ade80',2.5,9);
-        simText(ctx,'\u200eF='+Fextra.toFixed(1)+' N',_ox+46,_oy-Fextra*1.6,'#4ade80',8.5,'left');
+        simArrow(ctx,_ox+16,_oy,_ox+16,_oy-Fextra*kF,'#4ade80',2.5,9);
+        simText(ctx,'F = '+Fextra.toFixed(1)+' N',_ox+24,_oy-Fextra*kF*0.5,'#4ade80',10,'left',true);
       }
-    } else {
-      simText(ctx,'גררו גוף',PC,PY+68,'#fbbf24',9.5,undefined,true);
-      simText(ctx,'→ מד-כוח',PC,PY+82,'#fbbf24',9.5,undefined,true);
     }
-    ctx.save(); ctx.strokeStyle='#1e4060'; ctx.lineWidth=1;
-    ctx.beginPath(); ctx.moveTo(PX+6,PY+130); ctx.lineTo(PX+PW-6,PY+130); ctx.stroke(); ctx.restore();
-    simText(ctx,'כוח = וקטור',PC,PY+143,'#a78bfa',8.5,undefined,true);
-    simText(ctx,'יחידה: נ׳ (N)',PC,PY+156,'#a78bfa',8.5,undefined,true);
-    simText(ctx,'1N=1kg·m/s²',PC,PY+169,'#7d8da6',8,undefined,true);
+    // ── Readout panel: right column on a wide screen, under the scale on a phone ──
+    var PX=PH?8:W*0.73, PW=PH?W-16:W-PX-10, PY=PH?H-150:46, PHt=PH?142:H-PY-8;
+    ctx.save(); ctx.fillStyle='rgba(6,14,28,.92)'; ctx.strokeStyle='#1e4060'; ctx.lineWidth=1.5;
+    ctx.beginPath(); ctx.roundRect(PX,PY,PW,PHt,6); ctx.fill(); ctx.stroke(); ctx.restore();
+    var PC=PX+PW/2, rows=[];
+    rows.push(['W = mg ,  g = 9.8 m/s²','#fbbf24',11]);
+    if(activeObj){
+      var _sum=scaleTarget+Fextra-activeObj.m*g;
+      rows.push(['m = '+activeObj.m+' kg   ·   W = '+(activeObj.m*g).toFixed(2)+' N','#cbd5e1',10]);
+      rows.push(['כוח נוסף F = '+(Fextra>=0?'+':'')+Fextra.toFixed(1)+' N (+ מעלה)','#4ade80',10]);
+      rows.push(['המד מודד את המתיחות:  T = '+scaleReading.toFixed(2)+' N','#f87171',10]);
+      rows.push(['ΣF = T + F − W = '+_sum.toFixed(1)+' N',Math.abs(_sum)<0.05?'#4ade80':'#fbbf24',10]);
+      rows.push([liftedOff?'הגוף התרומם — המד מראה אפס':'שיווי משקל:  T = W − F',liftedOff?'#f87171':'#4ade80',10]);
+    } else {
+      rows.push(['גררו גוף אל וו מד-הכוח','#fbbf24',10]);
+    }
+    rows.push(['יחידת הכוח: ניוטון,  1 N = 1 kg·m/s²','#a5b4fc',9.5]);
+    var _lh=PH?20:Math.min(26,(PHt-16)/rows.length);
+    rows.forEach(function(r,k){ simText(ctx,r[0],PC,PY+18+k*_lh,r[1],r[2],undefined,k===0||k===3); });
 
     // Drop zone pulsing hint
     if(!activeObj&&t<6){
       var pulse=0.4+0.4*Math.sin(t*2.5);
       ctx.save(); ctx.globalAlpha=pulse; ctx.strokeStyle='#fbbf24'; ctx.lineWidth=2; ctx.setLineDash([5,5]);
-      ctx.beginPath(); ctx.roundRect(SCALE_X-55,SCALE_CY+40,110,H-SCALE_CY-56,8); ctx.stroke();
+      ctx.beginPath(); ctx.roundRect(SCALE_X-55,SCALE_CY+40,110,Math.min(H-SCALE_CY-56,250),8); ctx.stroke();
       ctx.setLineDash([]); ctx.restore();
     }
 
