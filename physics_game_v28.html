@@ -930,6 +930,8 @@ html{scroll-padding-top:72px;}
 /* a wide monitor: the reading column sits in the middle of the free space
    instead of hugging the topic list with a blank half-screen beside it */
 @media (min-width:1500px){ .main{margin-inline:auto;} }
+/* "Enter" means nothing on a touch screen */
+@media (pointer:coarse){ .quiz-card kbd{display:none;} }
 /* Reduced motion: no pulsing, popping or sliding; the theory animations
    start parked on their first frame (a tap plays them) */
 @media (prefers-reduced-motion:reduce){
@@ -30773,7 +30775,15 @@ function render(){
   ensureContrast();
   // Restore sidebar scroll position
   var _sidebarElNew=document.getElementById('sidebar-nav');
-  if(_sidebarElNew)_sidebarElNew.scrollTop=_sidebarScroll;
+  if(_sidebarElNew){
+    _sidebarElNew.scrollTop=_sidebarScroll;
+    // arriving by "next topic", an arrow key or the back button, the open
+    // topic could be far down a list scrolled somewhere else: bring it in
+    var _act=_sidebarElNew.querySelector('.sec-btn.active');
+    if(_act&&_sidebarElNew.clientHeight&&(_act.offsetTop<_sidebarElNew.scrollTop||
+       _act.offsetTop+_act.offsetHeight>_sidebarElNew.scrollTop+_sidebarElNew.clientHeight))
+      _sidebarElNew.scrollTop=Math.max(0,_act.offsetTop-_sidebarElNew.clientHeight/3);
+  }
   // boot KaTeX auto-render
   var _katexTries=0;
   function _bootUI(){
