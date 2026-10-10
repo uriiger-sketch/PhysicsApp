@@ -33565,7 +33565,11 @@ function openChangelog(){
     o.id='changelog-overlay'; o.className='formula-overlay';
     o.onclick=closeChangelog;
     document.body.appendChild(o);
+    // the notes carry maths inside Hebrew ("(m₂−m₁)", "3 m/s", "1.2·10⁻³");
+    // the page-wide isolation pass never reaches this panel
+    if(typeof fixInlineMath==='function')fixInlineMath(p);
   }
+  if(typeof ensureContrast==='function')ensureContrast(p);
   p.classList.add('open'); o.classList.add('open');
   document.body.style.overflow='hidden';
   _openPanel(p);
