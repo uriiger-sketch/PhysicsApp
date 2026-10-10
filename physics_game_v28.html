@@ -937,6 +937,19 @@ html{scroll-padding-top:72px;}
 /* a wide monitor: the reading column sits in the middle of the free space
    instead of hugging the topic list with a blank half-screen beside it */
 @media (min-width:1500px){ .main{margin-inline:auto;} }
+/* A worked chain such as E=kQ/r²=(9×10⁹×4×10⁻⁶)/0.2²=9×10⁵ N/C is one
+   unbreakable unit, wider than a phone; it ran past the edge of the card
+   (40 tabs at 360 px). On a narrow screen a formula never exceeds the
+   line: a long one scrolls sideways inside its own box. A table does the
+   same. */
+@media (max-width:600px){
+  .math-ltr{max-width:100%;overflow-x:auto;overflow-y:hidden;padding:.12em 0;}
+  .theory-card table,.wx table{display:block;max-width:100%;overflow-x:auto;}
+  .formula-box{overflow-x:auto;}
+  /* the offline renderer's display formulas are chains with spaced
+     separators: they may break there rather than scroll */
+  .formula-box .tex-fb{white-space:normal;}
+}
 /* "Enter" means nothing on a touch screen */
 @media (pointer:coarse){ .quiz-card kbd{display:none;} }
 /* Reduced motion: no pulsing, popping or sliding; the theory animations
