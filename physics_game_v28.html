@@ -25989,7 +25989,9 @@ MAG_SIMS['mag-magnets']=function(canvas){
       else{drag='c';var w=toW(p.x,p.y);comp=[w[0],w[1]];}},
     move:function(p){var w=toW(p.x,p.y);
       if(drag==='c')comp=[Math.max(-xMax+0.01,Math.min(xMax-0.01,w[0])),Math.max(yMin+0.01,Math.min(yMax-0.01,w[1]))];
-      if(drag==='m')m2x=Math.max(LEN+0.03,Math.min(xMax-LEN/2-0.01,w[0]));},
+      if(drag==='m')m2x=Math.max(LEN+0.03,Math.min(xMax-LEN/2-0.01,w[0]));
+      // a compass cannot sit inside a magnet: keep it on the bar's surface
+      var bars=mode?[0,m2x]:[0];bars.forEach(function(xc){if(Math.abs(comp[0]-xc)<LEN/2+0.012&&Math.abs(comp[1])<0.022)comp[1]=comp[1]<0?-0.022:0.022;});},
     up:function(){drag=null;}});
   function draw(){
     if(!magAlive(id,_g))return;
@@ -26003,8 +26005,14 @@ MAG_SIMS['mag-magnets']=function(canvas){
       ctx.moveTo(px-5*b[0]/n,py+5*b[1]/n);ctx.lineTo(px+5*b[0]/n,py-5*b[1]/n);ctx.stroke();ctx.restore();}
     lines(P).forEach(function(l){var q=l.map(function(v){return toS(v[0],v[1]);});
       magPoly(ctx,q,'rgba(96,165,250,.75)',1.3);magMidArrow(ctx,q,'#93c5fd',0.35,5);});
-    magBar(ctx,W/2,Hc,LEN*s,Math.max(14,0.018*s),0);
-    if(mode){var c2=toS(m2x,0);magBar(ctx,c2[0],c2[1],LEN*s,Math.max(14,0.018*s),mode===2?Math.PI:0);
+    // the bars, and the field lines carried on inside them from S to N: the
+    // lines outside end on S and start on N, inside they close the loop
+    var barIn=function(xc,dirn){var th=Math.max(14,0.018*s);
+      [-0.28,0,0.28].forEach(function(f){var y=Hc+f*th;ctx.save();ctx.strokeStyle='rgba(255,255,255,.5)';ctx.lineWidth=1.1;ctx.setLineDash([3,3]);
+        ctx.beginPath();ctx.moveTo(xc-LEN*s/2+4,y);ctx.lineTo(xc+LEN*s/2-4,y);ctx.stroke();ctx.restore();});
+      simArrow(ctx,xc-dirn*9,Hc,xc+dirn*9,Hc,'#fff',1.5,6);};
+    magBar(ctx,W/2,Hc,LEN*s,Math.max(14,0.018*s),0);barIn(W/2,1);
+    if(mode){var c2=toS(m2x,0);magBar(ctx,c2[0],c2[1],LEN*s,Math.max(14,0.018*s),mode===2?Math.PI:0);barIn(c2[0],mode===2?-1:1);
       simText(ctx,'⇆ גררו',c2[0],c2[1]+22,'#64748b',9,'center');}
     if(earth){simArrow(ctx,W-26,H*0.78,W-26,H*0.78-44,'#34d399',2.2,9);simText(ctx,'צפון',W-26,H*0.78-54,'#34d399',9.5,'center',true);}
     // compass and readout
@@ -26012,14 +26020,15 @@ MAG_SIMS['mag-magnets']=function(canvas){
     var neutral=Bm<2e-6;
     magNeedle(ctx,c[0],c[1],neutral?(Date.now()/700)%6.2832:Math.atan2(b[1],b[0]),16,true);
     simHandle(ctx,c[0],c[1],'#fbbf24',24);
-    var y0=H*0.83;
+    var y0=H*0.83,ph=W<600;                       // on a phone: one column, four lines
     magPlotBox(ctx,10,y0,W-20,H-y0-8,'',null);
-    simText(ctx,'|B| במצפן = '+(Bm*1e6).toFixed(1)+' μT',W*0.27,y0+22,'#e2e8f0',13,'center',true);
-    simText(ctx,'כיוון השדה: '+(((Math.atan2(b[1],b[0])*180/Math.PI)+360)%360).toFixed(0)+'° נגד השעון מהכיוון ימינה',W*0.27,y0+44,'#94a3b8',10.5,'center');
+    var cA=ph?W/2:W*0.27,cB=ph?W/2:W*0.70,yA=ph?[16,31,47,62]:[22,44,22,44];
+    simText(ctx,'|B| במצפן = '+(Bm*1e6).toFixed(1)+' μT',cA,y0+yA[0],'#e2e8f0',ph?12:13,'center',true);
+    simText(ctx,'כיוון השדה: '+(((Math.atan2(b[1],b[0])*180/Math.PI)+360)%360).toFixed(0)+'° נגד השעון מהכיוון ימינה',cA,y0+yA[1],'#94a3b8',ph?9.5:10.5,'center');
     simText(ctx,neutral?'⚠ נקודה ניטרלית — השדות מבטלים זה את זה, והמחט אינה מתכוונת':
       earth?'המחט מראה את השדה הכולל: מגנט + כדור הארץ':'המחט האדומה (N) מצביעה בכיוון השדה',
-      W*0.70,y0+22,neutral?'#fbbf24':'#94a3b8',10.5,'center',neutral);
-    simText(ctx,'קווי השדה יוצאים מ-N ונכנסים ל-S',W*0.70,y0+44,'#64748b',9.5,'center');
+      cB,y0+yA[2],neutral?'#fbbf24':'#94a3b8',ph?9.5:10.5,'center',neutral);
+    simText(ctx,'בחוץ הקווים יוצאים מ-N ונכנסים ל-S; בתוך המגנט הם חוזרים מ-S ל-N',cB,y0+yA[3],'#64748b',9.5,'center');
     requestAnimationFrame(draw);
   }
   requestAnimationFrame(draw);
@@ -27050,16 +27059,30 @@ function _magAlong(pts,f){var tot=0,i,seg=[];for(i=1;i<pts.length;i++){var d=Mat
 function initMagAnims(){
 
 // compasses around a slowly turning bar magnet
+// A uniformly magnetised bar has exactly the B field of a solenoid wound on its
+// surface, so the field lines are the solenoid's: out of N, round, into S —
+// and on through the magnet from S back to N. Every line is a closed loop.
 runAnim('anim-mag-magnets',(cv,ctx,W,H,t)=>{
   bg(ctx,W,H);
-  var ang=0.28*t,cx=W/2,cy=H/2,hl=46,ux=Math.cos(ang),uy=Math.sin(ang);
-  var P=[[cx+ux*hl,cy-uy*hl,1],[cx-ux*hl,cy+uy*hl,-1]];
+  var ang=0.28*t,cx=W/2,cy=H/2,Lm=108,a=11,ca=Math.cos(ang),sa=Math.sin(ang),T=[];
+  for(var k=0;k<9;k++)T.push(-Lm/2+(k+0.5)*Lm/9);
+  var D=Math.hypot(W,H),L=_magLoopLines('bar'+Math.round(D),T,a,1,D,D,4);
+  // local magnet frame (u along S→N, v across) → screen
+  var toS=function(u,v){return [cx+u*ca-v*sa,cy-(u*sa+v*ca)];};
+  var Bloc=function(u,v){var bu=0,bv=0;for(var j=0;j<T.length;j++){var b=magLoopB(a,1,Math.abs(v),u-T[j]);bu+=b[1];bv+=b[0];}return [bu,(v<0?-1:1)*bv];};
+  L.forEach(function(l,i){var q=l.map(function(p){return toS(p[0],p[1]);});
+    ctx.save();ctx.strokeStyle='rgba(96,165,250,.38)';ctx.lineWidth=1.1;ctx.beginPath();q.forEach(function(p,k2){k2?ctx.lineTo(p[0],p[1]):ctx.moveTo(p[0],p[1]);});ctx.stroke();ctx.restore();
+    for(var k3=0;k3<2;k3++){var d=_magAlong(q,t*0.05+k3/2+i*0.13);circle(ctx,d[0],d[1],2,'#93c5fd');}});
   for(var y=16;y<H-18;y+=30)for(var x=18;x<W;x+=32){
     if(Math.hypot(x-cx,y-cy)<62)continue;
-    var bx=0,by=0;P.forEach(function(p){var dx=x-p[0],dy=p[1]-y,r=Math.max(12,Math.hypot(dx,dy));bx+=p[2]*dx/(r*r*r);by+=p[2]*dy/(r*r*r);});
+    var dx=x-cx,dy=cy-y,u=dx*ca+dy*sa,v=-dx*sa+dy*ca,b=Bloc(u,v),bx=b[0]*ca-b[1]*sa,by=b[0]*sa+b[1]*ca;
     magNeedle(ctx,x,y,Math.atan2(by,bx),10,false);}
-  magBar(ctx,cx,cy,2*hl+16,22,-ang);
-  label(ctx,'הקצה האדום של כל מחט מצביע בכיוון השדה: מ-N החוצה, ואל S',W/2,H-6,'#94a3b8',10);
+  magBar(ctx,cx,cy,Lm,2*a,-ang);
+  // the same lines inside the bar: S → N
+  [-0.5,0,0.5].forEach(function(f){var p0=toS(-Lm/2+12,f*a),p1=toS(Lm/2-12,f*a);
+    ctx.save();ctx.strokeStyle='rgba(255,255,255,.55)';ctx.lineWidth=1.2;ctx.setLineDash([3,3]);ctx.beginPath();ctx.moveTo(p0[0],p0[1]);ctx.lineTo(p1[0],p1[1]);ctx.stroke();ctx.restore();});
+  var m0=toS(-10,0),m1=toS(10,0);arrow(ctx,m0[0],m0[1],m1[0],m1[1],'#fff',1.6,6);
+  label(ctx,'בחוץ: מ-N אל S · בתוך המגנט: מ-S אל N — כל קו הוא לולאה סגורה',W/2,H-6,'#94a3b8',10);
 });
 
 // a wire whose current reverses; compasses and field circles follow
