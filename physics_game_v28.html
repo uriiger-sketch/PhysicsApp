@@ -16563,7 +16563,16 @@ function _fitFont(ctx,txt,sz,family){
   var w; try{w=ctx.measureText(String(txt)).width;}catch(e){return sz;}
   if(w<=avail||w<=0)return sz;
   var ns=Math.max(6.5,sz*avail/w);
-  ctx.font=ns+'px '+(family||'Heebo,sans-serif');
+  // The weight goes in front of the size: simText passes 'bold Heebo' as the
+  // family, and "10.6px bold Heebo" is not a font, so the canvas kept its
+  // old size and the label still ran off. A weight or style given with the
+  // family, or else the one in force, is kept; so is the family in force
+  // when none is given.
+  var cur=/^(.*?)(\d*\.?\d+)px\s+(.*)$/.exec(String(ctx.font||'')),pre=cur?cur[1]:'';
+  var fam=family||(cur&&cur[3])||'Heebo,sans-serif';
+  var wm=/^(?:(?:normal|bold|bolder|lighter|italic|oblique|[1-9]00)\s+)+/.exec(fam);
+  if(wm){pre=wm[0];fam=fam.slice(wm[0].length);}
+  ctx.font=pre+ns+'px '+fam;
   return ns;
 }
 function _fitY(ctx,y,sz){
