@@ -23863,7 +23863,7 @@ runAnim('anim-refr-speed',(canvas,ctx,W,H,t)=>{
     {name:'זכוכית',n:1.5,col:'#a78bfa'},
     {name:'יהלום',n:2.42,col:'#f472b6'},
   ];
-  var bx=14,bw=W-28,bH=16,gap=8,startY=18;
+  var bx=44,bw=W-100,bH=16,gap=8,startY=18;
   materials.forEach(function(m,i){
     var y=startY+i*(bH+gap);
     var barLen=Math.round(bw/m.n);
@@ -23883,8 +23883,8 @@ runAnim('anim-refr-speed',(canvas,ctx,W,H,t)=>{
     ctx.beginPath();ctx.arc(photonX,y+bH/2,4,0,Math.PI*2);ctx.fill();
     ctx.shadowBlur=0;ctx.restore();
     // Labels
-    oLbl(ctx,m.name,bx-2,y+bH/2,'#94a3b8',8);
-    oLbl(ctx,'n='+m.n.toFixed(4==m.n.toString().length?4:2),bx+bw+2,y+bH/2,m.col,8);
+    oLbl(ctx,m.name,bx-22,y+bH/2,'#94a3b8',8);
+    oLbl(ctx,'n = '+m.n,bx+bw+28,y+bH/2,m.col,8);
   });
   oLbl(ctx,'מהירות אור יחסית בחומרים שונים',W/2,H-6,'#7d8da6',9);
 });
@@ -23972,20 +23972,27 @@ runAnim('anim-plane-mirror-t',(canvas,ctx,W,H,t)=>{
   ctx.setLineDash([]);ctx.shadowBlur=0;ctx.restore();
   oLbl(ctx,'תמונה',imgX,oy+arrH+10,'#22d3ee',9);
   oLbl(ctx,'(מדומה)',imgX,oy+arrH+20,'#22d3ee',8);
-  // Reflection rays (2 rays)
-  var eyeX=12,eyeY=H/2;
-  var rays=[oy-16,oy+10];
-  rays.forEach(function(ry){
-    oDash(ctx,mx,ry,imgX,ry,'#22d3ee');
-    oRay(ctx,ox,ry,mx,ry,'#fbbf24',1.5);
-    oRay(ctx,mx,ry,eyeX,eyeY,'#34d399',1.5);
+  // Reflection rays from the tip and the foot of the arrow. Each meets the
+  // mirror where the line from its IMAGE to the eye crosses it, so the angle of
+  // reflection equals the angle of incidence and the reflected ray, traced back,
+  // runs to the image. (They used to meet the mirror head-on and then turn
+  // toward an eye off to the side -- against the law the chapter just taught.)
+  var eyeX=W*0.07,eyeY=H*0.2;
+  ctx.save();ctx.strokeStyle='#e2e8f0';ctx.lineWidth=1.2;ctx.beginPath();ctx.ellipse(eyeX,eyeY,9,6,0,0,Math.PI*2);ctx.stroke();
+  ctx.fillStyle='#94a3b8';ctx.beginPath();ctx.arc(eyeX,eyeY,2.5,0,Math.PI*2);ctx.fill();ctx.restore();
+  var rays=[oy-arrH,oy+arrH];
+  var hits=rays.map(function(ry){return ry+(eyeY-ry)*(mx-imgX)/(eyeX-imgX);});
+  rays.forEach(function(ry,k){
+    oDash(ctx,mx,hits[k],imgX,ry,'#22d3ee');
+    oRay(ctx,ox,ry,mx,hits[k],'#fbbf24',1.5);
+    oRay(ctx,mx,hits[k],eyeX+8,eyeY+(hits[k]-eyeY)*8/(mx-eyeX),'#34d399',1.5);
   });
-  // Traveling photon: object → mirror → eye
-  var ry1=rays[0];
-  var Lp1=mx-ox,Lp2=Math.hypot(eyeX-mx,eyeY-ry1),LpT=Lp1+Lp2;
+  // Traveling photon: arrow tip → mirror → eye
+  var ry1=rays[0],hy1=hits[0];
+  var Lp1=Math.hypot(mx-ox,hy1-ry1),Lp2=Math.hypot(eyeX-mx,eyeY-hy1),LpT=Lp1+Lp2;
   var pp=(t*60)%LpT;
-  if(pp<Lp1)oPhoton(ctx,ox+pp,ry1,'#fbbf24',3);
-  else{var pf=(pp-Lp1)/Lp2;oPhoton(ctx,mx+(eyeX-mx)*pf,ry1+(eyeY-ry1)*pf,'#34d399',3);}
+  if(pp<Lp1){var pf0=pp/Lp1;oPhoton(ctx,ox+(mx-ox)*pf0,ry1+(hy1-ry1)*pf0,'#fbbf24',3);}
+  else{var pf=(pp-Lp1)/Lp2;oPhoton(ctx,mx+(eyeX-mx)*pf,hy1+(eyeY-hy1)*pf,'#34d399',3);}
   // Distance labels
   var d=Math.round(mx-ox);
   ctx.save();ctx.strokeStyle='#475569';ctx.lineWidth=1;ctx.setLineDash([2,3]);
@@ -24090,8 +24097,8 @@ runAnim('anim-convex-mirror-t',(canvas,ctx,W,H,t)=>{
   ctx.save();ctx.strokeStyle='rgba(34,211,238,.7)';ctx.lineWidth=1.5;ctx.setLineDash([3,3]);
   ctx.beginPath();ctx.moveTo(imgX,cy);ctx.lineTo(imgX,cy-imgH);ctx.stroke();
   ctx.setLineDash([]);ctx.restore();
-  oLbl(ctx,'תמונה',imgX,cy+12,'#22d3ee',8);
-  oLbl(ctx,'מדומה',imgX,cy+22,'#22d3ee',8);
+  oLbl(ctx,'תמונה',imgX,cy+26,'#22d3ee',8);
+  oLbl(ctx,'מדומה',imgX,cy+36,'#22d3ee',8);
   // Ray 1: parallel → hits the arc → reflects as if from virtual F
   var tipY=cy-objH;
   function hx(yy){var dy2=yy-cy;var s2=R*R-dy2*dy2;return s2>0?vx+R-Math.sqrt(s2):vx;}
@@ -24118,8 +24125,8 @@ runAnim('anim-snell',(canvas,ctx,W,H,t)=>{
   ctx.save();ctx.strokeStyle='#22d3ee';ctx.lineWidth=1.5;ctx.globalAlpha=0.6;
   ctx.beginPath();ctx.moveTo(0,my);ctx.lineTo(W,my);ctx.stroke();ctx.restore();
   // Medium labels
-  oLbl(ctx,'n₁=1.0 (אוויר)',cx-36,my-20,'#60a5fa',8);
-  oLbl(ctx,'n₂=1.5 (זכוכית)',cx-36,my+14,'#22d3ee',8);
+  oLbl(ctx,'אוויר: n₁ = 1.0',W*0.17,my-12,'#60a5fa',8);
+  oLbl(ctx,'זכוכית: n₂ = 1.5',W*0.17,my+12,'#22d3ee',8);
   // Animated angle
   var th1=Math.sin(t*0.6)*0.4+0.65;
   var th2=Math.asin(Math.sin(th1)/1.5);
@@ -24164,8 +24171,8 @@ runAnim('anim-tir-theory',(canvas,ctx,W,H,t)=>{
   ctx.save();ctx.fillStyle='rgba(6,182,212,.12)';ctx.fillRect(0,iy,W,H-iy);ctx.restore();
   ctx.save();ctx.strokeStyle='#22d3ee';ctx.lineWidth=1.2;ctx.globalAlpha=0.5;
   ctx.beginPath();ctx.moveTo(0,iy);ctx.lineTo(W,iy);ctx.stroke();ctx.restore();
-  oLbl(ctx,'מים (n=1.33)',cx,iy+14,'#22d3ee',8);
-  oLbl(ctx,'אוויר (n=1)',cx,iy-12,'#60a5fa',8);
+  oLbl(ctx,'מים: n = 1.33',W*0.36,iy+34,'#22d3ee',8);
+  oLbl(ctx,'אוויר: n = 1',W*0.36,iy-12,'#60a5fa',8);
   // Critical angle θ_c = arcsin(1/1.33) ≈ 48.75°
   var tc=Math.asin(1/1.33);
   // Three scenarios side by side
@@ -24378,60 +24385,52 @@ runAnim('anim-concave-lens-t',(canvas,ctx,W,H,t)=>{
 // ─── 12. Eye focus ────────────────────────────────────────────────────────────
 runAnim('anim-eye-focus-t',(canvas,ctx,W,H,t)=>{
   oBg(ctx,W,H);
+  // Parallel light from a distant point. The eye's optics (cornea and lens) sit
+  // at the FRONT of the eyeball and focus onto the retina at its back: on it,
+  // in front of it (myopia, the eye too long) or behind it (hyperopia, too
+  // short). The bending used to happen in mid-air at 0.42·W, far in front of a
+  // small circle that stood for the eye.
   var scenarios=[
-    {y:H*0.22,label:'ראייה תקינה',col:'#34d399',converge:0},
-    {y:H*0.5, label:'קצר-ראייה',  col:'#f87171',converge:-14},
-    {y:H*0.78,label:'רחוק-ראייה', col:'#60a5fa',converge:14},
+    {y:H*0.22,label:'ראייה תקינה',col:'#34d399',shift:0},
+    {y:H*0.5, label:'קוצר ראייה',  col:'#f87171',shift:-16},
+    {y:H*0.78,label:'רוחק ראייה', col:'#60a5fa',shift:16},
   ];
-  var eyeX=W-18,retX=W-6;
+  var rx=Math.min(46,W*0.13),ry=Math.min(20,H*0.11),ecx=W-rx-10;
+  var lensX=ecx-rx+9,retinaX=ecx+rx-3;
   var active=Math.floor(t/2.5)%3;
   scenarios.forEach(function(sc,si){
-    var cy2=sc.y;
-    var lensX=W*0.42;
-    var retinaX=retX-2;
-    var focalX=(sc.converge===0?retinaX:eyeX+sc.converge);
-    var hot=si===active;
+    var cy2=sc.y,hot=si===active,focalX=retinaX+sc.shift;
     ctx.save();ctx.globalAlpha=hot?1:0.45;
+    // eyeball, its lens at the front, the retina at the back
     ctx.strokeStyle=sc.col;ctx.lineWidth=1.5;ctx.shadowColor=sc.col;ctx.shadowBlur=hot?8:3;
-    ctx.beginPath();ctx.ellipse(eyeX,cy2,14,10,0,0,Math.PI*2);ctx.stroke();
-    // Retina line
-    ctx.strokeStyle='rgba(255,255,255,.5)';ctx.lineWidth=1;ctx.setLineDash([2,2]);
-    ctx.beginPath();ctx.moveTo(retinaX,cy2-8);ctx.lineTo(retinaX,cy2+8);ctx.stroke();
-    ctx.setLineDash([]);ctx.shadowBlur=0;
-    // Rays: converge to the focal point, then continue to the retina plane
-    [-8,0,8].forEach(function(dy){
-      var startX=14,startY=cy2+dy;
-      ctx.strokeStyle=sc.col;ctx.lineWidth=1;ctx.globalAlpha=(hot?0.85:0.35);
-      ctx.beginPath();ctx.moveTo(startX,startY);
-      ctx.lineTo(lensX,cy2+dy*0.4);
-      var sl=(cy2-(cy2+dy*0.4))/(focalX-lensX);
-      if(sc.converge<0){
-        // myopia: focus before retina — rays cross, then diverge onto retina
-        ctx.lineTo(focalX,cy2);
-        ctx.lineTo(retinaX,cy2+sl*(retinaX-focalX));
-      } else if(sc.converge>0){
-        // hyperopia: rays reach the retina before converging
-        ctx.lineTo(retinaX,cy2+dy*0.4+sl*(retinaX-lensX));
-      } else {
-        ctx.lineTo(retinaX,cy2);
-      }
+    ctx.beginPath();ctx.ellipse(ecx,cy2,rx,ry,0,0,Math.PI*2);ctx.stroke();ctx.shadowBlur=0;
+    ctx.strokeStyle='rgba(147,197,253,.8)';ctx.lineWidth=1.2;
+    ctx.beginPath();ctx.ellipse(lensX,cy2,3,ry*0.62,0,0,Math.PI*2);ctx.stroke();
+    ctx.strokeStyle='rgba(248,113,113,.75)';ctx.lineWidth=2;
+    ctx.beginPath();ctx.ellipse(ecx,cy2,rx-3,ry-2,0,-0.6,0.6);ctx.stroke();
+    [-7,0,7].forEach(function(dy){
+      ctx.strokeStyle=sc.col;ctx.lineWidth=1;ctx.globalAlpha=hot?0.85:0.35;
+      ctx.beginPath();ctx.moveTo(14,cy2+dy);ctx.lineTo(lensX,cy2+dy);
+      var sl=-dy/(focalX-lensX);
+      if(sc.shift<0){ctx.lineTo(focalX,cy2);ctx.lineTo(retinaX,cy2+sl*(retinaX-focalX));}
+      else ctx.lineTo(retinaX,cy2+dy+sl*(retinaX-lensX));
       ctx.stroke();
     });
-    // Focus dot / blur disc on the retina
     ctx.globalAlpha=hot?1:0.5;
-    if(sc.converge===0){
+    if(sc.shift===0){
       ctx.fillStyle='#34d399';ctx.shadowColor='#34d399';ctx.shadowBlur=8;
-      ctx.beginPath();ctx.arc(retinaX,cy2,3,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;
+      ctx.beginPath();ctx.arc(retinaX,cy2,2.5,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;
     } else {
-      ctx.fillStyle=sc.col;ctx.beginPath();ctx.arc(focalX,cy2,2.5,0,Math.PI*2);ctx.fill();
-      ctx.globalAlpha=(hot?0.4:0.2);
-      ctx.beginPath();ctx.arc(retinaX,cy2,5.5,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle=sc.col;
+      if(sc.shift<0){ctx.beginPath();ctx.arc(focalX,cy2,2.2,0,Math.PI*2);ctx.fill();}
+      ctx.globalAlpha=hot?0.4:0.2;
+      ctx.beginPath();ctx.ellipse(retinaX,cy2,2,5,0,0,Math.PI*2);ctx.fill();
     }
     ctx.restore();
-    oLbl(ctx,sc.label,lensX-20,cy2-14,sc.col,8);
-    oLbl(ctx,sc.converge<0?'מוקד לפני הרשתית — טשטוש':sc.converge>0?'מוקד מאחורי הרשתית — טשטוש':'מוקד על הרשתית ✓',lensX+20,cy2+14,sc.col,8);
+    oLbl(ctx,sc.label,W*0.3,cy2-16,sc.col,8);
+    oLbl(ctx,sc.shift<0?'מוקד לפני הרשתית — טשטוש':sc.shift>0?'מוקד מאחורי הרשתית — טשטוש':'מוקד על הרשתית ✓',W*0.3,cy2+16,sc.col,8);
   });
-  oLbl(ctx,'ליקויי ראייה ותיקון עם עדשות',W/2,H-4,'#7d8da6',9);
+  oLbl(ctx,'ליקויי ראייה: היכן מתמקד אור מעצם רחוק',W/2,H-4,'#7d8da6',9);
 });
 
 // ─── 13. Interference ────────────────────────────────────────────────────────
@@ -24469,7 +24468,7 @@ runAnim('anim-interference-t',(canvas,ctx,W,H,t)=>{
   oLbl(ctx,'גל 2',12,cy+14,'#a78bfa',9);
   oLbl(ctx,'סופרפוזיציה',12,cy-52,resCol,9);
   oLbl(ctx,'Δφ='+phiDeg+'°',W/2,H-6,'#7d8da6',9);
-  var status=inPhase?'עצמות (Δφ=0°)':outPhase?'רסיסה (Δφ=180°)':'ביניים';
+  var status=inPhase?'התאבכות בונה (Δφ = 0°)':outPhase?'התאבכות הורסת (Δφ = 180°)':'ביניים';
   oLbl(ctx,status,W/2,H-16,resCol,10);
 });
 
@@ -24532,8 +24531,10 @@ runAnim('anim-diffraction-t',(canvas,ctx,W,H,t)=>{
   // also narrow enough that the first minimum, at y = λL/a ≈ 149 px, fell off a
   // canvas half-height of ~110: the "diffraction pattern" had no minima on
   // screen at all. a = 64 px brings them into view.
-  var lam=12;
-  var slitX=W*0.3,slitHalf=32,screenX=W-12,cy=H/2;
+  var lam=8;
+  var slitX=W*0.3,screenX=W-12,cy=H/2;
+  // the slit width is chosen so the first minimum, y = λL/a, lands at 0.3·H at any width
+  var slitHalf=Math.max(12,Math.min(H*0.4,lam*(screenX-slitX)/(2*0.3*H)));
   // Barrier
   ctx.save();ctx.fillStyle='#1e293b';
   ctx.fillRect(slitX-4,0,8,cy-slitHalf);
@@ -24827,46 +24828,49 @@ runAnim('anim-fiber-t',function(canvas,ctx,W,H,t){
 // ─── Telescope theory anim ──────────────────────────────────
 runAnim('anim-telescope-t',function(canvas,ctx,W,H,t){
   oBg(ctx,W,H);
-  var ax=H/2;
-  var L1x=W*0.25,L2x=W*0.6,L3x=W*0.78;
+  // A distant object: its light arrives as a parallel bundle at a small angle.
+  // The objective focuses it to a real, INVERTED image in its focal plane (it
+  // used to grow and shrink, upright half the time); the eyepiece, one fₑ
+  // further on, sends it out parallel again at a steeper angle -- fₒ/fₑ times
+  // steeper, which is the angular magnification.
+  var ax=H/2,L1x=W*0.25,L2x=W*0.6,L3x=W*0.78,fo=L2x-L1x,fe=L3x-L2x;
+  var s=Math.min(0.07,H*0.18/fo)*(0.75+0.25*Math.sin(t*0.5));   // slope of the incoming bundle
+  var tipY=ax+s*fo, sOut=(ax-tipY)/fe;
   oDash(ctx,8,ax,W-8,ax,'#1e293b');
-  // Object
-  ctx.save();ctx.strokeStyle='#fbbf24';ctx.lineWidth=2;
-  ctx.beginPath();ctx.moveTo(W*0.06,ax);ctx.lineTo(W*0.06,ax-24);ctx.stroke();
-  ctx.fillStyle='#fbbf24';ctx.beginPath();
-  ctx.moveTo(W*0.06,ax-24);ctx.lineTo(W*0.06-5,ax-15);ctx.lineTo(W*0.06+5,ax-15);
-  ctx.closePath();ctx.fill();ctx.restore();
-  // Obj lens
+  oLbl(ctx,'מעצם רחוק',W*0.08,ax-30,'#fbbf24',8);
+  // lenses
   ctx.save();ctx.strokeStyle='#93c5fd';ctx.lineWidth=2;
   ctx.beginPath();ctx.moveTo(L1x,ax-32);ctx.bezierCurveTo(L1x+12,ax,L1x+12,ax,L1x,ax+32);ctx.stroke();
   ctx.beginPath();ctx.moveTo(L1x,ax-32);ctx.bezierCurveTo(L1x-12,ax,L1x-12,ax,L1x,ax+32);ctx.stroke();
-  ctx.restore();
-  oLbl(ctx,'fₒ',L1x,ax+38,'#93c5fd',8);
-  // Intermediate image (inverted) — oscillates to show dynamism
-  var imgH=18*Math.sin(t*0.3+1);
-  ctx.save();ctx.strokeStyle='#f97316';ctx.lineWidth=1.5;ctx.setLineDash([4,3]);
-  ctx.beginPath();ctx.moveTo(L2x,ax);ctx.lineTo(L2x,ax-imgH);ctx.stroke();ctx.setLineDash([]);ctx.restore();
-  // Eye lens
-  ctx.save();ctx.strokeStyle='#a78bfa';ctx.lineWidth=2;
+  ctx.strokeStyle='#a78bfa';
   ctx.beginPath();ctx.moveTo(L3x,ax-22);ctx.bezierCurveTo(L3x+8,ax,L3x+8,ax,L3x,ax+22);ctx.stroke();
   ctx.beginPath();ctx.moveTo(L3x,ax-22);ctx.bezierCurveTo(L3x-8,ax,L3x-8,ax,L3x,ax+22);ctx.stroke();
   ctx.restore();
-  oLbl(ctx,'fₑ',L3x,ax+28,'#a78bfa',8);
-  // Eye
+  oLbl(ctx,'אובייקטיב',L1x,ax+40,'#93c5fd',8);
+  oLbl(ctx,'עינית',L3x,ax+30,'#a78bfa',8);
+  // the intermediate image: real and inverted, in the common focal plane
+  ctx.save();ctx.strokeStyle='#f97316';ctx.lineWidth=1.5;ctx.setLineDash([4,3]);
+  ctx.beginPath();ctx.moveTo(L2x,ax);ctx.lineTo(L2x,tipY);ctx.stroke();ctx.setLineDash([]);ctx.restore();
+  oLbl(ctx,'תמונה הפוכה',L2x,tipY+10,'#f97316',8);
+  // eye
   ctx.save();ctx.strokeStyle='#e2e8f0';ctx.lineWidth=1.5;
-  ctx.beginPath();ctx.ellipse(W*0.92,ax,14,8,0,0,Math.PI*2);ctx.stroke();
-  ctx.fillStyle='#1d4ed8';ctx.beginPath();ctx.arc(W*0.92,ax,4,0,Math.PI*2);ctx.fill();ctx.restore();
-  // Rays
-  oRay(ctx,W*0.06,ax-24,L1x,ax-2,'rgba(251,191,36,0.6)',1);
-  oRay(ctx,L1x,ax-2,L2x,ax-imgH,'rgba(249,115,22,0.5)',1);
-  oRay(ctx,L2x,ax-imgH,L3x,ax-5,'rgba(167,139,250,0.6)',1);
-  oLbl(ctx,'M=fₒ/fₑ',W/2,H-6,'#94a3b8',8);
+  ctx.beginPath();ctx.ellipse(W*0.93,ax,12,7,0,0,Math.PI*2);ctx.stroke();
+  ctx.fillStyle='#1d4ed8';ctx.beginPath();ctx.arc(W*0.93,ax,3.5,0,Math.PI*2);ctx.fill();ctx.restore();
+  // three rays of the bundle
+  [-16,0,16].forEach(function(h){
+    var y1=ax+h, x0=W*0.03, y0=y1-s*(L1x-x0), sk=(tipY-y1)/fo, y3=tipY+sk*fe, xe=W*0.9;
+    oRay(ctx,x0,y0,L1x,y1,'rgba(251,191,36,0.65)',1.2);
+    oRay(ctx,L1x,y1,L2x,tipY,'rgba(249,115,22,0.6)',1.2);
+    oRay(ctx,L2x,tipY,L3x,y3,'rgba(249,115,22,0.45)',1);
+    oRay(ctx,L3x,y3,xe,y3+sOut*(xe-L3x),'rgba(167,139,250,0.75)',1.2);
+  });
+  oLbl(ctx,'|M| = fₒ/fₑ: הקרניים יוצאות בזווית תלולה פי fₒ/fₑ',W/2,H-6,'#94a3b8',8);
 });
 
 // ─── Thin film theory anim ──────────────────────────────────
 runAnim('anim-thin-film-t',function(canvas,ctx,W,H,t){
   oBg(ctx,W,H);
-  var fX=W*0.48,fW=14,fTop=H*0.12,fBot=H*0.85;
+  var fX=W*0.48,fW=14,fTop=H*0.12,fBot=H*0.72;
   // Film with animated color (slowly cycling thickness)
   var tCycle=120+180*((Math.sin(t*0.35)+1)/2);// 120-300nm cycle
   var n=1.33;
