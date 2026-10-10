@@ -31068,7 +31068,9 @@ window.addEventListener('popstate',function(){
   if(typeof closeFormulaPanel==='function')closeFormulaPanel();
   if(typeof closeChangelog==='function')closeChangelog();
   var before=state.chapter+'.'+state.section;
-  if(!_applyHash())return;
+  // a link to no topic, typed or followed on this page, changes nothing --
+  // and the address bar says so again instead of keeping the dead link
+  if(!_applyHash()){_syncHash();return;}
   stopSim('sim-canvas');
   render();
   _toTop(state.chapter+'.'+state.section!==before);
