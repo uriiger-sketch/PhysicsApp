@@ -20506,10 +20506,16 @@ runAnim('anim-millikan',(canvas,ctx,W,H,t)=>{
   const cx=(L+R)/2;
   arrow(ctx,cx-22,y,cx-22,y+Fg,'#f87171',2.2,8);
   arrow(ctx,cx+22,y,cx+22,y-Fe,'#34d399',2.2,8);
+  // moving at constant speed, the drop is in equilibrium: air drag takes up
+  // exactly the difference qE - mg, against the motion
+  const Fd=Fe-Fg;
+  if(Math.abs(Fd)>4){
+    arrow(ctx,cx-48,y,cx-48,y+Fd,'#94a3b8',2,7);
+    label(ctx,'גרר',cx-58,y+Fd/2,'#94a3b8',9.5,'right');}
   ctx.fillStyle='#fbbf24';ctx.beginPath();ctx.arc(cx,y,8,0,6.2832);ctx.fill();
   label(ctx,'mg',cx-34,y+Fg+10,'#f87171',10);
   label(ctx,'qE',cx+36,y-Fe-4,'#34d399',10);
-  label(ctx,Math.abs(net)<0.06?'qE = mg  →  מרחפת':(net>0?'qE > mg  →  עולה':'qE < mg  →  יורדת'),
+  label(ctx,Math.abs(net)<0.06?'qE = mg  →  מרחפת':(net>0?'qE > mg  →  עולה, והגרר מאזן את ההפרש':'qE < mg  →  יורדת, והגרר מאזן את ההפרש'),
     W/2,H-10,Math.abs(net)<0.06?'#34d399':'#94a3b8',11.5);
 });
 
