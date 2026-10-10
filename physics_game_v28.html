@@ -17625,12 +17625,17 @@ function simOptInterference(canvas){
   const id=canvas.id;var animT=0;
   function getVals(){
     var lE=document.getElementById('inp-int-lambda'),dE=document.getElementById('inp-int-d');
-    return{lambda:lE?parseFloat(lE.value):500,d:dE?parseFloat(dE.value):5};
+    return{lambda:lE?parseFloat(lE.value):500,d:dE?parseFloat(dE.value):2};
   }
+  // ONE length scale for λ and d: 60 px per micrometre. The field used to draw
+  // λ from an offset map (380 nm → 10 px) and d in millimetres at 10 px/mm, so
+  // 'd = 5 mm, λ = 500 nm' was drawn with d ≈ 1.3λ -- a pattern no such pair
+  // of sources makes. Sources a few wavelengths apart are what a field shows.
+  var PXUM=60;
   // ── Direct manipulation: drag the sources (d) or place the probe anywhere ──
   var probeP=null,dragI=null,touchedI=false;
   function _iDn(e){var p=simPointerXY(canvas,dpr,e);
-    var v=getVals();var dd=v.d*10,sx=W*0.22,s1=H/2-dd/2,s2=H/2+dd/2;
+    var v=getVals();var dd=v.d*PXUM,sx=W*0.22,s1=H/2-dd/2,s2=H/2+dd/2;
     if(Math.hypot(p.x-sx,p.y-s1)<26||Math.hypot(p.x-sx,p.y-s2)<26)dragI='src';
     else if(p.x>sx+22)dragI='probe';
     if(dragI){touchedI=true;canvas.style.cursor='grabbing';
@@ -17638,8 +17643,8 @@ function simOptInterference(canvas){
       e.preventDefault();}}
   function _iMv(e){var p=simPointerXY(canvas,dpr,e);
     if(dragI==='probe'){var sx=W*0.22;probeP={x:Math.max(sx+26,Math.min(W-12,p.x)),y:Math.max(12,Math.min(H-12,p.y))};e.preventDefault();}
-    else if(dragI==='src'){simSyncSlider('int-d',Math.abs(p.y-H/2)*2/10,2);e.preventDefault();}
-    else{var v=getVals();var dd=v.d*10,sx=W*0.22,s1=H/2-dd/2,s2=H/2+dd/2;
+    else if(dragI==='src'){simSyncSlider('int-d',Math.abs(p.y-H/2)*2/PXUM,2);e.preventDefault();}
+    else{var v=getVals();var dd=v.d*PXUM,sx=W*0.22,s1=H/2-dd/2,s2=H/2+dd/2;
       canvas.style.cursor=(Math.hypot(p.x-sx,p.y-s1)<26||Math.hypot(p.x-sx,p.y-s2)<26||(probeP&&Math.hypot(p.x-probeP.x,p.y-probeP.y)<26))?'grab':'';}}
   function _iUp(){dragI=null;canvas.style.cursor='';}
   canvas.addEventListener('mousedown',_iDn);canvas.addEventListener('touchstart',_iDn,{passive:false});
@@ -17650,7 +17655,7 @@ function simOptInterference(canvas){
     if(_simStop[id])return;
     animT+=0.06;
     var v=getVals();var lam_nm=v.lambda,d_mm=v.d;
-    var lam=10+(lam_nm-380)/320*70;var d=d_mm*10;// nm→px, mm→px
+    var lam=lam_nm*1e-3*PXUM;var d=d_mm*PXUM;// both to scale: µm → px
     var s1y=H/2-d/2,s2y=H/2+d/2,sx=W*0.22;
     var bg=ctx.createLinearGradient(0,0,0,H);bg.addColorStop(0,'#020810');bg.addColorStop(1,'#030d1a');
     ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);
@@ -17667,10 +17672,12 @@ function simOptInterference(canvas){
         var r1=Math.sqrt((x-sxh)*(x-sxh)+(y-s1h)*(y-s1h));
         var r2=Math.sqrt((x-sxh)*(x-sxh)+(y-s2h)*(y-s2h));
         var ph1=k2*r1-animT;var ph2=k2*r2-animT;
-        var e1=Math.cos(ph1)/Math.max(1,r1*0.12);
-        var e2=Math.cos(ph2)/Math.max(1,r2*0.12);
-        var amp=Math.min(1,Math.max(0,(e1+e2+2)/4));
-        var bright=Math.pow(amp,1.4);
+        // circular waves in a plane fall off as 1/√r; the brightness is the
+        // instantaneous intensity (E1+E2)², so the nodal lines of destructive
+        // interference stay dark while the crests between them flicker
+        var e1=Math.cos(ph1)/Math.sqrt(Math.max(1,r1*0.03));
+        var e2=Math.cos(ph2)/Math.sqrt(Math.max(1,r2*0.03));
+        var bright=Math.min(1,0.6*(e1+e2)*(e1+e2));
         var idx=(y*hw+x)*4;
         imgData.data[idx]=Math.round(lr*bright*255);
         imgData.data[idx+1]=Math.round(lg*bright*255);
@@ -17713,12 +17720,12 @@ function simOptInterference(canvas){
     ctx.save();ctx.fillStyle=pkCol;optGlow(ctx,pkCol,14);
     ctx.beginPath();ctx.arc(probeP.x,probeP.y,8,0,Math.PI*2);ctx.fill();optNoGlow(ctx);
     ctx.fillStyle='#0b1220';ctx.beginPath();ctx.arc(probeP.x,probeP.y,3.5,0,Math.PI*2);ctx.fill();ctx.restore();
-    if(!touchedI&&animT<12)optLabel(ctx,'✋ לחץ בכל מקום בשדה — או גררו מקור',probeP.x,probeP.y-20+Math.sin(animT)*3,'#fbbf24',10);
+    if(!touchedI&&animT<12)optLabel(ctx,'✋ לחצו בכל מקום בשדה — או גררו מקור',probeP.x,probeP.y-20+Math.sin(animT)*3,'#fbbf24',10);
     ctx.save();ctx.fillStyle='rgba(4,9,20,.9)';ctx.strokeStyle=pkCol;ctx.lineWidth=1.5;
     ctx.beginPath();ctx.roundRect(W-232,H-64,224,56,7);ctx.fill();ctx.stroke();ctx.restore();
     optLabel(ctx,'Δ = |r₂−r₁| = '+pmVal.toFixed(2)+'λ',W-120,H-46,pkCol,10.5);
     optLabel(ctx,pKind==='max'?'התאבכות בונה (m='+pmR+') — נקודה בהירה':pKind==='min'?'התאבכות הורסת — נקודה כהה':'ביניים',W-120,H-25,pkCol,9);
-    optInfoBox(ctx,8,8,152,['λ='+lam_nm+'nm','d='+d_mm+'mm (גררו מקור)']);
+    optInfoBox(ctx,8,8,152,['λ = '+lam_nm+' nm','d = '+d_mm.toFixed(1)+' μm = '+(d_mm*1000/lam_nm).toFixed(1)+'λ','(גררו מקור)']);
     requestAnimationFrame(draw);
   }requestAnimationFrame(draw);
 }
@@ -19250,7 +19257,16 @@ function simOptGrating(canvas){
       // Direction from grating center
       var dx=scrX-grX,dy=dx*Math.tan(th);
       var hitY=ax+dy;
-      if(hitY<scrTop||hitY>scrTop+scrH)return;
+      if(hitY<scrTop||hitY>scrTop+scrH){
+        // an order that exists but misses the screen is still there: draw it to
+        // the edge (it used to vanish while the read-out said it exists)
+        var eY=th>0?H-6:6,eX=grX+(eY-ax)/Math.tan(th);
+        ctx.save();ctx.strokeStyle='rgba('+lRGB[0]+','+lRGB[1]+','+lRGB[2]+',0.55)';ctx.lineWidth=2;ctx.setLineDash([6,4]);
+        ctx.beginPath();ctx.moveTo(grX,ax);ctx.lineTo(eX,eY);ctx.stroke();ctx.restore();
+        var yL=th>0?H-84:58,xL=grX+(yL-ax)/Math.tan(th);
+        optLabel(ctx,'m='+m+': θ='+(th*180/Math.PI).toFixed(1)+'° (מחוץ למסך)',Math.min(W-90,xL+70),yL,'rgb('+lRGB[0]+','+lRGB[1]+','+lRGB[2]+')',8);
+        return;
+      }
       // Draw the beam
       var alpha=m===0?0.9:0.8;
       ctx.save();
@@ -19265,8 +19281,8 @@ function simOptGrating(canvas){
       if(m!==0)optNoGlow(ctx);
       ctx.restore();
       // Angle label near grating
-      var labelX=grX+50,labelY=ax+Math.tan(th)*50;
-      optLabel(ctx,'m='+m,(m===0?grX+65:labelX),labelY+(m>=0?-10:10),(m===0?'#e2e8f0':'rgb('+lRGB[0]+','+lRGB[1]+','+lRGB[2]+')'),8);
+      var labelX=grX+110*Math.cos(th),labelY=ax+110*Math.sin(th);
+      optLabel(ctx,'m='+m,(m===0?grX+150:labelX),labelY+(m===0?-10:m>0?12:-12),(m===0?'#e2e8f0':'rgb('+lRGB[0]+','+lRGB[1]+','+lRGB[2]+')'),8);
       // Bright dot on screen + intensity bar
       var intensity=m===0?0.9:0.7;
       ctx.save();optGlow(ctx,m===0?'#fff':'rgb('+lRGB[0]+','+lRGB[1]+','+lRGB[2]+')',10*intensity);
@@ -19289,10 +19305,9 @@ function simOptGrating(canvas){
     }
     // === d·sinθ=mλ formula display ===
     ctx.save();ctx.fillStyle='rgba(10,18,32,0.9)';ctx.strokeStyle='#1e293b';ctx.lineWidth=1;
-    ctx.beginPath();ctx.roundRect(10,10,W*0.55,32,6);ctx.fill();ctx.stroke();
-    ctx.fillStyle='#94a3b8';ctx.font='11px Heebo';ctx.textAlign='center';
-    ctx.fillText('d·sinθ = mλ   →   sinθ₁ = λ/d = '+lambda+'/'+dNm.toFixed(0)+'nm = '+(lambda/dNm).toFixed(3),W*0.28,30);
+    ctx.beginPath();ctx.roundRect(10,10,W-20,32,6);ctx.fill();ctx.stroke();
     ctx.restore();
+    optLabel(ctx,'d·sinθ = mλ   →   sinθ₁ = λ/d = '+lambda+'/'+dNm.toFixed(0)+' nm = '+(lambda/dNm).toFixed(3),W/2,26,'#94a3b8',11);
     optInfoBox(ctx,10,H-70,W-20,['d='+( dNm/1000).toFixed(2)+'μm, λ='+lambda+'nm','m=±1: θ='+(Math.abs(sinTh1)<=1?(Math.asin(sinTh1)*180/Math.PI).toFixed(1)+'°':'לא קיים'),'m=±2: sinθ='+(2*lambda/dNm).toFixed(3)+(2*lambda/dNm<=1?' (קיים)':' (מעל 90° — לא קיים)'),'אדום נסטה יותר מכחול — הפוך מפריזמה']);
     requestAnimationFrame(draw);
   }
@@ -32481,7 +32496,7 @@ function buildSim(sim){
     '<button class="btn btn-secondary" onclick="window._eyeMode(\'myopia\')">👓 קוצר ראייה</button>'+
     '<button class="btn btn-secondary" onclick="window._eyeMode(\'hyper\')">🔭 רוחק ראייה</button>'+
     '<button class="btn btn-secondary" id="btn-eye-glasses" onclick="window._eyeGlasses()">👓 הוסף משקפיים</button></div>');
-  else if(sim.type==='opt-interference')extra=C(rng('int-lambda',380,700,500,10,'אורך גל λ',' nm')+rng('int-d',2,12,5,0.5,'מרחק מקורות d',' mm'));
+  else if(sim.type==='opt-interference')extra=C(rng('int-lambda',380,700,500,10,'אורך גל λ',' nm')+rng('int-d',1,4,2,0.1,'מרחק מקורות d',' μm'));
   else if(sim.type==='opt-youngs')extra=C(rng('ys-lambda',400,700,500,10,'אורך גל λ',' nm')+rng('ys-d',0.1,1,0.3,0.05,'מרחק סדקים d',' mm')+rng('ys-L',0.5,3,1,0.1,'מרחק מסך L',' m'));
   else if(sim.type==='opt-diffraction')extra=C(rng('diff-a',0.05,1,0.1,0.01,'רוחב סדק a',' mm')+rng('diff-lambda',380,700,500,10,'אורך גל λ',' nm'));
   else if(sim.type==='opt-em-spectrum')extra=C(rng('ems-pos',0,100,45,1,'מיקום בספקטרום','%'));
