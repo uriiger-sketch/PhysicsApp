@@ -7287,7 +7287,7 @@ const DC_CONTENT={
     <div class="def-block"><div class="def-title">אמפרמטר אמיתי</div>
       <p>התנגדותו ${M('R_A')} מתווספת <b>בטור</b>, ולכן הזרם קטן מהאמיתי, והקריאה <b>נמוכה מדי</b>. ככל ש-${M('R_A\\ll R')} — השגיאה קטנה.</p>
     </div>
-    <div class="mis-block"><b>⚠️ שימו לב לכיוון השגיאה:</b> שני המכשירים תמיד מראים <b>פחות</b> מהאמת, ומאותה סיבה — כל אחד מהם פותח לזרם אפשרות שלא הייתה קיימת, או חוסם אותו. מכשיר לעולם אינו ״מגדיל״ את מה שהוא מודד.</div>
+    <div class="mis-block"><b>⚠️ שימו לב לכיוון השגיאה:</b> שני המכשירים תמיד מראים <b>פחות</b> מהאמת: הוולטמטר פותח לזרם מסלול עוקף שלא היה קיים, והאמפרמטר מוסיף התנגדות בדרכו. מכשיר כזה לעולם אינו ״מגדיל״ את מה שהוא מודד.</div>
     <div class="ex-block"><div class="ex-title">✏️ דוגמה — כמה גרועה יכולה להיות מדידה?</div>
     <p class="ex-given">סוללה של ${M('12\\,\\text{V}')} ושני נגדים שווים של ${M('10\\,\\text{k}\\Omega')} בטור. המתח האמיתי על כל אחד הוא ${M('6\\,\\text{V}')}. מודדים אותו בוולטמטר שאינו אידיאלי.</p>
     <ol class="ex-steps">
@@ -29086,6 +29086,10 @@ function simDcSeries(canvas){
     simText(ctx,'סכום המתחים',W*0.72,ry-17,'#7d8da6',9.5,'center');
     simText(ctx,r1.toFixed(0)+' + '+r2.toFixed(0)+' = '+Req.toFixed(0)+' Ω',W*0.28,ry,'#e2e8f0',12.5,'center',true);
     simText(ctx,v1.toFixed(2)+' + '+v2.toFixed(2)+' = '+(v1+v2).toFixed(2)+' V',W*0.72,ry,'#34d399',12.5,'center',true);
+    // the power each one dissipates, and that together they take exactly what the source gives
+    var p1=I*I*r1,p2=I*I*r2;
+    simText(ctx,'P₁ = '+p1.toFixed(2)+' W  ·  P₂ = '+p2.toFixed(2)+' W  ·  P₁+P₂ = VI = '+(+p1.toFixed(2)+ +p2.toFixed(2)).toFixed(2)+' W',
+      W/2,H-10,'#fb923c',10.5,'center',true);
     requestAnimationFrame(draw);
   }
   requestAnimationFrame(draw);
@@ -29149,6 +29153,7 @@ function simDcParallel(canvas){
       if(on)dcFlowI(ctx,[[x,T],[x,B]],t,Ii,cols[i],kF);
       simText(ctx,on?('I'+'₁₂₃'[i]+' = '+Ii.toFixed(2)+' A'):'מנותק',
         x,B+20,on?cols[i]:'#ef4444',10.5,'center',true);
+      if(on)simText(ctx,'P = '+(v*Ii).toFixed(1)+' W',x,B+35,'#fb923c',9.5,'center',true);   // V²/R: the small one runs hot
     });
     // The rails carry charge too: along the top, whatever still has to reach the
     // branches further on; along the bottom, the same amount coming back. (Only
@@ -29161,7 +29166,7 @@ function simDcParallel(canvas){
         dcFlowI(ctx,[[Xb(j+1),B],[Xb(j),B]],t,Dn,'#fbbf24',kF);}
     }
     dcBatt(ctx,L,(T+B)/2,v.toFixed(1)+' V');     // over the charges, not under them
-    simText(ctx,'הקישו על ענף כדי לנתקו — ושוב כדי להחזירו',W/2,B+42,'#7d8da6',9,'center');
+    simText(ctx,'הקישו על ענף כדי לנתקו — ושוב כדי להחזירו',W/2,B+53,'#7d8da6',9,'center');
     simText(ctx,'הזרם הכולל',(L+Re)/2,T-30,'#7d8da6',9.5,'center');
     simText(ctx,Itot.toFixed(2)+' A',(L+Re)/2,T-14,'#fbbf24',12.5,'center',true);
     var y=H*0.73;
