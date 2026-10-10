@@ -33835,6 +33835,9 @@ function _closedPanel(panel){
   else if(document.activeElement&&document.activeElement.blur)document.activeElement.blur();
 }
 function _openPanelEl(){
+  // the first-visit welcome is a modal dialog too: Tab used to walk out of
+  // it into the page hidden behind, and "2" switched that page's tab
+  var ob=document.getElementById('onboard-overlay');if(ob)return ob;
   var l=['mobile-drawer','formula-panel','changelog-panel'];
   for(var i=0;i<l.length;i++){var e=document.getElementById(l[i]);if(e&&e.classList.contains('open'))return e;}
   return null;
@@ -34772,8 +34775,13 @@ window.nextOnboard=function(){
 };
 function closeOnboarding(){
   var ov=document.getElementById('onboard-overlay');
+  // closed from inside, the keyboard goes on at the top of the topic, not on
+  // the page body
+  var inside=!!(ov&&ov.contains(document.activeElement));
   if(ov) ov.remove();
   _ls.set('phys_onboarded','1');
+  if(inside){var t=document.getElementById('sec-title');if(!_focusable(t))t=document.querySelector('#app .tab.active');
+    if(t)try{t.focus({preventScroll:true});}catch(e){}}
 }
 
 // ══════════════════════════════════════════════════════════════════
