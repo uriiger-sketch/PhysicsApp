@@ -9834,8 +9834,9 @@ function simInertia(canvas){
   var mode='space'; // 'space' | 'surface'
   var vel=0, pos=0;
   var trail=[];
-  var spaceVel=0, spacePos=0, spaceTrail=[];
-  var surfVel=0, surfPos=0, surfTrail=[];
+  // both bodies start on screen, side by side, so the comparison is visible
+  var spaceVel=0, spacePos=W*0.2, spaceTrail=[];
+  var surfVel=0, surfPos=W*0.2, surfTrail=[];
   var thrust=false, thrustTimer=0;
   var launched=false;
 
@@ -9882,12 +9883,12 @@ function simInertia(canvas){
     if(spaceTrail.length>100)spaceTrail.shift();
 
     // Surface: friction decelerates
-    var fric=0;
-    if(Math.abs(surfVel)>0.02) fric=-Math.sign(surfVel)*mu*m*g;
-    else if(launched) fric=0;
-    surfVel+=fric/m*dt;
-    if(Math.abs(surfVel)<0.03&&Math.abs(fric)>0)surfVel=0;
-    surfPos+=surfVel*dt*50;
+    // Kinetic friction removes μg·dt of speed per step and stops the block
+    // exactly; it can never push it back the other way. (The old update could
+    // overshoot zero by more than its 0.03 m/s dead band and then chatter.)
+    var _dv=mu*g*dt, _v0=surfVel;
+    surfVel=Math.abs(surfVel)<=_dv?0:surfVel-Math.sign(surfVel)*_dv;
+    surfPos+=(_v0+surfVel)/2*dt*50;
     if(surfPos>W+60)surfPos=-60;
     if(surfPos<-60)surfPos=W+60;
     surfTrail.push({x:surfPos,v:surfVel});
@@ -9923,19 +9924,16 @@ function simInertia(canvas){
     var rx=spacePos, ry=SPACE_Y;
     ctx.fillStyle=sCol+'cc'; ctx.strokeStyle=sCol; ctx.lineWidth=2;
     ctx.beginPath(); ctx.moveTo(rx+18,ry); ctx.lineTo(rx-12,ry-12); ctx.lineTo(rx-12,ry+12); ctx.closePath(); ctx.fill(); ctx.stroke();
-    // Engine flare if moving
-    if(sVis>0.1&&!thrust){
-      ctx.fillStyle='rgba(251,191,36,.7)';
-      ctx.beginPath(); ctx.moveTo(rx-12,ry-5); ctx.lineTo(rx-26,ry); ctx.lineTo(rx-12,ry+5); ctx.closePath(); ctx.fill();
-    }
+    // No flame while coasting: nothing pushes it, and that is the whole point.
+    // The flame appears only during the brief push.
     if(thrust){
       ctx.fillStyle='rgba(239,68,68,.8)';
       ctx.beginPath(); ctx.moveTo(rx-12,ry-8); ctx.lineTo(rx-36,ry); ctx.lineTo(rx-12,ry+8); ctx.closePath(); ctx.fill();
     }
     ctx.shadowBlur=0; ctx.restore();
     // Velocity label
-    simText(ctx,'v='+spaceVel.toFixed(1)+' m/s',rx,ry-22,sVis>0.1?'#22d3ee':'#64748b',9,undefined,true);
-    if(launched&&Math.abs(spaceVel)>0.1) simText(ctx,'↔ נע בקצב קבוע לנצח!',W/2,SPACE_Y+STRIP_H/2-8,'#34d399',9,undefined,true);
+    simText(ctx,'v = '+spaceVel.toFixed(1)+' m/s',rx,ry-22,sVis>0.1?'#22d3ee':'#94a3b8',10,undefined,true);
+    if(launched&&Math.abs(spaceVel)>0.1) simText(ctx,'המנוע כבוי — והמהירות אינה משתנה',W/2,SPACE_Y+STRIP_H/2-8,'#34d399',10,undefined,true);
 
     // ── BOTTOM: Surface strip ────────────────────────────
     var sfY=SURF_Y;
@@ -9948,7 +9946,7 @@ function simInertia(canvas){
       ctx.save(); ctx.strokeStyle='rgba(45,82,117,'+( getFriction()*0.6)+')'; ctx.lineWidth=1;
       ctx.beginPath(); ctx.moveTo(xi,sfY+30); ctx.lineTo(xi-4,sfY+36); ctx.stroke(); ctx.restore();
     }
-    simText(ctx,'משטח — חיכוך μ='+getFriction().toFixed(2),W/2,sfY-STRIP_H/2+18,'#7d8da6',8,undefined,true);
+    simText(ctx,'משטח עם חיכוך:  μ = '+getFriction().toFixed(2),W/2,sfY+46,'#94a3b8',10,undefined,true);
     // Surface trail
     for(var ti2=1;ti2<surfTrail.length;ti2++){
       ctx.save(); ctx.globalAlpha=(ti2/surfTrail.length)*0.25;
@@ -9962,7 +9960,7 @@ function simInertia(canvas){
       var fDir=-Math.sign(surfVel);
       var fLen=Math.min(55,fk*1.2);
       simArrow(ctx,surfPos,sfY+6,surfPos+fDir*fLen,sfY+6,'#f87171',2.5,9);
-      simText(ctx,'f='+fk.toFixed(1)+'N',surfPos+fDir*fLen/2,sfY-4,'#f87171',8,undefined,true);
+      simText(ctx,'f = '+fk.toFixed(1)+' N',surfPos+fDir*fLen/2,sfY-4,'#f87171',10,undefined,true);
     }
     // Surface block
     var bW=48,bH=36;
@@ -9971,27 +9969,27 @@ function simInertia(canvas){
     ctx.fillStyle=bCol+'cc'; ctx.strokeStyle=bCol; ctx.lineWidth=2;
     ctx.beginPath(); ctx.roundRect(surfPos-bW/2,sfY+30-bH,bW,bH,4); ctx.fill(); ctx.stroke();
     ctx.shadowBlur=0; ctx.restore();
-    simText(ctx,getMass()+'kg',surfPos,sfY+30-bH/2+4,'#fff',9,undefined,true);
-    simText(ctx,'v='+surfVel.toFixed(1)+'m/s',surfPos,sfY+30-bH-8,surfS>0.1?'#fbbf24':'#64748b',8.5,undefined,true);
+    simText(ctx,getMass()+' kg',surfPos,sfY+30-bH/2+4,'#fff',10,undefined,true);
+    simText(ctx,'v = '+surfVel.toFixed(1)+' m/s',surfPos,sfY+30-bH-18,surfS>0.1?'#fbbf24':'#94a3b8',10,undefined,true);
     if(launched&&surfS<0.05&&Math.abs(spaceVel)>0.1){
-      simText(ctx,'✗ עצר! החיכוך שינה את התנועה',W/2,sfY+STRIP_H/2-6,'#f87171',9,undefined,true);
+      simText(ctx,'נעצר — כוח החיכוך שינה את מהירותו',W/2,sfY+68,'#f87171',10,undefined,true);
     }
 
     // ── Main info ─────────────────────────────────────────
     ctx.save(); ctx.fillStyle='rgba(6,14,28,.92)'; ctx.strokeStyle='#1e4060'; ctx.lineWidth=1.5;
     ctx.beginPath(); ctx.roundRect(8,6,W-16,42,6); ctx.fill(); ctx.stroke(); ctx.restore();
-    simText(ctx,'חוק ניוטון הראשון: אם ΣF=0, אז a=0 (מהירות קבועה)',W/2,19,'#22d3ee',10,undefined,true);
+    simText(ctx,'חוק ניוטון הראשון: כאשר ΣF = 0 המהירות קבועה',W/2,19,'#22d3ee',11,undefined,true);
     var compText=launched?
-      'חלל: v='+spaceVel.toFixed(1)+'m/s קבועה | משטח: v='+surfVel.toFixed(1)+'m/s יורדת' :
-      'לחץ ״דחוף״ לשגר שני גופים יחד ← השווה!';
-    simText(ctx,compText,W/2,34,launched?'#fbbf24':'#64748b',8.5,undefined,true);
+      (surfS<0.05?'בחלל המהירות נשמרת; על המשטח הגוף נעצר':'בחלל המהירות נשמרת; על המשטח היא קטנה')
+      : 'לחצו ״דחוף״: שני הגופים מקבלים אותה דחיפה';
+    simText(ctx,compText,W/2,36,launched?'#fbbf24':'#94a3b8',10,undefined,true);
 
     // Middle comparison arrow
     ctx.save(); ctx.strokeStyle='rgba(34,211,153,.3)'; ctx.lineWidth=1; ctx.setLineDash([4,6]);
     ctx.beginPath(); ctx.moveTo(W*0.15,SPACE_Y+STRIP_H/2+8); ctx.lineTo(W*0.15,SURF_Y-STRIP_H/2-8);
     ctx.moveTo(W*0.85,SPACE_Y+STRIP_H/2+8); ctx.lineTo(W*0.85,SURF_Y-STRIP_H/2-8); ctx.stroke();
     ctx.setLineDash([]); ctx.restore();
-    simText(ctx,'השווה!',W/2,(SPACE_Y+STRIP_H/2+SURF_Y-STRIP_H/2)/2,'#34d399',9.5,undefined,true);
+    simText(ctx,'אותה דחיפה, אותה מסה — מה ההבדל?',W/2,(SPACE_Y+STRIP_H/2+SURF_Y-STRIP_H/2)/2,'#34d399',10,undefined,true);
 
     requestAnimationFrame(draw);
   }
