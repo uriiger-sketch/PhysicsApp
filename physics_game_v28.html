@@ -30771,7 +30771,12 @@ function slResample(rows,n,col){var T=0,i,ts=[];
     out.push(rows[j][col]+(rows[j+1][col]-rows[j][col])*Math.max(0,Math.min(1,f)));}
   return {d:out,T:T};}
 function slSet(id,txt){var e=document.getElementById(id);if(e)e.textContent=txt;}
-function slChip(id,lbl,unit){return '<span class="sl-chip"><i>'+lbl+'</i><b id="slv-'+id+'">—</b><u>'+unit+'</u></span>';}
+// A chip reads label, value, unit. With a Hebrew label it reads right to
+// left -- 'v ממוצעת 0.350 m/s' -- or the label itself comes out backwards
+// ('ממוצעת v'); the value and the unit are left-to-right runs either way.
+function slChip(id,lbl,unit){
+  var rtl=/[\u0590-\u05FF]/.test(lbl)?' style="direction:rtl"':'';
+  return '<span class="sl-chip"'+rtl+'><i>'+lbl+'</i><b id="slv-'+id+'">—</b><u>'+unit+'</u></span>';}
 function slCss(v,f){try{var c=getComputedStyle(document.documentElement).getPropertyValue(v).trim();return c||f;}catch(e){return f;}}
 
 // Median is the right average for a set of measured intervals: one mistimed
@@ -31314,7 +31319,7 @@ var SL_IMPL={
         ctx.save();ctx.strokeStyle=gd;ctx.globalAlpha=.8;ctx.lineWidth=1.5;
         ctx.beginPath();ctx.moveTo(mx,vy+1);ctx.lineTo(mx,xy+xh-1);ctx.stroke();ctx.restore();
         ctx.fillStyle=gd;ctx.beginPath();ctx.arc(mx,xy+xh-7,7,0,6.2832);ctx.fill();
-        slTxt(ctx,mk[1],mx,xy+xh-4,'#7d8da6',9,'center',true);});
+        slTxt(ctx,mk[1],mx,xy+xh-4,slCss('--bg','#07101f'),9,'center',true);});
       slTxt(ctx,'Δx = '+(C.B.x-C.A.x).toFixed(3)+' m     Δt = '+(C.B.t-C.A.t).toFixed(2)+
         ' s     Δx/Δt = '+C.va.toFixed(3)+' m/s',W/2,H-26,tx,11.5,'center',true);
       var d1=Math.abs(C.A.v-C.va),d2=Math.abs(C.B.v-C.va);
@@ -31503,7 +31508,7 @@ var SL_IMPL={
         ctx.save();ctx.strokeStyle=gd;ctx.lineWidth=1.5;ctx.globalAlpha=.85;
         ctx.beginPath();ctx.moveTo(mx,vy+1);ctx.lineTo(mx,vy+vh-1);ctx.stroke();ctx.restore();
         ctx.fillStyle=gd;ctx.beginPath();ctx.arc(mx,vy+vh-7,7,0,6.2832);ctx.fill();
-        slTxt(ctx,mk[1],mx,vy+vh-4,'#7d8da6',9,'center',true);
+        slTxt(ctx,mk[1],mx,vy+vh-4,slCss('--bg','#07101f'),9,'center',true);
       });
       slTxt(ctx,'v  (m/s)   מטה חיובי',vx+4,vy-3,c1,9.5,'left',true);
     }
