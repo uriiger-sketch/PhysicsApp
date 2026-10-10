@@ -30980,8 +30980,8 @@ var SENSOR_LABS={
    ttl:'פירוק וקטור הכובד לרכיבים',
    how:'החזיקו את הטלפון במאונך והטו אותו לאט <b>במישור המסך</b>. וקטור הכובד ממשיך להצביע מטה — מה שמסתובב הם צירי הטלפון, ואיתם הרכיבים.',
    pred:'לפני שמטים: באיזו זווית יהיו שני הרכיבים <b>שווים</b> זה לזה? ובאיזו זווית ייעלם אחד מהם לגמרי? נחשו, ואז בדקו.',
-   note:'סכום ריבועי הרכיבים נשאר '+M('9.81')+' בכל זווית — הפירוק משנה את התיאור, לא את הווקטור. השורה התחתונה היא בדיקת פיתגורס על המדידה עצמה: הסטייה מ-9.81 היא <b>רעש המכשיר</b>, לא שגיאה בפיזיקה.',
-   chips:[['th','θ','°'],['gx','g·sinθ','m/s²'],['gy','g·cosθ','m/s²'],['rs','שארית פיתגורס','m/s²']],ctrl:''},
+   note:'השורש של סכום ריבועי הרכיבים, '+M('\\sqrt{g_x^2+g_y^2}')+', נשאר כ-'+M('9.8\\ \\text{m/s}^2')+' בכל זווית — הפירוק משנה את התיאור, לא את הווקטור. זו בדיקת פיתגורס על המדידה עצמה: סטייה קטנה היא <b>שגיאת הכיול והרעש</b> של החיישן, לא שגיאה בפיזיקה. ואם המסך נוטה לאחור, חלק מ-'+M('g')+' יוצא מהמישור (רכיב '+M('z')+') והשורש יוצא קטן יותר.',
+   chips:[['th','θ','°'],['gx','g·sinθ','m/s²'],['gy','g·cosθ','m/s²'],['rs','√(gx²+gy²)','m/s²']],ctrl:''},
 
  'forces.tension':{t:'lift-ride',h:344,minHz:25,
    ttl:'נסיעה במעלית — '+M('T=m(g\\pm a)'),
@@ -32185,57 +32185,65 @@ var SL_IMPL={
 
 'tilt-components':{
   init:function(st){st.reset(st);},
-  reset:function(st){st.th=0;st.gp=9.81;st.gx=0;st.gy=0;st.gm=0;st.res=0;},
+  reset:function(st){st.th=0;st.gp=9.81;st.gx=0;st.gy=0;st.gm=0;st.gz=0;st.dc=[0,1];st.flat=false;},
   sample:function(s,st){
     var gx=s.Gx,gy=s.Gy,gp=Math.hypot(gx,gy);
     st.gp=gp;
-    // The accelerometer reading points OPPOSITE to gravity, so gravity in the
-    // phone's own frame is -G. Taking the full-range angle of that direction
-    // (not atan2 of an absolute value, which folds at the vertical) gives the
-    // phone's true attitude through every orientation, upside-down included.
-    st.al=Math.atan2(-gx,-gy);
+    // The canvas IS the phone's screen: its x is the phone's x, its y the
+    // phone's y turned downward. The reading points opposite to gravity, so
+    // gravity on the screen is (−Gx, +Gy) -- straight down while the phone is
+    // upright, and still toward the floor however the phone is turned. So the
+    // picture is a plumb line: the arrow keeps pointing down, the screen's
+    // edges (the phone's axes) turn with the phone. (The picture used to turn
+    // the phone outline instead, by an angle that drew an upright phone upside
+    // down, with gravity glued to the screen's own bottom edge.)
+    st.dc=gp>1e-6?[-gx/gp,gy/gp]:[0,1];
     st.flat=gp<1.5;                    // lying flat: the in-plane angle is meaningless
     st.gx=Math.abs(gx);st.gy=Math.abs(gy);          // components along the phone's own axes
     st.th=Math.atan2(st.gx,st.gy||1e-9);            // tilt from the phone's y axis, 0..90
-    st.gm=Math.hypot(s.Gx,s.Gy,s.Gz);
-    st.res=Math.hypot(st.gx,st.gy)-gp;},
+    st.gm=Math.hypot(s.Gx,s.Gy,s.Gz);st.gz=s.Gz;},
   chips:function(st){
     slSet('slv-th',(st.th*180/Math.PI).toFixed(1));slSet('slv-gx',(st.gx||0).toFixed(2));
-    slSet('slv-gy',(st.gy||0).toFixed(2));slSet('slv-rs',((st.gm||0)-9.81).toFixed(3));},
+    slSet('slv-gy',(st.gy||0).toFixed(2));slSet('slv-rs',(st.gp||0).toFixed(2));},
   draw:function(ctx,W,H,st){
-    var cx=W/2,cy=H/2-8,ph=Math.min(W*0.17,52),pv=ph*1.9,th=st.th||0,al=st.al||0;
-    var c1=slCss('--accent','#3b82f6'),c2=slCss('--green','#10b981'),c3=slCss('--red','#ef4444'),mu=slCss('--muted','#889');
+    var ph=Math.min(W*0.14,52),pv=Math.min(H*0.40,108),cx=W/2,cy=pv+22,th=st.th||0;
+    var c1=slCss('--accent','#3b82f6'),c2=slCss('--green','#10b981'),c3=slCss('--red','#ef4444'),
+        mu=slCss('--muted','#889'),gd=slCss('--gold','#f59e0b');
     if(st.flat){
-      simText(ctx,'📱 הטלפון שוכב שטוח — הכובד ניצב למסך',W/2,H/2-10,slCss('--gold','#f59e0b'),13,'center',true);
+      simText(ctx,'📱 הטלפון שוכב שטוח — הכובד ניצב למסך',W/2,H/2-10,gd,13,'center',true);
       simText(ctx,'החזיקו אותו במאונך והטו אותו במישור המסך',W/2,H/2+14,mu,11.5,'center');return;}
-    ctx.save();ctx.translate(cx,cy);ctx.rotate(al);
-    ctx.strokeStyle=mu;ctx.lineWidth=2;ctx.beginPath();
-    if(ctx.roundRect)ctx.roundRect(-ph,-pv,ph*2,pv*2,9);else ctx.rect(-ph,-pv,ph*2,pv*2);
+    // the phone itself, square to the screen it is drawn on, with its axes
+    ctx.save();ctx.strokeStyle=mu;ctx.lineWidth=2;ctx.beginPath();
+    if(ctx.roundRect)ctx.roundRect(cx-ph,cy-pv,ph*2,pv*2,9);else ctx.rect(cx-ph,cy-pv,ph*2,pv*2);
     ctx.stroke();
-    // a notch at the top edge, so a flip is visible rather than merely implied
-    ctx.fillStyle=mu;ctx.beginPath();
-    ctx.roundRect?ctx.roundRect(-ph*0.30,-pv+5,ph*0.60,5,2.5):ctx.rect(-ph*0.30,-pv+5,ph*0.60,5);
-    ctx.fill();
-    slTxt(ctx,'y',0,-pv-7,mu,10,'center',true);slTxt(ctx,'x',ph+11,4,mu,10,'center',true);
-    ctx.strokeStyle=mu;ctx.setLineDash([3,3]);ctx.lineWidth=1;
-    ctx.beginPath();ctx.moveTo(0,-pv-4);ctx.lineTo(0,pv+4);ctx.moveTo(-ph-8,0);ctx.lineTo(ph+8,0);ctx.stroke();
-    ctx.setLineDash([]);ctx.restore();
-    var sc=(Math.min(W,H)*0.29)/9.81,gL=(st.gp||9.8)*sc;
-    // exact projections of a straight-down g onto the phone's drawn axes
-    var ux=-Math.sin(al),uy=Math.cos(al),vx=Math.cos(al),vy=Math.sin(al);
-    var ky=gL*uy,kx=gL*vy,Ax=ky*ux,Ay=ky*uy,Bx=kx*vx,By=kx*vy;
+    ctx.setLineDash([3,3]);ctx.lineWidth=1;
+    ctx.beginPath();ctx.moveTo(cx,cy-pv-4);ctx.lineTo(cx,cy+pv+4);ctx.moveTo(cx-ph-8,cy);ctx.lineTo(cx+ph+8,cy);ctx.stroke();
+    ctx.restore();
+    slTxt(ctx,'y',cx,cy-pv-8,mu,10,'center',true);slTxt(ctx,'x',cx+ph+16,cy+4,mu,10,'center',true);
+    var sc=Math.min(W*0.42,pv-14)/9.81,gL=(st.gp||9.8)*sc,dx=st.dc[0],dy=st.dc[1];
+    var Gx=gL*dx,Gy=gL*dy;                      // the tip of g, from the centre
+    // the angle θ between g and the phone's y axis
+    var a0=dy>=0?Math.PI/2:-Math.PI/2,a1=Math.atan2(dy,dx);
+    ctx.save();ctx.strokeStyle=mu;ctx.lineWidth=1;ctx.beginPath();ctx.arc(cx,cy,26,Math.min(a0,a1),Math.max(a0,a1));
+    if(Math.abs(a1-a0)<Math.PI)ctx.stroke();ctx.restore();
+    var am=(a0+a1)/2;slTxt(ctx,'θ',cx+36*Math.cos(am),cy+36*Math.sin(am)+4,mu,11,'center',true);
+    // projections onto the two axes, and the components that add up to g
     ctx.save();ctx.strokeStyle=mu;ctx.setLineDash([2,4]);ctx.lineWidth=1;
-    ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(cx+Bx,cy+By);
-    ctx.lineTo(cx+Ax+Bx,cy+Ay+By);ctx.stroke();ctx.setLineDash([]);ctx.restore();
-    simArrow(ctx,cx,cy,cx,cy+gL,c3,3,11);
-    slTxt(ctx,'g',cx+13,cy+gL-4,c3,12,'left',true);
-    simArrow(ctx,cx,cy,cx+Ax,cy+Ay,c2,2.5,9);
-    simArrow(ctx,cx+Ax,cy+Ay,cx+Ax+Bx,cy+Ay+By,c1,2.5,9);
+    ctx.beginPath();ctx.moveTo(cx+Gx,cy+Gy);ctx.lineTo(cx+Gx,cy);ctx.moveTo(cx+Gx,cy+Gy);ctx.lineTo(cx,cy+Gy);ctx.stroke();
+    ctx.restore();
+    simArrow(ctx,cx,cy,cx,cy+Gy,c2,2.5,9);
+    simArrow(ctx,cx,cy+Gy,cx+Gx,cy+Gy,c1,2.5,9);
+    simArrow(ctx,cx,cy,cx+Gx,cy+Gy,c3,3,11);
+    slTxt(ctx,'g',cx+Gx+(dx>=0?9:-9),cy+Gy+(dy>=0?12:-6),c3,12,dx>=0?'left':'right',true);
     slTxt(ctx,'g·cosθ = '+(st.gy||0).toFixed(2),12,20,c2,11,'left',true);
     slTxt(ctx,'g·sinθ = '+(st.gx||0).toFixed(2),12,37,c1,11,'left',true);
-    slTxt(ctx,'θ = '+((th*180/Math.PI)||0).toFixed(1)+'°  (מציר y של הטלפון)',12,54,mu,11,'left',true);
+    slTxt(ctx,'θ = '+((th*180/Math.PI)||0).toFixed(1)+'°',12,54,mu,11,'left',true);
     var eq=Math.abs(Math.abs(st.gx-st.gy))<0.25;
-    if(eq)simText(ctx,'⇦ כאן הרכיבים שווים — 45°',W-12,20,slCss('--gold','#f59e0b'),11,'right',true);
+    if(eq)simText(ctx,'כאן הרכיבים שווים — 45°',W-12,20,gd,11,'right',true);
+    // Only the part of g in the screen's plane is being taken apart. A phone
+    // leaning back puts the rest along z, and the root below falls short of g.
+    if(Math.abs(st.gz||0)>0.17*(st.gm||9.81))
+      simText(ctx,'⚠ המסך נוטה — חלק מ-g יוצא ממנו (g_z = '+Math.abs(st.gz).toFixed(1)+'); החזיקו זקוף',W/2,H-27,gd,10.5,'center',true);
     slTxt(ctx,'√('+(st.gx||0).toFixed(2)+'² + '+(st.gy||0).toFixed(2)+'²) = '+
       Math.hypot(st.gx||0,st.gy||0).toFixed(2)+' m/s²',W/2,H-9,mu,10.5,'center');}},
 

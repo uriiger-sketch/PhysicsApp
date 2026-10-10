@@ -109,6 +109,16 @@ const S = p => p.evaluate(() => JSON.parse(JSON.stringify(_sl.st, (k, v) =>
     t(`  Pythagoras still closes`, Math.hypot(s.gx, s.gy), 9.81, 0.02);
   }
 
+  // the picture is the phone's own screen: gravity must be drawn toward the
+  // floor in screen coordinates (x right, y DOWN), however the phone is held
+  for (const [name, g, want] of [['upright', [0, 9.81, 0], '0.00,1.00'],
+      ['upside down', [0, -9.81, 0], '0.00,-1.00'],
+      ['turned so its top points right', [-9.81, 0, 0], '1.00,0.00']]) {
+    await push(p, 'vectors.vec-components', 6, `()=>({g:${JSON.stringify(g)}})`);
+    const dc = await p.evaluate(() => _sl.st.dc.map(v => (Math.abs(v) < 5e-3 ? 0 : v).toFixed(2)).join(','));
+    t(`gravity drawn toward the floor, phone ${name}`, dc, want);
+  }
+
   console.log('\n4) forces.normal-force — N and F∥ on a real incline');
   await openLab(p, 'forces.normal-force');
   await p.evaluate(() => { const e = document.getElementById('sl-m'); if (e) e.value = '2'; });
