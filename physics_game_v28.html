@@ -11326,19 +11326,21 @@ function simCollision(canvas){
     simGround(ctx,W,GND);
 
     // Type label banner
-    var typeLbl=e>=0.99?'התנגשות אלסטית מושלמת (e=1)':e<=0.01?'התנגשות אי-אלסטית — מתאחדים (e=0)':'התנגשות חצי-אלסטית (e='+e.toFixed(2)+')';
+    var typeLbl=e>=0.99?'התנגשות אלסטית לחלוטין (e=1)':e<=0.01?'התנגשות אי-אלסטית לחלוטין — הגופים נצמדים (e=0)':'התנגשות אי-אלסטית חלקית (e='+e.toFixed(2)+')';
     var typeCol=e>=0.99?'#34d399':e<=0.01?'#f87171':'#f59e0b';
     ctx.save();ctx.fillStyle='rgba(6,14,28,.92)';ctx.strokeStyle=typeCol+'55';ctx.lineWidth=1.5;
     ctx.beginPath();ctx.roundRect(10,8,W-20,54,6);ctx.fill();ctx.stroke();ctx.restore();
     simText(ctx,typeLbl,W/2,24,typeCol,10.5,'center',true);
     simText(ctx,'תנע לפני = '+p_before.toFixed(2)+'   תנע עכשיו = '+pTot.toFixed(2)+' kg·m/s  '+(Math.abs(p_before-pTot)<0.3?'✅ שמור':'⚠'),W/2,39,'#22d3ee',9,'center',true);
-    simText(ctx,'Ek: '+ek_before.toFixed(1)+' → '+ek_now.toFixed(1)+' J  '+(e>=0.99?'✅ שמורה':'↓ '+(100*(1-ek_now/Math.max(ek_before,0.01))).toFixed(0)+'% אובד'),W/2,53,e>=0.99?'#34d399':'#f59e0b',8.5,'center',false);
+    simText(ctx,state==='before'?'E_k לפני ההתנגשות = '+ek_before.toFixed(1)+' J':
+      ('E_k: '+ek_before.toFixed(1)+' → '+ek_now.toFixed(1)+' J  '+(e>=0.99?'✅ נשמרה':'↓ '+(100*(1-ek_now/Math.max(ek_before,0.01))).toFixed(0)+'% הפכו לחום ולעיוות')),
+      W/2,53,(e>=0.99||state==='before')?'#34d399':'#f59e0b',8.5,'center',false);
 
     // Ball 1
     var g1=ctx.createRadialGradient(x1-r1*0.3,GND-r1-r1*0.3,r1*0.08,x1,GND-r1,r1);
     g1.addColorStop(0,'#bfdbfe');g1.addColorStop(1,'rgba(29,78,216,.85)');
     simCircle(ctx,x1,GND-r1,r1,g1,'#60a5fa',2);
-    simText(ctx,m1+'kg',x1,GND-r1+5,'#fff',9,undefined,true);
+    simText(ctx,m1+' kg',x1,GND-r1+5,'#fff',9,undefined,true);
     if(Math.abs(v1)>0.05){
       var arLen1=v1*PPS*0.6;
       simArrow(ctx,x1,GND-r1*2-10,x1+arLen1,GND-r1*2-10,'#60a5fa',2.5,9);
@@ -11351,7 +11353,7 @@ function simCollision(canvas){
       var mx2=(x1+x2)/2;
       ctx.save();ctx.fillStyle='rgba(120,15,30,.75)';ctx.strokeStyle='#f87171';ctx.lineWidth=2;
       ctx.beginPath();ctx.roundRect(mx2-r1-r2+4,GND-r1*2,r1*2+r2*2-8,r1*2,5);ctx.fill();ctx.stroke();ctx.restore();
-      simText(ctx,(m1+m2)+'kg',mx2,GND-r1+4,'#fff',9,undefined,true);
+      simText(ctx,(m1+m2)+' kg',mx2,GND-r1+4,'#fff',9,undefined,true);
       if(Math.abs(v1)>0.05){
         var arLen0=v1*PPS*0.6;
         simArrow(ctx,mx2,GND-r1*2-10,mx2+arLen0,GND-r1*2-10,'#f87171',2.5,9);
@@ -11360,7 +11362,7 @@ function simCollision(canvas){
       var g2=ctx.createRadialGradient(x2-r2*0.3,GND-r2-r2*0.3,r2*0.08,x2,GND-r2,r2);
       g2.addColorStop(0,'#fecaca');g2.addColorStop(1,'rgba(185,28,28,.85)');
       simCircle(ctx,x2,GND-r2,r2,g2,'#f87171',2);
-      simText(ctx,m2+'kg',x2,GND-r2+5,'#fff',9,undefined,true);
+      simText(ctx,m2+' kg',x2,GND-r2+5,'#fff',9,undefined,true);
       if(Math.abs(v2)>0.05){
         var arLen2=v2*PPS*0.6;
         simArrow(ctx,x2,GND-r2*2-10,x2+arLen2,GND-r2*2-10,'#f87171',2.5,9);
@@ -11395,7 +11397,7 @@ function simCollision(canvas){
     if(stopped){
       ctx.save();ctx.fillStyle='rgba(239,68,68,.18)';ctx.strokeStyle='#f87171';ctx.lineWidth=1.5;
       ctx.beginPath();ctx.roundRect(W/2-110,GND-58,220,30,5);ctx.fill();ctx.stroke();ctx.restore();
-      simText(ctx,'פגיעה בקיר — לחץ ↺ אפס להמשך',W/2,GND-38,'#f87171',9.5,undefined,true);
+      simText(ctx,'גוף הגיע לקצה — לחצו ↺ אפס',W/2,GND-38,'#f87171',9.5,undefined,true);
     }
 
     // Momentum graph: p1 (blue), p2 (red), pTotal (yellow dashed)
@@ -11403,7 +11405,7 @@ function simCollision(canvas){
     if(n>1){
       ctx.save();ctx.fillStyle='rgba(6,14,28,.82)';ctx.strokeStyle='#1e3a52';ctx.lineWidth=1;
       ctx.beginPath();ctx.roundRect(12,GRAPH_TOP,W-24,GRAPH_H,4);ctx.fill();ctx.stroke();ctx.restore();
-      simText(ctx,'תנע — p₁(כחול), p₂(אדום), p∑(צהוב קו מקווקו) — p∑=קבוע!',W/2,GRAPH_TOP+10,'#64748b',7.5,undefined,true);
+      simText(ctx,'תנע: p₁ (כחול), p₂ (אדום), Σp (צהוב, מקווקו) — Σp קבוע',W/2,GRAPH_TOP+10,'#64748b',7.5,undefined,true);
 
       // Compute y-scale to show all values including negative
       var allVals=p1Hist.concat(p2Hist).concat(pTotHist);
@@ -11435,12 +11437,12 @@ function simCollision(canvas){
       plotMomentum(pTotHist,'#fbbf24',true);
 
       // Live legend
-      var LX=W-18,LY=GRAPH_TOP+18;
+      var LX=W-18,LY=GRAPH_TOP+30;
       ctx.save();ctx.fillStyle='rgba(6,14,28,.8)';
       ctx.beginPath();ctx.roundRect(LX-86,LY-11,88,56,3);ctx.fill();ctx.restore();
       simText(ctx,'p₁ ='+p1_now.toFixed(2),LX-4,LY,'#60a5fa',7.5,'right');
       simText(ctx,'p₂ ='+p2_now.toFixed(2),LX-4,LY+16,'#f87171',7.5,'right');
-      simText(ctx,'p∑='+pTot.toFixed(2),LX-4,LY+32,'#fbbf24',7.5,'right');
+      simText(ctx,'Σp ='+pTot.toFixed(2),LX-4,LY+32,'#fbbf24',7.5,'right');
     } else {
       ctx.save();ctx.fillStyle='rgba(6,14,28,.82)';ctx.strokeStyle='#1e3a52';ctx.lineWidth=1;
       ctx.beginPath();ctx.roundRect(12,GRAPH_TOP,W-24,GRAPH_H,4);ctx.fill();ctx.stroke();ctx.restore();
@@ -32703,7 +32705,7 @@ function buildSim(sim){
   else if(sim.type==='fbd')extra=C(rng('fbd-F',-10,25,0,0.5,'כוח נוסף על הגוף (+ מעלה)',' N')+btn('fbd-reset','↺ נקה הכל','btn-secondary'));
   else if(sim.type==='momentum')extra=C(rng('mom-mass',0.5,8,2,0.5,'מסה',' kg')+rng('mom-vel',-10,10,4,1,'מהירות',' m/s'));
   else if(sim.type==='momentum-cons')extra=C(rng('mc-m1',1,8,3,0.5,'m₁',' kg')+rng('mc-m2',1,8,2,0.5,'m₂',' kg')+rng('mc-v1',-8,8,4,1,'v₁',' m/s')+rng('mc-v2',-8,8,-2,1,'v₂',' m/s')+btn('mc-reset','↺ אפס','btn-secondary'));
-  else if(sim.type==='collision')extra=C(rng('col-e',0,1,1,0.05,'מקדם e (0=היצמד, 1=אלסטי)')+rng('col-m1',1,8,3,0.5,'m₁',' kg')+rng('col-m2',1,8,2,0.5,'m₂',' kg')+rng('col-v1',0,8,4,0.5,'v₁ התחלתית',' m/s')+rng('col-v2',-8,0,-2,0.5,'v₂ התחלתית',' m/s')+btn('col-reset','↺ אפס','btn-secondary'));
+  else if(sim.type==='collision')extra=C(rng('col-e',0,1,1,0.05,'מקדם התקומה e (0 נצמדים, 1 אלסטית)')+rng('col-m1',1,8,3,0.5,'m₁',' kg')+rng('col-m2',1,8,2,0.5,'m₂',' kg')+rng('col-v1',0,8,4,0.5,'v₁ התחלתית',' m/s')+rng('col-v2',-8,0,-2,0.5,'v₂ התחלתית',' m/s')+btn('col-reset','↺ אפס','btn-secondary'));
   else if(sim.type==='energy-kinetic')extra=C(rng('ek-F',2,50,10,1,'כוח F',' N')+rng('ek-m',0.5,10,2,0.5,'מסה m',' kg')+btn('ek-launch','▶ הפעל!','btn-primary')+btn('ek-reset','↺ אפס','btn-secondary'));
   else if(sim.type==='energy-potential')extra=C(rng('ep-m',0.5,8,2,0.5,'מסה m',' kg')+rng('ep-g',1.6,25,9.8,0.5,'g',' m/s²')+btn('ep-elastic','⚡ אנרגיה אלסטית','btn-secondary')+btn('ep-reset','↺ אפס','btn-secondary'));
   else if(sim.type==='energy')extra=C(rng('energy-m',0.5,4,1,0.5,'מסה m',' kg')+rng('energy-mu',0,0.25,0,0.01,'מקדם חיכוך μ','')+btn('energy-reset','↺ אפס','btn-secondary'));
