@@ -26988,7 +26988,9 @@ MAG_CTRL['mag-generator']=function(){return rng('mgg-f',0.2,50,1,0.1,'תדירו
 // ── mag-induction.mag-transformer ─────────────────────────────────────────
 MAG_SIMS['mag-transformer']=function(canvas){
   var id=canvas.id,_g=_simGen[id];
-  const H=520; const {ctx,W,dpr}=setupCanvas(canvas,H);
+  // a phone gets a taller canvas: the scope and the transmission line stack
+  var ph=(canvas.offsetWidth||(canvas.parentElement&&canvas.parentElement.offsetWidth)||720)<600;
+  const H=ph?600:520; const {ctx,W,dpr}=setupCanvas(canvas,H);
   var ac=true, t=0, tsw=0, pT=null, hist=[];
   magBtn('mgt-dc',function(b){ac=!ac;tsw=t;b.textContent=ac?'〰 זרם חילופין':'▬ זרם ישר (סוללה)';});
   function draw(ts){
@@ -27002,7 +27004,7 @@ MAG_SIMS['mag-transformer']=function(canvas){
     hist.push([t,v1,v2]);while(hist.length&&t-hist[0][0]>4)hist.shift();
     simBg(ctx,W,H);
     // iron core
-    var cx0=W*0.30,cx1=W*0.70,cy0=H*0.06,cy1=H*0.44,T=26;
+    var cx0=W*0.30,cx1=W*0.70,cy0=ph?31:H*0.06,cy1=ph?229:H*0.44,T=26;
     ctx.save();ctx.fillStyle='#334155';ctx.fillRect(cx0,cy0,cx1-cx0,T);ctx.fillRect(cx0,cy1-T,cx1-cx0,T);ctx.fillRect(cx0,cy0,T,cy1-cy0);ctx.fillRect(cx1-T,cy0,T,cy1-cy0);ctx.restore();
     var glow=Math.abs(phi);
     ctx.save();ctx.strokeStyle='rgba(129,140,248,'+(0.15+0.7*glow)+')';ctx.lineWidth=4;ctx.strokeRect(cx0+T/2,cy0+T/2,cx1-cx0-T,cy1-cy0-T);ctx.restore();
@@ -27028,13 +27030,22 @@ MAG_SIMS['mag-transformer']=function(canvas){
     simCircle(ctx,cx1+60,(cy0+cy1)/2,14,'rgba(253,224,71,'+(0.15+0.8*br)+')','#fde68a',2);
     simText(ctx,R.toFixed(0)+' Ω',cx1+60,(cy0+cy1)/2+32,'#22d3ee',10,'center',true);
     // readouts
-    var y0=H*0.50;ctx.save();ctx.fillStyle='rgba(2,8,16,.85)';ctx.fillRect(8,y0,W-16,56);ctx.restore();
-    if(ac){simText(ctx,'V₂ = V₁·N₂/N₁ = '+V2.toFixed(1)+' V   ·   I₂ = V₂/R = '+I2.toFixed(2)+' A   ·   I₁ = I₂·N₂/N₁ = '+I1.toFixed(3)+' A',W/2,y0+18,'#e2e8f0',10.5,'center',true);
-      simText(ctx,'P₁ = V₁I₁ = '+(V1*I1).toFixed(1)+' W = P₂ = V₂I₂ = '+P.toFixed(1)+' W   ·   '+(r>1?'שנאי מעלה מתח':r<1?'שנאי מוריד מתח':'יחס 1:1'),W/2,y0+40,'#94a3b8',10,'center');}
+    var y0=ph?262:H*0.50;ctx.save();ctx.fillStyle='rgba(2,8,16,.85)';ctx.fillRect(8,y0,W-16,ph?76:56);ctx.restore();
+    var kind=r>1?'שנאי מעלה מתח':r<1?'שנאי מוריד מתח':'יחס 1:1';
+    var fP=function(w){return w>=1e6?(w/1e6).toFixed(2)+' MW':w>=1e4?(w/1e3).toFixed(1)+' kW':w.toFixed(1)+' W';};
+    if(ac&&ph){simText(ctx,'V₂ = V₁·N₂/N₁ = '+V2.toFixed(1)+' V   ·   '+kind,W/2,y0+16,'#e2e8f0',10.5,'center',true);
+      simText(ctx,'I₂ = V₂/R = '+I2.toFixed(2)+' A',W/2,y0+33,'#e2e8f0',10,'center',true);
+      simText(ctx,'I₁ = I₂·N₂/N₁ = '+I1.toFixed(3)+' A',W/2,y0+49,'#e2e8f0',10,'center',true);
+      simText(ctx,'P₁ = V₁I₁ = '+fP(V1*I1)+' = P₂ = V₂I₂ = '+fP(P),W/2,y0+66,'#94a3b8',9.5,'center');}
+    else if(ac){simText(ctx,'V₂ = V₁·N₂/N₁ = '+V2.toFixed(1)+' V   ·   I₂ = V₂/R = '+I2.toFixed(2)+' A   ·   I₁ = I₂·N₂/N₁ = '+I1.toFixed(3)+' A',W/2,y0+18,'#e2e8f0',10.5,'center',true);
+      simText(ctx,'P₁ = V₁I₁ = '+fP(V1*I1)+' = P₂ = V₂I₂ = '+fP(P)+'   ·   '+kind,W/2,y0+40,'#94a3b8',10,'center');}
+    else if(ph){simText(ctx,'זרם ישר: השטף עולה פעם אחת ונשאר קבוע',W/2,y0+18,'#fbbf24',10.5,'center',true);
+      simText(ctx,'ΔΦ/Δt → 0 ⇒ V₂ → 0',W/2,y0+37,'#fbbf24',10.5,'center',true);
+      simText(ctx,'רק ברגע החיבור מופיע מתח חולף במשני: '+v2.toFixed(1)+' V',W/2,y0+58,'#94a3b8',9.5,'center');}
     else{simText(ctx,'זרם ישר: השטף עולה פעם אחת ונשאר קבוע ⇒ ΔΦ/Δt → 0 ⇒ V₂ → 0',W/2,y0+18,'#fbbf24',11,'center',true);
       simText(ctx,'רק ברגע החיבור מופיע מתח חולף במשני: '+v2.toFixed(1)+' V',W/2,y0+40,'#94a3b8',10,'center');}
     // scope
-    var gx=44,gy=H*0.64,gw=W*0.52,gh=H*0.33,Vm=Math.max(Math.SQRT2*V1,Math.SQRT2*V2,1)*1.05;
+    var gx=44,gy=ph?366:H*0.64,gw=ph?W-60:W*0.52,gh=ph?104:H*0.33,Vm=Math.max(Math.SQRT2*V1,Math.SQRT2*V2,1)*1.05;
     magPlotBox(ctx,gx-36,gy-14,gw+44,gh+12,'v₁(t) כתום · v₂(t) תכלת',null);
     var Y=function(q){return gy+gh/2-q/Vm*(gh/2-8);};
     ctx.save();ctx.strokeStyle='#1e3a52';ctx.beginPath();ctx.moveTo(gx,Y(0));ctx.lineTo(gx+gw,Y(0));ctx.stroke();ctx.restore();
@@ -27042,19 +27053,28 @@ MAG_SIMS['mag-transformer']=function(canvas){
     magPoly(ctx,hist.map(function(h){return [gx+gw-(t-h[0])/4*gw,Y(h[2])];}),'#22d3ee',2.2);
     simText(ctx,Vm.toFixed(0)+' V',gx-4,Y(Vm)+3,'#64748b',8.5,'right');
     // transmission line: the same 10 MW over a 10 Ω line
-    var tx=gx+gw+20,tw=W-tx-10,IL=10e6/VL,Loss=IL*IL*10,fr=Math.min(1,Loss/10e6);
+    var IL=10e6/VL,Loss=IL*IL*10,fr=Math.min(1,Loss/10e6),nV=VL/20e3;
+    var lossTxt='הפסד I²R = '+(Loss>=1e6?(Loss/1e6).toFixed(2)+' MW':(Loss/1e3).toFixed(1)+' kW');
+    var cmpTxt=nV>1.01?'מתח פי '+nV.toFixed(nV<10?1:0)+' מ-20 kV ⇒ הפסד פי '+(nV*nV).toFixed(0)+' פחות':'מתח פי n ⇒ זרם פי n פחות, הפסד פי n² פחות';
+    if(ph){var ty=gy+gh+10,th2=H-ty-6;            // a strip under the scope
+      magPlotBox(ctx,8,ty,W-16,th2,'הולכה: 10 MW בקו של 10 Ω',null);
+      simText(ctx,'מתח הקו '+(VL/1000).toFixed(0)+' kV   ·   I = P/V = '+IL.toFixed(0)+' A',W/2,ty+30,'#e2e8f0',10.5,'center',true);
+      simText(ctx,lossTxt+'   ·   '+(fr*100).toFixed(fr<0.01?2:1)+'% מההספק',W/2,ty+48,'#f87171',10,'center',true);
+      ctx.save();ctx.fillStyle='rgba(248,113,113,.25)';ctx.fillRect(20,ty+58,W-40,10);ctx.fillStyle='#f87171';ctx.fillRect(20,ty+58,(W-40)*fr,10);ctx.restore();
+      simText(ctx,cmpTxt,W/2,ty+th2-8,'#64748b',9,'center');}
+    else{var tx=gx+gw+20,tw=W-tx-10;
     magPlotBox(ctx,tx,gy-14,tw,gh+12,'הולכה: 10 MW בקו של 10 Ω',null);
     simText(ctx,'מתח הקו: '+(VL/1000).toFixed(0)+' kV',tx+tw/2,gy+18,'#e2e8f0',11,'center',true);
     simText(ctx,'I = P/V = '+IL.toFixed(0)+' A',tx+tw/2,gy+40,'#94a3b8',10,'center');
-    simText(ctx,'הפסד I²R = '+(Loss>=1e6?(Loss/1e6).toFixed(2)+' MW':(Loss/1e3).toFixed(1)+' kW'),tx+tw/2,gy+62,'#f87171',10.5,'center',true);
+    simText(ctx,lossTxt,tx+tw/2,gy+62,'#f87171',10.5,'center',true);
     ctx.save();ctx.fillStyle='rgba(248,113,113,.25)';ctx.fillRect(tx+12,gy+80,tw-24,14);ctx.fillStyle='#f87171';ctx.fillRect(tx+12,gy+80,(tw-24)*fr,14);ctx.restore();
     simText(ctx,(fr*100).toFixed(fr<0.01?2:1)+'% מההספק הולך לאיבוד',tx+tw/2,gy+110,'#94a3b8',9.5,'center');
-    simText(ctx,'מתח פי 20 ⇒ הפסד פי 400 פחות',tx+tw/2,gy+gh-8,'#64748b',9,'center');
+    simText(ctx,cmpTxt,tx+tw/2,gy+gh-8,'#64748b',9,'center');}
     requestAnimationFrame(draw);
   }
   requestAnimationFrame(draw);
 };
-MAG_CTRL['mag-transformer']=function(){return rng('mgt-V1',6,240,230,1,'מתח כניסה V₁ (אפקטיבי)',' V')+rng('mgt-N1',50,2000,1150,10,'ליפופים בראשוני N₁')+rng('mgt-N2',10,2000,60,5,'ליפופים במשני N₂')+rng('mgt-R',1,200,6,1,'עומס R',' Ω')+rng('mgt-VL',10,400,20,10,'מתח קו ההולכה',' kV')+btn('mgt-dc','〰 זרם חילופין','btn-secondary');};
+MAG_CTRL['mag-transformer']=function(){return rng('mgt-V1',6,240,230,1,'מתח כניסה V₁ (אפקטיבי)',' V')+rng('mgt-N1',50,2000,1150,10,'ליפופים בראשוני N₁')+rng('mgt-N2',10,2000,60,5,'ליפופים במשני N₂')+rng('mgt-R',1,200,6,1,'עומס R',' Ω')+rng('mgt-VL',20,400,20,10,'מתח קו ההולכה',' kV')+btn('mgt-dc','〰 זרם חילופין','btn-secondary');};
 // ══════════════════════════════════════════════
 // MAGNETISM THEORY ANIMATIONS — each a pure function of t
 // ══════════════════════════════════════════════
