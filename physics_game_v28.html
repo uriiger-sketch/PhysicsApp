@@ -31033,6 +31033,11 @@ function _restoreFocus(k){
     var a=document.activeElement;
     if(!e.isConnected||(a&&a!==document.body&&a.isConnected))return;
     try{e.focus({preventScroll:true});}catch(x){}
+    // in a quiz or a problem the control that takes the focus ("next", the
+    // next step's field) can sit below the screen's edge, under the
+    // explanation that just opened: bring it just into view
+    if(k.inQuiz||k.step!==null){var r=e.getBoundingClientRect();
+      if(r.bottom>window.innerHeight||r.top<0)try{e.scrollIntoView({block:'nearest'});}catch(x){}}
   },0);
 }
 // ── Where the learner is goes in the address bar ────────────────────────
@@ -33692,7 +33697,7 @@ function buildQuiz(qs){
   if(q.hint&&hintShown){
     hintHTML='<div class="quiz-hint-box">💡 '+_ltSafe(q.hint)+'</div>';
   }
-  const fb=ans?`<div class="quiz-feedback${st.ans[qi]===qv.correct?' fb-ok':' fb-err'}" role="status">
+  const fb=ans?`<div class="quiz-feedback${st.ans[qi]===qv.correct?' fb-ok':' fb-err'}">
     <div style="font-size:1rem;margin-bottom:4px">${st.ans[qi]===qv.correct?'✅ נכון!':'❌ לא נכון.'}</div>
     <div style="font-size:.88rem;color:var(--muted)">${_ltSafe(q.explain||'')}</div>
     ${q.formula&&st.ans[qi]!==qv.correct?`<div style="margin-top:8px;padding:6px 10px;background:rgba(0,0,0,.2);border-radius:6px;font-family:monospace;color:var(--accent);font-size:.9rem">${q.formula}</div>`:''}
@@ -33721,7 +33726,7 @@ function buildProblem(prob){
           <span class="step-btns">${showBtn?`<button class="hint-btn" onclick="showHint(${si})">${lvl===0?'💡 רמז':'✏️ פתרון מלא'} (−5 XP)</button>`:''}
           ${!locked?`<button class="btn btn-primary" style="padding:7px 14px" onclick="chkStep(${si})">בדקו</button>`:''}</span>
         </div>
-        ${fb&&fb!=='correct'?`<div class="step-fb err" role="status">${_ltSafe(fb)}</div>`:''}`
+        ${fb&&fb!=='correct'?`<div class="step-fb err">${_ltSafe(fb)}</div>`:''}`
       :`<div class="step-fb ok">✅ ${_ltSafe(st2.explain)}</div>`}
     </div>`;
   }).join('');
@@ -33868,22 +33873,53 @@ document.addEventListener('click',function(e){
     if(w)_placeTip(w);
   });
 });
-window.setTab=(t)=>{
+// ── One voice for a screen reader ──
+// render() rebuilds the page, so a live region inside it is a new element
+// every time, and a region that arrives already filled is not reliably
+// read: the verdict on an answer, a paid hint, a step's feedback went
+// unheard. They are spoken through one region that outlives every render.
+function _say(html){
+  try{
+    var r=document.getElementById('sr-live');
+    if(!r){r=document.createElement('div');r.id='sr-live';r.className='visually-hidden';
+      r.setAttribute('role','status');r.setAttribute('aria-live','polite');document.body.appendChild(r);}
+    var d=document.createElement('template');d.innerHTML=String(html||'');   // inert
+    var t=(d.content.textContent||'').replace(/\s+/g,' ').trim();
+    // emptied first, so the same words said twice are said twice
+    r.textContent='';setTimeout(function(){r.textContent=t;},50);
+  }catch(e){}
+}
+// The button that led to another tab ("got it -- on to the simulation",
+// "to the quiz") goes with the old tab, and the keyboard was left on the
+// page body (or, by position, on an unrelated button of the new tab). It
+// lands on the new tab's title instead -- or on the tab itself where the
+// title is hidden. A tab button pressed keeps its own focus.
+function _hadFocus(){var a=document.activeElement;return !!(a&&a!==document.body&&!(a.classList&&a.classList.contains('tab')));}
+window.setTab=(t,land)=>{
   if(state.tab===t){render();return;}
+  if(land===undefined)land=_hadFocus();
+  if(land&&document.activeElement&&document.activeElement.blur)document.activeElement.blur();
   state.tab=t;_pushNext=true;render();
+  if(land)setTimeout(function(){
+    var a=document.activeElement;if(a&&a!==document.body)return;
+    var h=document.getElementById('sec-title');if(!_focusable(h))h=document.querySelector('#app .tab.active');
+    if(h)try{h.focus({preventScroll:true});}catch(e){}
+  },0);
   // a tab opened from the bottom of a long page ("got it -- on to the
   // simulation") must open at its own start, not somewhere below it
   var tb=document.querySelector('#app .tabs');
   if(tb){var y=tb.getBoundingClientRect().top+window.pageYOffset-72;
     if(window.pageYOffset>y+4)try{window.scrollTo(0,Math.max(0,y));}catch(e){}}
 };
-window.finishTheory=()=>{markCompleted(state.chapter,state.section,'theory',20);setTab('sim');};
-window.finishSim=()=>{markCompleted(state.chapter,state.section,'sim',30);setTab('quiz');};
+window.finishTheory=()=>{var f=_hadFocus();markCompleted(state.chapter,state.section,'theory',20);setTab('sim',f);};
+window.finishSim=()=>{var f=_hadFocus();markCompleted(state.chapter,state.section,'sim',30);setTab('quiz',f);};
 window.restartSim=function(){
   var c=CONTENT[state.chapter+'.'+state.section];
   if(c&&c.sim)initSim('sim-canvas',c.sim.type);
 };
-window.answerQuiz=(oi)=>{const st=getQS(state.chapter,state.section);if(st.ans[st.cur]!==undefined)return;st.ans[st.cur]=oi;render();};
+window.answerQuiz=(oi)=>{const st=getQS(state.chapter,state.section);if(st.ans[st.cur]!==undefined)return;st.ans[st.cur]=oi;render();
+  var c=CONTENT[state.chapter+'.'+state.section],q=c&&c.quiz&&c.quiz[st.cur];
+  if(q)_say((oi===quizView(q).correct?'נכון! ':'לא נכון. ')+_ltSafe(q.explain||''));};
 window.nextQ=()=>{
   const st=getQS(state.chapter,state.section),c=CONTENT[state.chapter+'.'+state.section];
   // "next" on the last question is "finish": stepping past the end used to
@@ -33916,6 +33952,7 @@ window.showHint=(si)=>{
   const lvl=hintLvl(ps,si);
   if(lvl>=hintMax(step))return;
   ps.hints[si]=lvl+1; state.xp=Math.max(0,state.xp-5); render();
+  _say(lvl===0?(step.nudge||step.hint):step.hint);
 };
 // Accepts the forms a student actually types for a number:
 //   3.2e-16 · 3.2E-16 · 3.2*10^-16 · 3.2x10^-16 · 3.2×10^-16 · 3·10⁻¹⁶ · 10^-16
@@ -33954,6 +33991,7 @@ function _stepSolved(ps,si,content){
   ps.attempts[si]=0;ps.solved[si]=true;ps.feedback[si]='correct';ps.idx=Math.max(ps.idx,si+1);
   if(ps.idx>=content.problem.steps.length){ps.done=true;markCompleted(state.chapter,state.section,'problem',150);}
   else render();
+  _say('✅ '+_ltSafe(content.problem.steps[si].explain||'')+(ps.done?' — הבעיה הושלמה!':''));
 }
 window.chkStep=(si)=>{
   const ps=getPS(state.chapter,state.section);
@@ -33962,10 +34000,10 @@ window.chkStep=(si)=>{
   const inp=String(ps.inputs[si]||'').trim();
   // nothing typed, or nothing that reads as a number, is not an attempt: it
   // used to count toward the three that give the solution away for free
-  if(!inp){ps.feedback[si]='✏️ הקלידו תשובה ואז לחצו "בדוק".';render();return;}
+  if(!inp){ps.feedback[si]='✏️ הקלידו תשובה ואז לחצו "בדוק".';render();_say(ps.feedback[si]);return;}
   if(step.tolerance===-1){
     if(_wordNorm(inp)===_wordNorm(step.answer))_stepSolved(ps,si,content);
-    else{ps.feedback[si]='❌ לא נכון. נסו שוב.';render();}return;
+    else{ps.feedback[si]='❌ לא נכון. נסו שוב.';render();_say(ps.feedback[si]);}return;
   }
   // The old sanitiser kept only [0-9.-], which DELETED the 'e' of an exponent:
   // "3.2e-16" became "3.2-16" and parsed as 3.2, "2e10" became 210. Twelve
@@ -33977,7 +34015,7 @@ window.chkStep=(si)=>{
   if(isNaN(ans))ok=inp.toLowerCase().includes(String(step.answer).toLowerCase());
   else{
     const cands=_numCands(inp);
-    if(!cands.length){ps.feedback[si]='✏️ לא זיהינו מספר. כתבו מספר בלבד, למשל 2.5 או ‎3e8‎ (= 3·10⁸).';render();return;}
+    if(!cands.length){ps.feedback[si]='✏️ לא זיהינו מספר. כתבו מספר בלבד, למשל 2.5 או ‎3e8‎ (= 3·10⁸).';render();_say(ps.feedback[si]);return;}
     // An explicit tolerance is absolute; otherwise 4 % of the answer, and
     // never less than half a unit in the second significant figure, so any
     // two-significant-figure rounding passes (1.05 -> 1.1). The band used to
@@ -33994,14 +34032,14 @@ window.chkStep=(si)=>{
     // The answer already marked wrong, checked again, is the same attempt: a
     // double click on "check" spent two of the three tries before the worked
     // solution opens, and a held Enter all three.
-    if(ps.attempts[si]&&ps.tried[si]===inp){render();return;}
+    if(ps.attempts[si]&&ps.tried[si]===inp){render();_say(ps.feedback[si]);return;}
     ps.tried[si]=inp;
     const a=(ps.attempts[si]||0)+1; ps.attempts[si]=a;
     // the third miss opens the hint and the worked solution above the field
     // (it used to repeat the hint here as well)
     if(a>=3){ps.feedback[si]=`❌ לא מדויק (נסיון ${a}). הרמז והפתרון המודרך נפתחו מעל לשדה — עברו עליהם ונסו שוב.`;ps.hints[si]=2;}
     else ps.feedback[si]=`❌ לא מדויק (נסיון ${a}/3). נסו שוב.`;
-    render();}
+    render();_say(ps.feedback[si]);}
 };
 window.resetProblem=()=>{state.problemState[`${state.chapter}.${state.section}`]={idx:0,inputs:[],solved:[],hints:[],feedback:[],done:false,attempts:[]};render();};
 
@@ -34760,6 +34798,8 @@ window.showQuizHint=function(qi){
   // the same price as a problem hint, floored at zero like it
   state.xp=Math.max(0,state.xp-5);
   render();
+  var c=CONTENT[state.chapter+'.'+state.section],q=c&&c.quiz&&c.quiz[qi];
+  if(q&&q.hint)_say(_ltSafe(q.hint));
 };
 
 // ══════════════════════════════════════════════════════════════════
