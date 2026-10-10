@@ -30958,7 +30958,7 @@ var SENSOR_LABS={
 
  'forces2.kinetic-friction':{t:'slide-mu',h:300,minHz:25,
    ttl:'מדדו את '+M('\\mu_k')+' ישירות מההאטה',
-   how:'הניחו על שולחן <b>ישר</b>, לחצו <b>אפס</b> במנוחה, ואז <b>דחפו והרפו</b>. קטע ההחלקה החופשית מזוהה ונמדד לבד.',
+   how:'הניחו על שולחן <b>ישר</b>, לחצו <b>↺ אתחל</b> במנוחה, ואז <b>דחפו והרפו</b>. קטע ההחלקה החופשית מזוהה ונמדד לבד.',
    pred:'לפני המדידה: נחשו אם '+M('\\mu_k')+' שתמדדו יהיה גדול או קטן מ-'+M('\\mu_s')+' שמדדתם בסעיף הקודם. ולמה?',
    note:'בהחלקה חופשית על מישור אופקי הכוח האופקי היחיד הוא החיכוך, ולכן <b>הרכיב האופקי של הקריאה חלקי '+M('g')+' הוא ישירות '+M('\\mu_k')+'</b> — בלי אינטגרציה, בלי מסה ובלי אורך. קטע הדחיפה מוחרג: שם היד מוסיפה כוח. השוו למקדם הסטטי: '+M('\\mu_k<\\mu_s')+' כמעט תמיד, ולכן קשה יותר להזיז רהיט מאשר להמשיך להזיזו.',
    chips:[['mu','μ רגעי',''],['muk','μk ממוצע',''],['n','החלקות',''],['tl','מישוריות','']],
@@ -30989,7 +30989,7 @@ var SENSOR_LABS={
 
  'forces.tension':{t:'lift-ride',h:344,minHz:25,
    ttl:'נסיעה במעלית — '+M('T=m(g\\pm a)'),
-   how:'החזיקו <b>שטוח על כף היד</b>, לחצו <b>אפס</b> כשהמעלית עומדת, וסעו קומה או שתיים בלי להזיז את היד. הנסיעה נחתכת מעצמה בעצירה.',
+   how:'החזיקו <b>שטוח על כף היד</b> (או, מדויק יותר, הניחו על רצפת המעלית), לחצו <b>↺ אתחל</b> כשהמעלית עומדת, וסעו קומה או שתיים בלי להזיז את היד. הנסיעה נחתכת מעצמה בעצירה.',
    pred:'לפני הנסיעה: בעלייה — מתי תרגישו כבדים יותר, בתחילת הנסיעה או בסופה? ומה יקרה באמצע, כשהמעלית נוסעת במהירות קבועה?',
    note:'טלפון על כף היד הוא גוף התלוי על חוט: '+M('T=m(g+a)')+', ולכן הקריאה חלקי '+M('g')+' היא בדיוק '+M('T/mg')+' — <b>המשקל המדומה</b>. בעלייה: גדול מ-1 בהתחלה, קטן מ-1 בסוף, ובאמצע בדיוק 1.<br><br>זו הנקודה: <b>מהירות אינה מורגשת, רק תאוצה</b>. אמצע הנסיעה זהה לעמידה, ומכאן קצרה הדרך לעקרון השקילות. הגובה והמהירות מחושבים באינטגרל, והמהירות שנשארה בסוף היא הסחיפה.',
    chips:[['ph','מצב',''],['tm','T/mg מרבי',''],['tn','T/mg מזערי',''],['h','גובה','m']],
@@ -31506,12 +31506,15 @@ var SL_IMPL={
   init:function(st){st.tr=slTrace(400);st.h={v:.3};st.reset(st);},
   reset:function(st){if(st.tr)st.tr.clear();
     st.ph='cal';st.calN=0;st.calS=[0,0,0];st.g0=0;st.u=null;
-    st.a=0;st.v=0;st.ap=0;st.run=0;st.quiet=0;st.rec=[];st.cap=null;st.pre=[];},
+    st.a=0;st.af=0;st.lf=0;st.v=0;st.ap=0;st.run=0;st.quiet=0;st.rec=[];st.cap=null;st.pre=[];},
   clear:function(st){st.cap=null;st.rec=[];st.run=0;},
   sample:function(s,st){
     var A=[s.gx,s.gy,s.gz],i;
     if(st.ph==='cal'){
-      if(Math.hypot(s.ax,s.ay,s.az)>0.25){st.calN=0;st.calS=[0,0,0];return;}
+      // still enough is judged on a 0.15 s average too: a hand's tremor kept
+      // resetting a sample-by-sample test, and its mean is zero anyway
+      st.lf=(st.lf||0)+Math.min(1,s.dt/0.15)*(Math.hypot(s.ax,s.ay,s.az)-(st.lf||0));
+      if(st.lf>0.25){st.calN=0;st.calS=[0,0,0];return;}
       st.calN++;for(i=0;i<3;i++)st.calS[i]+=A[i];
       if(st.calN>=50){
         var u=[st.calS[0]/st.calN,st.calS[1]/st.calN,st.calS[2]/st.calN];
@@ -31526,8 +31529,14 @@ var SL_IMPL={
     // line; the plot re-adds the 1 on its labels (opt.offset) so the numbers
     // still read as T/mg.
     st.tr.push(st.tw-1);
+    // A hand is never still: its tremor alone shakes a held phone by a few
+    // tenths of a m/s², which started 'rides' at random and kept a real one
+    // from ever reading quiet enough to end. A lift's own acceleration builds
+    // over half a second or more, so the start and the end are judged on a
+    // 0.15 s average; the integral still takes every sample as it came.
+    var kf=Math.min(1,s.dt/0.15);st.af+=kf*(st.a-st.af);
     if(st.ph==='ready'){
-      if(Math.abs(st.a)>0.15){
+      if(Math.abs(st.af)>0.15){
         st.ph='run';st.quiet=0;st.v=0;st.rec=st.pre.slice();st.pre=[];
         st.ap=st.rec.length?st.rec[0][1]:st.a;
         for(var q=0;q<st.rec.length;q++){st.v+=(st.ap+st.rec[q][1])/2*st.rec[q][0];st.ap=st.rec[q][1];}
@@ -31540,7 +31549,7 @@ var SL_IMPL={
     // lesson -- so acceleration alone cannot say the ride is over, and waiting
     // on it cut every journey in half at the coast. A stopped lift is the one
     // with no acceleration AND no speed left in the integral.
-    st.quiet=(Math.abs(st.a)<0.08&&Math.abs(st.v)<0.08)?st.quiet+s.dt:0;
+    st.quiet=(Math.abs(st.af)<0.08&&Math.abs(st.v)<0.08)?st.quiet+s.dt:0;
     if((st.quiet>1.2&&st.rec.length>40)||st.rec.length>3500)
       SL_IMPL['lift-ride'].finish(st);},
   finish:function(st){
@@ -31553,8 +31562,18 @@ var SL_IMPL={
       var a=r[i][1]-b,dt=r[i][0],vp=v2;
       v2+=(ap2+a)/2*dt;ap2=a;h2+=(vp+v2)/2*dt;t+=dt;
       P.push({t:t,a:a,v:v2,h:h2});
-      if(first<0&&Math.abs(a)>0.08)first=P.length-1;
-      if(a>amx)amx=a; if(a<amn)amn=a; if(Math.abs(v2)>Math.abs(vmx))vmx=v2;}
+      if(Math.abs(v2)>Math.abs(vmx))vmx=v2;}
+    // The heaviest and lightest moments are read off a 0.3 s running mean:
+    // the extremes of the raw samples were the lift's acceleration PLUS the
+    // largest twitch of the hand, and overstated both by its tremor.
+    var j0=0,j1=0,sum=0,sm=[];
+    for(i=0;i<P.length;i++){
+      while(j1<P.length&&P[j1].t<=P[i].t+0.15){sum+=P[j1].a;j1++;}
+      while(P[j0].t<P[i].t-0.15){sum-=P[j0].a;j0++;}
+      sm.push(sum/(j1-j0));}
+    for(i=0;i<P.length;i++){P[i].a=sm[i];
+      if(first<0&&Math.abs(sm[i])>0.08)first=i;
+      if(sm[i]>amx)amx=sm[i]; if(sm[i]<amn)amn=sm[i];}
     P=slTrimHead(P,first,0.2,['h']);  // the 0.8 s pre-buffer is mostly stillness
     h2=P[P.length-1].h; t=P[P.length-1].t;
     st.cap={p:P,dur:t||1,amx:amx,amn:amn,vmx:vmx,h:h2,drift:v,

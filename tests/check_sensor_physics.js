@@ -293,6 +293,34 @@ const rest = n => Array.from({ length: n }, () => ({ a: [0, 0, 0], g: [0, 0, G],
     if (r) { t('height', r.h, h, 0.03 * h); t('v back at 0', r.vend, 0, 0.02); }
   }
 
+  // ── 5b. the same ride, held in a trembling hand ──────────────────────────
+  console.log('\n5b) the same ride in a hand that trembles at 9 Hz, ±0.3 m/s²');
+  {
+    const key = 'forces.tension';
+    await open(p, key);
+    const prof = [], ramp = 0.6, hold = 0.8, am = 0.7, coast = 2.0;
+    const seg = (fn, dur) => { for (let i = 0; i < Math.round(dur / DT); i++) prof.push(fn((i + 1) * DT / dur)); };
+    seg(() => 0, 1.0);
+    seg(f => am * f, ramp); seg(() => am, hold); seg(f => am * (1 - f), ramp);
+    seg(() => 0, coast);
+    seg(f => -am * f, ramp); seg(() => -am, hold); seg(f => -am * (1 - f), ramp);
+    seg(() => 0, 3.0);
+    let v = 0, h = 0, ap = 0; prof.forEach(a => { const vp = v; v += (ap + a) / 2 * DT; ap = a; h += (vp + v) / 2 * DT; });
+    // calibrated on the hand too: the tremor is there from the start
+    const trem = i => 0.3 * Math.sin(2 * Math.PI * 9 * i * DT);
+    const S = [];
+    for (let i = 0; i < 80; i++) S.push({ a: [0, 0, trem(i)], g: [0, 0, G], G: [0, 0, G] });
+    prof.forEach((a, i) => S.push({ a: [0, 0, 0], g: [0, 0, G + a + trem(i + 80)] }));
+    await feed(p, key, S);
+    const r = await p.evaluate(() => ({ ph: _sl.st.ph, cap: _sl.st.cap && { h: _sl.st.cap.h, tmx: _sl.st.cap.tmx, tmn: _sl.st.cap.tmn } }));
+    tb('the ride closed although the hand never stops shaking', !!r.cap && r.ph === 'ready', r.ph);
+    if (r.cap) {
+      t('heaviest moment T/mg = 1 + a/g, not that plus the tremor', r.cap.tmx, 1 + am / G, 0.006);
+      t('lightest moment', r.cap.tmn, 1 - am / G, 0.006);
+      t('height', r.cap.h, h, 0.03 * h);
+    }
+  }
+
   // ── 7. pendulum, on a phone WITHOUT a gravity-free acceleration ─────────
   console.log('\n7) pendulum L = 0.5 m, θ₀ = 10°, accelerometer reading only along the string');
   {
