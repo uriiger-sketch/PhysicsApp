@@ -173,7 +173,10 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 .tab{flex:1;padding:9px 12px;border:none;background:none;color:var(--muted);cursor:pointer;font-family:'Heebo',sans-serif;font-size:.84rem;font-weight:600;border-radius:8px;transition:all .18s;display:flex;align-items:center;justify-content:center;gap:5px;}
 .tab:hover{color:var(--text);background:var(--panel2);}
 .tab.active{background:var(--btn);color:#fff;}
-.tab.locked{cursor:not-allowed;opacity:.38;}
+/* the problem tab before its quiz is done: it still opens (onto the panel
+   that says why), so its name must be read -- at 38 % opacity it was 2:1
+   on dark and 1.8:1 on light. The lock says it is locked. */
+.tab.locked{cursor:not-allowed;}
 
 /* THEORY */
 .theory-card{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:26px;margin-bottom:18px;}
@@ -710,8 +713,9 @@ input[type=range]{accent-color:var(--accent);cursor:pointer;}
   .xp-badge { font-size: .78rem; padding: 3px 8px; white-space: nowrap; }
   .progress-bar-wrap { width: 60px; }
   /* keyboard hints mean nothing on a phone, and they were what made the
-     four tabs wrap; dropping them lets each tab keep its own line */
-  .tab.locked::after { content: ''; }
+     four tabs wrap; dropping them lets each tab keep its own line. The
+     lock stays, without its space: it is the only sign the tab is locked */
+  .tab.locked::after { content: '🔒'; font-size: .7em; }
   .tabs { gap: 2px; padding: 3px; }
   .tab { padding: 8px 4px; font-size: .78rem; gap: 3px; white-space: nowrap; }
 }
@@ -959,6 +963,20 @@ html{scroll-padding-top:72px;}
   /* 320 px: hamburger, version, XP and two buttons are all the header holds;
      the course-progress bar was what pushed the page 28 px sideways */
   .progress-bar-wrap{display:none;}
+}
+/* A touch screen of any width -- a phone on its side, a tablet: the floating
+   formula button duplicated the header's and sat over the simulation and the
+   "check" buttons, and the tabs' keyboard hints (1-4) have no keyboard */
+@media (hover:none) and (pointer:coarse){
+  .formula-fab{display:none;}
+  .kbd-hint{display:none;}
+}
+/* A phone on its side has 360-430 px of height, and the sticky header took
+   62 of them over every simulation: there it scrolls away with the page */
+@media (max-height:480px) and (orientation:landscape){
+  .header{position:relative;}
+  .sidebar{top:0;height:100vh;}
+  html{scroll-padding-top:8px;}
 }
 /* Touch: every control at least 44 px tall, the size of a fingertip */
 @media (pointer:coarse){
