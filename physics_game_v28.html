@@ -3314,7 +3314,7 @@ const CONTENT={
       <div class="enrich-formula">${tex('g = \\dfrac{GM_E}{R_E^2} \\approx 9.8\\,\\text{m/s}^2', true)}</div>`
     }
   },
-  sim:{type:'gravity-force',title:'כוח הכובד',desc:'שלושה גופים שונים נופלים יחד. שנו g (כוכבים שונים). כולם מגיעים יחד!'},
+  sim:{type:'gravity-force',title:'כוח הכובד',desc:'אותו גוף על שישה גרמי שמיים: מד-הכוח מראה W = mg. שנו את המסה וראו שהמשקל משתנה עם g. הקישו על עמודה כדי להפיל כדור והשוו את זמני הנפילה.'},
   example:{title:'משקל על כוכבים שונים',text:`משקלו של אדם על כדור הארץ ${M('700\\,\\text{N}')} (${M('g=9.8\\,\\text{m/s}^2')}).`,steps:[
     {q:'מה מסתו?',a:`${M('m=\\dfrac{W}{g}=\\dfrac{700}{9.8}\\approx71.4\\,\\text{kg}')} — והיא זהה בכל מקום ביקום.`},
     {q:'מה משקלו על הירח, שם g=1.62 m/s²?',a:`${M('W=mg=71.4\\times1.62\\approx116\\,\\text{N}')} — כשישית ממשקלו על כדור הארץ.`},
@@ -12740,7 +12740,7 @@ function simGravityForce(canvas){
     {name:'ונוס',     g:8.87, col:'#d97706', emoji:'🟡', bg:'#1a1208'},
     {name:'כדה״א',   g:9.81, col:'#2563eb', emoji:'🌍', bg:'#071428'},
     {name:'מאדים',   g:3.72, col:'#ef4444', emoji:'🔴', bg:'#1a0808'},
-    {name:'צדק',     g:24.8, col:'#f59e0b', emoji:'🟠', bg:'#1a1008'},
+    {name:'צדק*',    g:24.8, col:'#f59e0b', emoji:'🟠', bg:'#1a1008'},
     {name:'ירח',     g:1.62, col:'#e2e8f0', emoji:'🌕', bg:'#10101a'},
   ];
 
@@ -12765,8 +12765,8 @@ function simGravityForce(canvas){
     // Top banner
     ctx.save(); ctx.fillStyle='rgba(6,14,28,.92)'; ctx.strokeStyle='#1e4060'; ctx.lineWidth=1.5;
     ctx.beginPath(); ctx.roundRect(8,6,W-16,38,6); ctx.fill(); ctx.stroke(); ctx.restore();
-    simText(ctx,'כוח הכובד: W = m × g  (מסה = '+m+' ק״ג)',W/2,20,'#22d3ee',11,undefined,true);
-    simText(ctx,'\u200eהמסה קבועה — המשקל משתנה עם כוח הכבידה!   (סקאלה מלאה: '+(m*24.8).toFixed(0)+' N)',W/2,34,'#94a3b8',9,undefined,true);
+    simText(ctx,'כוח הכובד:  W = mg   ·   m = '+m+' kg',W/2,20,'#22d3ee',11,undefined,true);
+    simText(ctx,'הקישו על עמודה כדי להפיל כדור מגובה 2 m, או כאן — כל הכדורים יחד',W/2,36,'#94a3b8',9.5,undefined,true);
 
     PLANETS.forEach(function(pl,i){
       var W_force=m*pl.g;
@@ -12788,8 +12788,8 @@ function simGravityForce(canvas){
       }
       // Planet header
       ctx.save(); ctx.fillStyle=pl.col+'22'; ctx.fillRect(colW*i,PY,colW,22); ctx.restore();
-      simText(ctx,pl.emoji+' '+pl.name,cx,PY+12,pl.col,8,undefined,true);
-      simText(ctx,'g='+pl.g+' m/s²',cx,PY+24,'#7d8da6',7.5,undefined,true);
+      simText(ctx,pl.emoji+' '+pl.name,cx,PY+12,pl.col,9,undefined,true);
+      simText(ctx,'g = '+pl.g+(i===0?' m/s²':''),cx,PY+26,'#cbd5e1',9,undefined,true);
 
       // Spring scale
       var scaleCY=PY+100;
@@ -12819,7 +12819,7 @@ function simGravityForce(canvas){
       ctx.beginPath(); ctx.moveTo(cx,scaleCY+scaleH2/2); ctx.lineTo(cx,scaleCY+scaleH2/2+12); ctx.stroke(); ctx.restore();
 
       // the drop lane, on the empty side of the column
-      var laneX=colW*i+colW*0.82, laneTop=PY+34, laneBot=H-14, laneH=laneBot-laneTop;
+      var laneX=colW*i+colW*0.82, laneTop=PY+40, laneBot=H-84, laneH=laneBot-laneTop;
       ctx.save();ctx.strokeStyle='rgba(100,116,139,.35)';ctx.setLineDash([3,4]);ctx.lineWidth=1;
       ctx.beginPath();ctx.moveTo(laneX,laneTop);ctx.lineTo(laneX,laneBot);ctx.stroke();ctx.restore();
       ctx.save();ctx.strokeStyle=pl.col+'66';ctx.lineWidth=1.5;
@@ -12828,11 +12828,12 @@ function simGravityForce(canvas){
       if(D){
         if(!D.land){
           D.t+=dt;D.y+=D.v*dt+0.5*pl.g*dt*dt;D.v+=pl.g*dt;
-          if(D.y>=DROP_M){D.y=DROP_M;D.land=D.t;}
+          // the exact landing time, not the first frame past the floor
+          if(D.y>=DROP_M){D.y=DROP_M;D.land=Math.sqrt(2*DROP_M/pl.g);}
         } else if((D.hold=(D.hold||0)+dt)>2.6){delete drops[i];}
         var by2=laneTop+(D.y/DROP_M)*laneH;
         ctx.save();ctx.fillStyle=pl.col;ctx.beginPath();ctx.arc(laneX,by2,5,0,6.2832);ctx.fill();ctx.restore();
-        simText(ctx,(D.land||D.t).toFixed(2)+'s',laneX,laneTop-6,D.land?'#22d3ee':'#64748b',8,undefined,!!D.land);
+        simText(ctx,(D.land||D.t).toFixed(2)+' s',laneX,laneBot+10,D.land?'#22d3ee':'#94a3b8',9,undefined,!!D.land);
       } else simText(ctx,'↓',laneX,laneTop-6,'#7d8da6',9);
       // Person figure (simple stick figure, scale with g)
       var figY=scaleCY+scaleH2/2+12;
@@ -12858,8 +12859,7 @@ function simGravityForce(canvas){
       ctx.stroke(); ctx.restore();
 
       // Weight value (bold, colored)
-      simText(ctx,W_force.toFixed(0)+' N',cx,H-46,pl.col,10,undefined,true);
-      simText(ctx,'W=m·g',cx,H-33,'#7d8da6',7.5,undefined,true);
+      simText(ctx,'W = '+W_force.toFixed(W_force<100?1:0)+' N',cx,H-62,pl.col,10,undefined,true);
     });
 
     // Earth highlight pulse
@@ -12871,8 +12871,9 @@ function simGravityForce(canvas){
 
     // Mass constant reminder
     ctx.save(); ctx.fillStyle='rgba(6,14,28,.88)'; ctx.strokeStyle='rgba(34,211,153,.3)'; ctx.lineWidth=1.5;
-    ctx.beginPath(); ctx.roundRect(8,H-24,W-16,20,5); ctx.fill(); ctx.stroke(); ctx.restore();
-    simText(ctx,'מסה (m='+m+' kg) — קבועה בכל מקום! | משקל (W=mg) — משתנה עם g',W/2,H-14,'#34d399',9,undefined,true);
+    ctx.beginPath(); ctx.roundRect(8,H-44,W-16,40,5); ctx.fill(); ctx.stroke(); ctx.restore();
+    simText(ctx,'המסה זהה בכל מקום; המשקל W = mg משתנה עם g',W/2,H-30,'#34d399',9.5,undefined,true);
+    simText(ctx,'* לצדק אין קרקע מוצקה: g נמדד בגובה העננים',W/2,H-14,'#94a3b8',9,undefined,true);
 
     requestAnimationFrame(draw);
   }
