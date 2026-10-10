@@ -28220,8 +28220,9 @@ function simElcPotential(canvas){
     if(mixed)optLabel(ctx,'הקו הלבן: V=0 — ובכל זאת E לאורכו אינו אפס',W/2,H-116,'#e2e8f0',9);
     if(!touched&&animT<8)optLabel(ctx,'✋ גררו את הגשוש ואת המטענים',W/2,20,'#fbbf24',10);
     // V(r) ∝ 1/r vs E(r) ∝ 1/r² — a SINGLE point-charge statement, so it is
-    // shown only when there is a single source.
-    if(!two){
+    // shown only when there is a single source (and not on a phone, where it
+    // would sit on top of the readout box).
+    if(!two&&W>=560){
     var g0x=W-250,g0y=H-152,g0w=228,g0h=92;
     ctx.save();ctx.fillStyle='rgba(2,8,16,.72)';ctx.fillRect(g0x-8,g0y-16,g0w+16,g0h+38);
     ctx.strokeStyle='rgba(100,116,139,.4)';ctx.lineWidth=1;
@@ -30086,7 +30087,7 @@ function simElcConductor(canvas){
     ctx.beginPath();ctx.arc(pxp,pyp,8,0,Math.PI*2);ctx.fill();optNoGlow(ctx);ctx.restore();
     optLabel(ctx,'גשוש r='+(r_m*100).toFixed(0)+'cm',pxp,pyp-17,'#fbbf24',9);
     optLabel(ctx,inside?'בפנים':'בחוץ',pxp,pyp+19,inside?'#4ade80':'#94a3b8',8.5);
-    if(!touched&&animT<9)optLabel(ctx,'✋ גררו את הגשוש פנימה והחוצה',W*0.27,H-24,'#fbbf24',10);
+    if(!touched&&animT<9)optLabel(ctx,'✋ גררו את הגשוש פנימה והחוצה',cx,cy+Rp+36,'#fbbf24',10);
     // ── synchronised E(r) and V(r) graphs ──
     var GX=W*0.58, GW=W*0.38, GH=(H-110)/2-14;
     var rMaxG=Math.max(0.9,(W*0.5)/PXM);
@@ -30148,7 +30149,7 @@ function simElcConductor(canvas){
     ctx.beginPath();ctx.arc(xp,vY(Vp),4.5,0,Math.PI*2);ctx.fill();
     ctx.strokeStyle='rgba(251,191,36,.35)';ctx.lineWidth=1;ctx.setLineDash([2,3]);
     ctx.beginPath();ctx.moveTo(xp,gyE);ctx.lineTo(xp,gyV+GH);ctx.stroke();ctx.setLineDash([]);ctx.restore();
-    optInfoBox(ctx,8,H-92,244,[
+    optInfoBox(ctx,8,H-92,Math.min(244,GX-16),[
       'בנקודת הגשוש (r='+(r_m*100).toFixed(0)+' cm):',
       '\u200eE = '+(Ep===0?'0 בדיוק':sciTxt(Ep)+' V/m'),
       '\u200eV = '+(Vp/1000).toFixed(1)+' kV'+(inside?'  (קבוע בכל הפנים)':''),
