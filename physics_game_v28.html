@@ -15908,12 +15908,16 @@ function simVecComponents(canvas){
   // PEDAGOGY: A = (Ax, Ay), Ax = A·cosθ, Ay = A·sinθ.
   // Draggable vector shows decomposition live. Unit circle inset.
   // Student drags tip, reads Ax/Ay components and angle instantly.
-  const H=490; const {ctx,W,dpr}=setupCanvas(canvas,H);
+  // A phone gets the axes across the full width and the readouts under them
+  // (beside them they were a 107 px column and the axes ran off both edges).
+  const _cvV=setupCanvas(canvas,490), W=_cvV.W, dpr=_cvV.dpr;
+  const PHV=W<480, H=PHV?660:490, ctx=PHV?setupCanvas(canvas,H).ctx:_cvV.ctx;
   const id=canvas.id;
   let pT=null, t=0;
-  var CX=W*0.36, CY=H*0.55;
-  var vx=110, vy=-70; // vector tip relative to origin (screen coords)
-  const PPU_C=40;                       // 40 px = 1 unit, matching the drawn grid
+  const PPU_C=PHV?36:40;                // px per unit, matching the drawn ticks
+  const RMAX=4*PPU_C;                   // the slider's 4 units
+  var CX=PHV?W/2:W*0.36, CY=PHV?60+RMAX+10:H*0.55;
+  var vx=2.75*PPU_C, vy=-1.75*PPU_C; // vector tip relative to origin (screen coords)
   var _vcLast=null;
   function _vcSliders(){                // sliders set the vector unless it is being dragged
     var me=document.getElementById('inp-vc-mag'), ae=document.getElementById('inp-vc-ang');
@@ -15925,7 +15929,7 @@ function simVecComponents(canvas){
     vx=m*Math.cos(a); vy=-m*Math.sin(a);
   }
   var _vcR=document.getElementById('btn-vc-reset');
-  if(_vcR)_vcR.addEventListener('click',function(){vx=110;vy=-70;_vcLast=null;});
+  if(_vcR)_vcR.addEventListener('click',function(){vx=2.75*PPU_C;vy=-1.75*PPU_C;_vcLast=null;});
   var dragging=false;
 
   function getXY(evt){
@@ -15944,7 +15948,7 @@ function simVecComponents(canvas){
     var p=getXY(e);
     vx=p.x-CX; vy=p.y-CY;
     var mag=Math.sqrt(vx*vx+vy*vy);
-    if(mag>160){vx=vx/mag*160; vy=vy/mag*160;}
+    if(mag>RMAX){vx=vx/mag*RMAX; vy=vy/mag*RMAX;}
     // keep the sliders in step so the two input routes never disagree
     var _m=Math.hypot(vx,vy)/PPU_C, _a=(Math.atan2(-vy,vx)*180/Math.PI+360)%360;
     simSyncSlider('vc-mag',_m,1); simSyncSlider('vc-ang',_a,0);
@@ -15973,18 +15977,19 @@ function simVecComponents(canvas){
 
     // ── Axes ──────────────────────────────────────────
     ctx.save(); ctx.strokeStyle='#1e3a52'; ctx.lineWidth=1.5;
-    ctx.beginPath(); ctx.moveTo(CX-160,CY); ctx.lineTo(CX+170,CY); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(CX,CY+160); ctx.lineTo(CX,CY-150); ctx.stroke(); ctx.restore();
-    simArrow(ctx,CX+155,CY,CX+172,CY,'#2d5275',1.5,8);
-    simArrow(ctx,CX,CY-135,CX,CY-152,'#2d5275',1.5,8);
-    simText(ctx,'x',CX+175,CY+3,'#7d8da6',9,'left');
-    simText(ctx,'y',CX+5,CY-155,'#7d8da6',9,'left');
-    // Grid ticks
-    for(var i=-3;i<=3;i++){
+    ctx.beginPath(); ctx.moveTo(CX-RMAX,CY); ctx.lineTo(CX+RMAX+8,CY); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(CX,CY+RMAX); ctx.lineTo(CX,CY-RMAX-8); ctx.stroke(); ctx.restore();
+    simArrow(ctx,CX+RMAX,CY,CX+RMAX+12,CY,'#2d5275',1.5,8);
+    simArrow(ctx,CX,CY-RMAX,CX,CY-RMAX-12,'#2d5275',1.5,8);
+    simText(ctx,'x',CX+RMAX+6,CY+14,'#94a3b8',10,'left');
+    simText(ctx,'y',CX+8,CY-RMAX-6,'#94a3b8',10,'left');
+    // unit ticks with numbers
+    for(var i=-4;i<=4;i++){
       if(i===0)continue;
-      ctx.save(); ctx.strokeStyle='rgba(30,58,82,.4)'; ctx.lineWidth=1;
-      ctx.beginPath(); ctx.moveTo(CX+i*40,CY-3); ctx.lineTo(CX+i*40,CY+3); ctx.stroke();
-      ctx.beginPath(); ctx.moveTo(CX-3,CY+i*40); ctx.lineTo(CX+3,CY+i*40); ctx.stroke(); ctx.restore();
+      ctx.save(); ctx.strokeStyle='rgba(61,100,128,.7)'; ctx.lineWidth=1;
+      ctx.beginPath(); ctx.moveTo(CX+i*PPU_C,CY-3); ctx.lineTo(CX+i*PPU_C,CY+3); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(CX-3,CY+i*PPU_C); ctx.lineTo(CX+3,CY+i*PPU_C); ctx.stroke(); ctx.restore();
+      if(Math.abs(i)%2===0){ simText(ctx,String(i),CX+i*PPU_C,CY+30,'#64748b',9,'center'); simText(ctx,String(-i),CX-8,CY+i*PPU_C+3,'#64748b',9,'right'); }
     }
 
     // ── Component projections ─────────────────────────
@@ -16010,21 +16015,25 @@ function simVecComponents(canvas){
     // Tip handle
     ctx.save(); ctx.fillStyle=dragging?'#fbbf24':'#60a5fa'; ctx.strokeStyle='#fff'; ctx.lineWidth=2;
     ctx.beginPath(); ctx.arc(CX+vx,CY+vy,10,0,Math.PI*2); ctx.fill(); ctx.stroke(); ctx.restore();
-    simText(ctx,'A',CX+vx+14,CY+vy,'#60a5fa',11,'left');
-    simText(ctx,dragging?'↖':'← גרור',CX+vx+14,CY+vy+14,'#7d8da6',7.5,'left');
+    simText(ctx,'A',CX+vx+(vx>=0?16:-16),CY+vy+(vy<=0?-10:16),'#93c5fd',12,vx>=0?'left':'right',true);
+    if(!dragging&&t<6)simText(ctx,'גררו את הקצה',CX+vx,CY+vy+(vy<=0?28:-22),'#fbbf24',10,'center');
 
     // Angle arc
     if(mag>25){
       ctx.save(); ctx.strokeStyle='rgba(167,139,250,.6)'; ctx.lineWidth=1.5;
-      ctx.beginPath(); ctx.arc(CX,CY,44,0,Math.atan2(vy,vx),vy>0); ctx.stroke(); ctx.restore();
-      simText(ctx,theta.toFixed(0)+'°',CX+52*Math.cos(Math.atan2(vy,vx)/2),CY+52*Math.sin(Math.atan2(vy,vx)/2),'#a78bfa',8.5,undefined,true);
+      // θ is measured counter-clockwise from +x through 0..360°; the arc went
+      // the other way round for every angle above 180°... and for 90°-180° too
+      var thR=theta*Math.PI/180;
+      ctx.beginPath(); ctx.arc(CX,CY,44,0,-thR,true); ctx.stroke(); ctx.restore();
+      simText(ctx,'θ = '+theta.toFixed(0)+'°',CX+60*Math.cos(thR/2),CY-60*Math.sin(thR/2)+4,'#c4b5fd',10,'center',true);
     }
 
     // ── Right panel ───────────────────────────────────
-    var PX=W*0.65, PW=W-PX-10, PY=10;
+    var PX=PHV?8:W*0.65, PW=PHV?W-16:W-PX-10, PY=PHV?CY+RMAX+14:10, PHH=H-PY-10;
     ctx.save(); ctx.fillStyle='rgba(6,14,28,.92)'; ctx.strokeStyle='#1e4060'; ctx.lineWidth=1.5;
-    ctx.beginPath(); ctx.roundRect(PX,PY,PW,H-PY-10,6); ctx.fill(); ctx.stroke(); ctx.restore();
-    var PC=PX+PW/2;
+    ctx.beginPath(); ctx.roundRect(PX,PY,PW,PHH,6); ctx.fill(); ctx.stroke(); ctx.restore();
+    // on a phone: the numbers in the right half, the unit circle in the left half
+    var PC=PHV?PX+PW*0.72:PX+PW/2;
     simText(ctx,'רכיבים',PC,PY+14,'#22d3ee',10.5,undefined,true);
     ctx.save(); ctx.strokeStyle='#1e4060'; ctx.lineWidth=1;
     ctx.beginPath(); ctx.moveTo(PX+6,PY+20); ctx.lineTo(PX+PW-6,PY+20); ctx.stroke(); ctx.restore();
@@ -16032,22 +16041,18 @@ function simVecComponents(canvas){
     simText(ctx,'θ = '+theta.toFixed(1)+'°',PC,PY+47,'#a78bfa',10,undefined,true);
     ctx.save(); ctx.strokeStyle='#1e4060'; ctx.lineWidth=1;
     ctx.beginPath(); ctx.moveTo(PX+6,PY+54); ctx.lineTo(PX+PW-6,PY+54); ctx.stroke(); ctx.restore();
-    simText(ctx,'Ax = A·cosθ',PC,PY+67,'#34d399',9,undefined,true);
-    simText(ctx,'= '+Ax.toFixed(1),PC,PY+82,'#34d399',11,undefined,true);
-    simText(ctx,'Ay = A·sinθ',PC,PY+97,'#fbbf24',9,undefined,true);
-    simText(ctx,'= '+Ay.toFixed(1),PC,PY+112,'#fbbf24',11,undefined,true);
+    simText(ctx,'Ax = A·cosθ = '+Ax.toFixed(2),PC,PY+70,'#34d399',10,undefined,true);
+    simText(ctx,'Ay = A·sinθ = '+Ay.toFixed(2),PC,PY+90,'#fbbf24',10,undefined,true);
     ctx.save(); ctx.strokeStyle='#1e4060'; ctx.lineWidth=1;
-    ctx.beginPath(); ctx.moveTo(PX+6,PY+120); ctx.lineTo(PX+PW-6,PY+120); ctx.stroke(); ctx.restore();
-    simText(ctx,'בדיקה:',PC,PY+133,'#94a3b8',8.5,undefined,true);
-    simText(ctx,'√(Ax²+Ay²)',PC,PY+147,'#94a3b8',8,undefined,true);
-    simText(ctx,'= '+Math.sqrt(Ax*Ax+Ay*Ay).toFixed(1)+' ✓',PC,PY+161,'#34d399',9,undefined,true);
-    // Mini unit circle
-    var UCX=PC, UCY=PY+230, UCR=52;
+    ctx.beginPath(); ctx.moveTo(PHV?PX+PW*0.46:PX+6,PY+104); ctx.lineTo(PX+PW-6,PY+104); ctx.stroke(); ctx.restore();
+    simText(ctx,'בדיקה:  √(Ax² + Ay²) = '+Math.sqrt(Ax*Ax+Ay*Ay).toFixed(2),PC,PY+122,'#cbd5e1',9.5,undefined,true);
+    // Mini unit circle (left half on a phone, below the numbers on a wide screen)
+    var UCR=PHV?Math.min(52,(PHH-46)/2):52, UCX=PHV?PX+PW*0.24:PC, UCY=PHV?PY+PHH/2+4:PY+228;
     ctx.save(); ctx.strokeStyle='rgba(30,58,82,.6)'; ctx.lineWidth=1;
     ctx.beginPath(); ctx.arc(UCX,UCY,UCR,0,Math.PI*2); ctx.stroke();
     ctx.beginPath(); ctx.moveTo(UCX-UCR-6,UCY); ctx.lineTo(UCX+UCR+6,UCY); ctx.stroke();
     ctx.beginPath(); ctx.moveTo(UCX,UCY-UCR-6); ctx.lineTo(UCX,UCY+UCR+6); ctx.stroke(); ctx.restore();
-    simText(ctx,'מעגל יחידה',UCX,PY+175,'#7d8da6',8,undefined,true);
+    simText(ctx,'מעגל יחידה',UCX,UCY+UCR+18,'#94a3b8',9,undefined,true);
     // Point on unit circle
     var ucAng=Math.atan2(-vy,vx);
     var ucX=UCX+UCR*Math.cos(ucAng), ucY=UCY-UCR*Math.sin(ucAng);
@@ -16058,14 +16063,15 @@ function simVecComponents(canvas){
     ctx.beginPath(); ctx.moveTo(UCX,ucY); ctx.lineTo(ucX,ucY); ctx.stroke(); ctx.setLineDash([]); ctx.restore();
     ctx.save(); ctx.fillStyle='#fbbf24';
     ctx.beginPath(); ctx.arc(ucX,ucY,5,0,Math.PI*2); ctx.fill(); ctx.restore();
-    simText(ctx,'cos='+cosT.toFixed(2),UCX+UCR+8,UCY+2,'#34d399',7.5,'left');
-    simText(ctx,'sin='+sinT.toFixed(2),UCX,UCY-UCR-10,'#fbbf24',7.5,undefined,true);
+    simText(ctx,'cosθ = '+cosT.toFixed(2),ucX,UCY+(ucY<=UCY?14:-6),'#34d399',9,'center');
+    simText(ctx,'sinθ = '+sinT.toFixed(2),UCX+(ucX>=UCX?-6:6),ucY+(ucY<=UCY?-4:12),'#fbbf24',9,ucX>=UCX?'right':'left');
 
     // Top banner
     ctx.save(); ctx.fillStyle='rgba(6,14,28,.92)'; ctx.strokeStyle='#1e4060'; ctx.lineWidth=1.5;
-    ctx.beginPath(); ctx.roundRect(8,6,W*0.58,50,6); ctx.fill(); ctx.stroke(); ctx.restore();
-    simText(ctx,'רכיבים קרטזיים: Ax = A·cosθ, Ay = A·sinθ',W*0.29+8,19,'#22d3ee',10,undefined,true);
-    simText(ctx,'A = ('+Ax.toFixed(1)+', '+Ay.toFixed(1)+')  |A| = '+mag_phys.toFixed(1)+'  θ = '+theta.toFixed(1)+'°',W*0.29+8,36,'#94a3b8',9.5,undefined,true);
+    var BW=PHV?W-16:W*0.58;
+    ctx.beginPath(); ctx.roundRect(8,6,BW,46,6); ctx.fill(); ctx.stroke(); ctx.restore();
+    simText(ctx,'רכיבים קרטזיים:  Ax = A·cosθ ,  Ay = A·sinθ',8+BW/2,20,'#22d3ee',10,undefined,true);
+    simText(ctx,'A = ('+Ax.toFixed(2)+', '+Ay.toFixed(2)+')     |A| = '+mag_phys.toFixed(2)+'     θ = '+theta.toFixed(1)+'°',8+BW/2,38,'#e2e8f0',10,undefined,true);
     requestAnimationFrame(draw);
   }
   requestAnimationFrame(draw);
