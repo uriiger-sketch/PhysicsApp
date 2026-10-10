@@ -20975,53 +20975,37 @@ runAnim('anim-fall',(canvas,ctx,W,H,t)=>{
 
 runAnim('anim-inertia',(canvas,ctx,W,H,t)=>{
   bg(ctx,W,H);
-  const FLY=H-18;
-  // Three states cycling: moving constant, then gets push, constant again
-  const PERIOD=8, tt=t%PERIOD;
-  const v0=45;
-  let bx, phase;
-  // The middle phase genuinely decelerates the body. Rather than claim ΣF=0
-  // throughout, the animation now draws the force that causes it.
-  if(tt<3.5){ bx=(tt*v0)%(W+80)-40; phase=0; }
-  else if(tt<4.5){ bx=(3.5*v0)%(W+80)-40+(tt-3.5)*v0*0.5; phase=1; }
-  else { bx=(3.5*v0)%(W+80)-40+(1*v0*0.5)+(tt-4.5)*v0; phase=2; }
-  // wrap
-  if(bx>W+40)bx-=(W+80);
+  const FLY=H-30;
+  // Coast at 2 m/s, a braking force acts for one second (v falls steadily to
+  // 1 m/s), then coast again at the NEW constant speed. (The old version
+  // jumped between two speeds instantly and called the slow stretch the one
+  // where "v changes".)
+  const PERIOD=9, tt=t%PERIOD, PPM=Math.max(30,W/14), v1=2, v2=1, tb=3.5, Tb=1, ab=(v2-v1)/Tb;
+  let x, v, phase;
+  if(tt<tb){ x=v1*tt; v=v1; phase=0; }
+  else if(tt<tb+Tb){ const u=tt-tb; x=v1*tb+v1*u+0.5*ab*u*u; v=v1+ab*u; phase=1; }
+  else { const u=tt-tb-Tb; x=v1*tb+(v1+v2)/2*Tb+v2*u; v=v2; phase=2; }
+  let bx=(x*PPM)%(W+80)-40;
 
   ctx.save(); ctx.strokeStyle='#2d5275'; ctx.lineWidth=1.5;
   ctx.beginPath(); ctx.moveTo(0,FLY); ctx.lineTo(W,FLY); ctx.stroke(); ctx.restore();
-  // Frictionless surface markers
   ctx.save(); ctx.strokeStyle='rgba(52,211,153,.15)'; ctx.lineWidth=1;
-  for(let x=0;x<W;x+=24){ ctx.beginPath(); ctx.moveTo(x,FLY); ctx.lineTo(x+15,FLY+8); ctx.stroke(); }
+  for(let xx=0;xx<W;xx+=24){ ctx.beginPath(); ctx.moveTo(xx,FLY); ctx.lineTo(xx+15,FLY+8); ctx.stroke(); }
   ctx.restore();
-  label(ctx,'משטח חלק — ללא חיכוך',W/2,FLY+11,'#7d8da6',8);
-
-  // Ghost trail
-  const ghostXs=[bx-22,bx-44,bx-66,bx-88];
-  ghostXs.forEach((gx,i)=>{
-    ctx.save(); ctx.globalAlpha=0.06+i*0.02;
-    ctx.fillStyle='#3b82f6'; ctx.beginPath(); ctx.roundRect(gx-15,FLY-30,30,30,3); ctx.fill(); ctx.restore();
+  label(ctx,'משטח חלק — ללא חיכוך',W/2,FLY+18,'#94a3b8',9);
+  [1,2,3,4].forEach(i=>{
+    ctx.save(); ctx.globalAlpha=0.05+i*0.02;
+    ctx.fillStyle='#3b82f6'; ctx.beginPath(); ctx.roundRect(bx-15-(5-i)*v*11,FLY-30,30,30,3); ctx.fill(); ctx.restore();
   });
-
-  // Box
   ctx.save(); ctx.shadowColor='rgba(59,130,246,.5)'; ctx.shadowBlur=10;
   ctx.fillStyle='rgba(37,99,235,.8)'; ctx.strokeStyle='#60a5fa'; ctx.lineWidth=2;
   ctx.beginPath(); ctx.roundRect(bx-18,FLY-32,36,32,4); ctx.fill(); ctx.stroke(); ctx.restore();
-
-  // Velocity arrow
-  const cv=phase===1?v0*0.5:v0;   // phase 1 really IS slower — say so below
-  arrow(ctx,bx,FLY-38,bx+Math.min(cv*0.7,55),FLY-38,'#34d399',2.5,9);
-  label(ctx,'v='+cv.toFixed(0)+(phase===1?' (משתנה!)':' (קבועה)'),bx+Math.min(cv*0.35,28),FLY-48,phase===1?'#f87171':'#34d399',8);
-  // During the slow phase a real retarding force acts — draw it instead of
-  // claiming ΣF=0 while the body visibly decelerates.
-  if(phase===1)arrow(ctx,bx-18,FLY-16,bx-18-26,FLY-16,'#f87171',2.5,9);
-  if(phase===1)label(ctx,'ΣF ≠ 0',bx-46,FLY-26,'#f87171',8);
-
-  // No force label
-  ctx.save(); ctx.fillStyle='rgba(6,14,28,.8)'; ctx.strokeStyle='rgba(52,211,153,.4)'; ctx.lineWidth=1;
-  ctx.beginPath(); ctx.roundRect(W/2-110,4,220,18,4); ctx.fill(); ctx.stroke(); ctx.restore();
-  label(ctx,phase===1?'ΣF ≠ 0 → v משתנה (כוח בלימה פועל)':'ΣF = 0 → v = קבועה (חוק ראשון ✓)',W/2,14,phase===1?'#f87171':'#34d399',8.5);
-  label(ctx,'גוף שאין עליו כוח נשאר בתנועה אחידה',W/2,H-5,'#7d8da6',7.5);
+  arrow(ctx,bx,FLY-40,bx+v*24,FLY-40,'#34d399',2.5,9);
+  label(ctx,'v = '+v.toFixed(2)+' m/s',bx+v*12,FLY-50,phase===1?'#fca5a5':'#34d399',9);
+  if(phase===1){ arrow(ctx,bx-18,FLY-16,bx-48,FLY-16,'#f87171',2.5,9); label(ctx,'F',bx-52,FLY-20,'#f87171',10,'right'); }
+  ctx.save(); ctx.fillStyle='rgba(6,14,28,.8)'; ctx.strokeStyle=phase===1?'rgba(248,113,113,.5)':'rgba(52,211,153,.4)'; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.roundRect(W/2-150,4,300,20,4); ctx.fill(); ctx.stroke(); ctx.restore();
+  label(ctx,phase===1?'כוח בולם פועל: ΣF ≠ 0, והמהירות משתנה':(phase===0?'ΣF = 0: המהירות קבועה (החוק הראשון)':'שוב ΣF = 0: מהירות חדשה — וקבועה'),W/2,15,phase===1?'#fca5a5':'#34d399',9);
 });
 
 // CH2 ANIM: חוק שני F=ma
@@ -21260,25 +21244,25 @@ runAnim('anim-force-intro',(canvas,ctx,W,H,t)=>{
   if(bv>0.2){
     const vLen=Math.min(bv*3.2,54);   // bv reaches ~15 m/s; at 11 px per m/s this pinned at the cap almost at once
     arrow(ctx,bx,FLY-bS-10,bx+vLen,FLY-bS-10,'#34d399',2.5,9);
-    label(ctx,'v='+bv.toFixed(1),bx+vLen+4,FLY-bS-10,'#34d399',8,'left');
+    label(ctx,'v = '+bv.toFixed(1)+' m/s',bx+vLen+4,FLY-bS-10,'#34d399',9,'left');
   }
 
   // Phase label
-  const phaseText=inPush?'כוח פועל → תאוצה':inSlide&&bv>0.1?'כוח הוסר → חיכוך מאט':bv<0.1&&(inSlide||tt>PERIOD*0.7)?'v=0, ΣF=0 → מנוחה':'ΣF=0 → מנוחה (חוק ראשון)';
+  const phaseText=inPush?'כוח פועל: הגוף מאיץ':inSlide&&bv>0.1?'הכוח הוסר: החיכוך מאט את הגוף':'במנוחה: ΣF = 0';
   const phaseCol=inPush?'#f59e0b':inSlide&&bv>0.1?'#a78bfa':'#34d399';
   ctx.save(); ctx.fillStyle='rgba(6,14,28,.85)'; ctx.strokeStyle=phaseCol+'66'; ctx.lineWidth=1;
   ctx.beginPath(); ctx.roundRect(W/2-140,4,280,18,4); ctx.fill(); ctx.stroke(); ctx.restore();
-  label(ctx,phaseText,W/2,14,phaseCol,8.5);
+  label(ctx,phaseText,W/2,14,phaseCol,9);
 
   // Formula
   // This used to print a = F/m = 7.0 m/s² unconditionally, while the block was
   // integrated with a = F/m − μg = 5.5 m/s² and a friction arrow was drawn on it
   // in the same frame. ΣF is the sum that is actually acting.
   const _fTxt = inPush
-    ? '\u200eΣF = F − f = '+F+' − '+f_fric.toFixed(1)+' = '+(F-f_fric).toFixed(1)+' N   →   a = ΣF/m = '+((F-f_fric)/m).toFixed(1)+' m/s²'
-    : (bv>0.1 ? '\u200eΣF = −f = −'+f_fric.toFixed(1)+' N   →   a = '+(-f_fric/m).toFixed(1)+' m/s²  (מאט)'
-              : '\u200eΣF = 0   →   a = 0');
-  label(ctx,_fTxt,W/2,H-6,inPush?'#94a3b8':'#64748b',8);
+    ? 'ΣF = F − f = '+F+' − '+f_fric.toFixed(1)+' = '+(F-f_fric).toFixed(1)+' N     a = ΣF/m = '+((F-f_fric)/m).toFixed(1)+' m/s²'
+    : (bv>0.1 ? 'ΣF = −f = −'+f_fric.toFixed(1)+' N     a = ΣF/m = '+(-f_fric/m).toFixed(1)+' m/s²'
+              : 'ΣF = 0     a = 0');
+  label(ctx,_fTxt,W/2,H-6,'#cbd5e1',9);
 });
 
 // CH2 ANIM: חוק ניוטון הראשון — אינרציה (block, no friction)
@@ -23260,19 +23244,17 @@ runAnim('anim-inertia2',(canvas,ctx,W,H,t)=>{
   ctx.beginPath();ctx.ellipse(px,py,16,8,0,0,Math.PI*2);ctx.fill();ctx.stroke();
   ctx.fillStyle='#93c5fd';
   ctx.beginPath();ctx.moveTo(px+16,py);ctx.lineTo(px+30,py-5);ctx.lineTo(px+30,py+5);ctx.closePath();ctx.fill();
-  ctx.globalAlpha=0.6+0.4*Math.sin(t*7);ctx.fillStyle='#f97316';
-  ctx.beginPath();ctx.ellipse(px-18,py,7,4,0,0,Math.PI*2);ctx.fill();
-  ctx.globalAlpha=1;
+  // no engine flame: the engines are off, which is the whole point
   ctx.fillStyle='#fbbf24';ctx.fillRect(px-5,py-18,18,5);ctx.fillRect(px-5,py+13,18,5);
   ctx.restore();
   arrow(ctx,px+18,py,px+42,py,'#34d399',2,9);
-  label(ctx,'v = \u05e7\u05d1\u05d5\u05e2\u05d4',px+46,py+3,'#34d399',8);
+  label(ctx,'v קבועה',px+48,py+4,'#34d399',9,'left');
   ctx.save();ctx.fillStyle='rgba(6,14,28,.85)';ctx.strokeStyle='rgba(52,211,153,.3)';ctx.lineWidth=1;
   ctx.beginPath();ctx.roundRect(px-35,py-36,85,18,3);ctx.fill();ctx.stroke();ctx.restore();
   label(ctx,'\u03a3F = 0',px+8,py-25,'#34d399',8.5);
   ctx.save();ctx.fillStyle='rgba(6,14,28,.8)';ctx.strokeStyle='#1e4060';ctx.lineWidth=1;
   ctx.beginPath();ctx.roundRect(4,H-22,W-8,18,3);ctx.fill();ctx.stroke();ctx.restore();
-  label(ctx,'\u05d0\u05d9\u05df \u05db\u05d5\u05d7 \u2192 \u05d0\u05d9\u05df \u05e9\u05d9\u05e0\u05d5\u05d9 \u05de\u05d4\u05d9\u05e8\u05d5\u05ea. \u05d2\u05d5\u05e3 \u05de\u05de\u05e9\u05d9\u05da \u05dc\u05e0\u05d5\u05e2 \u05d1\u05e7\u05d5 \u05d9\u05e9\u05e8 \u05dc\u05e0\u05e6\u05d7.',W/2,H-11,'#22d3ee',7.5);
+  label(ctx,'המנועים כבויים ואין כוח שקול — ולכן המהירות אינה משתנה',W/2,H-11,'#22d3ee',9);
 });
 
 runAnim('anim-tension2',(canvas,ctx,W,H,t)=>{
