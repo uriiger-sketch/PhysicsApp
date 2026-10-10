@@ -50,7 +50,8 @@ const rest = n => Array.from({ length: n }, () => ({ a: [0, 0, 0], g: [0, 0, G],
     const key = 'kinematics.acceleration', A = 1.5, T = 1.0, n = Math.round(T / DT);
     await open(p, key);
     const S = rest(80);
-    for (let i = 1; i <= n; i++) { const a = A * Math.sin(2 * Math.PI * i * DT / T); S.push({ a: [0, a, 0], g: [0, 0, G] }); }
+    // a real accelerometer's gravity-included reading carries the motion too
+    for (let i = 1; i <= n; i++) { const a = A * Math.sin(2 * Math.PI * i * DT / T); S.push({ a: [0, a, 0], g: [0, a, G] }); }
     S.push(...rest(80));
     await feed(p, key, S);
     const r = await p.evaluate(() => { const st = _sl.st; return { ph: st.ph, xc: st.res && st.res.xc,
@@ -69,9 +70,9 @@ const rest = n => Array.from({ length: n }, () => ({ a: [0, 0, 0], g: [0, 0, G],
     const key = 'kinematics.acceleration', A = 1.5, T = 1.0, n = Math.round(T / DT), bias = 0.05;
     await open(p, key);
     const S = rest(60);                              // calibration ends after 55 of these
-    for (let i = 0; i < 20; i++) S.push({ a: [0, bias, 0], g: [0, 0, G] });
-    for (let i = 1; i <= n; i++) { const a = A * Math.sin(2 * Math.PI * i * DT / T) + bias; S.push({ a: [0, a, 0], g: [0, 0, G] }); }
-    for (let i = 0; i < 80; i++) S.push({ a: [0, bias, 0], g: [0, 0, G] });
+    for (let i = 0; i < 20; i++) S.push({ a: [0, bias, 0], g: [0, bias, G] });
+    for (let i = 1; i <= n; i++) { const a = A * Math.sin(2 * Math.PI * i * DT / T) + bias; S.push({ a: [0, a, 0], g: [0, a, G] }); }
+    for (let i = 0; i < 80; i++) S.push({ a: [0, bias, 0], g: [0, bias, G] });
     await feed(p, key, S);
     const r = await p.evaluate(() => { const st = _sl.st; return { ph: st.ph, xc: st.res && st.res.xc, xr: st.res && st.res.xr,
       v: st.tr[1].d.slice(), x: st.tr[2].d.slice() }; });
@@ -79,6 +80,52 @@ const rest = n => Array.from({ length: n }, () => ({ a: [0, 0, 0], g: [0, 0, G],
     t('corrected Δx', r.xc, A * T * T / (2 * Math.PI), 0.006);
     t('plotted v is the corrected one (ends at 0)', r.v[r.v.length - 1], 0, 0.01);
     t('plotted x is the corrected one', r.x[r.x.length - 1], r.xc, 0.002);
+  }
+
+  // ── 2b. the gravity-free channel is high-passed; the lab must not care ──
+  console.log('\n2b) same slide, but the gravity-free channel is the reading minus a 0.5 s low-pass of itself');
+  {
+    const key = 'kinematics.acceleration', A = 1.5, T = 1.0, n = Math.round(T / DT), tau = 0.5;
+    await open(p, key);
+    const raw = [];
+    for (let i = 0; i < 80; i++) raw.push(0);
+    for (let i = 1; i <= n; i++) raw.push(A * Math.sin(2 * Math.PI * i * DT / T));
+    for (let i = 0; i < 80; i++) raw.push(0);
+    // what a phone without a fused linear-acceleration sensor reports as
+    // 'acceleration': the reading minus its own low-pass -- a high-pass filter
+    let lp = 0; const hp = raw.map(a => { lp += (DT / tau) * (a - lp); return a - lp; });
+    // integrated twice, that channel brings x back toward zero once the phone stops
+    let v = 0, x = 0; hp.forEach(a => { v += a * DT; x += v * DT; });
+    await feed(p, key, raw.map((a, i) => ({ a: [0, hp[i], 0], g: [0, a, G] })));
+    const r = await p.evaluate(() => _sl.st.res && _sl.st.res.xc);
+    tb('the high-passed channel really would have lost most of Δx', x < 0.6 * A / (2 * Math.PI), 'HP x ' + x.toFixed(4));
+    t('Δx from the raw axis, unharmed', r, A * T * T / (2 * Math.PI), 0.004);
+  }
+
+  // ── 2c. tilt: a hard push is not a tilt; a real tilt (gyroscope) is ─────
+  console.log('\n2c) a 2 m/s² shove with the reading leaning toward it, and a 5° rock seen by the gyroscope');
+  {
+    const key = 'kinematics.acceleration';
+    const run = async (rock) => {
+      await open(p, key);
+      const S = [];
+      const pushS = (gy, n, rb) => { for (let i = 0; i < n; i++) S.push({ a: [0, gy, 0], g: [0, gy, G], r: [0, rb || 0, 0] }); };
+      pushS(0, 80); pushS(2, 50, rock ? 10 : 0); pushS(-2, 50, rock ? -10 : 0); pushS(0, 80);
+      await p.evaluate(([key, S, DT]) => {
+        const impl = SL_IMPL[SENSOR_LABS[key].t], st = _sl.st;
+        // the stream's own gravity estimate: a 0.5 s low-pass of the reading,
+        // which leans toward the push -- the old tilt test read that lean
+        let G = null;
+        S.forEach((o, i) => { const k = Math.min(1, DT / 0.5);
+          G = G ? G.map((q, j) => q + k * (o.g[j] - q)) : o.g.slice();
+          impl.sample({ dt: DT, t: i * DT, exact: true, gyro: true, hz: 1 / DT,
+            ax: o.a[0], ay: o.a[1], az: o.a[2], gx: o.g[0], gy: o.g[1], gz: o.g[2],
+            Gx: G[0], Gy: G[1], Gz: G[2], ra: o.r[0], rb: o.r[1], rg: o.r[2] }, st); });
+      }, [key, S, DT]);
+      return p.evaluate(() => _sl.st.res && _sl.st.res.tilt);
+    };
+    t('a flat shove: no tilt reported (°)', await run(false), 0, 0.05);
+    t('rocked 5° and back, as the gyroscope saw it (°)', await run(true), 5, 0.1);
   }
 
   // ── 3. toss and catch: v must cross 0 at the top of the flight ────────────

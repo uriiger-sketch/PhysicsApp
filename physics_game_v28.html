@@ -30689,6 +30689,31 @@ function slTrace(n){return {n:n,d:[],push:function(v){this.d.push(v);if(this.d.l
 // signs get reordered ("+1.8" drawn as "1.8+").
 function slTxt(ctx,txt,x,y,col,sz,align,bold){
   ctx.save();ctx.direction='ltr';simText(ctx,txt,x,y,col,sz,align,bold);ctx.restore();}
+// A slide along the table is measured on the RAW axis (gravity included)
+// minus its value at rest: the phone lies flat and does not turn, so gravity's
+// share of that axis is a constant the calibration takes out. The gravity-free
+// channel cannot stand in for it. Where the phone has no gyroscope-fused one,
+// that channel (and this file's own fallback) is the reading minus a low-pass
+// of itself -- a high-pass filter -- and a high-passed acceleration integrates
+// twice into a high-passed POSITION, which creeps back toward zero once the
+// phone has stopped. Fused channels lean the same way, only more slowly.
+function slAxisCal(s,st){
+  var raw=[s.gx,s.gy,s.gz][st.ax],lin=Math.hypot(s.ax,s.ay,s.az);
+  if(lin>0.16||Math.hypot(s.rb||0,s.rg||0)>3){st.calN=0;st.calS=0;st.calR=[0,0];return;}
+  st.calN++;st.calS+=raw;st.calR[0]+=s.rb||0;st.calR[1]+=s.rg||0;
+  if(st.calN>=55){st.bias=st.calS/st.calN;st.gb=[st.calR[0]/st.calN,st.calR[1]/st.calN];st.ph='armed';}
+}
+// Tilt leaks gravity into that axis -- one degree is 0.17 m/s², an order of
+// magnitude above the noise -- so a trial in which the phone rocked is flagged.
+// The tilt is read off the gyroscope: the turn about the phone's two in-plane
+// axes since the trial began. (The direction of the low-passed reading, used
+// before, leans toward any push, and a firm 1 m/s² shove for half a second was
+// reported as a 4° tilt that never happened.) No gyroscope, no flag.
+function slAxisTilt(s,st){
+  if(!s.gyro)return;
+  st.tx+=((s.rb||0)-st.gb[0])*s.dt;st.ty+=((s.rg||0)-st.gb[1])*s.dt;
+  var tl=Math.hypot(st.tx,st.ty)*Math.PI/180;if(tl>st.tilt)st.tilt=tl;
+}
 // While a lab waits for motion it keeps the last `win` seconds of samples. The
 // trigger fires only once |a| crosses a threshold, but a push ramps up from
 // zero, and every sample below the threshold was simply lost — a step error in
@@ -30899,7 +30924,7 @@ var SENSOR_LABS={
 
  'kinematics.acceleration':{t:'motion-trial',h:338,
    ttl:'ניסוי מדוד: מ-a אל v ואל x',
-   how:'הניחו את הטלפון על שולחן חלק ואל תזיזו אותו — הוא <b>מכייל</b> את עצמו כשנייה. כשייכתב ״מוכן״, <b>החליקו אותו לאורך הציר הנבחר ועצרו אותו</b>. הניסוי נסגר מעצמו כשהטלפון שוקט.',
+   how:'הניחו את הטלפון על שולחן חלק ואל תזיזו אותו — הוא <b>מכייל</b> את עצמו כשנייה. כשייכתב ״מוכן״, <b>החליקו אותו לאורך הציר הנבחר ועצרו אותו</b> (Y — לאורך הטלפון, X — לרוחבו), בלי להרים ובלי לסובב. הניסוי נסגר מעצמו כשהטלפון שוקט.',
    pred:'לפני שמחליקים: הניחו סרגל על השולחן והחליטו לכמה ס״מ אתם מתכוונים להזיז את הטלפון. בסוף הניסוי השוו למה שהאינטגרל חישב.',
    note:'הטלפון מודד <b>תאוצה בלבד</b> — '+M('v')+' ו-'+M('x')+' מחושבים ממנה באינטגרל. הניסוי מתחיל ונגמר במנוחה, ולכן כל מהירות שנשארה בסוף היא <b>שגיאה מצטברת</b>, וממנה מתקנים גם את ההעתק. זו הסיבה שניווט אינרציאלי מדויק לדקות בלבד וזקוק ל-GPS שיאפס אותו.',
    chips:[['ph','מצב',''],['x','Δx מתוקן','m'],['vm','v מרבי','m/s'],['dr','סחיפה','m/s']],
@@ -30907,7 +30932,7 @@ var SENSOR_LABS={
 
  'kinematics.avg-instant-vel':{t:'avg-inst',h:348,minHz:25,
    ttl:'מיתר מול משיק: ממוצעת מול רגעית',
-   how:'הניחו על שולחן חלק ואל תזיזו — הטלפון מכייל את עצמו. כשייכתב ״מוכן״: <b>החליקו, עצרו לרגע, החליקו שוב ועצרו</b>. בסוף גררו את שני הסמנים על '+M('x(t)')+'.',
+   how:'הניחו על שולחן חלק ואל תזיזו — הטלפון מכייל את עצמו. כשייכתב ״מוכן״: <b>החליקו לאורך הטלפון, עצרו לרגע, החליקו שוב ועצרו</b>. בסוף גררו את שני הסמנים על '+M('x(t)')+'.',
    pred:'לפני שמחליקים: אם תעצרו באמצע הדרך לשנייה שלמה, מה יקרה למהירות <b>הממוצעת</b> על כל המסלול? ומה למהירות <b>הרגעית</b> באותו רגע עצירה?',
    note:'<b>ממוצעת = שיפוע המיתר</b> בין שתי נקודות על '+M('x(t)')+', ולכן תלויה רק בקצוות: '+M('\\bar v=\\Delta x/\\Delta t')+'. עצירה באמצע אינה משנה אותה. <b>רגעית = שיפוע המשיק</b>, גבול המיתר כאשר '+M('\\Delta t\\to 0')+'.<br><br>הקו המקווקו בגרף '+M('v(t)')+' הוא '+M('\\bar v')+'; כל חיתוך שלו הוא רגע שבו הרגעית שווה לממוצעת — משפט הערך הממוצע על הנתונים שלכם.',
    chips:[['ph','מצב',''],['va','v ממוצעת','m/s'],['v1','v רגעית ①','m/s'],['v2','v רגעית ②','m/s']],
@@ -31037,24 +31062,17 @@ var SL_IMPL={
 // a run that starts and ends at rest has a known answer for the final
 // velocity -- zero -- so the leftover is a measurement of the error itself.
 'motion-trial':{
-  resume:function(st){if(st.ph==='run'||st.ph==='armed'){var b=st.bias,g=st.gref;st.reset(st);st.bias=b;st.gref=g;st.ph='armed';}},
+  resume:function(st){if(st.ph==='run'||st.ph==='armed'){var b=st.bias,g=st.gb;st.reset(st);st.bias=b;st.gb=g;st.ph='armed';}},
   init:function(st){st.ax=1;st.tr=[slTrace(220),slTrace(220),slTrace(220)];
     st.h=[{v:.5},{v:.2},{v:.1}];st.reset(st);},
-  reset:function(st){st.ph='cal';st.calN=0;st.calS=0;st.bias=0;st.gref=null;st.tilt=0;
+  reset:function(st){st.ph='cal';st.calN=0;st.calS=0;st.calR=[0,0];st.bias=0;st.gb=[0,0];st.tilt=0;st.tx=0;st.ty=0;
     st.v=0;st.x=0;st.ap=0;st.still=0;st.dur=0;st.rec=[];st.res=null;st.pre=[];
     if(st.tr)for(var i=0;i<3;i++)st.tr[i].clear();},
   sample:function(s,st){
-    var raw=[s.ax,s.ay,s.az][st.ax],lin=Math.hypot(s.ax,s.ay,s.az);
-    var gm=Math.hypot(s.Gx,s.Gy,s.Gz)||9.81,gu=[s.Gx/gm,s.Gy/gm,s.Gz/gm];
-    if(st.ph==='cal'){
-      // Calibration is only valid while genuinely still, so any movement
-      // restarts it rather than baking a wrong bias into the whole trial.
-      if(lin>0.16){st.calN=0;st.calS=0;return;}
-      st.calN++;st.calS+=raw;st.gref=gu;
-      if(st.calN>=55){st.bias=st.calS/st.calN;st.ph='armed';}
-      return;
-    }
-    var a=raw-st.bias;
+    // Calibration is only valid while genuinely still, so any movement
+    // restarts it rather than baking a wrong bias into the whole trial.
+    if(st.ph==='cal'){slAxisCal(s,st);return;}
+    var a=[s.gx,s.gy,s.gz][st.ax]-st.bias;
     if(st.ph==='armed'){
       if(Math.abs(a)>0.3){
         // replay the quiet lead-in: the phone was at rest at its start
@@ -31065,10 +31083,7 @@ var SL_IMPL={
         st.pre=[];
       } else {slPreBuf(st.pre,s.dt,a,0.35);return;}}
     if(st.ph!=='run')return;
-    // Tilt leaks gravity into the measured axis: one degree is 0.17 m/s², an
-    // order of magnitude above the noise, so the trial is flagged if it moved.
-    if(st.gref){var d=gu[0]*st.gref[0]+gu[1]*st.gref[1]+gu[2]*st.gref[2];
-      var tl=Math.acos(Math.max(-1,Math.min(1,d)));if(tl>st.tilt)st.tilt=tl;}
+    slAxisTilt(s,st);
     st.dur+=s.dt;st.rec.push([s.dt,a]);
     var vp=st.v;st.v+=(st.ap+a)/2*s.dt;st.x+=(vp+st.v)/2*s.dt;st.ap=a;
     st.tr[0].push(a);st.tr[1].push(st.v);st.tr[2].push(st.x);
@@ -31101,12 +31116,12 @@ var SL_IMPL={
     var y=H-30,r=st.res;
     if(st.ph==='cal')simText(ctx,'⏳ מכייל — אל תזיזו ('+Math.round(st.calN/55*100)+'%)',W/2,y,c3,12.5,'center',true);
     else if(st.ph==='armed')simText(ctx,'✅ מוכן — החליקו את הטלפון ואז עצרו אותו',W/2,y,c2,12.5,'center',true);
-    else if(st.ph==='run')simText(ctx,'🔴 מודד… ('+st.dur.toFixed(1)+' ש)',W/2,y,slCss('--red','#ef4444'),12.5,'center',true);
+    else if(st.ph==='run')simText(ctx,'🔴 מודד… ('+st.dur.toFixed(1)+' s)',W/2,y,slCss('--red','#ef4444'),12.5,'center',true);
     else if(r){
       slTxt(ctx,'Δx = '+(r.xc*100).toFixed(1)+' cm   (גולמי '+(r.xr*100).toFixed(1)+')',W/2,y-13,tx,11.5,'center',true);
       var bad=r.tilt>2.5;
       simText(ctx,bad?('⚠ הטלפון הוטה ב-'+r.tilt.toFixed(1)+'° — הכובד דלף לציר; נסו שוב שטוח')
-                    :('סחיפה '+Math.abs(r.drift).toFixed(3)+' m/s על פני '+r.T.toFixed(1)+' ש — זו שגיאת המדידה'),
+                    :('סחיפה '+Math.abs(r.drift).toFixed(3)+' m/s על פני '+r.T.toFixed(1)+' s — זו שגיאת המדידה'),
         W/2,y+5,bad?c3:mu,11,'center',bad);}
     if(st.ph!=='done'&&st.ph!=='cal'&&st.ph!=='armed'&&st.ph!=='run')
       simText(ctx,'לחצו ▶ כדי להתחיל',W/2,y,mu,12,'center',true);},
@@ -31122,21 +31137,15 @@ var SL_IMPL={
 // TANGENT; a trial with a deliberate pause in the middle separates them, and the
 // crossings of the mean line are the mean value theorem drawn on real data.
 'avg-inst':{
-  resume:function(st){if(st.ph==='run'||st.ph==='armed'){var b=st.bias,g=st.gref;st.reset(st);st.bias=b;st.gref=g;st.ph='armed';}},
+  resume:function(st){if(st.ph==='run'||st.ph==='armed'){var b=st.bias,g=st.gb;st.reset(st);st.bias=b;st.gb=g;st.ph='armed';}},
   init:function(st){st.ax=1;st.tr=[slTrace(220),slTrace(220)];st.h=[{v:.2},{v:.1}];st.reset(st);},
-  reset:function(st){st.ph='cal';st.calN=0;st.calS=0;st.bias=0;st.gref=null;st.tilt=0;
+  reset:function(st){st.ph='cal';st.calN=0;st.calS=0;st.calR=[0,0];st.bias=0;st.gb=[0,0];st.tilt=0;st.tx=0;st.ty=0;
     st.v=0;st.x=0;st.ap=0;st.still=0;st.dur=0;st.rec=[];st.cap=null;st.pre=[];
     st.m1=0.20;st.m2=0.80;st.drag=0;
     if(st.tr){st.tr[0].clear();st.tr[1].clear();}},
   sample:function(s,st){
-    var raw=[s.ax,s.ay,s.az][st.ax],lin=Math.hypot(s.ax,s.ay,s.az);
-    var gm=Math.hypot(s.Gx,s.Gy,s.Gz)||9.81,gu=[s.Gx/gm,s.Gy/gm,s.Gz/gm];
-    if(st.ph==='cal'){
-      if(lin>0.16){st.calN=0;st.calS=0;return;}
-      st.calN++;st.calS+=raw;st.gref=gu;
-      if(st.calN>=55){st.bias=st.calS/st.calN;st.ph='armed';}
-      return;}
-    var a=raw-st.bias;
+    if(st.ph==='cal'){slAxisCal(s,st);return;}
+    var a=[s.gx,s.gy,s.gz][st.ax]-st.bias;
     if(st.ph==='armed'){
       if(Math.abs(a)>0.3){
         st.ph='run';st.v=0;st.x=0;st.ap=st.pre.length?st.pre[0][1]:a;
@@ -31146,9 +31155,7 @@ var SL_IMPL={
         st.pre=[];
       } else {slPreBuf(st.pre,s.dt,a,0.35);return;}}
     if(st.ph!=='run')return;
-    // one degree of tilt leaks 0.17 m/s2 into the axis, far above the noise
-    if(st.gref){var dp=gu[0]*st.gref[0]+gu[1]*st.gref[1]+gu[2]*st.gref[2];
-      var tl=Math.acos(Math.max(-1,Math.min(1,dp)));if(tl>st.tilt)st.tilt=tl;}
+    slAxisTilt(s,st);
     st.dur+=s.dt;st.rec.push([s.dt,a]);
     var vp=st.v;st.v+=(st.ap+a)/2*s.dt;st.x+=(vp+st.v)/2*s.dt;st.ap=a;
     st.tr[0].push(st.v);st.tr[1].push(st.x);
@@ -31216,7 +31223,7 @@ var SL_IMPL={
       var y=H-10;
       if(st.ph==='cal')simText(ctx,'⏳ מכייל — אל תזיזו ('+Math.round(st.calN/55*100)+'%)',W/2,y,gd,12.5,'center',true);
       else if(st.ph==='armed')simText(ctx,'✅ מוכן — החליקו, עצרו לרגע, החליקו שוב ועצרו',W/2,y,gr,12.5,'center',true);
-      else if(st.ph==='run')simText(ctx,'🔴 מודד… ('+st.dur.toFixed(1)+' ש) — סיימו בעצירה מלאה',W/2,y,slCss('--red','#ef4444'),12.5,'center',true);
+      else if(st.ph==='run')simText(ctx,'🔴 מודד… ('+st.dur.toFixed(1)+' s) — סיימו בעצירה מלאה',W/2,y,slCss('--red','#ef4444'),12.5,'center',true);
       else simText(ctx,'לחצו ▶ כדי להתחיל',W/2,y,mu,12,'center',true);
       return;}
     var P=st.cap.p,d=st.cap.dur,i,C=SL_IMPL['avg-inst'].chord(st);
@@ -31225,7 +31232,7 @@ var SL_IMPL={
       if(P[i].x<xmn)xmn=P[i].x;if(P[i].x>xmx)xmx=P[i].x;
       if(P[i].v<vmn)vmn=P[i].v;if(P[i].v>vmx)vmx=P[i].v;}
     var px=42,pw=W-54;
-    var vy=16,vh=Math.round(H*0.26),xy=vy+vh+26,xh=H-xy-46;
+    var vy=16,vh=Math.round(H*0.26),xy=vy+vh+26,xh=H-xy-58;   // room for the time ticks above the readout
     st.xr={x:px,y:xy,w:pw,h:xh};
     var vpd=(vmx-vmn)*0.18+0.02;vmn-=vpd;vmx+=vpd;
     var xpd=(xmx-xmn)*0.12+0.005;xmn-=xpd;xmx+=xpd;
@@ -31413,7 +31420,7 @@ var SL_IMPL={
     st.vr={x:vx,y:vy,w:vw,h:vh};
     ctx.save();ctx.strokeStyle=slCss('--border','#2a3d55');ctx.lineWidth=1;ctx.strokeRect(vx+.5,vy+.5,vw-1,vh-1);ctx.restore();
     if(!st.cap){
-      simText(ctx,st.inFall?('🕊 באוויר… '+st.fallT.toFixed(2)+' ש'):'זרקו בעדינות וקלטו — מעל משטח רך',
+      simText(ctx,st.inFall?('🕊 באוויר… '+st.fallT.toFixed(2)+' s'):'זרקו בעדינות וקלטו — מעל משטח רך',
         vx+vw/2,vy+vh/2,st.inFall?gd:mu,13,'center',true);
     } else {
       var P=st.cap.p,d=st.cap.dur,i,vmin=1e9,vmax=-1e9;
