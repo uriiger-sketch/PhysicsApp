@@ -13097,6 +13097,11 @@ function simKineticFriction(canvas){
   var vel=0, pos=80, dist=0;
   var running=false, launched=false;
   var vData=[], aData=[], tData=[], tClock=0;
+  // A run keeps the μ, m and v0 it was launched with, and its own distance
+  // scale: at 55 px/m a 20 m/s slide on μ = 0.1 (204 m) ran into the end of
+  // the track and "stopped" there, and the panel then compared that stop with
+  // the theoretical distance.
+  var PPM=55, runMu=null, runV0=null;
   var FLOOR_Y=H*0.45;
 
   function getMu(){var e=document.getElementById('inp-kf-mu'); return e?parseFloat(e.value):mu_k;}
@@ -13118,8 +13123,9 @@ function simKineticFriction(canvas){
   canvas.addEventListener('mouseup',_kfUp);canvas.addEventListener('touchend',_kfUp);
   var launchBtn=document.getElementById('btn-kf-launch');
   var resetBtn=document.getElementById('btn-kf-reset');
-  function launch(){mu_k=getMu();m=getM();v0=getV0();vel=v0;pos=80;dist=0;running=true;launched=true;vData=[];aData=[];tData=[];tClock=0;}
-  function reset2(){vel=0;pos=80;dist=0;running=false;launched=false;vData=[];aData=[];tData=[];tClock=0;}
+  function scaleFor(v,mu){return Math.min(55,(W-170)/Math.max(v*v/(2*mu*g),0.1));}
+  function launch(){mu_k=getMu();m=getM();v0=getV0();runMu=mu_k;runV0=v0;PPM=scaleFor(v0,mu_k);vel=v0;pos=80;dist=0;running=true;launched=true;vData=[];aData=[];tData=[];tClock=0;}
+  function reset2(){vel=0;pos=80;dist=0;running=false;launched=false;runMu=null;runV0=null;vData=[];aData=[];tData=[];tClock=0;}
   if(launchBtn)launchBtn.addEventListener('click',launch);
   if(resetBtn)resetBtn.addEventListener('click',reset2);
 
@@ -13127,7 +13133,8 @@ function simKineticFriction(canvas){
     if(_simStop[id])return;
     if(!pT)pT=ts; var dt=Math.min((ts-pT)/1000,.04); pT=ts;
     t+=dt;
-    mu_k=getMu(); m=getM(); v0=getV0();
+    mu_k=launched?runMu:getMu(); m=getM(); v0=launched?runV0:getV0();
+    if(!launched)PPM=scaleFor(v0,mu_k);
     var N=m*g, fk=mu_k*N;
     var a=-mu_k*g;
     var dTheory=v0*v0/(2*mu_k*g);
@@ -13148,12 +13155,13 @@ function simKineticFriction(canvas){
       } else {
         dx=0.5*(_v0k+vel)*dt;
       }
-      dist+=dx; pos+=dx*55;
-      if(pos>W-72){pos=W-72;vel=0;running=false;}
-      vData.push(vel); aData.push(running?a:0); tData.push(tClock);
-      if(vData.length>200)vData.shift();
-      if(aData.length>200)aData.shift();
-      if(tData.length>200)tData.shift();
+      dist+=dx; pos+=dx*PPM;
+      // about 200 samples per run, however long it lasts (a fixed 200-frame
+      // buffer kept only the last three seconds of a twenty-second slide)
+      var _tFull=runV0/(runMu*g);
+      if(!tData.length||!running||tClock-tData[tData.length-1]>=_tFull/200){
+        vData.push(vel); aData.push(running?a:0); tData.push(tClock);
+      }
     }
 
     simBg(ctx,W,H);
@@ -13167,14 +13175,22 @@ function simKineticFriction(canvas){
       ctx.save(); ctx.strokeStyle='rgba('+Math.round(30+mu_k*80)+',58,82,0.5)'; ctx.lineWidth=1;
       ctx.beginPath(); ctx.moveTo(xi,FLOOR_Y); ctx.lineTo(xi-texD*0.4,FLOOR_Y+texD*0.5); ctx.stroke(); ctx.restore();
     }
-    simText(ctx,'μk = '+mu_k.toFixed(2),W/2,FLOOR_Y+12,'#7d8da6',8,undefined,true);
+    simText(ctx,'μₖ = '+mu_k.toFixed(2),W-14,FLOOR_Y+60,'#cbd5e1',10,'right',true);
+    // distance ruler along the floor
+    var _rStep=_kinTick((W-170)/PPM,W<480?3:6);
+    for(var _rm=0;80+_rm*PPM<=W-20;_rm+=_rStep){
+      var _rx=80+_rm*PPM;
+      ctx.save(); ctx.strokeStyle='rgba(148,163,184,.45)'; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(_rx,FLOOR_Y); ctx.lineTo(_rx,FLOOR_Y+6); ctx.stroke(); ctx.restore();
+      simText(ctx,String(+_rm.toFixed(1)),_rx,FLOOR_Y+18,'#94a3b8',9,'center');
+    }
+    simText(ctx,'x (m)',W-14,FLOOR_Y+34,'#94a3b8',9,'right');
 
     // Predicted stop line
-    var stopX=80+dTheory*55;
+    var stopX=80+dTheory*PPM;
     if(stopX<W-10&&stopX>80){
-      ctx.save(); ctx.strokeStyle='rgba(34,211,153,.3)'; ctx.lineWidth=1.5; ctx.setLineDash([4,6]);
-      ctx.beginPath(); ctx.moveTo(stopX,FLOOR_Y-4); ctx.lineTo(stopX,FLOOR_Y+4); ctx.stroke(); ctx.setLineDash([]); ctx.restore();
-      simText(ctx,'d='+dTheory.toFixed(1)+'m',stopX,FLOOR_Y-8,'#22d3ee',7.5,undefined,true);
+      ctx.save(); ctx.strokeStyle='rgba(34,211,153,.7)'; ctx.lineWidth=1.5; ctx.setLineDash([4,4]);
+      ctx.beginPath(); ctx.moveTo(stopX,FLOOR_Y-56); ctx.lineTo(stopX,FLOOR_Y+4); ctx.stroke(); ctx.setLineDash([]); ctx.restore();
+      simText(ctx,'d = '+dTheory.toFixed(1)+' m',stopX,FLOOR_Y-62,'#22d3ee',10,undefined,true);
     }
 
     // Heat sparks while moving
@@ -13200,31 +13216,31 @@ function simKineticFriction(canvas){
     if(vel>0.1){
       var vLen=Math.min(80,vel*8);
       simArrow(ctx,pos+bW/2+2,bY+bH/2,pos+bW/2+2+vLen,bY+bH/2,'#34d399',2.5,10);
-      simText(ctx,'v='+vel.toFixed(1)+'m/s',pos+bW/2+vLen+5,bY+bH/2-8,'#34d399',8.5,'left');
+      simText(ctx,'v = '+vel.toFixed(1)+' m/s',pos+bW/2+vLen+5,bY+bH/2-8,'#34d399',10,'left');
     }
     // fk arrow (LEFT, opposing motion)
     if(running&&vel>0.1){
       var fkLen=Math.min(65, fk*0.9);
-      simArrow(ctx,bX-2,bY+bH*0.65,bX-2-fkLen,bY+bH*0.65,'#f87171',2.5,10);
-      simText(ctx,'fk='+fk.toFixed(0)+'N (קבוע!)',bX-fkLen/2-2,bY+bH*0.65-11,'#f87171',8.5,undefined,true);
+      simArrow(ctx,bX,FLOOR_Y-4,bX-fkLen,FLOOR_Y-4,'#f87171',2.5,10);
+      simText(ctx,'fₖ = '+fk.toFixed(1)+' N',bX-fkLen/2,FLOOR_Y-14,'#f87171',10,undefined,true);
     }
     // a arrow
     if(running){
       simArrow(ctx,pos,bY-8,pos+Math.sign(a)*Math.min(50,Math.abs(a)*8),bY-8,'#ef4444',2,8);
-      simText(ctx,'a='+a.toFixed(2)+'m/s²',pos,bY-18,'#ef4444',8.5,undefined,true);
+      simText(ctx,'a = '+a.toFixed(2)+' m/s²',pos,bY-18,'#f87171',10,undefined,true);
     }
 
     // ── TOP PANEL ──────────────────────────────────────────
     ctx.save(); ctx.fillStyle='rgba(6,14,28,.92)'; ctx.strokeStyle='#1e4060'; ctx.lineWidth=1.5;
     ctx.beginPath(); ctx.roundRect(8,6,W-16,52,6); ctx.fill(); ctx.stroke(); ctx.restore();
-    simText(ctx,'חיכוך קינטי: fk = μk × N = '+fk.toFixed(1)+' N (קבוע בכל מהירות!)',W/2,18,'#22d3ee',10,undefined,true);
-    simText(ctx,'a = −μk × g = '+a.toFixed(2)+' m/s²  |  d_stop = v₀²/(2μkg) = '+dTheory.toFixed(2)+' m',W/2,32,'#94a3b8',9,undefined,true);
+    simText(ctx,'חיכוך קינטי:  fₖ = μₖN = '+fk.toFixed(1)+' N — אותו כוח בכל מהירות',W/2,18,'#22d3ee',10.5,undefined,true);
+    simText(ctx,'a = −μₖg = '+a.toFixed(2)+' m/s²     d = v₀²/(2μₖg) = '+dTheory.toFixed(2)+' m',W/2,34,'#e2e8f0',10,undefined,true);
     if(launched&&!running&&vel===0){
-      simText(ctx,'✓ עצר! מרחק בפועל = '+dist.toFixed(2)+' m ≈ '+dTheory.toFixed(2)+' m תיאורטי',W/2,46,'#34d399',9,undefined,true);
+      simText(ctx,'נעצר אחרי '+dist.toFixed(2)+' m — בדיוק כמו בנוסחה',W/2,50,'#34d399',10,undefined,true);
     } else if(launched){
-      simText(ctx,'v = '+vel.toFixed(2)+' m/s  |  d = '+dist.toFixed(2)+' m',W/2,46,'#fbbf24',9,undefined,true);
+      simText(ctx,'v = '+vel.toFixed(2)+' m/s     x = '+dist.toFixed(2)+' m',W/2,50,'#fbbf24',10,undefined,true);
     } else {
-      simText(ctx,'לחץ ״▶ שגר!״ לראות האטה קבועה',W/2,46,'#7d8da6',9,undefined,true);
+      simText(ctx,'לחצו ״▶ שגר!״, או גררו את הגוש ימינה ושחררו',W/2,50,'#94a3b8',10,undefined,true);
     }
 
     // ── v(t) GRAPH ──────────────────────────────────────────
@@ -13247,7 +13263,7 @@ function simKineticFriction(canvas){
       ctx.stroke(); ctx.restore();
       simText(ctx,'t (s) →',GX+GW-6,GY+GH-4,'#7d8da6',7,'right');
     simText(ctx,'v (m/s) ↑',GX+8,GY+6,'#34d399',7,'left');
-      simText(ctx,'v₀='+v0.toFixed(0),GX+8,GY+GH-14-(v0/vMax)*(GH-20),'#34d399',7,'left');
+      simText(ctx,'v₀ = '+v0.toFixed(0)+' m/s',GX+18,GY+GH-14-(v0/vMax)*(GH-20)+14,'#34d399',9,'left');
     } else {
       ctx.save(); ctx.fillStyle='rgba(6,14,28,.5)'; ctx.strokeStyle='#1e3a52'; ctx.lineWidth=1;
       ctx.beginPath(); ctx.roundRect(GX,GY,GW,GH,4); ctx.fill(); ctx.stroke(); ctx.restore();
