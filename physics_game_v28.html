@@ -18221,7 +18221,9 @@ function simOptPolarization(canvas){
     if(Math.hypot(p.x-c.x,p.y-c.y)<34){dragPol=true;hasDraggedPol=true;canvas.style.cursor='grabbing';e.preventDefault();}}
   function _pMv(e){var p=simPointerXY(canvas,R.dpr,e);var c=_discC();
     if(dragPol){
-      var deg=Math.atan2(p.y-c.y,p.x-c.x)*180/Math.PI;
+      // θ is measured from the vertical (the first polarizer's axis), so the
+      // analyzer's axis follows the finger: straight up is 0°, sideways 90°
+      var deg=Math.atan2(p.y-c.y,p.x-c.x)*180/Math.PI+90;
       deg=((deg%180)+180)%180;
       simSyncSlider('pol-angle',deg,0);e.preventDefault();
     } else canvas.style.cursor=Math.hypot(p.x-c.x,p.y-c.y)<34?'grab':'';}
@@ -18329,7 +18331,8 @@ function simOptPolarization(canvas){
     ctx.globalAlpha=0.3+mal*0.7;
     ctx.fillText('👁',eyeX,beamY+8);ctx.restore();
     // RIGHT: cos²θ graph
-    var gx=W*0.72,gy=40,gw=W*0.26,gh=H*0.55;
+    // below the beam -- it used to sit across the transmitted beam's path
+    var gx=W*0.66,gy=H*0.6,gw=W*0.31,gh=H*0.26;
     ctx.save();ctx.strokeStyle='rgba(100,116,139,0.4)';ctx.lineWidth=1;
     ctx.strokeRect(gx,gy,gw,gh);
     // Axis labels
@@ -18377,7 +18380,7 @@ function simOptDoppler(canvas){
   var R=setupCanvas(canvas,480);var ctx=R.ctx,W=R.W,H=R.H;
   var animT=0,last=null;
   var emissions=[];
-  var lastEmit=-1;
+  var lastEmit=-1,bInst=0;
   var stars=[];for(var _si=0;_si<44;_si++){stars.push({x:Math.random(),y:Math.random(),r:0.6+Math.random()*1.3,tw:1+Math.random()*3});}
   // ── Direct manipulation: drag the star — your hand speed sets β ──
   var dragStar=false,dragX=null,_lpx=null,_lpt=null,curSrcX=null;
@@ -18416,11 +18419,18 @@ function simOptDoppler(canvas){
     // quantitatively correct (it used to be constant regardless of the slider)
     var srcAmp=Math.min(W*0.3,beta*130*period/(2*Math.PI));
     var srcX=(dragStar&&dragX!==null)?dragX:W/2+Math.sin(animT*Math.PI*2/period)*srcAmp;
-    curSrcX=srcX;
     var srcY=H/2;
     var waveSpeed=130; // px/sec
-    // Emit wavefront periodically
-    var emitInterval=0.4;
+    // The source's ACTUAL velocity on screen, in units of the wave speed: it
+    // drives the read-outs (they used to show the slider's maximum β even while
+    // the star was turning round or held still in the hand) and the time
+    // dilation of the emission clock below.
+    if(curSrcX!==null&&dt>0){var vRaw=(srcX-curSrcX)/dt/waveSpeed;bInst=bInst*0.8+0.2*Math.max(-0.95,Math.min(0.95,vRaw));}
+    curSrcX=srcX;
+    // A moving clock runs slow: the source emits every 0.4 s of ITS time, i.e.
+    // every 0.4·γ s here. With that, the spacing of the drawn fronts is
+    // exactly λ0·√((1∓β)/(1±β)) -- the relativistic shift, not the classical one.
+    var emitInterval=0.4/Math.sqrt(1-bInst*bInst);
     if(animT-lastEmit>emitInterval){
       emissions.push({x:srcX,y:srcY,t:animT});
       lastEmit=animT;
@@ -18461,44 +18471,41 @@ function simOptDoppler(canvas){
       ctx.lineTo(srcX+Math.cos(ca)*20,srcY+Math.sin(ca)*20);ctx.stroke();
     }
     ctx.restore();
-    // Motion arrow
-    var vSign=Math.cos(animT*Math.PI*2/period)>0?1:-1;
-    ctx.save();ctx.strokeStyle='#94a3b8';ctx.lineWidth=2;
-    arrow(ctx,srcX,srcY-22,srcX+vSign*30,srcY-22,'#94a3b8',2,8);
-    ctx.restore();
+    // Motion arrow, as long as the instantaneous speed
+    if(Math.abs(bInst)>0.01){ctx.save();
+      arrow(ctx,srcX,srcY-22,srcX+bInst*60,srcY-22,'#94a3b8',2,8);ctx.restore();}
     // Left observer
     var leftX=18,rightX=W-18;
     ctx.save();ctx.font='20px sans-serif';ctx.textAlign='center';
     ctx.fillText('👤',leftX,srcY+30);ctx.fillText('👤',rightX,srcY+30);ctx.restore();
     // Compute Doppler shifts for left and right
-    var srcMovingRight=vSign>0;
-    var lambdaLeft,lambdaRight;
-    // Left observer: if source moves right -> receding from left -> redshift
-    if(srcMovingRight){
-      lambdaLeft=lambda0*dopplerShift(beta,true);
-      lambdaRight=lambda0*dopplerShift(beta,false);
+    // moving right (bInst > 0) = receding from the left observer, approaching the right one
+    var bA=Math.abs(bInst),lambdaLeft,lambdaRight;
+    if(bInst>=0){
+      lambdaLeft=lambda0*dopplerShift(bA,true);
+      lambdaRight=lambda0*dopplerShift(bA,false);
     } else {
-      lambdaLeft=lambda0*dopplerShift(beta,false);
-      lambdaRight=lambda0*dopplerShift(beta,true);
+      lambdaLeft=lambda0*dopplerShift(bA,false);
+      lambdaRight=lambda0*dopplerShift(bA,true);
     }
-    lambdaLeft=Math.max(200,Math.min(1000,lambdaLeft));
-    lambdaRight=Math.max(200,Math.min(1000,lambdaRight));
-    var colLeft=wavelengthToHex(Math.max(380,Math.min(700,lambdaLeft)));
-    var colRight=wavelengthToHex(Math.max(380,Math.min(700,lambdaRight)));
+    // true values (they used to be clipped at 200 and 1000 nm); outside the
+    // visible band the swatch is grey and says UV or IR
+    function swCol(l){return l<380||l>700?'#475569':wavelengthToHex(l);}
+    var colLeft=swCol(lambdaLeft),colRight=swCol(lambdaRight);
     // Color swatches for observers
     ctx.save();
     ctx.fillStyle=colLeft;ctx.beginPath();ctx.roundRect(leftX-14,srcY-50,28,16,4);ctx.fill();
     ctx.fillStyle='#e2e8f0';ctx.font='8px sans-serif';ctx.textAlign='center';
-    ctx.fillText(lambdaLeft.toFixed(0)+'nm',leftX,srcY-58);
+    ctx.fillText(lambdaLeft.toFixed(0)+'nm'+(lambdaLeft<380?' UV':lambdaLeft>700?' IR':''),leftX+(lambdaLeft<380||lambdaLeft>700?10:0),srcY-58);
     ctx.fillStyle=colRight;ctx.beginPath();ctx.roundRect(rightX-14,srcY-50,28,16,4);ctx.fill();
     ctx.fillStyle='#e2e8f0';ctx.textAlign='center';
-    ctx.fillText(lambdaRight.toFixed(0)+'nm',rightX,srcY-58);
+    ctx.fillText(lambdaRight.toFixed(0)+'nm'+(lambdaRight<380?' UV':lambdaRight>700?' IR':''),rightX-(lambdaRight<380||lambdaRight>700?10:0),srcY-58);
     ctx.restore();
     // Labels
-    optLabel(ctx,'הסחה לכחול / הסחה לאדום',W/2,H-90,'#94a3b8',9);
+    optLabel(ctx,'מלפני הכוכב: הסחה לכחול · מאחוריו: הסחה לאדום',W/2,H-98,'#94a3b8',9);
     var zLeft=((lambdaLeft-lambda0)/lambda0).toFixed(3);
     var zRight=((lambdaRight-lambda0)/lambda0).toFixed(3);
-    optInfoBox(ctx,20,H-68,W-40,['β = v/c = '+beta.toFixed(2),'λ₀ = '+lambda0+'nm','שמאל: λ='+lambdaLeft.toFixed(0)+'nm (z='+zLeft+')','ימין: λ='+lambdaRight.toFixed(0)+'nm (z='+zRight+')']);
+    optInfoBox(ctx,20,H-84,W-40,['β מרבי = '+beta.toFixed(2)+',  β רגעי = '+bA.toFixed(2),'λ₀ = '+lambda0+'nm','שמאל: λ='+lambdaLeft.toFixed(0)+'nm (z='+zLeft+')','ימין: λ='+lambdaRight.toFixed(0)+'nm (z='+zRight+')']);
     requestAnimationFrame(draw);
   }
   function poll(){if(_simStop[id])return;requestAnimationFrame(draw);}poll();
@@ -18532,6 +18539,12 @@ function simOptLaser(canvas){
     var lRGB=wavelengthToRGB(wl).match(/\d+/g);
     var threshold=0.45;
     var aboveThresh=pump>threshold;
+    // Inversion grows with the pump only up to threshold: above it every extra
+    // pumped atom is turned straight into a stimulated photon, so the inversion
+    // stays CLAMPED at the threshold value and the output grows instead.
+    var inversion=Math.min(pump,threshold), outP=Math.max(0,pump-threshold)/(1-threshold);
+    var IR=wl>700;
+    if(IR){lCol='#b91c1c';lRGB=['185','28','28'];}
     ctx.fillStyle='#0f172a';ctx.fillRect(0,0,W,H);
     var cavL=W*0.12,cavR=W*0.8,cavY=H*0.38,cavH=H*0.22;
     // Active medium
@@ -18554,7 +18567,7 @@ function simOptLaser(canvas){
     mrGrad.addColorStop(0,'rgba(226,232,240,0.9)');mrGrad.addColorStop(1,'rgba(226,232,240,0.3)');
     ctx.fillStyle=mrGrad;ctx.fillRect(cavR-1,cavY-6,5,cavH+12);
     ctx.fillStyle='#64748b';ctx.font='8px sans-serif';ctx.textAlign='center';
-    ctx.fillText('מראה חלקית',cavR+2,cavY-12);ctx.fillText('~30%',cavR+2,cavY-4);ctx.restore();
+    ctx.fillText('מראה חלקית',cavR+2,cavY-12);ctx.fillText('מעבירה מעט',cavR+2,cavY-4);ctx.restore();
     // Pump arrows (top)
     var nPump=Math.round(pump*8);
     for(var pi=0;pi<nPump;pi++){
@@ -18603,13 +18616,11 @@ function simOptLaser(canvas){
         optNoGlow(ctx);ctx.restore();
       }
       // Output beam
-      ctx.save();optGlow(ctx,lCol,15);
-      ctx.strokeStyle=lCol;ctx.lineWidth=4;
+      ctx.save();optGlow(ctx,lCol,6+12*outP);if(IR)ctx.setLineDash([6,5]);
+      ctx.strokeStyle=lCol;ctx.lineWidth=1.5+4*outP;
       ctx.beginPath();ctx.moveTo(cavR+4,cavY+cavH/2);ctx.lineTo(W-10,cavY+cavH/2);ctx.stroke();
       optNoGlow(ctx);ctx.restore();
-      // Beam label
-      ctx.fillStyle=lCol;ctx.font='bold 11px sans-serif';ctx.textAlign='left';
-      ctx.fillText('קרן לייזר '+wl+'nm',cavR+8,cavY+cavH/2-10);
+      optLabel(ctx,IR?'קרן 1064 nm — אינפרא-אדום, בלתי נראית לעין':'קרן לייזר '+wl+' nm',W/2,cavY+cavH+22,IR?'#fca5a5':lCol,10);
     } else {
       // Below threshold: random spontaneous emission
       var nSpon=Math.round(pump*6);
@@ -18629,7 +18640,7 @@ function simOptLaser(canvas){
     var meterX=W*0.87,meterY=cavY+cavH,meterH=cavH*1.2;
     ctx.fillStyle='rgba(30,41,59,.8)';ctx.beginPath();ctx.roundRect(meterX-14,meterY-meterH,28,meterH,4);ctx.fill();
     ctx.strokeStyle='#475569';ctx.lineWidth=1;ctx.beginPath();ctx.roundRect(meterX-14,meterY-meterH,28,meterH,4);ctx.stroke();
-    var fillH=pump*meterH;
+    var fillH=Math.max(4,inversion*meterH);
     var meterCol=aboveThresh?'#22c55e':'#ef4444';
     ctx.fillStyle=meterCol;ctx.beginPath();ctx.roundRect(meterX-12,meterY-fillH+2,24,fillH-4,3);ctx.fill();
     ctx.fillStyle='#e2e8f0';ctx.font='8px sans-serif';ctx.textAlign='center';
@@ -18639,7 +18650,8 @@ function simOptLaser(canvas){
     ctx.save();ctx.strokeStyle='#fbbf24';ctx.lineWidth=1;ctx.setLineDash([3,3]);
     ctx.beginPath();ctx.moveTo(meterX-14,meterY-threshold*meterH);ctx.lineTo(meterX+14,meterY-threshold*meterH);ctx.stroke();ctx.setLineDash([]);ctx.restore();
     // Info box
-    optInfoBox(ctx,20,H-70,W*0.82-20,['שאיבה: '+Math.round(pump*100)+'%','סוג: '+wl+'nm','מצב: '+(aboveThresh?'★ לייזר פעיל!':'מתחת לסף')]);
+    optInfoBox(ctx,20,H-86,W*0.82-20,['שאיבה: '+Math.round(pump*100)+'%   ·   '+wl+' nm','מצב: '+(aboveThresh?'★ לייזר פעיל — ההיפוך ננעל בערך הסף, ועודף השאיבה הופך לקרן':'מתחת לסף — ההגברה קטנה מההפסדים'),
+      'הספק יציאה: '+Math.round(outP*100)+'% מהמרבי','שלושתם לייזרי 4 רמות: הרמה התחתונה מתרוקנת מהר']);
     requestAnimationFrame(draw);
   }
   function poll(){if(_simStop[id])return;requestAnimationFrame(draw);}poll();
