@@ -1774,6 +1774,11 @@ function applyTheme(t){
   var mt=document.getElementById('meta-theme');
   if(mt)mt.setAttribute('content',t==='light'?'#ffffff':'#071426');
   state.theme=t;
+  // the header button shows the theme in force, however it was set
+  var btn=document.querySelector('.header .theme-btn');
+  if(btn){ btn.textContent=t==='dark'?'🌙':'☀️';
+    var lbl='מעבר לעיצוב '+(t==='dark'?'בהיר':'כהה');
+    btn.setAttribute('aria-label',lbl); btn.title=lbl+' (Shift+D)'; }
   saveState();
 }
 
@@ -33900,11 +33905,7 @@ window.toggleTheme=function(){
   applyTheme(next);
   ensureContrast();
   ['formula-panel','changelog-panel','mobile-drawer'].forEach(function(i){var e=document.getElementById(i);if(e)ensureContrast(e);});
-  // Update button icon (render() draws the same one from state.theme)
-  var btn=document.querySelector('.theme-btn');
-  if(btn){ btn.textContent=next==='dark'?'🌙':'☀️';
-    var lbl='מעבר לעיצוב '+(next==='dark'?'בהיר':'כהה');
-    btn.setAttribute('aria-label',lbl); btn.title=lbl+' (Shift+D)'; }
+  // (applyTheme updates the button's icon and label)
 };
 
 // ══════════════════════════════════════════════════════════════════
