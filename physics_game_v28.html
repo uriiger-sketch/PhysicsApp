@@ -26242,11 +26242,15 @@ MAG_CTRL['mag-solenoid']=function(){return rng('mgs-N',4,40,12,1,'מספר לי�
 MAG_SIMS['mag-lorentz']=function(canvas){
   var id=canvas.id,_g=_simGen[id];
   const H=460; const {ctx,W,dpr}=setupCanvas(canvas,H);
-  var mode=0, qs=1, bz=-1, P=[W*0.5,H*0.62], ang=0, trail=[], drag=null, pT=null, th=60;
+  var mode=0, qs=1, bz=-1, bxs=1, P=[W*0.5,H*0.62], ang=0, trail=[], drag=null, pT=null, th=60;
   var SPX=1675, KT=2.99e7;              // px per metre; physical/visual time
-  magBtn('mgz-mode',function(b){mode=1-mode;trail=[];b.textContent=mode?'🧭 מצב: שדה במישור הדף':'🧭 מצב: שדה ניצב לדף';});
+  // one button reverses B in either mode: ⊗/⊙ when B is across the page,
+  // → / ← when it lies in it
+  var bLabel=function(){return mode?(bxs>0?'➡ השדה ימינה':'⬅ השדה שמאלה'):(bz<0?'⊗ השדה נכנס לדף':'⊙ השדה יוצא מהדף');};
+  magBtn('mgz-mode',function(b){mode=1-mode;trail=[];b.textContent=mode?'🧭 מצב: שדה במישור הדף':'🧭 מצב: שדה ניצב לדף';
+    var bb=document.getElementById('btn-mgz-Bdir');if(bb)bb.textContent=bLabel();});
   magBtn('mgz-q',function(b){qs=-qs;trail=[];b.textContent=qs>0?'⊕ מטען חיובי (פרוטון)':'⊖ מטען שלילי (אנטי-פרוטון)';});
-  magBtn('mgz-Bdir',function(b){bz=-bz;trail=[];b.textContent=bz<0?'⊗ השדה נכנס לדף':'⊙ השדה יוצא מהדף';});
+  magBtn('mgz-Bdir',function(b){if(mode)bxs=-bxs;else bz=-bz;trail=[];b.textContent=bLabel();});
   function vel(){return magV('mgz-v',2)*1e6;}
   function arrowLen(){return 30+vel()/1e6*14;}
   simDrag(canvas,dpr,{
@@ -26286,12 +26290,12 @@ MAG_SIMS['mag-lorentz']=function(canvas){
       simText(ctx,'F = qvB = '+sciTxt(F)+' N  ·  r = mv/qB = '+(r*100).toFixed(1)+' cm  ·  T = '+(2*Math.PI*MAG_MP/(q*B)*1e9).toFixed(0)+' ns',W/2,y0+20,'#e2e8f0',11,'center',true);
       simText(ctx,'F ניצב תמיד ל-v ⇒ W = 0: הכיוון מסתובב, והגודל |v| = '+(v/1e6).toFixed(1)+'×10⁶ m/s לא משתנה',W/2,y0+42,'#94a3b8',10,'center');
     } else {
-      // B lies in the page, pointing right; the force is out of or into the page
+      // B lies in the page, along ±x; the force is out of or into the page
       for(var y=24;y<H*0.8;y+=34){ctx.save();ctx.strokeStyle='rgba(129,140,248,.35)';ctx.lineWidth=1.2;ctx.beginPath();ctx.moveTo(10,y);ctx.lineTo(W*0.66,y);ctx.stroke();ctx.restore();
-        simArrow(ctx,W*0.33,y,W*0.33+10,y,'rgba(129,140,248,.6)',1.2,7);}
-      simText(ctx,'B →',W*0.64,16,'#818cf8',11,'center',true);
+        simArrow(ctx,W*0.33-bxs*5,y,W*0.33+bxs*5,y,'rgba(129,140,248,.6)',1.2,7);}
+      simText(ctx,bxs>0?'B →':'B ←',W*0.64,16,'#818cf8',11,'center',true);
       var cx=W*0.34,cy=H*0.40,a=th*Math.PI/180,Lv=arrowLen(),vx=Math.cos(a),vy=Math.sin(a);
-      var Fz=-qs*v*B*q*vy;                  // (q v×B)_z with B = +x
+      var Fz=-qs*bxs*v*B*q*vy;              // (q v×B)_z with B = ±x
       ctx.save();ctx.setLineDash([4,4]);ctx.strokeStyle='rgba(52,211,153,.55)';ctx.lineWidth=1.6;
       ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(cx+vx*Lv,cy);ctx.lineTo(cx+vx*Lv,cy-vy*Lv);ctx.stroke();ctx.restore();
       simText(ctx,'v∥ — לא תורם',cx+vx*Lv/2,cy+14,'#64748b',9,'center');
@@ -26303,16 +26307,18 @@ MAG_SIMS['mag-lorentz']=function(canvas){
       else simText(ctx,'F = 0',cx-46,cy-46,'#f87171',12,'center',true);
       simCircle(ctx,cx,cy,10,qs>0?'#fbbf24':'#60a5fa','#fff',1.5);simText(ctx,qs>0?'+':'−',cx,cy+1,'#0f172a',13,'center',true);
       // F(θ) = qvB·sinθ
-      var gx=W*0.70,gy=24,gw=W*0.27,gh=H*0.62;magPlotBox(ctx,gx-8,gy-16,gw+16,gh+42,'הכוח כפונקציה של θ: ⊙ למעלה, ⊗ למטה',null);
+      var gx=W*0.70,gy=24,gw=W*0.27,gh=H*0.62;magPlotBox(ctx,gx-8,gy-16,gw+16,gh+42,W<600?'F(θ)':'הכוח כפונקציה של θ: ⊙ למעלה, ⊗ למטה',null);
       var X=function(t){return gx+t/360*gw;},Y=function(f){return gy+gh/2-f*(gh/2-12);};
       ctx.save();ctx.strokeStyle='#1e3a52';ctx.beginPath();ctx.moveTo(gx,Y(0));ctx.lineTo(gx+gw,Y(0));ctx.stroke();ctx.restore();
+      // θ is measured from B to v, so Fz = −qvB·sinθ whichever way B points
+      var thB=((th-(bxs>0?0:180))%360+360)%360;
       var c=[];for(var t=0;t<=360;t+=4)c.push([X(t),Y(-qs*Math.sin(t*Math.PI/180))]);magPoly(ctx,c,'#f87171',2);
-      simCircle(ctx,X(th),Y(-qs*Math.sin(a)),5,'#fbbf24','#fff',1.5);
+      simCircle(ctx,X(thB),Y(-qs*Math.sin(thB*Math.PI/180)),5,'#fbbf24','#fff',1.5);
       simText(ctx,'⊙',gx-2,Y(1)+4,'#94a3b8',9,'right');simText(ctx,'⊗',gx-2,Y(-1)+4,'#94a3b8',9,'right');
       [0,90,180,270,360].forEach(function(t){simText(ctx,t+'°',X(t),gy+gh+12,'#64748b',8.5,'center');});
       var y0=H*0.85;magPlotBox(ctx,8,y0,W-16,H-y0-6,'',null);
       var sth=Math.abs(Math.sin(a));
-      simText(ctx,'θ = '+th.toFixed(0)+'°   ·   F = qvB·sinθ = '+sciTxt(Math.abs(Fz))+' N',W/2,y0+20,'#e2e8f0',11.5,'center',true);
+      simText(ctx,'θ = '+thB.toFixed(0)+'°   ·   F = qvB·sinθ = '+sciTxt(Math.abs(Fz))+' N',W/2,y0+20,'#e2e8f0',11.5,'center',true);
       simText(ctx,sth<0.02?'v מקביל ל-B — אין כוח כלל':'F ניצב גם ל-v וגם ל-B — ולכן יוצא מהדף או נכנס אליו',W/2,y0+42,'#94a3b8',10,'center');
     }
     requestAnimationFrame(draw);
