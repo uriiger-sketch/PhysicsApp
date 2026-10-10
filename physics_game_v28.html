@@ -30578,16 +30578,31 @@ function _slPlatformSign(){
 function sensorStart(cb,ev0){
   sensorStop();
   if(ev0===undefined)ev0=0;
-  var g=null,last=null,tsum=0,hasLin=false,nom=(ev0>1&&ev0<200)?ev0/1000:1/60,hzN=0,hzT=0;
+  var g=null,last=null,tsum=0,hasLin=false,hasRot=false,nom=(ev0>1&&ev0<200)?ev0/1000:1/60,hzN=0,hzT=0;
+  // The event's own stamp is when the reading was handed over, which a busy
+  // page may deliver late; use it whenever it is on performance.now()'s clock.
+  function clock(ev){
+    var pn=(window.performance&&performance.now)?performance.now():Date.now(),ts=ev.timeStamp;
+    if(typeof ts==='number'&&isFinite(ts)&&ts>0&&ts<=pn+1&&pn-ts<1000)return ts/1000;
+    return pn/1000;
+  }
   function onMotion(ev){
-    var now=(window.performance&&performance.now?performance.now():Date.now())/1000;
+    var now=clock(ev);
     if(ev.interval>1&&ev.interval<200)nom=ev.interval/1000;
-    // Real elapsed time is what an integral needs. `interval` is only the
-    // nominal period, so it is the fallback: first sample, or a delta the
-    // clock could not plausibly have produced (a throttled or resumed tab).
+    // Real elapsed time is what an integral needs; `interval` is only the
+    // nominal period. A page that was busy hands over the queued readings in
+    // one burst, a few microseconds apart: charging each of them a nominal
+    // period made the clock run up to twice as fast as the wall. So `last` is
+    // the time this stream has already accounted for, and a burst only borrows
+    // a quarter period per reading, paid back from the next normal gap -- the
+    // summed dt stays on the wall clock. A gap no live stream produces (a
+    // throttled or resumed tab) is not integrated across: it restarts the clock.
     var dt=nom;
-    if(last!==null){var w=now-last; if(w>0.002&&w<0.25)dt=w;}
-    last=now; tsum+=dt; _sensor.got++;
+    if(last===null)last=now;
+    else{var w=now-last;
+      if(w>0.25||w<-0.25)last=now;
+      else{dt=Math.max(w,nom*0.25);last+=dt;}}
+    tsum+=dt; _sensor.got++;
     hzT+=dt; hzN++; if(hzT>0.75){_sensor.hz=hzN/hzT;hzN=0;hzT=0;}
     var G=ev.accelerationIncludingGravity;
     // An event with no payload is not a reading of zero, it is the absence of
@@ -30603,7 +30618,9 @@ function sensorStart(cb,ev0){
     if(hasLin&&fin){lx=SG*L.x;ly=SG*L.y;lz=SG*L.z;}
     else{lx=gx-g[0];ly=gy-g[1];lz=gz-g[2];}
     var R=ev.rotationRate||{};
-    cb({dt:dt,t:tsum,exact:hasLin,
+    // a phone without a gyroscope sends rotationRate null, not zeros
+    if(typeof R.alpha==='number'||typeof R.beta==='number'||typeof R.gamma==='number')hasRot=true;
+    cb({dt:dt,t:tsum,exact:hasLin,gyro:hasRot,
         ax:lx,ay:ly,az:lz,                 // linear acceleration, gravity removed
         gx:gx,gy:gy,gz:gz,                 // raw, gravity included
         Gx:g[0],Gy:g[1],Gz:g[2],           // the gravity estimate itself
@@ -31020,6 +31037,7 @@ var SL_IMPL={
 // a run that starts and ends at rest has a known answer for the final
 // velocity -- zero -- so the leftover is a measurement of the error itself.
 'motion-trial':{
+  resume:function(st){if(st.ph==='run'||st.ph==='armed'){var b=st.bias,g=st.gref;st.reset(st);st.bias=b;st.gref=g;st.ph='armed';}},
   init:function(st){st.ax=1;st.tr=[slTrace(220),slTrace(220),slTrace(220)];
     st.h=[{v:.5},{v:.2},{v:.1}];st.reset(st);},
   reset:function(st){st.ph='cal';st.calN=0;st.calS=0;st.bias=0;st.gref=null;st.tilt=0;
@@ -31104,6 +31122,7 @@ var SL_IMPL={
 // TANGENT; a trial with a deliberate pause in the middle separates them, and the
 // crossings of the mean line are the mean value theorem drawn on real data.
 'avg-inst':{
+  resume:function(st){if(st.ph==='run'||st.ph==='armed'){var b=st.bias,g=st.gref;st.reset(st);st.bias=b;st.gref=g;st.ph='armed';}},
   init:function(st){st.ax=1;st.tr=[slTrace(220),slTrace(220)];st.h=[{v:.2},{v:.1}];st.reset(st);},
   reset:function(st){st.ph='cal';st.calN=0;st.calS=0;st.bias=0;st.gref=null;st.tilt=0;
     st.v=0;st.x=0;st.ap=0;st.still=0;st.dur=0;st.rec=[];st.cap=null;st.pre=[];
@@ -31272,6 +31291,7 @@ var SL_IMPL={
 // to near zero, which is what "weightless" means; timing it gives T, and a
 // measured height turns several tosses into a value for g.
 'freefall-toss':{
+  resume:function(st){st.buf=[];st.inFall=false;st.fallT=0;st.pend=null;},
   init:function(st){st.tr=slTrace(220);st.trR=slTrace(220);st.h={v:12};st.reset(st);},
   reset:function(st){
     if(st.tr){st.tr.clear();st.trR.clear();}
@@ -31462,6 +31482,7 @@ var SL_IMPL={
 // weight. A lift ride shows all three phases, and the middle one -- constant
 // velocity, reading back to exactly g -- is the whole point.
 'lift-ride':{
+  resume:function(st){if(st.ph==='run'){st.ph='ready';st.rec=[];st.v=0;st.ap=0;st.quiet=0;}st.pre=[];},
   init:function(st){st.tr=slTrace(400);st.h={v:.3};st.reset(st);},
   reset:function(st){if(st.tr)st.tr.clear();
     st.ph='cal';st.calN=0;st.calS=[0,0,0];st.g0=0;st.u=null;
@@ -31607,6 +31628,7 @@ var SL_IMPL={
 // 3 - 2cos(th0). No mass, no length, no timing -- only the release angle, which
 // the gyroscope supplies by integrating the rate from release to the bottom.
 'swing-energy':{
+  resume:function(st){st.inSw=false;st.still=false;st.pre=0;},
   init:function(st){st.tr=slTrace(240);st.h={v:1};st.pts=[];st.reset(st);},
   reset:function(st){if(st.tr)st.tr.clear();
     st.ph='cal';st.calN=0;st.calS=[0,0,0];st.g0=0;st.u=null;
@@ -31883,6 +31905,7 @@ var SL_IMPL={
 // mu_k straight off the reading: on the level, the horizontal part of proper
 // acceleration during a free slide is mu_k*g and nothing else.
 'slide-mu':{
+  resume:function(st){st.run=0;st.sum=0;st.cnt=0;st.muPrev=undefined;},
   init:function(st){st.tr=slTrace(240);st.h={v:.6};st.pts=[];st.reset(st);},
   reset:function(st){if(st.tr)st.tr.clear();
     st.ph='cal';st.calN=0;st.calS=[0,0,0];st.g0=0;st.u=null;
@@ -31963,6 +31986,7 @@ var SL_IMPL={
 // Same drop, different softness: delta-v is fixed, the time is not, so the
 // force is not either. This is the airbag, stated as a measurement.
 'impulse-land':{
+  resume:function(st){st.inFall=false;st.fallT=0;st.inHit=false;},
   init:function(st){st.tr=slTrace(260);st.h={v:20};st.pts=[];st.reset(st);},
   reset:function(st){if(st.tr)st.tr.clear();
     st.ph='cal';st.calN=0;st.calS=[0,0,0];st.g0=0;st.u=null;
@@ -32046,6 +32070,7 @@ var SL_IMPL={
     } else simText(ctx,'אותו גובה, משטחים ברכות שונה — והשוו את העמודות',W/2,H-12,mu,11,'center');}},
 
 'slip-angle':{
+  resume:function(st){st.quiet=0;},
   init:function(st){st.tr=slTrace(240);st.h={v:1};st.pts=[];st.reset(st);},
   reset:function(st){if(st.tr)st.tr.clear();st.th=0;st.slip=0;st.hold=0;st.quiet=0;
     st.thMin=0;st.algn=0;},
@@ -32249,6 +32274,7 @@ var SL_IMPL={
 
 // a_c from |G|, which no gravity filter can eat, and r read off the slope
 'spin-fit':{
+  resume:function(st){st.acc=0;st.wLast=0;},
   init:function(st){st.pts=[];st.r=0;st.r2=0;st.g0=0;st.calN=0;st.calS=0;st.acc=0;st.accN=0;st.wS=0;st.reset(st);},
   reset:function(st){st.pts=[];st.r=0;st.r2=0;st.g0=0;st.calN=0;st.calS=0;st.ph='cal';
     st.w=0;st.ac=0;st.acc=0;st.accN=0;st.wS=0;st.wLast=0;},
@@ -32293,6 +32319,7 @@ var SL_IMPL={
 
 // T from crossings, then T² against L, and g off the slope
 'pendulum-fit':{
+  resume:function(st){if(st.pd)st.pd.reset();st.T=0;},
   init:function(st){st.tr=slTrace(220);st.pd=slPeriod();st.h={v:1};st.pts=[];st.g=0;st.r2=0;st.reset(st);},
   reset:function(st){if(st.pd)st.pd.reset();if(st.tr)st.tr.clear();
     st.T=0;st.sp=0;st.va=[0,0,0];st.vr=[0,0,0];st.L=0.5;st.amp=0;st.pkA=0;st.pkT=0;st.gyro=false;},
@@ -32431,6 +32458,10 @@ function initSensorLab(key){
   var hb=document.getElementById('sl-hold');
   if(hb)hb.addEventListener('click',function(){
     _sl.paused=!_sl.paused;
+    // Readings that arrived while frozen were dropped, so a trial that was in
+    // progress would now integrate straight across the gap as if no time had
+    // passed. Labs that integrate abandon the half-measured trial instead.
+    if(!_sl.paused&&impl.resume)impl.resume(st);
     hb.textContent=_sl.paused?'▶ המשך':'⏸ הקפא';
     hb.className='sl-sec'+(_sl.paused?' on':'');});
   // zoom is shared by both plot kinds, so one control serves the whole card
@@ -32453,7 +32484,7 @@ function initSensorLab(key){
     btn.disabled=true;
     sensorRequest().then(function(r){
       btn.disabled=false;
-      if(r==='denied'){say('ההרשאה לחיישני התנועה נדחתה. אפשר לאשר אותה מחדש בהגדרות האתר בדפדפן.');return;}
+      if(r==='denied'){say('ההרשאה לחיישני התנועה נדחתה. באייפון: סגרו את הלשונית, פתחו את הדף מחדש ואשרו כשתישאלו.');return;}
       if(r==='error'){say('לא ניתן לבקש הרשאה לחיישנים בדפדפן זה.');return;}
       say('');_sensor.got=0;_sl.paused=false;st.reset(st);
       var _hb=document.getElementById('sl-hold');
@@ -32464,7 +32495,7 @@ function initSensorLab(key){
       _sl.raf=requestAnimationFrame(loop);
       setTimeout(function(){
         if(!_sl.run)return;
-        if(_sensor.got===0)say('לא מתקבלים נתונים ממד-התאוצה. ייתכן שהמכשיר אינו כולל חיישן זמין לדפדפן.');
+        if(_sensor.got===0)say('לא מתקבלים נתונים מחיישני התנועה. בדקו שהגישה ל״חיישני תנועה״ מותרת בהגדרות האתר בדפדפן; אם כן — כנראה שאין במכשיר חיישן שהדפדפן יכול לקרוא.');
         else if(_sensor.bad>_sensor.got*0.8)say('החיישן מדווח אירועים ריקים. נסו דפדפן אחר, או בדקו שההרשאה אושרה.');
         else if(L.minHz&&_sensor.hz&&_sensor.hz<L.minHz)
           // a period needs ~10 samples a cycle and an impact needs a shape;

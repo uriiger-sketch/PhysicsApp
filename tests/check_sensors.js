@@ -471,6 +471,47 @@ const S = p => p.evaluate(() => JSON.parse(JSON.stringify(_sl.st, (k, v) =>
   t('every empty event is rejected', st2.rejected, 20);
   t('  and not one of them reaches a lab as data', st2.reached, 0);
 
+  console.log('\n15b) a busy page delivers readings in bursts — the clock must not run fast');
+  const burst = await p.evaluate(async () => {
+    let sum = 0, n = 0, gyro = [];
+    sensorStart(s => { sum += s.dt; n++; gyro.push(s.gyro); });
+    const fire = (rot) => window.dispatchEvent(new DeviceMotionEvent('devicemotion', {
+      acceleration: { x: 0, y: 0, z: 0 }, accelerationIncludingGravity: { x: 0, y: 0, z: 9.81 },
+      rotationRate: rot, interval: 16 }));
+    const t0 = performance.now();
+    fire(null);
+    // 12 bursts of 5 readings, one burst every 80 ms: 0.96 s of real time
+    for (let k = 0; k < 12; k++) {
+      await new Promise(r => setTimeout(r, 80));
+      for (let i = 0; i < 5; i++) fire(null);
+    }
+    const wall = (performance.now() - t0) / 1000, noGyro = gyro.every(x => x === false);
+    const out = { sum, wall, n, noGyro };
+    for (let i = 0; i < 3; i++) fire({ alpha: 0, beta: 0, gamma: 0 });
+    out.gyroNow = gyro[gyro.length - 1];
+    sensorStop();
+    return out;
+  });
+  t('every reading arrived', burst.n, 61);
+  t('summed dt follows the wall clock, not 5 nominal periods per burst', burst.sum, burst.wall, 0.08);
+  t('  (charging each burst reading 16 ms would have given ~' + (burst.wall + 12 * 4 * 0.016).toFixed(2) + ' s)',
+    burst.sum < burst.wall + 0.3, true);
+  t('a phone that sends rotationRate null has no gyroscope', burst.noGyro, true);
+  t('  and one that sends numbers has one, zeros included', burst.gyroNow, true);
+
+  console.log('\n15c) freezing in the middle of a trial abandons it, it does not stitch across the gap');
+  await openLab(p, 'kinematics.acceleration');
+  await push(p, 'kinematics.acceleration', 70, '()=>({g:[0,0,9.81],a:[0,0,0]})');
+  await push(p, 'kinematics.acceleration', 20, '()=>({g:[0,1,9.81],a:[0,1,0]})');
+  const fr = await p.evaluate(() => {
+    const ph0 = _sl.st.ph, hb = document.getElementById('sl-hold');
+    hb.click(); hb.click();
+    return { ph0, ph1: _sl.st.ph, rec: _sl.st.rec.length };
+  });
+  t('the trial was running', fr.ph0, 'run');
+  t('after the freeze it is armed again, calibration kept', fr.ph1, 'armed');
+  t('  and the half-measured record is gone', fr.rec, 0);
+
   console.log('\n16) lifecycle');
   await openLab(p, 'planar.circular');
   const life = await p.evaluate(() => {
