@@ -20387,20 +20387,25 @@ runAnim('anim-dielectric',(canvas,ctx,W,H,t)=>{
     ctx.fillStyle='#60a5fa';ctx.fillRect(bL,sT+1,R-bL,3);
     ctx.fillStyle='#f87171';ctx.fillRect(bL,sB-4,R-bL,3);ctx.restore();
   }
-  // field arrows: full strength in the air gaps, kappa times weaker inside the
-  // slab -- the layers in series share D, so the arrow there is shorter
-  const nl=7;
+  // Field arrows, line width = field strength, with the battery holding V.
+  // Where the slab is, air and slab are layers in series: D is shared, so the
+  // field in the slab is kappa times weaker than in the air beside it -- and
+  // since the same V must still be dropped across the whole gap, the air there
+  // carries MORE field than an empty column: E_air = V/(d - t + t/kappa).
+  // (The air arrows over the slab used to be drawn exactly as strong as the
+  // empty columns', which would have dropped less than V across the gap.)
+  const nl=7, tf=th/(B-T), boost=1/(1-tf+tf/K), lw0=1.6;
   for(let i=0;i<nl;i++){
     const x=L+18+(R-L-36)*i/(nl-1);
     const covered=x>=sx;
     if(covered){
-      arrow(ctx,x,T+3,x,sT-2,'#e2e8f0',1.8,6);
-      arrow(ctx,x,sT+th*0.30,x,sB-th*0.30,'#a78bfa',1.3,5);
-      arrow(ctx,x,sB+2,x,B-3,'#e2e8f0',1.8,6);
-    } else arrow(ctx,x,T+3,x,B-3,'#e2e8f0',1.8,7);
+      arrow(ctx,x,T+3,x,sT-2,'#e2e8f0',lw0*boost,6+2*boost);
+      arrow(ctx,x,sT+th*0.22,x,sB-th*0.22,'#c4b5fd',Math.max(0.6,lw0*boost/K),5);
+      arrow(ctx,x,sB+2,x,B-3,'#e2e8f0',lw0*boost,6+2*boost);
+    } else arrow(ctx,x,T+3,x,B-3,'#e2e8f0',lw0,7);
   }
-  label(ctx,'בשכבות בטור השדה הוא שמשתנה, לא המתח הכולל',W/2,H-24,'#64748b',9.5);
-  label(ctx,'בתוך הדיאלקטרי החץ קצר — השדה שם קטן פי κ',W/2,H-9,'#a78bfa',11);
+  label(ctx,'V קבוע · עובי החץ = עוצמת השדה',W/2,H-24,'#64748b',9.5);
+  label(ctx,'בתוך הדיאלקטרי השדה קטן פי κ — ובאוויר שמעליו הוא דווקא גדל',W/2,H-9,'#a78bfa',11);
 });
 
 // ELECTRO ANIM: parabola inside the plates, straight line outside
