@@ -9735,19 +9735,25 @@ function simMultiFreefall(canvas){
 
 
 function simVectors(canvas){
-  const H=290; const {ctx,W,dpr}=setupCanvas(canvas,H);
+  const H=320; const {ctx,W,dpr}=setupCanvas(canvas,H);
   const id=canvas.id;
-  const CX=W/2-40, CY=H/2+10;
-  let vA={x:80,y:-50}, vB={x:40,y:70}, dragging=null;
+  const U=40;                       // pixels per unit
+  const CX=Math.round(W/2-U), CY=Math.round(H/2+16);
+  let vA={x:3*U,y:-1*U}, vB={x:1*U,y:2*U}, dragging=null;
   const COLORS={A:'#ef4444',B:'#3b82f6',R:'#34d399'};
-
+  // a label just beyond the arrow head, along the arrow
+  function tipLabel(v,txt,col){
+    var L=Math.hypot(v.x,v.y)||1;
+    var x=CX+v.x+v.x/L*22, y=CY+v.y+v.y/L*16+4;
+    simText(ctx,txt,Math.max(30,Math.min(W-30,x)),Math.max(52,Math.min(H-24,y)),col,12,'center',true);
+  }
   function draw(){
     if(_simStop[id])return;
     simBg(ctx,W,H);
-    // grid dots
-    for(let x=30;x<W;x+=30) for(let y=20;y<H;y+=30){
-      ctx.save(); ctx.fillStyle='rgba(255,255,255,.04)';
-      ctx.beginPath(); ctx.arc(x,y,1.2,0,Math.PI*2); ctx.fill(); ctx.restore();
+    // grid dots on whole units, so the components can be counted
+    for(let gx=CX%U;gx<W;gx+=U) for(let gy=CY%U;gy<H;gy+=U){
+      ctx.save(); ctx.fillStyle=(gx===CX||gy===CY)?'rgba(255,255,255,.16)':'rgba(255,255,255,.07)';
+      ctx.beginPath(); ctx.arc(gx,gy,1.6,0,Math.PI*2); ctx.fill(); ctx.restore();
     }
     const R={x:vA.x+vB.x,y:vA.y+vB.y};
 
@@ -9766,19 +9772,23 @@ function simVectors(canvas){
     ctx.beginPath(); ctx.moveTo(CX+vB.x,CY+vB.y); ctx.lineTo(CX+R.x,CY+R.y); ctx.stroke(); ctx.setLineDash([]); ctx.restore();
     // Resultant
     simArrow(ctx,CX,CY,CX+R.x,CY+R.y,COLORS.R,3.5,14);
+    simHandle(ctx,CX+vA.x,CY+vA.y,COLORS.A);
+    simHandle(ctx,CX+vB.x,CY+vB.y,COLORS.B);
 
-    // labels
-    const lA=Math.hypot(vA.x,vA.y)/40, lB=Math.hypot(vB.x,vB.y)/40, lR=Math.hypot(R.x,R.y)/40;
-    const aA=Math.atan2(vA.y,vA.x)*180/Math.PI, aB=Math.atan2(vB.y,vB.x)*180/Math.PI;
-    simText(ctx,`A |${lA.toFixed(1)}|`,CX+vA.x+14,CY+vA.y-6,COLORS.A,12,undefined,true);
-    simText(ctx,`B |${lB.toFixed(1)}|`,CX+vB.x+14,CY+vB.y-6,COLORS.B,12,undefined,true);
-    simText(ctx,`R=A+B |${lR.toFixed(1)}|`,CX+R.x+14,CY+R.y-6,COLORS.R,12,undefined,true);
+    // labels: magnitudes as |A| = …
+    const lA=Math.hypot(vA.x,vA.y)/U, lB=Math.hypot(vB.x,vB.y)/U, lR=Math.hypot(R.x,R.y)/U;
+    tipLabel(vA,'A',COLORS.A); tipLabel(vB,'B',COLORS.B); tipLabel(R,'A+B',COLORS.R);
+    var th=Math.abs(Math.atan2(vA.x*vB.y-vA.y*vB.x,vA.x*vB.x+vA.y*vB.y))*180/Math.PI;
 
     // info
     ctx.save(); ctx.fillStyle='rgba(10,24,44,.85)'; ctx.strokeStyle='#1e3a52'; ctx.lineWidth=1;
-    ctx.beginPath(); ctx.roundRect(10,8,W-20,30,6); ctx.fill(); ctx.stroke(); ctx.restore();
-    simText(ctx,`A=(${(vA.x/40).toFixed(1)},${(-vA.y/40).toFixed(1)})  B=(${(vB.x/40).toFixed(1)},${(-vB.y/40).toFixed(1)})  R=(${(R.x/40).toFixed(1)},${(-R.y/40).toFixed(1)})`,W/2,23,'#94a3b8',11,undefined,true);
-    simText(ctx,'גררו ראשי החצים האדום והכחול',W/2,H-10,'#7d8da6',10);
+    ctx.beginPath(); ctx.roundRect(8,6,W-16,40,6); ctx.fill(); ctx.stroke(); ctx.restore();
+    simText(ctx,'|A| = '+lA.toFixed(1),W*0.2,20,COLORS.A,11,'center',true);
+    simText(ctx,'|B| = '+lB.toFixed(1),W*0.5,20,'#60a5fa',11,'center',true);
+    simText(ctx,'|A+B| = '+lR.toFixed(1),W*0.8,20,COLORS.R,11,'center',true);
+    var note=(lR<lA-0.05&&lR<lB-0.05)?'  ·  הסכום קצר משני הווקטורים!':(Math.abs(lR-(lA+lB))<0.05?'  ·  באותו כיוון: |A+B| = |A|+|B|':'');
+    simText(ctx,'הזווית בין A ל-B:  θ = '+th.toFixed(0)+'°'+note,W/2,37,'#cbd5e1',10,'center');
+    simText(ctx,'גררו את ראשי החצים האדום והכחול · נקודה לכל יחידה',W/2,H-10,'#94a3b8',10);
     requestAnimationFrame(draw);
   }
 
@@ -9786,20 +9796,23 @@ function simVectors(canvas){
   function _vDn(e){
     const p=simPointerXY(canvas,dpr,e);
     const tA=getTip(vA), tB=getTip(vB);
-    if(Math.hypot(p.x-tA.x,p.y-tA.y)<26){dragging='A';e.preventDefault();}
-    else if(Math.hypot(p.x-tB.x,p.y-tB.y)<26){dragging='B';e.preventDefault();}
+    const dA=Math.hypot(p.x-tA.x,p.y-tA.y), dB=Math.hypot(p.x-tB.x,p.y-tB.y);
+    if(Math.min(dA,dB)<28){dragging=dA<=dB?'A':'B';e.preventDefault();}
   }
   function _vMv(e){
     if(!dragging)return;
     const p=simPointerXY(canvas,dpr,e);
-    const v={x:p.x-CX,y:p.y-CY};
+    // keep the tip on the canvas, and snap to tenths of a unit
+    const x=Math.max(8,Math.min(W-8,p.x)), y=Math.max(52,Math.min(H-22,p.y));
+    const v={x:Math.round((x-CX)/U*10)/10*U,y:Math.round((y-CY)/U*10)/10*U};
     if(dragging==='A')vA=v; else vB=v;
     e.preventDefault();
   }
   function _vUp(){dragging=null;}
   canvas.addEventListener('mousedown',_vDn);canvas.addEventListener('touchstart',_vDn,{passive:false});
   canvas.addEventListener('mousemove',_vMv);canvas.addEventListener('touchmove',_vMv,{passive:false});
-  canvas.addEventListener('mouseup',_vUp);canvas.addEventListener('touchend',_vUp);
+  canvas.addEventListener('mouseup',_vUp);canvas.addEventListener('touchend',_vUp);canvas.addEventListener('mouseleave',_vUp);
+  canvas.style.touchAction='none';
   requestAnimationFrame(draw);
 }
 
