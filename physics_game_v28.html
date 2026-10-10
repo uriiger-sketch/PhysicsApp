@@ -33614,11 +33614,14 @@ function buildSim(sim){
   else if(sim.type==='elc-cap')extra=C(rng('elc-cV',1,24,12,1,'מתח V',' V')+rng('elc-cA',50,400,200,10,'שטח A',' cm²')+rng('elc-cd',1,10,4,0.5,'מרווח d',' mm')+btn('cap-diel','🧱 הכניסו דיאלקטרי κ=3','btn-secondary')+btn('cap-disc','✂️ נתקו מהסוללה (Q קבוע)','btn-secondary'));
   if(!extra&&typeof MAG_CTRL!=='undefined'&&MAG_CTRL[sim.type])extra=C(MAG_CTRL[sim.type]());
   const simDone=isCompleted(state.chapter,state.section,'sim');
+  // the description under the sim takes a line of its own when the two
+  // buttons leave it less than 15em: at 360 px it was squeezed into a
+  // 90 px column beside them, one or two words a line, in every sim
   return `<div class="sim-container">
     <div class="sim-canvas-wrap"><canvas id="sim-canvas" height="280" role="img" aria-label="${String(sim.title||'סימולציה').replace(/"/g,'&quot;').replace(/<[^>]*>/g,'')}"></canvas></div>
     ${extra}
     <div class="sim-controls" style="border-top:1px solid var(--border);padding-top:12px">
-      <p style="color:var(--muted);font-size:.85rem;flex:1">${sim.desc}</p>
+      <p style="color:var(--muted);font-size:.85rem;line-height:1.6;flex:1 1 15em">${sim.desc}</p>
       <button class="btn btn-secondary" onclick="restartSim()" style="font-size:.82rem;padding:6px 12px">🔄 התחילו מחדש</button>
       ${!simDone?'<button class="btn btn-green" onclick="finishSim()">✅ סיימתי</button>':'<span style="color:var(--green);font-weight:700">✅ הושלמה</span>'}
     </div>
