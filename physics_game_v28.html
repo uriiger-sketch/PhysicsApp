@@ -21704,119 +21704,89 @@ runAnim('anim-gravity',(canvas,ctx,W,H,t)=>{
 // ── ANIM 2: Spring / Hooke's Law — F=-kx with live F(x) graph
 runAnim('anim-spring-force',(canvas,ctx,W,H,t)=>{
   bg(ctx,W,H);
-  const k=3.0, amp=Math.min(W*0.22, 65);
-  const x=amp*Math.cos(t*1.7);           // px displacement from eq
-  const x_m=x/100;                        // metres
-  const F_N=-k*x_m;                       // signed Hooke force (N)
-  const absF=Math.abs(F_N);               // magnitude
-  const absx=Math.abs(x_m);              // magnitude of displacement
+  // A mass on a horizontal spring (k = 3 N/m) oscillating about x = 0, with the signed
+  // graph F(x) = −kx beside it: a straight line of slope −k through the origin.
+  // (The graph used to plot |F| against |x| under a caption reading F = −kx, and on a
+  // phone the mass swung into the graph panel.)
+  const k=3.0;
+  const gL=W*0.60;                                    // graph panel starts here
+  const wallX=16, mr=Math.min(H*0.13,20);
+  const amp=Math.max(20,Math.min(65,(gL-8-wallX-40)/2-mr));   // px; 100 px = 1 m
+  const eqX=Math.min(W*0.42,gL-8-amp-mr);
+  const x=amp*Math.cos(t*1.7);
+  const x_m=x/100, F_N=-k*x_m;
+  const mx=eqX+x;
+  const my=Math.round(H*0.45);
 
-  // Layout: spring scene left 58%, graph right 40%
-  const wallX=16, eqX=W*0.44, mx=eqX+x;
-  const my=Math.round(H*0.45);            // spring centre — lower so labels fit above
-  const mr=Math.min(H*0.13, 20);          // mass radius
-
-  // ── Equilibrium dashed line ──────────────────────────────
+  // Equilibrium line
   ctx.save();ctx.strokeStyle='rgba(255,255,255,.15)';ctx.lineWidth=1;ctx.setLineDash([4,5]);
   ctx.beginPath();ctx.moveTo(eqX,my-H*0.30);ctx.lineTo(eqX,my+H*0.22);
   ctx.stroke();ctx.setLineDash([]);ctx.restore();
-  label(ctx,'x=0',eqX,my-H*0.30-7,'#7d8da6',7.5,'center');
+  label(ctx,'x = 0',eqX,my-H*0.30-7,'#7d8da6',9,'center');
 
-  // ── Wall ─────────────────────────────────────────────────
+  // Wall
   ctx.save();ctx.fillStyle='#162236';ctx.fillRect(0,my-H*0.32,wallX,H*0.64);
   ctx.strokeStyle='#2d5275';ctx.lineWidth=1;
-  for(let y=my-H*0.28;y<my+H*0.28;y+=12){
-    ctx.beginPath();ctx.moveTo(wallX,y);ctx.lineTo(wallX-8,y+8);ctx.stroke();
-  }
+  for(let y=my-H*0.28;y<my+H*0.28;y+=12){ctx.beginPath();ctx.moveTo(wallX,y);ctx.lineTo(wallX-8,y+8);ctx.stroke();}
   ctx.restore();
 
-  // ── Spring coil ──────────────────────────────────────────
+  // Spring: red when stretched, green when compressed
   const stretch=x/amp;
   const springCol=stretch>0?`rgba(239,68,68,${0.55+0.45*Math.abs(stretch)})`
                            :`rgba(52,211,153,${0.55+0.45*Math.abs(stretch)})`;
   const segs=16, sLen=Math.max(10,mx-wallX-mr-4), dxs=sLen/segs;
-  const coilH=Math.min(H*0.11, 12);
+  const coilH=Math.min(H*0.11,12);
   ctx.save();ctx.strokeStyle=springCol;ctx.lineWidth=2.5;ctx.lineCap='round';ctx.lineJoin='round';
   ctx.beginPath();ctx.moveTo(wallX,my);
-  for(let i=0;i<segs;i++) ctx.lineTo(wallX+(i+0.5)*dxs, my+(i%2===0?coilH:-coilH));
+  for(let i=0;i<segs;i++) ctx.lineTo(wallX+(i+0.5)*dxs,my+(i%2===0?coilH:-coilH));
   ctx.lineTo(mx-mr,my);ctx.stroke();ctx.restore();
 
-  // ── Mass circle ──────────────────────────────────────────
+  // Mass
   const grad=ctx.createRadialGradient(mx-mr*0.3,my-mr*0.3,mr*0.1,mx,my,mr);
   grad.addColorStop(0,'#fde68a');grad.addColorStop(1,'#d97706');
   ctx.save();ctx.shadowColor='rgba(251,191,36,.7)';ctx.shadowBlur=14;
   circle(ctx,mx,my,mr,grad,'#fbbf24',2.5);ctx.restore();
-  // Mass label "m" inside
-  ctx.save();ctx.fillStyle='#1a0a00';
-  ctx.font='bold '+Math.round(mr*0.75)+'px Heebo,sans-serif';
-  ctx.textAlign='center';ctx.textBaseline='middle';
-  ctx.fillText('m',mx,my);ctx.restore();
+  ctx.save();ctx.fillStyle='#1a0a00';ctx.font='bold '+Math.round(mr*0.75)+'px Heebo,sans-serif';
+  ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('m',mx,my);ctx.restore();
 
-  // ── x displacement arrow below mass ──────────────────────
+  // Displacement x (from x = 0 to the mass), below
   if(Math.abs(x)>4){
     const col2=x>0?'#a78bfa':'#22d3ee';
     arrow(ctx,eqX,my+mr+10,mx,my+mr+10,col2,1.8,7);
-    label(ctx,'x='+(x_m>=0?'+':'')+x_m.toFixed(3)+'m',(eqX+mx)/2,my+mr+22,col2,7.5,'center');
+    label(ctx,'x = '+(x_m>=0?'+':'−')+Math.abs(x_m).toFixed(2)+' m',(eqX+mx)/2,my+mr+24,col2,9,'center');
+  }
+  // Restoring force, always toward x = 0, above
+  if(Math.abs(F_N)>0.03){
+    const dir=F_N>0?1:-1;
+    const len=Math.abs(F_N)*30;
+    arrow(ctx,mx,my-mr-10,mx+dir*len,my-mr-10,'#fbbf24',2.5,9);
+    label(ctx,'F = '+(F_N>=0?'+':'−')+Math.abs(F_N).toFixed(2)+' N',mx+dir*len/2,my-mr-18,'#fbbf24',9,'center');
   }
 
-  // ── |F| arrow — always pointing TOWARD equilibrium ───────
-  // The arrow shows the RESTORING force magnitude |F|=k|x|
-  if(absF>0.03){
-    const towardEq = x>0?-1:1; // arrow direction always toward x=0
-    const arrowLen=Math.min(absF*30, amp*0.85);
-    const col3='#fbbf24';
-    arrow(ctx,mx+towardEq*(mr+2),my,mx+towardEq*(mr+2+arrowLen),my,col3,2.5,9);
-    label(ctx,'|F|='+absF.toFixed(2)+'N',
-          mx+towardEq*(mr+2+arrowLen+6),my-2,col3,8.5,
-          towardEq>0?'left':'right');
-  }
-
-  // ── |F|(x) graph — right panel ───────────────────────────
-  // Graph shows |F| = k|x|: always positive, linear through origin
-  // x-axis: |x| from 0 to amp/100, y-axis: |F| = k|x| from 0 upward
-  const gL=W*0.61, gR=W-6, gT=H*0.04, gB=H*0.92;
+  // Signed graph F(x)
+  const gR=W-6, gT=H*0.04, gB=H*0.92;
   const gW=gR-gL, gH=gB-gT;
   ctx.save();ctx.fillStyle='rgba(6,14,28,.90)';ctx.strokeStyle='#1e4060';ctx.lineWidth=1;
   ctx.beginPath();ctx.roundRect(gL,gT,gW,gH,5);ctx.fill();ctx.stroke();ctx.restore();
-
-  // Axes: origin at bottom-left of graph data area
-  const gOX=gL+10, gOY=gB-10; // origin
-  const gDataW=gW-18, gDataH=gH-22;
-  ctx.save();ctx.strokeStyle='#2d5275';ctx.lineWidth=1;
-  ctx.beginPath();ctx.moveTo(gOX,gT+8);ctx.lineTo(gOX,gOY);ctx.stroke(); // F axis (up)
-  ctx.beginPath();ctx.moveTo(gOX,gOY);ctx.lineTo(gR-6,gOY);ctx.stroke(); // x axis (right)
-  ctx.restore();
-  // Axis arrow heads
-  arrow(ctx,gOX,gT+12,gOX,gT+4,'#3d6480',1,6);
-  arrow(ctx,gR-10,gOY,gR-4,gOY,'#3d6480',1,6);
-  label(ctx,'|x| (m) →',gR-5,gOY+9,'#7d8da6',7,'right');
-  label(ctx,'|F| (N) ↑',gOX+4,gT+12,'#7d8da6',7,'left');
-
-  // |F| = k|x| reference line (positive slope, from origin to top-right)
+  const cx=gL+gW/2, cy=gT+gH/2;
   const xMax=amp/100, fMax=k*xMax;
-  const xSc=gDataW/xMax, fSc=gDataH/fMax;
-  ctx.save();ctx.strokeStyle='rgba(34,211,153,.4)';ctx.lineWidth=1.5;ctx.setLineDash([3,4]);
-  ctx.beginPath();ctx.moveTo(gOX,gOY);ctx.lineTo(gOX+xMax*xSc, gOY-fMax*fSc);
-  ctx.stroke();ctx.setLineDash([]);ctx.restore();
-  label(ctx,'|F|=k|x|',gOX+xMax*xSc*0.55,gOY-fMax*fSc*0.6,'#22d3ee',7.5,'left');
+  const xSc=(gW/2-14)/xMax, fSc=(gH/2-20)/fMax;
+  ctx.save();ctx.strokeStyle='#2d5275';ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(gL+6,cy);ctx.lineTo(gR-6,cy);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(cx,gT+6);ctx.lineTo(cx,gB-6);ctx.stroke();ctx.restore();
+  label(ctx,'x (m)',gR-6,cy-5,'#7d8da6',9,'right');
+  label(ctx,'F (N)',cx+5,gT+14,'#7d8da6',9,'left');
+  ctx.save();ctx.strokeStyle='rgba(34,211,153,.55)';ctx.lineWidth=1.8;
+  ctx.beginPath();ctx.moveTo(cx-xMax*xSc,cy-fMax*fSc);ctx.lineTo(cx+xMax*xSc,cy+fMax*fSc);ctx.stroke();ctx.restore();
+  label(ctx,'F = −kx',cx-xMax*xSc*0.55,cy-fMax*fSc*0.55-8,'#22d3ee',9.5,'right');
+  label(ctx,'שיפוע: −k = −'+k+' N/m',cx,gB-6,'#7d8da6',9,'center');
+  circle(ctx,cx+x_m*xSc,cy-F_N*fSc,6,'#fbbf24');
 
-  // Current dot at (|x|, |F|) — always in positive quadrant
-  const dotX=Math.min(gOX+absx*xSc, gR-6);
-  const dotY=Math.max(gT+6, gOY-absF*fSc);
-  circle(ctx,dotX,dotY,6,'#fbbf24');
-
-  // k label and formula at bottom of graph
-  label(ctx,'שיפוע = k = '+k+' N/m',gOX+gDataW/2,gB-2,'#7d8da6',7,'center');
-
-  // ── Footer formula bar (left side) ───────────────────────
+  // Footer
   ctx.save();ctx.fillStyle='rgba(6,14,28,.88)';ctx.strokeStyle='#1e4060';ctx.lineWidth=1;
-  ctx.beginPath();ctx.roundRect(6,H-15,gL-10,13,3);ctx.fill();ctx.stroke();ctx.restore();
-
-  const _showAbs=window._springForceModeAbs;
-  const footerTxt=_showAbs
-    ?'|F| = k|x| = '+k+'×'+absx.toFixed(3)+' = '+absF.toFixed(3)+' N'
-    :'F = −kx = −('+k+')×'+x_m.toFixed(3)+' = '+F_N.toFixed(3)+' N';
-  label(ctx,footerTxt,(gL-10)/2+6,H-6,'#22d3ee',7.5,'center');
+  ctx.beginPath();ctx.roundRect(6,H-17,gL-12,15,3);ctx.fill();ctx.stroke();ctx.restore();
+  const xs=x_m<0?'('+'−'+Math.abs(x_m).toFixed(2)+')':x_m.toFixed(2);
+  label(ctx,'F = −kx = −'+k+'×'+xs+' = '+(F_N>=0?'':'−')+Math.abs(F_N).toFixed(2)+' N',(gL-12)/2+6,H-6,'#22d3ee',9,'center');
 });
 
 // ── ANIM 3: Static Friction — f(F) graph + moving block
@@ -23615,123 +23585,90 @@ runAnim('anim-gravity2',(canvas,ctx,W,H,t)=>{
 
 runAnim('anim-spring2',(canvas,ctx,W,H,t)=>{
   bg(ctx,W,H);
-  // Series vs parallel spring oscillation — animated with live physics
-  // Series: k_eff = k1*k2/(k1+k2) = 50 N/m → lower frequency
-  // Parallel: k_eff = k1+k2 = 200 N/m → higher frequency
-  var k1=100,k2=100,mMass=0.5;
-  var kS=k1*k2/(k1+k2); // 50
-  var kP=k1+k2;         // 200
-  var ampPx=28;         // amplitude in pixels
-  // Oscillation: x(t) = A*cos(ω*t), ω=sqrt(k/m)
-  var omS=Math.sqrt(kS/mMass); // ~10 rad/s
-  var omP=Math.sqrt(kP/mMass); // ~20 rad/s
-  var xS=ampPx*Math.cos(omS*t); // series mass displacement (downward positive)
-  var xP=ampPx*Math.cos(omP*t); // parallel mass displacement
+  // The same 0.5 kg on two identical springs (k = 100 N/m each), in series and in
+  // parallel. Series: k = 50 N/m, T = 0.63 s. Parallel: k = 200 N/m, T = 0.31 s.
+  // Both oscillate with A = 0.05 m about equilibrium; F = −k·x there (spring plus weight).
+  // The old version hid the tops under the banner, ran the masses into the captions,
+  // kept the junction of the series pair fixed, and wrote 'k(שקול)' inside a formula.
+  var k1=100,k2=100,m=0.5,A=0.05;
+  var kS=k1*k2/(k1+k2), kP=k1+k2;
+  var omS=Math.sqrt(kS/m), omP=Math.sqrt(kP/m);
+  var xS=A*Math.cos(omS*t), xP=A*Math.cos(omP*t);   // metres, downward positive
+  var narrow=W<560;
+  var TOP=narrow?44:30;                // ceiling line
+  var INFO=H-46;                       // captions start here
+  var LX=W*0.27, RX=W*0.74, BW=44, BH=24, KF=3;
+  var PPM=400;                         // px per metre: A = 0.05 m is drawn as 20 px
+  var EQ=INFO-4-BH-A*PPM;              // equilibrium of the mass tops: lowest mass clears the captions
 
-  var CEIL_Y=14;
-  var LX=W*0.26, RX=W*0.72;
-  var LBW=44, RBW=44; // mass box widths
-
-  // Ceiling fixtures
-  ctx.save();ctx.fillStyle='#1e3a52';
-  ctx.fillRect(LX-LBW/2,CEIL_Y-8,LBW,8);
-  ctx.fillRect(RX-RBW/2,CEIL_Y-8,RBW,8);
-  ctx.restore();
-  // Hatch marks on ceiling
-  ctx.save();ctx.strokeStyle='#2d5275';ctx.lineWidth=1;
-  for(var xi=LX-LBW/2;xi<LX+LBW/2;xi+=8){ctx.beginPath();ctx.moveTo(xi,CEIL_Y-8);ctx.lineTo(xi+5,CEIL_Y-12);ctx.stroke();}
-  for(var xi2=RX-RBW/2;xi2<RX+RBW/2;xi2+=8){ctx.beginPath();ctx.moveTo(xi2,CEIL_Y-8);ctx.lineTo(xi2+5,CEIL_Y-12);ctx.stroke();}
-  ctx.restore();
-
-  function drawSpringV(x,y1,y2,col,lw){
-    if(lw===undefined)lw=2;
-    var coils=8, len=y2-y1, amp2=9;
-    ctx.save();ctx.strokeStyle=col;ctx.lineWidth=lw;ctx.lineCap='round';ctx.lineJoin='round';
+  function ceiling(x){
+    ctx.save();ctx.fillStyle='#1e3a52';ctx.fillRect(x-30,TOP-6,60,6);
+    ctx.strokeStyle='#2d5275';ctx.lineWidth=1;
+    for(var xi=x-28;xi<x+30;xi+=8){ctx.beginPath();ctx.moveTo(xi,TOP-6);ctx.lineTo(xi+4,TOP-10);ctx.stroke();}
+    ctx.restore();
+  }
+  function springV(x,y1,y2){
+    var coils=8,len=y2-y1,amp=8;
+    ctx.save();ctx.strokeStyle='#94a3b8';ctx.lineWidth=2;ctx.lineCap='round';ctx.lineJoin='round';
     ctx.beginPath();ctx.moveTo(x,y1);
-    for(var ci=0;ci<coils;ci++){
-      var yc=y1+len*(ci+0.5)/coils;
-      ctx.lineTo(x+(ci%2===0?amp2:-amp2),yc);
-      ctx.lineTo(x,y1+len*(ci+1)/coils);
-    }
+    for(var ci=0;ci<coils;ci++){ctx.lineTo(x+(ci%2===0?amp:-amp),y1+len*(ci+0.5)/coils);ctx.lineTo(x,y1+len*(ci+1)/coils);}
     ctx.stroke();ctx.restore();
   }
+  function massBox(x,y,fill,stroke){
+    ctx.save();ctx.fillStyle=fill;ctx.strokeStyle=stroke;ctx.lineWidth=2;
+    ctx.beginPath();ctx.roundRect(x-BW/2,y,BW,BH,4);ctx.fill();ctx.stroke();ctx.restore();
+    label(ctx,m+' kg',x,y+BH/2+4,'#fff',9);
+  }
+  function eqLine(x){
+    ctx.save();ctx.strokeStyle='rgba(255,255,255,.18)';ctx.setLineDash([3,4]);ctx.lineWidth=1;
+    ctx.beginPath();ctx.moveTo(x-BW/2-14,EQ);ctx.lineTo(x+BW/2+14,EQ);ctx.stroke();ctx.setLineDash([]);ctx.restore();
+  }
+  function force(x,y,xm,k,side){
+    var F=-k*xm, len=Math.abs(F)*KF;
+    if(len<3) return;
+    var y0=F<0?y:y+BH, y1=F<0?y-len:y+BH+len;   // F<0: upward
+    var ax=x+side*(BW/2+10);
+    arrow(ctx,ax,y0+(F<0?BH/2:-BH/2),ax,y1+(F<0?BH/2:-BH/2),'#22d3ee',2,7);
+    label(ctx,'F',ax+side*6,(y0+y1)/2+(F<0?BH/2:-BH/2)+4,'#22d3ee',10,side>0?'left':'right');
+  }
 
-  // ── LEFT: Series springs ──────────────────────────────────────
-  var sEquil=CEIL_Y+90; // equilibrium of joined point between springs
-  var mEquil=CEIL_Y+160; // equilibrium of mass
-  // Spring 1: ceiling to midpoint (k1)
-  var mid1Y=sEquil; // joined point fixed (massless join)
-  var mass1Y=mEquil+xS;
-  // Natural length split: both springs share displacement when in series
-  var x1disp=xS/2, x2disp=xS/2; // each spring extends by half
-  drawSpringV(LX,CEIL_Y,mid1Y+(x1disp<0?x1disp:0),x1disp>=0?'rgba(239,68,68,.7)':'rgba(52,211,153,.7)');
-  drawSpringV(LX,mid1Y+(x1disp<0?x1disp:0),mass1Y,x2disp>=0?'rgba(239,68,68,.7)':'rgba(52,211,153,.7)');
-  // Join dot
-  ctx.save();ctx.fillStyle='#94a3b8';ctx.beginPath();ctx.arc(LX,mid1Y+(x1disp<0?x1disp:0),4,0,Math.PI*2);ctx.fill();ctx.restore();
-  // Spring labels
-  label(ctx,'k₁='+k1,LX+14,CEIL_Y+40,'#94a3b8',7.5,'left');
-  label(ctx,'k₂='+k2,LX+14,mid1Y+30,'#94a3b8',7.5,'left');
-  // Mass box
-  var mH=28;
-  ctx.save();ctx.fillStyle='rgba(239,68,68,.75)';ctx.strokeStyle='#f87171';ctx.lineWidth=2;
-  ctx.beginPath();ctx.roundRect(LX-LBW/2,mass1Y,LBW,mH,4);ctx.fill();ctx.stroke();ctx.restore();
-  label(ctx,mMass+'kg',LX,mass1Y+mH/2+4,'#fff',8);
-  // Displacement arrow
-  if(Math.abs(xS)>3){
-    arrow(ctx,LX-LBW/2-18,mEquil+mH/2,LX-LBW/2-18,mass1Y+mH/2,xS>0?'#ef4444':'#34d399',1.5,6);
-    label(ctx,(xS/100).toFixed(3)+'m',LX-LBW/2-30,mEquil+(xS)/2+mH/2,'#94a3b8',7,'right');
-  }
-  // Restoring force arrow
-  var FS=(-(kS*xS/100));
-  if(Math.abs(xS)>4){
-    arrow(ctx,LX,mass1Y+(xS>0?0:mH),LX,mass1Y+(xS>0?-28:mH+28),'#22d3ee',2,8);
-    label(ctx,'F='+FS.toFixed(1)+'N',LX+4,mass1Y+(xS>0?-16:mH+18),'#22d3ee',7.5,'left');
-  }
-  // Labels
-  label(ctx,'טורי',LX,H-36,'#34d399',8.5);
-  label(ctx,'k(שקול) = k₁k₂/(k₁+k₂)',LX,H-24,'#34d399',7.5);
-  label(ctx,'= '+kS.toFixed(0)+' N/m',LX,H-12,'#34d399',8.5);
-  // Period label
-  var TS=2*Math.PI/omS;
-  label(ctx,'T = '+TS.toFixed(2)+'s',LX,H-48,'#94a3b8',7.5);
+  // ── Series ──
+  ceiling(LX);
+  var jEq=TOP+(EQ-TOP)/2, jY=jEq+(xS/2)*PPM;      // junction moves half as far (k1 = k2)
+  var mS=EQ+xS*PPM;
+  springV(LX,TOP,jY); springV(LX,jY,mS);
+  ctx.save();ctx.fillStyle='#cbd5e1';ctx.beginPath();ctx.arc(LX,jY,3.5,0,Math.PI*2);ctx.fill();ctx.restore();
+  label(ctx,'k₁',LX-14,(TOP+jY)/2+4,'#94a3b8',10,'right');
+  label(ctx,'k₂',LX-14,(jY+mS)/2+4,'#94a3b8',10,'right');
+  eqLine(LX); massBox(LX,mS,'rgba(239,68,68,.75)','#f87171'); force(LX,mS,xS,kS,1);
 
-  // ── RIGHT: Parallel springs ────────────────────────────────────
-  var mass2Y=CEIL_Y+130+xP;
-  var springEndY=CEIL_Y+130; // equilibrium
-  // Two springs side by side from ceiling to mass
-  drawSpringV(RX-12,CEIL_Y,mass2Y,xP>=0?'rgba(249,115,22,.7)':'rgba(52,211,153,.7)');
-  drawSpringV(RX+12,CEIL_Y,mass2Y,xP>=0?'rgba(249,115,22,.7)':'rgba(52,211,153,.7)');
-  // Crossbar connecting both spring bottoms to mass top
-  ctx.save();ctx.strokeStyle='#60a5fa';ctx.lineWidth=2;
-  ctx.beginPath();ctx.moveTo(RX-22,mass2Y);ctx.lineTo(RX+22,mass2Y);ctx.stroke();ctx.restore();
-  // Mass box
-  ctx.save();ctx.fillStyle='rgba(59,130,246,.75)';ctx.strokeStyle='#60a5fa';ctx.lineWidth=2;
-  ctx.beginPath();ctx.roundRect(RX-RBW/2,mass2Y,RBW,mH,4);ctx.fill();ctx.stroke();ctx.restore();
-  label(ctx,mMass+'kg',RX,mass2Y+mH/2+4,'#fff',8);
-  // Spring labels
-  label(ctx,'k₁',RX-32,CEIL_Y+60,'#94a3b8',7.5);
-  label(ctx,'k₂',RX+26,CEIL_Y+60,'#94a3b8',7.5);
-  // Displacement arrow
-  if(Math.abs(xP)>3){
-    arrow(ctx,RX+RBW/2+18,springEndY+mH/2,RX+RBW/2+18,mass2Y+mH/2,xP>0?'#ef4444':'#34d399',1.5,6);
-  }
-  // Restoring force
-  var FP=(-(kP*xP/100));
-  if(Math.abs(xP)>4){
-    arrow(ctx,RX,mass2Y+(xP>0?0:mH),RX,mass2Y+(xP>0?-32:mH+32),'#22d3ee',2,8);
-    label(ctx,'F='+FP.toFixed(1)+'N',RX+4,mass2Y+(xP>0?-18:mH+20),'#22d3ee',7.5,'left');
-  }
-  // Labels
-  label(ctx,'מקבילי',RX,H-36,'#f97316',8.5);
-  label(ctx,'k(שקול) = k₁+k₂',RX,H-24,'#f97316',7.5);
-  label(ctx,'= '+kP.toFixed(0)+' N/m',RX,H-12,'#f97316',8.5);
-  var TP=2*Math.PI/omP;
-  label(ctx,'T = '+TP.toFixed(2)+'s',RX,H-48,'#94a3b8',7.5);
+  // ── Parallel ──
+  ceiling(RX);
+  var mP=EQ+xP*PPM;
+  springV(RX-13,TOP,mP); springV(RX+13,TOP,mP);
+  ctx.save();ctx.strokeStyle='#60a5fa';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(RX-22,mP);ctx.lineTo(RX+22,mP);ctx.stroke();ctx.restore();
+  label(ctx,'k₁',RX-26,(TOP+mP)/2+4,'#94a3b8',10,'right');
+  label(ctx,'k₂',RX+26,(TOP+mP)/2+4,'#94a3b8',10,'left');
+  eqLine(RX); massBox(RX,mP,'rgba(59,130,246,.75)','#60a5fa'); force(RX,mP,xP,kP,1);
 
-  // ── Info banner ─────────────────────────────────────────────────
+  // ── Captions ──
+  label(ctx,'בטור: קבוע שקול קטן',LX,INFO+6,'#34d399',9.5);
+  label(ctx,'k = k₁k₂/(k₁+k₂) = '+kS.toFixed(0)+' N/m',LX,INFO+21,'#34d399',9);
+  label(ctx,'T = '+(2*Math.PI/omS).toFixed(2)+' s',LX,INFO+36,'#cbd5e1',9.5);
+  label(ctx,'במקביל: קבוע שקול גדול',RX,INFO+6,'#f97316',9.5);
+  label(ctx,'k = k₁+k₂ = '+kP.toFixed(0)+' N/m',RX,INFO+21,'#f97316',9);
+  label(ctx,'T = '+(2*Math.PI/omP).toFixed(2)+' s',RX,INFO+36,'#cbd5e1',9.5);
+
+  // ── Banner ──
   ctx.save();ctx.fillStyle='rgba(6,14,28,.88)';ctx.strokeStyle='#1e4060';ctx.lineWidth=1;
-  ctx.beginPath();ctx.roundRect(4,4,W-8,20,3);ctx.fill();ctx.stroke();ctx.restore();
-  label(ctx,'‏אותה מסה ואותו k — בטור הקשיחות קטנה ולכן איטי, במקביל קשיח ומהיר',W/2,13,'#94a3b8',7.5);
+  if(!narrow){
+    ctx.beginPath();ctx.roundRect(4,2,W-8,18,3);ctx.fill();ctx.stroke();ctx.restore();
+    label(ctx,'אותה מסה ואותם קפיצים: בטור המערכת רכה ואיטית, במקביל קשיחה ומהירה',W/2,13,'#cbd5e1',9);
+  } else {
+    ctx.beginPath();ctx.roundRect(4,2,W-8,30,3);ctx.fill();ctx.stroke();ctx.restore();
+    label(ctx,'אותה מסה ואותם קפיצים:',W/2,13,'#cbd5e1',9);
+    label(ctx,'בטור רכה ואיטית, במקביל קשיחה ומהירה',W/2,26,'#cbd5e1',9);
+  }
 });
 
 runAnim('anim-static2',(canvas,ctx,W,H,t)=>{
