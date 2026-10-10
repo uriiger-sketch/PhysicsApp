@@ -2864,7 +2864,7 @@ const CONTENT={
       <p>בלי תיקון, המטוס יסטה כ-7° דרומה ממסלולו. לכן טייסים ״מכוונים לתוך הרוח״ — מסובבים את חרטום המטוס מעט צפונה, כך שהסכום הווקטורי יצביע בדיוק אל היעד.</p>`
     }
   },
-  sim:{type:'vec-ops',title:'פעולות על וקטורים',desc:'בחרו פעולה: חיבור A+B, חיסור A−B, כפל בסקלר c·A או מכפלה סקלרית A·B, וגררו את ראשי החצים.'},
+  sim:{type:'vec-ops',title:'פעולות על וקטורים',desc:'בחרו פעולה: חיבור A+B, חיסור A−B, כפל בסקלר c·A או מכפלה סקלרית A·B, וגררו את ראשי החצים (הקשה במקום אחר מעבירה לשם את הראש הקרוב).'},
   example:{title:'חיבור וקטורים ברכיבים',text:`נתונים ${M('\\vec A=(3,\\,4)')} ו-${M('\\vec B=(1,\\,-2)')}. חשבו את ${M('\\vec A+\\vec B')} ואת גודלו.`,steps:[
     {q:'מהו הסכום?',a:`מחברים רכיב לרכיב: ${M('\\vec A+\\vec B=(3+1,\\;4-2)=(4,\\,2)')}`},
     {q:'מהו גודל הסכום?',a:`${M('|\\vec A+\\vec B|=\\sqrt{4^2+2^2}=\\sqrt{20}\\approx4.47')}`},
@@ -15764,6 +15764,12 @@ function simVecOps(canvas){
     var dA=Math.hypot(p.x-(CX+vA.x),p.y-(CY+vA.y)), dB=Math.hypot(p.x-(CX+vB.x),p.y-(CY+vB.y));
     if(op==='scalar')dB=1e9;            // only A is drawn in this mode
     if(Math.min(dA,dB)<26){ if(dA<=dB){dragging='A';vecStart={x:vA.x,y:vA.y};} else {dragging='B';vecStart={x:vB.x,y:vB.y};} dragStart=p; }
+    else {
+      // a press away from both handles moves the nearer tip to the finger and keeps dragging it
+      var v=dA<=dB?vA:vB; dragging=dA<=dB?'A':'B';
+      v.x=p.x-CX; v.y=p.y-CY; _voClamp(v);
+      vecStart={x:v.x,y:v.y}; dragStart=p;
+    }
   }
   function onMove(e){
     if(!dragging)return; e.preventDefault();
