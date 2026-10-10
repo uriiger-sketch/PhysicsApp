@@ -30795,9 +30795,13 @@ function render(){
         throwOnError:false,strict:false
       }); }catch(e){}
       _bootUI();
-    } else if(_katexTries++<10){
+    } else if(typeof katex!=='undefined'&&_katexTries++<10){
       setTimeout(_tryKatex,40);
-    } else { _bootUI(); }
+    } else {
+      // KaTeX is loaded synchronously in <head>: if it is not here now it
+      // never will be (offline, blocked CDN), and waiting 400 ms more on
+      // every tab only held back the simulation and the animations
+      _bootUI(); }
   }
   setTimeout(_tryKatex,15);
 }
