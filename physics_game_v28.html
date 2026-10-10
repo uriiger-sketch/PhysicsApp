@@ -3093,7 +3093,7 @@ const CONTENT={
       <p>במהירויות נמוכות ובשדות חלשים שתי התאוריות נותנות תוצאות כמעט זהות — ולכן אנו לומדים את ניוטון. אך רק תורת היחסות הכללית מסבירה את תיקוני השעונים של ה-GPS, את גלי הכבידה (שנמדדו לראשונה ב-2015) ואת החורים השחורים.</p>`
     }
   },
-  sim:{type:'force-types',title:'FBD — כוחות על גוף',desc:'גוף על משטח עם חיכוך — ראו כל הכוחות: W, N, f, F.'},
+  sim:{type:'force-types',title:'FBD — כוחות על גוף',desc:'הפעילו וכבו כוחות בלחצנים שבתוך התרשים, ושנו את F ואת מתיחת הקפיץ. ראו את כיוון כל כוח, ואיך N והחיכוך נקבעים לפי שאר הכוחות.'},
   example:{title:'כל הכוחות על גוש',text:`גוש שמסתו ${M('3\\,\\text{kg}')} מונח על משטח אופקי (${M('\\mu_k=0.2')}), ומושכים אותו אופקית בכוח ${M('12\\,\\text{N}')}. (${M('g=9.8\\,\\text{m/s}^2')})`,steps:[
     {q:'מה הכוח הנורמלי?',a:`אין תאוצה אנכית, ולכן ${M('N=mg=3\\times9.8=29.4\\,\\text{N}')} כלפי מעלה.`},
     {q:'מה כוח החיכוך?',a:`${M('f=\\mu_kN=0.2\\times29.4\\approx5.88\\,\\text{N}')}, נגד כיוון התנועה.`},
@@ -12567,209 +12567,147 @@ function simNormalForce(canvas){
 
 function simForceTypes(canvas){
   // SECTION: forces.force-types — סוגי כוחות נפוצים
-  // PEDAGOGY: Student clicks to toggle each force type ON/OFF on a block sitting on a surface.
-  // Shows all 6 forces: gravity(W), normal(N), tension(T), friction(f), spring(F_spring), applied(F).
-  // Goal: understand each force's direction, cause, and formula.
+  // A block on a rough floor. The learner switches forces on and off; every
+  // force that depends on the others is COMPUTED, not fixed: N from the
+  // vertical balance, friction static (as much as needed, up to μs·N) or
+  // kinetic (μk·N against the sliding), the spring from k·x toward the wall.
+  // (The old version drew a fixed friction μN with nothing pushing, a spring
+  // force pointing away from the wall it was stretched from, and a rope force
+  // pointing down while its ΣF counted it as horizontal.)
   const H=490; const {ctx,W,dpr}=setupCanvas(canvas,H);
   const id=canvas.id;
   const g=9.8;
-  let pT=null, t=0;
-  const m=4.0, k=25, mu=0.4;
+  const m=4.0, k=200, muS=0.5, muK=0.4, T0=20, TANG=30*Math.PI/180;
 
-  // Active forces (student can toggle each)
   var forces={
-    gravity: {on:true,  label:'כוח כבידה (W)',  color:'#fbbf24', formula:'W = mg = '+( m*g).toFixed(0)+'N', dir:'down'},
-    normal:  {on:true,  label:'כוח נורמלי (N)', color:'#a78bfa', formula:'N = mg = '+( m*g).toFixed(0)+'N', dir:'up'},
-    applied: {on:false, label:'כוח מופעל (F)',  color:'#34d399', formula:'F = החלקה', dir:'right'},
-    friction:{on:false, label:'חיכוך (f)',       color:'#f87171', formula:'f = μN = '+(mu*m*g).toFixed(1)+'N', dir:'left'},
-    tension: {on:false, label:'מתיחות (T)',      color:'#22d3ee', formula:'T = ?', dir:'upper-right'},
-    spring:  {on:false, label:'כוח אלסטי (Fs)',   color:'#fb923c', formula:'Fs = kx', dir:'upper-left'},
+    gravity: {on:true,  label:'כובד ונורמלי (W, N)', color:'#fbbf24'},
+    applied: {on:false, label:'דחיפה (F)',          color:'#34d399'},
+    friction:{on:true,  label:'משטח מחוספס (f)',     color:'#f87171'},
+    tension: {on:false, label:'חבל בזווית (T)',      color:'#22d3ee'},
+    spring:  {on:false, label:'קפיץ (Fₛ)',           color:'#fb923c'},
   };
   var forceKeys=Object.keys(forces);
 
-  // Applied force slider
   function getF(){var e=document.getElementById('inp-ft-F'); return e?parseFloat(e.value):20;}
   function getX(){var e=document.getElementById('inp-ft-x'); return e?parseFloat(e.value):0.08;}
-  // Both sliders scale forces that start switched OFF and are toggled only by
-  // buttons drawn inside the canvas, so on arrival they changed nothing at all
-  // and read as broken. Touching one switches on the force it scales.
+  // Both sliders scale forces that start switched off; touching one switches
+  // on the force it scales.
   var _ftF=document.getElementById('inp-ft-F');
   if(_ftF)_ftF.addEventListener('input',function(){forces.applied.on=true;});
   var _ftX=document.getElementById('inp-ft-x');
   if(_ftX)_ftX.addEventListener('input',function(){forces.spring.on=true;});
 
-  // Block
-  const BLK_CX=W*0.50, BLK_CY=H*0.50, BLK_S=56;
-  const FLOOR_Y=BLK_CY+BLK_S/2;
+  const BLK_CX=W*0.5, BLK_S=56, FLOOR_Y=262, BLK_CY=FLOOR_Y-BLK_S/2;
 
-  // Toggle buttons (drawn on canvas, clickable)
-  var btnH=26, btnW=Math.min((W-20)/3-4, 110);
-  var btnsPerRow=3;
-  var btnStartY=H-btnsPerRow*btnH-8;
-
+  // Toggle buttons (drawn on the canvas)
+  var btnH=28, perRow=W<480?2:3, btnW=Math.min((W-20)/perRow-6,150);
+  var btnStartY=H-Math.ceil(forceKeys.length/perRow)*(btnH+5)-6;
   function getBtnRect(i){
-    var row=Math.floor(i/btnsPerRow), col=i%btnsPerRow;
-    var totalW=btnsPerRow*(btnW+4)-4;
-    var startX=(W-totalW)/2;
-    return {x:startX+col*(btnW+4), y:btnStartY+row*(btnH+3), w:btnW, h:btnH};
+    var row=Math.floor(i/perRow), col=i%perRow;
+    var totalW=perRow*(btnW+6)-6;
+    return {x:(W-totalW)/2+col*(btnW+6), y:btnStartY+row*(btnH+5), w:btnW, h:btnH};
   }
-
   function onClick(e){
-    e.preventDefault();
-    var r=canvas.getBoundingClientRect();
-    var scl=(canvas.width/dpr)/r.width;
-    var cx=((e.touches?e.touches[0].clientX:e.clientX)-r.left)*scl;
-    var cy=((e.touches?e.touches[0].clientY:e.clientY)-r.top)*scl;
+    var p=simPointerXY(canvas,dpr,e.changedTouches?{clientX:e.changedTouches[0].clientX,clientY:e.changedTouches[0].clientY}:e);
     forceKeys.forEach(function(k2,i){
       var b=getBtnRect(i);
-      if(cx>=b.x&&cx<=b.x+b.w&&cy>=b.y&&cy<=b.y+b.h){
-        // gravity and normal always on together
-        if(k2==='gravity'||k2==='normal'){
-          forces.gravity.on=!forces.gravity.on;
-          forces.normal.on=forces.gravity.on;
-        } else {
-          forces[k2].on=!forces[k2].on;
-        }
-      }
+      if(p.x>=b.x&&p.x<=b.x+b.w&&p.y>=b.y&&p.y<=b.y+b.h){ forces[k2].on=!forces[k2].on; if(e.cancelable)e.preventDefault(); }
     });
   }
   canvas.addEventListener('click',onClick);
-  canvas.addEventListener('touchend',function(e){onClick(e);e.preventDefault();},{passive:false});
+  canvas.addEventListener('touchend',onClick,{passive:false});
 
-  function draw(ts){
+  function draw(){
     if(_simStop[id])return;
-    if(!pT)pT=ts; const dt=Math.min((ts-pT)/1000,.04); pT=ts;
-    t+=dt;
     var F_app=getF(), x_spring=getX();
-
-    // Update formulas dynamically
-    forces.applied.formula='F = '+F_app.toFixed(0)+' N';
-    forces.spring.formula='Fs = k·x = '+k+'\u00d7'+x_spring.toFixed(2)+' = '+(k*x_spring).toFixed(1)+' N';
-    forces.tension.formula='T = m·g = '+( m*g).toFixed(0)+' N (תלוי)';
+    var grav=forces.gravity.on, rough=forces.friction.on;
+    var Fa=forces.applied.on?F_app:0;
+    var Tx=forces.tension.on?T0*Math.cos(TANG):0, Ty=forces.tension.on?T0*Math.sin(TANG):0;
+    var Fs=forces.spring.on?k*x_spring:0;           // stretched spring pulls toward the wall (left)
+    var Wg=grav?m*g:0;
+    // vertical balance fixes N (the floor can push, never pull)
+    var N=grav?Math.max(0,Wg-Ty):0;
+    // horizontal: everything except friction
+    var Fx0=Fa+Tx-Fs;
+    var f=0, state='';
+    if(rough&&N>0){
+      if(Math.abs(Fx0)<=muS*N){ f=-Fx0; state=Math.abs(Fx0)<0.05?'אין נטייה לזוז — אין חיכוך':'חיכוך סטטי: בדיוק כמה שצריך (≤ μₛN)'; }
+      else { f=-Math.sign(Fx0)*muK*N; state='הגוף מחליק — חיכוך קינטי μₖN'; }
+    } else if(Math.abs(Fx0)>0.05) state=rough?'אין מגע — אין חיכוך':'משטח חלק — אין חיכוך';
+    var SFx=Fx0+f, SFy=N+Ty-Wg, a=SFx/m;
 
     simBg(ctx,W,H);
-
-    // ── Floor ─────────────────────────────────────────────
-    ctx.save(); ctx.fillStyle='#0f2035'; ctx.fillRect(W*0.12,FLOOR_Y,W*0.76,12); ctx.restore();
-    ctx.save(); ctx.strokeStyle='#2d5275'; ctx.lineWidth=2;
-    ctx.beginPath(); ctx.moveTo(W*0.12,FLOOR_Y); ctx.lineTo(W*0.88,FLOOR_Y); ctx.stroke(); ctx.restore();
-    for(var xi=W*0.12;xi<W*0.88;xi+=16){
-      ctx.save(); ctx.strokeStyle='rgba(30,58,82,.5)'; ctx.lineWidth=1;
-      ctx.beginPath(); ctx.moveTo(xi,FLOOR_Y); ctx.lineTo(xi-8,FLOOR_Y+8); ctx.stroke(); ctx.restore();
+    // floor
+    ctx.save(); ctx.fillStyle='#0f2035'; ctx.fillRect(W*0.06,FLOOR_Y,W*0.88,12); ctx.restore();
+    ctx.save(); ctx.strokeStyle=rough?'#3d6480':'#2d5275'; ctx.lineWidth=2;
+    ctx.beginPath(); ctx.moveTo(W*0.06,FLOOR_Y); ctx.lineTo(W*0.94,FLOOR_Y); ctx.stroke(); ctx.restore();
+    if(rough) for(var xi=W*0.06;xi<W*0.94;xi+=9){
+      ctx.save(); ctx.strokeStyle='rgba(61,100,128,.6)'; ctx.lineWidth=1;
+      ctx.beginPath(); ctx.moveTo(xi,FLOOR_Y); ctx.lineTo(xi+3,FLOOR_Y-3); ctx.lineTo(xi+6,FLOOR_Y); ctx.stroke(); ctx.restore();
     }
-
-    // Wall (for tension rope)
-    if(forces.tension.on){
-      ctx.save(); ctx.fillStyle='#1e3a52'; ctx.fillRect(W*0.83,FLOOR_Y-80,14,80); ctx.restore();
-      // Rope to block
-      ctx.save(); ctx.strokeStyle='#22d3ee'; ctx.lineWidth=2;
-      ctx.beginPath(); ctx.moveTo(W*0.83,FLOOR_Y-40); ctx.lineTo(BLK_CX+BLK_S/2+2,BLK_CY); ctx.stroke(); ctx.restore();
-    }
-    // Wall (for spring)
+    // spring from a wall on the left
     if(forces.spring.on){
-      ctx.save(); ctx.fillStyle='#1e3a52'; ctx.fillRect(W*0.10,FLOOR_Y-70,14,70); ctx.restore();
-      // Spring to block
-      var sx1=W*0.12+14, sx2=BLK_CX-BLK_S/2-2;
-      var sy=BLK_CY;
-      var coils=8, coilW=10;
-      ctx.save(); ctx.strokeStyle='#fb923c'; ctx.lineWidth=2;
-      ctx.beginPath(); ctx.moveTo(sx1,sy);
-      for(var ci=0;ci<coils;ci++){
-        var fx=(sx1+(sx2-sx1)*(ci+0.5)/coils);
-        var fx2=(sx1+(sx2-sx1)*(ci+1)/coils);
-        ctx.lineTo(fx,sy+(ci%2===0?coilW:-coilW));
-        ctx.lineTo(fx2,sy);
-      }
+      var wx=W*0.06;
+      ctx.save(); ctx.fillStyle='#1e3a52'; ctx.fillRect(wx,FLOOR_Y-80,12,80); ctx.restore();
+      var sx1=wx+12, sx2=BLK_CX-BLK_S/2, sy=BLK_CY+10, coils=10;
+      ctx.save(); ctx.strokeStyle='#fb923c'; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(sx1,sy);
+      for(var ci=0;ci<coils;ci++){ ctx.lineTo(sx1+(sx2-sx1)*(ci+0.5)/coils,sy+(ci%2?-8:8)); ctx.lineTo(sx1+(sx2-sx1)*(ci+1)/coils,sy); }
       ctx.stroke(); ctx.restore();
+      simText(ctx,'נמתח ב-x = '+x_spring.toFixed(2)+' m',(sx1+sx2)/2,sy+26,'#fdba74',9,'center');
     }
-
-    // ── Block ─────────────────────────────────────────────
-    var bGrad=ctx.createLinearGradient(BLK_CX-BLK_S/2,BLK_CY-BLK_S/2,BLK_CX-BLK_S/2,BLK_CY+BLK_S/2);
+    // rope up and to the right
+    if(forces.tension.on){
+      var rx0=BLK_CX+BLK_S/2, ry0=BLK_CY-10, rL=W*0.3;
+      ctx.save(); ctx.strokeStyle='#94a3b8'; ctx.lineWidth=2;
+      ctx.beginPath(); ctx.moveTo(rx0,ry0); ctx.lineTo(rx0+rL*Math.cos(TANG),ry0-rL*Math.sin(TANG)); ctx.stroke(); ctx.restore();
+      simText(ctx,'30°',rx0+40,ry0-6,'#94a3b8',9,'left');
+    }
+    // block
+    var bGrad=ctx.createLinearGradient(BLK_CX,BLK_CY-BLK_S/2,BLK_CX,BLK_CY+BLK_S/2);
     bGrad.addColorStop(0,'rgba(99,102,241,.85)'); bGrad.addColorStop(1,'rgba(55,48,163,.6)');
     ctx.save(); ctx.fillStyle=bGrad; ctx.strokeStyle='#818cf8'; ctx.lineWidth=2;
     ctx.beginPath(); ctx.roundRect(BLK_CX-BLK_S/2,BLK_CY-BLK_S/2,BLK_S,BLK_S,5); ctx.fill(); ctx.stroke(); ctx.restore();
-    simText(ctx,'m='+m+'kg',BLK_CX,BLK_CY+4,'#e0e7ff',9.5,undefined,true);
+    simText(ctx,m+' kg',BLK_CX,BLK_CY+4,'#e0e7ff',10,undefined,true);
 
-    // ── Force arrows ──────────────────────────────────────
-    var arScale=2.0;
-    var activeForces=[];
+    // Free-body diagram: every force from the block's centre, one scale
+    var big=Math.max(Wg,N,Math.abs(Fa),T0,Fs,Math.abs(f),1), kA=Math.min(2.2,72/big);
+    // each arrow starts where its line leaves the block, so even a small
+    // force shows its full length outside it
+    // (yo shifts a horizontal arrow off the centre line, so two forces along
+    // the same line -- the spring and the friction -- do not sit on each other)
+    function arr(dx,dy,col,lab,val,yo,ly){
+      var L=Math.hypot(dx,dy); if(L*kA<3)return;
+      var ux=dx/L, uy=-dy/L, r0=(BLK_S/2+2)/Math.max(Math.abs(ux),Math.abs(uy));
+      var sx=BLK_CX+ux*r0, sy=BLK_CY+uy*r0+(yo||0), ex=sx+ux*L*kA, ey=sy+uy*L*kA;
+      simArrow(ctx,sx,sy,ex,ey,col,3,11);
+      if(ly!==undefined){ simText(ctx,lab+' = '+val.toFixed(1)+' N',ex+(ux>0?6:-6),ey+ly,col,10,ux>0?'left':'right',true); return; }
+      simText(ctx,lab+' = '+val.toFixed(1)+' N',ex+ux*14+(Math.abs(ux)<0.3?(dx>=0?6:-6):0),ey+uy*14+4,col,10,Math.abs(ux)<0.3?'left':(ux>0?'left':'right'),true);
+    }
+    if(grav){ arr(0,-Wg,'#fbbf24','W',Wg); if(N>0) arr(0,N,'#a78bfa','N',N); }
+    if(forces.applied.on) arr(Fa,0,'#34d399','F',Fa);
+    if(forces.tension.on) arr(Tx,Ty,'#22d3ee','T',T0);
+    if(forces.spring.on) arr(-Fs,0,'#fb923c','Fₛ',Fs,10,-6);
+    // friction acts along the contact surface: drawn at the floor, label below it
+    if(Math.abs(f)>0.05) arr(f,0,'#f87171',Math.abs(Fx0)<=muS*N?'fₛ':'fₖ',Math.abs(f),BLK_S/2-4,20);
 
-    if(forces.gravity.on){
-      var len=Math.min(60,m*g*arScale);
-      simArrow(ctx,BLK_CX-8,BLK_CY,BLK_CX-8,BLK_CY+len,'#fbbf24',3,11);
-      simText(ctx,'W',BLK_CX-8-14,BLK_CY+len/2,'#fbbf24',10,undefined,true);
-      activeForces.push({name:'W',val:m*g,col:'#fbbf24'});
-    }
-    if(forces.normal.on){
-      var len2=Math.min(60,m*g*arScale);
-      simArrow(ctx,BLK_CX+8,BLK_CY,BLK_CX+8,BLK_CY-len2,'#a78bfa',3,11);
-      simText(ctx,'N',BLK_CX+8+14,BLK_CY-len2/2,'#a78bfa',10,undefined,true);
-      activeForces.push({name:'N',val:m*g,col:'#a78bfa'});
-    }
-    if(forces.applied.on){
-      var Fa=F_app;
-      var len3=Math.min(75,Fa*arScale);
-      simArrow(ctx,BLK_CX-BLK_S/2-4,BLK_CY-8,BLK_CX-BLK_S/2-4-len3,BLK_CY-8,'#34d399',3,11);
-      simText(ctx,'F',BLK_CX-BLK_S/2-len3/2-4,BLK_CY-20,'#34d399',10,undefined,true);
-      activeForces.push({name:'F',val:Fa,col:'#34d399'});
-    }
-    if(forces.friction.on){
-      var ff=mu*m*g;
-      var len4=Math.min(65,ff*arScale);
-      simArrow(ctx,BLK_CX+BLK_S/2+4,BLK_CY-8,BLK_CX+BLK_S/2+4+len4,BLK_CY-8,'#f87171',3,11);
-      simText(ctx,'f',BLK_CX+BLK_S/2+len4/2+4,BLK_CY-20,'#f87171',10,undefined,true);
-      activeForces.push({name:'f',val:ff,col:'#f87171'});
-    }
-    if(forces.tension.on){
-      var lt=Math.min(65,m*g*arScale);
-      var tx2=BLK_CX+BLK_S/2+4+lt*Math.cos(-0.4);
-      var ty2=BLK_CY-lt*Math.sin(-0.4);
-      simArrow(ctx,BLK_CX+BLK_S/2+4,BLK_CY,tx2,ty2,'#22d3ee',3,11);
-      simText(ctx,'T',tx2+8,ty2,'#22d3ee',10,'left');
-      activeForces.push({name:'T',val:m*g,col:'#22d3ee'});
-    }
-    if(forces.spring.on){
-      var fs=k*x_spring;
-      var ls=Math.min(65,fs*arScale*2);
-      simArrow(ctx,BLK_CX-BLK_S/2-4,BLK_CY+8,BLK_CX-BLK_S/2-4+ls,BLK_CY+8,'#fb923c',3,11);
-      simText(ctx,'Fs',BLK_CX-BLK_S/2+ls/2-4,BLK_CY+20,'#fb923c',10,undefined,true);
-      activeForces.push({name:'Fs',val:fs,col:'#fb923c'});
-    }
-
-    // ── Toggle buttons ─────────────────────────────────────
+    // toggle buttons
     forceKeys.forEach(function(fk2,i){
-      var b=getBtnRect(i);
-      var fo=forces[fk2];
+      var b=getBtnRect(i), fo=forces[fk2];
       ctx.save();
       ctx.fillStyle=fo.on?fo.color+'33':'rgba(15,32,53,.7)';
-      ctx.strokeStyle=fo.on?fo.color:'rgba(30,58,82,.6)';
+      ctx.strokeStyle=fo.on?fo.color:'rgba(61,100,128,.7)';
       ctx.lineWidth=fo.on?2:1;
-      ctx.beginPath(); ctx.roundRect(b.x,b.y,b.w,b.h,4); ctx.fill(); ctx.stroke(); ctx.restore();
-      simText(ctx,(fo.on?'✓ ':'○ ')+fo.label,b.x+b.w/2,b.y+b.h/2+4,fo.on?fo.color:'#475569',7.5,undefined,true);
+      ctx.beginPath(); ctx.roundRect(b.x,b.y,b.w,b.h,5); ctx.fill(); ctx.stroke(); ctx.restore();
+      simText(ctx,(fo.on?'✓ ':'○ ')+fo.label,b.x+b.w/2,b.y+b.h/2+4,fo.on?fo.color:'#94a3b8',10,undefined,true);
     });
 
-    // ── Active forces panel ────────────────────────────────
+    // readout
     ctx.save(); ctx.fillStyle='rgba(6,14,28,.9)'; ctx.strokeStyle='#1e4060'; ctx.lineWidth=1.5;
-    ctx.beginPath(); ctx.roundRect(8,6,W-16,50,6); ctx.fill(); ctx.stroke(); ctx.restore();
-    simText(ctx,'סוגי כוחות — לחצו על הלחצנים להפעיל/כבות',W/2,18,'#22d3ee',10,undefined,true);
-    if(activeForces.length>0){
-      var fStr=activeForces.map(function(af){return af.name+'='+af.val.toFixed(0)+'N';}).join(' | ');
-      simText(ctx,fStr,W/2,34,'#94a3b8',8.5,undefined,true);
-      // Net force
-      var netFx=0,netFy=0;
-      activeForces.forEach(function(af){
-        if(af.name==='W')netFy+=m*g;
-        else if(af.name==='N')netFy-=m*g;
-        else if(af.name==='F')netFx-=af.val;
-        else if(af.name==='f')netFx+=af.val;
-        else if(af.name==='T')netFx+=af.val*Math.cos(0.4);
-        else if(af.name==='Fs')netFx-=af.val;
-      });
-      simText(ctx,'ΣF: x='+netFx.toFixed(1)+'N  y='+netFy.toFixed(1)+'N',W/2,47,'#fbbf24',9,undefined,true);
-    } else {
-      simText(ctx,'לחץ לחצן להציג כוח',W/2,38,'#7d8da6',9,undefined,true);
-    }
-
+    ctx.beginPath(); ctx.roundRect(8,6,W-16,66,6); ctx.fill(); ctx.stroke(); ctx.restore();
+    simText(ctx,'הקישו על הלחצנים כדי להפעיל ולכבות כוחות',W/2,20,'#22d3ee',10,undefined,true);
+    simText(ctx,'ΣFx = '+SFx.toFixed(1)+' N   ·   ΣFy = '+SFy.toFixed(1)+' N   ·   a = '+a.toFixed(2)+' m/s²',W/2,40,'#fbbf24',10.5,undefined,true);
+    simText(ctx,state||(Math.abs(SFx)<0.05?'שיווי משקל: ΣF = 0':''),W/2,60,'#cbd5e1',10,undefined,true);
+    if(grav&&forces.tension.on) simText(ctx,'החבל נושא חלק מהמשקל, ולכן N = mg − T·sin30° קטן מ-mg',W/2,FLOOR_Y+34,'#a5b4fc',10,'center');
     requestAnimationFrame(draw);
   }
   requestAnimationFrame(draw);
@@ -32692,7 +32630,7 @@ function buildSim(sim){
   else if(sim.type==='acceleration')extra=C(rng('acc-a',-10,10,3,0.5,'תאוצה a',' m/s²')+rng('acc-v0',-8,8,0,1,'v₀ ראשונית',' m/s')+btn('acc-reset','↺ אפס','btn-secondary'));
   else if(sim.type==='freefall')extra=C(rng('v0',0,30,18,1,'v₀ ראשונית',' m/s')+rng('ff-g',1.6,25,9.8,0.2,'g כבידה',' m/s²')+btn('throw','🎯 זרוק!','btn-primary'));
   else if(sim.type==='multi-freefall')extra=C(rng('g-mff',1.6,25,9.8,0.1,'g (כבידה)',' m/s²')+rng('mff-h',5,40,20,1,'גובה h',' m')+btn('mff-reset','↺ שחרר שוב','btn-secondary'));
-  else if(sim.type==='force-types')extra=C(rng('ft-F',0,60,20,2,'כוח מופעל F',' N')+rng('ft-x',0.01,0.20,0.08,0.01,'מתיחת קפיץ x',' m'));
+  else if(sim.type==='force-types')extra=C(rng('ft-F',0,40,12,1,'דחיפה F',' N')+rng('ft-x',0.01,0.15,0.05,0.01,'מתיחת הקפיץ x',' m'));
   else if(sim.type==='inertia')extra=C(rng('friction',0,0.8,0.4,0.05,'חיכוך μ')+rng('mass-in',1,15,5,0.5,'מסה m',' kg')+btn('push-right','💨 דחוף ימינה','btn-primary')+btn('push-left','דחוף שמאלה 💨','btn-secondary'));
   else if(sim.type==='newton2')extra=C(rng('mass',1,20,5,0.5,'מסה m',' kg')+rng('n2-F',-60,60,20,1,'כוח F',' N')+rng('n2-mu',0,0.8,0,0.05,'חיכוך μ')+btn('n2-reset','↺ אפס','btn-secondary'));
   else if(sim.type==='newton3')extra=C(rng('n3-mA',1,15,3,0.5,'m_A',' kg')+rng('n3-mB',1,15,6,0.5,'m_B',' kg')+rng('n3-F',50,600,300,10,'כוח דחיפה',' N')+btn('n3-push','💥 דחוף!')+btn('n3-reset','↺ אפס','btn-secondary'));
