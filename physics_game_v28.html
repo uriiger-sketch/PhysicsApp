@@ -27894,46 +27894,43 @@ function simElcField(canvas){
         simArrow(ctx,gp[0]-ux*L/2,gp[1]-uy*L/2,gp[0]+ux*L/2,gp[1]+uy*L/2,col,1.4,5);
       }
     }else{
-      // Continuous field lines, traced numerically along E
+      // Continuous field lines, traced numerically along E.
+      // The number of lines on a charge is proportional to the charge (3 per uC),
+      // so their density near it is proportional to the field. Lines are traced
+      // forward from every positive charge; from a negative charge they are traced
+      // backwards, and a backward line that reaches a positive charge is dropped --
+      // it is one of the forward lines already drawn. What remains on a negative
+      // charge are the lines that arrive from far away. (Each charge used to get
+      // the same 11 or 16 lines whatever its size, and a negative charge in a pair
+      // received only the lines of its partner.)
       var qs=Q(), q2v=dip?Q2():0;
-      // Seed on every charge of the dominant sign. Lines leave positive charges;
-      // if every charge is negative they arrive from outside, so they are traced
-      // backwards along E while the arrowheads still point along it.
-      var seeds=[], outward=false;
-      if(qs>0)seeds.push([sx,sy,Math.abs(qs)]);
-      if(dip&&q2v>0)seeds.push([dx2,dy2,Math.abs(q2v)]);
-      if(!seeds.length){
-        outward=true;
-        if(qs<0)seeds.push([sx,sy,Math.abs(qs)]);
-        if(dip&&q2v<0)seeds.push([dx2,dy2,Math.abs(q2v)]);
-      }
-      var others=[[sx,sy,Math.abs(qs)]]; if(dip)others.push([dx2,dy2,Math.abs(q2v)]);
-      var perSeed=seeds.length>1?11:16;
-      for(var si=0;si<seeds.length;si++){
-        var sd=seeds[si], rad0=16+sd[2];
-        for(var li=0;li<perSeed;li++){
-          var a0=li*2*Math.PI/perSeed+0.10;
+      var chs=[[sx,sy,qs]]; if(dip)chs.push([dx2,dy2,q2v]);
+      for(var si=0;si<chs.length;si++){
+        var sd=chs[si]; if(Math.abs(sd[2])<0.01)continue;
+        var fwd=sd[2]>0, nL=Math.max(2,Math.round(3*Math.abs(sd[2]))), rad0=16+Math.abs(sd[2]);
+        for(var li=0;li<nL;li++){
+          var a0=li*2*Math.PI/nL+0.10;
           var lx=sd[0]+Math.cos(a0)*rad0, ly=sd[1]+Math.sin(a0)*rad0;
-          var hp=null,hd=null;
-          ctx.save();ctx.strokeStyle='rgba(251,191,36,.5)';ctx.lineWidth=1.3;
-          ctx.beginPath();ctx.moveTo(lx,ly);
-          for(var st=0;st<240;st++){
+          var pts=[[lx,ly]],hp=null,hd=null,endQ=0;
+          for(var st=0;st<260;st++){
             var Ev=Efield(lx,ly);
             if(Ev.m<0.5)break;
             var dirx=Ev.x/Ev.m, diry=Ev.y/Ev.m;
-            if(outward){dirx=-dirx;diry=-diry;}
+            if(!fwd){dirx=-dirx;diry=-diry;}
             lx+=dirx*3; ly+=diry*3;
-            ctx.lineTo(lx,ly);
+            pts.push([lx,ly]);
             if(st===30){hp=[lx,ly];hd=[Ev.x/Ev.m,Ev.y/Ev.m];}
             if(lx<8||lx>W-8||ly<8||ly>H-56)break;
-            var hit=false;
-            for(var oi=0;oi<others.length;oi++){
-              var oq=others[oi];
-              if(oq[0]===sd[0]&&oq[1]===sd[1])continue;
-              if(Math.hypot(lx-oq[0],ly-oq[1])<16+oq[2]){hit=true;break;}
+            for(var oi=0;oi<chs.length;oi++){
+              var oq=chs[oi]; if(oi===si||Math.abs(oq[2])<0.01)continue;
+              if(Math.hypot(lx-oq[0],ly-oq[1])<16+Math.abs(oq[2])){endQ=oq[2];break;}
             }
-            if(hit)break;
+            if(endQ)break;
           }
+          if(!fwd&&endQ>0)continue;            // drawn already, from the + end
+          ctx.save();ctx.strokeStyle='rgba(251,191,36,.5)';ctx.lineWidth=1.3;
+          ctx.beginPath();ctx.moveTo(pts[0][0],pts[0][1]);
+          for(var pi=1;pi<pts.length;pi++)ctx.lineTo(pts[pi][0],pts[pi][1]);
           ctx.stroke();
           if(hp){ctx.translate(hp[0],hp[1]);ctx.rotate(Math.atan2(hd[1],hd[0]));
             ctx.fillStyle='rgba(251,191,36,.85)';
