@@ -15152,17 +15152,20 @@ function simEnergyKinetic(canvas){
   var pT=null;
   var m=2, F_val=10;
   var FLOOR_Y=H*0.46;
-  var WALL_X=W-30; // right wall
   var BLOCK_W=56, BLOCK_H=44;
   var START_X=50+BLOCK_W/2;
-  var PX_PER_M=60; // 1 m = 60 px
+  // The force acts over a marked stretch of whole metres and then stops; past
+  // the line the block coasts. (It used to run into a wall that zeroed its
+  // speed, and the banner then announced W = E_k beside E_k = 0.)
+  var PUSH_END=W-140;
+  var MAX_D=Math.max(2,Math.floor((PUSH_END-START_X)/60));   // metres pushed
+  var PX_PER_M=(PUSH_END-START_X)/MAX_D;
   // Block state
   var bx=START_X; // center x
   var vel=0;
   var launched=false, stopped=false;
   // Record data
   var keArr=[], dArr=[], wArr=[];
-  var MAX_D=(WALL_X-20-BLOCK_W/2-START_X)/PX_PER_M; // max metres before wall
 
   function getF(){var e=document.getElementById('inp-ek-F'); return e?parseFloat(e.value):F_val;}
   function getM(){var e=document.getElementById('inp-ek-m'); return e?parseFloat(e.value):m;}
@@ -15193,25 +15196,29 @@ function simEnergyKinetic(canvas){
       // Trapezoid: exact for constant a. Advancing with the POST-update velocity
       // made d larger than ½at² by ½a·dt² per step, so W = F·d ran about 1.6%
       // above ΔKE — and this section plots the two against each other.
-      var a=F_val/m;
-      var _v0=vel;
-      vel+=a*dt;
-      bx+=0.5*(_v0+vel)*dt*PX_PER_M;
-      var d=(bx-START_X)/PX_PER_M;
-      var KE_now=0.5*m*vel*vel;
-      var W_now=F_val*d;
-      keArr.push(KE_now); dArr.push(d); wArr.push(W_now);
-      if(keArr.length>400){keArr.shift();dArr.shift();wArr.shift();}
-      // Hit wall
-      if(bx+BLOCK_W/2>=WALL_X-8){
-        bx=WALL_X-8-BLOCK_W/2;
-        vel=0; stopped=true;
+      if(bx<PUSH_END){
+        var a=F_val/m;
+        var _v0=vel, _x0=bx;
+        vel+=a*dt;
+        bx+=0.5*(_v0+vel)*dt*PX_PER_M;
+        if(bx>=PUSH_END){
+          // land exactly on the line: v² = v0² + 2a·(distance left)
+          vel=Math.sqrt(_v0*_v0+2*a*(PUSH_END-_x0)/PX_PER_M);
+          bx=PUSH_END;
+        }
+        var d=(bx-START_X)/PX_PER_M;
+        keArr.push(0.5*m*vel*vel); dArr.push(d); wArr.push(F_val*d);
+        if(keArr.length>400){keArr.shift();dArr.shift();wArr.shift();}
+      } else {
+        bx+=vel*dt*PX_PER_M;                 // no force: constant speed
+        if(bx+BLOCK_W/2>=W-6){bx=W-6-BLOCK_W/2; stopped=true;}
       }
     }
 
-    var d_cur=(bx-START_X)/PX_PER_M;
+    var d_cur=Math.min(bx,PUSH_END)-START_X; d_cur/=PX_PER_M;   // distance the FORCE acted over
     var KE_cur=0.5*m*vel*vel;
     var W_cur=F_val*d_cur;
+    var coasting=launched&&bx>=PUSH_END;
 
     simBg(ctx,W,H);
 
@@ -15220,15 +15227,14 @@ function simEnergyKinetic(canvas){
     ctx.save();ctx.strokeStyle='#22d3ee';ctx.lineWidth=1.5;
     ctx.beginPath();ctx.moveTo(0,FLOOR_Y);ctx.lineTo(W,FLOOR_Y);ctx.stroke();ctx.restore();
 
-    // ── Right wall
-    ctx.save();ctx.fillStyle='rgba(30,64,95,.9)';ctx.strokeStyle='#3d6480';ctx.lineWidth=2;
-    ctx.fillRect(WALL_X,FLOOR_Y-80,20,80); ctx.strokeRect(WALL_X,FLOOR_Y-80,20,80);
-    ctx.restore();
+    // ── End of the push
+    ctx.save();ctx.strokeStyle='#34d399';ctx.lineWidth=1.5;ctx.setLineDash([5,4]);
+    ctx.beginPath();ctx.moveTo(PUSH_END,FLOOR_Y-88);ctx.lineTo(PUSH_END,FLOOR_Y);ctx.stroke();ctx.setLineDash([]);ctx.restore();
+    simText(ctx,'סוף הדחיפה',PUSH_END,FLOOR_Y-94,'#34d399',8.5,'center',true);
 
     // ── Distance ruler ticks on floor
-    for(var xi=0;xi*PX_PER_M<W-60;xi++){
+    for(var xi=0;xi<=MAX_D;xi++){
       var rx=START_X+xi*PX_PER_M;
-      if(rx>WALL_X)break;
       ctx.save();ctx.strokeStyle='rgba(30,58,82,.6)';ctx.lineWidth=1;
       ctx.beginPath();ctx.moveTo(rx,FLOOR_Y);ctx.lineTo(rx,FLOOR_Y+9);ctx.stroke();
       simText(ctx,xi+'m',rx,FLOOR_Y+18,'#7d8da6',7,undefined,true);
@@ -15238,10 +15244,10 @@ function simEnergyKinetic(canvas){
     // ── Work area shading (under the applied force = rectangle)
     if(launched){
       ctx.save();ctx.fillStyle='rgba(34,211,153,.07)';
-      ctx.fillRect(START_X,FLOOR_Y-BLOCK_H-8,bx-BLOCK_W/2-START_X,BLOCK_H+8);ctx.restore();
+      ctx.fillRect(START_X,FLOOR_Y-BLOCK_H-8,Math.min(bx,PUSH_END)-START_X,BLOCK_H+8);ctx.restore();
       // Work rectangle border
       ctx.save();ctx.strokeStyle='rgba(34,211,153,.25)';ctx.lineWidth=1;ctx.setLineDash([3,5]);
-      ctx.beginPath();ctx.moveTo(START_X,FLOOR_Y-BLOCK_H/2-10);ctx.lineTo(bx-BLOCK_W/2,FLOOR_Y-BLOCK_H/2-10);ctx.stroke();
+      ctx.beginPath();ctx.moveTo(START_X,FLOOR_Y-BLOCK_H/2-10);ctx.lineTo(Math.min(bx,PUSH_END),FLOOR_Y-BLOCK_H/2-10);ctx.stroke();
       ctx.setLineDash([]);ctx.restore();
     }
 
@@ -15256,30 +15262,31 @@ function simEnergyKinetic(canvas){
     simText(ctx,m.toFixed(1)+' kg',bx,bY+BLOCK_H/2+4,'#fff',9.5,undefined,true);
 
     // ── Force arrow (applied from behind block)
-    if(launched && !stopped){
+    if(launched && !stopped && !coasting){
       var arLen=Math.min(65,F_val*2.2);
       simArrow(ctx,bx-BLOCK_W/2-6-arLen,bY+BLOCK_H/2,bx-BLOCK_W/2-6,bY+BLOCK_H/2,'#34d399',3,12);
       simText(ctx,'F='+F_val.toFixed(0)+'N',bx-BLOCK_W/2-6-arLen/2,bY+BLOCK_H/2-14,'#34d399',9,undefined,true);
     }
     // ── Velocity arrow
-    if(spd>0.05 && !stopped){
-      var vLen=Math.min(75,spd*15);
+    if(spd>0.05){
+      var vLen=Math.min(75,spd*15,Math.max(0,W-(bx+BLOCK_W/2+4)-70));
       simArrow(ctx,bx+BLOCK_W/2+4,bY+BLOCK_H/2,bx+BLOCK_W/2+4+vLen,bY+BLOCK_H/2,'#22d3ee',2.5,10);
-      simText(ctx,'v='+vel.toFixed(2)+'m/s',bx+BLOCK_W/2+vLen+8,bY+BLOCK_H/2-8,'#22d3ee',8.5,'left');
+      if(vLen>24)simText(ctx,'v='+vel.toFixed(2)+'m/s',bx+BLOCK_W/2+vLen+8,bY+BLOCK_H/2-8,'#22d3ee',8.5,'left');
+      else simText(ctx,'v='+vel.toFixed(2)+'m/s',bx,bY-10,'#22d3ee',8.5,'center');
     }
 
     // ── Top formula panel
     ctx.save();ctx.fillStyle='rgba(6,14,28,.92)';ctx.strokeStyle='#1e4060';ctx.lineWidth=1.5;
     ctx.beginPath();ctx.roundRect(8,6,W-16,52,6);ctx.fill();ctx.stroke();ctx.restore();
-    simText(ctx,'משפט עבודה-אנרגיה:  W = F·d = ΔKE',W/2,20,'#22d3ee',11,undefined,true);
-    simText(ctx,'W = '+F_val.toFixed(0)+'×'+d_cur.toFixed(2)+'m = '+W_cur.toFixed(2)+' J',W/2,34,'#34d399',9.5,undefined,true);
-    simText(ctx,'KE = ½mv² = ½×'+m.toFixed(1)+'×'+vel.toFixed(2)+'² = '+KE_cur.toFixed(2)+' J  | ΔKE = '+KE_cur.toFixed(2)+' J',W/2,48,'#fbbf24',9,undefined,true);
+    simText(ctx,'משפט עבודה-אנרגיה:  W = F·d = ΔE_k',W/2,20,'#22d3ee',11,undefined,true);
+    simText(ctx,'W = '+F_val.toFixed(0)+'×'+d_cur.toFixed(2)+' = '+W_cur.toFixed(2)+' J',W/2,34,'#34d399',9.5,undefined,true);
+    simText(ctx,'ΔE_k = ½mv² − 0 = ½×'+m.toFixed(1)+'×'+vel.toFixed(2)+'² = '+KE_cur.toFixed(2)+' J',W/2,48,'#fbbf24',9,undefined,true);
 
     // ── KE(d) graph
     var GX=8,GY=FLOOR_Y+24,GW=W-16,GH=H-GY-10;
     ctx.save();ctx.fillStyle='rgba(6,14,28,.88)';ctx.strokeStyle='#1e3a52';ctx.lineWidth=1;
     ctx.beginPath();ctx.roundRect(GX,GY,GW,GH,4);ctx.fill();ctx.stroke();ctx.restore();
-    simText(ctx,'KE כפונקציה של מרחק d — שיפוע הגרף = כוח F (W=F·d)',GX+GW/2,GY+10,'#7d8da6',8,undefined,true);
+    simText(ctx,'E_k כפונקציה של המרחק d — שיפוע הגרף הוא הכוח F',GX+GW/2,GY+10,'#7d8da6',8,undefined,true);
 
     if(keArr.length>2){
       var xMax=Math.max(MAX_D,0.5);
@@ -15292,7 +15299,7 @@ function simEnergyKinetic(canvas){
       simArrow(ctx,gAX,gAY-gH2+2,gAX,gAY-gH2-4,'#334155',1,6);
       simArrow(ctx,gAX+gW2-2,gAY,gAX+gW2+6,gAY,'#334155',1,6);
       simText(ctx,'d (m)',gAX+gW2+8,gAY+3,'#7d8da6',7,'left');
-      simText(ctx,'KE (J)',gAX-4,gAY-gH2-6,'#7d8da6',7,'right');
+      simText(ctx,'E_k (J)',gAX-4,gAY-gH2-6,'#7d8da6',7,'right');
       ctx.restore();
       // Axis labels
       for(var di=0;di<=Math.floor(xMax);di++){
@@ -15320,17 +15327,20 @@ function simEnergyKinetic(canvas){
         var dpy=Math.max(gAY-gH2,gAY-(KE_cur/kMax)*gH2);
         ctx.save();ctx.fillStyle='#fbbf24';ctx.strokeStyle='#fff';ctx.lineWidth=1.5;
         ctx.beginPath();ctx.arc(dpx,dpy,5,0,Math.PI*2);ctx.fill();ctx.stroke();ctx.restore();
-        simText(ctx,'('+d_cur.toFixed(1)+','+KE_cur.toFixed(1)+')',dpx+8,dpy-4,'#fbbf24',7.5,'left');
+        var _nearR=dpx>gAX+gW2-90;
+        simText(ctx,'('+d_cur.toFixed(1)+', '+KE_cur.toFixed(1)+')',_nearR?dpx-8:dpx+8,_nearR?dpy+14:dpy-4,'#fbbf24',7.5,_nearR?'right':'left');
       }
     } else {
-      simText(ctx,'לחץ ▶ הפעל להתחלת הסימולציה',GX+GW/2,GY+GH/2,'#7d8da6',9.5,undefined,true);
+      simText(ctx,'לחצו ▶ הפעל כדי להתחיל',GX+GW/2,GY+GH/2,'#7d8da6',9.5,undefined,true);
     }
 
-    // Stopped banner
-    if(stopped){
-      ctx.save();ctx.fillStyle='rgba(99,102,241,.15)';ctx.strokeStyle='#818cf8';ctx.lineWidth=1.5;
-      ctx.beginPath();ctx.roundRect(W/2-120,bY-14,240,26,5);ctx.fill();ctx.stroke();ctx.restore();
-      simText(ctx,'עצר! העבודה הכוללת = '+W_cur.toFixed(2)+' J = האנרגיה הקינטית ✅',W/2,bY-1,'#a78bfa',9,undefined,true);
+    // The push is over: W stops growing, and so does E_k
+    if(coasting){
+      var bw2=Math.min(W-16,330);
+      ctx.save();ctx.fillStyle='rgba(6,14,28,.92)';ctx.strokeStyle='#818cf8';ctx.lineWidth=1.5;
+      ctx.beginPath();ctx.roundRect(W/2-bw2/2,66,bw2,40,5);ctx.fill();ctx.stroke();ctx.restore();
+      simText(ctx,'הכוח הפסיק לפעול: W = '+W_cur.toFixed(1)+' J = E_k ✅',W/2,80,'#a78bfa',9.5,undefined,true);
+      simText(ctx,'מעכשיו אין עבודה — ולכן E_k והמהירות קבועות',W/2,96,'#94a3b8',8.5,undefined,true);
     }
 
     requestAnimationFrame(draw);
