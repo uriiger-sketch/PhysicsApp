@@ -14942,8 +14942,12 @@ function simAtwood(canvas){
   const H=540; const {ctx,W,dpr}=setupCanvas(canvas,H);
   const id=canvas.id;
   const g=9.8;
-  const PX=W*0.50, CEIL_Y=32, PR=18;
-  var maxY=H-100;
+  // A pulley wide enough that the two hanging masses never overlap (with an
+  // 18 px pulley the ropes were 28 px apart and the 46-100 px blocks covered
+  // each other).
+  const PX=W*0.50, CEIL_Y=32, PR=42, PY0=CEIL_Y+PR+6, PPM=50;
+  var d=0, tRun=0;
+  var maxY=H-128;          // the masses stop above the readout panel, not under it
   var y1=CEIL_Y+PR+8, y2=CEIL_Y+PR+8;  // TOP of each mass box
   var vel=0, pT=null;
   var running=false, started=false;
@@ -14959,7 +14963,7 @@ function simAtwood(canvas){
     var bH1=Math.max(36,getM1()*6), bH2=Math.max(36,getM2()*6);
     var mid=(CEIL_Y+PR+60+(maxY-Math.max(bH1,bH2)))/2;
     y1=mid; y2=mid;
-    vel=0; pT=null; running=false; started=false;
+    vel=0; pT=null; running=false; started=false; d=0; tRun=0;
   }
 
   var resetBtn=document.getElementById('btn-atw-reset');
@@ -14976,8 +14980,8 @@ function simAtwood(canvas){
     var T=2*m1*m2*g/(m1+m2);
 
     // Box sizes proportional to mass
-    var bW1=Math.max(46,m1*10), bH1=Math.max(36,m1*7);
-    var bW2=Math.max(46,m2*10), bH2=Math.max(36,m2*7);
+    var bW1=Math.min(66,Math.max(40,m1*7)), bH1=Math.max(36,m1*7);
+    var bW2=Math.min(66,Math.max(40,m2*7)), bH2=Math.max(36,m2*7);
 
     if(running && pT!==null){
       var dt=Math.min((ts-pT)/1000,0.04);
@@ -14986,12 +14990,15 @@ function simAtwood(canvas){
       var _vMid=0.5*(_v0a+vel);                   // trapezoid: exact for constant a
       // a>0: m2 heavier → y2 increases (down), y1 decreases (up)
       // a<0: m1 heavier → y1 increases (down), y2 decreases (up)
-      y2+=_vMid*dt*50;
-      y1-=_vMid*dt*50;
+      y2+=_vMid*dt*PPM;
+      y1-=_vMid*dt*PPM;
+      d+=Math.abs(_vMid)*dt; tRun+=dt;
 
       // Clamp and bounce/reset at limits
-      var topLimit=CEIL_Y+PR+4;
-      var botLimit1=maxY-bH1, botLimit2=maxY-bH2;
+      var topLimit=PY0+16;
+      // the weight arrow under a descending mass must stay clear of the panel
+      var _sc=Math.min(0.75,70/(Math.max(m1,m2)*g));
+      var botLimit1=maxY-bH1-m1*g*_sc, botLimit2=maxY-bH2-m2*g*_sc;
       if(y2>=botLimit2 || y1>=botLimit1 || y1<=topLimit || y2<=topLimit){
         running=false;
       }
@@ -15011,19 +15018,22 @@ function simAtwood(canvas){
     // Pulley
     ctx.save();
     ctx.strokeStyle='#60a5fa'; ctx.lineWidth=3.5;
-    ctx.beginPath(); ctx.arc(PX,CEIL_Y+PR-4,PR,0,Math.PI*2); ctx.stroke();
+    ctx.beginPath(); ctx.arc(PX,PY0,PR,0,Math.PI*2); ctx.stroke();
     ctx.strokeStyle='#3b82f6'; ctx.lineWidth=2;
-    ctx.beginPath(); ctx.arc(PX,CEIL_Y+PR-4,PR*0.5,0,Math.PI*2); ctx.stroke();
+    ctx.beginPath(); ctx.arc(PX,PY0,PR*0.35,0,Math.PI*2); ctx.stroke();
     ctx.fillStyle='#1e3a52';
-    ctx.beginPath(); ctx.arc(PX,CEIL_Y+PR-4,5,0,Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(PX,PY0,5,0,Math.PI*2); ctx.fill();
     ctx.restore();
+    // hanger from the ceiling to the axle
+    ctx.save(); ctx.strokeStyle='#64748b'; ctx.lineWidth=3; ctx.beginPath(); ctx.moveTo(PX,CEIL_Y); ctx.lineTo(PX,PY0); ctx.stroke(); ctx.restore();
 
-    var rope1X=PX-PR+4, rope2X=PX+PR-4;
+    var rope1X=PX-PR, rope2X=PX+PR;
 
-    // Ropes from pulley down to top of each mass
+    // Rope: over the top of the pulley and down to each mass
     ctx.save(); ctx.strokeStyle='#94a3b8'; ctx.lineWidth=3; ctx.lineCap='round';
-    ctx.beginPath(); ctx.moveTo(rope1X,CEIL_Y+PR+6); ctx.lineTo(rope1X,y1); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(rope2X,CEIL_Y+PR+6); ctx.lineTo(rope2X,y2); ctx.stroke();
+    ctx.beginPath(); ctx.arc(PX,PY0,PR,Math.PI,0); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(rope1X,PY0); ctx.lineTo(rope1X,y1); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(rope2X,PY0); ctx.lineTo(rope2X,y2); ctx.stroke();
     ctx.restore();
 
     // Mass 1 (left)
@@ -15045,24 +15055,25 @@ function simAtwood(canvas){
     simText(ctx,m2.toFixed(1)+' kg',rope2X,y2+bH2/2+13,'#fca5a5',10,undefined,true);
 
     // Force arrows: T (up) and W (down) on each mass
-    var sc=0.55;
-    var T_len=Math.min(T*sc,75);
-    var W1_len=Math.min(m1*g*sc,75);
-    var W2_len=Math.min(m2*g*sc,75);
+    // one scale for T, W1 and W2, so W1 < T < W2 shows
+    var sc=Math.min(0.75,70/(Math.max(m1,m2)*g));
+    var T_len=T*sc;
+    var W1_len=m1*g*sc;
+    var W2_len=m2*g*sc;
 
     // T arrows (up from top of each mass)
     simArrow(ctx,rope1X,y1,rope1X,y1-T_len,'#34d399',2.5,11);
-    simText(ctx,'T='+T.toFixed(1)+'N',x1L-6,y1-T_len-8,'#34d399',9,'right');
+    simText(ctx,'T = '+T.toFixed(1)+' N',x1L-6,y1-T_len*0.5,'#34d399',10,'right');
     simArrow(ctx,rope2X,y2,rope2X,y2-T_len,'#34d399',2.5,11);
-    simText(ctx,'T='+T.toFixed(1)+'N',x2L+bW2+6,y2-T_len-8,'#34d399',9,'left');
+    simText(ctx,'T = '+T.toFixed(1)+' N',x2L+bW2+6,y2-T_len*0.5,'#34d399',10,'left');
 
     // W arrows (down from bottom of each mass)
     var w1bot=Math.min(y1+bH1+W1_len, H-6);
     var w2bot=Math.min(y2+bH2+W2_len, H-6);
     simArrow(ctx,rope1X,y1+bH1,rope1X,w1bot,'#ef4444',2.5,10);
-    simText(ctx,'W\u2081='+(m1*g).toFixed(0)+'N',x1L-6,w1bot+10,'#fca5a5',9,'right');
+    simText(ctx,'W\u2081 = '+(m1*g).toFixed(1)+' N',x1L-6,w1bot-4,'#fca5a5',10,'right');
     simArrow(ctx,rope2X,y2+bH2,rope2X,w2bot,'#ef4444',2.5,10);
-    simText(ctx,'W\u2082='+(m2*g).toFixed(0)+'N',x2L+bW2+6,w2bot+10,'#fca5a5',9,'left');
+    simText(ctx,'W\u2082 = '+(m2*g).toFixed(1)+' N',x2L+bW2+6,w2bot-4,'#fca5a5',10,'left');
 
     // Acceleration arrows on the sides
     if(Math.abs(a)>0.05 && running){
@@ -15078,16 +15089,17 @@ function simAtwood(canvas){
 
     // Info panel at bottom
     ctx.save(); ctx.fillStyle='rgba(6,14,28,.93)'; ctx.strokeStyle='#1e4060'; ctx.lineWidth=1.5;
-    ctx.beginPath(); ctx.roundRect(W/2-168,H-118,336,108,8); ctx.fill(); ctx.stroke(); ctx.restore();
+    var _pw=Math.min(336,W-16);
+    ctx.beginPath(); ctx.roundRect(W/2-_pw/2,H-118,_pw,108,8); ctx.fill(); ctx.stroke(); ctx.restore();
 
     simText(ctx,'a = (m\u2082\u2212m\u2081)g / (m\u2081+m\u2082)',W/2,H-104,'#94a3b8',9.5,undefined,true);
     var a_sign=a>=0?'+':'';
     simText(ctx,'= ('+m2.toFixed(1)+'\u2212'+m1.toFixed(1)+')\u00d79.8 / ('+m1.toFixed(1)+'+'+m2.toFixed(1)+') = '+a_sign+a.toFixed(3)+' m/s\u00b2',W/2,H-86,'#fbbf24',10.5,undefined,true);
     simText(ctx,'T = 2m\u2081m\u2082g/(m\u2081+m\u2082) = '+T.toFixed(2)+' N',W/2,H-64,'#34d399',11.5,undefined,true);
-    var dir_str=a>0.02?'m\u2082 \u05d9\u05d5\u05e8\u05d3  \u2192  m\u2081 \u05e2\u05d5\u05dc\u05d4':a<-0.02?'m\u2081 \u05d9\u05d5\u05e8\u05d3  \u2192  m\u2082 \u05e2\u05d5\u05dc\u05d4':'\u05e9\u05d9\u05d5\u05d5\u05d9 \u05de\u05e9\u05e7\u05dc \u2014 m\u2081=m\u2082';
-    simText(ctx,dir_str,W/2,H-42,Math.abs(a)>0.02?'#fbbf24':'#34d399',11.5,undefined,true);
-    var status=!started?'לחץ ▶ שחרר! כדי להתחיל':running?'שנה m₁,m₂ — לחץ אפס לחזרה':'הסימולציה הסתיימה — לחץ אפס';
-    simText(ctx,status,W/2,H-22,!started?'#fbbf24':running?'#334e68':'#ef4444',8.5,undefined,false);
+    var dir_str=a>0.02?'m₂ יורדת ו-m₁ עולה':a<-0.02?'m₁ יורדת ו-m₂ עולה':'m₁ = m₂:  a = 0 — המערכת אינה מאיצה';
+    simText(ctx,dir_str,W/2,H-42,Math.abs(a)>0.02?'#fbbf24':'#34d399',11,undefined,true);
+    var status=!started?'לחצו ״▶ שחרר!״ כדי להתחיל':running?'t = '+tRun.toFixed(2)+' s     d = '+d.toFixed(2)+' m     v = '+Math.abs(vel).toFixed(2)+' m/s':'מסה הגיעה לקצה:  d = '+d.toFixed(2)+' m,  v = '+Math.abs(vel).toFixed(2)+' m/s  — ↺ אפס';
+    simText(ctx,status,W/2,H-22,!started?'#fbbf24':running?'#e2e8f0':'#fca5a5',10,undefined,false);
 
     requestAnimationFrame(draw);
   }
