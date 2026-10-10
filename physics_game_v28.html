@@ -3225,7 +3225,7 @@ const CONTENT={
       ${fBox('T = \\dfrac{2m_1 m_2\\,g}{m_1+m_2}','מתיחות החוט',[
         ['T','מתיחות','N — זהה בשני צידי החוט'],
       ])}
-      <p class="anim-note">כש-m₁=m₂: a=0, T=m₁g=m₂g — שיווי משקל. כש-m₂≫m₁: a→g, T→0 — נפילה חופשית כמעט.</p>
+      <p class="anim-note">כש-m₁=m₂: a=0, T=m₁g=m₂g — שיווי משקל. כש-m₂≫m₁: a→g ו-T→2m₁g — m₂ נופל כמעט חופשית, ו-m₁ מואץ מעלה בתאוצה g כמעט, ולכן החוט מושך אותו בכוח כפול ממשקלו.</p>
       ${animCanvas('anim-n2apps2',214,'מכונת אטווד — מסות נעות')}
     `,
     enrich:{
@@ -3256,7 +3256,7 @@ const CONTENT={
      explain:'אפשר בלי אלגברה: אילו T הייתה שווה ל-m₂g השקול על הכבדה היה אפס והיא לא הייתה יורדת; אילו הייתה m₁g הקלה לא הייתה עולה. לכן תמיד m₁g<T<m₂g — וכך חוט אחד מאיץ שתי מסות בכיוונים מנוגדים.'},
     {q:'מה קורה למכונת אטווד כאשר '+tex('m_2\\gg m_1')+' (הפרש עצום)?',
      opts:[tex('a\\to0'),tex('a\\to g')+' — כמעט נפילה חופשית',tex('a\\to2g'),tex('T\\to0')],correct:1,
-     explain:tex('a=\\frac{(m_2-m_1)g}{m_1+m_2}')+' — כש-m₁ זניחה היחס שואף ל-1 ולכן a→g: הכבדה נופלת חופשית וגוררת את הקלה. בקצה השני m₁=m₂ נותן a=0. בדיוק בגלל הכוונון הזה בנה אטווד את המכונה ב-1784: אפשר לבחור תאוצה קטנה כרצוננו ולמדוד בנוחות את חוקי התנועה שוות-התאוצה.'},
+     explain:tex('a=\\frac{(m_2-m_1)g}{m_1+m_2}')+' — כש-m₁ זניחה היחס שואף ל-1 ולכן a→g: הכבדה נופלת חופשית וגוררת את הקלה. המתיחות אינה מתאפסת: היא שואפת ל-2m₁g, כי הקלה מואצת מעלה בתאוצה g כמעט. בקצה השני m₁=m₂ נותן a=0. בדיוק בגלל הכוונון הזה בנה אטווד את המכונה ב-1784: אפשר לבחור תאוצה קטנה כרצוננו ולמדוד בנוחות את חוקי התנועה שוות-התאוצה.'},
     {q:'שני הגופים במכונת אטווד נעים בכיוונים מנוגדים. מה נכון לגבי גודל תאוצתם?',
      opts:['לכבד תאוצה גדולה יותר','שווה בגודל לשניהם','לקל תאוצה גדולה יותר','תלוי במתיחות'],correct:1,
      explain:'שווה בגודל — החוט אינו נמתח, ולכן כשצד אחד יורד במטר, השני עולה בדיוק במטר. אילו התאוצות היו שונות, אורך החוט היה חייב להשתנות. זה האילוץ שמאפשר לפתור את שתי משוואות ניוטון עם '+tex('a')+' משותף אחד.'},
@@ -21012,54 +21012,46 @@ runAnim('anim-inertia',(canvas,ctx,W,H,t)=>{
 
 runAnim('anim-n2',(canvas,ctx,W,H,t)=>{
   bg(ctx,W,H);
-  // Three blocks same mass m=4kg, three different forces → a∝F
-  var g=9.8, m=4;
-  var configs=[
-    {F:8,  col:'#3b82f6', label:'F=8N → a=2 m/s²'},
-    {F:16, col:'#f59e0b', label:'F=16N → a=4 m/s²'},
-    {F:32, col:'#ef4444', label:'F=32N → a=8 m/s²'},
-  ];
-  var rowH=H/3;
-  var CYCLE=3.5; // seconds per cycle
-  var tc=t%CYCLE;
+  // Three blocks of the same mass m=4 kg, pushed by 8, 16 and 32 N: a is proportional to F.
+  // The rows start below the header (they used to sit under it), each block starts far
+  // enough right that its force arrow is on the canvas, and it never wraps back.
+  var m=4;
+  var configs=[{F:8,col:'#3b82f6'},{F:16,col:'#f59e0b'},{F:32,col:'#ef4444'}];
+  var TOP=22, rowH=(H-TOP)/3;
+  var CYCLE=3.5, RUN=3.0;
+  var tc=Math.min(t%CYCLE,RUN);
+  var bH=20, bW=40, ARMAX=60;
+  var xStart=bW/2+ARMAX+12, xMax=W-8-Math.max(bW/2,(32/m)*6+6);
+  // one visual scale for all rows, chosen so the fastest block just reaches the end
+  var PPM=Math.min(3.2,(xMax-xStart)/(0.5*(32/m)*RUN*RUN));
 
   configs.forEach(function(c,i){
     var a=c.F/m;
-    var rowY=(i+0.5)*rowH;
-    var bH=18, bW=24;
-    // Ground line for each row
-    ctx.save();ctx.strokeStyle='rgba(30,58,82,.5)';ctx.lineWidth=1;
-    ctx.beginPath();ctx.moveTo(6,rowY+bH/2+2);ctx.lineTo(W-6,rowY+bH/2+2);ctx.stroke();ctx.restore();
+    var floorY=TOP+(i+1)*rowH-4;
+    var midY=floorY-bH/2;
+    ctx.save();ctx.strokeStyle='rgba(45,82,117,.6)';ctx.lineWidth=1;
+    ctx.beginPath();ctx.moveTo(6,floorY);ctx.lineTo(W-6,floorY);ctx.stroke();ctx.restore();
 
-    // Block position: starts left, accelerates right, wraps smoothly
-    var xMax=W-bW/2-8;
-    var xStart=bW/2+8;
-    var dist=0.5*a*tc*tc*3.2;  // px displacement (3.2 = visual scale)
-    var bx=xStart+dist%(xMax-xStart);
-    if(bx>xMax) bx=xMax;
-
-    // Block
+    var bx=Math.min(xMax,xStart+0.5*a*tc*tc*PPM);
     ctx.save();ctx.fillStyle=c.col+'44';ctx.strokeStyle=c.col;ctx.lineWidth=1.5;
-    ctx.beginPath();ctx.roundRect(bx-bW/2,rowY-bH/2,bW,bH,3);ctx.fill();ctx.stroke();ctx.restore();
+    ctx.beginPath();ctx.roundRect(bx-bW/2,floorY-bH,bW,bH,3);ctx.fill();ctx.stroke();ctx.restore();
+    label(ctx,m+' kg',bx,midY+4,'#e2e8f0',9,'center');
 
-    // Force arrow pushing block from LEFT → RIGHT (F is rightward)
-    var arLen=Math.min(c.F*1.2,60);
-    arrow(ctx,bx-bW/2-arLen,rowY,bx-bW/2-2,rowY,c.col,2.5,8);
+    // force arrow pushing from the left, length proportional to F
+    var arLen=c.F*1.8;
+    arrow(ctx,bx-bW/2-arLen-2,midY,bx-bW/2-2,midY,c.col,2.5,8);
+    label(ctx,'F = '+c.F+' N',bx-bW/2-arLen/2-2,midY-8,c.col,9,'center');
 
-    // Acceleration arrow above block (rightward, proportional)
-    var accLen=Math.min(a*6,50);
-    arrow(ctx,bx,rowY-bH/2-12,bx+accLen,rowY-bH/2-12,'#22d3ee',2,7);
-
-    // Labels
-    label(ctx,'F='+c.F+'N',bx-bW/2-arLen/2,rowY-9,c.col,7.5,'center');
-    label(ctx,'a='+a.toFixed(0)+'m/s²',bx+accLen/2,rowY-bH/2-22,'#22d3ee',7.5,'center');
-    label(ctx,'m='+m+'kg',bx,rowY+4,'#fff',7,'center');
+    // acceleration arrow above the block, length proportional to a
+    var accLen=a*6;
+    arrow(ctx,bx,floorY-bH-6,bx+accLen,floorY-bH-6,'#22d3ee',2,7);
+    label(ctx,'a = '+a.toFixed(0)+' m/s²',bx+accLen/2,floorY-bH-12,'#22d3ee',9,'center');
   });
 
   // Header
   ctx.save();ctx.fillStyle='rgba(6,14,28,.85)';ctx.strokeStyle='rgba(251,191,36,.3)';ctx.lineWidth=1;
-  ctx.beginPath();ctx.roundRect(6,2,W-12,14,3);ctx.fill();ctx.stroke();ctx.restore();
-  label(ctx,'F = ma — מסה קבועה: F×2 → a×2',W/2,11,'#fbbf24',7.5,'center');
+  ctx.beginPath();ctx.roundRect(6,2,W-12,16,3);ctx.fill();ctx.stroke();ctx.restore();
+  label(ctx,'אותה מסה: כוח כפול נותן תאוצה כפולה    a = F/m',W/2,13,'#fbbf24',9,'center');
 });
 
 // CH2 ANIM: תנע (momentum)
@@ -21275,10 +21267,10 @@ runAnim('anim-n2apps',(canvas,ctx,W,H,t)=>{
   var st=scene===0?tt:tt-CYCLE;
 
   // Scene label
-  var sceneName=scene===0?'גוף על מדרון — a = g·sinθ':'מכונת אטווד — a = (m₁−m₂)g/(m₁+m₂)';
+  var sceneName=scene===0?'גוף על מדרון חלק, ללא חיכוך:  a = g·sinθ':'מכונת אטווד:  a = (m₁−m₂)g/(m₁+m₂)';
   ctx.save();ctx.fillStyle='rgba(6,14,28,.9)';ctx.strokeStyle='rgba(96,165,250,.35)';ctx.lineWidth=1;
-  ctx.beginPath();ctx.roundRect(6,3,W-12,16,3);ctx.fill();ctx.stroke();ctx.restore();
-  label(ctx,sceneName,W/2,12,'#94a3b8',7.5,'center');
+  ctx.beginPath();ctx.roundRect(6,2,W-12,16,3);ctx.fill();ctx.stroke();ctx.restore();
+  label(ctx,sceneName,W/2,12,'#cbd5e1',9,'center');
 
   if(scene===0){
     // ── INCLINE SCENE
@@ -21301,129 +21293,135 @@ runAnim('anim-n2apps',(canvas,ctx,W,H,t)=>{
     ctx.save();ctx.strokeStyle='#1e4060';ctx.lineWidth=1.5;
     ctx.beginPath();ctx.moveTo(6,ORIG_Y);ctx.lineTo(W-6,ORIG_Y);ctx.stroke();ctx.restore();
 
-    // Angle arc
+    // Angle arc (the short arc inside the ramp; anticlockwise drew the 330° one)
     ctx.save();ctx.strokeStyle='#f59e0b';ctx.lineWidth=1.5;
-    ctx.beginPath();ctx.arc(ORIG_X,ORIG_Y,36,-ang,0,true);ctx.stroke();ctx.restore();
-    label(ctx,'30°',ORIG_X+44,ORIG_Y-14,'#fbbf24',8.5);
+    ctx.beginPath();ctx.arc(ORIG_X,ORIG_Y,36,-ang,0,false);ctx.stroke();ctx.restore();
+    label(ctx,'30°',ORIG_X+44,ORIG_Y-8,'#fbbf24',9,'left');
 
-    // Block position along incline — slides down with a_inc, resets
-    var tFall=st%(2.8);  // cycle every 2.8s
-    var sDist=Math.min(0.5*a_inc*tFall*tFall, incLen*0.72);
-    var bS=22;
-    var bDist=incLen*0.88-sDist-bS/2;
-    var bCX=ORIG_X+Math.max(bS/2,bDist)*cosA;
-    var bCY=ORIG_Y-Math.max(bS/2,bDist)*sinA;
+    // Block slides DOWN the frictionless ramp from rest (toward the foot, on the left).
+    // One px-per-metre scale so it covers ~70% of the ramp in RUN seconds, then holds.
+    var RUN=2.1, tFall=Math.min(st%2.5,RUN);
+    var bS=26;
+    var endDist=Math.max(incLen*0.22,84);
+    var PPM=(incLen*0.82-endDist)/(0.5*a_inc*RUN*RUN);
+    var sDist=0.5*a_inc*tFall*tFall*PPM;
+    var bDist=incLen*0.82-sDist;
+    // block centre sits half a block above the surface (it used to straddle it)
+    var bCX=ORIG_X+bDist*cosA-sinA*bS/2;
+    var bCY=ORIG_Y-bDist*sinA-cosA*bS/2;
 
-    // Block (rotated)
     ctx.save();ctx.translate(bCX,bCY);ctx.rotate(-ang);
     ctx.fillStyle='rgba(37,99,235,.88)';ctx.strokeStyle='#60a5fa';ctx.lineWidth=1.8;
-    ctx.beginPath();ctx.roundRect(-bS/2,-bS/2,bS,bS,3);ctx.fill();ctx.stroke();
-    ctx.fillStyle='#bfdbfe';ctx.font='bold 7px Heebo,sans-serif';ctx.textAlign='center';
-    ctx.fillText(m+'kg',0,3);ctx.restore();
+    ctx.beginPath();ctx.roundRect(-bS/2,-bS/2,bS,bS,3);ctx.fill();ctx.stroke();ctx.restore();
+    label(ctx,m+' kg',bCX,bCY+3,'#e2e8f0',9,'center');
 
-    // FBD arrows from block center
-    var FSCALE=0.8;
-    var N_mag=m*g*cosA, W_mag=m*g, Wp_mag=m*g*sinA;
-    // W (down)
+    // FBD on one scale: W straight down, N perpendicular out of the surface
+    var FSCALE=1.4;
+    var N_mag=m*g*cosA, W_mag=m*g;
     arrow(ctx,bCX,bCY,bCX,bCY+W_mag*FSCALE,'#ef4444',2,8);
-    label(ctx,'W='+(W_mag).toFixed(0)+'N',bCX+5,bCY+W_mag*FSCALE*0.5,'#fca5a5',7,'left');
-    // N (perpendicular to slope)
+    label(ctx,'W = '+W_mag.toFixed(0)+' N',bCX+6,bCY+W_mag*FSCALE-2,'#fca5a5',9,'left');
     var nEX=bCX-sinA*N_mag*FSCALE, nEY=bCY-cosA*N_mag*FSCALE;
     arrow(ctx,bCX,bCY,nEX,nEY,'#34d399',2,8);
-    label(ctx,'N',nEX-5,nEY-6,'#34d399',7.5,'right');
-    // Acceleration arrow (down-slope)
-    var accPx=a_inc*FSCALE*1.8;
-    arrow(ctx,bCX,bCY,bCX+cosA*accPx,bCY-sinA*accPx,'#fbbf24',2.5,9);
+    label(ctx,'N',nEX-6,nEY-2,'#34d399',10,'right');
+    // acceleration DOWN the slope (it used to point up the slope), drawn beside the block
+    var accPx=a_inc*6;
+    var axS=bCX-sinA*(bS/2+6)-cosA*(bS/2+6), ayS=bCY-cosA*(bS/2+6)+sinA*(bS/2+6);
+    arrow(ctx,axS,ayS,axS-cosA*accPx,ayS+sinA*accPx,'#fbbf24',2.5,9);
+    label(ctx,'a',axS-cosA*accPx-6,ayS+sinA*accPx-4,'#fbbf24',10,'right');
 
     // Info
-    var velNow=a_inc*Math.min(tFall,2.8);
+    var velNow=a_inc*tFall;
     var panX=topX+6, panW=W-panX-4;
-    if(panW>70){
+    if(panW<=70){panX=8;panW=Math.min(170,W-16);}  // phone: the sky above the ramp is empty
+    {
       ctx.save();ctx.fillStyle='rgba(6,14,28,.9)';ctx.strokeStyle='#1e3a52';ctx.lineWidth=1;
-      ctx.beginPath();ctx.roundRect(panX,20,panW,90,4);ctx.fill();ctx.stroke();ctx.restore();
-      label(ctx,'a=g·sin30°',panX+panW/2,34,'#94a3b8',7.5,'center');
-      label(ctx,a_inc.toFixed(2)+' m/s²',panX+panW/2,48,'#22d3ee',9.5,'center');
-      label(ctx,'N=mg·cos30°',panX+panW/2,62,'#94a3b8',7.5,'center');
-      label(ctx,N_mag.toFixed(1)+' N',panX+panW/2,76,'#34d399',8.5,'center');
-      label(ctx,'v='+velNow.toFixed(2)+' m/s',panX+panW/2,90,'#60a5fa',7.5,'center');
+      ctx.beginPath();ctx.roundRect(panX,24,panW,100,4);ctx.fill();ctx.stroke();ctx.restore();
+      label(ctx,'a = g·sin30°',panX+panW/2,40,'#94a3b8',9,'center');
+      label(ctx,a_inc.toFixed(2)+' m/s²',panX+panW/2,55,'#22d3ee',10,'center');
+      label(ctx,'N = mg·cos30°',panX+panW/2,72,'#94a3b8',9,'center');
+      label(ctx,N_mag.toFixed(1)+' N',panX+panW/2,87,'#34d399',10,'center');
+      label(ctx,'v = '+velNow.toFixed(2)+' m/s',panX+panW/2,110,'#60a5fa',9.5,'center');
     }
 
   } else {
     // ── ATWOOD SCENE
+    // m₁ = 4 kg (left) descends, m₂ = 2.5 kg (right) rises, from rest. The masses used to
+    // run off the bottom of the canvas and into the pulley, and the ceiling covered the
+    // title. Now they swap heights between fixed limits on one px-per-metre scale, and
+    // T, W₁, W₂ share one force scale.
     var m1=4, m2=2.5, g=9.8;
-    var a_at=(m1-m2)*g/(m1+m2);   // m1 heavier, drops
-    var T_at=2*m1*m2*g/(m1+m2);
-    var CX=W/2, CEIL_Y=22, PR=13;
-    var bW=34, bH=26;
-    // Travel range: from just below pulley to near bottom, shared between two masses
-    var RopeTop=CEIL_Y+PR+4;
-    var RopeBot=H-bH-12;
-    var RopeLen=RopeBot-RopeTop;  // total usable rope pixels
-    // Both masses start at midpoint, then m1 descends, m2 ascends
-    var tFall2=st%(RopeLen/(a_at*22+0.01));  // time to traverse
-    var drop=Math.min(0.5*a_at*tFall2*tFall2*22, RopeLen/2);
-    var y1=RopeTop+RopeLen/2+drop;   // m1 goes DOWN from mid
-    var y2=RopeTop+RopeLen/2-drop;   // m2 goes UP from mid
+    var a_at=(m1-m2)*g/(m1+m2);   // 2.26 m/s²
+    var T_at=2*m1*m2*g/(m1+m2);   // 30.2 N
+    var CX=Math.max(70,Math.min(W/2,W-170)), CEIL_Y=28, PY=52, PR=21;
+    var bW1=34, bH1=30, bW2=28, bH2=24;
+    var rx1=CX-PR, rx2=CX+PR;
+    var KF=0.9;                       // px per newton, all forces
+    var TOPY=PY+PR+34, D=Math.min(110,H-TOPY-bH1-KF*m1*g-22);
+    var RUN=1.9, tm=Math.min(st%2.5,RUN);
+    var PPM=D/(0.5*a_at*RUN*RUN);
+    var drop=0.5*a_at*tm*tm*PPM;
+    var y1=TOPY+drop;                 // top of m₁ (going down)
+    var y2=TOPY+D-drop;               // top of m₂ (going up)
 
-    // Ceiling fixture
-    ctx.save();ctx.fillStyle='rgba(15,40,70,.9)';ctx.fillRect(CX-30,0,60,CEIL_Y);
-    for(var xi=CX-28;xi<CX+28;xi+=10){
-      ctx.strokeStyle='#2d5275';ctx.lineWidth=1;
-      ctx.beginPath();ctx.moveTo(xi,0);ctx.lineTo(xi-6,CEIL_Y);ctx.stroke();
-    }
+    // Ceiling bar and pulley hanger
+    ctx.save();ctx.fillStyle='rgba(15,40,70,.9)';ctx.fillRect(CX-40,CEIL_Y-4,80,6);
+    ctx.strokeStyle='#2d5275';ctx.lineWidth=1;
+    for(var xi=CX-36;xi<CX+40;xi+=8){ctx.beginPath();ctx.moveTo(xi,CEIL_Y-4);ctx.lineTo(xi-4,CEIL_Y-8);ctx.stroke();}
+    ctx.strokeStyle='#64748b';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(CX,CEIL_Y+2);ctx.lineTo(CX,PY);ctx.stroke();
     ctx.restore();
 
     // Pulley
     ctx.save();ctx.strokeStyle='#60a5fa';ctx.lineWidth=2.5;
-    ctx.beginPath();ctx.arc(CX,CEIL_Y+PR,PR,0,Math.PI*2);ctx.stroke();
-    ctx.fillStyle='#1e3a52';ctx.beginPath();ctx.arc(CX,CEIL_Y+PR,PR*0.4,0,Math.PI*2);ctx.fill();ctx.restore();
+    ctx.beginPath();ctx.arc(CX,PY,PR,0,Math.PI*2);ctx.stroke();
+    ctx.fillStyle='#1e3a52';ctx.beginPath();ctx.arc(CX,PY,PR*0.4,0,Math.PI*2);ctx.fill();ctx.restore();
 
-    // Ropes (from pulley edge to top of each mass)
-    var rx1=CX-PR+2, rx2=CX+PR-2;
-    ctx.save();ctx.strokeStyle='#94a3b8';ctx.lineWidth=2.5;ctx.lineCap='round';
-    ctx.beginPath();ctx.moveTo(rx1,CEIL_Y+PR);ctx.lineTo(rx1,y1);ctx.stroke();
-    ctx.beginPath();ctx.moveTo(rx2,CEIL_Y+PR);ctx.lineTo(rx2,y2);ctx.stroke();
+    // Rope: over the top of the pulley and down to the top of each mass
+    ctx.save();ctx.strokeStyle='#94a3b8';ctx.lineWidth=2;ctx.lineCap='round';
+    ctx.beginPath();ctx.arc(CX,PY,PR,Math.PI,0,false);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(rx1,PY);ctx.lineTo(rx1,y1);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(rx2,PY);ctx.lineTo(rx2,y2);ctx.stroke();
     ctx.restore();
 
     // Mass 1 (blue, descends)
-    var x1L=rx1-bW/2;
     ctx.save();ctx.fillStyle='rgba(37,99,235,.85)';ctx.strokeStyle='#60a5fa';ctx.lineWidth=1.8;
-    ctx.beginPath();ctx.roundRect(x1L,y1,bW,bH,4);ctx.fill();ctx.stroke();ctx.restore();
-    label(ctx,'m₁='+m1,rx1,y1+bH/2+3,'#bfdbfe',7.5,'center');
-    // T arrow up, W arrow down (clamped to canvas)
-    var tLen=Math.min(T_at*0.45,38);
-    var w1Len=Math.min(m1*g*0.45,38);
-    if(y1-tLen>CEIL_Y+PR+2) arrow(ctx,rx1,y1,rx1,y1-tLen,'#34d399',2,7);
-    label(ctx,'T',rx1-10,y1-tLen/2,'#34d399',7,'right');
-    if(y1+bH+w1Len<H-2) arrow(ctx,rx1,y1+bH,rx1,y1+bH+w1Len,'#ef4444',2,7);
-    label(ctx,'W₁',rx1-8,y1+bH+w1Len/2+2,'#fca5a5',7,'right');
-    // Acceleration arrow (right side, downward for m1)
-    var aLen2=Math.min(a_at*10,24);
-    arrow(ctx,x1L-14,y1+bH/2,x1L-14,y1+bH/2+aLen2,'#fbbf24',2,7);
-
-    // Mass 2 (red, ascends)
-    var x2L=rx2-bW/2;
+    ctx.beginPath();ctx.roundRect(rx1-bW1/2,y1,bW1,bH1,4);ctx.fill();ctx.stroke();ctx.restore();
+    label(ctx,'m₁',rx1,y1+bH1/2+4,'#e2e8f0',10,'center');
+    // Mass 2 (red, rises)
     ctx.save();ctx.fillStyle='rgba(185,28,28,.85)';ctx.strokeStyle='#f87171';ctx.lineWidth=1.8;
-    ctx.beginPath();ctx.roundRect(x2L,y2,bW,bH,4);ctx.fill();ctx.stroke();ctx.restore();
-    label(ctx,'m₂='+m2,rx2,y2+bH/2+3,'#fecaca',7.5,'center');
-    if(y2-tLen>CEIL_Y+PR+2) arrow(ctx,rx2,y2,rx2,y2-tLen,'#34d399',2,7);
-    label(ctx,'T',rx2+4,y2-tLen/2,'#34d399',7,'left');
-    var w2Len=Math.min(m2*g*0.45,30);
-    if(y2+bH+w2Len<H-2) arrow(ctx,rx2,y2+bH,rx2,y2+bH+w2Len,'#ef4444',1.8,6);
-    // Acceleration arrow (right side, upward for m2)
-    arrow(ctx,x2L+bW+14,y2+bH/2,x2L+bW+14,y2+bH/2-aLen2,'#fbbf24',2,7);
+    ctx.beginPath();ctx.roundRect(rx2-bW2/2,y2,bW2,bH2,4);ctx.fill();ctx.stroke();ctx.restore();
+    label(ctx,'m₂',rx2,y2+bH2/2+4,'#fecaca',10,'center');
 
-    // Info panel (left or right of masses)
-    var panX=rx2+bW/2+22, panW=W-panX-4;
-    if(panW<65){panX=4; panW=rx1-bW/2-8;}
-    ctx.save();ctx.fillStyle='rgba(6,14,28,.9)';ctx.strokeStyle='#1e3a52';ctx.lineWidth=1;
-    ctx.beginPath();ctx.roundRect(panX,H*0.28,panW,88,4);ctx.fill();ctx.stroke();ctx.restore();
-    label(ctx,'a='+a_at.toFixed(2)+' m/s²',panX+panW/2,H*0.28+16,'#22d3ee',8.5,'center');
-    label(ctx,'T='+T_at.toFixed(1)+' N',panX+panW/2,H*0.28+32,'#34d399',8,'center');
-    var vNow2=a_at*Math.min(tFall2,3);
-    label(ctx,'v='+vNow2.toFixed(2)+' m/s',panX+panW/2,H*0.28+48,'#60a5fa',7.5,'center');
-    label(ctx,'m₁ יורד',panX+panW/2,H*0.28+64,'#bfdbfe',7,'center');
-    label(ctx,'m₂ עולה',panX+panW/2,H*0.28+76,'#fecaca',7,'center');
+    // Forces, one scale: T up along the rope, W down from the bottom face
+    var tLen=T_at*KF;
+    arrow(ctx,rx1,y1,rx1,y1-tLen,'#34d399',2.2,7);
+    label(ctx,'T',rx1-6,y1-tLen+8,'#34d399',10,'right');
+    arrow(ctx,rx2,y2,rx2,y2-tLen,'#34d399',2.2,7);
+    label(ctx,'T',rx2+6,y2-tLen+8,'#34d399',10,'left');
+    var w1Len=m1*g*KF, w2Len=m2*g*KF;
+    arrow(ctx,rx1,y1+bH1,rx1,y1+bH1+w1Len,'#ef4444',2.2,7);
+    label(ctx,'W₁',rx1-6,y1+bH1+w1Len-2,'#fca5a5',10,'right');
+    arrow(ctx,rx2,y2+bH2,rx2,y2+bH2+w2Len,'#ef4444',2.2,7);
+    label(ctx,'W₂',rx2+6,y2+bH2+w2Len-2,'#fca5a5',10,'left');
+    // Accelerations on the outer sides: m₁ down, m₂ up
+    var aLen2=a_at*10;
+    arrow(ctx,rx1-bW1/2-10,y1+bH1/2-aLen2/2,rx1-bW1/2-10,y1+bH1/2+aLen2/2,'#fbbf24',2,7);
+    label(ctx,'a',rx1-bW1/2-16,y1+bH1/2+4,'#fbbf24',10,'right');
+    arrow(ctx,rx2+bW2/2+10,y2+bH2/2+aLen2/2,rx2+bW2/2+10,y2+bH2/2-aLen2/2,'#fbbf24',2,7);
+    label(ctx,'a',rx2+bW2/2+16,y2+bH2/2+4,'#fbbf24',10,'left');
+
+    // Info panel on the right
+    var panX=rx2+bW2/2+30, panW=Math.min(190,W-panX-6), panY=34;
+    if(panW>=90){
+      ctx.save();ctx.fillStyle='rgba(6,14,28,.9)';ctx.strokeStyle='#1e3a52';ctx.lineWidth=1;
+      ctx.beginPath();ctx.roundRect(panX,panY,panW,118,4);ctx.fill();ctx.stroke();ctx.restore();
+      var pc=panX+panW/2;
+      label(ctx,'m₁ = '+m1+' kg   m₂ = '+m2+' kg',pc,panY+16,'#cbd5e1',9,'center');
+      label(ctx,'a = '+a_at.toFixed(2)+' m/s²',pc,panY+36,'#fbbf24',10,'center');
+      label(ctx,'T = '+T_at.toFixed(1)+' N',pc,panY+54,'#34d399',10,'center');
+      label(ctx,'v = '+(a_at*tm).toFixed(2)+' m/s',pc,panY+72,'#60a5fa',9.5,'center');
+      label(ctx,'m₁ יורד, m₂ עולה',pc,panY+92,'#cbd5e1',9,'center');
+      label(ctx,'m₂g < T < m₁g',pc,panY+108,'#94a3b8',9,'center');
+    }
   }
 });
 
@@ -23457,152 +23455,127 @@ runAnim('anim-force-types2',(canvas,ctx,W,H,t)=>{
 
 runAnim('anim-n2-2',(canvas,ctx,W,H,t)=>{
   bg(ctx,W,H);
+  // The same force F = 40 N on 2 kg and on 8 kg: four times the mass, a quarter of the
+  // acceleration. Blocks start far enough right that the force arrow is on the canvas,
+  // share one px-per-metre scale (chosen so the light block just reaches the end) and
+  // never wrap.
   var F=40,m1=2,m2=8;
   var a1=F/m1, a2=F/m2;  // 20 and 5 m/s²
-  var CYCLE=3.0;
-  var tc=t%CYCLE;
-  var FLOOR1=H*0.42, FLOOR2=H*0.82;
+  var CYCLE=3.0, RUN=2.5;
+  var tc=Math.min(t%CYCLE,RUN);
+  var FLOOR1=Math.round(H*0.46), FLOOR2=H-12;
 
-  // Floor lines
   ctx.save();ctx.strokeStyle='#2d5275';ctx.lineWidth=1.5;
   ctx.beginPath();ctx.moveTo(0,FLOOR1);ctx.lineTo(W,FLOOR1);ctx.stroke();
   ctx.beginPath();ctx.moveTo(0,FLOOR2);ctx.lineTo(W,FLOOR2);ctx.stroke();ctx.restore();
 
-  // Row labels
-  label(ctx,'m₁='+m1+'kg  (קל)',W*0.5,FLOOR1-56,'#f87171',8,'center');
-  label(ctx,'m₂='+m2+'kg  (כבד)',W*0.5,FLOOR2-60,'#60a5fa',8,'center');
+  label(ctx,'גוף קל:  m₁ = '+m1+' kg',W*0.5,36,'#f87171',9.5,'center');
+  label(ctx,'גוף כבד:  m₂ = '+m2+' kg',W*0.5,FLOOR1+20,'#60a5fa',9.5,'center');
 
-  var scale=2.2; // visual pixels per (m/s²)
+  var arLen=46;
+  var bW1=28, bH1=22, bW2=46, bH2=36;
+  var xStart1=arLen+bW1/2+12, xStart2=arLen+bW2/2+12;
+  var xMax1=W-10-a1*2;
+  var PPM=Math.min(2.2,(xMax1-xStart1)/(0.5*a1*RUN*RUN));
+  var KA=2; // px of arrow per m/s²
 
-  // Block 1 (light, fast)
-  var bW1=28, bH1=22;
-  var xStart1=bW1/2+8, xMax1=W-bW1/2-8;
-  var pos1=xStart1+(0.5*a1*tc*tc*scale)%(xMax1-xStart1);
-  ctx.save();ctx.fillStyle='rgba(239,68,68,.75)';ctx.strokeStyle='#f87171';ctx.lineWidth=2;
-  ctx.beginPath();ctx.roundRect(pos1-bW1/2,FLOOR1-bH1,bW1,bH1,3);ctx.fill();ctx.stroke();ctx.restore();
-  // Force arrow (left side, pushing right)
-  var arLen=Math.min(F*0.9,52);
-  arrow(ctx,pos1-bW1/2-arLen,FLOOR1-bH1*0.6,pos1-bW1/2-2,FLOOR1-bH1*0.6,'#34d399',2,8);
-  label(ctx,'F='+F+'N',pos1-bW1/2-arLen/2,FLOOR1-bH1*0.6-11,'#34d399',7.5,'center');
-  // Velocity arrow (right side)
-  var v1now=a1*tc; var vLen1=Math.min(v1now*scale*0.4,55);
-  if(vLen1>3) arrow(ctx,pos1+bW1/2+2,FLOOR1-bH1/2,pos1+bW1/2+2+vLen1,FLOOR1-bH1/2,'#22d3ee',2,7);
-  label(ctx,'a='+a1.toFixed(0)+' m/s²',pos1,FLOOR1-bH1-14,'#22d3ee',8,'center');
-
-  // Block 2 (heavy, slow)
-  var bW2=46, bH2=36;
-  var xStart2=bW2/2+8, xMax2=W-bW2/2-8;
-  var pos2=xStart2+(0.5*a2*tc*tc*scale)%(xMax2-xStart2);
-  ctx.save();ctx.fillStyle='rgba(59,130,246,.75)';ctx.strokeStyle='#60a5fa';ctx.lineWidth=2;
-  ctx.beginPath();ctx.roundRect(pos2-bW2/2,FLOOR2-bH2,bW2,bH2,3);ctx.fill();ctx.stroke();ctx.restore();
-  arrow(ctx,pos2-bW2/2-arLen,FLOOR2-bH2*0.6,pos2-bW2/2-2,FLOOR2-bH2*0.6,'#34d399',2,8);
-  label(ctx,'F='+F+'N',pos2-bW2/2-arLen/2,FLOOR2-bH2*0.6-11,'#34d399',7.5,'center');
-  var v2now=a2*tc; var vLen2=Math.min(v2now*scale*0.4,55);
-  if(vLen2>3) arrow(ctx,pos2+bW2/2+2,FLOOR2-bH2/2,pos2+bW2/2+2+vLen2,FLOOR2-bH2/2,'#22d3ee',2,7);
-  label(ctx,'a='+a2.toFixed(1)+' m/s²',pos2,FLOOR2-bH2-14,'#22d3ee',8,'center');
+  function row(pos,floor,bW,bH,acc,fill,stroke,dec){
+    ctx.save();ctx.fillStyle=fill;ctx.strokeStyle=stroke;ctx.lineWidth=2;
+    ctx.beginPath();ctx.roundRect(pos-bW/2,floor-bH,bW,bH,3);ctx.fill();ctx.stroke();ctx.restore();
+    var fy=floor-bH/2;
+    arrow(ctx,pos-bW/2-arLen-2,fy,pos-bW/2-2,fy,'#34d399',2.5,8);
+    label(ctx,'F = '+F+' N',pos-bW/2-arLen/2-2,fy-9,'#34d399',9,'center');
+    var aLen=acc*KA, ay=floor-bH-8;
+    arrow(ctx,pos,ay,pos+aLen,ay,'#22d3ee',2,7);
+    label(ctx,'a = '+acc.toFixed(dec)+' m/s²',pos+aLen/2,ay-7,'#22d3ee',9,'center');
+  }
+  row(Math.min(xMax1,xStart1+0.5*a1*tc*tc*PPM),FLOOR1,bW1,bH1,a1,'rgba(239,68,68,.75)','#f87171',0);
+  row(xStart2+0.5*a2*tc*tc*PPM,FLOOR2,bW2,bH2,a2,'rgba(59,130,246,.75)','#60a5fa',0);
 
   // Banner
   ctx.save();ctx.fillStyle='rgba(6,14,28,.9)';ctx.strokeStyle='#1e4060';ctx.lineWidth=1;
   ctx.beginPath();ctx.roundRect(4,4,W-8,18,3);ctx.fill();ctx.stroke();ctx.restore();
-  label(ctx,'אותו כוח F='+F+'N — מסה ×4 → תאוצה ÷4',W/2,13,'#fbbf24',7.5,'center');
+  label(ctx,'אותו כוח, מסה פי 4 גדולה: התאוצה קטנה פי 4',W/2,15,'#fbbf24',9,'center');
 });
 
 runAnim('anim-n2apps2',(canvas,ctx,W,H,t)=>{
-  ctx.fillStyle='#030d1a'; ctx.fillRect(0,0,W,H);
+  bg(ctx,W,H);
+  // m₁ = 3 kg (left) rises, m₂ = 5 kg (right) descends, from rest; hold; restart.
+  // The old version ran the masses into the pulley and behind the bottom banner, and on
+  // its way "back" gave m₂ an upward acceleration. Now the masses swap heights between
+  // fixed limits on one px-per-metre scale, all forces share one scale, and the formulas
+  // sit in a panel beside the machine.
   var g=9.8, m1=3, m2=5;
-  var a=(m2-m1)/(m1+m2)*g;    // 2.45 m/s² — m2 descends
-  var T=2*m1*m2*g/(m1+m2);    // 36.75 N
-  var PX=W*0.50, CEIL_Y=18, PR=16;
-  var bW1=36, bH1=28, bW2=46, bH2=36;
+  var a=(m2-m1)/(m1+m2)*g;      // 2.45 m/s²
+  var T=2*m1*m2*g/(m1+m2);      // 36.75 N
+  var CX=Math.max(78,Math.min(W*0.38,W-215)), CEIL_Y=10, PY=31, PR=20;
+  var bW1=28, bH1=24, bW2=36, bH2=32;
+  var rx1=CX-PR, rx2=CX+PR;
+  var KF=0.6;                    // px per newton
+  var TOPY=PY+PR+26;
+  var D=Math.max(30,H-6-12-KF*m2*g-bH2-TOPY);
+  var HOLD0=0.5, RUN=1.7, CYCLE=3.0;
+  var tm=Math.max(0,Math.min((t%CYCLE)-HOLD0,RUN));
+  var PPM=D/(0.5*a*RUN*RUN);
+  var drop=0.5*a*tm*tm*PPM;
+  var y2=TOPY+drop;              // top of m₂ (down)
+  var y1=TOPY+D-drop;            // top of m₁ (up)
 
-  // Rope parameters
-  var RopeAttach=CEIL_Y+PR;
-  var RopeBot=H-Math.max(bH1,bH2)-14;
-  var RopeLen=RopeBot-RopeAttach;
-  var rx1=PX-PR+3, rx2=PX+PR-3;
-
-  // Physics: m2 descends. CYCLE based on RopeLen / a
-  var HALF=Math.sqrt(2*RopeLen*0.5/a); // time to travel half rope
-  var CYCLE=HALF*2;
-  var tc=t%CYCLE;
-  var drop; // pixels m2 has dropped below midpoint
-  if(tc<HALF){
-    drop=0.5*a*tc*tc*50;  // 50 = pixels per m/s²
-  } else {
-    var tr=tc-HALF;
-    drop=0.5*a*HALF*HALF*50-0.5*a*tr*tr*50;
-  }
-  drop=Math.max(0,Math.min(RopeLen/2,drop));
-  var y2=RopeAttach+RopeLen/2+drop;  // m2 top
-  var y1=RopeAttach+RopeLen/2-drop;  // m1 top
-  y1=Math.max(RopeAttach+2,y1);
-  y2=Math.min(RopeBot,y2);
-
-  // Ceiling
-  ctx.save();ctx.fillStyle='#1e3a52';ctx.fillRect(PX-28,0,56,CEIL_Y);
-  for(var xi=PX-26;xi<PX+26;xi+=10){
-    ctx.strokeStyle='#2d5275';ctx.lineWidth=1;
-    ctx.beginPath();ctx.moveTo(xi,0);ctx.lineTo(xi-6,CEIL_Y);ctx.stroke();
-  }
+  // Ceiling and hanger
+  ctx.save();ctx.fillStyle='#1e3a52';ctx.fillRect(CX-34,0,68,CEIL_Y);
+  ctx.strokeStyle='#2d5275';ctx.lineWidth=1;
+  for(var xi=CX-32;xi<CX+34;xi+=8){ctx.beginPath();ctx.moveTo(xi,0);ctx.lineTo(xi-5,CEIL_Y);ctx.stroke();}
+  ctx.strokeStyle='#64748b';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(CX,CEIL_Y);ctx.lineTo(CX,PY);ctx.stroke();
   ctx.restore();
 
-  // Pulley
-  ctx.save();ctx.strokeStyle='#60a5fa';ctx.lineWidth=3;
-  ctx.beginPath();ctx.arc(PX,CEIL_Y+PR,PR,0,Math.PI*2);ctx.stroke();
-  ctx.strokeStyle='#3b82f6';ctx.lineWidth=1.5;
-  ctx.beginPath();ctx.arc(PX,CEIL_Y+PR,PR*0.45,0,Math.PI*2);ctx.stroke();
-  ctx.fillStyle='#0f2035';ctx.beginPath();ctx.arc(PX,CEIL_Y+PR,4,0,Math.PI*2);ctx.fill();ctx.restore();
-
-  // Ropes
-  ctx.save();ctx.strokeStyle='#94a3b8';ctx.lineWidth=2.5;ctx.lineCap='round';
-  ctx.beginPath();ctx.moveTo(rx1,RopeAttach);ctx.lineTo(rx1,y1);ctx.stroke();
-  ctx.beginPath();ctx.moveTo(rx2,RopeAttach);ctx.lineTo(rx2,y2);ctx.stroke();
+  // Pulley and rope over it
+  ctx.save();ctx.strokeStyle='#60a5fa';ctx.lineWidth=2.5;
+  ctx.beginPath();ctx.arc(CX,PY,PR,0,Math.PI*2);ctx.stroke();
+  ctx.fillStyle='#0f2035';ctx.beginPath();ctx.arc(CX,PY,4,0,Math.PI*2);ctx.fill();
+  ctx.strokeStyle='#94a3b8';ctx.lineWidth=2;ctx.lineCap='round';
+  ctx.beginPath();ctx.arc(CX,PY,PR,Math.PI,0,false);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(rx1,PY);ctx.lineTo(rx1,y1);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(rx2,PY);ctx.lineTo(rx2,y2);ctx.stroke();
   ctx.restore();
 
-  // Mass 1 (m₁ = 3kg, blue, ascends when m2>m1)
+  // Masses
   ctx.save();ctx.fillStyle='rgba(239,68,68,.85)';ctx.strokeStyle='#f87171';ctx.lineWidth=2;
   ctx.beginPath();ctx.roundRect(rx1-bW1/2,y1,bW1,bH1,4);ctx.fill();ctx.stroke();ctx.restore();
-  label(ctx,'m₁='+m1+'kg',rx1,y1+bH1/2+4,'#fecaca',8.5,'center');
-
-  // Mass 2 (m₂ = 5kg, red, descends)
+  label(ctx,'m₁',rx1,y1+bH1/2+4,'#fee2e2',10,'center');
   ctx.save();ctx.fillStyle='rgba(59,130,246,.85)';ctx.strokeStyle='#60a5fa';ctx.lineWidth=2;
   ctx.beginPath();ctx.roundRect(rx2-bW2/2,y2,bW2,bH2,4);ctx.fill();ctx.stroke();ctx.restore();
-  label(ctx,'m₂='+m2+'kg',rx2,y2+bH2/2+4,'#bfdbfe',8.5,'center');
+  label(ctx,'m₂',rx2,y2+bH2/2+4,'#dbeafe',10,'center');
 
-  // T arrows (upward from TOP of each mass, toward pulley)
-  var tLen=Math.min(T*0.5,44);
-  if(y1-tLen>=RopeAttach){
-    arrow(ctx,rx1,y1,rx1,y1-tLen,'#34d399',2.5,10);
-    label(ctx,'T='+T.toFixed(0)+'N',rx1-5,y1-tLen/2,'#34d399',8,'right');
-  }
-  if(y2-tLen>=RopeAttach){
-    arrow(ctx,rx2,y2,rx2,y2-tLen,'#34d399',2.5,10);
-    label(ctx,'T='+T.toFixed(0)+'N',rx2+5,y2-tLen/2,'#34d399',8,'left');
-  }
+  // Forces on one scale: T up along each rope (same T on both sides), W down
+  var tLen=T*KF;
+  arrow(ctx,rx1,y1,rx1,y1-tLen,'#34d399',2.2,7);
+  label(ctx,'T',rx1-6,y1-tLen+8,'#34d399',10,'right');
+  arrow(ctx,rx2,y2,rx2,y2-tLen,'#34d399',2.2,7);
+  label(ctx,'T',rx2+6,y2-tLen+8,'#34d399',10,'left');
+  var w1=m1*g*KF, w2=m2*g*KF;
+  arrow(ctx,rx1,y1+bH1,rx1,y1+bH1+w1,'#fbbf24',2.2,7);
+  label(ctx,'W₁',rx1-6,y1+bH1+w1-1,'#fbbf24',10,'right');
+  arrow(ctx,rx2,y2+bH2,rx2,y2+bH2+w2,'#fbbf24',2.2,7);
+  label(ctx,'W₂',rx2+6,y2+bH2+w2-1,'#fbbf24',10,'left');
+  // Accelerations on the outer sides: m₁ up, m₂ down
+  var aLen=a*9;
+  arrow(ctx,rx1-bW1/2-9,y1+bH1/2+aLen/2,rx1-bW1/2-9,y1+bH1/2-aLen/2,'#22d3ee',2,7);
+  label(ctx,'a',rx1-bW1/2-15,y1+bH1/2+4,'#22d3ee',10,'right');
+  arrow(ctx,rx2+bW2/2+9,y2+bH2/2-aLen/2,rx2+bW2/2+9,y2+bH2/2+aLen/2,'#22d3ee',2,7);
+  label(ctx,'a',rx2+bW2/2+15,y2+bH2/2+4,'#22d3ee',10,'left');
 
-  // Weight arrows (downward from BOTTOM of each mass, clamped)
-  var w1Len=Math.min(m1*g*0.5,40);
-  var w2Len=Math.min(m2*g*0.5,50);
-  if(y1+bH1+w1Len<H-4) arrow(ctx,rx1,y1+bH1,rx1,y1+bH1+w1Len,'#fbbf24',2,9);
-  label(ctx,'W₁='+(m1*g).toFixed(0)+'N',rx1-5,Math.min(y1+bH1+w1Len+10,H-4),'#fbbf24',7.5,'right');
-  if(y2+bH2+w2Len<H-4) arrow(ctx,rx2,y2+bH2,rx2,y2+bH2+w2Len,'#fbbf24',2,9);
-  label(ctx,'W₂='+(m2*g).toFixed(0)+'N',rx2+5,Math.min(y2+bH2+w2Len+10,H-4),'#fbbf24',7.5,'left');
-
-  // Acceleration arrows (on outer sides of masses)
-  var aLen=Math.min(a*8,30);
-  if(aLen>4){
-    // m1 goes UP: arrow upward on left
-    arrow(ctx,rx1-bW1/2-12,y1+bH1/2,rx1-bW1/2-12,y1+bH1/2-aLen,'#22d3ee',2,8);
-    label(ctx,'a',rx1-bW1/2-18,y1+bH1/2-aLen-4,'#22d3ee',8,'right');
-    // m2 goes DOWN: arrow downward on right
-    arrow(ctx,rx2+bW2/2+12,y2+bH2/2,rx2+bW2/2+12,y2+bH2/2+aLen,'#22d3ee',2,8);
-  }
-
-  // Formula banner at bottom
+  // Formula panel on the right
+  var panX=rx2+bW2/2+26, panW=Math.min(230,W-panX-6), panY=8, panH=H-16;
   ctx.save();ctx.fillStyle='rgba(6,14,28,.9)';ctx.strokeStyle='#1e4060';ctx.lineWidth=1;
-  ctx.beginPath();ctx.roundRect(4,H-30,W-8,26,3);ctx.fill();ctx.stroke();ctx.restore();
-  label(ctx,'a=(m₂-m₁)g/(m₁+m₂)='+a.toFixed(2)+' m/s²',W/2,H-18,'#22d3ee',8,'center');
-  label(ctx,'T=2m₁m₂g/(m₁+m₂)='+T.toFixed(1)+' N',W/2,H-6,'#34d399',8,'center');
+  ctx.beginPath();ctx.roundRect(panX,panY,panW,panH,4);ctx.fill();ctx.stroke();ctx.restore();
+  var pc=panX+panW/2, rh=(panH-8)/7;
+  label(ctx,'m₁ = '+m1+' kg   m₂ = '+m2+' kg',pc,panY+rh*0.5+8,'#cbd5e1',9,'center');
+  label(ctx,'a = (m₂−m₁)g/(m₁+m₂)',pc,panY+rh*1.5+8,'#94a3b8',9,'center');
+  label(ctx,'= '+a.toFixed(2)+' m/s²',pc,panY+rh*2.5+6,'#22d3ee',10,'center');
+  label(ctx,'T = 2m₁m₂g/(m₁+m₂)',pc,panY+rh*3.5+8,'#94a3b8',9,'center');
+  label(ctx,'= '+T.toFixed(1)+' N',pc,panY+rh*4.5+6,'#34d399',10,'center');
+  label(ctx,'v = '+(a*tm).toFixed(2)+' m/s',pc,panY+rh*5.5+8,'#60a5fa',9.5,'center');
+  label(ctx,'m₂ יורד, m₁ עולה',pc,panY+rh*6.5+6,'#cbd5e1',9,'center');
 });
 
 runAnim('anim-gravity2',(canvas,ctx,W,H,t)=>{
