@@ -3066,7 +3066,7 @@ const CONTENT={
     title:'סוגי כוחות נפוצים',
     html:`
       ${animCanvas('anim-force-types',212,'ארבעת הכוחות — הדגמה אינטראקטיבית')}
-      <p class="anim-note">דיאגרמת גוף חופשי (FBD) מציגה <b>כל</b> כוח בכיוונו הנכון: W↓, N ניצב למשטח, F ו-f לאורך השיפוע.</p>
+      <p class="anim-note">דיאגרמת גוף חופשי (FBD) מציגה <b>כל</b> כוח בכיוונו הנכון: W↓, N ניצב למשטח, F ו-f לאורך המשטח.</p>
       ${animCanvas('anim-force-types2',175,'FBD על משטח')}
       <div class="def-block"><div class="def-title">כוח הכבידה (משקל) ${P('W','משקל','W=mg כלפי מרכז כדה״א — תמיד אנכי מטה')}</div>
         <p>כוח שכדור הארץ מושך אליו כל גוף. ${M('W=mg')} — תמיד כלפי מטה.</p>
@@ -21507,7 +21507,7 @@ runAnim('anim-n3',(canvas,ctx,W,H,t)=>{
   ctx.save(); ctx.fillStyle='rgba(6,14,28,.88)'; ctx.strokeStyle='rgba(251,191,36,.4)'; ctx.lineWidth=1;
   ctx.beginPath(); ctx.roundRect(W/2-145,4,290,18,4); ctx.fill(); ctx.stroke(); ctx.restore();
   label(ctx,'F(A→B) = −F(B→A)',W/2,14,'#fbbf24',8.5);
-  label(ctx,'שים לב: כוחות פעולה ותגובה על גופים שונים!',W/2,H-5,'#7d8da6',8);
+  label(ctx,'שימו לב: כוחות הפעולה והתגובה פועלים על גופים שונים',W/2,H-5,'#94a3b8',9);
 });
 
 // CH2 ANIM: חיבור וקטורים (vector addition)
@@ -22317,7 +22317,7 @@ runAnim('anim-tension',(canvas,ctx,W,H,t)=>{
   ctx.fillRect(W*0.3,8,W*0.4,10);ctx.strokeRect(W*0.3,8,W*0.4,10);ctx.restore();
 
   // Rope
-  const ropeX=W/2, ropeTop=18, ropeLen=70;
+  const ropeX=W/2, ropeTop=18, ropeLen=42;   // the weight arrow must clear the panel below
   ctx.save();ctx.strokeStyle='#94a3b8';ctx.lineWidth=2.5;
   ctx.beginPath();ctx.moveTo(ropeX,ropeTop);ctx.lineTo(ropeX,ropeTop+ropeLen);ctx.stroke();ctx.restore();
 
@@ -22346,8 +22346,8 @@ runAnim('anim-tension',(canvas,ctx,W,H,t)=>{
     const netF=m*a;
     const acol=a>0?'#fbbf24':'#f97316';
     arrow(ctx,ropeX-30,bY+bH/2,ropeX-30,bY+bH/2-netF*FSC,acol,2.5,10);
-    label(ctx,'\u200eF_net = T−W = '+netF.toFixed(0)+' N',ropeX-34,bY+bH/2-netF*FSC*0.5-6,'#fbbf24',8,'right');
-    label(ctx,'\u200ea = '+a+' m/s²',ropeX-34,bY+bH/2-netF*FSC*0.5+6,acol,8,'right');
+    label(ctx,'ΣF = T − W = '+netF.toFixed(0)+' N',ropeX-34,bY+bH/2-netF*FSC*0.5-6,'#fbbf24',9,'right');
+    label(ctx,'a = '+a+' m/s²',ropeX-34,bY+bH/2-netF*FSC*0.5+7,acol,9,'right');
   }
 
   // Info panel
@@ -22355,7 +22355,7 @@ runAnim('anim-tension',(canvas,ctx,W,H,t)=>{
   ctx.beginPath();ctx.roundRect(10,H-60,W-20,54,5);ctx.fill();ctx.stroke();ctx.restore();
   label(ctx,a_lbls[scene],W/2,H-46,a_col[scene],9,'center');
   label(ctx,'T = m(g + a) = '+m+'×('+g.toFixed(1)+(a>=0?'+':'')+a+') = '+T.toFixed(1)+' N',W/2,H-30,'#e2e8f0',9,'center');
-  label(ctx,T>W_grav?'T > W — חוט מושך מעלה':T<W_grav?'T < W — כמו נפילה חופשית':'T = W — שיווי משקל',W/2,H-14,a_col[scene],8,'center');
+  label(ctx,T>W_grav?'T > W: השקול מעלה, ולכן התאוצה מעלה':T<W_grav?'T < W: השקול מטה, ולכן התאוצה מטה':'T = W: השקול אפס',W/2,H-14,a_col[scene],9,'center');
 });
 
 // ── CH3 ANIM: anim-normal-force — N on flat and inclined surfaces
@@ -22383,16 +22383,16 @@ runAnim('anim-normal-force',(canvas,ctx,W,H,t)=>{
   // N arrow up
   const N_flat=m*g;
   // N acts upward from floor surface (bottom of block)
-  arrow(ctx,LCX,GND_L,LCX,GND_L-bH-N_flat*0.6,'#34d399',2.5,9);
-  label(ctx,'N=mg',LCX+4,GND_L-bH-N_flat*0.30,'#34d399',8,'left');
-  label(ctx,N_flat.toFixed(0)+' N',LCX+4,GND_L-bH-N_flat*0.30+10,'#6ee7b7',8,'left');
-  // W arrow down
-  // W acts downward from block center
-  arrow(ctx,LCX,GND_L-bH/2,LCX,GND_L-bH/2+N_flat*0.55,'#ef4444',2,8);
-  label(ctx,'W=mg',LCX+4,GND_L-bH/2+N_flat*0.28,'#fca5a5',8,'left');
+  // one scale (px per newton) for every arrow in this figure
+  const FS=0.8;
+  arrow(ctx,LCX,GND_L-bH,LCX,GND_L-bH-N_flat*FS,'#34d399',2.5,9);
+  label(ctx,'N = mg',LCX+5,GND_L-bH-N_flat*FS*0.55,'#34d399',9,'left');
+  arrow(ctx,LCX-8,GND_L-bH/2,LCX-8,GND_L-bH/2+N_flat*FS,'#ef4444',2,8);
+  label(ctx,'W',LCX-13,GND_L-bH/2+N_flat*FS*0.75,'#fca5a5',9,'right');
   // Label below
-  label(ctx,'משטח אופקי',LCX,H-10,'#7d8da6',8,'center');
-  label(ctx,'N = mg = '+N_flat.toFixed(0)+'N',LCX,H-20,'#34d399',8,'center');
+  // beside the block, not under it where the weight arrow runs
+  label(ctx,'משטח אופקי',LCX+40,GND_L-34,'#94a3b8',9,'left');
+  label(ctx,'N = mg = '+N_flat.toFixed(0)+' N',LCX+40,GND_L-18,'#34d399',9,'left');
 
   // ── RIGHT: inclined surface
   const RBX=W*0.56, GND_R=H-28;
@@ -22412,7 +22412,7 @@ runAnim('anim-normal-force',(canvas,ctx,W,H,t)=>{
 
   // Angle arc
   ctx.save();ctx.strokeStyle='#fbbf24';ctx.lineWidth=1.5;
-  ctx.beginPath();ctx.arc(RBX,GND_R,24,-ang,0,true);ctx.stroke();ctx.restore();
+  ctx.beginPath();ctx.arc(RBX,GND_R,24,-ang,0,false);ctx.stroke();ctx.restore();   // the short arc, inside the angle
   label(ctx,ang_deg.toFixed(0)+'°',RBX+30,GND_R-11,'#fbbf24',8.5);
 
   // Block on incline
@@ -22426,12 +22426,12 @@ runAnim('anim-normal-force',(canvas,ctx,W,H,t)=>{
 
   // N arrow (perpendicular to incline)
   const N_inc=m*g*cosA;
-  const NX=-sinA*N_inc*0.45, NY=-cosA*N_inc*0.45;
+  const NX=-sinA*N_inc*FS, NY=-cosA*N_inc*FS;
   arrow(ctx,bCX,bCY,bCX+NX,bCY+NY,'#34d399',2.5,9);
   label(ctx,'N='+N_inc.toFixed(1)+'N',bCX+NX-2,bCY+NY-8,'#34d399',8,'right');
   // W arrow down
-  arrow(ctx,bCX,bCY,bCX,bCY+m*g*0.38,'#ef4444',2,8);
-  label(ctx,'W',bCX+4,bCY+m*g*0.20,'#fca5a5',8,'left');
+  arrow(ctx,bCX,bCY,bCX,bCY+m*g*FS,'#ef4444',2,8);
+  label(ctx,'W',bCX+5,bCY+m*g*FS*0.6,'#fca5a5',9,'left');
 
   label(ctx,'מדרון θ='+ang_deg.toFixed(0)+'°',RBX+incLen*0.5,H-10,'#7d8da6',8,'center');
   label(ctx,'N = mg·cosθ = '+N_inc.toFixed(1)+' N',RBX+incLen*0.5,H-20,'#34d399',8,'center');
@@ -23292,7 +23292,8 @@ runAnim('anim-tension2',(canvas,ctx,W,H,t)=>{
   var statusCol=a>0.3?'#34d399':a<-0.3?'#f87171':'#fbbf24';
   ctx.save();ctx.fillStyle='rgba(6,14,28,.9)';ctx.strokeStyle=statusCol+'55';ctx.lineWidth=1.5;
   ctx.beginPath();ctx.roundRect(4,H-28,W-8,24,3);ctx.fill();ctx.stroke();ctx.restore();
-  label(ctx,a>0.3?'\u05e2\u05d5\u05dc\u05d4: T = m(g+a) > mg':a<-0.3?'\u05d9\u05d5\u05e8\u05d3: T = m(g\u2212|a|) < mg':'\u05de\u05d4\u05d9\u05e8\u05d5\u05ea \u05e7\u05d1\u05d5\u05e2\u05d4: T = mg',W/2,H-14,statusCol,8);
+  // the caption names the ACCELERATION's direction, not the direction of travel
+  label(ctx,a>0.3?'תאוצה מעלה:  T = m(g + a) > mg':a<-0.3?'תאוצה מטה:  T = m(g − |a|) < mg':'a = 0:  T = mg',W/2,H-14,statusCol,9);
 });
 
 runAnim('anim-normal2',(canvas,ctx,W,H,t)=>{
@@ -23311,7 +23312,7 @@ runAnim('anim-normal2',(canvas,ctx,W,H,t)=>{
   // ── Hill (crest): N = m(g − v²/R) < W ──
   var hx=W*0.25,hy=H*0.42;
   ctx.save();ctx.strokeStyle='#2d5275';ctx.lineWidth=2;
-  ctx.beginPath();ctx.arc(hx,hy+R,R,Math.PI,0,true);ctx.stroke();ctx.restore();
+  ctx.beginPath();ctx.arc(hx,hy+R,R,Math.PI,0,false);ctx.stroke();ctx.restore();   // the crest (it drew the lower half, a bowl, with the car floating above it)
   var hAng=-Math.PI/2+swing; // angle on the hill circle (top = -90°)
   var hcx=hx+R*Math.cos(hAng),hcy=(hy+R)+R*Math.sin(hAng);
   var hnx=Math.cos(hAng),hny=Math.sin(hAng); // outward normal (away from center)
@@ -23342,7 +23343,7 @@ runAnim('anim-normal2',(canvas,ctx,W,H,t)=>{
   arrow(ctx,vcx,vcy-carH/2,vcx,vcy-carH/2+30,'#fbbf24',2,9);
   label(ctx,'W',vcx+8,vcy-carH/2+22,'#fbbf24',8,'left');
   label(ctx,'\u200eN = '+Nv.toFixed(1)+' N  >  W = '+Wn.toFixed(1)+' N',vx,vy-2*R-14,'#34d399',7.5);
-  label(ctx,'עמק',vx,vy+14,'#7d8da6',8);
+  label(ctx,'עמק',vx+R*0.75,vy+6,'#94a3b8',9);
   ctx.save();ctx.fillStyle='rgba(6,14,28,.9)';ctx.strokeStyle='#1e4060';ctx.lineWidth=1;
   ctx.beginPath();ctx.roundRect(4,H-22,W-8,18,3);ctx.fill();ctx.stroke();ctx.restore();
   label(ctx,'‏בגבעה N=m(g−v²/R) · בעמק N=m(g+v²/R)',W/2,H-11,'#94a3b8',7.5);
