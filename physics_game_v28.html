@@ -28601,19 +28601,19 @@ function dcBatt(ctx,x,y,txt,pos){
 // A caption that does not fit the canvas (a phone is ~280 px wide here) is split
 // into two centred lines -- at a separator near the middle if there is one --
 // rather than shrunk to an unreadable size. The second line sits at y.
-function dcCap(ctx,txt,x,y,col,sz){
+function dcCap(ctx,txt,x,y,col,sz,bold){
   var cw=ctx.canvas.width/((ctx.getTransform&&ctx.getTransform().a)||1);
-  ctx.save();ctx.font=sz+'px Heebo';var w=ctx.measureText(txt).width;ctx.restore();
-  if(w<=cw-14){simText(ctx,txt,x,y,col,sz,'center');return;}
+  ctx.save();ctx.font=(bold?'bold ':'')+sz+'px Heebo';var w=ctx.measureText(txt).width;ctx.restore();
+  if(w<=cw-14){simText(ctx,txt,x,y,col,sz,'center',bold);return;}
   // a dash at the break is dropped (the line break does its job); a comma,
   // semicolon or colon stays at the end of the first line
   var mid=txt.length/2,c1=-1,c2=-1,bs=1e9;
   [' — ','; ',', ',': ',' '].forEach(function(sep,pri){var i=-1;
     while((i=txt.indexOf(sep,i+1))>=0){var sc=Math.abs(i-mid)+pri*6;
       if(sc<bs){bs=sc;c1=(sep===' — '||sep===' ')?i:i+1;c2=i+sep.length;}}});
-  if(c1<0){simText(ctx,txt,x,y,col,sz,'center');return;}
-  simText(ctx,txt.slice(0,c1).trim(),cw/2,y-sz-3,col,sz,'center');
-  simText(ctx,txt.slice(c2).trim(),cw/2,y,col,sz,'center');
+  if(c1<0){simText(ctx,txt,x,y,col,sz,'center',bold);return;}
+  simText(ctx,txt.slice(0,c1).trim(),cw/2,y-sz-3,col,sz,'center',bold);
+  simText(ctx,txt.slice(c2).trim(),cw/2,y,col,sz,'center',bold);
 }
 // Current drawn as charges on one uniform wire: fixed spacing everywhere and a
 // speed proportional to I, so the charge passing any point per second is
@@ -28704,9 +28704,9 @@ function simDcJunction(canvas){
     simText(ctx,outS.toFixed(1)+' A',W*0.82,y,'#34d399',15,'center',true);
     simText(ctx,'=',W*0.50,y,'#7d8da6',15,'center',true);
     simText(ctx,'I₄ אינו מחוון — הוא מה שהחוק מחייב',W/2,y+28,'#94a3b8',10.5,'center',true);
-    simText(ctx,i4>=0?'I₄ חיובי — הענף הרביעי מוציא זרם'
+    dcCap(ctx,i4>=0?'I₄ חיובי — הענף הרביעי מוציא זרם'
       :'I₄ שלילי — החץ הפוך: הענף הרביעי דווקא מכניס '+Math.abs(i4).toFixed(1)+' A',
-      W/2,y+50,i4>=0?'#64748b':'#ef4444',11,'center',i4<0);
+      W/2,y+50,i4>=0?'#64748b':'#ef4444',11,i4<0);
     simText(ctx,'גררו לכיוון אחד הענפים כדי לשנות את הזרם בו',W/2,H-12,'#7d8da6',9.5,'center');
     requestAnimationFrame(draw);
   }
@@ -29400,8 +29400,8 @@ function simDcMeters(canvas){
     var y=H*0.64;
     simText(ctx,'I = '+(mode===3?'0':I.toFixed(2))+' A',W*0.30,y,'#fbbf24',14,'center',true);
     simText(ctx,'V₂ = '+(mode===1||mode===3?'0':(I*r2).toFixed(2))+' V',W*0.70,y,'#a78bfa',14,'center',true);
-    simText(ctx,verdict,W/2,y+28,vcol,11,'center',true);
-    simText(ctx,'הקישו על התרשים או על הכפתור כדי לעבור בין ארבעת החיבורים',W/2,y+52,'#7d8da6',9.5,'center');
+    dcCap(ctx,verdict,W/2,y+40,vcol,11,true);
+    simText(ctx,'הקישו על התרשים או על הכפתור כדי לעבור בין ארבעת החיבורים',W/2,y+66,'#7d8da6',9.5,'center');
     requestAnimationFrame(draw);
   }
   requestAnimationFrame(draw);
@@ -29440,8 +29440,8 @@ function simDcRealMeter(canvas){
     ctx.save();ctx.strokeStyle='#64748b';ctx.lineWidth=2.2;
     ctx.beginPath();ctx.rect(L,T,Rt-L,Bm-T);ctx.stroke();ctx.restore();
     dcBatt(ctx,L,(T+Bm)/2,v.toFixed(0)+' V');
-    dcRes(ctx,W*0.40,T,48,22,Rk().toFixed(0)+'k','#38bdf8',0);
-    dcRes(ctx,W*0.66,T,48,22,Rk().toFixed(0)+'k','#a78bfa',0);
+    dcRes(ctx,W*0.40,T,52,22,Rk().toFixed(0)+' kΩ','#38bdf8',0);
+    dcRes(ctx,W*0.66,T,52,22,Rk().toFixed(0)+' kΩ','#a78bfa',0);
     ctx.save();ctx.strokeStyle='#34d399';ctx.lineWidth=1.8;ctx.setLineDash([4,3]);
     ctx.beginPath();ctx.moveTo(W*0.56,T);ctx.lineTo(W*0.56,T-40);
     ctx.lineTo(W*0.76,T-40);ctx.lineTo(W*0.76,T);ctx.stroke();ctx.restore();
@@ -29482,9 +29482,9 @@ function simDcRealMeter(canvas){
     ctx.beginPath();ctx.moveTo(X(RvExp()),GY);ctx.lineTo(X(RvExp()),GY+GH);ctx.stroke();ctx.restore();
     simHandle(ctx,X(RvExp()),Y(Math.min(100,err)),'#fbbf24',12);
     simText(ctx,'שגיאת המדידה',GX+GW-6,GY-7,'#f87171',10,'right',true);
-    simText(ctx,RV>=100*R?'התנגדות הוולטמטר גדולה פי 100 ומעלה מהנגד הנמדד — השגיאה מתחת לאחוז'
+    dcCap(ctx,RV>=100*R?'התנגדות הוולטמטר גדולה פי 100 ומעלה מהנגד הנמדד — השגיאה מתחת לאחוז'
       :'הוולטמטר לוקח לעצמו חלק מהזרם, ולכן מוריד את המתח שבא למדוד',
-      W/2,H-14,RV>=100*R?'#34d399':'#fbbf24',11,'center',true);
+      W/2,H-10,RV>=100*R?'#34d399':'#fbbf24',11);
     requestAnimationFrame(draw);
   }
   requestAnimationFrame(draw);
@@ -29778,10 +29778,11 @@ function simDcCurrent(canvas){
     simText(ctx,'חתך '+Amm.toFixed(1)+' mm²',W*0.88,y0-hThick/2-10,'#7d8da6',9.5,'center');
     simText(ctx,'חתך 0.5 mm²',W*0.12,y0-hThin/2-10,'#7d8da6',9.5,'center');
     // the dots are electrons; the current they carry is defined the other way
-    simArrow(ctx,W*0.33,y0-68,W*0.45,y0-68,'#38bdf8',2.2,9);
-    simText(ctx,'e⁻ — תנועת האלקטרונים',W*0.39,y0-80,'#38bdf8',10,'center');
-    simArrow(ctx,W*0.67,y0-68,W*0.55,y0-68,'#fbbf24',2.2,9);
-    simText(ctx,'I — הזרם המוסכם',W*0.61,y0-80,'#fbbf24',10,'center');
+    // (two rows, so the labels cannot run into each other on a phone)
+    simArrow(ctx,W*0.30,y0-88,W*0.44,y0-88,'#38bdf8',2.2,9);
+    simText(ctx,'e⁻ — תנועת האלקטרונים',W*0.47,y0-84,'#38bdf8',10,'left');
+    simArrow(ctx,W*0.44,y0-66,W*0.30,y0-66,'#fbbf24',2.2,9);
+    simText(ctx,'I — הזרם המוסכם',W*0.47,y0-62,'#fbbf24',10,'left');
     // charges drift; their speed on screen is proportional to the real drift
     // speed in each part of the wire, so the crowding is visible
     var scale=9000;                               // px per (m/s), for visibility
