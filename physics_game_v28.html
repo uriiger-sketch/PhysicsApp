@@ -25342,9 +25342,12 @@ runAnim('anim-elc-charge-t',(cv,ctx,W,H,t)=>{
 runAnim('anim-elc-coulomb-t',(cv,ctx,W,H,t)=>{
   ctx.clearRect(0,0,W,H);
   var cy=H*0.52;
-  var sep=70+77*(1+Math.sin(t*0.7))/2;      // half-separation 70..147 px
+  // Everything in pixels scales with the canvas, so on a phone the charges and
+  // their arrows stay on screen; r in metres, and so F, do not change.
+  var S=Math.min(1,W/680);
+  var sep=(70+77*(1+Math.sin(t*0.7))/2)*S;  // half-separation 70..147 px at full width
   var x1=W/2-sep, x2=W/2+sep;
-  var rm=(2*sep)/300;                        // 300 px per meter
+  var rm=(2*sep)/(300*S);                    // 300 px per meter at full width
   var F=ELC_K*(2e-6*2e-6)/(rm*rm);           // two 2 μC charges
   ctx.save();ctx.strokeStyle='rgba(148,163,184,.25)';ctx.setLineDash([4,4]);
   ctx.beginPath();ctx.moveTo(30,cy);ctx.lineTo(W-30,cy);ctx.stroke();ctx.setLineDash([]);ctx.restore();
@@ -25355,7 +25358,7 @@ runAnim('anim-elc-coulomb-t',(cv,ctx,W,H,t)=>{
   });
   // Strictly proportional: length IS the force, so the ×4 claim below can be
   // verified with a ruler. An additive offset used to break that by ~30%.
-  var aLen=Math.min(150,F*640);
+  var aLen=Math.min(150,F*640)*S;
   ctx.save();ctx.strokeStyle='rgba(148,163,184,.35)';ctx.lineWidth=1;
   ctx.beginPath();ctx.moveTo(x1-18,cy-9);ctx.lineTo(x1-18,cy+9);ctx.stroke();
   ctx.beginPath();ctx.moveTo(x2+18,cy-9);ctx.lineTo(x2+18,cy+9);ctx.stroke();ctx.restore();
@@ -25400,7 +25403,8 @@ runAnim('anim-elc-field-t',(cv,ctx,W,H,t)=>{
   var iT=Math.min(_elcRadTraj.length-1,Math.floor(cyc*_elcRadTraj.length));
   var rr=_elcRadTraj[iT][0], vv=_elcRadTraj[iT][1];
   var ang=-0.17;
-  var tx=cx+Math.cos(ang)*rr, ty=cy+Math.sin(ang)*rr;
+  var Sf=Math.max(0.35,Math.min(1,(W*0.66-cx-24)/_ELC_FLD_R1));   // a phone: stop short of the graph
+  var tx=cx+Math.cos(ang)*rr*Sf, ty=cy+Math.sin(ang)*rr*Sf;
   ctx.save();ctx.fillStyle='#38bdf8';ctx.shadowColor='#38bdf8';ctx.shadowBlur=10;
   ctx.beginPath();ctx.arc(tx,ty,8,0,Math.PI*2);ctx.fill();ctx.restore();
   oLbl(ctx,'+q₀',tx,ty-16,'#38bdf8',10);
@@ -25444,13 +25448,19 @@ runAnim('anim-elc-field-t',(cv,ctx,W,H,t)=>{
 runAnim('anim-elc-potential-t',(cv,ctx,W,H,t)=>{
   ctx.clearRect(0,0,W,H);
   var cx=W*0.30, cy=H*0.55;
+  // On a phone the three bars are narrower and pulled in from the edge, and
+  // the rings and the flight are scaled to the room left of them (the voltages
+  // and energies, read off the unscaled radii, do not change).
+  var nar=W<560, bw=nar?22:34, bstep=nar?30:52;
+  var bx=nar?W-2*bstep-bw-8:W*0.70;
+  var Sp=Math.max(0.4,Math.min(1,(bx-cx-12)/150));
   // Equal-ΔV rings: r=kQ/V, so equal potential steps sit at radii that spread
   // out fast. Evenly spaced rings would be the signature of a UNIFORM field.
   // Steps of 25 V exactly. These used to be 120/90/60/45 — steps of 30, 30 and
   // 15 — while the comment and the caption both promised EQUAL potential steps.
   var _lv=[125,100,75,50];    // → r = 50, 62, 83, 125 px: equal ΔV, spreading r
   for(var i=0;i<_lv.length;i++){
-    var rq=6240/_lv[i];
+    var rq=6240/_lv[i]*Sp;
     ctx.save();ctx.strokeStyle='rgba(56,189,248,'+(0.55-i*0.09).toFixed(2)+')';ctx.setLineDash([5,4]);
     ctx.beginPath();ctx.arc(cx,cy,rq,0,Math.PI*2);ctx.stroke();ctx.setLineDash([]);ctx.restore();
     // labels on two alternating rays: one diagonal put the outer label on the title
@@ -25468,9 +25478,9 @@ runAnim('anim-elc-potential-t',(cv,ctx,W,H,t)=>{
   var rr0=_ELC_POT_R0;
   var rr=_elcPotTraj[iT][0], vv=_elcPotTraj[iT][1];
   var ang=0.5;
-  var tx=cx+Math.cos(ang)*rr, ty=cy+Math.sin(ang)*rr;
+  var tx=cx+Math.cos(ang)*rr*Sp, ty=cy+Math.sin(ang)*rr*Sp;
   // point A — where it was released
-  var ax=cx+Math.cos(ang)*rr0, ay=cy+Math.sin(ang)*rr0;
+  var ax=cx+Math.cos(ang)*rr0*Sp, ay=cy+Math.sin(ang)*rr0*Sp;
   ctx.save();ctx.fillStyle='rgba(226,232,240,.5)';
   ctx.beginPath();ctx.arc(ax,ay,4,0,Math.PI*2);ctx.fill();ctx.restore();
   oLbl(ctx,'A',ax-11,ay-9,'#e2e8f0',9);
@@ -25482,7 +25492,7 @@ runAnim('anim-elc-potential-t',(cv,ctx,W,H,t)=>{
   var U=(rr0/rr), K=(0.5*vv*vv)/(_ELC_POT_A/rr0);
   var U0=1;
   var dV=6240/rr0-6240/rr;
-  var bx=W*0.70, bw=34, bh=H*0.52, by=H*0.22;
+  var bh=H*0.52, by=H*0.22;
   function ebar(x,frac,col,lab){
     ctx.save();ctx.fillStyle='rgba(148,163,184,.12)';ctx.fillRect(x,by,bw,bh);
     ctx.fillStyle=col;ctx.fillRect(x,by+bh*(1-frac),bw,bh*frac);
@@ -25490,12 +25500,12 @@ runAnim('anim-elc-potential-t',(cv,ctx,W,H,t)=>{
     oLbl(ctx,lab,x+bw/2,by+bh+13,col,11);
   }
   ebar(bx,U,'#f87171','U');
-  ebar(bx+52,K,'#4ade80','K');
-  ebar(bx+104,U+K,'#fbbf24','U+K');   // ← measured, not assumed
+  ebar(bx+bstep,K,'#4ade80','K');
+  ebar(bx+2*bstep,U+K,'#fbbf24','U+K');   // ← measured, not assumed
   ctx.save();ctx.strokeStyle='rgba(255,255,255,.75)';ctx.lineWidth=1;
-  ctx.beginPath();ctx.moveTo(bx+104,by);ctx.lineTo(bx+104+bw,by);ctx.stroke();ctx.restore();
+  ctx.beginPath();ctx.moveTo(bx+2*bstep,by);ctx.lineTo(bx+2*bstep+bw,by);ctx.stroke();ctx.restore();
   oLbl(ctx,'מטען חיובי ״גולש במורד הפוטנציאל״: אנרגיה חשמלית U הופכת לקינטית K',W/2,14,'#94a3b8',11);
-  oLbl(ctx,'\u200eV(A) − V(B) = '+dV.toFixed(0)+' V   →   W = q·ΔV',bx+77,H-8,'#fbbf24',10);
+  oLbl(ctx,'\u200eV(A) − V(B) = '+dV.toFixed(0)+' V   →   W = q·ΔV',nar?W/2:bx+77,H-8,'#fbbf24',10);
 });
 
 // ── 5. Uniform field between plates: electron flies in a parabola (like projectile motion) ──
@@ -25738,16 +25748,18 @@ runAnim('anim-elc-upair-t',(cv,ctx,W,H,t)=>{
   var r=_elcPairTraj[_pi][0], vRel=_elcPairTraj[_pi][1];
   // K is read off the SPEED, not from U0−U, so the flat total is a measurement.
   var U=k*q1*q2/r, K=0.5*m*vRel*vRel;
-  var cx=W*0.34, cy=H*0.46, PX=190;        // px per metre
+  // narrow canvas: smaller px/m, smaller bars pulled in from the edge
+  var nar=W<560, PX=nar?Math.max(95,W*0.36):190;   // px per metre
+  var cx=W*(nar?0.30:0.34), cy=H*0.46;
   var half=(r*PX)/2;
   function ch(x,lab,col){
     ctx.save();ctx.fillStyle=col;ctx.shadowColor=col;ctx.shadowBlur=12;
-    ctx.beginPath();ctx.arc(x,cy,14,0,Math.PI*2);ctx.fill();ctx.restore();
-    oLbl(ctx,'+',x,cy+1,'#0b1220',14);
-    oLbl(ctx,lab,x,cy-24,col,9.5);
+    ctx.beginPath();ctx.arc(x,cy,nar?10:14,0,Math.PI*2);ctx.fill();ctx.restore();
+    oLbl(ctx,'+',x,cy+1,'#0b1220',nar?11:14);
+    oLbl(ctx,lab,x,cy-(nar&&lab.indexOf('q₂')===0?38:24),col,9.5);   // staggered, so close charges keep both labels
   }
-  ch(cx-half,'q₁=2μC · 4 g','#f87171');
-  ch(cx+half,'q₂=3μC · 4 g','#f87171');
+  ch(cx-half,nar?'q₁=2μC':'q₁=2μC · 4 g','#f87171');
+  ch(cx+half,nar?'q₂=3μC':'q₂=3μC · 4 g','#f87171');
   ctx.save();ctx.strokeStyle='rgba(148,163,184,.35)';ctx.setLineDash([4,4]);ctx.lineWidth=1;
   ctx.beginPath();ctx.moveTo(cx-half,cy+26);ctx.lineTo(cx+half,cy+26);ctx.stroke();ctx.setLineDash([]);ctx.restore();
   // vRel is the rate at which r grows; with 4 g each, each charge moves at half
@@ -25758,9 +25770,9 @@ runAnim('anim-elc-upair-t',(cv,ctx,W,H,t)=>{
   simArrow(ctx,cx-half-16,cy,cx-half-16-FL,cy,'#fbbf24',2.4,9);
   simArrow(ctx,cx+half+16,cy,cx+half+16+FL,cy,'#fbbf24',2.4,9);
   // energy bars, read off the same r
-  var BX=W*0.72,BW=34,BH=H*0.54,BY=H*0.20;
+  var BW=nar?22:34,BG=nar?8:16,BX=nar?W-3*BW-2*BG-8:W*0.72,BH=H*0.54,BY=H*0.20;
   function bar(i,lab,val,col){
-    var X=BX+i*(BW+16), f=Math.max(0,Math.min(1,val/U0));
+    var X=BX+i*(BW+BG), f=Math.max(0,Math.min(1,val/U0));
     ctx.save();ctx.fillStyle='rgba(148,163,184,.12)';ctx.fillRect(X,BY,BW,BH);
     ctx.fillStyle=col;ctx.fillRect(X,BY+BH*(1-f),BW,BH*f);
     ctx.strokeStyle='rgba(148,163,184,.4)';ctx.lineWidth=1;ctx.strokeRect(X,BY,BW,BH);ctx.restore();
@@ -25947,7 +25959,7 @@ runAnim('anim-elc-net-t',(cv,ctx,W,H,t)=>{
   if(par){
     // two branches between the same two nodes
     // two rungs between the same two rails: each capacitor sees the whole 12 V
-    var xa=W*0.40, xb=W*0.66, yA=H*0.24, yB=H*0.76, ym=(yA+yB)/2;
+    var nar=W<500, xa=W*(nar?0.32:0.40), xb=W*(nar?0.62:0.66), yA=H*0.24, yB=H*0.76, ym=(yA+yB)/2;
     ctx.beginPath();
     ctx.moveTo(bx,byC-9);ctx.lineTo(bx,yA);ctx.lineTo(xb,yA);
     ctx.moveTo(bx,byC+9);ctx.lineTo(bx,yB);ctx.lineTo(xb,yB);
@@ -25960,9 +25972,10 @@ runAnim('anim-elc-net-t',(cv,ctx,W,H,t)=>{
       ctx.save();ctx.strokeStyle=col;ctx.lineWidth=3.5;
       ctx.beginPath();ctx.moveTo(x-15,ym-5);ctx.lineTo(x+15,ym-5);ctx.stroke();
       ctx.beginPath();ctx.moveTo(x-15,ym+5);ctx.lineTo(x+15,ym+5);ctx.stroke();ctx.restore();
-      oLbl(ctx,lab+'='+Cv+' μF',x+50,ym-15,col,9.5);
-      oLbl(ctx,'Q='+Qv.toFixed(0)+' μC',x+50,ym,'#38bdf8',9.5);
-      oLbl(ctx,'V='+V.toFixed(0)+' V',x+50,ym+15,'#f472b6',9.5);
+      var lx=x+(nar?40:50);                 // on a phone C1's labels sat on C2
+      oLbl(ctx,lab+'='+Cv+' μF',lx,ym-15,col,9.5);
+      oLbl(ctx,'Q='+Qv.toFixed(0)+' μC',lx,ym,'#38bdf8',9.5);
+      oLbl(ctx,'V='+V.toFixed(0)+' V',lx,ym+15,'#f472b6',9.5);
     }
     capV(xa,'C₁',C1,C1*V,'#f87171');
     capV(xb,'C₂',C2,C2*V,'#60a5fa');
