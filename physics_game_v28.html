@@ -30266,7 +30266,9 @@ function simElcUpair(canvas){
 
 // ─── CAPACITOR NETWORK — series vs parallel ────────────────────────
 function simElcNetwork(canvas){
-  const H=460;const{ctx,W,dpr}=setupCanvas(canvas,H);
+  // On a phone the readout panel covered C2; there it moves under the bars.
+  var NAR=((canvas.parentElement&&canvas.parentElement.clientWidth)||800)<560;
+  const H0=460, H=NAR?590:H0;const{ctx,W,dpr}=setupCanvas(canvas,H);
   const id=canvas.id;var animT=0;var series=false;
   function C1(){var e=document.getElementById('inp-net-c1');return e?parseFloat(e.value):2;}
   function C2(){var e=document.getElementById('inp-net-c2');return e?parseFloat(e.value):3;}
@@ -30284,7 +30286,7 @@ function simElcNetwork(canvas){
     var U=0.5*Ceq*V*V;                       // µJ when C in µF and V in V
     var bg=ctx.createLinearGradient(0,0,0,H);bg.addColorStop(0,'#020810');bg.addColorStop(1,'#04101e');
     ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);
-    var bx=W*0.10, byC=H*0.44;
+    var bx=W*0.10, byC=H0*0.44;
     ctx.save();ctx.strokeStyle='#fbbf24';ctx.lineWidth=3.5;
     ctx.beginPath();ctx.moveTo(bx-14,byC-10);ctx.lineTo(bx+14,byC-10);ctx.stroke();
     ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(bx-8,byC+10);ctx.lineTo(bx+8,byC+10);ctx.stroke();ctx.restore();
@@ -30302,7 +30304,7 @@ function simElcNetwork(canvas){
       // Parallel = two rungs between the SAME two rails. (This used to put C₁ on
       // the top rail and C₂ on the bottom rail of one loop — a series circuit
       // under a "parallel" heading.)
-      var xa=W*0.27,xb=W*0.47,yA=H*0.18,yB=H*0.70,ym=(yA+yB)/2;
+      var xa=W*(NAR?0.24:0.27),xb=W*(NAR?0.60:0.47),yA=H0*0.18,yB=H0*0.70,ym=(yA+yB)/2;
       ctx.beginPath();
       ctx.moveTo(bx,byC-10);ctx.lineTo(bx,yA);ctx.lineTo(xb,yA);
       ctx.moveTo(bx,byC+10);ctx.lineTo(bx,yB);ctx.lineTo(xb,yB);
@@ -30324,7 +30326,7 @@ function simElcNetwork(canvas){
       optLabel(ctx,'שני הקבלים מחוברים לאותן שתי נקודות ⇒ אותו מתח',(bx+xb)/2+30,yB+22,'#4ade80',9.5);
       optLabel(ctx,'מקביל — המתח משותף, המטענים מתחברים',W/2,18,'#4ade80',11);
     } else {
-      var yT=H*0.26,yB2=H*0.66;
+      var yT=H0*0.26,yB2=H0*0.66;
       ctx.beginPath();
       ctx.moveTo(bx,byC-10);ctx.lineTo(bx,yT);ctx.lineTo(W*0.26,yT);
       ctx.moveTo(W*0.26,yT);ctx.lineTo(W*0.46,yT);
@@ -30337,7 +30339,7 @@ function simElcNetwork(canvas){
       optLabel(ctx,'טור — המטען משותף, המתחים מתחלקים',W/2,18,'#4ade80',11);
     }
     // comparison bars: C_eq against both inputs, so the rule of thumb is visible
-    var BX=W*0.06,BY=H*0.80,BW=W*0.52,BH=15;
+    var BX=W*0.06,BY=H0*0.80,BW=W*0.52,BH=15;
     var scale=Math.max(c1,c2,Ceq)*1.15;
     function bar(i,lab,val,col){
       var y=BY+i*20;
@@ -30351,7 +30353,7 @@ function simElcNetwork(canvas){
              BX+BW/2,BY+68,'#a78bfa',9.5);
     // Panel moved to the free right-hand column: at H-150 it sat on top of the
     // comparison bars. LTR marks keep "1/C_eq" from being reordered by bidi.
-    optInfoBox(ctx,W-232,H*0.30,224,[
+    optInfoBox(ctx,NAR?8:W-232,NAR?H0+14:H0*0.30,NAR?W-16:224,[
       series?'הקיבול השקול:':'הקיבול השקול:',
       series?'‎1/C = 1/C₁ + 1/C₂':'‎C = C₁ + C₂',
       '‎C = '+Ceq.toFixed(2)+' μF',
@@ -30492,10 +30494,13 @@ function simElcPlates(canvas){
 
 // ─── CAPACITOR — C=ε0A/d live ──────────────────────────────────────
 function simElcCap(canvas){
-  const H=440;const{ctx,W,dpr}=setupCanvas(canvas,H);
+  // On a phone the readout bars ran across the plates; there the canvas is
+  // taller and the bars sit in a 2x2 block under the circuit.
+  var NAR=((canvas.parentElement&&canvas.parentElement.clientWidth)||800)<560;
+  const H0=440, H=NAR?580:H0;const{ctx,W,dpr}=setupCanvas(canvas,H);
   const id=canvas.id;var animT=0;
   var kappa=1,dragPlate=false,touched=false;
-  var LX=W*0.30,cy=H*0.44;
+  var LX=W*0.30,cy=H0*0.44;
   function Vv(){var e=document.getElementById('inp-elc-cV');return e?parseFloat(e.value):12;}
   function Acm(){var e=document.getElementById('inp-elc-cA');return e?parseFloat(e.value):200;}
   function dmm(){var e=document.getElementById('inp-elc-cd');return e?parseFloat(e.value):4;}
@@ -30568,7 +30573,7 @@ function simElcCap(canvas){
     // − terminal to the blue one. It used to sit off to the right, so the blue
     // plate's lead ran straight through the + terminal and shorted the drawing.
     // Disconnected, the leads stop short of the battery.
-    var xB=(LX+RX)/2, yB=H-52;
+    var xB=(LX+RX)/2, yB=H0-52;
     ctx.save();ctx.strokeStyle='#64748b';ctx.lineWidth=1.5;
     ctx.beginPath();ctx.moveTo(LX-4,cy+phH/2);ctx.lineTo(LX-4,yB);ctx.lineTo(disc?Math.min(LX-4,xB-10)-2:xB-10,yB);ctx.stroke();
     ctx.beginPath();ctx.moveTo(RX+4,cy+phH/2);ctx.lineTo(RX+4,yB);ctx.lineTo(disc?Math.max(RX+4,xB+10)+2:xB+10,yB);ctx.stroke();
@@ -30576,7 +30581,7 @@ function simElcCap(canvas){
     ctx.beginPath();ctx.moveTo(xB-10,yB-11);ctx.lineTo(xB-10,yB+11);ctx.stroke();
     ctx.lineWidth=3.5;ctx.beginPath();ctx.moveTo(xB+10,yB-6);ctx.lineTo(xB+10,yB+6);ctx.stroke();ctx.restore();
     optLabel(ctx,disc?'מנותק ✂ (Q קבוע)':Vx+' V',xB,yB-22,disc?'#f87171':'#e2e8f0',10);
-    if(disc)optLabel(ctx,'Q נעול: הרחקת לוחות מעלה את V ו-U — ושימו לב ש-E לא משתנה!',W/2,H-14,'#a78bfa',9.5);
+    if(disc)optLabel(ctx,'Q נעול: הרחקת לוחות מעלה את V ו-U — ושימו לב ש-E לא משתנה!',W/2,H0-14,'#a78bfa',9.5);
     // Readout bars
     var Cref=3*ELC_EPS0*200e-4/4e-3;             // 3× the default C → defaults sit at ⅓ bar
     var bars=[['C',C/Cref,(C*1e12).toFixed(1)+' pF','#22d3ee'],
@@ -30584,12 +30589,12 @@ function simElcCap(canvas){
               ['V',Vdisp/36,Vdisp.toFixed(1)+' V','#f472b6'],
               ['U',U/(0.5*Cref*144),(U*1e9).toFixed(1)+' nJ','#fbbf24']];
     bars.forEach(function(b,i){
-      var bx=W-190,by=30+i*54;
+      var bw=NAR?W/2-46:150, bx=NAR?30+(i%2)*(W/2):W-190, by=NAR?H0+12+Math.floor(i/2)*58:30+i*54;
       optLabel(ctx,b[0],bx-14,by+13,b[3],12);
-      ctx.save();ctx.strokeStyle='rgba(100,116,139,.4)';ctx.strokeRect(bx,by,150,20);
+      ctx.save();ctx.strokeStyle='rgba(100,116,139,.4)';ctx.strokeRect(bx,by,bw,20);
       ctx.fillStyle=b[3];ctx.globalAlpha=0.75;
-      ctx.fillRect(bx,by,150*Math.max(0.02,Math.min(1,b[1])),20);ctx.restore();
-      optLabel(ctx,b[2],bx+75,by+34,b[3],9);
+      ctx.fillRect(bx,by,bw*Math.max(0.02,Math.min(1,b[1])),20);ctx.restore();
+      optLabel(ctx,b[2],bx+bw/2,by+34,b[3],9);
     });
     optInfoBox(ctx,8,8,208,['C=κε₀A/d='+(C*1e12).toFixed(1)+' pF',(disc?'Q קבוע = ':'Q=CV=')+(Qc*1e9).toFixed(2)+' nC',(disc?'V=Q/C=':'V=')+Vdisp.toFixed(1)+' V,  E='+(E/1000).toFixed(1)+' kV/m','U=½QV='+(U*1e9).toFixed(1)+' nJ'+(disc?' — גדל בהרחקה!':'')]);
     requestAnimationFrame(draw);
