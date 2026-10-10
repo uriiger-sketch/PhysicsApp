@@ -27789,7 +27789,7 @@ function simElcCoulomb(canvas){
       simArrow(ctx,x1,cy-54,x1+d1*aLen,cy-54,'#fbbf24',3.5,13);
       simArrow(ctx,x2,cy-54,x2+d2*aLen,cy-54,'#fbbf24',3.5,13);
       optLabel(ctx,'\u200eF = '+ sciTxt(F) +' N',(x1+x2)/2,cy-74,'#fbbf24',11);
-      optLabel(ctx,'אורך החצים בסקאלה לוגריתמית, כמו הגרף',(x1+x2)/2,cy+134,'#7d8da6',9);
+      optLabel(ctx,'אורך החצים בסקאלה לוגריתמית, כמו הגרף',(x1+x2)/2,cy+84,'#7d8da6',9);
       optLabel(ctx,repel?'דחייה':'משיכה — ניוטון III: שווים והפוכים!',(x1+x2)/2,cy+24,repel?'#f87171':'#34d399',9.5);
     }else{
       // superposition mode: the two contributions on q₂ and their vector sum
@@ -27846,7 +27846,8 @@ function simElcCoulomb(canvas){
     optLabel(ctx,'F [N] — סקאלה לוגריתמית',gx+64,gy+12,'#22d3ee',9);
     optLabel(ctx,'שנו את המטענים: כל העקומה קופצת מעלה או מטה',gx+gw/2,gy-8,'#94a3b8',8.5);
     optLabel(ctx,'r →',gx+gw-14,gy+gh+12,'#7d8da6',8);
-    optInfoBox(ctx,8,8,192,['F = k|q₁q₂|/r²','k=9×10⁹ N·m²/C²','r='+r_m.toFixed(2)+' m','F='+sciTxt(F)+' N']);
+    // on a phone the box sat on the force label at the top; r and F are printed beside the charges anyway
+    if(W>=520)optInfoBox(ctx,8,8,192,['F = k|q₁q₂|/r²','k=9×10⁹ N·m²/C²','r='+r_m.toFixed(2)+' m','F='+sciTxt(F)+' N']);
     requestAnimationFrame(draw);
   }requestAnimationFrame(draw);
 }
@@ -28022,7 +28023,7 @@ function simElcField(canvas){
     // and never changes. It was labelled 'צפיפות חצים ∝ עוצמה', the encoding
     // the chapter uses for FIELD LINES, which would teach a learner to read
     // this figure exactly wrong.
-    optInfoBox(ctx,8,H-88,206,['E בנקודת הבוחן:','\u200e|E| = '+sciTxt(Et.m)+' N/C',dip?'דיפול: E=E₊+E₋ (וקטורית)':'E=kQ/r² — רדיאלי',lineMode?'צפיפות הקווים ∝ עוצמת השדה':'אורך וצבע החץ מציינים את עוצמת השדה (סולם דחוס)']);
+    optInfoBox(ctx,8,H-88,206,['E בנקודת הבוחן:','\u200e|E| = '+sciTxt(Et.m)+' N/C',dip?'שני מטענים: E = E₁ + E₂ (וקטורית)':'E=kQ/r² — רדיאלי',lineMode?'צפיפות הקווים ∝ עוצמת השדה':'אורך וצבע החץ מציינים את עוצמת השדה (סולם דחוס)']);
     requestAnimationFrame(draw);
   }requestAnimationFrame(draw);
 }
@@ -29980,6 +29981,9 @@ function simElcPlane(canvas){
     simText(ctx,two?('ΔV בין הלוחות = '+Math.abs(Etot((x1+x2)/2)*D_M).toFixed(0)+' V   (d = 2 cm)')
       :'לוח בודד: הפרש הפוטנציאלים גדל ליניארית ללא גבול',
       W/2,gy0-6,'#c4b5fd',10,'center',true);
+    // the graph's axes, named
+    simText(ctx,'V',18,gy0+14,'#a78bfa',10,'left',true);
+    simText(ctx,'x →',W-18,gy0+gh-8,'#7d8da6',9,'right');
     requestAnimationFrame(draw);
   }
   requestAnimationFrame(draw);
@@ -30204,7 +30208,7 @@ function simElcConductor(canvas){
       'בנקודת הגשוש (r='+(r_m*100).toFixed(0)+' cm):',
       '\u200eE = '+(Ep===0?'0 בדיוק':sciTxt(Ep)+' V/m'),
       '\u200eV = '+(Vp/1000).toFixed(1)+' kV'+(inside?'  (קבוע בכל הפנים)':''),
-      inside?(Vp===0?'בפנים: E=0 (וכאן גם V=0)':'בפנים: E=0 אבל V≠0'):(E0x?'בחוץ: השדה ניצב לפני הכדור':'בחוץ: כמו מטען נקודתי במרכז')]);
+      inside?(Vp===0?'בפנים: E=0 (וכאן גם V=0)':'בפנים: E=0 אבל V≠0'):(E0x?'בחוץ: חיצוני + מושרה; על פני הכדור — ניצב לו':'בחוץ: כמו מטען נקודתי במרכז')]);
     requestAnimationFrame(draw);
   }requestAnimationFrame(draw);
 }
@@ -30484,7 +30488,7 @@ function simElcPlates(canvas){
     // Arrow length tracks v₀, so the slider shows an effect even before launch.
     var _v0f=Math.max(0.25,Math.min(1,v06()/30));
     simArrow(ctx,PL-14-38*_v0f,cy,PL-14,cy,'rgba(34,211,238,.7)',2.5,10);
-    optLabel(ctx,'v₀='+v06().toFixed(0)+'×10⁶',PL-30,cy-16,'#22d3ee',8.5);
+    optLabel(ctx,'v₀ = '+v06().toFixed(0)+'×10⁶ m/s',PL-30,cy-16,'#22d3ee',8.5);
     if(aimP&&aimX!==null){
       optDash(ctx,PL-30,cy,aimX,cy,'#22d3ee',0.8);
       optLabel(ctx,'v₀='+v06().toFixed(0)+'×10⁶ m/s — שחררו לשיגור!',PL+40,cy-dPx/2-44,'#22d3ee',10);
