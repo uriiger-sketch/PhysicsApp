@@ -1393,8 +1393,8 @@ function animCanvas(id, h, label){
   return `<div class="theory-anim">
     <canvas id="${id}" height="${h}" style="height:${h}px" role="img" aria-label="${(label||'הדגמה מונפשת').replace(/"/g,'&quot;')}"></canvas>
     <div class="anim-ctrl">
-      <button id="abtn_${id}" onclick="animToggle('${id}')">⏸ עצור</button>
-      <button onclick="animReset('${id}')">↺ אתחל</button>
+      <button id="abtn_${id}" onclick="animToggle('${id}')">⏸ עצרו</button>
+      <button onclick="animReset('${id}')">↺ מההתחלה</button>
       <span class="ac-lbl" title="גררו על התמונה כדי לדפדף בזמן, הקישו כדי לעצור">${label ? label + ' · ' : ''}↔ גררו</span>
     </div>
   </div>`;
@@ -1488,7 +1488,7 @@ function runAnim(id, fn){
     // a tap is a toggle; a real drag leaves it parked on the chosen frame
     if(s.moved < 4) s.paused = !s.wasPaused;
     const btn = document.getElementById('abtn_' + id);
-    if(btn) btn.textContent = s.paused ? '▶ הפעל' : '⏸ עצור';
+    if(btn) btn.textContent = s.paused ? '▶ הפעילו' : '⏸ עצרו';
   };
   cv.addEventListener('mousedown', down); cv.addEventListener('touchstart', down, {passive:false});
   cv.addEventListener('mousemove', move); cv.addEventListener('touchmove', move, {passive:false});
@@ -1513,7 +1513,7 @@ function runAnim(id, fn){
   if(_reducedMotion()){
     s.paused = true;
     const btn = document.getElementById('abtn_' + id);
-    if(btn) btn.textContent = '▶ הפעל';
+    if(btn) btn.textContent = '▶ הפעילו';
   }
   // paint one frame immediately, so a paused-on-arrival canvas is never blank
   fn(cv, animCtx, s.W, s.H, s.t);
@@ -1526,13 +1526,13 @@ window.animToggle = function(id){
   s.paused = !s.paused;
   s.prev = null;
   const btn = document.getElementById('abtn_' + id);
-  if(btn) btn.textContent = s.paused ? '▶ הפעל' : '⏸ עצור';
+  if(btn) btn.textContent = s.paused ? '▶ הפעילו' : '⏸ עצרו';
 };
 window.animReset = function(id){
   const s = _anim[id]; if(!s) return;
   s.t = 0; s.prev = null; s.paused = false; s.drag = false;
   const btn = document.getElementById('abtn_' + id);
-  if(btn) btn.textContent = '⏸ עצור';
+  if(btn) btn.textContent = '⏸ עצרו';
 };
 
 function stopAllAnims(){ Object.values(_anim).forEach(s=>s.paused=true); }
@@ -1761,7 +1761,7 @@ function initFolds(){
     // used to sit permanently open because there was nothing "after" it.
     var rest=kids.length>i+1?kids.slice(i+1):kids.slice(i);
     if(!rest.length)return;
-    fold(bx,rest,'🔍 הצג פתרון','🙈 הסתר פתרון');
+    fold(bx,rest,'🔍 הציגו פתרון','🙈 הסתירו פתרון');
   });
   host.querySelectorAll('.enrich-card').forEach(function(bx){
     if(bx.dataset.fold)return;
@@ -12218,10 +12218,10 @@ function simSpringForce(canvas){
   // survived leaving the section, so the button could name the mode on screen).
   var signedMode=false;
   var fmodeBtn=document.getElementById('btn-sf-fmode');
-  if(fmodeBtn){ fmodeBtn.textContent='📐 הצג F = −kx (עם סימן)';
+  if(fmodeBtn){ fmodeBtn.textContent='📐 הציגו F = −kx (עם סימן)';
     fmodeBtn.addEventListener('click',function(){
       signedMode=!signedMode;
-      fmodeBtn.textContent=signedMode?'📐 הצג |F| = k|x|':'📐 הצג F = −kx (עם סימן)';
+      fmodeBtn.textContent=signedMode?'📐 הציגו |F| = k|x|':'📐 הציגו F = −kx (עם סימן)';
     });
   }
 
@@ -13560,7 +13560,7 @@ function simNewton3(canvas){
   if(pushBtn)pushBtn.addEventListener('click',function(){
     if(pushPhase===0){
       pushed=true; pushPhase=1; pushTimer=0;
-      pushBtn.textContent='⏹ אפס';
+      pushBtn.textContent='⏹ איפוס';
     } else { reset(); }
   });
   if(resetBtn)resetBtn.addEventListener('click',reset);
@@ -13585,7 +13585,7 @@ function simNewton3(canvas){
   function _n3Up(){
     if(!dragN3)return; dragN3=false;
     if(dragF>70){ pushed=true; pushPhase=1; pushTimer=0;
-                  if(pushBtn)pushBtn.textContent='⏹ אפס'; }
+                  if(pushBtn)pushBtn.textContent='⏹ איפוס'; }
   }
   canvas.addEventListener('mousedown',_n3Down); canvas.addEventListener('touchstart',_n3Down,{passive:false});
   canvas.addEventListener('mousemove',_n3Move); canvas.addEventListener('touchmove',_n3Move,{passive:false});
@@ -14370,7 +14370,7 @@ function simElcDeflect(canvas){
   var isElectron=true, t0=0;
   var pb=document.getElementById('btn-df-part');
   if(pb)pb.addEventListener('click',function(){isElectron=!isElectron;t0=0;
-    pb.textContent=isElectron?'🔁 החלף לפרוטון':'🔁 החלף לאלקטרון';});
+    pb.textContent=isElectron?'🔁 החליפו לפרוטון':'🔁 החליפו לאלקטרון';});
   function gV(){var e=document.getElementById('inp-df-V');return e?parseFloat(e.value):100;}
   function gv0(){var e=document.getElementById('inp-df-v0');return e?parseFloat(e.value)*1e7:2e7;}
   function gL(){var e=document.getElementById('inp-df-L');return e?parseFloat(e.value)/100:0.10;}
@@ -14867,7 +14867,7 @@ function simCircular(canvas){
   function getV(){var e=document.getElementById('inp-circ-v'); return e?parseFloat(e.value):v;}
 
   var pauseBtn=document.getElementById('btn-circ-pause');
-  if(pauseBtn)pauseBtn.addEventListener('click',function(){paused=!paused;pauseBtn.textContent=paused?'▶ המשך':'⏸ עצור';});
+  if(pauseBtn)pauseBtn.addEventListener('click',function(){paused=!paused;pauseBtn.textContent=paused?'▶ המשיכו':'⏸ עצרו';});
 
   // ── Direct manipulation: drag the bob to set the radius ──
   var dragBob=false;
@@ -15440,10 +15440,10 @@ function simEnergyPotential(canvas){
 
   var elasticBtn=document.getElementById('btn-ep-elastic');
   if(elasticBtn){
-    elasticBtn.textContent='🟢 הצג אנרגיה אלסטית';
+    elasticBtn.textContent='🟢 הציגו אנרגיה אלסטית';
     elasticBtn.addEventListener('click',function(){
       showElasticBar=!showElasticBar;
-      elasticBtn.textContent=showElasticBar?'🔴 הסתר אנרגיה אלסטית':'🟢 הצג אנרגיה אלסטית';
+      elasticBtn.textContent=showElasticBar?'🔴 הסתירו אנרגיה אלסטית':'🟢 הציגו אנרגיה אלסטית';
     });
   }
   var resetBtn=document.getElementById('btn-ep-reset');
@@ -17543,7 +17543,7 @@ function simOptEye(canvas){
   window._eyeMode=function(m){mode=(m==='far')?'normal':m;};
   window._eyeGlasses=function(){glasses=!glasses;
     var b=document.getElementById('btn-eye-glasses');
-    if(b)b.textContent=glasses?'❌ הסר משקפיים':'👓 הוסף משקפיים';};
+    if(b)b.textContent=glasses?'❌ הסירו משקפיים':'👓 הוסיפו משקפיים';};
   function getDist(){var e=document.getElementById('inp-eye-dist');return e?parseFloat(e.value):2;}
   // Geometry
   var es=Math.min(1,(W*0.28-8)/118);   // shrink the eye to fit a phone-width canvas
@@ -27350,7 +27350,7 @@ function simElcScope(canvas){
   var gb=document.getElementById('btn-scope-ground');
   if(gb)gb.addEventListener('click',function(){
     grounded=!grounded;
-    gb.textContent=grounded?'⏚ נתק הארקה':'⏚ חבר הארקה';
+    gb.textContent=grounded?'⏚ נתקו הארקה':'⏚ חברו הארקה';
     evt=grounded?'gnd-on':'gnd-off'; evtT=animT;
   });
   function _dn(e){var p=simPointerXY(canvas,dpr,e);
@@ -27500,7 +27500,7 @@ function simElcCoulomb(canvas){
   var Q3=2; // μC, fixed
   var tb=document.getElementById('btn-clb-three');
   if(tb)tb.addEventListener('click',function(){on3=!on3;
-    tb.textContent=on3?'⊖ הסר את q₃':'⊕ הוסף מטען q₃ (סופרפוזיציה)';});
+    tb.textContent=on3?'⊖ הסירו את q₃':'⊕ הוסיפו מטען q₃ (סופרפוזיציה)';});
   function q1(){var e=document.getElementById('inp-elc-q1');return e?parseFloat(e.value):2;}
   function q2(){var e=document.getElementById('inp-elc-q2');return e?parseFloat(e.value):-3;}
   function _dn(e){var p=simPointerXY(canvas,dpr,e);
@@ -27818,10 +27818,10 @@ function simElcPotential(canvas){
   }
   var tb=document.getElementById('btn-pot-two');
   if(tb)tb.addEventListener('click',function(){two=!two;
-    tb.textContent=two?'⊖ הסר מטען שני':'⊕ הוסף מטען שני';});
+    tb.textContent=two?'⊖ הסירו מטען שני':'⊕ הוסיפו מטען שני';});
   var vq2=document.getElementById('inp-elc-Vq2');
   if(vq2)vq2.addEventListener('input',function(){
-    if(!two){two=true;if(tb)tb.textContent='⊖ הסר מטען שני';}});
+    if(!two){two=true;if(tb)tb.textContent='⊖ הסירו מטען שני';}});
   var mb=document.getElementById('btn-pot-mark');
   if(mb)mb.addEventListener('click',function(){markV=Vat(px2,py2);});
   function _dn(e){var p=simPointerXY(canvas,dpr,e);
@@ -27990,7 +27990,7 @@ function simElcCompare(canvas){
   var GX=52,GW=0,RMAX=0.60;
   var vb=document.getElementById('btn-cmp-v');
   if(vb)vb.addEventListener('click',function(){showV=!showV;
-    vb.textContent=showV?'⚡ הצג שדה E':'🔋 הצג פוטנציאל V';});
+    vb.textContent=showV?'⚡ הציגו שדה E':'🔋 הציגו פוטנציאל V';});
   function Qv(){var e=document.getElementById('inp-cmp-Q');return e?parseFloat(e.value):3;}
   function Rv(){var e=document.getElementById('inp-cmp-R');return e?parseFloat(e.value):5;}
   simDrag(canvas,dpr,{
@@ -29646,7 +29646,7 @@ function simElcConductor(canvas){
     smb.textContent=sharpMode?'⚪ כדור מוליך':'📐 חוד ופריקה';});
   var eb=document.getElementById('btn-cnd-ext');
   if(eb)eb.addEventListener('click',function(){ext=!ext;
-    eb.textContent=ext?'🚫 בטל שדה חיצוני':'⚡ שדה חיצוני';});
+    eb.textContent=ext?'🚫 בטלו שדה חיצוני':'⚡ שדה חיצוני';});
   function _dn(e){var p=simPointerXY(canvas,dpr,e);
     if(Math.hypot(p.x-pxp,p.y-pyp)<26){dragP=true;touched=true;canvas.style.cursor='grabbing';e.preventDefault();}}
   function _mv(e){var p=simPointerXY(canvas,dpr,e);
@@ -29972,7 +29972,7 @@ function simElcNetwork(canvas){
   function Vb(){var e=document.getElementById('inp-net-v');return e?parseFloat(e.value):12;}
   var tb=document.getElementById('btn-net-mode');
   if(tb)tb.addEventListener('click',function(){series=!series;
-    tb.textContent=series?'⇉ עבור למקביל':'⇶ עבור לטור';});
+    tb.textContent=series?'⇉ עברו למקביל':'⇶ עברו לטור';});
   function draw(){
     if(_simStop[id])return;animT+=0.03;
     var c1=C1(),c2=C2(),V=Vb();
@@ -30078,7 +30078,7 @@ function simElcPlates(canvas){
   if(pb)pb.addEventListener('click',function(){pol*=-1;});
   var qb=document.getElementById('btn-pl-part');
   if(qb)qb.addEventListener('click',function(){part=part==='e'?'p':'e';elec=null;ghosts=[];
-    qb.textContent=part==='e'?'🔁 החלף לפרוטון':'🔁 החלף לאלקטרון';});
+    qb.textContent=part==='e'?'🔁 החליפו לפרוטון':'🔁 החליפו לאלקטרון';});
   // Pull back (left) from the entry point to set v₀, release to launch
   function _plDn(e){var p=simPointerXY(canvas,dpr,e);
     if(p.x<PL-6&&Math.abs(p.y-cy)<70){aimP=true;aimX=p.x;canvas.style.cursor='grabbing';e.preventDefault();}}
@@ -30202,12 +30202,12 @@ function simElcCap(canvas){
   function Acm(){var e=document.getElementById('inp-elc-cA');return e?parseFloat(e.value):200;}
   function dmm(){var e=document.getElementById('inp-elc-cd');return e?parseFloat(e.value):4;}
   var db=document.getElementById('btn-cap-diel');
-  if(db)db.addEventListener('click',function(){kappa=kappa===1?3:1;db.textContent=kappa===3?'🚫 הוצא דיאלקטרן':'🧱 דיאלקטרן κ=3';});
+  if(db)db.addEventListener('click',function(){kappa=kappa===1?3:1;db.textContent=kappa===3?'🚫 הוציאו דיאלקטרן':'🧱 דיאלקטרן κ=3';});
   var disc=false,Qfroz=0;
   var xb=document.getElementById('btn-cap-disc');
   if(xb)xb.addEventListener('click',function(){disc=!disc;
     if(disc)Qfroz=kappa*ELC_EPS0*(Acm()*1e-4)/(dmm()*1e-3)*Vv();
-    xb.textContent=disc?'🔌 חבר חזרה לסוללה':'✂️ נתק מהסוללה (Q קבוע)';});
+    xb.textContent=disc?'🔌 חברו חזרה לסוללה':'✂️ נתקו מהסוללה (Q קבוע)';});
   function rx(){return LX+dmm()*18;}
   function _dn(e){var p=simPointerXY(canvas,dpr,e);
     if(Math.abs(p.x-rx())<18&&Math.abs(p.y-cy)<120){dragPlate=true;touched=true;canvas.style.cursor='grabbing';e.preventDefault();}}
@@ -32586,44 +32586,44 @@ function buildSim(sim){
   if(!sim)return '';
   let extra='';
   const C=(s)=>`<div class="sim-controls">${s}</div>`;
-  if(sim.type==='position-time')extra=C(btn('pt-reset','↺ אפס מסלול','btn-secondary'));
-  else if(sim.type==='const-velocity')extra=C(rng('cv-v',-10,10,2.5,0.5,'מהירות v',' m/s')+rng('cv-x0',-8,8,0,1,'מיקום x₀',' m')+btn('cv-reset','↺ אפס','btn-secondary'));
-  else if(sim.type==='avg-instant')extra=C(rng('ai-k',0.5,4,1.5,0.25,'מקדם k  (x = k·t²)')+btn('ai-reset','▶ הרץ Δt→0','btn-secondary'));
-  else if(sim.type==='acceleration')extra=C(rng('acc-a',-10,10,3,0.5,'תאוצה a',' m/s²')+rng('acc-v0',-8,8,0,1,'v₀ ראשונית',' m/s')+btn('acc-reset','↺ אפס','btn-secondary'));
+  if(sim.type==='position-time')extra=C(btn('pt-reset','↺ איפוס המסלול','btn-secondary'));
+  else if(sim.type==='const-velocity')extra=C(rng('cv-v',-10,10,2.5,0.5,'מהירות v',' m/s')+rng('cv-x0',-8,8,0,1,'מיקום x₀',' m')+btn('cv-reset','↺ איפוס','btn-secondary'));
+  else if(sim.type==='avg-instant')extra=C(rng('ai-k',0.5,4,1.5,0.25,'מקדם k  (x = k·t²)')+btn('ai-reset','▶ הריצו Δt→0','btn-secondary'));
+  else if(sim.type==='acceleration')extra=C(rng('acc-a',-10,10,3,0.5,'תאוצה a',' m/s²')+rng('acc-v0',-8,8,0,1,'v₀ ראשונית',' m/s')+btn('acc-reset','↺ איפוס','btn-secondary'));
   else if(sim.type==='freefall')extra=C(rng('v0',0,30,18,1,'v₀ ראשונית',' m/s')+rng('ff-g',1.6,25,9.8,0.2,'g כבידה',' m/s²')+btn('throw','🎯 זרקו!','btn-primary'));
   else if(sim.type==='force-types')extra=C(rng('ft-F',0,40,12,1,'דחיפה F',' N')+rng('ft-x',0.01,0.15,0.05,0.01,'מתיחת הקפיץ x',' m'));
   else if(sim.type==='inertia')extra=C(rng('friction',0,0.8,0.4,0.05,'חיכוך μ')+rng('mass-in',1,15,5,0.5,'מסה m',' kg')+btn('push-right','💨 דחפו ימינה','btn-primary')+btn('push-left','דחפו שמאלה 💨','btn-secondary'));
-  else if(sim.type==='newton2')extra=C(rng('mass',1,20,5,0.5,'מסה m',' kg')+rng('n2-F',-60,60,20,1,'כוח F',' N')+rng('n2-mu',0,0.8,0,0.05,'חיכוך μ')+btn('n2-reset','↺ אפס','btn-secondary'));
-  else if(sim.type==='newton3')extra=C(rng('n3-mA',20,90,60,5,'מסת A',' kg')+rng('n3-mB',20,90,30,5,'מסת B',' kg')+rng('n3-F',50,600,300,10,'כוח דחיפה',' N')+btn('n3-push','💥 דחפו!')+btn('n3-reset','↺ אפס','btn-secondary'));
-  else if(sim.type==='normal-force')extra=C(rng('nf-theta',0,70,0,1,'זווית θ','°')+rng('nf-mass',1,12,4,0.5,'מסה m',' kg')+rng('nf-mu',0,0.7,0,0.05,'חיכוך μ')+btn('nf-reset','↺ אפס','btn-secondary'));
-  else if(sim.type==='incline')extra=C(rng('inc-theta',5,75,30,1,'זווית θ','°')+rng('inc-mu',0,0.8,0,0.05,'חיכוך μ')+rng('inc-m',0.5,10,3,0.5,'מסה m',' kg')+rng('inc-m1',0.5,10,3,0.5,'m₁ אטווד',' kg')+rng('inc-m2',0.5,10,5,0.5,'m₂ אטווד',' kg')+btn('inc-atwood','⚖️ מכונת אטווד','btn-secondary')+btn('inc-reset','↺ אפס','btn-secondary'));
-  else if(sim.type==='tension')extra=C(rng('ten-m1',0.5,12,3,0.5,'m₁ אטווד',' kg')+rng('ten-m2',0.5,12,5,0.5,'m₂ אטווד',' kg')+rng('ten-el',0.5,5,3,0.5,'מסת הגוף במעלית',' kg')+rng('ten-ea',-5,5,0,0.5,'תאוצת המעלית',' m/s²')+btn('ten-launch','▶ שחררו!')+btn('ten-reset','↺ אפס','btn-secondary'));
-  else if(sim.type==='fbd')extra=C(rng('fbd-F',-10,25,0,0.5,'כוח נוסף על הגוף (+ מעלה)',' N')+btn('fbd-reset','↺ נקה הכל','btn-secondary'));
+  else if(sim.type==='newton2')extra=C(rng('mass',1,20,5,0.5,'מסה m',' kg')+rng('n2-F',-60,60,20,1,'כוח F',' N')+rng('n2-mu',0,0.8,0,0.05,'חיכוך μ')+btn('n2-reset','↺ איפוס','btn-secondary'));
+  else if(sim.type==='newton3')extra=C(rng('n3-mA',20,90,60,5,'מסת A',' kg')+rng('n3-mB',20,90,30,5,'מסת B',' kg')+rng('n3-F',50,600,300,10,'כוח דחיפה',' N')+btn('n3-push','💥 דחפו!')+btn('n3-reset','↺ איפוס','btn-secondary'));
+  else if(sim.type==='normal-force')extra=C(rng('nf-theta',0,70,0,1,'זווית θ','°')+rng('nf-mass',1,12,4,0.5,'מסה m',' kg')+rng('nf-mu',0,0.7,0,0.05,'חיכוך μ')+btn('nf-reset','↺ איפוס','btn-secondary'));
+  else if(sim.type==='incline')extra=C(rng('inc-theta',5,75,30,1,'זווית θ','°')+rng('inc-mu',0,0.8,0,0.05,'חיכוך μ')+rng('inc-m',0.5,10,3,0.5,'מסה m',' kg')+rng('inc-m1',0.5,10,3,0.5,'m₁ אטווד',' kg')+rng('inc-m2',0.5,10,5,0.5,'m₂ אטווד',' kg')+btn('inc-atwood','⚖️ מכונת אטווד','btn-secondary')+btn('inc-reset','↺ איפוס','btn-secondary'));
+  else if(sim.type==='tension')extra=C(rng('ten-m1',0.5,12,3,0.5,'m₁ אטווד',' kg')+rng('ten-m2',0.5,12,5,0.5,'m₂ אטווד',' kg')+rng('ten-el',0.5,5,3,0.5,'מסת הגוף במעלית',' kg')+rng('ten-ea',-5,5,0,0.5,'תאוצת המעלית',' m/s²')+btn('ten-launch','▶ שחררו!')+btn('ten-reset','↺ איפוס','btn-secondary'));
+  else if(sim.type==='fbd')extra=C(rng('fbd-F',-10,25,0,0.5,'כוח נוסף על הגוף (+ מעלה)',' N')+btn('fbd-reset','↺ נקו הכול','btn-secondary'));
   else if(sim.type==='momentum')extra=C(rng('mom-mass',0.5,8,2,0.5,'מסה',' kg')+rng('mom-vel',-10,10,4,1,'מהירות',' m/s'));
-  else if(sim.type==='momentum-cons')extra=C(rng('mc-m1',1,8,3,0.5,'m₁',' kg')+rng('mc-m2',1,8,2,0.5,'m₂',' kg')+rng('mc-v1',-8,8,4,1,'v₁',' m/s')+rng('mc-v2',-8,8,-2,1,'v₂',' m/s')+btn('mc-reset','↺ אפס','btn-secondary'));
-  else if(sim.type==='collision')extra=C(rng('col-e',0,1,1,0.05,'מקדם התקומה e (0 נצמדים, 1 אלסטית)')+rng('col-m1',1,8,3,0.5,'m₁',' kg')+rng('col-m2',1,8,2,0.5,'m₂',' kg')+rng('col-v1',0,8,4,0.5,'v₁ התחלתית',' m/s')+rng('col-v2',-8,0,-2,0.5,'v₂ התחלתית',' m/s')+btn('col-reset','↺ אפס','btn-secondary'));
-  else if(sim.type==='energy-kinetic')extra=C(rng('ek-F',2,50,10,1,'כוח F',' N')+rng('ek-m',0.5,10,2,0.5,'מסה m',' kg')+btn('ek-launch','▶ הפעל!','btn-primary')+btn('ek-reset','↺ אפס','btn-secondary'));
-  else if(sim.type==='energy-potential')extra=C(rng('ep-m',0.5,8,2,0.5,'מסה m',' kg')+rng('ep-g',1.6,25,9.8,0.5,'g',' m/s²')+btn('ep-elastic','⚡ אנרגיה אלסטית','btn-secondary')+btn('ep-reset','↺ אפס','btn-secondary'));
-  else if(sim.type==='energy')extra=C(rng('energy-m',0.5,4,1,0.5,'מסה m',' kg')+rng('energy-mu',0,0.1,0,0.005,'מקדם חיכוך μ','')+btn('energy-reset','↺ אפס','btn-secondary'));
-  else if(sim.type==='shm-def')extra=C(rng('shm-A',2,13,8,0.5,'אמפליטודה A',' cm')+rng('shm-T',0.5,5,2,0.1,'מחזור T',' s')+btn('shm-reset','↺ אפס','btn-secondary'));
-  else if(sim.type==='vec-ops')extra=C(rng('vo-scalar',-3,3,2,0.1,'מכפיל c')+btn('vo-add','A+B')+btn('vo-sub','A−B','btn-secondary')+btn('vo-scalar','c·A','btn-secondary')+btn('vo-dot','A·B','btn-secondary')+btn('vo-reset','↺ אפס','btn-secondary'));
-  else if(sim.type==='vec-components')extra=C(rng('vc-mag',0.5,4,2.8,0.1,'גודל |A|')+rng('vc-ang',0,360,32,1,'זווית θ','°')+btn('vc-reset','↺ אפס','btn-secondary'));
+  else if(sim.type==='momentum-cons')extra=C(rng('mc-m1',1,8,3,0.5,'m₁',' kg')+rng('mc-m2',1,8,2,0.5,'m₂',' kg')+rng('mc-v1',-8,8,4,1,'v₁',' m/s')+rng('mc-v2',-8,8,-2,1,'v₂',' m/s')+btn('mc-reset','↺ איפוס','btn-secondary'));
+  else if(sim.type==='collision')extra=C(rng('col-e',0,1,1,0.05,'מקדם התקומה e (0 נצמדים, 1 אלסטית)')+rng('col-m1',1,8,3,0.5,'m₁',' kg')+rng('col-m2',1,8,2,0.5,'m₂',' kg')+rng('col-v1',0,8,4,0.5,'v₁ התחלתית',' m/s')+rng('col-v2',-8,0,-2,0.5,'v₂ התחלתית',' m/s')+btn('col-reset','↺ איפוס','btn-secondary'));
+  else if(sim.type==='energy-kinetic')extra=C(rng('ek-F',2,50,10,1,'כוח F',' N')+rng('ek-m',0.5,10,2,0.5,'מסה m',' kg')+btn('ek-launch','▶ הפעילו!','btn-primary')+btn('ek-reset','↺ איפוס','btn-secondary'));
+  else if(sim.type==='energy-potential')extra=C(rng('ep-m',0.5,8,2,0.5,'מסה m',' kg')+rng('ep-g',1.6,25,9.8,0.5,'g',' m/s²')+btn('ep-elastic','⚡ אנרגיה אלסטית','btn-secondary')+btn('ep-reset','↺ איפוס','btn-secondary'));
+  else if(sim.type==='energy')extra=C(rng('energy-m',0.5,4,1,0.5,'מסה m',' kg')+rng('energy-mu',0,0.1,0,0.005,'מקדם חיכוך μ','')+btn('energy-reset','↺ איפוס','btn-secondary'));
+  else if(sim.type==='shm-def')extra=C(rng('shm-A',2,13,8,0.5,'אמפליטודה A',' cm')+rng('shm-T',0.5,5,2,0.1,'מחזור T',' s')+btn('shm-reset','↺ איפוס','btn-secondary'));
+  else if(sim.type==='vec-ops')extra=C(rng('vo-scalar',-3,3,2,0.1,'מכפיל c')+btn('vo-add','A+B')+btn('vo-sub','A−B','btn-secondary')+btn('vo-scalar','c·A','btn-secondary')+btn('vo-dot','A·B','btn-secondary')+btn('vo-reset','↺ איפוס','btn-secondary'));
+  else if(sim.type==='vec-components')extra=C(rng('vc-mag',0.5,4,2.8,0.1,'גודל |A|')+rng('vc-ang',0,360,32,1,'זווית θ','°')+btn('vc-reset','↺ איפוס','btn-secondary'));
   else if(sim.type==='spring')extra=C(rng('spring-k',0.1,25,2,0.1,'k (N/m)')+rng('spring-m',0.1,2,0.5,0.1,'מסה',' kg'));
   else if(sim.type==='gravity-force')extra=C(rng('gf-m',1,200,70,1,'מסה m',' kg'));
-  else if(sim.type==='spring-force')extra=C(rng('sf-k',5,200,40,5,'k קשיחות',' N/m')+rng('sf-m',0.1,2,0.4,0.05,'מסה m',' kg')+rng('sf-damp',0,2,0.8,0.1,'ריסון b')+btn('sf-reset','↺ אפס','btn-secondary')+btn('sf-fmode','📐 הצג F = −kx (עם סימן)','btn-secondary'));
-  else if(sim.type==='static-friction')extra=C(rng('sft-mu',0.1,0.9,0.55,0.05,'μ_s')+rng('sft-mass',1,15,3,0.5,'מסה m',' kg')+rng('sft-F',0,80,0,1,'כוח F',' N')+btn('sft-reset','↺ אפס','btn-secondary'));
-  else if(sim.type==='kinetic-friction')extra=C(rng('kf-v0',2,20,10,1,'מהירות v₀',' m/s')+rng('kf-mass',1,15,5,0.5,'מסה m',' kg')+rng('kf-mu',0.1,0.8,0.38,0.02,'μ_k')+btn('kf-launch','▶ שגרו!','btn-primary')+btn('kf-reset','↺ אפס','btn-secondary'));
-  else if(sim.type==='friction-combined')extra=C(rng('fc-theta',5,70,20,1,'זווית θ','°')+rng('fc-F',0,80,0,2,'כוח F',' N')+rng('fc-mu',0.05,0.8,0.45,0.05,'μ')+rng('fc-m',0.5,10,5,0.5,'מסה m',' kg')+btn('fc-reset','↺ אפס','btn-secondary'));
-  else if(sim.type==='pendulum')extra=C(rng('pend-L',0.3,3,1,0.1,'אורך L',' m')+rng('pend-g',1.6,25,9.8,0.5,'g',' m/s²')+rng('pend-damp',0,0.1,0,0.005,'ריסון b',' 1/s')+btn('pend-reset','↺ אפס','btn-secondary'));
-  else if(sim.type==='projectile')extra=C(rng('proj-angle',10,80,45,1,'זווית θ','°')+rng('proj-v0',5,35,20,1,'מהירות v₀',' m/s')+btn('proj-launch','▶ שגר!','btn-primary')+btn('proj-reset','↺ אפס','btn-secondary'));
+  else if(sim.type==='spring-force')extra=C(rng('sf-k',5,200,40,5,'k קשיחות',' N/m')+rng('sf-m',0.1,2,0.4,0.05,'מסה m',' kg')+rng('sf-damp',0,2,0.8,0.1,'ריסון b')+btn('sf-reset','↺ איפוס','btn-secondary')+btn('sf-fmode','📐 הציגו F = −kx (עם סימן)','btn-secondary'));
+  else if(sim.type==='static-friction')extra=C(rng('sft-mu',0.1,0.9,0.55,0.05,'μ_s')+rng('sft-mass',1,15,3,0.5,'מסה m',' kg')+rng('sft-F',0,80,0,1,'כוח F',' N')+btn('sft-reset','↺ איפוס','btn-secondary'));
+  else if(sim.type==='kinetic-friction')extra=C(rng('kf-v0',2,20,10,1,'מהירות v₀',' m/s')+rng('kf-mass',1,15,5,0.5,'מסה m',' kg')+rng('kf-mu',0.1,0.8,0.38,0.02,'μ_k')+btn('kf-launch','▶ שגרו!','btn-primary')+btn('kf-reset','↺ איפוס','btn-secondary'));
+  else if(sim.type==='friction-combined')extra=C(rng('fc-theta',5,70,20,1,'זווית θ','°')+rng('fc-F',0,80,0,2,'כוח F',' N')+rng('fc-mu',0.05,0.8,0.45,0.05,'μ')+rng('fc-m',0.5,10,5,0.5,'מסה m',' kg')+btn('fc-reset','↺ איפוס','btn-secondary'));
+  else if(sim.type==='pendulum')extra=C(rng('pend-L',0.3,3,1,0.1,'אורך L',' m')+rng('pend-g',1.6,25,9.8,0.5,'g',' m/s²')+rng('pend-damp',0,0.1,0,0.005,'ריסון b',' 1/s')+btn('pend-reset','↺ איפוס','btn-secondary'));
+  else if(sim.type==='projectile')extra=C(rng('proj-angle',10,80,45,1,'זווית θ','°')+rng('proj-v0',5,35,20,1,'מהירות v₀',' m/s')+btn('proj-launch','▶ שגרו!','btn-primary')+btn('proj-reset','↺ איפוס','btn-secondary'));
   else if(sim.type==='elc-dielectric')extra=C(rng('di-k',1,8,4,0.5,'קבוע דיאלקטרי κ')+rng('di-f',0,1,0,0.05,'הכנסת הלוח')+btn('di-mode','🔌 הסוללה מחוברת','btn-secondary'));
-  else if(sim.type==='elc-deflect')extra=C(rng('df-V',0,300,100,10,'מתח V',' V')+rng('df-v0',1,5,2,0.25,'v₀',' ×10⁷ m/s')+rng('df-L',4,14,10,1,'אורך הלוחות',' cm')+btn('df-part','🔁 החלף לפרוטון','btn-secondary'));
+  else if(sim.type==='elc-deflect')extra=C(rng('df-V',0,300,100,10,'מתח V',' V')+rng('df-v0',1,5,2,0.25,'v₀',' ×10⁷ m/s')+rng('df-L',4,14,10,1,'אורך הלוחות',' cm')+btn('df-part','🔁 החליפו לפרוטון','btn-secondary'));
   else if(sim.type==='elc-millikan')extra=C(rng('mk-V',0,1000,300,1,'מתח V',' V')+btn('mk-new','🎲 טיפה חדשה','btn-primary'));
   else if(sim.type==='statics-torque')extra=C(rng('tq-r',0.05,0.50,0.30,0.01,'מרחק r',' m')+rng('tq-F',5,60,30,1,'כוח F',' N')+rng('tq-th',0,180,60,5,'זווית θ',' °'));
   else if(sim.type==='statics-beam')extra=C(rng('bm-P',0,600,300,10,'עומס P',' N')+rng('bm-xp',0,4,3,0.1,'מיקום העומס',' m')+rng('bm-W',0,400,200,20,'משקל הקורה',' N')+rng('bm-xb',1.5,4,4,0.1,'מיקום משען B',' m'));
   else if(sim.type==='statics-com')extra=C(rng('cm-w',0.15,0.9,0.30,0.05,'רוחב w',' m')+rng('cm-h',0.2,1.2,0.50,0.05,'גובה h',' m')+rng('cm-mu',0.05,1.2,0.40,0.05,'חיכוך μs')+rng('cm-th',0,55,15,1,'זווית המדרון',' °'));
-  else if(sim.type==='circular')extra=C(rng('circ-r',0.5,3,1.2,0.1,'רדיוס r',' m')+rng('circ-v',2,15,6,0.5,'מהירות v',' m/s')+btn('circ-pause','⏸ השהה/המשך','btn-secondary'));
-  else if(sim.type==='atwood')extra=C(rng('atw-m1',0.5,10,3,0.5,'m₁',' kg')+rng('atw-m2',0.5,10,5,0.5,'m₂',' kg')+btn('atw-launch','▶ שחררו!','btn-primary')+btn('atw-reset','↺ אפס','btn-secondary'));
+  else if(sim.type==='circular')extra=C(rng('circ-r',0.5,3,1.2,0.1,'רדיוס r',' m')+rng('circ-v',2,15,6,0.5,'מהירות v',' m/s')+btn('circ-pause','⏸ עצרו','btn-secondary'));
+  else if(sim.type==='atwood')extra=C(rng('atw-m1',0.5,10,3,0.5,'m₁',' kg')+rng('atw-m2',0.5,10,5,0.5,'m₂',' kg')+btn('atw-launch','▶ שחררו!','btn-primary')+btn('atw-reset','↺ איפוס','btn-secondary'));
   // OPTICS CONTROLS
   else if(sim.type==='opt-em-wave')extra=C(rng('emw-wl',380,700,500,5,'אורך גל λ',' nm'));
   else if(sim.type==='opt-refr-index')extra=C(rng('ri-n',1,2.5,1.5,0.01,'מדד שבירה n'));
@@ -32640,7 +32640,7 @@ function buildSim(sim){
     '<button class="btn btn-primary" onclick="window._eyeMode(\'normal\')">😊 תקינה</button>'+
     '<button class="btn btn-secondary" onclick="window._eyeMode(\'myopia\')">👓 קוצר ראייה</button>'+
     '<button class="btn btn-secondary" onclick="window._eyeMode(\'hyper\')">🔭 רוחק ראייה</button>'+
-    '<button class="btn btn-secondary" id="btn-eye-glasses" onclick="window._eyeGlasses()">👓 הוסף משקפיים</button></div>');
+    '<button class="btn btn-secondary" id="btn-eye-glasses" onclick="window._eyeGlasses()">👓 הוסיפו משקפיים</button></div>');
   else if(sim.type==='opt-interference')extra=C(rng('int-lambda',380,700,500,10,'אורך גל λ',' nm')+rng('int-d',1,4,2,0.1,'מרחק מקורות d',' μm'));
   else if(sim.type==='opt-youngs')extra=C(rng('ys-lambda',400,700,500,10,'אורך גל λ',' nm')+rng('ys-d',0.1,1,0.3,0.05,'מרחק סדקים d',' mm')+rng('ys-L',0.5,3,1,0.1,'מרחק מסך L',' m'));
   else if(sim.type==='opt-diffraction')extra=C(rng('diff-a',0.05,1,0.1,0.01,'רוחב סדק a',' mm')+rng('diff-lambda',380,700,500,10,'אורך גל λ',' nm'));
@@ -32653,10 +32653,10 @@ function buildSim(sim){
   else if(sim.type==='opt-telescope')extra=C(rng('tel-fo',30,300,150,5,'מוקד אובייקטיב fₒ','mm')+rng('tel-fe',5,60,25,5,'מוקד עדשת עין fₑ','mm'));
   else if(sim.type==='opt-thin-film')extra=C(rng('tf-thick',50,600,300,5,'עובי קרום t','nm')+rng('tf-n',1.10,2.00,1.33,0.02,'מדד שבירה n',''));
   else if(sim.type==='opt-grating')extra=C(rng('gr-d',0.5,5.0,1.5,0.1,'מרווח סריג d','μm')+rng('gr-lambda',380,700,550,5,'אורך גל λ','nm')+btn('gr-white','🌈 אור לבן','btn-secondary'));
-  else if(sim.type==='elc-scope')extra=C(rng('scope-q',1,10,5,1,'עוצמת מטען המוט',' nC')+btn('scope-flip','↔ החלף סימן','btn-secondary')+btn('scope-touch','👆 גע — הולכה','btn-secondary')+btn('scope-ground','⏚ חבר הארקה','btn-secondary'));
-  else if(sim.type==='elc-coulomb')extra=C(rng('elc-q1',-5,5,2,0.5,'q₁',' μC')+rng('elc-q2',-5,5,-3,0.5,'q₂',' μC')+btn('clb-three','⊕ הוסף מטען q₃ (סופרפוזיציה)','btn-secondary'));
+  else if(sim.type==='elc-scope')extra=C(rng('scope-q',1,10,5,1,'עוצמת מטען המוט',' nC')+btn('scope-flip','↔ החליפו סימן','btn-secondary')+btn('scope-touch','👆 געו — הולכה','btn-secondary')+btn('scope-ground','⏚ חברו הארקה','btn-secondary'));
+  else if(sim.type==='elc-coulomb')extra=C(rng('elc-q1',-5,5,2,0.5,'q₁',' μC')+rng('elc-q2',-5,5,-3,0.5,'q₂',' μC')+btn('clb-three','⊕ הוסיפו מטען q₃ (סופרפוזיציה)','btn-secondary'));
   else if(sim.type==='elc-field')extra=C(rng('elc-Q',-6,6,4,0.5,'מטען Q₁',' μC')+rng('elc-Q2',-6,6,-4,0.5,'מטען Q₂',' μC')+btn('field-dipole','⇄ שני מטענים','btn-secondary')+btn('field-lines','✒️ קווי שדה רציפים','btn-secondary'));
-  else if(sim.type==='elc-compare')extra=C(rng('cmp-Q',0.1,4,0.5,0.1,'מטען Q',' μC')+rng('cmp-R',2,12,5,0.5,'רדיוס הכדור R',' cm')+btn('cmp-v','🔋 הצג פוטנציאל V','btn-secondary'));
+  else if(sim.type==='elc-compare')extra=C(rng('cmp-Q',0.1,4,0.5,0.1,'מטען Q',' μC')+rng('cmp-R',2,12,5,0.5,'רדיוס הכדור R',' cm')+btn('cmp-v','🔋 הציגו פוטנציאל V','btn-secondary'));
   else if(sim.type==='elc-sphere')extra=C(rng('sph-Q',-6,6,3,0.5,'מטען Q',' μC')+rng('sph-R',2,30,20,1,'רדיוס R',' cm'));
   else if(sim.type==='dc-junction')extra=C(rng('jn-I1',0,6,3,0.1,'I₁ — נכנס',' A')+rng('jn-I2',0,6,2,0.1,'I₂ — נכנס',' A')+rng('jn-I3',0,6,4,0.1,'I₃ — יוצא',' A'));
   else if(sim.type==='dc-loop')extra=C(rng('lp-E1',2,24,12,0.5,'כא״מ ε₁',' V')+rng('lp-E2',0,12,0,0.5,'כא״מ ε₂',' V')+rng('lp-R1',1,20,4,1,'R₁',' Ω')+rng('lp-R2',1,20,8,1,'R₂',' Ω')+btn('lp-aid','🔋 סוללה 2: מסייעת','btn-secondary')+btn('lp-dir','↻ כיוון הליכה: עם הזרם','btn-secondary'));
@@ -32675,11 +32675,11 @@ function buildSim(sim){
   else if(sim.type==='dc-power')extra=C(rng('pw-V',1,24,12,0.5,'מתח V',' V')+rng('pw-R',2,48,6,1,'התנגדות R',' Ω')+btn('pw-run','⏸ עצור','btn-secondary')+btn('pw-reset','↺ אפס אנרגיה','btn-secondary'));
   else if(sim.type==='elc-plane')extra=C(rng('pln-s1',-6,6,4,0.5,'σ₁ של הלוח השמאלי',' μC/m²')+rng('pln-s2',-6,6,-4,0.5,'σ₂ של הלוח הימני',' μC/m²')+btn('pln-two','➖ לוח אחד','btn-secondary')+btn('pln-sign','🔴 מטען בוחן חיובי','btn-secondary'));
   else if(sim.type==='elc-conductor')extra=C(rng('cnd-Q',-8,8,4,0.5,'מטען המוליך Q',' μC')+rng('cnd-R',30,70,50,2,'רדיוס R','','_fmtHalfCm')+btn('cnd-mode','📐 חוד ופריקה','btn-secondary')+btn('cnd-ext','⚡ שדה חיצוני','btn-secondary'));
-  else if(sim.type==='elc-potential')extra=C(rng('elc-Vq',-8,8,2,0.5,'מטען Q₁',' μC')+rng('elc-Vq2',-8,8,-3,0.5,'מטען Q₂',' μC')+rng('elc-q0',-5,5,1,0.5,'מטען בוחן q₀',' nC')+btn('pot-two','⊕ הוסף מטען שני','btn-secondary')+btn('pot-mark','📌 סמן נקודה A','btn-secondary'));
-  else if(sim.type==='elc-plates')extra=C(rng('elc-V',50,400,200,10,'מתח V',' V')+rng('elc-d',2,8,4,0.5,'מרווח d',' cm')+rng('elc-v0',5,30,20,1,'v₀ כניסה',' ×10⁶ m/s')+btn('pl-launch','🚀 שגר','btn-primary')+btn('pl-flip','± הפוך קוטביות','btn-secondary')+btn('pl-part','🔁 החלף לפרוטון','btn-secondary'));
-  else if(sim.type==='elc-upair')extra=C(rng('up-q1',-5,5,2,0.5,'מטען q₁',' μC')+rng('up-q2',-5,5,3,0.5,'מטען q₂',' μC')+btn('up-release','🚀 שחרר','btn-primary'));
-  else if(sim.type==='elc-network')extra=C(rng('net-c1',1,12,2,0.5,'קיבול C₁',' μF')+rng('net-c2',1,12,3,0.5,'קיבול C₂',' μF')+rng('net-v',1,24,12,1,'מתח הסוללה V',' V')+btn('net-mode','⇶ עבור לטור','btn-secondary'));
-  else if(sim.type==='elc-cap')extra=C(rng('elc-cV',1,24,12,1,'מתח V',' V')+rng('elc-cA',50,400,200,10,'שטח A',' cm²')+rng('elc-cd',1,10,4,0.5,'מרווח d',' mm')+btn('cap-diel','🧱 דיאלקטרן κ=3','btn-secondary')+btn('cap-disc','✂️ נתק מהסוללה (Q קבוע)','btn-secondary'));
+  else if(sim.type==='elc-potential')extra=C(rng('elc-Vq',-8,8,2,0.5,'מטען Q₁',' μC')+rng('elc-Vq2',-8,8,-3,0.5,'מטען Q₂',' μC')+rng('elc-q0',-5,5,1,0.5,'מטען בוחן q₀',' nC')+btn('pot-two','⊕ הוסיפו מטען שני','btn-secondary')+btn('pot-mark','📌 סמנו נקודה A','btn-secondary'));
+  else if(sim.type==='elc-plates')extra=C(rng('elc-V',50,400,200,10,'מתח V',' V')+rng('elc-d',2,8,4,0.5,'מרווח d',' cm')+rng('elc-v0',5,30,20,1,'v₀ כניסה',' ×10⁶ m/s')+btn('pl-launch','🚀 שגרו','btn-primary')+btn('pl-flip','± הפכו קוטביות','btn-secondary')+btn('pl-part','🔁 החליפו לפרוטון','btn-secondary'));
+  else if(sim.type==='elc-upair')extra=C(rng('up-q1',-5,5,2,0.5,'מטען q₁',' μC')+rng('up-q2',-5,5,3,0.5,'מטען q₂',' μC')+btn('up-release','🚀 שחררו','btn-primary'));
+  else if(sim.type==='elc-network')extra=C(rng('net-c1',1,12,2,0.5,'קיבול C₁',' μF')+rng('net-c2',1,12,3,0.5,'קיבול C₂',' μF')+rng('net-v',1,24,12,1,'מתח הסוללה V',' V')+btn('net-mode','⇶ עברו לטור','btn-secondary'));
+  else if(sim.type==='elc-cap')extra=C(rng('elc-cV',1,24,12,1,'מתח V',' V')+rng('elc-cA',50,400,200,10,'שטח A',' cm²')+rng('elc-cd',1,10,4,0.5,'מרווח d',' mm')+btn('cap-diel','🧱 דיאלקטרן κ=3','btn-secondary')+btn('cap-disc','✂️ נתקו מהסוללה (Q קבוע)','btn-secondary'));
   if(!extra&&typeof MAG_CTRL!=='undefined'&&MAG_CTRL[sim.type])extra=C(MAG_CTRL[sim.type]());
   const simDone=isCompleted(state.chapter,state.section,'sim');
   return `<div class="sim-container">
@@ -32687,7 +32687,7 @@ function buildSim(sim){
     ${extra}
     <div class="sim-controls" style="border-top:1px solid var(--border);padding-top:12px">
       <p style="color:var(--muted);font-size:.85rem;flex:1">${sim.desc}</p>
-      <button class="btn btn-secondary" onclick="restartSim()" style="font-size:.82rem;padding:6px 12px">🔄 אתחל</button>
+      <button class="btn btn-secondary" onclick="restartSim()" style="font-size:.82rem;padding:6px 12px">🔄 התחילו מחדש</button>
       ${!simDone?'<button class="btn btn-green" onclick="finishSim()">✅ סיימתי</button>':'<span style="color:var(--green);font-weight:700">✅ הושלמה</span>'}
     </div>
   </div>`;
@@ -32792,7 +32792,7 @@ function buildProblem(prob){
           <input class="step-inp${fb==='correct'?' ok':fb?' err':''}" type="text" id="si${si}" value="${String(inp).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;')}" placeholder="תשובה…" aria-labelledby="sq${si}" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="done" oninput="upInp(${si},this.value)" onkeydown="if(event.key==='Enter')chkStep(${si})" ${locked?'disabled':''}>
           ${st2.unit?`<span class="unit-lbl">${st2.unit}</span>`:''}
           <span class="step-btns">${showBtn?`<button class="hint-btn" onclick="showHint(${si})">${lvl===0?'💡 רמז':'✏️ פתרון מלא'} (−5 XP)</button>`:''}
-          ${!locked?`<button class="btn btn-primary" style="padding:7px 14px" onclick="chkStep(${si})">בדוק</button>`:''}</span>
+          ${!locked?`<button class="btn btn-primary" style="padding:7px 14px" onclick="chkStep(${si})">בדקו</button>`:''}</span>
         </div>
         ${fb&&fb!=='correct'?`<div class="step-fb err" role="status">${_ltSafe(fb)}</div>`:''}`
       :`<div class="step-fb ok">✅ ${_ltSafe(st2.explain)}</div>`}
@@ -33659,7 +33659,7 @@ function buildChapterSummaryHTML(chId){
       '<div class="stat-chip"><div class="val">'+info.totalXP+'</div><div class="lbl">XP שנצברו</div></div>'+
     '</div>'+
     (fRows?'<div class="summary-formulas"><div style="font-size:.8rem;font-weight:700;color:var(--muted);margin-bottom:6px">נוסחאות מפתח</div>'+fRows+'</div>':'')+
-    '<button class="btn btn-primary" onclick="this.parentElement.style.display=\'none\'">המשך ←</button>'+
+    '<button class="btn btn-primary" onclick="this.parentElement.style.display=\'none\'">המשיכו ←</button>'+
   '</div>';
 }
 
