@@ -3614,7 +3614,7 @@ const CONTENT={
       <p>הפרש של פי עשרות עד מאות — ולכן רכבת יכולה לגרור אלפי טונות בכוח של קטר אחד.</p>`
     }
   },
-  sim:{type:'friction-combined',title:'חיכוך — סטטי ← קינטי',desc:'הגדילו כוח עד שהגוף נע. ראו גרף f(F) בזמן אמת.'},
+  sim:{type:'friction-combined',title:'חיכוך — סטטי ← קינטי',desc:'גוש על מדרון מחוספס ו-F דוחף אותו במעלה. שנו את F, את הזווית ואת μ: מתי הגוש נשאר במקום, מתי הוא מחליק — ולאן? ושימו לב שגוש שכבר מחליק אינו עוצר מיד כשמקטינים את F.'},
   example:{title:'האם הגוש יחליק?',text:`גוש שמסתו ${M('3\\,\\text{kg}')} מונח על מדרון בזווית ${M('25^\\circ')}, ${M('\\mu_s=0.4')}. (${M('g=9.8\\,\\text{m/s}^2')})`,steps:[
     {q:'מה הכוח הנורמלי?',a:`${M('N=mg\\cos25^\\circ=3\\times9.8\\times0.906\\approx26.6\\,\\text{N}')}`},
     {q:'מה החיכוך הסטטי המרבי?',a:`${M('f_{s,\\max}=\\mu_sN=0.4\\times26.6\\approx10.6\\,\\text{N}')}`},
@@ -13303,186 +13303,140 @@ function simKineticFriction(canvas){
 
 function simFrictionCombined(canvas){
   // SECTION: forces2.friction-combined — חיכוך — בעיה משולבת
-  // PEDAGOGY: Complete problem solving on incline. Student sets angle, mu, mass, F_push.
-  // All forces computed and shown. Student must predict: will it slide? up or down?
-  // Live judgment: "static equilibrium", "slides down", "slides up" with color coding.
-  // Shows full FBD with numerical values — mirrors exam problems.
-  const H=500; const {ctx,W,dpr}=setupCanvas(canvas,H);
+  // A block on a rough incline, pushed up the slope by F. A body at REST
+  // stays put while |F − mg·sinθ| ≤ μs·N (static friction supplies exactly
+  // the balance); past that it slides, and a SLIDING body feels kinetic
+  // friction μk·N against its velocity until it stops -- even if the push
+  // falls back below the static threshold. The previous version decided
+  // "static" afresh every frame (no memory of motion), pointed N into the
+  // ramp, drew W's component up the slope, integrated metres as pixels and
+  // drew the ramp as a line.
+  const _cv=setupCanvas(canvas,500), W=_cv.W, dpr=_cv.dpr;
+  const PHC=W<480, H=PHC?640:500, ctx=PHC?setupCanvas(canvas,H).ctx:_cv.ctx;
   const id=canvas.id;
-  const g=9.8;
-  let pT=null, t=0;
-  var theta=25, m=5, F_push=0, mu=0.45;
-  var sPos=0, sVel=0;
-  var theta_prev=-1;
+  const g=9.8, LM=4;                      // the ramp is 4 m long
+  let pT=null;
+  var sPos=LM/2, sVel=0, edge=false;     // metres along the slope from the foot; + = up
+  var theta_prev=null;
 
-  function getTheta(){var e=document.getElementById('inp-fc-theta'); return e?parseFloat(e.value):theta;}
-  function getM(){var e=document.getElementById('inp-fc-m'); return e?parseFloat(e.value):m;}
-  function getF(){var e=document.getElementById('inp-fc-F'); return e?parseFloat(e.value):F_push;}
-  function getMu(){var e=document.getElementById('inp-fc-mu'); return e?parseFloat(e.value):mu;}
-
+  function getTheta(){var e=document.getElementById('inp-fc-theta'); return e?parseFloat(e.value):20;}
+  function getM(){var e=document.getElementById('inp-fc-m'); return e?parseFloat(e.value):5;}
+  function getF(){var e=document.getElementById('inp-fc-F'); return e?parseFloat(e.value):0;}
+  function getMu(){var e=document.getElementById('inp-fc-mu'); return e?parseFloat(e.value):0.45;}
+  function reset(){sPos=LM/2;sVel=0;edge=false;}
   var resetBtn=document.getElementById('btn-fc-reset');
-  if(resetBtn)resetBtn.addEventListener('click',function(){sPos=0;sVel=0;});
+  if(resetBtn)resetBtn.addEventListener('click',reset);
 
-  var INCL=Math.min(W*0.70,295);
-  var BASE_X=W*0.10, BASE_Y=H-48;
+  var BASE_X=W*0.06, BASE_Y=PHC?360:H-60;
+  var INCL=PHC?W*0.82:Math.min(W*0.58,360);
+  var PPM=INCL/LM;
 
   function draw(ts){
     if(_simStop[id])return;
     if(!pT)pT=ts; var dt=Math.min((ts-pT)/1000,.04); pT=ts;
-    t+=dt;
-    theta=getTheta(); m=getM(); F_push=getF(); mu=getMu();
-    if(Math.abs(theta-theta_prev)>0.5){sPos=0;sVel=0;theta_prev=theta;}
+    var theta=getTheta(), m=getM(), F=getF(), mu=getMu();
+    if(theta_prev!==null&&Math.abs(theta-theta_prev)>0.5)reset();
+    theta_prev=theta;
     var th=theta*Math.PI/180, cosT=Math.cos(th), sinT=Math.sin(th);
-
-    // All forces
-    var W_grav=m*g;
-    var N=m*g*cosT;
-    var W_par=m*g*sinT; // down slope
-    var fs_max=mu*N;
-    var mu_k=mu*0.75;
-    var fk=mu_k*N;
-
-    // Net force without friction
-    var F_net_nofric=F_push-W_par; // positive = up slope tendency
-
-    // Determine state
-    var state, net_accel=0, fs_applied=0;
-    if(Math.abs(F_net_nofric)<=fs_max){
-      state='static';
-      fs_applied=-F_net_nofric; // friction exactly balances net tendency
-      net_accel=0;
-    } else if(F_net_nofric>0){
-      state='slides_up';
-      fs_applied=-fk; // kinetic friction opposes upward motion
-      net_accel=(F_push-W_par-fk)/m;
+    var Wg=m*g, N=Wg*cosT, Wpar=Wg*sinT, muS=mu, muK=0.75*mu, fsMax=muS*N, fk=muK*N;
+    var F0=F-Wpar;                       // along the slope, without friction (+ = up)
+    var state, f, a;
+    if(Math.abs(sVel)<1e-6){
+      if(Math.abs(F0)<=fsMax){ state='static'; f=-F0; a=0; }
+      else { f=-Math.sign(F0)*fk; a=(F0+f)/m; state=a>0?'up':'down'; }
     } else {
-      state='slides_down';
-      fs_applied=+fk; // kinetic friction opposes downward motion
-      net_accel=(F_push-W_par+fk)/m;
+      f=-Math.sign(sVel)*fk; a=(F0+f)/m; state=sVel>0?'up':'down';
+    }
+    if(!edge&&state!=='static'){
+      var v1=sVel+a*dt;
+      if(sVel!==0&&v1*sVel<0){ // it stops inside this step
+        var tS=-sVel/a; sPos+=sVel*tS/2; sVel=0;
+      } else { sPos+=(sVel+v1)/2*dt; sVel=v1; }
+      var sMin=0.25, sMax=LM-0.25;
+      if(sPos<sMin||sPos>sMax){ sPos=Math.max(sMin,Math.min(sMax,sPos)); sVel=0; edge=true; }
     }
 
-    if(state!=='static'){
-      sVel+=net_accel*dt; sPos+=sVel*dt;
-      if(sPos>INCL*0.88){sPos=INCL*0.88;sVel=Math.abs(sVel)>0.5?-sVel*0.3:0;}
-      if(sPos<0){sPos=0;sVel=Math.max(0,sVel);}
-    } else {sVel*=0.8;}
-
+    var dux=cosT, duy=-sinT;                // up-slope unit (canvas)
+    var nux=-sinT, nuy=-cosT;               // outward normal (canvas)
     var topX=BASE_X+INCL*cosT, topY=BASE_Y-INCL*sinT;
     var bS=34;
-    var bCX=BASE_X+(sPos+bS/2)*cosT, bCY=BASE_Y-(sPos+bS/2)*sinT;
+    var sx=BASE_X+sPos*PPM*dux, sy=BASE_Y+sPos*PPM*duy;
+    var bCX=sx+nux*bS/2, bCY=sy+nuy*bS/2;
 
-    var stateCol=state==='static'?'#34d399':state==='slides_up'?'#3b82f6':'#ef4444';
-    var stateLabel=state==='static'?'✓ שיווי משקל':state==='slides_up'?'↑ מחליק למעלה':'↓ מחליק למטה';
+    var stateCol=state==='static'?'#34d399':state==='up'?'#60a5fa':'#f87171';
+    var moving=Math.abs(sVel)>1e-6;
+    var stateLabel=edge?'הגוש הגיע לקצה המדרון — ↺ אפס':
+      state==='static'?'במנוחה: החיכוך הסטטי מאזן':
+      state==='up'?(moving?'מחליק במעלה המדרון':'מתחיל להחליק במעלה'):(moving?'מחליק במורד המדרון':'מתחיל להחליק במורד');
 
     simBg(ctx,W,H);
-
-    // Ground
-    ctx.save(); ctx.fillStyle='#060d1a'; ctx.fillRect(0,BASE_Y,W,H-BASE_Y); ctx.restore();
+    ctx.save(); ctx.fillStyle='#060d1a'; ctx.fillRect(0,BASE_Y,W,PHC?H-BASE_Y:H-BASE_Y); ctx.restore();
     ctx.save(); ctx.strokeStyle='#2d5275'; ctx.lineWidth=2;
     ctx.beginPath(); ctx.moveTo(0,BASE_Y); ctx.lineTo(W,BASE_Y); ctx.stroke(); ctx.restore();
-
-    // Incline
-    ctx.save(); ctx.fillStyle='rgba(15,32,53,.85)';
-    ctx.beginPath(); ctx.moveTo(BASE_X,BASE_Y); ctx.lineTo(topX,topY); ctx.lineTo(BASE_X,BASE_Y); ctx.closePath(); ctx.fill(); ctx.restore();
+    // ramp: a solid triangle
+    ctx.save(); ctx.fillStyle='rgba(15,32,53,.9)';
+    ctx.beginPath(); ctx.moveTo(BASE_X,BASE_Y); ctx.lineTo(topX,topY); ctx.lineTo(topX,BASE_Y); ctx.closePath(); ctx.fill(); ctx.restore();
     ctx.save(); ctx.strokeStyle='#3d6480'; ctx.lineWidth=2.5;
     ctx.beginPath(); ctx.moveTo(BASE_X,BASE_Y); ctx.lineTo(topX,topY); ctx.stroke(); ctx.restore();
-    // Texture based on mu
-    for(var si=18;si<INCL;si+=Math.max(8,Math.round(20*(1-mu)))){
-      ctx.save(); ctx.strokeStyle='rgba(45,82,'+Math.round(117+mu*60)+',0.4)'; ctx.lineWidth=1;
-      var tx2=BASE_X+si*cosT, ty2=BASE_Y-si*sinT;
-      ctx.beginPath(); ctx.moveTo(tx2,ty2); ctx.lineTo(tx2-sinT*4,ty2-cosT*4); ctx.stroke(); ctx.restore();
-    }
-    // Angle arc
     ctx.save(); ctx.strokeStyle='#fbbf24'; ctx.lineWidth=1.5;
-    ctx.beginPath(); ctx.arc(BASE_X,BASE_Y,44,Math.PI,Math.PI+th); ctx.stroke(); ctx.restore();
-    simText(ctx,theta.toFixed(0)+'°',BASE_X+28,BASE_Y-10,'#fbbf24',9,undefined,true);
+    ctx.beginPath(); ctx.arc(BASE_X,BASE_Y,44,-th,0); ctx.stroke(); ctx.restore();
+    simText(ctx,theta.toFixed(0)+'°',BASE_X+54,BASE_Y-8,'#fbbf24',10,'left',true);
 
-    // Block (rotated)
+    // block
     ctx.save(); ctx.translate(bCX,bCY); ctx.rotate(-th);
-    var bG=ctx.createLinearGradient(-bS/2,-bS/2,-bS/2,bS/2);
-    bG.addColorStop(0,stateCol+'cc'); bG.addColorStop(1,stateCol+'44');
+    var bG=ctx.createLinearGradient(0,-bS/2,0,bS/2);
+    bG.addColorStop(0,stateCol+'cc'); bG.addColorStop(1,stateCol+'55');
     ctx.fillStyle=bG; ctx.strokeStyle=stateCol; ctx.lineWidth=2.5;
     ctx.beginPath(); ctx.roundRect(-bS/2,-bS/2,bS,bS,4); ctx.fill(); ctx.stroke(); ctx.restore();
-    simText(ctx,m+'kg',bCX,bCY+4,'#fff',8.5,undefined,true);
 
-    // ── FORCE ARROWS FROM BLOCK CENTER ────────────────────
-    var arSc=1.8;
-    // Gravity (down)
-    var wLen=Math.min(62,W_grav*arSc);
-    simArrow(ctx,bCX,bCY,bCX,bCY+wLen,'#fbbf24',2.5,10);
-    simText(ctx,'W='+W_grav.toFixed(1)+'N',bCX+5,bCY+wLen+4,'#fbbf24',8,'left');
-    // W_par dashed (along slope down)
-    var wpLen=Math.min(48,W_par*arSc);
-    ctx.save(); ctx.strokeStyle='rgba(251,191,36,.4)'; ctx.lineWidth=1.5; ctx.setLineDash([3,4]);
-    ctx.beginPath(); ctx.moveTo(bCX,bCY+wLen); ctx.lineTo(bCX+cosT*wpLen,bCY+wLen-sinT*wpLen); ctx.stroke(); ctx.setLineDash([]); ctx.restore();
-
-    // Normal (perpendicular, out)
-    var nnx2=sinT, nny2=-cosT;
-    var nLen=Math.min(58,N*arSc);
-    simArrow(ctx,bCX,bCY,bCX+nnx2*nLen,bCY+nny2*nLen,'#a78bfa',2.5,10);
-    simText(ctx,'N='+N.toFixed(1)+'N',bCX+nnx2*(nLen+4),bCY+nny2*(nLen+4),'#a78bfa',8.5,'center');
-
-    // Applied force (up slope)
-    if(F_push>0.5){
-      var fLen=Math.min(55,F_push*arSc);
-      simArrow(ctx,bCX,bCY,bCX+cosT*fLen,bCY-sinT*fLen,'#34d399',2.5,10);
-      simText(ctx,'F='+F_push.toFixed(0)+'N',bCX+cosT*fLen+4,bCY-sinT*fLen-4,'#34d399',8.5,'left');
+    // forces from the block's centre, one scale
+    var kA=Math.min(1.8,70/Math.max(Wg,F,1));
+    simArrow(ctx,bCX,bCY,bCX,bCY+Wg*kA,'#fbbf24',2.5,10);
+    simText(ctx,'W = '+Wg.toFixed(0)+' N',bCX-6,bCY+Wg*kA+12,'#fbbf24',10,'right',true);
+    // W's components, dashed: down the slope and into the surface
+    ctx.save(); ctx.setLineDash([4,4]); ctx.strokeStyle='rgba(251,191,36,.7)'; ctx.lineWidth=1.6;
+    ctx.beginPath(); ctx.moveTo(bCX,bCY); ctx.lineTo(bCX-dux*Wpar*kA,bCY-duy*Wpar*kA); ctx.stroke(); ctx.setLineDash([]); ctx.restore();
+    simText(ctx,'W∥',bCX-dux*(Wpar*kA+12),bCY-duy*(Wpar*kA+12)+4,'#fde68a',10,'center',true);
+    simArrow(ctx,bCX,bCY,bCX+nux*N*kA,bCY+nuy*N*kA,'#a78bfa',2.5,10);
+    simText(ctx,'N = '+N.toFixed(1)+' N',bCX+nux*(N*kA+10),bCY+nuy*(N*kA+10),'#c4b5fd',10,'center',true);
+    if(F>0.5){
+      simArrow(ctx,bCX,bCY,bCX+dux*F*kA,bCY+duy*F*kA,'#34d399',2.5,10);
+      simText(ctx,'F = '+F.toFixed(0)+' N',bCX+dux*(F*kA+8),bCY+duy*(F*kA+8)-8,'#4ade80',10,'left',true);
+    }
+    if(Math.abs(f)>0.3){
+      // friction along the contact surface
+      var fx0=sx, fy0=sy, fd=Math.sign(f);
+      simArrow(ctx,fx0,fy0,fx0+dux*fd*Math.abs(f)*kA,fy0+duy*fd*Math.abs(f)*kA,state==='static'?'#22d3ee':'#f87171',2.5,10);
+      simText(ctx,(state==='static'?'fₛ = ':'fₖ = ')+Math.abs(f).toFixed(1)+' N',fx0+dux*fd*(Math.abs(f)*kA/2)-nux*14,fy0+duy*fd*(Math.abs(f)*kA/2)-nuy*14+4,state==='static'?'#67e8f9':'#fca5a5',10,'center',true);
     }
 
-    // Friction (fs or fk, direction based on state)
-    if(Math.abs(fs_applied)>0.3){
-      var fsDir=Math.sign(fs_applied); // positive = up slope
-      var fsLen=Math.min(54,Math.abs(fs_applied)*arSc);
-      var fsCol=state==='static'?'#22d3ee':'#f87171';
-      var fsName=state==='static'?'fs':'fk';
-      simArrow(ctx,bCX,bCY,bCX+cosT*fsDir*fsLen,bCY-sinT*fsDir*fsLen,fsCol,2.5,10);
-      simText(ctx,fsName+'='+Math.abs(fs_applied).toFixed(1)+'N',bCX+cosT*fsDir*fsLen/2,bCY-sinT*fsDir*fsLen/2-14,fsCol,8,undefined,true);
-    }
-
-    // Net force arrow (white, offset)
-    if(Math.abs(net_accel)>0.05){
-      var naLen=Math.min(46,Math.abs(net_accel)*10);
-      var naDir=Math.sign(net_accel);
-      var naCX=bCX-nnx2*26, naCY=bCY-nny2*26;
-      simArrow(ctx,naCX,naCY,naCX+cosT*naDir*naLen,naCY-sinT*naDir*naLen,'#fff',3,11);
-      simText(ctx,'a='+net_accel.toFixed(2),naCX+cosT*naDir*(naLen+4),naCY-sinT*naDir*(naLen+4),'#fff',8,'center');
-    }
-
-    // ── RIGHT PANEL ────────────────────────────────────────
-    var PX=topX+12, PW=W-PX-10, PY=8;
-    if(PW<82){PX=W*0.67;PW=W-PX-8;}
+    // panel: right column on a wide screen, under the ramp on a phone
+    var PX=PHC?8:W*0.66, PW=PHC?W-16:W-PX-8, PY=PHC?BASE_Y+70:8, PHH=PHC?H-PY-8:H-PY-8;
     ctx.save(); ctx.fillStyle='rgba(6,14,28,.93)'; ctx.strokeStyle='#1e4060'; ctx.lineWidth=1.5;
-    ctx.beginPath(); ctx.roundRect(PX,PY,PW,H-PY-8,6); ctx.fill(); ctx.stroke(); ctx.restore();
-    var PC=PX+PW/2;
-    simText(ctx,'ניתוח כוחות',PC,PY+12,'#22d3ee',10,undefined,true);
-    ctx.save(); ctx.strokeStyle='#1e4060'; ctx.lineWidth=1;
-    ctx.beginPath(); ctx.moveTo(PX+5,PY+17); ctx.lineTo(PX+PW-5,PY+17); ctx.stroke(); ctx.restore();
-    simText(ctx,'N=mg·cosθ',PC,PY+29,'#a78bfa',8.5,undefined,true);
-    simText(ctx,N.toFixed(2)+' N',PC,PY+42,'#a78bfa',10,undefined,true);
-    simText(ctx,'W∥=mg·sinθ',PC,PY+56,'#fbbf24',8.5,undefined,true);
-    simText(ctx,W_par.toFixed(2)+' N',PC,PY+69,'#fbbf24',10,undefined,true);
-    simText(ctx,'fs_max=μN',PC,PY+83,'#22d3ee',8.5,undefined,true);
-    simText(ctx,fs_max.toFixed(2)+' N',PC,PY+96,'#22d3ee',10,undefined,true);
-    ctx.save(); ctx.strokeStyle='#1e4060'; ctx.lineWidth=1;
-    ctx.beginPath(); ctx.moveTo(PX+5,PY+103); ctx.lineTo(PX+PW-5,PY+103); ctx.stroke(); ctx.restore();
-    // State
-    ctx.save(); ctx.fillStyle=stateCol+'22'; ctx.strokeStyle=stateCol+'66'; ctx.lineWidth=1.5;
-    ctx.beginPath(); ctx.roundRect(PX+5,PY+108,PW-10,28,4); ctx.fill(); ctx.stroke(); ctx.restore();
-    simText(ctx,stateLabel,PC,PY+126,stateCol,9.5,undefined,true);
-    ctx.save(); ctx.strokeStyle='#1e4060'; ctx.lineWidth=1;
-    ctx.beginPath(); ctx.moveTo(PX+5,PY+140); ctx.lineTo(PX+PW-5,PY+140); ctx.stroke(); ctx.restore();
-    simText(ctx,'פתרון:',PC,PY+151,'#94a3b8',8,undefined,true);
-    var cond1=state==='static'?'|F-W∥|≤fs_max':'|F-W∥|>fs_max';
-    simText(ctx,cond1,PC,PY+163,'#7d8da6',7.5,undefined,true);
-    simText(ctx,'a='+net_accel.toFixed(2)+' m/s²',PC,PY+176,stateCol,9,undefined,true);
-    simText(ctx,'v='+sVel.toFixed(1)+' m/s',PC,PY+189,'#7d8da6',8,undefined,true);
-
-    // Top banner
+    ctx.beginPath(); ctx.roundRect(PX,PY,PW,PHH,6); ctx.fill(); ctx.stroke(); ctx.restore();
+    var PC=PX+PW/2, rows=[
+      ['μₛ = '+muS.toFixed(2)+'   ·   μₖ = 0.75μₛ = '+muK.toFixed(2),'#cbd5e1'],
+      ['N = mg·cosθ = '+N.toFixed(1)+' N','#c4b5fd'],
+      ['W∥ = mg·sinθ = '+Wpar.toFixed(1)+' N','#fde68a'],
+      ['F − W∥ = '+F0.toFixed(1)+' N','#4ade80'],
+      ['μₛN = '+fsMax.toFixed(1)+' N   ·   μₖN = '+fk.toFixed(1)+' N','#67e8f9'],
+      [(state==='static'?'fₛ = ':'fₖ = ')+Math.abs(f).toFixed(1)+' N '+(f>0?'(במעלה)':f<0?'(במורד)':''),state==='static'?'#67e8f9':'#fca5a5'],
+      ['a = '+a.toFixed(2)+' m/s²   ·   v = '+sVel.toFixed(2)+' m/s','#e2e8f0']];
+    rows.forEach(function(r,k){ simText(ctx,r[0],PC,PY+20+k*(PHC?21:24),r[1],10,undefined,true); });
+    var sy2=PY+20+rows.length*(PHC?21:24)+4;
+    ctx.save(); ctx.fillStyle=stateCol+'22'; ctx.strokeStyle=stateCol+'88'; ctx.lineWidth=1.5;
+    ctx.beginPath(); ctx.roundRect(PX+6,sy2-14,PW-12,26,4); ctx.fill(); ctx.stroke(); ctx.restore();
+    simText(ctx,stateLabel,PC,sy2+3,stateCol,10,undefined,true);
+    if(!PHC){
+      simText(ctx,'במנוחה: נשאר כל עוד |F − W∥| ≤ μₛN',PC,sy2+36,'#94a3b8',9.5,undefined,true);
+      simText(ctx,'בתנועה: fₖ = μₖN נגד המהירות, עד שנעצר',PC,sy2+56,'#94a3b8',9.5,undefined,true);
+    }
+    // banner
+    var BW=PHC?W-16:PX-16;
     ctx.save(); ctx.fillStyle='rgba(6,14,28,.92)'; ctx.strokeStyle='#1e4060'; ctx.lineWidth=1.5;
-    ctx.beginPath(); ctx.roundRect(8,6,topX-14,38,6); ctx.fill(); ctx.stroke(); ctx.restore();
-    simText(ctx,'בעיה: גוף על מדרון + חיכוך',BASE_X+(topX-BASE_X)/2,18,'#22d3ee',9.5,undefined,true);
-    simText(ctx,stateLabel,BASE_X+(topX-BASE_X)/2,32,stateCol,9,undefined,true);
-
+    ctx.beginPath(); ctx.roundRect(8,6,BW,36,6); ctx.fill(); ctx.stroke(); ctx.restore();
+    simText(ctx,'גוש על מדרון מחוספס, ו-F דוחף במעלה',8+BW/2,19,'#22d3ee',10,undefined,true);
+    simText(ctx,stateLabel,8+BW/2,34,stateCol,9.5,undefined,true);
     requestAnimationFrame(draw);
   }
   requestAnimationFrame(draw);
