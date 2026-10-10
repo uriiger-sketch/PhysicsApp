@@ -25322,7 +25322,7 @@ runAnim('anim-elc-field-t',(cv,ctx,W,H,t)=>{
   ctx.save();ctx.fillStyle='#38bdf8';ctx.shadowColor='#38bdf8';ctx.shadowBlur=10;
   ctx.beginPath();ctx.arc(tx,ty,8,0,Math.PI*2);ctx.fill();ctx.restore();
   oLbl(ctx,'+q₀',tx,ty-16,'#38bdf8',10);
-  if(cyc<0.09)oLbl(ctx,'משוחרר ממנוחה',tx,ty+19,'#94a3b8',9);
+  if(cyc<0.09)oLbl(ctx,'משוחרר ממנוחה',tx+44,ty+22,'#94a3b8',9);   // clear of the +Q disc
   var fl=Math.max(6,Math.min(70,_ELC_FLD_A*1.9/(rr*rr)));  // ∝ 1/r²
   simArrow(ctx,tx,ty,tx+Math.cos(ang)*fl,ty+Math.sin(ang)*fl,'#4ade80',3,10);
   oLbl(ctx,'F=q₀E',tx+Math.cos(ang)*fl+26,ty+Math.sin(ang)*fl,'#4ade80',10);
@@ -25371,7 +25371,10 @@ runAnim('anim-elc-potential-t',(cv,ctx,W,H,t)=>{
     var rq=6240/_lv[i];
     ctx.save();ctx.strokeStyle='rgba(56,189,248,'+(0.55-i*0.09).toFixed(2)+')';ctx.setLineDash([5,4]);
     ctx.beginPath();ctx.arc(cx,cy,rq,0,Math.PI*2);ctx.stroke();ctx.setLineDash([]);ctx.restore();
-    oLbl(ctx,_lv[i]+'V',cx+rq*0.71,cy-rq*0.71,'#38bdf8',9);
+    // labels on two alternating rays: one diagonal put the outer label on the title
+    // and the inner two on top of each other
+    var la=i%2?-0.3:-0.75;
+    oLbl(ctx,_lv[i]+' V',cx+rq*Math.cos(la),cy+rq*Math.sin(la),'#38bdf8',9);
   }
   ctx.save();ctx.fillStyle='#f87171';ctx.shadowColor='#f87171';ctx.shadowBlur=14;
   ctx.beginPath();ctx.arc(cx,cy,15,0,Math.PI*2);ctx.fill();ctx.restore();
@@ -25410,7 +25413,7 @@ runAnim('anim-elc-potential-t',(cv,ctx,W,H,t)=>{
   ctx.save();ctx.strokeStyle='rgba(255,255,255,.75)';ctx.lineWidth=1;
   ctx.beginPath();ctx.moveTo(bx+104,by);ctx.lineTo(bx+104+bw,by);ctx.stroke();ctx.restore();
   oLbl(ctx,'מטען חיובי ״גולש במורד הפוטנציאל״: אנרגיה חשמלית U הופכת לקינטית K',W/2,14,'#94a3b8',11);
-  oLbl(ctx,'\u200eV_A−V_B = '+dV.toFixed(0)+' V   →   W=q·ΔV',bx+77,H-8,'#fbbf24',10);
+  oLbl(ctx,'\u200eV(A) − V(B) = '+dV.toFixed(0)+' V   →   W = q·ΔV',bx+77,H-8,'#fbbf24',10);
 });
 
 // ── 5. Uniform field between plates: electron flies in a parabola (like projectile motion) ──
@@ -28125,7 +28128,7 @@ function simElcPotential(canvas){
     ctx.fillStyle='#0b1220';ctx.font='bold 11px Heebo';ctx.textAlign='center';
     ctx.fillText(q0v>0?'+':q0v<0?'−':'0',px2,py2+4);ctx.restore();
     optLabel(ctx,'גשוש q₀='+q0v.toFixed(1)+'nC',px2,py2+25,pcol,8.5);
-    if(mixed)optLabel(ctx,'הקו הלבן: V=0 — אך E שם דווקא מקסימלי!',W/2,H-116,'#e2e8f0',9);
+    if(mixed)optLabel(ctx,'הקו הלבן: V=0 — ובכל זאת E לאורכו אינו אפס',W/2,H-116,'#e2e8f0',9);
     if(!touched&&animT<8)optLabel(ctx,'✋ גררו את הגשוש ואת המטענים',W/2,20,'#fbbf24',10);
     // V(r) ∝ 1/r vs E(r) ∝ 1/r² — a SINGLE point-charge statement, so it is
     // shown only when there is a single source.
@@ -28165,8 +28168,8 @@ function simElcPotential(canvas){
     }
     if(markV!==null){
       var Wj=q0v*1e-9*(markV-V)*1e6;
-      lines.push('נקודה A: V_A='+(markV/1000).toFixed(1)+' kV');
-      lines.push('W=q₀(V_A−V)='+Wj.toFixed(2)+' μJ  '+(Wj>0?'← השדה עוזר':Wj<0?'← נגד השדה':''));
+      lines.push('נקודה A: V(A) = '+(markV/1000).toFixed(1)+' kV');
+      lines.push('W = q₀(V(A)−V) = '+Wj.toFixed(2)+' μJ  '+(Wj>0?'← השדה עוזר':Wj<0?'← נגד השדה':''));
     } else lines.push('📌 סמן נקודה A כדי למדוד W=q₀ΔV');
     optInfoBox(ctx,8,H-26-lines.length*16,250,lines);
     requestAnimationFrame(draw);
