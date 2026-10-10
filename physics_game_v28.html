@@ -1765,7 +1765,7 @@ const CONTENT={
       </div>
       <p style="color:#94a3b8;font-size:.92em">${tex('s = |x_2 - x_1|')} נכון <b>רק</b> כשאין שינוי כיוון; ברגע שיש חזרה הנוסחה נותנת את <b>גודל</b> ההעתק, לא את הדרך.</p>
       <div class="def-block"><div class="def-title">העתק ${P('\\Delta x','העתק','הפרש המיקומים — יכול להיות שלילי!')}</div>
-        <p>${P('\\Delta x','העתק','ההפרש בין מיקום סופי לראשוני, כולל כיוון')} ${tex('= x_2 - x_1')} — הפרש בין סופי לראשוני, <em>עם כיוון</em>, ולכן יכול לצאת שלילי.</p>
+        <p>${M('\\Delta x = x_2 - x_1')} — הפרש בין סופי לראשוני, <em>עם כיוון</em>, ולכן יכול לצאת שלילי.</p>
       </div>
       ${animCanvas('anim-disp',156)}`,
     enrich:{
@@ -1991,7 +1991,7 @@ const CONTENT={
     title:'תנועה שוות-תאוצה',
     html:`
       <div class="def-block"><div class="def-title">תאוצה ${P('a','תאוצה','שיעור שינוי המהירות בזמן — m/s²')}</div>
-        <p>קצב שינוי המהירות: ${P('a','תאוצה','m/s²')} ${tex('= \\Delta v / \\Delta t')}. יכולה להיות חיובית (האצה) או שלילית (האטה).</p>
+        <p>קצב שינוי המהירות: ${M('a = \\Delta v / \\Delta t')}. יכולה להיות חיובית (האצה) או שלילית (האטה).</p>
       </div>
       ${fBox('a = \\dfrac{\\Delta v}{\\Delta t} = \\dfrac{v - v_0}{t - t_0}','הגדרת תאוצה ממוצעת',[
         ['a','תאוצה','m/s² — שינוי מהירות בשנייה'],
@@ -2939,7 +2939,7 @@ const CONTENT={
       <p>במקום ארבעה כוחות אלכסוניים נשאר וקטור אחד לפרק.</p>`
     }
   },
-  sim:{type:'vec-components',title:'רכיבים',desc:'גררו קצה הווקטור — ראו רכיבי x,y ומעגל יחידה.'},
+  sim:{type:'vec-components',title:'רכיבים',desc:'גררו את קצה הווקטור, או הקישו בנקודה כלשהי סביב הראשית והקצה יעבור אליה, וקראו את הרכיבים x ו-y.'},
   example:{title:'פירוק וקטור לרכיבים',text:`כוח ${M('F=50\\,\\text{N}')} פועל בזווית ${M('30^\\circ')} מעל האופק.`,steps:[
     {q:'מהו הרכיב האופקי?',a:`${M('F_x=F\\cos30^\\circ=50\\times0.866\\approx43.3\\,\\text{N}')}`},
     {q:'מהו הרכיב האנכי?',a:`${M('F_y=F\\sin30^\\circ=50\\times0.5=25\\,\\text{N}')}`},
@@ -8965,7 +8965,7 @@ function simPositionTime(canvas){
     simText(ctx,'גרף המקום כפונקציה של הזמן, x(t)',W/2,GT-12,'#94a3b8',10,'center');
     requestAnimationFrame(draw);
   }
-  function getXE(e){ var r=canvas.getBoundingClientRect(); return ((e.touches?e.touches[0].clientX:e.clientX)-r.left)*(canvas.width/r.width)/dpr; }
+  function getXE(e){ var r=canvas.getBoundingClientRect(); var pt=(e.changedTouches&&e.changedTouches[0])||(e.touches&&e.touches[0])||e; return (pt.clientX-r.left)*(canvas.width/r.width)/dpr; }
   function _ptStart(px){
     drag=true; ballX=px;
     if(!recording){ recording=true; tRec0=performance.now(); hist=[]; sPath=0; xStart=getXm(); lastXm=xStart; }
@@ -10765,9 +10765,11 @@ function simFBD(canvas){
   function getXY(evt){
     const r=canvas.getBoundingClientRect();
     const scl=(canvas.width/dpr)/r.width;
+    // touchend has no touches, only changedTouches
+    const pt=(evt.changedTouches&&evt.changedTouches[0])||(evt.touches&&evt.touches[0])||evt;
     return {
-      x:((evt.touches?evt.touches[0].clientX:evt.clientX)-r.left)*scl,
-      y:((evt.touches?evt.touches[0].clientY:evt.clientY)-r.top)*scl
+      x:(pt.clientX-r.left)*scl,
+      y:(pt.clientY-r.top)*scl
     };
   }
   function onDown(e){
@@ -12160,7 +12162,8 @@ function simSpringForce(canvas){
   function getMouseX(evt){
     var r=canvas.getBoundingClientRect();
     var scl=(canvas.width/dpr)/r.width;
-    return ((evt.touches?evt.touches[0].clientX:evt.clientX)-r.left)*scl;
+    var pt=(evt.changedTouches&&evt.changedTouches[0])||(evt.touches&&evt.touches[0])||evt;   // touchend: changedTouches only
+    return (pt.clientX-r.left)*scl;
   }
   function onDown(e){
     e.preventDefault();
@@ -12614,7 +12617,8 @@ function simForceTypes(canvas){
     return {x:(W-totalW)/2+col*(btnW+6), y:btnStartY+row*(btnH+5), w:btnW, h:btnH};
   }
   function onClick(e){
-    var p=simPointerXY(canvas,dpr,e.changedTouches?{clientX:e.changedTouches[0].clientX,clientY:e.changedTouches[0].clientY}:e);
+    var pt=(e.changedTouches&&e.changedTouches[0])||(e.touches&&e.touches[0])||e;   // touchend: changedTouches only
+    var p=simPointerXY(canvas,dpr,{clientX:pt.clientX,clientY:pt.clientY});
     forceKeys.forEach(function(k2,i){
       var b=getBtnRect(i);
       if(p.x>=b.x&&p.x<=b.x+b.w&&p.y>=b.y&&p.y<=b.y+b.h){ forces[k2].on=!forces[k2].on; if(e.cancelable)e.preventDefault(); }
@@ -15755,8 +15759,9 @@ function simVecOps(canvas){
   function getXY(evt){
     var r=canvas.getBoundingClientRect();
     var scl=(canvas.width/dpr)/r.width;
-    return {x:((evt.touches?evt.touches[0].clientX:evt.clientX)-r.left)*scl,
-            y:((evt.touches?evt.touches[0].clientY:evt.clientY)-r.top)*scl};
+    var pt=(evt.changedTouches&&evt.changedTouches[0])||(evt.touches&&evt.touches[0])||evt;   // touchend: changedTouches only
+    return {x:(pt.clientX-r.left)*scl,
+            y:(pt.clientY-r.top)*scl};
   }
   function onDown(e){
     e.preventDefault();
@@ -15941,13 +15946,16 @@ function simVecComponents(canvas){
   function getXY(evt){
     var r=canvas.getBoundingClientRect();
     var scl=(canvas.width/dpr)/r.width;
-    return {x:((evt.touches?evt.touches[0].clientX:evt.clientX)-r.left)*scl,
-            y:((evt.touches?evt.touches[0].clientY:evt.clientY)-r.top)*scl};
+    var pt=(evt.changedTouches&&evt.changedTouches[0])||(evt.touches&&evt.touches[0])||evt;   // touchend: changedTouches only
+    return {x:(pt.clientX-r.left)*scl,
+            y:(pt.clientY-r.top)*scl};
   }
   function onDown(e){
     e.preventDefault();
     var p=getXY(e);
     if(Math.abs(p.x-CX-vx)<26&&Math.abs(p.y-CY-vy)<26){dragging=true;}
+    // a press elsewhere inside the drawing disc moves the tip there and keeps dragging
+    else if(Math.hypot(p.x-CX,p.y-CY)<=RMAX+20){dragging=true;onMove(e);}
   }
   function onMove(e){
     if(!dragging)return; e.preventDefault();
