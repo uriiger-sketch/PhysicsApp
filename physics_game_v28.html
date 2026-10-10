@@ -9410,11 +9410,14 @@ function simFreefall(canvas){
 
   // ball state: {ym (meters), vy (m/s, positive=up), t (s)}
   var hMaxM=function(){return v0*v0/(2*Math.max(g,0.01));};
-  // FIXED world height. This used to rescale to the current trajectory, so a
-  // 16.5 m Earth throw and a 101 m Moon throw filled the track identically and
-  // the g slider could not change the picture at all.
-  var VIEW_H=60;
-  var yScale=function(){return (GND-26)/VIEW_H;}; // px per metre, constant
+  // World height in steps of 10 m. A fixed 60 m left an Earth throw (16.5 m)
+  // in the bottom quarter and sent a Moon throw (100 m) off the top; rescaling
+  // to fit exactly made every throw look the same. Rounding up to the next
+  // 10 m keeps the ball in view, and the numbered axis shows the difference.
+  // During a flight the scale belongs to that throw, so it never jumps.
+  var VIEW_H=30;
+  function viewFor(h){return Math.max(30,Math.ceil(h*1.12/10)*10);}
+  var yScale=function(){return (GND-26)/VIEW_H;};
   var toY=function(ym){return GND-ym*yScale();};
 
   function getV0(){var el=document.getElementById('inp-v0');return el?parseFloat(el.value)||0:v0;}
@@ -9440,6 +9443,7 @@ function simFreefall(canvas){
     if(_simStop[id])return;
     if(!pT)pT=ts; var dt=Math.min((ts-pT)/1000,.04); pT=ts;
     v0=getV0(); g=getG();
+    VIEW_H=viewFor(ball?ball.v0*ball.v0/(2*ball.g):hMaxM());
     // Physics update: purely in meters
     if(ball&&!ball.landed){
       // The throw keeps the g and v₀ it was launched with, so moving a slider
@@ -9459,17 +9463,19 @@ function simFreefall(canvas){
       if(ball.prevVy>0&&ball.vy<=0&&ball.tUp===undefined)ball.tUp=ball.t;
       ball.prevVy=ball.vy;
     }
-    var hm=hMaxM(), ys=yScale();
+    // the apex line belongs to the ball in the air, not to sliders moved since
+    var hm=ball?ball.v0*ball.v0/(2*ball.g):hMaxM(), ys=yScale();
     simBg(ctx,W,H);
     simGround(ctx,W,GND);
     simText(ctx,'y = 0 (קרקע)',W/2,GND+14,'#7d8da6',9,'center');
     // Y axis
     ctx.save(); ctx.strokeStyle='#2d5275'; ctx.lineWidth=2;
-    ctx.beginPath(); ctx.moveTo(WALLX,GND+4); ctx.lineTo(WALLX,toY(hm+3)); ctx.stroke(); ctx.restore();
-    simArrow(ctx,WALLX,toY(hm+3),WALLX,toY(hm+4),'#2d5275',2,8);
-    simText(ctx,'y (m)',WALLX,toY(hm+4)-10,'#7d8da6',11,'center');
-    var maxH=Math.max(hm+2,20);
-    var step=maxH>60?10:maxH>30?5:2;
+    ctx.beginPath(); ctx.moveTo(WALLX,GND+4); ctx.lineTo(WALLX,toY(VIEW_H)+4); ctx.stroke(); ctx.restore();
+    simArrow(ctx,WALLX,toY(VIEW_H)+4,WALLX,toY(VIEW_H),'#2d5275',2,8);
+    simText(ctx,'y (m)',WALLX+8,toY(VIEW_H)-8,'#94a3b8',11,'left');
+    var trise;
+    var maxH=VIEW_H;
+    var step=maxH>120?20:maxH>60?10:5;
     for(var m=0;m<=maxH;m+=step){
       var py=toY(m); if(py<16||py>GND+2)continue;
       ctx.save(); ctx.strokeStyle='#2a4d65'; ctx.lineWidth=m%10===0?1.5:1;
@@ -9483,8 +9489,8 @@ function simFreefall(canvas){
       ctx.save(); ctx.strokeStyle='rgba(52,211,153,.45)'; ctx.lineWidth=1.5; ctx.setLineDash([5,5]);
       ctx.beginPath(); ctx.moveTo(WALLX+9,hmPy); ctx.lineTo(W-18,hmPy); ctx.stroke(); ctx.setLineDash([]); ctx.restore();
       ctx.save(); ctx.fillStyle='rgba(8,20,38,.82)'; ctx.strokeStyle='rgba(52,211,153,.55)'; ctx.lineWidth=1;
-      ctx.beginPath(); ctx.roundRect(WALLX+12,hmPy-12,118,16,4); ctx.fill(); ctx.stroke();
-      simText(ctx,'h_max='+hm.toFixed(1)+'m',WALLX+71,hmPy-1,'#34d399',9,'center'); ctx.restore();
+      ctx.beginPath(); ctx.roundRect(WALLX+12,hmPy-18,124,16,4); ctx.fill(); ctx.stroke();
+      simText(ctx,'h_max = '+hm.toFixed(1)+' m',WALLX+74,hmPy-7,'#34d399',10,'center',true); ctx.restore();
     }
     // Ball
     if(ball){
@@ -9492,7 +9498,8 @@ function simFreefall(canvas){
       var by=toY(ball.ym); // canvas y
       var bx=Math.floor(W/2);
       // Equal-time strobe: a ghost every 0.15s since launch — the growing gaps SHOW the acceleration
-      var GDT=0.15;
+      // about thirty frames per flight, at a round interval
+      var _tf=2*ball.v0/ball.g, GDT=_tf<=4.5?0.15:_tf<=9?0.25:_tf<=18?0.5:_tf<=36?1:2;
       for(var gi=1;gi*GDT<ball.t&&gi<90;gi++){
         var gt=gi*GDT;
         var gym=Math.max(0,ball.v0*gt-0.5*ball.g*gt*gt);
@@ -9501,7 +9508,7 @@ function simFreefall(canvas){
         simCircle(ctx,bx,gpy,7,'rgba(99,102,241,.35)','rgba(129,140,248,.5)',1);
         ctx.restore();
       }
-      if(ball.t>0.6) simText(ctx,'Δt קבוע — המרווח גדל!',bx-96,toY(hm*0.55),'#818cf8',8.5,'center');
+      if(ball.t>0.6) simText(ctx,'צילום כל '+GDT+' s',W*0.82,GND+14,'#a5b4fc',10,'center');
       // Velocity arrow
       var arDir=physV>=0?-1:1, arLen=Math.min(Math.abs(physV)*3,64);
       if(arLen>5) simArrow(ctx,bx,by+(arDir>0?20:-20),bx,by+(arDir>0?20+arLen:-20-arLen),physV>0?'#34d399':'#f87171',3,12);
@@ -9517,17 +9524,17 @@ function simFreefall(canvas){
         simText(ctx,'v = 0 - שיא!',bx,by-31,'#fbbf24',11,'center'); ctx.restore();
       }
       // Readout panel
-      var panX=bx+28, panY=Math.max(18,by-40);
-      if(panX+144>W) panX=bx-172;
+      var PW=W<480?122:144, panX=bx+28, panY=Math.max(18,Math.min(GND-90,by-40));
+      if(panX+PW>W-4) panX=Math.max(2,bx-28-PW);
       ctx.save(); ctx.fillStyle='rgba(6,14,28,.93)'; ctx.strokeStyle='#1e4060'; ctx.lineWidth=1.5;
-      ctx.beginPath(); ctx.roundRect(panX,panY,144,84,7); ctx.fill(); ctx.stroke(); ctx.restore();
-      simText(ctx,'t = '+ball.t.toFixed(2)+' s',panX+72,panY+17,'#94a3b8',11,'center');
-      simText(ctx,'y = '+ball.ym.toFixed(2)+' m',panX+72,panY+35,'#22d3ee',13,'center');
-      simText(ctx,'v = '+(physV>=0?'+':'')+physV.toFixed(2)+' m/s',panX+72,panY+53,'#f59e0b',12,'center');
+      ctx.beginPath(); ctx.roundRect(panX,panY,PW,84,7); ctx.fill(); ctx.stroke(); ctx.restore();
+      simText(ctx,'t = '+ball.t.toFixed(2)+' s',panX+PW/2,panY+17,'#94a3b8',11,'center');
+      simText(ctx,'y = '+ball.ym.toFixed(2)+' m',panX+PW/2,panY+35,'#22d3ee',13,'center');
+      simText(ctx,'v = '+(physV>=0?'+':'')+physV.toFixed(2)+' m/s',panX+PW/2,panY+53,'#f59e0b',12,'center');
       // Energy bar
-      var Ek=0.5*physV*physV, Ep=g*ball.ym, Etot=Math.max(Ek+Ep,0.001);
+      var Ek=0.5*physV*physV, Ep=ball.g*ball.ym, Etot=Math.max(Ek+Ep,0.001);
       var ekF=Math.min(1,Ek/Etot);
-      var bL=panX+4, bBarY=panY+64, bW=136;
+      var bL=panX+4, bBarY=panY+64, bW=PW-8;
       ctx.save(); ctx.strokeStyle='#1e3a52'; ctx.lineWidth=1; ctx.strokeRect(bL,bBarY,bW,10); ctx.restore();
       if(ekF>0.01){ctx.save(); ctx.fillStyle='#f59e0b'; ctx.fillRect(bL,bBarY,bW*ekF,10); ctx.restore();}
       if(ekF<0.99){ctx.save(); ctx.fillStyle='#34d399'; ctx.fillRect(bL+bW*ekF,bBarY,bW*(1-ekF),10); ctx.restore();}
@@ -9542,7 +9549,7 @@ function simFreefall(canvas){
       ctx.restore();
       simCircle(ctx,_bx,GND-8,18,'rgba(99,102,241,.5)','#818cf8',2);
       simText(ctx,'v₀ = '+getV0().toFixed(0)+' m/s',_bx+30,(GND+aimY)/2,'#fbbf24',12,'left');
-      simText(ctx,'שחרר לזריקה!',_bx,aimY-14,'#fbbf24',11,'center');
+      simText(ctx,'שחררו כדי לזרוק',_bx,aimY-14,'#fbbf24',11,'center');
     } else {
       if(!touchedF)simText(ctx,'✋ גררו מעלה מהקרקע כדי לזרוק',BX(),GND-30,'#fbbf24',10,'center');
       // Draw predicted parabola
@@ -9555,13 +9562,15 @@ function simFreefall(canvas){
         _ps?ctx.lineTo(W/2,_ppy):ctx.moveTo(W/2,_ppy); _ps=true;
       }
       ctx.stroke(); ctx.setLineDash([]); ctx.restore();
-      simText(ctx,'לחץ ״🎯 זרוק!״ לזרוק את הכדור',W/2,Math.floor(GND*0.42),'#7d8da6',13,'center',true);
+      simText(ctx,'לחצו ״🎯 זרוק!״, או גררו מעלה מהקרקע',W/2,Math.floor(GND*0.42),'#94a3b8',13,'center',true);
     }
     // Footer
-    var trise=v0/Math.max(g,0.01);
     ctx.save(); ctx.fillStyle='rgba(8,18,36,.75)'; ctx.strokeStyle='#1a3252'; ctx.lineWidth=1;
     ctx.beginPath(); ctx.roundRect(4,H-20,W-8,16,3); ctx.fill(); ctx.stroke();
-    simText(ctx,'זמן עלייה = זמן ירידה = '+trise.toFixed(2)+'s | גלילאו: מסה לא משפיעה | g='+g.toFixed(1)+' m/s²',W/2,H-9,'#7d8da6',9,'center'); ctx.restore();
+    ctx.restore();
+    var _bv0=ball?ball.v0:v0, _bg=ball?ball.g:g;
+    simText(ctx,'זמן עלייה = זמן ירידה = '+(_bv0/Math.max(_bg,0.01)).toFixed(2)+' s',W*0.68,H-9,'#cbd5e1',10,'center');
+    simText(ctx,'g = '+_bg.toFixed(1)+' m/s²',W*0.2,H-9,'#cbd5e1',10,'center');
     requestAnimationFrame(draw);
   }
   var throwBtn=document.getElementById('btn-throw');
