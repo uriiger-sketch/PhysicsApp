@@ -7389,7 +7389,10 @@ const DC_CONTENT={
       <b>אחרי זמן רב</b> הוא טעון, אינו מעביר זרם, ומתנהג כמו <b>נתק</b>.<br>
       קצב המעבר נקבע מ-${M('\\tau=RC')}, כאשר ${M('R')} היא ההתנגדות ה<b>נראית מהדקי הקבל</b> (במעגל שלנו ${M('R_1\\parallel R_2')}, ולא נגד יחיד). אחרי ${M('\\tau')} הקבל הגיע לכ-63% מהמתח הסופי, ואחרי ${M('5\\tau')} הוא שם למעשה.</p>
     </div>
-    ${animCanvas('anim-dc-charge',175,'טעינה: הזרם מתחיל גדול ודועך · פריקה: אותו סיפור בכיוון ההפוך')}
+    ${animCanvas('anim-dc-charge',215,'טעינה ופריקה דרך נגד: הזרם דועך, מתהפך בפריקה, ומחצית מהאנרגיה הופכת לחום')}
+    <div class="def-block"><div class="def-title">טעינה דרך נגד — לאן הולכת האנרגיה?</div>
+      <p>כשמקור ${M('\\varepsilon')} טוען קבל ריק דרך נגד, עובר דרך המקור המטען ${M('Q=C\\varepsilon')}, והוא מבצע עבודה ${M('\\varepsilon Q=C\\varepsilon^2')}. בקבל נאגר רק ${M('U=\\tfrac12C\\varepsilon^2')} — <b>מחצית</b>. המחצית השנייה הופכת לחום בנגד, וזה אינו תלוי בגודל ${M('R')}: נגד גדול מעביר זרם קטן יותר, אבל לאורך זמן ארוך יותר. בפריקה הזרם <b>מתהפך</b>, וכל האנרגיה שנאגרה הופכת לחום.</p>
+    </div>
     <div class="ex-block"><div class="ex-title">✏️ דוגמה — קבל במקביל לנגד</div>
     <p class="ex-given">סוללה של ${M('12\\,\\text{V}')}, ${M('R_1=4\\,\\Omega')} בטור עם ${M('R_2=8\\,\\Omega')}, וקבל ${M('C=10\\,\\mu\\text{F}')} מחובר במקביל ל-${M('R_2')}. מה המטען על הקבל כשהמעגל התייצב?</p>
     <ol class="ex-steps">
@@ -25607,105 +25610,85 @@ runAnim('anim-elc-plates-t',(cv,ctx,W,H,t)=>{
   oLbl(ctx,'a=eE/m קבועה כלפי הלוח החיובי; vₓ נשארת קבועה',W/2,H-8,'#a78bfa',10);
 });
 
-// ── 6. Capacitor charging: electron current through the battery, Q builds up, U=½CV² ──
+// DC ANIM: charging and discharging through a resistor -- the exponential, the
+// current that turns round, and where the battery's energy goes
+// (used by dc-real.dc-capacitor). A series loop: cell ε, a two-way switch, R
+// and C. It used to have no resistor at all, while its caption spoke of τ=RC.
+// ε = 12 V, R = 10 kΩ, C = 100 μF: τ = 1 s, I₀ = 1.2 mA, CE² = 14.4 mJ.
 runAnim('anim-dc-charge',(cv,ctx,W,H,t)=>{
-  ctx.clearRect(0,0,W,H);
-  var cx=W*0.55, py0=H*0.28, py1=H*0.72;
-  // 6s charge · 2s hold · 4s discharge — the capacitor no longer teleports
-  // from full to empty between frames.
-  var cyc=t%12, dis=cyc>=8;
-  var q  = dis ? Math.exp(-(cyc-8)/1.3) : 1-Math.exp(-Math.min(cyc,6)/1.6);
-  var cur= dis ? Math.exp(-(cyc-8)/1.3) : Math.exp(-Math.min(cyc,6)/1.6);
-  var pxL=cx-34, pxR=cx+34;
-  ctx.save();
-  ctx.fillStyle='#f87171';ctx.fillRect(pxL-6,py0,6,py1-py0);
-  ctx.fillStyle='#60a5fa';ctx.fillRect(pxR,py0,6,py1-py0);
+  bg(ctx,W,H);
+  const E=12,R=10e3,C=100e-6,tau=R*C,I0=E/R,CE2=C*E*E;
+  const cyc=t%12, dis=cyc>=6, tc=dis?cyc-6:cyc;
+  const q0=1-Math.exp(-6);                      // what the 6 s of charging reached
+  const q=dis?q0*Math.exp(-tc/tau):1-Math.exp(-tc/tau);       // Q/(Cε) = V_C/ε
+  const i=dis?-q0*Math.exp(-tc/tau):Math.exp(-tc/tau);        // I/I₀, + while charging
+  const Wb=dis?q0:q, U=q*q/2, Qh=Wb-U;          // in units of Cε²: battery εQ, stored Q²/2C, heat
+  const wide=W>=520;
+  // ── the circuit ──
+  const cx0=W*0.03, cw=W*(wide?0.44:0.46), T=H*0.17, B=H*0.62, ym=(T+B)/2;
+  const L=cx0+cw*0.08, xA=cx0+cw*0.26, xP=cx0+cw*0.42, xBy=cx0+cw*0.30, yBc=T+(B-T)*0.34;
+  const xR=cx0+cw*0.64, xC=cx0+cw*0.92, cyT=ym-5, cyB=ym+5;
+  ctx.save();ctx.strokeStyle='#64748b';ctx.lineWidth=2.2;ctx.beginPath();
+  ctx.moveTo(xA,T);ctx.lineTo(L,T);ctx.lineTo(L,B);ctx.lineTo(xC,B);ctx.lineTo(xC,cyB);
+  ctx.moveTo(xC,cyT);ctx.lineTo(xC,T);ctx.lineTo(xP,T);
+  ctx.moveTo(xBy,yBc);ctx.lineTo(xBy,B);ctx.stroke();
+  ctx.fillStyle='#e2e8f0';[[xA,T],[xP,T],[xBy,yBc],[xBy,B]].forEach(p=>{
+    ctx.beginPath();ctx.arc(p[0],p[1],2.8,0,6.2832);ctx.fill();});
+  // the blade: on A it puts the cell in the loop, on B it takes it out
+  ctx.strokeStyle=dis?'#f472b6':'#34d399';ctx.lineWidth=3;ctx.beginPath();
+  ctx.moveTo(xP,T);if(dis)ctx.lineTo(xBy,yBc);else ctx.lineTo(xA,T);ctx.stroke();
   ctx.restore();
-  var nQ=Math.round(q*7);
-  for(var i=0;i<nQ;i++){
-    var gy=py0+10+i*(py1-py0-20)/6;
-    oLbl(ctx,'+',pxL-9,gy,'#fff',11);
-    oLbl(ctx,'−',pxR+3,gy,'#fff',11);
-  }
-  // The field is uniform and spans the whole gap at every instant — only its
-  // MAGNITUDE grows. Encode that with line count/width/alpha (the density
-  // grammar taught in elc-field), never with arrow length.
-  var nF=Math.max(2,Math.round(2+q*4));
-  for(var i=0;i<nF;i++){
-    var gy2=py0+14+i*(py1-py0-28)/Math.max(1,nF-1);
-    simArrow(ctx,pxL+4,gy2,pxR-4,gy2,'rgba(251,191,36,'+(0.2+q*0.6).toFixed(2)+')',1+q*2.4,7);
-  }
-  // circuit loop: battery on the left
-  var bx=W*0.18, byC=H*0.5, topY=py0-16, botY=py1+16;
-  ctx.save();ctx.strokeStyle='#64748b';ctx.lineWidth=2;
-  ctx.beginPath();
-  ctx.moveTo(bx,byC-16);ctx.lineTo(bx,topY);ctx.lineTo(pxL-3,topY);ctx.lineTo(pxL-3,py0);
-  ctx.moveTo(bx,byC+16);ctx.lineTo(bx,botY);ctx.lineTo(pxR+3,botY);ctx.lineTo(pxR+3,py1);
-  ctx.stroke();
-  // The battery is switched OUT for the discharge. Previously it stayed wired in
-  // and the electrons were drawn running backwards through a source held at
-  // constant emf, which is not a circuit that can discharge a capacitor.
-  ctx.globalAlpha=dis?0.22:1;
-  ctx.strokeStyle='#fbbf24';ctx.lineWidth=3;
-  ctx.beginPath();ctx.moveTo(bx-14,byC-8);ctx.lineTo(bx+14,byC-8);ctx.stroke();
-  ctx.lineWidth=2;
-  ctx.beginPath();ctx.moveTo(bx-7,byC+8);ctx.lineTo(bx+7,byC+8);ctx.stroke();
-  ctx.globalAlpha=1;
-  ctx.restore();
-  oLbl(ctx,'V',bx-26,byC,dis?'rgba(251,191,36,.3)':'#fbbf24',12);
-  // the bypass branch, closed only while discharging
-  ctx.save();ctx.strokeStyle=dis?'#4ade80':'rgba(100,116,139,.55)';ctx.lineWidth=2;
-  ctx.beginPath();ctx.moveTo(bx-34,byC-16);ctx.lineTo(bx-34,byC+16);
-  if(dis){ctx.moveTo(bx-34,byC-16);ctx.lineTo(bx,byC-16);ctx.moveTo(bx-34,byC+16);ctx.lineTo(bx,byC+16);}
-  ctx.stroke();
-  // the switch blade: open (tilted) while charging, closed (flat) on discharge
-  ctx.beginPath();ctx.moveTo(bx-46,byC);
-  if(dis)ctx.lineTo(bx-34,byC);else ctx.lineTo(bx-37,byC-13);
-  ctx.stroke();ctx.restore();
-  // it is the BYPASS that is open while charging, not the charging loop --
-  // an unqualified "switch open" beside a circuit that is plainly conducting
-  // reads as a contradiction
-  oLbl(ctx,dis?'מסלול פריקה — סגור':'מסלול פריקה — פתוח',bx-44,byC+26,dis?'#4ade80':'#64748b',8.5);
-  // electrons: leave the + plate through the top wire, pumped onto the − plate below
-  function wirePoint(u,pts){
-    var lens=[],tot=0;
-    for(var m=0;m<pts.length-1;m++){var L2=Math.hypot(pts[m+1][0]-pts[m][0],pts[m+1][1]-pts[m][1]);lens.push(L2);tot+=L2;}
-    var d=u*tot;
-    for(var m2=0;m2<lens.length;m2++){
-      if(d<=lens[m2]){var f=d/lens[m2];
-        return {x:pts[m2][0]+(pts[m2+1][0]-pts[m2][0])*f,y:pts[m2][1]+(pts[m2+1][1]-pts[m2][1])*f};}
-      d-=lens[m2];
-    }
-    return {x:pts[pts.length-1][0],y:pts[pts.length-1][1]};
-  }
-  if(cyc<6||dis){
-    ctx.save();ctx.fillStyle='rgba(96,165,250,'+(0.25+cur*0.7).toFixed(2)+')';
-    for(var k=0;k<5;k++){
-      var u=(k/5+(dis?-1:1)*t*0.25*Math.max(cur,0.15)+1)%1;
-      var p1=wirePoint(u,[[pxL-3,py0],[pxL-3,topY],[bx,topY],[bx,byC-16]]);
-      var p2=wirePoint(u,[[bx,byC+16],[bx,botY],[pxR+3,botY],[pxR+3,py1]]);
-      ctx.beginPath();ctx.arc(p1.x,p1.y,3,0,Math.PI*2);ctx.fill();
-      ctx.beginPath();ctx.arc(p2.x,p2.y,3,0,Math.PI*2);ctx.fill();
-    }
-    ctx.restore();
-  }
-  // Q and U bars — note U ∝ Q² (U=Q²/2C)
-  var bx2=W-100;
-  ctx.save();
-  ctx.fillStyle='rgba(148,163,184,.12)';ctx.fillRect(bx2,30,26,H-70);
-  ctx.fillStyle='#38bdf8';ctx.fillRect(bx2,30+(H-70)*(1-q),26,(H-70)*q);
-  ctx.fillStyle='rgba(148,163,184,.12)';ctx.fillRect(bx2+33,30,26,H-70);
-  ctx.fillStyle='#f472b6';ctx.fillRect(bx2+33,30+(H-70)*(1-q),26,(H-70)*q);   // V=Q/C ∝ Q
-  ctx.fillStyle='rgba(148,163,184,.12)';ctx.fillRect(bx2+66,30,26,H-70);
-  ctx.fillStyle='#a78bfa';ctx.fillRect(bx2+66,30+(H-70)*(1-q*q),26,(H-70)*q*q);
-  ctx.strokeStyle='rgba(148,163,184,.4)';
-  ctx.strokeRect(bx2,30,26,H-70);ctx.strokeRect(bx2+33,30,26,H-70);ctx.strokeRect(bx2+66,30,26,H-70);
-  ctx.restore();
-  oLbl(ctx,'Q',bx2+13,H-28,'#38bdf8',11);
-  oLbl(ctx,'V',bx2+46,H-28,'#f472b6',11);
-  oLbl(ctx,'U',bx2+79,H-28,'#a78bfa',11);
-  oLbl(ctx,dis?'פריקה: המטען זורם חזרה — U יורדת כריבוע (U∝Q²), מהר מ-Q ומ-V':(cyc<6?'טעינה: הסוללה שואבת אלקטרונים מלוח אחד ודוחפת אל השני — הזרם דועך':'הקבל טעון: Q=CV,  U=½CV²  — שימו לב ש-U גדלה כריבוע'),W/2,12,'#94a3b8',11);
-  oLbl(ctx,'קצב הכול נקבע מקבוע הזמן τ=RC — לא מהקיבול לבדו',cx-30,H-8,'#a78bfa',10);
+  // conventional current, the chapter's yellow dots: charging, from the − plate
+  // round through the cell to the + plate; discharging, out of the + plate,
+  // through R the other way and back to the − plate without the cell
+  const k=Math.min(70,W*0.09);
+  if(Math.abs(i)>0.01)dcFlowI(ctx,dis
+      ?[[xC,cyT],[xC,T],[xP,T],[xBy,yBc],[xBy,B],[xC,B],[xC,cyB]]
+      :[[xC,cyB],[xC,B],[L,B],[L,T],[xA,T],[xP,T],[xC,T],[xC,cyT]],t,Math.abs(i),'#fbbf24',k);
+  dcBatt(ctx,L,ym,'');
+  dcRes(ctx,xR,T,Math.min(44,cw*0.2),16,'','#38bdf8',Math.abs(i)*0.6);
+  ctx.save();ctx.strokeStyle='#e2e8f0';ctx.lineWidth=3;ctx.beginPath();
+  ctx.moveTo(xC-14,cyT);ctx.lineTo(xC+14,cyT);ctx.moveTo(xC-14,cyB);ctx.lineTo(xC+14,cyB);ctx.stroke();ctx.restore();
+  const nq=Math.round(q*4);
+  for(let n=0;n<nq;n++){label(ctx,'+',xC-9+n*6,cyT-5,'#f87171',9);label(ctx,'−',xC-9+n*6,cyB+12,'#60a5fa',9);}
+  label(ctx,wide?'ε = 12 V':'ε',L+11,B-8,'#f87171',9,'left');
+  label(ctx,wide?'R = 10 kΩ':'R',xR,T-13,'#38bdf8',9);
+  label(ctx,wide?'C = 100 μF':'C',xC-17,ym+4,'#e2e8f0',9,'right');
+  label(ctx,dis?'פריקה':'טעינה',xP-6,T-13,dis?'#f472b6':'#34d399',9,'center');
+  // ── V_C(t) and I(t) over one whole cycle: charge 0–6 s, discharge 6–12 s ──
+  const gx=wide?W*0.53:W*0.54, gw=W*0.97-gx, vy0=H*0.06, vh=H*0.25, iy0=H*0.37, ih=H*0.27, iz=iy0+ih/2;
+  const X=s=>gx+gw*s/12, YV=v=>vy0+vh-2-v*(vh-4), YI=a=>iz-a*(ih/2-2);
+  ctx.save();ctx.strokeStyle='#1e3a52';ctx.lineWidth=1;
+  ctx.strokeRect(gx+.5,vy0+.5,gw-1,vh-1);ctx.strokeRect(gx+.5,iy0+.5,gw-1,ih-1);
+  ctx.setLineDash([3,3]);ctx.strokeStyle='rgba(148,163,184,.4)';ctx.beginPath();
+  ctx.moveTo(gx,iz);ctx.lineTo(gx+gw,iz);ctx.moveTo(X(6),vy0);ctx.lineTo(X(6),iy0+ih);ctx.stroke();ctx.restore();
+  const curve=(f,Y,col)=>{ctx.save();ctx.strokeStyle=col;ctx.lineWidth=2;ctx.beginPath();
+    for(let s=0;s<=cyc+1e-9;s+=0.04){const y=Y(f(s));s?ctx.lineTo(X(s),y):ctx.moveTo(X(s),y);}
+    ctx.stroke();ctx.restore();};
+  curve(s=>s<6?1-Math.exp(-s/tau):q0*Math.exp(-(s-6)/tau),YV,'#fbbf24');
+  curve(s=>s<6?Math.exp(-s/tau):-q0*Math.exp(-(s-6)/tau),YI,'#f472b6');
+  [1,7].forEach(s=>{ctx.save();ctx.strokeStyle='rgba(148,163,184,.55)';ctx.setLineDash([2,3]);
+    ctx.beginPath();ctx.moveTo(X(s),vy0);ctx.lineTo(X(s),iy0+ih);ctx.stroke();ctx.restore();
+    label(ctx,'τ',X(s),iy0+ih+10,'#94a3b8',9);});
+  label(ctx,'V_C',gx+gw-4,vy0+11,'#fbbf24',9,'right');
+  label(ctx,'I',gx+gw-4,iy0+11,'#f472b6',9,'right');
+  if(wide){label(ctx,'63%',X(1)+4,YV(0.632)+10,'#fbbf24',8.5,'left');
+    label(ctx,'I₀ = 1.2 mA',X(0.7),YI(0.78),'#f472b6',8.5,'left');
+    if(dis)label(ctx,'−I₀',X(6.25),YI(-0.75),'#f472b6',8.5,'left');}
+  // ── energy: the battery's work εQ, split into what C holds and what R burnt ──
+  const bx=W*0.06, bw=W*0.88, by=H*0.775, bh=9;
+  ctx.save();ctx.fillStyle='rgba(148,163,184,.12)';ctx.fillRect(bx,by,bw,bh);
+  ctx.fillStyle='rgba(167,139,250,.9)';ctx.fillRect(bx,by,bw*U,bh);
+  ctx.fillStyle='rgba(249,115,22,.85)';ctx.fillRect(bx+bw*U,by,bw*Qh,bh);
+  ctx.strokeStyle='rgba(148,163,184,.45)';ctx.strokeRect(bx+.5,by+.5,bw-1,bh-1);
+  ctx.beginPath();ctx.moveTo(bx+bw/2,by-3);ctx.lineTo(bx+bw/2,by+bh+3);ctx.stroke();ctx.restore();
+  const mJ=x=>(x*CE2*1000).toFixed(1);
+  label(ctx,'בקבל: '+mJ(U)+' mJ',bx,by-5,'#a78bfa',9,'left');
+  label(ctx,'חום בנגד: '+mJ(Qh)+' mJ',bx+bw,by-5,'#fb923c',9,'right');
+  label(ctx,'הסוללה סיפקה εQ = '+mJ(Wb)+' mJ'+(dis?' (והיא מנותקת)':''),W/2,by+bh+12,'#94a3b8',9);
+  label(ctx,dis?'פריקה: הזרם הפוך, והאנרגיה שנאגרה הופכת כולה לחום בנגד'
+              :'טעינה: הסוללה נותנת Cε² — חצי נאגר בקבל וחצי הופך לחום בנגד, יהא R אשר יהא',
+    W/2,H-7,dis?'#f472b6':'#34d399',9.5);
 });
 
 // ── 9. Conductor reaching electrostatic equilibrium ──
