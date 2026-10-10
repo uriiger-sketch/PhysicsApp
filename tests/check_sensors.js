@@ -574,12 +574,15 @@ const S = p => p.evaluate(() => JSON.parse(JSON.stringify(_sl.st, (k, v) =>
 
   console.log('\n16b) a lab that is not running repaints when the theme changes');
   await openLab(p, 'forces.tension', false);
+  await p.waitForTimeout(1200);          // let the page finish booting the lab
   const rp = await p.evaluate(async () => {
-    let n = 0; const f = _sl.onResize; _sl.onResize = () => { n++; f(); };
-    applyTheme(state.theme === 'dark' ? 'light' : 'dark');
-    await new Promise(r => setTimeout(r, 30));
-    applyTheme(state.theme === 'dark' ? 'light' : 'dark');
-    await new Promise(r => setTimeout(r, 30));
+    let n = 0;
+    for (let k = 0; k < 2; k++) {
+      const f = _sl.onResize; _sl.onResize = () => { n++; f(); };
+      applyTheme(state.theme === 'dark' ? 'light' : 'dark');
+      await new Promise(r => setTimeout(r, 30));
+      _sl.onResize = f;
+    }
     return n;
   });
   t('repainted on each switch', rp, 2);
