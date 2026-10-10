@@ -13,15 +13,66 @@
 <meta property="og:description" content="תיאוריה, סימולציות אינטראקטיביות, חידונים ובעיות מודרכות בחמישה נושאים — לומדים פיזיקה בעברית, בטלפון ובמחשב.">
 <meta name="twitter:card" content="summary">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23071426'/%3E%3Cg fill='none' stroke='%2322d3ee' stroke-width='3.5'%3E%3Cellipse cx='32' cy='32' rx='24' ry='9'/%3E%3Cellipse cx='32' cy='32' rx='24' ry='9' transform='rotate(60 32 32)'/%3E%3Cellipse cx='32' cy='32' rx='24' ry='9' transform='rotate(-60 32 32)'/%3E%3C/g%3E%3Ccircle cx='32' cy='32' r='5' fill='%23f59e0b'/%3E%3C/svg%3E">
-<link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <!-- the fonts are a nicety, not a dependency: loaded without holding up the
      first paint, so a slow or blocked Google Fonts never leaves a blank page -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800;900&family=Rubik:wght@300;400;500;700;900&display=swap" media="print" onload="this.media='all'">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js"></script>
+<script>
+// ── KaTeX, fetched beside the page instead of in front of it ──────────
+// It used to load synchronously right here, so a CDN that hangs rather than
+// fails (a filtering school network, a captive portal) left the page blank
+// until the browser gave up on it -- 12 s in a measured hang, up to a minute
+// in the wild. Now the three files load in parallel with the page, pinned
+// by Subresource Integrity (the hashes KaTeX publishes for exactly these
+// jsDelivr URLs), and the app script below (#app-js) starts as soon as they
+// are in, or as soon as one has failed, or 3 s after the page itself has
+// arrived -- with the offline formula renderer then. The formulas are still
+// typeset when the app script runs, so nothing it builds changes.
+var _kxS={js:0,css:0,ar:0,dom:0,late:0},_kxDone=false;
+function _kx(k,v){
+  _kxS[k]=v;
+  if(_kxDone||!_kxS.dom)return;
+  var s=_kxS,all=s.js>0&&s.css>0&&s.ar!==0;
+  if(!(all||s.js<0||s.css<0||s.late))return;
+  _kxDone=true;
+  // half a KaTeX is worse than none: its output without its stylesheet is
+  // unreadable, and a copy that turns up after the start would typeset half
+  // the page. Either way the app gets no katex and uses its own renderer.
+  if(!all)try{Object.defineProperty(window,'katex',{configurable:true,get:function(){},set:function(){}});}catch(e){}
+  var src=document.getElementById('app-js');if(!src)return;
+  // padded to its place in this file, so an error names the line it is on
+  var sc=document.createElement('script'),pad='';
+  // (the doctype and <html> take the first two lines; <head> opens the third)
+  try{var n=3,e;
+    n+=document.head.outerHTML.split('\n').length-1;
+    for(e=document.head.nextSibling;e&&e!==document.body;e=e.nextSibling)n+=(e.textContent||'').split('\n').length-1;
+    for(e=document.body.firstChild;e&&e!==src;e=e.nextSibling)n+=((e.outerHTML||e.textContent)||'').split('\n').length-1;
+    pad=new Array(n).join('\n');}catch(x){pad='';}
+  sc.text=pad+src.text+'\n//# sourceURL='+String(location.href).split('#')[0];
+  document.body.appendChild(sc);
+}
+(function(){
+  var D='https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/',H=document.head;
+  var l=document.createElement('link');
+  l.rel='stylesheet';l.href=D+'katex.min.css';l.crossOrigin='anonymous';
+  l.integrity='sha384-n8MVd4RsNIU0tAv4ct0nTaAbDJwPJzDEaqSD1odI+WdtXRGWt2kTvGFasHpSy3SV';
+  l.onload=function(){_kx('css',1);};l.onerror=function(){_kx('css',-1);};
+  H.appendChild(l);
+  var j=document.createElement('script');
+  j.src=D+'katex.min.js';j.crossOrigin='anonymous';
+  j.integrity='sha384-XjKyOOlGwcjNTAIQHIpgOno0Hl1YQqzUOEleOLALmuqehneUG+vnGctmUb0ZY0l8';
+  j.onload=function(){
+    var a=document.createElement('script');
+    a.src=D+'contrib/auto-render.min.js';a.crossOrigin='anonymous';
+    a.integrity='sha384-+VBxd3r6XgURycqtZ117nYw44OOcIax56Z4dCRWbxyPt0Koah1uHoK0o4+/RRE05';
+    a.onload=function(){_kx('ar',1);};a.onerror=function(){_kx('ar',-1);};
+    H.appendChild(a);_kx('js',1);};
+  j.onerror=function(){_kx('js',-1);};
+  H.appendChild(j);
+})();
+</script>
 <style>
 :root,[data-theme='dark']{
   --bg:#07101f;--panel:#0f1c2e;--panel2:#162236;--accent:#3b82f6;--accent2:#06b6d4;
@@ -58,6 +109,8 @@
 body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden;}
 body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse at 15% 40%,rgba(59,130,246,.06) 0%,transparent 55%),radial-gradient(ellipse at 85% 15%,rgba(139,92,246,.05) 0%,transparent 55%);pointer-events:none;z-index:0;}
 #app{position:relative;z-index:1;}
+/* the first paint, while KaTeX settles (at most 3 s after the page) */
+.boot-wait{padding:96px 16px;text-align:center;color:var(--muted);font-size:1rem;}
 
 /* HEADER */
 .header{background:var(--hdr-bg);border-bottom:1px solid var(--border);padding:0 24px;display:flex;align-items:center;justify-content:space-between;height:62px;position:sticky;top:0;z-index:200;box-shadow:0 4px 28px rgba(0,0,0,.5);}
@@ -988,9 +1041,9 @@ html{scroll-padding-top:72px;}
   <h1 style="font-size:1.3rem;margin-bottom:10px">פיזיקה לבגרות</h1>
   <p>האפליקציה בנויה כולה מסימולציות וחידונים אינטראקטיביים, ולכן היא זקוקה ל-JavaScript. הפעילו JavaScript בדפדפן (או פתחו את הדף בדפדפן אחר) ורעננו את הדף.</p>
 </div></noscript>
-<div id="app"></div>
+<div id="app"><p class="boot-wait" role="status">⚛️ טוען…</p></div>
 
-<script>
+<script type="text/x-physics-app" id="app-js">
 // ── App version ────────────────────────────────────────────────────
 // One number per push: MAJOR.MINOR. Every push that changes this file bumps
 // MINOR and adds an entry at the TOP of APP_CHANGELOG (tests/check_version.js
@@ -31074,12 +31127,13 @@ function render(){
         throwOnError:false,strict:false
       }); }catch(e){}
       _bootUI();
-    } else if(typeof katex!=='undefined'&&_katexTries++<10){
+    } else if(typeof katex!=='undefined'&&typeof _kxDone==='undefined'&&_katexTries++<10){
       setTimeout(_tryKatex,40);
     } else {
-      // KaTeX is loaded synchronously in <head>: if it is not here now it
-      // never will be (offline, blocked CDN), and waiting 400 ms more on
-      // every tab only held back the simulation and the animations
+      // the app starts only once KaTeX has settled (the loader in <head>):
+      // if it is not here now it never will be (offline, blocked CDN), and
+      // waiting 400 ms more on every tab only held back the simulation and
+      // the animations
       _bootUI(); }
   }
   setTimeout(_tryKatex,15);
@@ -34789,5 +34843,7 @@ render();
 // Show onboarding on very first visit
 if(!_ls.get('phys_onboarded'))showOnboarding();
 </script>
+<!-- the app above runs now if KaTeX is already settled, else when it is (head) -->
+<script>_kx('dom',1);setTimeout(function(){_kx('late',1);},3000);</script>
 </body>
 </html>
