@@ -33749,7 +33749,7 @@ function buildQuiz(qs){
   const fb=ans?`<div class="quiz-feedback${st.ans[qi]===qv.correct?' fb-ok':' fb-err'}">
     <div style="font-size:1rem;margin-bottom:4px">${st.ans[qi]===qv.correct?'✅ נכון!':'❌ לא נכון.'}</div>
     <div style="font-size:.88rem;color:var(--muted)">${_ltSafe(q.explain||'')}</div>
-    ${q.formula&&st.ans[qi]!==qv.correct?`<div style="margin-top:8px;padding:6px 10px;background:rgba(0,0,0,.2);border-radius:6px;font-family:monospace;color:var(--accent);font-size:.9rem">${q.formula}</div>`:''}
+    ${q.formula&&st.ans[qi]!==qv.correct?`<div style="margin-top:8px;padding:6px 10px;background:var(--chip);border-radius:6px;direction:ltr;unicode-bidi:isolate;text-align:right;font-family:'Cambria Math','Times New Roman',serif;color:var(--accent);font-size:1rem">${q.formula}</div>`:''}
   </div>`:'';
   const nxt=ans?(qi<qs.length-1?`<button class="btn btn-primary" onclick="nextQ()" style="margin-top:12px">הבאה ← <kbd style="font-size:.75em">Enter</kbd></button>`:`<button class="btn btn-green" onclick="finishQuiz()" style="margin-top:12px">סיום החידון ✓</button>`):'';
   return`<div class="quiz-card">${prog}<div class="quiz-q"><span class="quiz-q-num">${qi+1}</span>${_ltSafe(q.q)}</div><div class="quiz-opts">${opts}</div>${hintHTML}${fb}${nxt}</div>`;
@@ -33989,7 +33989,10 @@ window.nextQ=()=>{
   // show the finished banner without ever crediting the quiz
   if(c&&c.quiz&&st.cur>=c.quiz.length-1){window.finishQuiz();return;}
   st.cur++;render();};
-window.finishQuiz=()=>{getQS(state.chapter,state.section).done=true;markCompleted(state.chapter,state.section,'quiz',100);};
+window.finishQuiz=()=>{const st=getQS(state.chapter,state.section);st.done=true;markCompleted(state.chapter,state.section,'quiz',100);
+  // the score is on the banner the focus lands in; a screen reader hears it too
+  var c=CONTENT[state.chapter+'.'+state.section],qs=(c&&c.quiz)||[];
+  _say('החידון הושלם: '+st.ans.filter(function(x,i){return qs[i]&&x===quizView(qs[i]).correct;}).length+' מתוך '+qs.length+' תשובות נכונות.');};
 window.resetQuiz=function(){state.quizState[state.chapter+'.'+state.section]={cur:0,ans:[],done:false};render();};
 // Keyboard: Enter advances quiz
 document.addEventListener('keydown',function(e){
