@@ -25939,6 +25939,8 @@ function magMidArrow(ctx,pts,col,frac,sz){
   ctx.lineTo(b[0]+Math.cos(ang-2.5)*sz,b[1]+Math.sin(ang-2.5)*sz);
   ctx.closePath();ctx.fill();ctx.restore();
 }
+// toFixed without a '−0.0' for a value that rounds to zero
+function magFx(v,d){var t=v.toFixed(d);return /^-0\.?0*$/.test(t)?t.slice(1):t;}
 function magFmtB(B){var a=Math.abs(B);
   return a>=0.1?B.toFixed(3)+' T':a>=1e-4?(B*1e3).toFixed(a>=1e-2?1:2)+' mT':(B*1e6).toFixed(a>=1e-5?1:2)+' μT';}
 // ── mag-field.mag-magnets ─────────────────────────────────────────────────
@@ -26653,7 +26655,7 @@ MAG_SIMS['mag-motor']=function(canvas){
     var rbW=W<600?W-16:W*0.5,rbY=W<600?H*0.66-68:8;
     ctx.save();ctx.fillStyle='rgba(2,8,16,.85)';ctx.fillRect(8,rbY,rbW,46);ctx.restore();
     simText(ctx,'τmax = NBIA = '+tmax.toFixed(4)+' N·m',8+rbW/2,rbY+16,'#e2e8f0',11.5,'center',true);
-    simText(ctx,'θ = '+th.toFixed(0)+'°   ·   τ = '+tau.toFixed(4)+' N·m',8+rbW/2,rbY+35,'#fbbf24',10.5,'center',true);
+    simText(ctx,'θ = '+th.toFixed(0)+'°   ·   τ = '+magFx(tau,4)+' N·m',8+rbW/2,rbY+35,'#fbbf24',10.5,'center',true);
     requestAnimationFrame(draw);
   }
   requestAnimationFrame(draw);
@@ -26772,7 +26774,7 @@ MAG_SIMS['mag-faraday']=function(canvas){
     for(var tk=-4;tk<=4;tk++){var ta=-Math.PI/2+tk*0.16;ctx.save();ctx.strokeStyle='#64748b';ctx.beginPath();ctx.moveTo(gX+Math.cos(ta)*24,gY+Math.sin(ta)*24);ctx.lineTo(gX+Math.cos(ta)*30,gY+Math.sin(ta)*30);ctx.stroke();ctx.restore();}
     var na=-Math.PI/2+Math.max(-0.75,Math.min(0.75,I/0.04*0.75));
     ctx.save();ctx.strokeStyle='#f87171';ctx.lineWidth=2.4;ctx.beginPath();ctx.moveTo(gX,gY+6);ctx.lineTo(gX+Math.cos(na)*28,gY+Math.sin(na)*28);ctx.stroke();ctx.restore();
-    simText(ctx,'0',gX,gY-14,'#64748b',9,'center');simText(ctx,(I*1000).toFixed(1)+' mA',gX,gY+20,'#f87171',10,'center',true);
+    simText(ctx,'0',gX,gY-14,'#64748b',9,'center');simText(ctx,magFx(I*1000,1)+' mA',gX,gY+20,'#f87171',10,'center',true);
     // induced current in the coil, and the pole it presents to the magnet:
     // its own field leaves the coil on the side it points to (that face is N),
     // and the letter is drawn on whichever side the magnet is
@@ -26788,7 +26790,7 @@ MAG_SIMS['mag-faraday']=function(canvas){
     if(Math.abs(vm)>0.02)simArrow(ctx,toSx(xm),YS-26,toSx(xm)+Math.sign(vm)*Math.min(60,20+Math.abs(vm)*60),YS-26,'#e2e8f0',2,8);
     var RBW=W<600?W-16:W*0.42;
     ctx.save();ctx.fillStyle='rgba(2,8,16,.85)';ctx.fillRect(8,8,RBW,48);ctx.restore();
-    simText(ctx,'NΦ = '+(N*Phi*1000).toFixed(2)+' mWb   ·   ε = '+(eps*1000).toFixed(0)+' mV',8+RBW/2,26,'#e2e8f0',11.5,'center',true);
+    simText(ctx,'NΦ = '+magFx(N*Phi*1000,2)+' mWb   ·   ε = '+magFx(eps*1000,0)+' mV',8+RBW/2,26,'#e2e8f0',11.5,'center',true);
     // approaching = the distance |z| is shrinking (from the motion, not from ε)
     var appr=(z>=0?1:-1)*vm>0;
     simText(ctx,Math.abs(vm)<0.02?'המגנט עומד ⇒ השטף לא משתנה ⇒ ε = 0':(appr?'מתקרב: השטף גדל — הסליל דוחה':'מתרחק: השטף קטן — הסליל מושך'),8+RBW/2,46,'#94a3b8',9.5,'center');
@@ -26859,7 +26861,7 @@ MAG_SIMS['mag-lenz']=function(canvas){
     if(Math.abs(Fr)>1e-4)simArrow(ctx,rx,YR-rr-20,rx+Math.sign(Fr)*Math.min(70,14+Math.abs(Fr)*900),YR-rr-20,'#fb923c',3,10);
     var BXW=Math.min(W-16,Math.max(W*0.56,340));ctx.save();ctx.fillStyle='rgba(2,8,16,.85)';ctx.fillRect(8,8,BXW,70);ctx.restore();
     var rel=vr-vm,zz=xr-xm,closing=(zz>=0?1:-1)*rel<0;     // |z| shrinking
-    simText(ctx,'I = '+I.toFixed(2)+' A   ·   F = '+(Fr*1000).toFixed(1)+' mN',8+BXW/2,26,'#e2e8f0',11,'center',true);
+    simText(ctx,'I = '+magFx(I,2)+' A   ·   F = '+magFx(Fr*1000,1)+' mN',8+BXW/2,26,'#e2e8f0',11,'center',true);
     simText(ctx,cut?'טבעת פתוחה: יש מתח, אין זרם — ואין כוח':Math.abs(rel)<0.01?'אין תנועה יחסית ⇒ אין זרם':(closing?'המגנט מתקרב ⇒ השטף גדל ⇒ הטבעת דוחה':'המגנט מתרחק ⇒ השטף קטן ⇒ הטבעת נמשכת'),8+BXW/2,46,'#94a3b8',10,'center',true);
     simText(ctx,'חום בטבעת: '+(heat*1000).toFixed(2)+' mJ — מהעבודה שהשקעתם',8+BXW/2,66,'#64748b',9.5,'center');
     var y0=H*0.86;magPlotBox(ctx,8,y0,W-16,H-y0-6,'',null);
@@ -26921,7 +26923,7 @@ MAG_SIMS['mag-motional']=function(canvas){
     simText(ctx,'L = 50 cm',rx+22,(YT+YB)/2+34,'#64748b',9,'left');
     // readouts
     var y0=YB+30;ctx.save();ctx.fillStyle='rgba(2,8,16,.85)';ctx.fillRect(8,y0,W-16,52);ctx.restore();
-    simText(ctx,'ε = BLv = '+eps.toFixed(3)+' V   ·   I = '+I.toFixed(3)+' A   ·   BIL = '+Math.abs(Fb).toFixed(3)+' N',W/2,y0+18,'#e2e8f0',11,'center',true);
+    simText(ctx,'ε = BLv = '+magFx(eps,3)+' V   ·   I = '+magFx(I,3)+' A   ·   BIL = '+Math.abs(Fb).toFixed(3)+' N',W/2,y0+18,'#e2e8f0',11,'center',true);
     simText(ctx,drag?'גוררים ביד: הכוח הנדרש לשמור על v הוא B²L²v/R':Fx>0?'כוח קבוע: המוט מאיץ עד v_t = FR/B²L² = '+vt.toFixed(2)+' m/s':'בלי כוח: הבלימה המגנטית עוצרת את המוט',W/2,y0+38,'#94a3b8',10,'center');
     // v(t) and the power books
     // a phone stacks the power bars under the v(t) graph instead of beside it
@@ -26936,7 +26938,7 @@ MAG_SIMS['mag-motional']=function(canvas){
     [['Fv',Pin,'#fb923c'],['I²R',Ph,'#f87171'],['ΔEk/Δt',drag?0:Fx*v-Ph,'#34d399']].forEach(function(q,i){
       var yy=py+22+i*((pgh-18)/3),w=Math.max(0,q[1])/Pm*(bw-110);
       ctx.save();ctx.fillStyle=q[2];ctx.fillRect(bx+60,yy-6,w,12);ctx.restore();
-      simText(ctx,q[0],bx+56,yy,q[2],9,'right',true);simText(ctx,q[1].toFixed(3)+' W',bx+64+w,yy,'#e2e8f0',9,'left');});
+      simText(ctx,q[0],bx+56,yy,q[2],9,'right',true);simText(ctx,magFx(q[1],3)+' W',bx+64+w,yy,'#e2e8f0',9,'left');});
     requestAnimationFrame(draw);
   }
   requestAnimationFrame(draw);
@@ -26980,7 +26982,7 @@ MAG_SIMS['mag-generator']=function(canvas){
     simText(ctx,rings?'מתח חילופין':'מתח פועם בכיוון אחד',lx,ly+34,'#94a3b8',9.5,'center');
     var ry=CY+RP+18;ctx.save();ctx.fillStyle='rgba(2,8,16,.85)';ctx.fillRect(8,ry,W-16,58);ctx.restore();
     simText(ctx,'ε_max = NBAω = '+Em.toFixed(1)+' V   ·   ε_rms = '+(Em/Math.SQRT2).toFixed(1)+' V',W/2,ry+15,'#e2e8f0',10.5,'center',true);
-    simText(ctx,'ε(t) = '+out.toFixed(1)+' V   ·   ω = '+w.toFixed(1)+' rad/s',W/2,ry+33,'#fbbf24',10,'center',true);
+    simText(ctx,'ε(t) = '+magFx(out,1)+' V   ·   ω = '+w.toFixed(1)+' rad/s',W/2,ry+33,'#fbbf24',10,'center',true);
     simText(ctx,slow>1.01?'הדמיה בהילוך איטי ×'+slow.toFixed(0):'מהירות אמיתית',W/2,ry+50,'#64748b',9,'center');
     // Φ(t) and ε(t): two periods, time in real milliseconds
     var gx=44,gw=W-60,g1=H*0.56,g2=H*0.78,gh=H*0.17,Tp=1/f;
