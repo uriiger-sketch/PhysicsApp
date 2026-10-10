@@ -14263,6 +14263,11 @@ function simStaticsTorque(canvas){
   var drag=null;
   function appPt(){return {x:PX+gr()*PPM,y:PY};}
   function tipPt(){var a=appPt(),th=gth()*Math.PI/180,L=28+gF()*2.1;
+    // keep the tip -- and its drag handle -- on the canvas: pointing back at
+    // a short lever, a 60 N arrow used to end 40 px beyond the left edge
+    var c=Math.cos(th),s=Math.sin(th);
+    if(c<-1e-6)L=Math.min(L,(a.x-16)/-c); if(c>1e-6)L=Math.min(L,(W-16-a.x)/c);
+    if(s>1e-6)L=Math.min(L,(a.y-16)/s);
     return {x:a.x+Math.cos(-th)*L,y:a.y+Math.sin(-th)*L};}
   function _dn(e){var p=simPointerXY(canvas,dpr,e),a=appPt(),t=tipPt();
     if(Math.hypot(p.x-t.x,p.y-t.y)<26){drag='tip';e.preventDefault();}
@@ -14306,7 +14311,8 @@ function simStaticsTorque(canvas){
     var fx=a.x+ux*t, fy=a.y+uy*t;
     ctx.save();ctx.strokeStyle='#f59e0b';ctx.lineWidth=2.5;ctx.setLineDash([5,4]);
     ctx.beginPath();ctx.moveTo(PX,PY);ctx.lineTo(fx,fy);ctx.stroke();ctx.restore();
-    slTxt(ctx,'d = '+d.toFixed(3)+' m',(PX+fx)/2,(PY+fy)/2-14,'#f59e0b',12,'center',true);
+    var _dShort=Math.hypot(fx-PX,fy-PY)<70;
+    slTxt(ctx,'d = '+d.toFixed(3)+' m',_dShort?PX:(PX+fx)/2,_dShort?PY-40:(PY+fy)/2-14,'#f59e0b',12,'center',true);
     simArrow(ctx,a.x,a.y,tip.x,tip.y,'#3b82f6',3.5,13);
     simHandle(ctx,tip.x,tip.y,'#93c5fd',22);      // drag to set the angle
     simHandle(ctx,a.x,a.y,'#fbbf24',22);          // drag along the bar
@@ -14316,7 +14322,7 @@ function simStaticsTorque(canvas){
     ctx.beginPath();ctx.moveTo(PX,PY);ctx.lineTo(a.x,a.y);ctx.stroke();ctx.restore();
     slTxt(ctx,'r = '+r.toFixed(2)+' m',(PX+a.x)/2,PY+20,'#94a3b8',11.5,'center');
     ctx.fillStyle='#ef4444';ctx.beginPath();ctx.arc(PX,PY,9,0,6.2832);ctx.fill();
-    simText(ctx,'ציר',PX,PY+30,'#ef4444',11.5,'center',true);
+    simText(ctx,'ציר',PX-14,PY+4,'#ef4444',11.5,'right',true);
     ctx.fillStyle='#3b82f6';ctx.beginPath();ctx.arc(a.x,a.y,6,0,6.2832);ctx.fill();
     // angle arc at the application point
     ctx.save();ctx.strokeStyle='#94a3b8';ctx.lineWidth=1.5;
@@ -14373,26 +14379,28 @@ function simStaticsBeam(canvas){
     ctx.strokeStyle='#334155';ctx.lineWidth=2;
     ctx.beginPath();ctx.moveTo(X0-40,BY+52);ctx.lineTo(X0+XL+40,BY+52);ctx.stroke();
     ctx.fillStyle='#475569';ctx.fillRect(X0-14,BY-9,XL+28,18);
-    // supports
+    // supports. One force scale for every arrow (supports, weight, load), so
+    // the up arrows visibly add up to the down arrows; the weight and the
+    // load used to be drawn at a fixed length, even at 0 N.
+    var sc=Math.min(1,70/Math.max(1,Math.abs(NA)+Math.abs(NB)))*1.7;
     [[0,NA,'A'],[xb,NB,'B']].forEach(function(q){
       var x=X0+q[0]*PPM, neg=q[1]<0;
       ctx.fillStyle=neg?'#ef4444':'#64748b';
       ctx.beginPath();ctx.moveTo(x,BY+10);ctx.lineTo(x-15,BY+52);ctx.lineTo(x+15,BY+52);ctx.closePath();ctx.fill();
-      var sc=Math.min(1,70/Math.max(1,Math.abs(NA)+Math.abs(NB)))*1.7;
       simArrow(ctx,x,BY+8,x,BY+8-Math.abs(q[1])*sc*(neg?-1:1),neg?'#ef4444':'#10b981',3,11);
       slTxt(ctx,'N'+q[2]+' = '+q[1].toFixed(0)+' N',x,BY+70,neg?'#ef4444':'#10b981',12.5,'center',true);
     });
     // beam weight at its centre
     var xc=X0+(L/2)*PPM;
-    simArrow(ctx,xc,BY,xc,BY+40,'#f59e0b',2.5,10);
-    slTxt(ctx,'W = '+Wb.toFixed(0)+' N',xc,BY+40+16,'#f59e0b',11.5,'center');
+    simArrow(ctx,xc,BY,xc,BY+Wb*sc,'#f59e0b',2.5,10);
+    slTxt(ctx,'W = '+Wb.toFixed(0)+' N',xc,BY+Math.max(14,Wb*sc+14),'#f59e0b',11.5,'center');
     // draggable load
     var xl=X0+xp*PPM;
     ctx.fillStyle='#3b82f6';ctx.strokeStyle='#93c5fd';ctx.lineWidth=2;
     ctx.beginPath();ctx.rect(xl-22,BY-52,44,42);ctx.fill();ctx.stroke();
     slTxt(ctx,P.toFixed(0)+' N',xl,BY-27,'#fff',12,'center',true);
     simHandle(ctx,xl,BY-30,'#bfdbfe',28);         // the load is what you drag
-    simArrow(ctx,xl,BY-8,xl,BY+26,'#3b82f6',2.5,10);
+    simArrow(ctx,xl,BY-8,xl,BY-8+P*sc,'#3b82f6',2.5,10);
     // scale
     for(var m=0;m<=L;m++){var x=X0+m*PPM;
       ctx.strokeStyle='#334155';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(x,BY+52);ctx.lineTo(x,BY+58);ctx.stroke();
