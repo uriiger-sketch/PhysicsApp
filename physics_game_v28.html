@@ -13520,233 +13520,162 @@ function simNewton3(canvas){
 
 function simPendulum(canvas){
   // SECTION: shm.pendulum — מטוטלת פשוטה
-  // PEDAGOGY: Period T=2π√(L/g), angle vs time graph, energy exchange.
-  // Interactive: drag the bob to any angle, release. Change L and g.
+  // θ'' = −(g/L)·sinθ − b·θ', integrated in small symplectic steps, so the
+  // large-amplitude pendulum is genuinely slower. The small-angle period and
+  // the exact one are shown side by side. Drag the bob to set the amplitude.
   const H=490; const {ctx,W,dpr}=setupCanvas(canvas,H);
   const id=canvas.id;
   let pT=null, t=0;
-  var L=1.0, g=9.8;       // length (m), gravity
-  var theta=0.4, omega=0; // angle from vertical (rad), angular velocity
-  var b=0.02;              // damping
-  var dragging=false, dragStartY=0, dragStartTheta=0;
-  var thetaHist=[], timeHist=[], clock=0;
-  var maxHist=300;
-  // Energy reference, captured at release. It used to be a hard-coded amplitude
-  // of 0.5 rad, so the bars were correct at exactly one release angle.
+  var L=1.0, g=9.8, b=0, M=1;           // m, m/s², 1/s, kg
+  var theta=0.4, omega=0;
+  var dragging=false;
+  var thetaHist=[], timeHist=[], clock=0, trailP=[];
   var Eref=null, lastL=null, lastG=null;
 
-  // Pivot position
-  var PIV_X=W*0.38, PIV_Y=72;
-  var PX_PER_M=Math.min(W*0.5,210); // pixels per meter of L
-
+  var PIV_X=W/2, PIV_Y=78;
+  var GY=H-116;                                    // top of the bottom row
+  var RMAX=Math.min(GY-PIV_Y-30, W/2-34);          // longest string that fits at 80°
+  var PX=200;                                      // px per metre, set per frame
   function getL(){var e=document.getElementById('inp-pend-L'); return e?parseFloat(e.value):L;}
   function getG(){var e=document.getElementById('inp-pend-g'); return e?parseFloat(e.value):g;}
   function getB(){var e=document.getElementById('inp-pend-damp'); return e?parseFloat(e.value):b;}
+  function bobX(){return PIV_X+Math.sin(theta)*L*PX;}
+  function bobY(){return PIV_Y+Math.cos(theta)*L*PX;}
 
-  function bobX(){return PIV_X+Math.sin(theta)*L*PX_PER_M;}
-  function bobY(){return PIV_Y+Math.cos(theta)*L*PX_PER_M;}
-
-  function getCanvasXY(evt){
-    var r=canvas.getBoundingClientRect();
-    var scl=(canvas.width/dpr)/r.width;
-    return {
-      x:((evt.touches?evt.touches[0].clientX:evt.clientX)-r.left)*scl,
-      y:((evt.touches?evt.touches[0].clientY:evt.clientY)-r.top)*scl
-    };
-  }
-  function onDown(e){
-    e.preventDefault();
-    var p=getCanvasXY(e);
-    var bx=bobX(), by=bobY();
-    if(Math.abs(p.x-bx)<28&&Math.abs(p.y-by)<28){
-      dragging=true; omega=0;
-      thetaHist=[]; timeHist=[]; clock=0;
-    }
-  }
-  function onMove(e){
-    if(!dragging)return; e.preventDefault();
-    var p=getCanvasXY(e);
-    theta=Math.atan2(p.x-PIV_X, p.y-PIV_Y);
-    theta=Math.max(-1.4,Math.min(1.4,theta));
-    omega=0;
-  }
-  function onUp(){dragging=false;Eref=null;}   // recapture E at the release angle
+  function onDown(e){var p=simPointerXY(canvas,dpr,e);
+    if(Math.hypot(p.x-bobX(),p.y-bobY())<30){dragging=true;omega=0;thetaHist=[];timeHist=[];clock=0;e.preventDefault();}}
+  function onMove(e){if(!dragging)return; e.preventDefault(); var p=simPointerXY(canvas,dpr,e);
+    theta=Math.max(-1.4,Math.min(1.4,Math.atan2(p.x-PIV_X,p.y-PIV_Y))); omega=0;}
+  function onUp(){if(dragging){dragging=false;Eref=null;}}
   canvas.addEventListener('mousedown',onDown); canvas.addEventListener('touchstart',onDown,{passive:false});
   canvas.addEventListener('mousemove',onMove); canvas.addEventListener('touchmove',onMove,{passive:false});
-  canvas.addEventListener('mouseup',onUp); canvas.addEventListener('touchend',onUp);
-
+  canvas.addEventListener('mouseup',onUp); canvas.addEventListener('mouseleave',onUp); canvas.addEventListener('touchend',onUp);
   var resetBtn=document.getElementById('btn-pend-reset');
-  var trailP=[];
-  if(resetBtn)resetBtn.addEventListener('click',function(){theta=0.5;omega=0;thetaHist=[];timeHist=[];clock=0;trailP=[];Eref=null;});
+  if(resetBtn)resetBtn.addEventListener('click',function(){theta=0.4;omega=0;thetaHist=[];timeHist=[];clock=0;trailP=[];Eref=null;});
+
+  function agm(a,c){for(var i=0;i<30;i++){var n=(a+c)/2;c=Math.sqrt(a*c);a=n;}return a;}
 
   function draw(ts){
     if(_simStop[id])return;
     if(!pT)pT=ts; var dt=Math.min((ts-pT)/1000,0.04); pT=ts;
     t+=dt;
     L=getL(); g=getG(); b=getB();
-    // Changing L or g changes the system's energy, so the reference must follow.
-    if(lastL!==null&&(Math.abs(lastL-L)>1e-9||Math.abs(lastG-g)>1e-9))Eref=null;
+    if(lastL!==null&&(Math.abs(lastL-L)>1e-9||Math.abs(lastG-g)>1e-9)){Eref=null;trailP=[];}
     lastL=L; lastG=g;
+    // the drawing scale shrinks only when the string would not fit; a scale
+    // bar shows it, so a 3 m string is not mistaken for a 1.3 m one
+    PX=Math.min(200,RMAX/L);
 
     if(!dragging){
-      // Pendulum ODE: θ'' = -(g/L)sinθ - b*θ'
-      var alpha=-(g/L)*Math.sin(theta)-b*omega;
-      omega+=alpha*dt;
-      theta+=omega*dt;
+      var n=Math.max(1,Math.ceil(dt/0.002)), h=dt/n;
+      for(var k=0;k<n;k++){              // semi-implicit Euler: bounded energy error
+        omega+=(-(g/L)*Math.sin(theta)-b*omega)*h;
+        theta+=omega*h;
+      }
       clock+=dt;
-      thetaHist.push(theta*180/Math.PI);
-      timeHist.push(clock);
-      // Fixed window of 3 small-angle periods (was 300 FRAMES, i.e. a time
-      // axis whose length depended on the device's frame rate).
+      thetaHist.push(theta*180/Math.PI); timeHist.push(clock);
       var _win=3*2*Math.PI*Math.sqrt(L/g);
       while(timeHist.length&&clock-timeHist[0]>_win){thetaHist.shift();timeHist.shift();}
     }
 
-    var T=2*Math.PI*Math.sqrt(L/g);
+    var T0=2*Math.PI*Math.sqrt(L/g);
     var bx=bobX(), by=bobY();
-    if(!dragging){trailP.push({x:bx,y:by});if(trailP.length>70)trailP.shift();}else{trailP=[];}
-    var speed=Math.abs(omega)*L*PX_PER_M;
-    // Energy
-    var h=L*(1-Math.cos(theta));
-    var KE=0.5*(L*L*omega*omega)*1; // proportional (mass=1)
-    var PE=g*L*(1-Math.cos(theta));
-    // Referenced to the energy this pendulum actually has. With damping on, the
-    // total then visibly decays — which is what a damping control should show.
+    if(!dragging){trailP.push({x:bx,y:by});if(trailP.length>70)trailP.shift();}else trailP=[];
+    var KE=0.5*M*L*L*omega*omega, PE=M*g*L*(1-Math.cos(theta));
     if(Eref===null||!isFinite(Eref)||Eref<1e-6)Eref=Math.max(1e-6,KE+PE);
-    var E0=Eref;
+    // amplitude from the energy (so it follows damping), exact period T0/AGM(1,cos(θ0/2))
+    var amp=Math.acos(Math.max(-1,Math.min(1,1-(KE+PE)/(M*g*L))));
+    var Ttrue=T0/agm(1,Math.cos(amp/2));
+    var dev=(Ttrue/T0-1)*100;
 
     simBg(ctx,W,H);
-
-    // ── Motion trail ──────────────────────────────────
-    for(var ti2=1;ti2<trailP.length;ti2++){
-      var fr2=ti2/trailP.length;
-      ctx.save();ctx.globalAlpha=fr2*fr2*0.45;
-      ctx.strokeStyle='#60a5fa';ctx.lineWidth=1+fr2*2.5;ctx.lineCap='round';
-      ctx.beginPath();ctx.moveTo(trailP[ti2-1].x,trailP[ti2-1].y);ctx.lineTo(trailP[ti2].x,trailP[ti2].y);ctx.stroke();
-      ctx.restore();
+    for(var i2=1;i2<trailP.length;i2++){
+      var fr=i2/trailP.length;
+      ctx.save();ctx.globalAlpha=fr*fr*0.45;ctx.strokeStyle='#60a5fa';ctx.lineWidth=1+fr*2.5;ctx.lineCap='round';
+      ctx.beginPath();ctx.moveTo(trailP[i2-1].x,trailP[i2-1].y);ctx.lineTo(trailP[i2].x,trailP[i2].y);ctx.stroke();ctx.restore();
     }
-
-    // ── Pendulum rope and bob ─────────────────────────
-    // Pivot mount
-    ctx.save(); ctx.fillStyle='#1e3a52'; ctx.fillRect(PIV_X-30,PIV_Y-14,60,14); ctx.restore();
-    for(var xi=PIV_X-30;xi<PIV_X+30;xi+=10){
-      ctx.save(); ctx.strokeStyle='#0f2035'; ctx.lineWidth=1.5;
-      ctx.beginPath(); ctx.moveTo(xi,PIV_Y-14); ctx.lineTo(xi-7,PIV_Y-22); ctx.stroke(); ctx.restore();
-    }
-    // Rope
-    var ropeGrad=ctx.createLinearGradient(PIV_X,PIV_Y,bx,by);
-    ropeGrad.addColorStop(0,'#94a3b8'); ropeGrad.addColorStop(1,'#60a5fa');
-    ctx.save(); ctx.strokeStyle=ropeGrad; ctx.lineWidth=2.5;
-    ctx.beginPath(); ctx.moveTo(PIV_X,PIV_Y); ctx.lineTo(bx,by); ctx.stroke(); ctx.restore();
-    // Pivot dot
-    ctx.save(); ctx.fillStyle='#334155'; ctx.strokeStyle='#60a5fa'; ctx.lineWidth=2;
-    ctx.beginPath(); ctx.arc(PIV_X,PIV_Y,7,0,Math.PI*2); ctx.fill(); ctx.stroke(); ctx.restore();
-    // Length label
+    // mount, string, pivot
+    ctx.save(); ctx.fillStyle='#1e3a52'; ctx.fillRect(PIV_X-30,PIV_Y-14,60,14);
+    ctx.strokeStyle='#0f2035'; ctx.lineWidth=1.5;
+    for(var xi=PIV_X-30;xi<PIV_X+30;xi+=10){ctx.beginPath();ctx.moveTo(xi,PIV_Y-14);ctx.lineTo(xi-7,PIV_Y-22);ctx.stroke();}
+    ctx.restore();
+    var rg=ctx.createLinearGradient(PIV_X,PIV_Y,bx,by); rg.addColorStop(0,'#94a3b8'); rg.addColorStop(1,'#60a5fa');
+    ctx.save(); ctx.strokeStyle=rg; ctx.lineWidth=2.5; ctx.beginPath(); ctx.moveTo(PIV_X,PIV_Y); ctx.lineTo(bx,by); ctx.stroke(); ctx.restore();
+    ctx.save(); ctx.fillStyle='#334155'; ctx.strokeStyle='#60a5fa'; ctx.lineWidth=2; ctx.beginPath(); ctx.arc(PIV_X,PIV_Y,7,0,Math.PI*2); ctx.fill(); ctx.stroke(); ctx.restore();
+    // vertical through the pivot, and the angle arc on the side the bob is on
     ctx.save(); ctx.strokeStyle='rgba(96,165,250,.25)'; ctx.lineWidth=1; ctx.setLineDash([3,5]);
-    ctx.beginPath(); ctx.moveTo(PIV_X+4,PIV_Y); ctx.lineTo(PIV_X+4,by-20); ctx.stroke(); ctx.setLineDash([]); ctx.restore();
-    simText(ctx,'L='+L.toFixed(1)+'m',PIV_X+18,(PIV_Y+by)/2,'#7d8da6',8,'left');
-    // Angle arc
+    ctx.beginPath(); ctx.moveTo(PIV_X,PIV_Y); ctx.lineTo(PIV_X,PIV_Y+L*PX+16); ctx.stroke(); ctx.restore();
     if(Math.abs(theta)>0.03){
-      ctx.save(); ctx.strokeStyle='rgba(251,191,36,.5)'; ctx.lineWidth=1.5;
-      ctx.beginPath(); ctx.arc(PIV_X,PIV_Y,40,Math.PI/2,Math.PI/2+theta,theta<0); ctx.stroke(); ctx.restore();
-      simText(ctx,(theta*180/Math.PI).toFixed(0)+'°',PIV_X+Math.sin(theta)*50,PIV_Y+Math.cos(theta)*50-8,'#fbbf24',8.5,undefined,true);
+      ctx.save(); ctx.strokeStyle='rgba(251,191,36,.6)'; ctx.lineWidth=1.5; ctx.beginPath();
+      if(theta>0)ctx.arc(PIV_X,PIV_Y,40,Math.PI/2-theta,Math.PI/2,false);
+      else ctx.arc(PIV_X,PIV_Y,40,Math.PI/2,Math.PI/2-theta,false);
+      ctx.stroke(); ctx.restore();
+      simText(ctx,Math.abs(theta*180/Math.PI).toFixed(0)+'°',PIV_X+Math.sin(theta/2)*56,PIV_Y+Math.cos(theta/2)*56+4,'#fbbf24',9,'center',true);
     }
-    // Bob
-    var bobR=16+Math.min(8,Math.abs(omega)*3);
+    var _lf=0.66, _lx=PIV_X+Math.sin(theta)*L*PX*_lf, _ly=PIV_Y+Math.cos(theta)*L*PX*_lf;
+    simText(ctx,'L = '+L.toFixed(1)+' m',_lx+(theta>=0?-12:12)*Math.cos(theta),_ly+(theta>=0?12:-12)*Math.sin(theta)+3,'#7d8da6',8.5,theta>=0?'right':'left');
+    // scale bar
+    var sbY=GY-12;
+    ctx.save(); ctx.strokeStyle='#7d8da6'; ctx.lineWidth=2;
+    ctx.beginPath(); ctx.moveTo(14,sbY); ctx.lineTo(14+PX,sbY); ctx.moveTo(14,sbY-4); ctx.lineTo(14,sbY+4); ctx.moveTo(14+PX,sbY-4); ctx.lineTo(14+PX,sbY+4); ctx.stroke(); ctx.restore();
+    simText(ctx,'1 m',14+PX/2,sbY-7,'#7d8da6',8,'center');
+    // bob
     var vFrac=Math.min(1,Math.abs(omega)*L/3);
     var bobCol='rgba('+Math.round(59+196*vFrac)+','+Math.round(130-50*vFrac)+','+Math.round(246-196*vFrac)+',0.9)';
-    ctx.save(); ctx.shadowColor=bobCol; ctx.shadowBlur=14+vFrac*10;
-    ctx.fillStyle=bobCol; ctx.strokeStyle='#93c5fd'; ctx.lineWidth=2.5;
-    ctx.beginPath(); ctx.arc(bx,by,bobR,0,Math.PI*2); ctx.fill(); ctx.stroke(); ctx.shadowBlur=0; ctx.restore();
-    simText(ctx,'m',bx,by+4,'#fff',9,undefined,true);
-    // Velocity arrow
+    ctx.save(); ctx.shadowColor=bobCol; ctx.shadowBlur=14+vFrac*10; ctx.fillStyle=bobCol; ctx.strokeStyle='#93c5fd'; ctx.lineWidth=2.5;
+    ctx.beginPath(); ctx.arc(bx,by,16,0,Math.PI*2); ctx.fill(); ctx.stroke(); ctx.shadowBlur=0; ctx.restore();
+    simText(ctx,'1 kg',bx,by+4,'#fff',8.5,'center',true);
     if(Math.abs(omega)>0.05&&!dragging){
-      var vDir=Math.sign(omega);
-      // |ω|·L is the bob's speed in m/s; multiplying it by pixels-per-metre-of-
-      // STRING-LENGTH mixed two different scales and pinned the arrow at its cap
-      // for every amplitude above about 0.25 rad. 15 px per m/s covers the range.
-      var vLen=Math.min(64,Math.abs(omega)*L*15);
-      // velocity is tangential = perpendicular to rope
+      var vDir=Math.sign(omega), vLen=Math.min(60,Math.abs(omega)*L*15);
       var tx=Math.cos(theta)*vDir, ty=-Math.sin(theta)*vDir;
       simArrow(ctx,bx,by,bx+tx*vLen,by+ty*vLen,'#22d3ee',2.5,9);
-      simText(ctx,'v='+(Math.abs(omega)*L).toFixed(2)+'m/s',bx+tx*vLen+8,by+ty*vLen,'#22d3ee',8,'left');
     }
-    // Drag hint
-    if(t<4||dragging){
-      simText(ctx,dragging?'שחרר!':'← גררו לזווית!',bx+26,by,'#fbbf24',9,'left');
-    }
+    if(t<4||dragging) simText(ctx,dragging?'שחררו!':'גררו את המשקולת לזווית כלשהי',bx,by-26,'#fbbf24',9,'center',true);
 
-    // ── Energy bars ──────────────────────────────────
-    var EBX=W*0.68, EBY=80, EBW=22, EBH=160;
-    ctx.save(); ctx.fillStyle='rgba(6,14,28,.88)'; ctx.strokeStyle='#1e4060'; ctx.lineWidth=1.5;
-    ctx.beginPath(); ctx.roundRect(EBX-16,EBY-24,EBW*2+56,EBH+64,6); ctx.fill(); ctx.stroke(); ctx.restore();
-    simText(ctx,'אנרגיה',EBX+EBW/2+14,EBY-10,'#22d3ee',9,undefined,true);
-    // KE bar
-    var keH=Math.min(EBH, (KE/E0)*EBH);
-    ctx.save(); ctx.fillStyle='rgba(34,211,153,.8)';
-    ctx.beginPath(); ctx.roundRect(EBX,EBY+EBH-keH,EBW,keH,3); ctx.fill(); ctx.restore();
-    ctx.save(); ctx.strokeStyle='#22d3ee'; ctx.lineWidth=1.5;
-    ctx.beginPath(); ctx.roundRect(EBX,EBY,EBW,EBH,3); ctx.stroke(); ctx.restore();
-    simText(ctx,'KE',EBX+EBW/2,EBY+EBH+12,'#34d399',8,undefined,true);
-    simText(ctx,(KE).toFixed(2)+'J',EBX+EBW/2,EBY+EBH+22,'#34d399',7.5,undefined,true);
-    // PE bar
-    var peH=Math.min(EBH,(PE/E0)*EBH);
-    ctx.save(); ctx.fillStyle='rgba(251,191,36,.8)';
-    ctx.beginPath(); ctx.roundRect(EBX+EBW+12,EBY+EBH-peH,EBW,peH,3); ctx.fill(); ctx.restore();
-    ctx.save(); ctx.strokeStyle='#fbbf24'; ctx.lineWidth=1.5;
-    ctx.beginPath(); ctx.roundRect(EBX+EBW+12,EBY,EBW,EBH,3); ctx.stroke(); ctx.restore();
-    simText(ctx,'PE',EBX+EBW+12+EBW/2,EBY+EBH+12,'#fbbf24',8,undefined,true);
-    simText(ctx,(PE).toFixed(2)+'J',EBX+EBW+12+EBW/2,EBY+EBH+22,'#fbbf24',7.5,undefined,true);
-    simText(ctx,'KE+PE='+(KE+PE).toFixed(2),EBX+EBW/2+6,EBY+EBH+36,'#94a3b8',7.5,undefined,true);
-
-    // ── Formula panel ─────────────────────────────────
+    // ── formula panel
     ctx.save(); ctx.fillStyle='rgba(6,14,28,.92)'; ctx.strokeStyle='#1e4060'; ctx.lineWidth=1.5;
-    ctx.beginPath(); ctx.roundRect(8,6,W*0.60,44,6); ctx.fill(); ctx.stroke(); ctx.restore();
-    simText(ctx,'מטוטלת פשוטה: T = 2π√(L/g)',W*0.30,18,'#22d3ee',11,undefined,true);
-    // T = 2π√(L/g) is the SMALL-ANGLE period, and this simulation swings to 80°,
-    // where the real period is ~13% longer. Recover the amplitude from the energy
-    // (so it follows the damping) and show both, with the discrepancy.
-    var _cs=1-(KE+PE)/(g*L);
-    var amp=Math.acos(Math.max(-1,Math.min(1,_cs)));
-    var Ttrue=T*(1+amp*amp/16+11*Math.pow(amp,4)/3072);
-    var _dev=(Ttrue/T-1)*100;
-    simText(ctx,'\u200eT₀ = 2π√(L/g) = '+T.toFixed(3)+' s   |   f = '+(1/T).toFixed(3)+' Hz   |   θ = '+(theta*180/Math.PI).toFixed(1)+'°',W*0.30,34,'#94a3b8',9,undefined,true);
-    simText(ctx,'\u200eמשרעת θ₀ = '+(amp*180/Math.PI).toFixed(1)+'°  →  T אמיתי = '+Ttrue.toFixed(3)+' s  ('+(_dev>=0?'+':'')+_dev.toFixed(1)+'%)'+
-                (_dev>1.5?'  ⚠ קירוב הזווית הקטנה כבר לא מדויק':'  ✓ קירוב הזווית הקטנה תקף'),
-            W*0.30,46,_dev>1.5?'#fbbf24':'#4ade80',8.5,undefined,true);
+    ctx.beginPath(); ctx.roundRect(8,6,W-16,48,6); ctx.fill(); ctx.stroke(); ctx.restore();
+    simText(ctx,'‎T₀ = 2π√(L/g) = '+T0.toFixed(3)+' s   |   f = '+(1/T0).toFixed(3)+' Hz   |   v = '+(Math.abs(omega)*L).toFixed(2)+' m/s',W/2,20,'#22d3ee',9.5,'center',true);
+    simText(ctx,'‎משרעת θ₀ = '+(amp*180/Math.PI).toFixed(1)+'°  →  T אמיתי = '+Ttrue.toFixed(3)+' s  ('+(dev>=0?'+':'')+dev.toFixed(1)+'%)',W/2,35,dev>1.5?'#fbbf24':'#4ade80',9,'center',true);
+    simText(ctx,dev>1.5?'⚠ קירוב הזווית הקטנה כבר אינו מדויק':'✓ קירוב הזווית הקטנה תקף',W/2,49,dev>1.5?'#fbbf24':'#4ade80',8.5,'center');
 
-    // ── θ(t) graph ────────────────────────────────────
-    var GX=8, GY=H-110, GW=W*0.60, GH=96;
+    // ── bottom row: θ(t) on the left, energy on the right
+    var GX=8, GW=W*0.62, GH=H-GY-8;
     ctx.save(); ctx.fillStyle='rgba(6,14,28,.88)'; ctx.strokeStyle='#1e3a52'; ctx.lineWidth=1;
     ctx.beginPath(); ctx.roundRect(GX,GY,GW,GH,4); ctx.fill(); ctx.stroke(); ctx.restore();
-    simText(ctx,'θ(t) — זווית מול זמן',GX+GW/2,GY+9,'#7d8da6',8,undefined,true);
-    simText(ctx,'t (s) →',GX+GW-8,GY+GH-4,'#7d8da6',7,'right');
-    simText(ctx,'θ (°) ↑',GX+8,GY+18,'#a78bfa',7,'left');   // the samples are in DEGREES; this said rad
+    simText(ctx,'θ(t) — זווית מול זמן',GX+GW/2,GY+11,'#7d8da6',8,'center',true);
+    simText(ctx,'t →',GX+GW-8,GY+GH-5,'#7d8da6',8,'right');
+    simText(ctx,'θ (°)',GX+6,GY+20,'#a78bfa',8,'left');
     var gMY=GY+GH/2+6;
-    ctx.save(); ctx.strokeStyle='#1e3a52'; ctx.lineWidth=1;
-    ctx.beginPath(); ctx.moveTo(GX+6,gMY); ctx.lineTo(GX+GW-6,gMY); ctx.stroke(); ctx.restore();
+    ctx.save(); ctx.strokeStyle='#1e3a52'; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(GX+6,gMY); ctx.lineTo(GX+GW-6,gMY); ctx.stroke(); ctx.restore();
     if(thetaHist.length>2){
-      var tSpan=3*T;                       // fixed axis: fills, then scrolls
-      var tScale=(GW-14)/tSpan;
-      // Scale from the whole visible history, not the CURRENT angle — that
-      // rescaled the plot every swing, so the curve breathed instead of decaying.
-      var thMax=45; for(var _k=0;_k<thetaHist.length;_k++)thMax=Math.max(thMax,Math.abs(thetaHist[_k])+5);
-      ctx.save(); ctx.strokeStyle='#60a5fa'; ctx.lineWidth=1.8;
-      ctx.beginPath();
+      var tScale=(GW-14)/(3*T0);
+      var thMax=45; for(var k2=0;k2<thetaHist.length;k2++)thMax=Math.max(thMax,Math.abs(thetaHist[k2])+5);
+      ctx.save(); ctx.strokeStyle='#60a5fa'; ctx.lineWidth=1.8; ctx.beginPath();
       for(var i=0;i<thetaHist.length;i++){
-        var px=GX+6+(timeHist[i]-timeHist[0])*tScale;
-        var py=gMY-thetaHist[i]/thMax*(GH/2-10);
+        var px=GX+6+(timeHist[i]-timeHist[0])*tScale, py=gMY-thetaHist[i]/thMax*(GH/2-12);
         i===0?ctx.moveTo(px,py):ctx.lineTo(px,py);
       }
       ctx.stroke(); ctx.restore();
-    } else {
-      simText(ctx,'שחרר את המטוטלת לראות גרף',GX+GW/2,GY+GH/2+4,'#7d8da6',8.5,undefined,true);
-    }
+    } else simText(ctx,'שחררו את המטוטלת כדי לראות גרף',GX+GW/2,gMY+4,'#7d8da6',8.5,'center',true);
+
+    var EX=GX+GW+8, EW=W-8-EX;
+    ctx.save(); ctx.fillStyle='rgba(6,14,28,.88)'; ctx.strokeStyle='#1e4060'; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.roundRect(EX,GY,EW,GH,4); ctx.fill(); ctx.stroke(); ctx.restore();
+    simText(ctx,'אנרגיה (m = 1 kg)',EX+EW/2,GY+12,'#22d3ee',8.5,'center',true);
+    var bw=EW-16, bX=EX+8;
+    [[KE,'E_k','#34d399',GY+26],[PE,'E_p','#fbbf24',GY+52]].forEach(function(r){
+      ctx.save(); ctx.fillStyle=r[2]+'cc'; ctx.fillRect(bX,r[3],Math.max(0,Math.min(1,r[0]/Eref))*bw,9);
+      ctx.strokeStyle=r[2]; ctx.lineWidth=1; ctx.strokeRect(bX,r[3],bw,9); ctx.restore();
+      simText(ctx,r[1]+' = '+r[0].toFixed(2)+' J',EX+EW/2,r[3]+21,r[2],8,'center');
+    });
+    simText(ctx,'E_k + E_p = '+(KE+PE).toFixed(2)+' J',EX+EW/2,GY+GH-6,'#cbd5e1',8,'center',true);
 
     requestAnimationFrame(draw);
   }
   requestAnimationFrame(draw);
 }
+
 
 function simProjectile(canvas){
   // SECTION: planar.projectile — תנועה בליסטית
@@ -32471,7 +32400,7 @@ function buildSim(sim){
   else if(sim.type==='static-friction')extra=C(rng('sft-mu',0.1,0.9,0.55,0.05,'μ_s')+rng('sft-mass',1,15,3,0.5,'מסה m',' kg')+rng('sft-F',0,80,0,1,'כוח F',' N')+btn('sft-reset','↺ אפס','btn-secondary'));
   else if(sim.type==='kinetic-friction')extra=C(rng('kf-v0',2,20,10,1,'מהירות v₀',' m/s')+rng('kf-mass',1,15,5,0.5,'מסה m',' kg')+rng('kf-mu',0.1,0.8,0.38,0.02,'μ_k')+btn('kf-launch','▶ שגר!','btn-primary')+btn('kf-reset','↺ אפס','btn-secondary'));
   else if(sim.type==='friction-combined')extra=C(rng('fc-theta',5,70,20,1,'זווית θ','°')+rng('fc-F',0,80,0,2,'כוח F',' N')+rng('fc-mu',0.05,0.8,0.45,0.05,'μ')+rng('fc-m',0.5,10,5,0.5,'מסה m',' kg')+btn('fc-reset','↺ אפס','btn-secondary'));
-  else if(sim.type==='pendulum')extra=C(rng('pend-L',0.3,3,1,0.1,'אורך L',' m')+rng('pend-g',1.6,25,9.8,0.5,'g',' m/s²')+rng('pend-damp',0,0.1,0.02,0.005,'ריסון b','')+btn('pend-reset','↺ אפס','btn-secondary'));
+  else if(sim.type==='pendulum')extra=C(rng('pend-L',0.3,3,1,0.1,'אורך L',' m')+rng('pend-g',1.6,25,9.8,0.5,'g',' m/s²')+rng('pend-damp',0,0.1,0,0.005,'ריסון b',' 1/s')+btn('pend-reset','↺ אפס','btn-secondary'));
   else if(sim.type==='projectile')extra=C(rng('proj-angle',10,80,45,1,'זווית θ','°')+rng('proj-v0',5,35,20,1,'מהירות v₀',' m/s')+btn('proj-launch','▶ שגר!','btn-primary')+btn('proj-reset','↺ אפס','btn-secondary'));
   else if(sim.type==='elc-dielectric')extra=C(rng('di-k',1,8,4,0.5,'קבוע דיאלקטרי κ')+rng('di-f',0,1,0,0.05,'הכנסת הלוח')+btn('di-mode','🔌 הסוללה מחוברת','btn-secondary'));
   else if(sim.type==='elc-deflect')extra=C(rng('df-V',0,300,100,10,'מתח V',' V')+rng('df-v0',1,5,2,0.25,'v₀',' ×10⁷ m/s')+rng('df-L',4,14,10,1,'אורך הלוחות',' cm')+btn('df-part','🔁 החלף לפרוטון','btn-secondary'));
