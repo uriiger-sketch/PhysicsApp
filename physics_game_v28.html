@@ -29827,6 +29827,7 @@ function simElcConductor(canvas){
   const H=460;const{ctx,W,dpr}=setupCanvas(canvas,H);
   const id=canvas.id;var animT=0;
   var PXM=200;                            // px per metre
+  var EXT_E0=1.5e5;                       // V/m, the external field when switched on
   var cx=W*0.27, cy=H*0.42;
   var pxp=cx+95, pyp=cy-40;               // probe
   var dragP=false,touched=false,sharpMode=false,ext=false;
@@ -29854,12 +29855,27 @@ function simElcConductor(canvas){
     ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);
     var qcol=Q>0?'#f87171':Q<0?'#60a5fa':'#64748b';
     var rp_px=Math.hypot(pxp-cx,pyp-cy), r_m=rp_px/PXM, inside=rp_px<Rp;
-    // ── external field (drawn only OUTSIDE — inside is exactly zero) ──
-    if(ext){
-      for(var gy=40;gy<H-40;gy+=42){
-        for(var gx=16;gx<W*0.54;gx+=40){
-          if(Math.hypot(gx-cx,gy-cy)<Rp+6)continue;   // no arrows inside the metal
-          simArrow(ctx,gx-9,gy,gx+9,gy,'rgba(251,191,36,.42)',1.2,5);
+    // The external field is not painted round the sphere unchanged: the metal
+    // polarises (sigma = 3eps0*E0*cos(theta)), and its induced dipole
+    // p = 4*pi*eps0*R^3*E0 bends the field until it meets the surface at right
+    // angles. Outside: E = E0*x + E0*(R/r)^3*(3cos(theta) r - x) + kQ/r^2 r,
+    // V = kQ/r - E0*r*cos(theta)*(1-(R/r)^3); inside E = 0 and V = kQ/R.
+    var E0x=(ext&&!sharpMode)?EXT_E0:0;
+    function fieldAt(dx,dy){             // dx, dy in metres from the centre
+      var r=Math.hypot(dx,dy);
+      if(r<R)return {x:0,y:0,m:0,V:ELC_K*Q/R};
+      var ux=dx/r,uy=dy/r,a=Math.pow(R/r,3),er=ELC_K*Q/(r*r);
+      var ex=E0x+E0x*a*(3*ux*ux-1)+er*ux, ey=E0x*a*3*ux*uy+er*uy;
+      return {x:ex,y:ey,m:Math.hypot(ex,ey),V:ELC_K*Q/r-E0x*r*ux*(1-a)};
+    }
+    if(ext&&!sharpMode){
+      for(var gy=34;gy<H-40;gy+=36){
+        for(var gx=16;gx<W*0.54;gx+=36){
+          if(Math.hypot(gx-cx,gy-cy)<Rp+8)continue;   // no arrows inside the metal
+          var fe=fieldAt((gx-cx)/PXM,(gy-cy)/PXM);
+          if(fe.m<1)continue;
+          var fux=fe.x/fe.m,fuy=fe.y/fe.m;
+          simArrow(ctx,gx-fux*8,gy-fuy*8,gx+fux*8,gy+fuy*8,'rgba(251,191,36,.5)',1.2,5);
         }
       }
     }
@@ -29879,7 +29895,7 @@ function simElcConductor(canvas){
       }
       if(nS===0)optLabel(ctx,'מוליך נייטרלי — אין מטען עודף',cx,cy-Rp-14,'#7d8da6',9);
       if(ext){
-        // induced charge: − on the face the field points from, + on the far face
+        // induced charge: − on the face the field enters, + where it leaves
         for(var i=0;i<4;i++){
           var th2=-0.6+i*0.4;
           optLabel(ctx,'−',cx-Math.cos(th2)*Rp*0.94,cy+Math.sin(th2)*Rp*0.94,'#60a5fa',12);
@@ -29908,6 +29924,7 @@ function simElcConductor(canvas){
         ctx.save();ctx.globalAlpha=0.3+0.7*w8;optLabel(ctx,Q>0?'+':'−',X,Y,qcol,11);ctx.restore();
       }
       optLabel(ctx,'E = 0',cx-rr*0.30,cy,'#4ade80',12);
+      if(ext)optLabel(ctx,'(השדה החיצוני מוצג במצב כדור)',cx,H-24,'#7d8da6',8.5);
       // The whole surface sits at one potential V=kQ/R, and a region of
       // curvature ρ carries the field that potential implies locally: E≈V/ρ.
       // (kQ/ρ² would be the field of the whole charge squeezed into the tip.)
@@ -29950,8 +29967,9 @@ function simElcConductor(canvas){
         'זהו העיקרון של כליא הברק']);
       requestAnimationFrame(draw);return;
     }
-    var Ep=inside?0:Math.abs(ELC_K*Q/(r_m*r_m));
-    var Vp=inside?ELC_K*Q/R:ELC_K*Q/r_m;
+    var dxp=(pxp-cx)/PXM, dyp=(pyp-cy)/PXM;
+    var fp=fieldAt(dxp,dyp), Ep=fp.m, Vp=fp.V;
+    var cth=r_m>0?dxp/r_m:1, sth=r_m>0?dyp/r_m:0;     // the probe's ray
     ctx.save();ctx.strokeStyle='rgba(251,191,36,.45)';ctx.setLineDash([4,4]);ctx.lineWidth=1;
     ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(pxp,pyp);ctx.stroke();ctx.setLineDash([]);ctx.restore();
     ctx.save();ctx.fillStyle='#fbbf24';optGlow(ctx,'#fbbf24',12);
@@ -29962,8 +29980,14 @@ function simElcConductor(canvas){
     // ── synchronised E(r) and V(r) graphs ──
     var GX=W*0.58, GW=W*0.38, GH=(H-110)/2-14;
     var rMaxG=Math.max(0.9,(W*0.5)/PXM);
-    var Emax=Math.abs(ELC_K*Q/(R*R))*1.12||1;
-    var Vmax=Math.abs(ELC_K*Q/R)*1.15||1;
+    // both graphs are taken along the probe's own ray, from one field model
+    var Er=[],Vr=[],NG=60;
+    for(var j=0;j<=NG;j++){var rg=R+(rMaxG-R)*j/NG, fg=fieldAt(rg*cth,rg*sth);Er.push(fg.m);Vr.push(fg.V);}
+    var Emax=Math.max.apply(null,Er)*1.12||1;
+    var Vlo=Math.min(0,Math.min.apply(null,Vr)), Vhi=Math.max(0,Math.max.apply(null,Vr));
+    if(Vhi-Vlo<1e-9)Vhi=Vlo+1;
+    Vhi+=(Vhi-Vlo)*0.15;
+    function vY(v){return gyV+GH-(v-Vlo)/(Vhi-Vlo)*(GH-6);}
     function axes(gy,lab,col){
       ctx.save();ctx.strokeStyle='rgba(100,116,139,.45)';ctx.lineWidth=1;
       ctx.beginPath();ctx.moveTo(GX,gy);ctx.lineTo(GX,gy+GH);ctx.lineTo(GX+GW,gy+GH);ctx.stroke();ctx.restore();
@@ -29978,30 +30002,32 @@ function simElcConductor(canvas){
     var gyE=44, gyV=44+GH+42;
     var xR1=axes(gyE,'E(r)',  '#fbbf24');
     var xR2=axes(gyV,'V(r)',  '#22d3ee');
+    if(Vlo<0){   // V changes sign: draw its zero
+      ctx.save();ctx.strokeStyle='rgba(100,116,139,.35)';ctx.setLineDash([2,3]);ctx.lineWidth=1;
+      ctx.beginPath();ctx.moveTo(GX,vY(0));ctx.lineTo(GX+GW,vY(0));ctx.stroke();ctx.setLineDash([]);ctx.restore();
+      optLabel(ctx,'0',GX-8,vY(0),'#7d8da6',8);
+    }
     // E: exactly zero inside, then kQ/r² — a genuine jump at r=R
     ctx.save();ctx.strokeStyle='#fbbf24';ctx.lineWidth=2;
     ctx.beginPath();ctx.moveTo(GX,gyE+GH);ctx.lineTo(xR1,gyE+GH);ctx.stroke();
     ctx.beginPath();
-    for(var j=0;j<=60;j++){
-      var rg=R+(rMaxG-R)*j/60;
-      var Ev=Math.abs(ELC_K*Q/(rg*rg));
-      var X=GX+(rg/rMaxG)*GW, Y=gyE+GH-Math.min(1,Ev/Emax)*(GH-6);
+    for(var j=0;j<=NG;j++){
+      var rg=R+(rMaxG-R)*j/NG;
+      var X=GX+(rg/rMaxG)*GW, Y=gyE+GH-Math.min(1,Er[j]/Emax)*(GH-6);
       j===0?ctx.moveTo(X,Y):ctx.lineTo(X,Y);
     }
     ctx.stroke();
     ctx.setLineDash([3,3]);ctx.beginPath();
-    ctx.moveTo(xR1,gyE+GH);ctx.lineTo(xR1,gyE+GH-Math.min(1,Math.abs(ELC_K*Q/(R*R))/Emax)*(GH-6));ctx.stroke();
+    ctx.moveTo(xR1,gyE+GH);ctx.lineTo(xR1,gyE+GH-Math.min(1,Er[0]/Emax)*(GH-6));ctx.stroke();
     ctx.setLineDash([]);ctx.restore();
     optLabel(ctx,'קפיצה ב-R',xR1+40,gyE+12,'#fbbf24',8);
     // V: flat inside, then kQ/r — continuous
     ctx.save();ctx.strokeStyle='#22d3ee';ctx.lineWidth=2;ctx.beginPath();
-    var Vsurf=Math.abs(ELC_K*Q/R);
-    ctx.moveTo(GX,gyV+GH-Math.min(1,Vsurf/Vmax)*(GH-6));
-    ctx.lineTo(xR2,gyV+GH-Math.min(1,Vsurf/Vmax)*(GH-6));
-    for(var j=0;j<=60;j++){
-      var rg2=R+(rMaxG-R)*j/60;
-      var Vv2=Math.abs(ELC_K*Q/rg2);
-      ctx.lineTo(GX+(rg2/rMaxG)*GW,gyV+GH-Math.min(1,Vv2/Vmax)*(GH-6));
+    ctx.moveTo(GX,vY(Vr[0]));
+    ctx.lineTo(xR2,vY(Vr[0]));
+    for(var j=0;j<=NG;j++){
+      var rg2=R+(rMaxG-R)*j/NG;
+      ctx.lineTo(GX+(rg2/rMaxG)*GW,vY(Vr[j]));
     }
     ctx.stroke();ctx.restore();
     optLabel(ctx,'רציף — רק מתיישר',xR2+52,gyV+12,'#22d3ee',8);
@@ -30009,14 +30035,14 @@ function simElcConductor(canvas){
     var xp=GX+Math.min(1,r_m/rMaxG)*GW;
     ctx.save();ctx.fillStyle='#fbbf24';
     ctx.beginPath();ctx.arc(xp,gyE+GH-Math.min(1,Ep/Emax)*(GH-6),4.5,0,Math.PI*2);ctx.fill();
-    ctx.beginPath();ctx.arc(xp,gyV+GH-Math.min(1,Math.abs(Vp)/Vmax)*(GH-6),4.5,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.arc(xp,vY(Vp),4.5,0,Math.PI*2);ctx.fill();
     ctx.strokeStyle='rgba(251,191,36,.35)';ctx.lineWidth=1;ctx.setLineDash([2,3]);
     ctx.beginPath();ctx.moveTo(xp,gyE);ctx.lineTo(xp,gyV+GH);ctx.stroke();ctx.setLineDash([]);ctx.restore();
     optInfoBox(ctx,8,H-92,244,[
       'בנקודת הגשוש (r='+(r_m*100).toFixed(0)+' cm):',
-      'E = '+(Ep===0?'0 בדיוק':(Ep/1e6).toFixed(2)+'×10⁶ V/m'),
-      'V = '+(Vp/1000).toFixed(1)+' kV'+(inside?'  (קבוע בכל הפנים)':''),
-      inside?'בפנים: E=0 אבל V≠0':'בחוץ: כמו מטען נקודתי במרכז']);
+      '\u200eE = '+(Ep===0?'0 בדיוק':sciTxt(Ep)+' V/m'),
+      '\u200eV = '+(Vp/1000).toFixed(1)+' kV'+(inside?'  (קבוע בכל הפנים)':''),
+      inside?(Vp===0?'בפנים: E=0 (וכאן גם V=0)':'בפנים: E=0 אבל V≠0'):(E0x?'בחוץ: השדה ניצב לפני הכדור':'בחוץ: כמו מטען נקודתי במרכז')]);
     requestAnimationFrame(draw);
   }requestAnimationFrame(draw);
 }
@@ -32600,7 +32626,7 @@ function rng(id,min,max,val,step,lbl,unit,fmt){
   const init=named?window[fmt](parseFloat(val))
                   :((typeof val==='number'?val.toFixed(decimals):val)+unit);
   return `<div class="range-wrap"><label>${lbl}:</label><input id="inp-${id}" type="range" min="${min}" max="${max}" value="${val}" step="${step}" oninput="document.getElementById('rv-${id}').textContent=${show}"><span class="range-val" id="rv-${id}">${init}</span></div>`;
-}window._fmtHalfCm=function(v){return (v/2).toFixed(0)+' ס״מ';};
+}window._fmtHalfCm=function(v){return (v/2).toFixed(0)+' cm';};
 window._fmtOhm=function(e){var r=Math.pow(10,e);
   return r>=1000?(r/1000).toFixed(2)+' MΩ':r>=1?r.toFixed(1)+' kΩ':(r*1000).toFixed(0)+' Ω';};
 function btn(id,lbl,cls){if(cls===undefined)cls='btn-primary';return `<button class="btn ${cls}" id="btn-${id}">${lbl}</button>`;}
@@ -32680,8 +32706,8 @@ function buildSim(sim){
   else if(sim.type==='elc-scope')extra=C(rng('scope-q',1,10,5,1,'עוצמת מטען המוט','')+btn('scope-flip','↔ החלף סימן','btn-secondary')+btn('scope-touch','👆 גע — הולכה','btn-secondary')+btn('scope-ground','⏚ חבר הארקה','btn-secondary'));
   else if(sim.type==='elc-coulomb')extra=C(rng('elc-q1',-5,5,2,0.5,'q₁',' μC')+rng('elc-q2',-5,5,-3,0.5,'q₂',' μC')+btn('clb-three','⊕ הוסף מטען q₃ (סופרפוזיציה)','btn-secondary'));
   else if(sim.type==='elc-field')extra=C(rng('elc-Q',-6,6,4,0.5,'מטען Q₁',' μC')+rng('elc-Q2',-6,6,-4,0.5,'מטען Q₂',' μC')+btn('field-dipole','⇄ שני מטענים','btn-secondary')+btn('field-lines','✒️ קווי שדה רציפים','btn-secondary'));
-  else if(sim.type==='elc-compare')extra=C(rng('cmp-Q',0.1,4,0.5,0.1,'מטען Q',' μC')+rng('cmp-R',2,12,5,0.5,'רדיוס הכדור R',' ס״מ')+btn('cmp-v','🔋 הצג פוטנציאל V','btn-secondary'));
-  else if(sim.type==='elc-sphere')extra=C(rng('sph-Q',-6,6,3,0.5,'מטען Q',' μC')+rng('sph-R',2,30,20,1,'רדיוס R',' ס״מ'));
+  else if(sim.type==='elc-compare')extra=C(rng('cmp-Q',0.1,4,0.5,0.1,'מטען Q',' μC')+rng('cmp-R',2,12,5,0.5,'רדיוס הכדור R',' cm')+btn('cmp-v','🔋 הצג פוטנציאל V','btn-secondary'));
+  else if(sim.type==='elc-sphere')extra=C(rng('sph-Q',-6,6,3,0.5,'מטען Q',' μC')+rng('sph-R',2,30,20,1,'רדיוס R',' cm'));
   else if(sim.type==='dc-junction')extra=C(rng('jn-I1',0,6,3,0.1,'I₁ — נכנס',' A')+rng('jn-I2',0,6,2,0.1,'I₂ — נכנס',' A')+rng('jn-I3',0,6,4,0.1,'I₃ — יוצא',' A'));
   else if(sim.type==='dc-loop')extra=C(rng('lp-E1',2,24,12,0.5,'כא״מ ε₁',' V')+rng('lp-E2',0,12,0,0.5,'כא״מ ε₂',' V')+rng('lp-R1',1,20,4,1,'R₁',' Ω')+rng('lp-R2',1,20,8,1,'R₂',' Ω')+btn('lp-aid','🔋 סוללה 2: מסייעת','btn-secondary')+btn('lp-dir','↻ כיוון הליכה: עם הזרם','btn-secondary'));
   else if(sim.type==='dc-twoloop')extra=C(rng('tl-E1',1,24,12,0.5,'כא״מ ε₁',' V')+rng('tl-E2',0,24,4,0.5,'כא״מ ε₂',' V')+rng('tl-R1',0.5,12,2,0.5,'R₁',' Ω')+rng('tl-R2',0.5,12,2,0.5,'R₂',' Ω')+rng('tl-R3',0.5,12,4,0.5,'R₃ (משותף)',' Ω')+btn('tl-flip','🔋 סוללה 2: באותו כיוון','btn-secondary'));
