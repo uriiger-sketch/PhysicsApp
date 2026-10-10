@@ -28540,11 +28540,30 @@ function dcRes(ctx,x,y,w,h,txt,col,glow){
   ctx.beginPath();ctx.rect(x-w/2,y-h/2,w,h);ctx.fill();ctx.stroke();ctx.restore();
   if(txt)simText(ctx,txt,x,y,'#e2e8f0',11,'center',true);
 }
-function dcBatt(ctx,x,y,txt){
-  ctx.save();ctx.strokeStyle='#f87171';ctx.lineWidth=3;
-  ctx.beginPath();ctx.moveTo(x,y-13);ctx.lineTo(x,y+13);ctx.stroke();
-  ctx.lineWidth=6;ctx.strokeStyle='#60a5fa';
-  ctx.beginPath();ctx.moveTo(x-7,y-5);ctx.lineTo(x+7,y-5);ctx.stroke();ctx.restore();
+// The standard cell symbol: the wire is broken, and across the gap stand a long
+// thin plate (+) and a short thick one (−). pos names the side the + terminal
+// faces: 'up' (default) and 'down' on a vertical wire, 'left'/'right' on a
+// horizontal one. (It used to be a red stroke ALONG the wire with a blue bar
+// over it: no gap, no polarity, and on a horizontal wire not even a cell.)
+function dcBatt(ctx,x,y,txt,pos){
+  pos=pos||'up';
+  var vert=(pos==='up'||pos==='down'), s=(pos==='up'||pos==='left')?-1:1, g=5;
+  var cw=ctx.canvas.width/((ctx.getTransform&&ctx.getTransform().a)||1);
+  ctx.save();ctx.fillStyle='#040c18';           // the gap: the wire really is cut here
+  if(vert)ctx.fillRect(x-4,y-g+1.5,8,2*g-3);else ctx.fillRect(x-g+1.5,y-4,2*g-3,8);
+  ctx.lineCap='butt';
+  ctx.strokeStyle='#f87171';ctx.lineWidth=2.4;ctx.beginPath();     // + : long and thin
+  if(vert){ctx.moveTo(x-14,y+s*g);ctx.lineTo(x+14,y+s*g);}else{ctx.moveTo(x+s*g,y-14);ctx.lineTo(x+s*g,y+14);}
+  ctx.stroke();
+  ctx.strokeStyle='#60a5fa';ctx.lineWidth=5;ctx.beginPath();       // − : short and thick
+  if(vert){ctx.moveTo(x-7,y-s*g);ctx.lineTo(x+7,y-s*g);}else{ctx.moveTo(x-s*g,y-7);ctx.lineTo(x-s*g,y+7);}
+  ctx.stroke();ctx.restore();
+  // the signs sit beyond the plate ends (alphabetic baseline: centre + 4)
+  if(vert){var sx=x>cw*0.55?x+21:x-21;
+    simText(ctx,'+',sx,y+s*9+4,'#f87171',12,'center',true);
+    simText(ctx,'−',sx,y-s*9+4,'#60a5fa',12,'center',true);}
+  else{simText(ctx,'+',x+s*10,y-14,'#f87171',12,'center',true);
+    simText(ctx,'−',x-s*10,y-14,'#60a5fa',12,'center',true);}
   if(txt){ctx.save();ctx.font='bold 10.5px Heebo';var tw=ctx.measureText(txt).width+10;
     ctx.fillStyle='rgba(2,8,16,.92)';ctx.fillRect(x-tw/2,y+21,tw,16);ctx.restore();}
   if(txt)simText(ctx,txt,x,y+30,'#f87171',10.5,'center',true);
@@ -28662,7 +28681,7 @@ function simDcLoop(canvas){
   function R2(){var e=document.getElementById('inp-lp-R2');return e?parseFloat(e.value):8;}
   var db=document.getElementById('btn-lp-dir');
   if(db)db.addEventListener('click',function(){dir=-dir;
-    db.textContent=dir>0?'↻ כיוון הליכה: עם הזרם':'↺ כיוון הליכה: נגד הזרם';});
+    db.textContent=dir>0?'↻ הליכה: עם כיוון השעון':'↺ הליכה: נגד כיוון השעון';});
   var ab=document.getElementById('btn-lp-aid');
   if(ab)ab.addEventListener('click',function(){aid=!aid;
     ab.textContent=aid?'🔋 סוללה 2: מסייעת':'🔄 סוללה 2: מתנגדת';});
@@ -28681,10 +28700,11 @@ function simDcLoop(canvas){
     if(Math.abs(I)>1e-3)dcFlow(ctx,I>0?[[L,B],[L,T],[Rt,T],[Rt,B],[L,B]]:[[L,B],[Rt,B],[Rt,T],[L,T],[L,B]],
       u*40,Math.min(.5,Math.abs(I)*0.08),'#fbbf24',12);
     dcBatt(ctx,L,(T+B)/2,e1.toFixed(1)+' V');
-    // the second source sits on the right rail and can be turned round
-    ctx.save();ctx.strokeStyle=aid?'#34d399':'#ef4444';ctx.lineWidth=2.4;
-    ctx.beginPath();ctx.moveTo(Rt-10,(T+B)/2-13);ctx.lineTo(Rt+10,(T+B)/2-13);
-    ctx.lineWidth=5;ctx.moveTo(Rt-5,(T+B)/2-4);ctx.lineTo(Rt+5,(T+B)/2-4);ctx.stroke();ctx.restore();
+    // the second source sits on the right rail and can be turned round. Aiding
+    // means it pushes the same way round as ε₁ (clockwise, down this rail), so
+    // its + terminal faces DOWN; the old symbol had + up in both settings,
+    // which is the opposing connection. With ε₂ = 0 there is only wire.
+    if(E2()>=0.05)dcBatt(ctx,Rt,(T+B)/2,'',aid?'down':'up');
     simText(ctx,E2().toFixed(1)+' V',Rt,(T+B)/2+22,E2()<0.05?'#475569':(aid?'#34d399':'#ef4444'),10.5,'center',true);
     simText(ctx,E2()<0.05?'אין מקור שני':(aid?'מסייעת':'מתנגדת'),
       Rt,(T+B)/2+38,E2()<0.05?'#475569':(aid?'#34d399':'#ef4444'),9.5,'center');
@@ -28715,15 +28735,28 @@ function simDcLoop(canvas){
         x0+w2/2,GY+GH+28,legs[k2][1]>=0?'#34d399':'#f87171',9.5,'center',true);
       vv+=legs[k2][1]; x0+=w2;
     }
-    // the walker dot rides the ladder
+    // the walker dot rides the ladder -- and the same walker goes round the
+    // circuit itself, one equal-time leg per element, so the two stay in step
     var wi=Math.min(3,Math.floor(u*4)), wf=(u*4)%1, vs=0;
     for(var k3=0;k3<wi;k3++)vs+=legs[k3][1];
     var wv=vs+legs[wi][1]*Math.max(0,Math.min(1,(wf-0.28)/0.44));
     ctx.save();ctx.fillStyle='#fbbf24';ctx.beginPath();
     ctx.arc(GX+GW*u,Y(wv),5.5,0,6.2832);ctx.fill();ctx.restore();
+    var xm=W*0.50, paths=dir>0
+      ?[[[L,B],[L,T]],[[L,T],[xm,T]],[[xm,T],[Rt,T]],[[Rt,T],[Rt,B],[L,B]]]
+      :[[[L,B],[Rt,B],[Rt,T]],[[Rt,T],[xm,T]],[[xm,T],[L,T]],[[L,T],[L,B]]];
+    var pl=paths[wi],sl=[],st=0,q2;
+    for(q2=1;q2<pl.length;q2++){sl.push(Math.hypot(pl[q2][0]-pl[q2-1][0],pl[q2][1]-pl[q2-1][1]));st+=sl[q2-1];}
+    var dd=wf*st,m2=0;while(m2<sl.length-1&&dd>sl[m2]){dd-=sl[m2];m2++;}
+    var fr=sl[m2]?dd/sl[m2]:0, wx=pl[m2][0]+(pl[m2+1][0]-pl[m2][0])*fr, wy=pl[m2][1]+(pl[m2+1][1]-pl[m2][1])*fr;
+    ctx.save();ctx.fillStyle='#f8fafc';ctx.strokeStyle='#0f172a';ctx.lineWidth=2.5;
+    ctx.beginPath();ctx.arc(wx,wy,6.5,0,6.2832);ctx.fill();ctx.stroke();ctx.restore();
+    // the sum is computed from the four legs on screen, not printed as a slogan
+    var sum=legs.reduce(function(a,l){return a+l[1];},0);
     var y2=H*0.86;
     simText(ctx,'I = '+I.toFixed(2)+' A',W*0.24,y2,'#fbbf24',13,'center',true);
-    simText(ctx,'ΣΔV = 0.00 V',W*0.62,y2,'#34d399',13,'center',true);
+    simText(ctx,Math.abs(I)<1e-3?'':(dir*I>0?'ההליכה עם הזרם':'ההליכה נגד הזרם'),W*0.24,y2+18,'#7d8da6',9,'center');
+    simText(ctx,'ΣΔV = '+(Math.abs(sum)<5e-3?0:sum).toFixed(2)+' V',W*0.62,y2,'#34d399',13,'center',true);
     simText(ctx,'סכום כל העליות והירידות סביב הלולאה',W*0.62,y2-18,'#7d8da6',9,'center');
     simText(ctx,Math.abs(I)<1e-3?'שתי הסוללות מבטלות זו את זו — אין זרם כלל'
       :(aid?'שתי הסוללות דוחפות יחד: ε נטו = '+Enet.toFixed(1)+' V'
@@ -28775,7 +28808,7 @@ function simDcTwoLoop(canvas){
     dcBatt(ctx,L,(T+B)/2,'');
     simText(ctx,'ε₁ = '+e1.toFixed(1)+' V',L+36,(T+B)/2+26,'#f87171',10.5,'center',true);
     BX=Rt;BY=(T+B)/2;
-    dcBatt(ctx,Rt,(T+B)/2,'');
+    dcBatt(ctx,Rt,(T+B)/2,'',flip>0?'up':'down');   // the symbol itself turns round
     // a short arrow on the rail: the way this source pushes charge round its loop
     simArrow(ctx,Rt-22,(T+B)/2+(flip>0?11:-11),Rt-22,(T+B)/2+(flip>0?-11:11),
       flip>0?'#34d399':'#ef4444',2.2,8);
@@ -29392,7 +29425,7 @@ function simDcEmf(canvas){
     ctx.save();ctx.strokeStyle='rgba(248,113,113,.45)';ctx.setLineDash([5,4]);ctx.lineWidth=1.4;
     ctx.beginPath();ctx.rect(W*0.14,T-26,W*0.32,58);ctx.stroke();ctx.restore();
     simText(ctx,'הסוללה האמיתית',W*0.30,T-34,'#f87171',10,'center',true);
-    dcBatt(ctx,W*0.22,T,'');
+    dcBatt(ctx,W*0.22,T,'','right');              // current leaves the + terminal, to the right
     simText(ctx,'ε = '+E.toFixed(1)+' V',W*0.22,T+26,'#f87171',10,'center',true);
     dcRes(ctx,W*0.38,T,48,20,r.toFixed(2)+' Ω','#f87171',I*I*r/40);
     simText(ctx,'r',W*0.38,T+26,'#f87171',10,'center',true);
@@ -32931,7 +32964,7 @@ function buildSim(sim){
   else if(sim.type==='elc-compare')extra=C(rng('cmp-Q',0.1,4,0.5,0.1,'מטען Q',' μC')+rng('cmp-R',2,12,5,0.5,'רדיוס הכדור R',' ס״מ')+btn('cmp-v','🔋 הצג פוטנציאל V','btn-secondary'));
   else if(sim.type==='elc-sphere')extra=C(rng('sph-Q',-6,6,3,0.5,'מטען Q',' μC')+rng('sph-R',2,30,20,1,'רדיוס R',' ס״מ'));
   else if(sim.type==='dc-junction')extra=C(rng('jn-I1',0,6,3,0.1,'I₁ — נכנס',' A')+rng('jn-I2',0,6,2,0.1,'I₂ — נכנס',' A')+rng('jn-I3',0,6,4,0.1,'I₃ — יוצא',' A'));
-  else if(sim.type==='dc-loop')extra=C(rng('lp-E1',2,24,12,0.5,'כא״מ ε₁',' V')+rng('lp-E2',0,12,0,0.5,'כא״מ ε₂',' V')+rng('lp-R1',1,20,4,1,'R₁',' Ω')+rng('lp-R2',1,20,8,1,'R₂',' Ω')+btn('lp-aid','🔋 סוללה 2: מסייעת','btn-secondary')+btn('lp-dir','↻ כיוון הליכה: עם הזרם','btn-secondary'));
+  else if(sim.type==='dc-loop')extra=C(rng('lp-E1',2,24,12,0.5,'כא״מ ε₁',' V')+rng('lp-E2',0,12,0,0.5,'כא״מ ε₂',' V')+rng('lp-R1',1,20,4,1,'R₁',' Ω')+rng('lp-R2',1,20,8,1,'R₂',' Ω')+btn('lp-aid','🔋 סוללה 2: מסייעת','btn-secondary')+btn('lp-dir','↻ הליכה: עם כיוון השעון','btn-secondary'));
   else if(sim.type==='dc-twoloop')extra=C(rng('tl-E1',1,24,12,0.5,'כא״מ ε₁',' V')+rng('tl-E2',0,24,4,0.5,'כא״מ ε₂',' V')+rng('tl-R1',0.5,12,2,0.5,'R₁',' Ω')+rng('tl-R2',0.5,12,2,0.5,'R₂',' Ω')+rng('tl-R3',0.5,12,4,0.5,'R₃ (משותף)',' Ω')+btn('tl-flip','🔋 סוללה 2: באותו כיוון','btn-secondary'));
   else if(sim.type==='dc-bridge')extra=C(rng('br-V',3,18,9,0.5,'מתח המקור',' V')+rng('br-R1',50,500,150,10,'R₁ (זרוע יחס)',' Ω')+rng('br-R2',50,900,450,10,'R₂ (זרוע יחס)',' Ω')+rng('br-R3',5,300,40,1,'R₃ (נגד מכויל)',' Ω')+rng('br-Rx',50,600,240,10,'Rₓ — הנגד שנמדוד',' Ω'));
   else if(sim.type==='dc-meters')extra=C(rng('mtr-V',2,24,12,0.5,'מתח המקור',' V')+rng('mtr-R1',1,20,4,1,'R₁',' Ω')+rng('mtr-R2',1,20,8,1,'R₂',' Ω')+btn('mtr-mode','🔀 אמפרמטר בטור','btn-secondary'));
