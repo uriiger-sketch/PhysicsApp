@@ -161,6 +161,41 @@ const rest = n => Array.from({ length: n }, () => ({ a: [0, 0, 0], g: [0, 0, G],
     t('  within the lift of the last 60 ms (°)', r2.th, 27, 0.6);
   }
 
+  // ── 2e. office chair spin-down with a noisy accelerometer ────────────────
+  console.log('\n2e) chair spin-down, r = 0.25 m, ω 4.5 → 1 rad/s, accelerometer noise 0.03 m/s² per axis');
+  {
+    const key = 'planar.circular', r0 = 0.25, sig = 0.03;
+    await open(p, key);
+    let seed = 12345;
+    const rnd = () => { seed = (seed * 1103515245 + 12345) % 2147483648; return seed / 2147483648; };
+    const gauss = () => Math.sqrt(-2 * Math.log(rnd() + 1e-12)) * Math.cos(2 * Math.PI * rnd());
+    const spin = async (wOf, n, quiet) => {
+      await open(p, key);
+      const S = [];
+      for (let i = 0; i < quiet; i++) S.push({ a: [0, 0, 0], g: [sig * gauss(), sig * gauss(), G + sig * gauss()], r: [0, 0, 0] });
+      for (let i = 0; i < n; i++) {
+        const w = wOf(i / n), ac = w * w * r0;
+        S.push({ a: [0, 0, 0], g: [ac + sig * gauss(), sig * gauss(), G + sig * gauss()], r: [0, 0, w * 57.29578] });
+      }
+      await p.evaluate(([key, S, DT]) => {
+        const impl = SL_IMPL[SENSOR_LABS[key].t], st = _sl.st;
+        S.forEach((o, i) => impl.sample({ dt: DT, t: i * DT, exact: true, gyro: true, hz: 1 / DT,
+          ax: o.a[0], ay: o.a[1], az: o.a[2], gx: o.g[0], gy: o.g[1], gz: o.g[2], Gx: o.g[0], Gy: o.g[1], Gz: o.g[2],
+          ra: o.r[0], rb: o.r[1], rg: o.r[2] }, st));
+      }, [key, S, DT]);
+      return p.evaluate(() => ({ r: _sl.st.r, pts: _sl.st.pts }));
+    };
+    const r = await spin(f => 4.5 - 3.5 * f, Math.round(15 / DT), 300);
+    tb('points collected across the spin-down', r.pts.length > 30, r.pts.length + ' points');
+    t('r from the slope (m)', r.r, r0, 0.006);
+    // a slow, steady turn, a_c = 0.29 m/s²: a difference of squares this small
+    // is mostly noise, but the points must still scatter about the truth
+    const w0 = Math.sqrt(0.29 / r0), q = await spin(() => w0, Math.round(30 / DT), 300);
+    const mac = q.pts.reduce((a, p2) => a + p2[1], 0) / (q.pts.length || 1);
+    tb('a slow steady turn still gives points', q.pts.length > 60, q.pts.length + ' points');
+    t('  and they average to about its a_c (m/s²)', mac, 0.29, 0.07);
+  }
+
   // ── 3. toss and catch: v must cross 0 at the top of the flight ────────────
   console.log('\n3) toss: 0.15 s at +g, free flight 0.30 s, catch at the same height');
   {

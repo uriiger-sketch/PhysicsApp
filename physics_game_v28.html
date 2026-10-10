@@ -30686,8 +30686,12 @@ document.addEventListener('visibilitychange',function(){
 function slTrace(n){return {n:n,d:[],push:function(v){this.d.push(v);if(this.d.length>this.n)this.d.shift();},
                             clear:function(){this.d=[];},last:function(){return this.d.length?this.d[this.d.length-1]:0;}};}
 // Latin-only labels must not inherit the page's RTL direction, or digits and
-// signs get reordered ("+1.8" drawn as "1.8+").
+// signs get reordered ("+1.8" drawn as "1.8+"). A label with Hebrew in it is
+// the opposite case: forced left-to-right, "θ = 34.4° (מציר y של הטלפון)"
+// came out as "(של הטלפון y מציר)", so it keeps the page's direction, where
+// simText isolates the maths runs.
 function slTxt(ctx,txt,x,y,col,sz,align,bold){
+  if(/[\u0590-\u05FF]/.test(String(txt))){simText(ctx,txt,x,y,col,sz,align,bold);return;}
   ctx.save();ctx.direction='ltr';simText(ctx,txt,x,y,col,sz,align,bold);ctx.restore();}
 // A slide along the table is measured on the RAW axis (gravity included)
 // minus its value at rest: the phone lies flat and does not turn, so gravity's
@@ -30799,7 +30803,9 @@ function slScatter(ctx,x,y,w,h,pts,s,opt){
   ctx.restore();
   ctx.restore();
   if(_slZoom!==1)slTxt(ctx,'×'+(_slZoom<1?_slZoom.toFixed(2):_slZoom.toFixed(1)),x+w-8,y+14,slCss('--gold','#f59e0b'),9,'right',true);
-  if(opt.xl)slTxt(ctx,opt.xl,X(mx/2),y+h-9,mu,10,'center');
+  // the axis name sits just above the axis at its right end -- the corner a
+  // law through the origin leaves empty; under the axis it lay on the ticks
+  if(opt.xl)slTxt(ctx,opt.xl,x+w-8,Y(0)-6,mu,10,'right');
   if(opt.yl)slTxt(ctx,opt.yl,x+4,y+13,mu,10,'left',true);
   return {X:X,Y:Y};
 }
@@ -31010,9 +31016,9 @@ var SENSOR_LABS={
 
  'planar.circular':{t:'spin-fit',h:306,minHz:25,
    ttl:'מדדו את '+M('a_c=\\omega^2 r')+' — והוציאו את r מהשיפוע',
-   how:'הניחו את הטלפון על <b>כיסא משרדי מסתובב</b> (או סחררו אותו על שולחן חלק), סובבו חזק — ותנו לו להאט מעצמו. תוך כדי ההאטה נאספות נקודות בכל קצב סיבוב, מהמהיר עד לאיטי.',
-   pred:'לפני הסיבוב: מדדו בסרגל את המרחק מציר הסיבוב עד לטלפון. השיפוע שהגרף ימצא אמור לצאת בדיוק המספר הזה.',
-   note:'ההאטה היא היתרון: היא סורקת טווח שלם של '+M('\\omega')+'. נקודות על ישר בגרף '+M('a_c')+' מול '+M('\\omega^2')+' מאשרות תלות <b>ריבועית</b>, והשיפוע הוא הרדיוס. איננו קוראים מהערוץ ללא-כובד: סיבוב יציב הוא תאוצה מתמדת שכל מסנן כובד בולע תוך שנייה. במקום זה '+M('a_c=\\sqrt{|G|^2-g_0^2}')+', שאינו תלוי כלל בכיוון הטלפון.',
+   how:'הניחו את הטלפון, מסך למעלה, על מושב של <b>כיסא משרדי מסתובב</b>, כ-20–30 cm מהציר, ו<b>הצמידו אותו</b> — בסרט דביק או בתוך קופסה: בסיבוב מהיר טלפון חופשי מחליק ועף. הניחו לו לכייל בשקט, סובבו בתנופה מתונה (עד סיבוב בשנייה) ותנו לכיסא להאט מעצמו. תוך כדי ההאטה נאספות נקודות בכל קצב סיבוב.',
+   pred:'לפני הסיבוב: מדדו בסרגל את המרחק מציר הסיבוב עד מרכז הטלפון. השיפוע שהגרף ימצא אמור לצאת קרוב למספר הזה — בתוך סנטימטרים ספורים, כי החיישן יושב איפשהו בתוך הטלפון ולא בדיוק במרכזו.',
+   note:'ההאטה היא היתרון: היא סורקת טווח שלם של '+M('\\omega')+'. נקודות על ישר בגרף '+M('a_c')+' מול '+M('\\omega^2')+' מאשרות תלות <b>ריבועית</b>, והשיפוע הוא הרדיוס. איננו קוראים מהערוץ ללא-כובד: סיבוב יציב הוא תאוצה מתמדת שמסנן הכובד בולע תוך שניות. במקום זה '+M('a_c=\\sqrt{|G|^2-g_0^2}')+', שאינו תלוי כלל בכיוון הטלפון. זהו הפרש של ריבועים, ולכן בסיבוב איטי הנקודות מתפזרות יותר — הן הקטנות ביותר, והשיפוע נקבע בעיקר מהמהירות.',
    chips:[['w','ω','rad/s'],['ac','a_c','m/s²'],['r','r מהשיפוע','m'],['n','נקודות','']],ctrl:''},
 
  'energy.energy-cons':{t:'swing-energy',h:330,minHz:25,
@@ -31433,9 +31439,11 @@ var SL_IMPL={
       slTxt(ctx,'מעוף חופשי',(X(st.cap.fs)+X(st.cap.fe))/2,vy+13,gr,9.5,'center',true);
       // value gridlines
       var stp=slNiceStep((vmax-vmin)/3.2),k0=Math.ceil(vmin/stp);
-      ctx.save();ctx.strokeStyle=slCss('--border','#2a3d55');ctx.globalAlpha=.35;
+      ctx.save();ctx.strokeStyle=slCss('--border','#2a3d55');
       for(var k=k0;k*stp<=vmax;k++){var gy=Y(k*stp);
+        ctx.globalAlpha=k?.35:.8;   // the zero line is the one the apex sits on
         ctx.beginPath();ctx.moveTo(vx,gy);ctx.lineTo(vx+vw,gy);ctx.stroke();
+        ctx.globalAlpha=1;          // the value itself at full strength
         slTxt(ctx,slFmt(k*stp,stp),vx-4,gy+3,mu,8,'right');}
       ctx.restore();
       var ts=slNiceStep(d/3.2);
@@ -31471,7 +31479,7 @@ var SL_IMPL={
         ctx.fillStyle=gd;ctx.beginPath();ctx.arc(mx,vy+vh-7,7,0,6.2832);ctx.fill();
         slTxt(ctx,mk[1],mx,vy+vh-4,'#7d8da6',9,'center',true);
       });
-      slTxt(ctx,'v (m/s, מטה)',vx+4,vy-3,c1,9.5,'left',true);
+      slTxt(ctx,'v  (m/s)   מטה חיובי',vx+4,vy-3,c1,9.5,'left',true);
     }
     // readout
     var s2=SL_IMPL['freefall-toss'].slope(st);
@@ -32307,32 +32315,44 @@ var SL_IMPL={
 
 // a_c from |G|, which no gravity filter can eat, and r read off the slope
 'spin-fit':{
-  resume:function(st){st.acc=0;st.wLast=0;},
-  init:function(st){st.pts=[];st.r=0;st.r2=0;st.g0=0;st.calN=0;st.calS=0;st.acc=0;st.accN=0;st.wS=0;st.reset(st);},
-  reset:function(st){st.pts=[];st.r=0;st.r2=0;st.g0=0;st.calN=0;st.calS=0;st.ph='cal';
-    st.w=0;st.ac=0;st.acc=0;st.accN=0;st.wS=0;st.wLast=0;},
+  resume:function(st){st.acc=0;st.wLast=0;st.G2s=0;st.W2s=0;st.Wn=0;},
+  init:function(st){st.reset(st);},
+  reset:function(st){st.pts=[];st.r=0;st.r2=0;st.g0=0;st.g02=0;st.calN=0;st.calS=0;st.calS2=0;st.ph='cal';
+    st.w=0;st.ac=0;st.acc=0;st.wS=0;st.wLast=0;st.G2s=0;st.W2s=0;st.Wn=0;},
   sample:function(s,st){
     var G=Math.hypot(s.gx,s.gy,s.gz),lin=Math.hypot(s.ax,s.ay,s.az);
+    var w=Math.hypot(s.ra,s.rb,s.rg)*Math.PI/180;      // magnitude: attitude-free
     if(st.ph==='cal'){
-      if(lin>0.3){st.calN=0;st.calS=0;return;}
-      st.calN++;st.calS+=G;
-      if(st.calN>=55){st.g0=st.calS/st.calN;st.ph='run';}
+      if(lin>0.3){st.calN=0;st.calS=0;st.calS2=0;return;}
+      st.calN++;st.calS+=G;st.calS2+=G*G;
+      if(st.calN>=55){st.g0=st.calS/st.calN;st.g02=st.calS2/st.calN;st.ph='run';}
       return;
     }
-    // |G|² = g² + a_c² for a horizontal circle, whatever the phone's attitude
-    var ac=Math.sqrt(Math.max(0,G*G-st.g0*st.g0));
-    var w=Math.hypot(s.ra,s.rb,s.rg)*Math.PI/180;      // magnitude: attitude-free
+    // |G|² = g² + a_c² for a horizontal circle, whatever the phone's attitude.
+    // a_c is then a DIFFERENCE of squares, so an error δ in the resting value
+    // is an error δ in a_c² -- 55 samples leave δ near 0.08 m²/s⁴. The phone
+    // therefore goes on calibrating for as long as it lies still before the
+    // spin, |G|² is averaged over each 0.25 s point, and it is compared with
+    // the resting MEAN SQUARE, in which the noise adds the same σ². That
+    // halves the scatter of r against sqrt(G² − g0²) taken sample by sample.
+    if(w<0.15&&lin<0.3&&st.calN<1500){st.calN++;st.calS+=G;st.calS2+=G*G;
+      st.g0=st.calS/st.calN;st.g02=st.calS2/st.calN;}
     var k=Math.min(1,s.dt/0.12);
-    st.w+=k*(w-st.w);st.ac+=k*(ac-st.ac);
+    st.w+=k*(w-st.w);
+    st.G2s+=G*G;st.W2s+=w*w;st.Wn++;
     st.acc+=s.dt;st.wS+=s.dt;
     if(st.wS>0.25){st.wS=0;
+      st.ac=Math.sqrt(Math.max(0,st.G2s/st.Wn-st.g02));
+      var w2=st.W2s/st.Wn;st.G2s=0;st.W2s=0;st.Wn=0;
       // a_c = omega^2 r describes a steady circle, so a point is only taken
       // once the filters have settled and while the rate is barely changing.
       // Spin-up points sit far off the law and, being the fastest, would carry
-      // the most weight of any point in a fit through the origin.
+      // the most weight of any point in a fit through the origin. Points are
+      // chosen by the RATE alone: keeping only those whose a_c came out large
+      // enough would keep the slow points that the noise happened to push up.
       var settled=st.acc>1.0, steady=(st.wLast>0)&&(Math.abs(st.w-st.wLast)<0.12*st.w);
-      if(settled&&steady&&st.w>0.8&&st.ac>0.05&&st.pts.length<200){
-        st.pts.push([st.w*st.w,st.ac]);
+      if(settled&&steady&&st.w>0.8&&st.pts.length<200){
+        st.pts.push([w2,st.ac]);
         st.r=slFitOrigin(st.pts);st.r2=slR2(st.pts,st.r);}
       st.wLast=st.w;}},
   chips:function(st){
@@ -32342,7 +32362,7 @@ var SL_IMPL={
     var mu=slCss('--muted','#889'),tx=slCss('--text','#dde'),gd=slCss('--gold','#f59e0b'),c3=slCss('--green','#10b981');
     if(st.ph==='cal'){
       simText(ctx,'⏳ מכייל בשקט ('+Math.round(st.calN/55*100)+'%) — אל תזיזו',W/2,H/2,gd,13,'center',true);
-      simText(ctx,'אחר כך סובבו חזק ותנו להאט',W/2,H/2+22,mu,11.5,'center');return;}
+      simText(ctx,'אחר כך סובבו בתנופה מתונה ותנו להאט',W/2,H/2+22,mu,11.5,'center');return;}
     slScatter(ctx,8,8,W-16,H-52,st.pts,st.r,{xl:'ω²  (rad²/s²)',yl:'a_c  (m/s²)',xmin:1,ymin:.5});
     if(st.pts.length>3){
       slTxt(ctx,'a(c) = '+st.r.toFixed(3)+' · ω²    →    r = '+st.r.toFixed(3)+' m',W/2,H-31,tx,12,'center',true);
