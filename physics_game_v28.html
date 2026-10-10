@@ -16123,6 +16123,10 @@ function wavelengthToHex(wl){
   else{r=1;g=0;b=0;}
   return'#'+[r,g,b].map(function(v){return Math.round(v*255).toString(16).padStart(2,'0');}).join('');
 }
+// Colour names by the bands of the lesson's table (violet 380–450, blue to 495,
+// green to 570, yellow to 590, orange to 620, red to 700). Several simulations
+// called 380–430 nm 'UV' although every slider here stays in the visible.
+function optColorName(wl){return wl<380?'UV':wl<450?'סגול':wl<495?'כחול':wl<570?'ירוק':wl<590?'צהוב':wl<620?'כתום':wl<=700?'אדום':'IR';}
 function optGlow(ctx,col,blur){ctx.shadowColor=col;ctx.shadowBlur=blur||12;}
 function optNoGlow(ctx){ctx.shadowColor='transparent';ctx.shadowBlur=0;}
 function optRay(ctx,x1,y1,x2,y2,col,lw,arrowHead){
@@ -16277,7 +16281,11 @@ function simOptEmWave(canvas){
   const H=420;const{ctx,W,dpr}=setupCanvas(canvas,H);
   const id=canvas.id;
   // Oblique (cavalier) projection: z-axis (B direction) drawn up-right on screen
-  var ZX=0.55,ZY=-0.38;
+  // The B axis must point TOWARD the viewer for E × B to point along +x, the
+  // way the wave travels. Drawn up-right (the usual way to show depth going
+  // INTO the page) it made E, B, c a left-handed set; down-right reads as
+  // coming out of the page.
+  var ZX=0.55,ZY=0.38;
   function getWl(){var e=document.getElementById('inp-emw-wl');return e?parseFloat(e.value):500;}
   // Drag the wave itself: sideways stretches the wavelength (and the colour
   // follows), up and down turns the oblique view so the E and B planes can be
@@ -16290,7 +16298,7 @@ function simOptEmWave(canvas){
       simSyncSlider('emw-wl',d0.wl+(p.x-d0.x)*1.2,0);
       var k=(p.y-d0.y)/160;
       ZX=Math.max(0.15,Math.min(0.85,d0.zx+k*0.5));
-      ZY=Math.max(-0.75,Math.min(-0.10,d0.zy+k*0.4));
+      ZY=Math.max(0.10,Math.min(0.75,d0.zy+k*0.4));
     }});
   function draw(ts){
     if(_simStop[id])return;
@@ -16389,13 +16397,13 @@ function simOptEmWave(canvas){
     // ── Color swatch ─────────────────────────────────────────────────────────
     ctx.save();ctx.fillStyle=hex;optGlow(ctx,hex,18);
     ctx.beginPath();ctx.arc(W-26,28,15,0,Math.PI*2);ctx.fill();optNoGlow(ctx);ctx.restore();
-    var cn=lam<430?'UV/סגול':lam<470?'סגול':lam<500?'כחול':lam<560?'ירוק':lam<590?'צהוב':lam<625?'כתום':'אדום';
+    var cn=optColorName(lam);
     optLabel(ctx,cn,W-26,50,'#94a3b8',9);
     // ── Labels ───────────────────────────────────────────────────────────────
     optLabel(ctx,'E — שדה חשמלי (אנכי)',108,cy-amp-6,hex,10);
     optLabel(ctx,'B — שדה מגנטי (אופקי, בפאזה)',126,cy+amp*0.72,'#e879f9',10);
     var freq=(3e8/(lam*1e-9)/1e14).toFixed(2);
-    optInfoBox(ctx,8,8,176,['λ='+(lam|0)+' nm','f='+freq+' ×10¹⁴ Hz','c = λ·f','E ⊥ B ⊥ c — בפאזה']);
+    optInfoBox(ctx,8,8,176,['λ='+(lam|0)+' nm','f='+freq+' ×10¹⁴ Hz','c = λ·f','E ⊥ B ⊥ c — בפאזה','E × B בכיוון ההתקדמות']);
     requestAnimationFrame(draw);
   }requestAnimationFrame(draw);
 }
@@ -16437,7 +16445,7 @@ function simOptRefrIndex(canvas){
         ctx.beginPath();ctx.roundRect(x-3,by-3,bw+6,bh+6,8);ctx.stroke();optNoGlow(ctx);ctx.restore();
       }
       // Speed bar (proportional to v=c/n)
-      var spd=1/m.n;var barH=Math.round(bh*spd*0.85+bh*0.1);
+      var spd=1/m.n;var barH=Math.round(bh*0.95*spd);   // exactly ∝ v = c/n
       var barG=ctx.createLinearGradient(0,by+bh-barH,0,by+bh);
       barG.addColorStop(0,m.col);barG.addColorStop(1,m.col+'88');
       ctx.save();ctx.fillStyle=barG;optGlow(ctx,m.col,8);
@@ -16452,6 +16460,7 @@ function simOptRefrIndex(canvas){
       optLabel(ctx,'n='+m.n,x+bw/2,by+bh+30,'#7d8da6',9);
       optLabel(ctx,'v='+(3e8/m.n/1e8).toFixed(2),x+bw/2,by+bh+45,'#7d8da6',8);
     });
+    optLabel(ctx,'גובה העמודה ∝ מהירות האור v (ביחידות של 10⁸ m/s)',W/2,by-14,'#7d8da6',9);
     // Your slider n highlight
     var slidN=n,bary=H-24,bx1=20,bx2=W-20;
     var frac=Math.min(1,(slidN-1)/1.5);
@@ -16564,7 +16573,7 @@ function simOptReflection(canvas){
     // Wavelength color swatch
     ctx.save();ctx.fillStyle=wlHex;optGlow(ctx,wlHex,12);
     ctx.beginPath();ctx.arc(W-24,22,10,0,Math.PI*2);ctx.fill();optNoGlow(ctx);ctx.restore();
-    var cn=wl<430?'UV/סגול':wl<470?'סגול':wl<500?'כחול':wl<560?'ירוק':wl<590?'צהוב':wl<625?'כתום':'אדום';
+    var cn=optColorName(wl);
     optLabel(ctx,cn+' '+Math.round(wl)+'nm',W-24,38,'#94a3b8',8);
     requestAnimationFrame(draw);
   }
@@ -17269,7 +17278,7 @@ function simOptConvexLens(canvas){
     }
     var m_=isFinite(diVal)?(-diVal/doPx).toFixed(2):'∞';
     var diS=isFinite(diVal)?Math.round(diVal/k)+' mm':'∞';
-    var _ln=wl<430?'UV':wl<470?'סגול':wl<500?'כחול':wl<560?'ירוק':wl<590?'צהוב':wl<625?'כתום':'אדום';
+    var _ln=optColorName(wl);
     ctx.save();ctx.fillStyle=wlHex;optGlow(ctx,wlHex,8);ctx.beginPath();ctx.arc(W-20,H-20,8,0,Math.PI*2);ctx.fill();optNoGlow(ctx);ctx.restore();
     // ── SCREEN: real images can be projected; virtual ones cannot ──
     if(scrPos===null)scrPos=Math.min(W-40,lx+150);
@@ -17431,7 +17440,7 @@ function simOptConcaveLens(canvas){
     optRay(ctx,lx,r3hitY,W-16,r3hitY,'rgba(167,139,250,.65)',1.8,true);
     optDash(ctx,lx,r3hitY,imgX,imgTipY,'rgba(167,139,250,.3)');
     var mStr=m_mag.toFixed(2);
-    var _dl=wl<430?'UV':wl<470?'סגול':wl<500?'כחול':wl<560?'ירוק':wl<590?'צהוב':wl<625?'כתום':'אדום';
+    var _dl=optColorName(wl);
     ctx.save();ctx.fillStyle=wlHex;optGlow(ctx,wlHex,8);ctx.beginPath();ctx.arc(W-20,H-20,8,0,Math.PI*2);ctx.fill();optNoGlow(ctx);ctx.restore();
     optInfoBox(ctx,8,8,185,['\u200ef = −'+(f/k).toFixed(1)+' mm','\u200edₒ = '+Math.round(doPx/k)+' mm','\u200edᵢ = '+Math.round(diVal/k)+' mm','m=+'+mStr+' (ישרה, מוקטנת)','מדומה תמיד','λ='+Math.round(wl)+'nm '+_dl]);
     if(dragObj){
