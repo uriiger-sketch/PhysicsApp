@@ -114,7 +114,10 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 
 /* HEADER */
 .header{background:var(--hdr-bg);border-bottom:1px solid var(--border);padding:0 24px;display:flex;align-items:center;justify-content:space-between;height:62px;position:sticky;top:0;z-index:200;box-shadow:0 4px 28px rgba(0,0,0,.5);}
-.header-title{font-family:'Rubik',sans-serif;font-weight:900;font-size:1.35rem;background:var(--hdr-title);-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+.header-title{font-family:'Rubik',sans-serif;font-weight:900;font-size:1.35rem;}
+/* the gradient fill is for the name only: clipped to an emoji's outline it
+   turned ⚛️ into a plain cyan square and the other icons into silhouettes */
+.header-title .ht-name{background:var(--hdr-title);-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
 .header-xp{display:flex;align-items:center;gap:10px;font-size:.88rem;}
 .xp-badge{background:rgba(245,158,11,.15);border:1px solid rgba(245,158,11,.3);color:var(--gold);padding:4px 14px;border-radius:20px;font-weight:700;}
 .done-badge{color:var(--muted);font-size:.78rem;}
@@ -31191,7 +31194,7 @@ function buildPage(ch,sec,content){
   <a class="skip-link" href="#main-content" onclick="return _skipToMain()">דילוג לתוכן</a>
   <header class="header">
     <button class="hamburger-btn" id="hamburger-btn" onclick="openDrawer()" aria-label="נושאים" aria-haspopup="dialog" aria-controls="mobile-drawer" aria-expanded="false">☰</button>
-    <div class="header-title">${subjIcon} ${subjName}</div>
+    <div class="header-title"><span aria-hidden="true">${subjIcon}</span> <span class="ht-name">${subjName}</span></div>
     <button class="ver-badge" id="ver-badge" onclick="openChangelog()" title="מה חדש בגרסה" aria-label="גרסה ${APP_VERSION} — מה חדש">v${APP_VERSION}</button>
     <div class="header-progress">
       <div class="progress-bar-wrap" title="${pct}% הושלם" role="progressbar" aria-label="התקדמות בקורס" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${pct}"><div class="progress-bar-fill" style="width:${pct}%"></div></div>
