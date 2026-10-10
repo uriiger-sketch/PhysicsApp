@@ -1027,10 +1027,14 @@ html{scroll-padding-top:72px;}
 @media (max-width:600px){
   .math-ltr{max-width:100%;overflow-x:auto;overflow-y:hidden;padding:.12em 0;}
   .theory-card table,.wx table{display:block;max-width:100%;overflow-x:auto;}
-  .formula-box{overflow-x:auto;}
+  .formula-box,.enrich-formula{overflow-x:auto;}
   /* the offline renderer's display formulas are chains with spaced
-     separators: they may break there rather than scroll */
-  .formula-box .tex-fb{white-space:normal;}
+     separators: they may break there rather than scroll (the enrichment
+     box clipped "...=500 s ≈ 8.3 min" after "500 s") */
+  .formula-box .tex-fb,.enrich-formula .tex-fb{white-space:normal;}
+  /* a chain typed as plain text in a quiz explanation has no space to
+     break at: sinθ=mλ/a=1×500×10⁻⁹/(0.5×10⁻³)=10⁻³ ran out of its card */
+  #app .ltr-run{overflow-wrap:anywhere;}
 }
 /* A slider readout, an answer's unit, a stat value: "85 mm" laid out in the
    right-to-left page came out as "mm 85", and "-3" as "3-". Each takes its
@@ -1392,7 +1396,8 @@ function _texFallback(s){
     // a Greek letter swallows the space LaTeX needed to end its name (\Delta h
     // -> Delta-h), but a relation must keep it or it fuses with what follows
     if(_GREEK[w])return _GREEK[w];
-    if(_OPS[w]&&/[⟹⟸→←≈≠≤≥∝≡≅∈~]/.test(_OPS[w]))return _OPS[w]+' ';
+    // ...on both sides: "500 s\approx 8.3 min" printed "500 s≈ 8.3 min"
+    if(_OPS[w]&&/[⟹⟸→←≈≠≤≥∝≡≅∈~]/.test(_OPS[w]))return (off&&!/[\s({\[]/.test(str.charAt(off-1))?' ':'')+_OPS[w]+' ';
     // a binary operator is spaced on both sides or on neither: the space that
     // only ended the command's name printed "g± a", "3× 10⁸", "a· b"
     if(_OPS[w]&&/[×·÷±∓]/.test(_OPS[w]))return _OPS[w]+(str.charAt(off-1)===' '?sp:'');
@@ -1802,6 +1807,10 @@ function _mathRuns(s,single){
     if(cut>=0){_MR_RE.lastIndex=a+cut+1;run=run.slice(0,cut);}
     run=run.replace(/[ \t]+$/,'');
     if(!run)continue;
+    // "sinθ=?" asks for the unknown: the question mark is its value, not the
+    // sentence's. Left out, the page drew "?=sinθ" (in 16 questions).
+    var unk=/^[ \t]*[=≈][ \t]*\?/.exec(s.slice(a+run.length));
+    if(unk&&!/[֐-׿]/.test(run)){run+=unk[0];_MR_RE.lastIndex=Math.max(_MR_RE.lastIndex,a+run.length);}
     var joined=/[ \t=≈≠<>≤≥±+\-−×·*\/^⇒→←⇔∝∥⊥–]/.test(run.slice(1))||/^[\-−]/.test(run);
     if(!joined&&!(single&&run.length>=2))continue;
     out.push([a,a+run.length]);
