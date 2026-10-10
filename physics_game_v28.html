@@ -2314,7 +2314,7 @@ const CONTENT={
       <p>כשהמסה קבועה, ${M('d\\vec p/dt=m\\,d\\vec v/dt=m\\vec a')}, וחוזרים ל-${M('F=ma')}. הניסוח בתנע כללי יותר: הוא מתאים גם למערכות שמסתן משתנה, כמו רקטה שפולטת גז — בתנאי שסופרים את התנע של כל חלקי המערכת.</p>`
     }
   },
-  sim:{type:'newton2',title:'F = ma אינטראקטיבי',desc:'גררו בחלק העליון לשנות כוח. שנו מסה בסליידר. ראו כיצד a=F/m משתנה.'},
+  sim:{type:'newton2',title:'F = ma אינטראקטיבי',desc:'גררו בפס העליון (או במחוון) כדי לשנות את F, ושנו את המסה ואת החיכוך. ראו כיצד a = ΣF/m משתנה — ושהחיכוך נגרע מהכוח.'},
   example:{title:'החוק השני — חישוב תאוצה',text:`על גוש שמסתו ${M('8\\,\\text{kg}')} מפעילים כוח של ${M('40\\,\\text{N}')} ימינה, וכוח חיכוך של ${M('16\\,\\text{N}')} פועל שמאלה.`,steps:[
     {q:'מהו הכוח השקול?',a:`${M('\\Sigma F=40-16=24\\,\\text{N}')} ימינה — מחסרים, כי הכוחות מנוגדים.`},
     {q:'מהי תאוצת הגוש?',a:`${M('a=\\dfrac{\\Sigma F}{m}=\\dfrac{24}{8}=3\\,\\text{m/s}^2')} ימינה`},
@@ -9998,7 +9998,7 @@ function simInertia(canvas){
 function simNewton2(canvas){
   const H=520; const {ctx,W,dpr}=setupCanvas(canvas,H);
   const id=canvas.id;
-  const FLY=H-68;
+  const FLY=H-160;
   let pos=W/2, vel=0, drag=false, pT=null;
   let vHist=[], aHist=[], simTime=0;
   const g=9.8;
@@ -10047,8 +10047,8 @@ function simNewton2(canvas){
     if(Math.abs(vel)>0.02) f_fric=-Math.sign(vel)*fric_max;
     else if(Math.abs(F)>fric_max) f_fric=-Math.sign(F)*fric_max;
     else f_fric=-F; // static: cancels applied force
-    const netF=F+f_fric;
-    const a=netF/mass;
+    let netF=F+f_fric;
+    let a=netF/mass;
     // The cap used to be ±35 m/s, reachable with F = 60 N on a 1 kg block:
     // past it the block moved at constant velocity while the panel and the a(t)
     // graph kept reporting a = ΣF/m ≠ 0 — a net force with no acceleration, in
@@ -10064,8 +10064,11 @@ function simNewton2(canvas){
     if(Math.abs(vel)<0.02&&Math.abs(netF)<0.02) vel=0;
     pos+=0.5*(_vN0+vel)*dt*22;
     var atWall=false;
-    if(pos>W-48){ pos=W-48; vel=0; atWall=true; dragF=null; }
-    if(pos<48){   pos=48;   vel=0; atWall=true; dragF=null; }
+    // A stop pushes back: the wall supplies whatever force cancels the rest,
+    // so a body resting against it has a = 0 -- the panel used to keep
+    // printing a = ΣF/m for a block that was not moving.
+    if(pos>W-48){ pos=W-48; vel=0; dragF=null; if(netF>=0){ atWall=true; netF=0; a=0; } }
+    if(pos<48){   pos=48;   vel=0; dragF=null; if(netF<=0){ atWall=true; netF=0; a=0; } }
     simTime+=dt;
     vHist.push(vel);
     // Don't record false spike acceleration on wall hits
@@ -10080,7 +10083,7 @@ function simNewton2(canvas){
     // Force arrow in banner
     const fPx=Math.abs(F)*1.1, fDir=F>=0?1:-1;
     simArrow(ctx,W/2,32,W/2+fDir*fPx,32,F>=0?'#ef4444':'#3b82f6',3.5,13);
-    simText(ctx,(drag?'🖱 גרור':'← גררו לשנות F →'),W/2,50,'#7d8da6',8,undefined,true);
+    simText(ctx,'גררו כאן ימינה או שמאלה כדי לשנות את F',W/2,50,'#94a3b8',9,undefined,true);
     simText(ctx,'F = '+(F>=0?'+':'')+F.toFixed(1)+' N',W/2,20,'#fbbf24',11.5,undefined,true);
 
     // ─── Floor ───────────────────────────────────────────────
@@ -10092,81 +10095,81 @@ function simNewton2(canvas){
     ctx.restore();
     ctx.save(); ctx.strokeStyle='#2d5275'; ctx.lineWidth=2;
     ctx.beginPath(); ctx.moveTo(0,FLY); ctx.lineTo(W,FLY); ctx.stroke(); ctx.restore();
-    simText(ctx,mu>0.01?'משטח עם חיכוך μ='+mu.toFixed(2):'משטח חלק (μ=0)',W/2,FLY+15,'#7d8da6',8.5);
+    simText(ctx,mu>0.01?'משטח עם חיכוך:  μ = '+mu.toFixed(2):'משטח חלק:  μ = 0',W*0.25,FLY+15,'#94a3b8',10);
+    if(atWall) simText(ctx,'הגוף נלחץ אל הדופן, והיא דוחפת אותו בחזרה: ΣF = 0',W/2,FLY+32,'#fbbf24',10,'center',true);
 
     // ─── Block ───────────────────────────────────────────────
-    const bW=Math.max(46,mass*6.5), bH=Math.max(32,mass*4.8);
+    const bW=Math.min(W*0.2,Math.max(46,mass*6.5)), bH=Math.min(W*0.15,Math.max(32,mass*4.8));
     const bTop=FLY-bH, bCY=FLY-bH/2;
     const bGrad=ctx.createLinearGradient(pos-bW/2,bTop,pos-bW/2,FLY);
     bGrad.addColorStop(0,'rgba(99,102,241,.88)'); bGrad.addColorStop(1,'rgba(67,56,202,.58)');
     ctx.save(); ctx.shadowColor='rgba(99,102,241,.55)'; ctx.shadowBlur=18;
     drawBox(ctx,pos-bW/2,bTop,bW,bH,bGrad,'#818cf8',2.5,6); ctx.restore();
-    simText(ctx,mass.toFixed(1)+' kg',pos,bCY+5,'#c7d2fe',12.5,undefined,true);
+    simText(ctx,mass.toFixed(1)+' kg',pos,bCY+5,'#e0e7ff',12,undefined,true);
 
-    // Applied force arrow (hide on wall contact to avoid confusion)
-    if(Math.abs(F)>0.3&&!atWall){
-      const fLen=Math.min(Math.abs(F)*1.15,82);
-      const sx=F>0?pos-bW/2-4:pos+bW/2+4;
-      simArrow(ctx,sx,bCY,sx+Math.sign(F)*fLen,bCY,'#ef4444',3.5,13);
-      simText(ctx,'F='+Math.abs(F).toFixed(1)+'N',sx+Math.sign(F)*(fLen+14),bCY-1,'#fca5a5',10,undefined,true);
+    // One scale for every force in the diagram, so the arrows compare
+    const kF=Math.min(2.2,62/Math.max(N,Math.abs(F),1));
+    // Applied force: a push that ends on the face it pushes (it used to start
+    // at that face and run through the block, over its label)
+    if(Math.abs(F)>0.3){
+      const fLen=Math.abs(F)*kF;
+      const ex=F>0?pos-bW/2-2:pos+bW/2+2;
+      simArrow(ctx,ex-Math.sign(F)*fLen,bCY,ex,bCY,'#ef4444',3.5,13);
+      simText(ctx,'F = '+Math.abs(F).toFixed(1)+' N',ex-Math.sign(F)*fLen/2,bCY-10,'#fca5a5',10,undefined,true);
     }
 
-    // Friction arrow (if any)
+    // Friction acts along the contact surface, against the sliding (or the
+    // tendency to slide)
     if(Math.abs(f_fric)>0.3&&mu>0.001){
-      const frLen=Math.min(Math.abs(f_fric)*1.1,68);
-      const frSide=f_fric>0?pos-bW/2-4:pos+bW/2+4;
-      simArrow(ctx,frSide,bCY+12,frSide+Math.sign(f_fric)*frLen,bCY+12,'#a78bfa',2.5,10);
-      simText(ctx,'f='+Math.abs(f_fric).toFixed(1)+'N',frSide+Math.sign(f_fric)*(frLen+12),bCY+12,'#c4b5fd',9,undefined,true);
+      const frLen=Math.abs(f_fric)*kF;
+      simArrow(ctx,pos,FLY+5,pos+Math.sign(f_fric)*frLen,FLY+5,'#a78bfa',2.5,10);
+      simText(ctx,'f = '+Math.abs(f_fric).toFixed(1)+' N',pos+Math.sign(f_fric)*(frLen/2+6),FLY+20,'#c4b5fd',10,f_fric<0?'right':'left',true);
     }
 
-    // Normal force arrow (up from top)
-    if(N>0.1){
-      const nLen=Math.min(N*0.38,56);
-      simArrow(ctx,pos,bTop,pos,bTop-nLen,'#34d399',2.5,10);
-      simText(ctx,'N='+N.toFixed(0)+'N',pos+6,bTop-nLen-6,'#34d399',9,'left');
-    }
+    // Normal force (up) and weight (down), both on the block's centre line
+    const nLen=N*kF;
+    simArrow(ctx,pos,bTop,pos,bTop-nLen,'#34d399',2.5,10);
+    simText(ctx,'N = '+N.toFixed(0)+' N',pos+8,bTop-nLen+6,'#34d399',10,'left');
+    const wLen=mass*g*kF;
+    simArrow(ctx,pos,FLY,pos,FLY+wLen,'#ef4444',2,9);
+    // on the side away from the friction label
+    simText(ctx,'W = '+(mass*g).toFixed(0)+' N',f_fric<0?pos+8:pos-8,FLY+wLen+4,'#fca5a5',10,f_fric<0?'left':'right');
 
-    // Weight arrow (down from bottom)
-    const wLen=Math.min(mass*g*0.38,56);
-    simArrow(ctx,pos,FLY,pos,FLY+Math.min(wLen,H-FLY-8),'#ef4444',2,9);
-    simText(ctx,'W='+( mass*g).toFixed(0)+'N',pos+6,FLY+Math.min(wLen,28)+6,'#fca5a5',9,'left');
-
-    // Acceleration arrow (above box)
-    const accY=bTop-36;
+    // Acceleration (box) and velocity (arrow), stacked above the force arrows
+    const accY=bTop-nLen-24;
     if(Math.abs(a)>0.04){
       const aLen=Math.min(Math.abs(a)*18,80);
-      simArrow(ctx,pos,accY,pos+Math.sign(a)*aLen,accY,'#22d3ee',3.5,13);
+      simArrow(ctx,pos,accY-22,pos+Math.sign(a)*aLen,accY-22,'#22d3ee',3.5,13);
     }
     ctx.save(); ctx.fillStyle='rgba(6,14,28,.88)'; ctx.strokeStyle='#22d3ee'; ctx.lineWidth=1;
-    ctx.beginPath(); ctx.roundRect(pos-72,accY-16,144,20,4); ctx.fill(); ctx.stroke(); ctx.restore();
-    simText(ctx,'a='+(a>=0?'+':'')+a.toFixed(3)+' m/s²',pos,accY-3,'#22d3ee',11.5,undefined,true);
-
-    // Velocity arrow (further above)
+    ctx.beginPath(); ctx.roundRect(pos-68,accY-12,136,20,4); ctx.fill(); ctx.stroke(); ctx.restore();
+    simText(ctx,'a = '+(a>=0?'+':'')+a.toFixed(3)+' m/s²',pos,accY+2,'#22d3ee',11,undefined,true);
     if(Math.abs(vel)>0.08){
       const vLen=Math.min(Math.abs(vel)*9,68);
-      simArrow(ctx,pos,bTop-60,pos+Math.sign(vel)*vLen,bTop-60,'#34d399',2.5,10);
+      simArrow(ctx,pos,accY-44,pos+Math.sign(vel)*vLen,accY-44,'#34d399',2.5,10);
     }
-    simText(ctx,'v='+(vel>=0?'+':'')+vel.toFixed(2)+' m/s',pos,bTop-72,'#34d399',10.5,undefined,true);
+    simText(ctx,'v = '+(vel>=0?'+':'')+vel.toFixed(2)+' m/s',pos,accY-56,'#34d399',10.5,undefined,true);
 
     // ─── Info panel (right) ──────────────────────────────────
-    const ipX=W-174, ipY=66, ipW=164, ipH=108;
+    // a narrow screen gets the same six readouts in two columns across the top
+    const _ph=W<480, ipX=_ph?10:W-174, ipY=64, ipW=_ph?W-20:164, ipH=_ph?58:108;
     ctx.save(); ctx.fillStyle='rgba(6,14,28,.93)'; ctx.strokeStyle='#1e4060'; ctx.lineWidth=1.5;
     ctx.beginPath(); ctx.roundRect(ipX,ipY,ipW,ipH,7); ctx.fill(); ctx.stroke(); ctx.restore();
-    simText(ctx,'F  = '+F.toFixed(1)+' N',ipX+ipW/2,ipY+17,'#ef4444',11,undefined,true);
-    simText(ctx,'m  = '+mass.toFixed(1)+' kg',ipX+ipW/2,ipY+33,'#a78bfa',11,undefined,true);
-    simText(ctx,'N  = '+N.toFixed(1)+' N',ipX+ipW/2,ipY+49,'#34d399',11,undefined,true);
-    simText(ctx,'ΣF = '+netF.toFixed(2)+' N',ipX+ipW/2,ipY+65,'#f59e0b',11,undefined,true);
-    simText(ctx,'a  = '+a.toFixed(3)+' m/s²',ipX+ipW/2,ipY+81,'#22d3ee',11.5,undefined,true);
-    simText(ctx,'p  = '+(mass*vel).toFixed(2)+' kg·m/s',ipX+ipW/2,ipY+97,'#fbbf24',10,undefined,true);
+    [['F  = '+F.toFixed(1)+' N','#ef4444'],['m  = '+mass.toFixed(1)+' kg','#a78bfa'],['N  = '+N.toFixed(1)+' N','#34d399'],
+     ['ΣF = '+netF.toFixed(2)+' N','#f59e0b'],['a  = '+a.toFixed(3)+' m/s²','#22d3ee'],['p  = '+(mass*vel).toFixed(2)+' kg·m/s','#fbbf24']]
+    .forEach(function(r,k){
+      var cx=_ph?ipX+ipW*(k<3?0.75:0.27):ipX+ipW/2, cy=_ph?ipY+15+(k%3)*16:ipY+17+k*16;
+      simText(ctx,r[0],cx,cy,r[1],_ph?10:11,undefined,true);
+    });
 
     // ─── Dual graphs (bottom) ────────────────────────────────
-    const gY=H-64, gH=56, gL=12, gR=W-12, gW=(gR-gL)/2-3;
+    const gY=H-86, gH=72, gL=12, gR=W-12, gW=(gR-gL)/2-3;
 
     // v(t) graph
     const vMax=Math.max(1,...vHist.map(Math.abs));
     ctx.save(); ctx.fillStyle='rgba(6,14,28,.88)'; ctx.strokeStyle='#1e4060'; ctx.lineWidth=1;
     ctx.beginPath(); ctx.roundRect(gL,gY,gW,gH,5); ctx.fill(); ctx.stroke(); ctx.restore();
-    simText(ctx,'v(t)',gL+18,gY+10,'#34d399',8,'left');
+    simText(ctx,'v (m/s)',gL+8,gY+12,'#34d399',10,'left');
     // zero line
     ctx.save(); ctx.strokeStyle='#1e3a52'; ctx.lineWidth=0.8; ctx.setLineDash([2,4]);
     ctx.beginPath(); ctx.moveTo(gL+2,gY+gH/2); ctx.lineTo(gL+gW-2,gY+gH/2); ctx.stroke(); ctx.setLineDash([]); ctx.restore();
@@ -10179,7 +10182,7 @@ function simNewton2(canvas){
       });
       ctx.stroke(); ctx.restore();
     }
-    simText(ctx,vel.toFixed(2)+' m/s',gL+gW-4,gY+gH-4,'#34d399',7.5,'right');
+    simText(ctx,vel.toFixed(2)+' m/s',gL+gW-6,gY+gH-6,'#34d399',10,'right');
 
     // a(t) graph
     // Fixed scale prevents wall spikes from collapsing graph
@@ -10188,7 +10191,7 @@ function simNewton2(canvas){
     const g2L=gR-gW, g2R=gR;
     ctx.save(); ctx.fillStyle='rgba(6,14,28,.88)'; ctx.strokeStyle='#1e4060'; ctx.lineWidth=1;
     ctx.beginPath(); ctx.roundRect(g2L,gY,gW,gH,5); ctx.fill(); ctx.stroke(); ctx.restore();
-    simText(ctx,'a(t)',g2L+18,gY+10,'#22d3ee',8,'left');
+    simText(ctx,'a (m/s²)',g2L+8,gY+12,'#22d3ee',10,'left');
     ctx.save(); ctx.strokeStyle='#1e3a52'; ctx.lineWidth=0.8; ctx.setLineDash([2,4]);
     ctx.beginPath(); ctx.moveTo(g2L+2,gY+gH/2); ctx.lineTo(g2R-2,gY+gH/2); ctx.stroke(); ctx.setLineDash([]); ctx.restore();
     if(aHist.length>2){
@@ -10200,8 +10203,7 @@ function simNewton2(canvas){
       });
       ctx.stroke(); ctx.restore();
     }
-    simText(ctx,a.toFixed(3)+' m/s²',g2R-4,gY+gH-4,'#22d3ee',7.5,'right');
-    simText(ctx,'לחיצה כפולה = אפס',W/2,gY-4,'#cbd5e1',7.5);
+    simText(ctx,a.toFixed(3)+' m/s²',g2R-6,gY+gH-6,'#22d3ee',10,'right');
 
     requestAnimationFrame(draw);
   }
