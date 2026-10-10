@@ -232,7 +232,7 @@ const t=(name,cond,detail)=>(cond?ok:bad).push(name+(detail?' — '+detail:''));
   await go('dc-network','dc-parallel');
   for(const [V,R1,R2,R3,third] of [[12,4,12,6,0],[24,1,1,1,1],[2,24,24,24,1]]){
     await setS('inp-par-V',V);await setS('inp-par-R1',R1);await setS('inp-par-R2',R2);await setS('inp-par-R3',R3);
-    const has=/הסר/.test(await p.evaluate(()=>document.getElementById('btn-par-third').textContent));
+    const has=/➖/.test(await p.evaluate(()=>document.getElementById('btn-par-third').textContent));
     if(has!==!!third)await p.click('#btn-par-third');
     await p.waitForTimeout(150);
     const tx=await grab();
