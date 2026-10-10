@@ -32561,8 +32561,6 @@ function initSensorLab(key){
   var btn=document.getElementById('sl-start'),err=document.getElementById('sl-err');
   function say(m){if(err){err.style.display=m?'':'none';err.innerHTML=m||'';}}
 
-  // The canvas is sized once from its CSS width, so a rotation to landscape
-  // would otherwise leave it drawing into the old, narrower bitmap.
   // Before the first start there is nothing to show: drawing the lab's own
   // first state put an empty plot, '0.0 N' forces or a 'calibrating 0%'
   // banner under the prompt, the two texts printed over each other.
@@ -32573,6 +32571,8 @@ function initSensorLab(key){
     simText(ctx,'לחצו ▶ הפעילו חיישן כדי להתחיל למדוד',W/2,H/2-8,mu,13,'center',true);
     simText(ctx,'הגרפים והמדידות יופיעו כאן',W/2,H/2+16,mu,11,'center');
   }
+  // The canvas is sized once from its CSS width, so a rotation to landscape
+  // would otherwise leave it drawing into the old, narrower bitmap.
   function resize(){
     var s2=setupCanvas(cv,L.h);ctx=s2.ctx;W=s2.W;H=s2.H;
     if(!_sl.run)paintIdle();
