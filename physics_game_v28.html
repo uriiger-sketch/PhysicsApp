@@ -29316,7 +29316,10 @@ function simDcMeters(canvas){
     dcBatt(ctx,L,(T+B)/2,v.toFixed(1)+' V');
     dcRes(ctx,W*0.40,T,56,26,r1.toFixed(0)+' Ω','#38bdf8',0);
     dcRes(ctx,W*0.70,T,56,26,r2.toFixed(0)+' Ω','#a78bfa',0);
-    if(I>0)dcFlow(ctx,[[L,B],[L,T],[Rt,T],[Rt,B],[L,B]],t,Math.min(.6,I*0.06),'#fbbf24',12);
+    // with the ammeter across R₂ the charge goes round through the METER (it is
+    // a 0 Ω path) and none of it through R₂ -- it used to be drawn through R₂
+    if(I>0)dcFlow(ctx,mode===1?[[L,B],[L,T],[W*0.60,T],[W*0.60,T-46],[W*0.80,T-46],[W*0.80,T],[Rt,T],[Rt,B],[L,B]]
+                              :[[L,B],[L,T],[Rt,T],[Rt,B],[L,B]],t,Math.min(.6,I*0.06),'#fbbf24',mode===1?14:12);
     // the meter, drawn where this mode puts it
     function meter(x,y,kind,reading){
       ctx.save();ctx.fillStyle='rgba(2,10,20,.95)';ctx.strokeStyle=kind==='A'?'#fbbf24':'#34d399';
@@ -29524,7 +29527,7 @@ function simDcEmf(canvas){
 // opening the switch really does discharge C through R2.
 function simDcCap(canvas){
   var id=canvas.id, _g=_simGen[id];
-  const H=480; const {ctx,W,dpr}=setupCanvas(canvas,H);
+  const H=520; const {ctx,W,dpr}=setupCanvas(canvas,H);
   var Vc=0, tt=0, closed=false, tr=[], SWX=0, SWY=0;
   function Vs(){var e=document.getElementById('inp-cap-V');return e?parseFloat(e.value):12;}
   function R1(){var e=document.getElementById('inp-cap-R1');return e?parseFloat(e.value)*1000:4000;}
@@ -29541,15 +29544,13 @@ function simDcCap(canvas){
   function draw(){
     if(_simGen[id]!==_g)return;if(_simStop[id])return;
     var v=Vs(), r1=R1(), r2=R2(), C=Cf(), dt=0.016;
-    // dVc/dt = [(V-Vc)/R1 - Vc/R2] / C, integrated in sub-steps small next to
-    // the time constant -- the sliders reach tau = 25 ms, and one 16 ms Euler
-    // step across that is not an approximation, it is a different curve
-    var tauNow=(closed?r1*r2/(r1+r2):r2)*C, sub=Math.max(1,Math.min(40,Math.ceil(dt/(0.08*tauNow))));
-    var h=dt/sub, Iin=0, I2=0, Ic=0, s;
-    for(s=0;s<sub;s++){
-      Iin = closed ? (v-Vc)/r1 : 0; I2 = Vc/r2; Ic = Iin - I2;
-      Vc += Ic/C*h; if(Vc<0)Vc=0;
-    }
+    // dVc/dt = [(V-Vc)/R1 - Vc/R2] / C is linear with constant coefficients
+    // while the switch and sliders hold still, so each frame is advanced by its
+    // EXACT solution, Vc -> V∞ + (Vc - V∞)·e^(-dt/τ): no step size to get wrong,
+    // and a slider moved mid-charge simply starts a new exponential from here.
+    var tauNow=(closed?r1*r2/(r1+r2):r2)*C, Vinf=closed?v*r2/(r1+r2):0;
+    Vc=Vinf+(Vc-Vinf)*Math.exp(-dt/tauNow);
+    var Iin=closed?(v-Vc)/r1:0, I2=Vc/r2, Ic=Iin-I2;   // the junction law at the top node
     tt+=dt;
     var Vfin = v*r2/(r1+r2);
     var discharging = !closed && Vc>0.05;
@@ -29572,8 +29573,8 @@ function simDcCap(canvas){
     ctx.beginPath();ctx.arc(SWX+12,T,3,0,6.2832);ctx.fill();ctx.restore();
     simHandle(ctx,SWX,T,closed?'#34d399':'#ef4444',26);
     simText(ctx,closed?'סגור':'פתוח',SWX,T-32,closed?'#34d399':'#ef4444',10,'center',true);
-    dcRes(ctx,W*0.46,T,52,22,(r1/1000).toFixed(0)+'k','#38bdf8',0);
-    dcResV(ctx,r2x,(T+Bm)/2,22,44,(r2/1000).toFixed(0)+'k','#a78bfa',0);
+    dcRes(ctx,W*0.46,T,58,22,(r1/1000).toFixed(0)+' kΩ','#38bdf8',0);
+    dcResV(ctx,r2x,(T+Bm)/2,22,44,(r2/1000).toFixed(0)+' kΩ','#a78bfa',0);
     // the capacitor hangs from the node between R1 and R2
     var cyT=(T+Bm)/2-7, cyB=cyT+14;
     ctx.save();ctx.strokeStyle='#64748b';ctx.lineWidth=2;
@@ -29583,13 +29584,17 @@ function simDcCap(canvas){
     ctx.beginPath();ctx.moveTo(nx-17,cyT);ctx.lineTo(nx+17,cyT);
     ctx.moveTo(nx-17,cyB);ctx.lineTo(nx+17,cyB);ctx.stroke();ctx.restore();
     simText(ctx,(C*1e6).toFixed(0)+' μF',nx-24,cyT+11,'#fbbf24',10,'right',true);
-    if(Iin>1e-6)dcFlowI(ctx,[[L,Bm],[L,T],[nx,T]],tt,Iin,'#fbbf24',30000);
-    if(I2>1e-6){dcFlowI(ctx,[[nx,T],[r2x,T],[r2x,Bm]],tt,I2,'#a78bfa',30000);
-      dcFlowI(ctx,[[r2x,Bm],[L,Bm]],tt,I2,'#a78bfa',30000);}
+    // Three loops of charge, each closed: the battery's current comes back along
+    // the bottom rail only as far as the capacitor's node, R₂'s current only from
+    // R₂ to that node. (R₂'s current used to be drawn all the way back into the
+    // battery -- with the switch open, a current through an open switch.)
+    var kF=Math.min(30000,220/Math.max(1e-9,v/r1));
+    if(Iin>1e-6)dcFlowI(ctx,[[nx,Bm],[L,Bm],[L,T],[nx,T]],tt,Iin,'#fbbf24',kF);
+    if(I2>1e-6)dcFlowI(ctx,[[nx,T],[r2x,T],[r2x,Bm],[nx,Bm]],tt,I2,'#a78bfa',kF);
     if(Math.abs(Ic)>1e-6){
-      var _up=Ic<0;                                   // discharging: back up into the − plate
-      dcFlowI(ctx,_up?[[nx,cyT],[nx,T]]:[[nx,T],[nx,cyT]],tt,Math.abs(Ic),'#f472b6',30000);
-      dcFlowI(ctx,_up?[[nx,Bm],[nx,cyB]]:[[nx,cyB],[nx,Bm]],tt,Math.abs(Ic),'#f472b6',30000);
+      var _up=Ic<0;                                   // discharging: out of the + plate, back into the − plate
+      dcFlowI(ctx,_up?[[nx,cyT],[nx,T]]:[[nx,T],[nx,cyT]],tt,Math.abs(Ic),'#f472b6',kF);
+      dcFlowI(ctx,_up?[[nx,Bm],[nx,cyB]]:[[nx,cyB],[nx,Bm]],tt,Math.abs(Ic),'#f472b6',kF);
     }
     // charge piled on the plates -- the thing that actually stops the current --
     // painted after the flowing charges so it is never hidden behind one
@@ -29605,41 +29610,52 @@ function simDcCap(canvas){
       }
     }
     var ry=H*0.47;
-    simText(ctx,Vc.toFixed(2)+' V',W*0.20,ry,'#fbbf24',13,'center',true);
-    simText(ctx,(Ic*1000).toFixed(2)+' mA',W*0.50,ry,'#f472b6',13,'center',true);
-    simText(ctx,tau.toFixed(2)+' s',W*0.80,ry,'#34d399',13,'center',true);
-    simText(ctx,'מתח הקבל',W*0.20,ry-18,'#7d8da6',9.5,'center');
-    simText(ctx,'זרם הקבל',W*0.50,ry-18,'#7d8da6',9.5,'center');
-    simText(ctx,discharging?'קבוע הזמן לפריקה':'קבוע הזמן לטעינה',W*0.80,ry-18,'#7d8da6',9.5,'center');
-    // a scope view: the last few time constants, both curves on one box
-    var gx=44,gw=W-gx-20,gy=H*0.56,gh=H*0.26;
+    var cols4=[W*0.14,W*0.38,W*0.62,W*0.86];
+    simText(ctx,Vc.toFixed(2)+' V',cols4[0],ry,'#fbbf24',13,'center',true);
+    simText(ctx,(Math.abs(Ic)<5e-6?0:Ic*1000).toFixed(2)+' mA',cols4[1],ry,'#f472b6',13,'center',true);
+    simText(ctx,(0.5*C*Vc*Vc*1000).toFixed(1)+' mJ',cols4[2],ry,'#a78bfa',13,'center',true);
+    simText(ctx,tau.toFixed(2)+' s',cols4[3],ry,'#34d399',13,'center',true);
+    simText(ctx,'מתח הקבל',cols4[0],ry-18,'#7d8da6',9.5,'center');
+    simText(ctx,'זרם הקבל',cols4[1],ry-18,'#7d8da6',9.5,'center');
+    simText(ctx,'אנרגיה ½CV²',cols4[2],ry-18,'#7d8da6',9.5,'center');
+    simText(ctx,discharging?'פריקה: τ = R₂C':'טעינה: τ = (R₁∥R₂)C',cols4[3],ry-18,'#7d8da6',9.5,'center');
+    // a scope in two strips that share the time axis: V_C above, and below it
+    // the capacitor current about its own zero -- so the discharge current is
+    // seen to run the other way (it was clipped to zero and vanished)
+    var gx=44,gw=W-gx-20,gy=H*0.56,gh=H*0.30,hv=gh*0.47,gi=gy+gh*0.53,hi=gh*0.47,zi=gi+hi/2;
     var WIN=Math.max(2,6*tau), t0=Math.max(0,tt-WIN);
-    ctx.save();ctx.strokeStyle='#1e3a52';ctx.lineWidth=1;ctx.strokeRect(gx+.5,gy+.5,gw-1,gh-1);ctx.restore();
+    ctx.save();ctx.strokeStyle='#1e3a52';ctx.lineWidth=1;
+    ctx.strokeRect(gx+.5,gy+.5,gw-1,hv-1);ctx.strokeRect(gx+.5,gi+.5,gw-1,hi-1);
+    ctx.setLineDash([3,3]);ctx.strokeStyle='rgba(148,163,184,.45)';
+    ctx.beginPath();ctx.moveTo(gx,zi);ctx.lineTo(gx+gw,zi);ctx.stroke();ctx.restore();
     var Imx=Math.max(1e-9,v/r1), Vmx=Math.max(1e-9,v);
-    ctx.save();ctx.beginPath();ctx.rect(gx,gy,gw,gh);ctx.clip();
-    [[1,'#fbbf24',Vmx],[2,'#f472b6',Imx]].forEach(function(s){
+    var yV=function(q){return gy+hv-3-Math.max(0,Math.min(1,q/Vmx))*(hv-6);};
+    var yI=function(q){return zi-Math.max(-1,Math.min(1,q/Imx))*(hi/2-3);};
+    [[1,'#fbbf24',yV,gy,hv],[2,'#f472b6',yI,gi,hi]].forEach(function(s){
+      ctx.save();ctx.beginPath();ctx.rect(gx,s[3],gw,s[4]);ctx.clip();
       ctx.strokeStyle=s[1];ctx.lineWidth=2.2;ctx.beginPath();var first=true;
       for(var k=0;k<tr.length;k++){
         if(tr[k][0]<t0)continue;
-        var x=gx+gw*((tr[k][0]-t0)/WIN);
-        var y=gy+gh-3-Math.max(0,Math.min(1,tr[k][s[0]]/s[2]))*(gh-6);
+        var x=gx+gw*((tr[k][0]-t0)/WIN), y=s[2](tr[k][s[0]]);
         if(first){ctx.moveTo(x,y);first=false;}else ctx.lineTo(x,y);}
-      ctx.stroke();});
-    ctx.restore();
+      ctx.stroke();ctx.restore();});
     // the final value of V_C, so the curve has something to aim at
-    var yf=gy+gh-3-(Vfin/Vmx)*(gh-6);
+    var yf=yV(Vfin);
     ctx.save();ctx.strokeStyle='rgba(251,191,36,.45)';ctx.setLineDash([4,3]);ctx.lineWidth=1.2;
     ctx.beginPath();ctx.moveTo(gx,yf);ctx.lineTo(gx+gw,yf);ctx.stroke();ctx.restore();
     simText(ctx,Vfin.toFixed(1)+' V',gx-5,yf+4,'#fbbf24',8.5,'right');
-    simText(ctx,'0',gx-5,gy+gh-1,'#7d8da6',8.5,'right');
+    simText(ctx,'0',gx-5,gy+hv-1,'#7d8da6',8.5,'right');
+    simText(ctx,'0',gx-5,zi+3,'#7d8da6',8.5,'right');
+    simText(ctx,'טעינה',gx+gw-6,gi+12,'#7d8da6',8.5,'right');
+    simText(ctx,'פריקה',gx+gw-6,gi+hi-5,'#7d8da6',8.5,'right');
     if(tau>=t0&&tau<=t0+WIN){
       var xt=gx+gw*((tau-t0)/WIN);
       ctx.save();ctx.strokeStyle='rgba(148,163,184,.6)';ctx.setLineDash([3,3]);ctx.lineWidth=1.2;
-      ctx.beginPath();ctx.moveTo(xt,gy);ctx.lineTo(xt,gy+gh);ctx.stroke();ctx.restore();
-      simText(ctx,'τ',xt,gy+gh+13,'#94a3b8',10,'center',true);
-      if(closed)simText(ctx,'63%',xt-5,gy+gh-3-(0.632*Vfin/Vmx)*(gh-6)-5,'#fbbf24',8.5,'right');
+      ctx.beginPath();ctx.moveTo(xt,gy);ctx.lineTo(xt,gi+hi);ctx.stroke();ctx.restore();
+      simText(ctx,'τ',xt,gi+hi+13,'#94a3b8',10,'center',true);
+      if(closed)simText(ctx,'63%',xt-5,yV(0.632*Vfin)-5,'#fbbf24',8.5,'right');
     }
-    simText(ctx,WIN.toFixed(1)+' s',gx+gw,gy+gh+13,'#7d8da6',8.5,'center');
+    simText(ctx,WIN.toFixed(1)+' s',gx+gw,gi+hi+13,'#7d8da6',8.5,'center');
     ctx.save();ctx.strokeStyle='#fbbf24';ctx.lineWidth=2.4;
     ctx.beginPath();ctx.moveTo(gx+8,gy-8);ctx.lineTo(gx+24,gy-8);ctx.stroke();
     ctx.strokeStyle='#f472b6';
