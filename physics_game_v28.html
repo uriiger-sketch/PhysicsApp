@@ -14364,6 +14364,7 @@ function simElcDeflect(canvas){
     var E=V/d_m, a=e_c*E/m;
     var tf=L/v0, yEx=0.5*a*tf*tf, vy=a*tf, ang=Math.atan2(vy,v0);
     var hit=yEx>d_m/2;
+    var tHit=Math.sqrt(d_m/a), xHit=v0*tHit;         // where y reaches d/2
     ctx.clearRect(0,0,W,H);
     ctx.fillStyle='#0f1c2e';ctx.fillRect(0,0,W,H);
     var X0=W*0.08, PPMx=(W*0.52)/0.14, CY=H*0.42, PPMy=(H*0.30)/d_m;
@@ -14409,8 +14410,15 @@ function simElcDeflect(canvas){
     // numbers
     var by=H-104;
     slTxt(ctx,'E = V/d = '+E.toFixed(0)+' V/m      a = qE/m = '+sciTxt(a)+' m/s²',W/2,by,'#94a3b8',12,'center');
-    slTxt(ctx,'t = L/v₀ = '+(tf*1e9).toFixed(2)+' ns      y = ½at² = '+(yEx*1000).toFixed(2)+' mm',W/2,by+22,'#dde6f0',13.5,'center',true);
-    slTxt(ctx,'α = '+(ang*180/Math.PI).toFixed(1)+'°',W/2,by+44,'#94a3b8',12,'center');
+    // A particle that hits the plate never reaches x = L: its numbers are those
+    // of the hit, not y = ½a(L/v₀)² for a flight it did not make.
+    if(hit){
+      slTxt(ctx,'y = d/2 = '+(d_m*500).toFixed(0)+' mm  ⇒  t = √(d/a) = '+(tHit*1e9).toFixed(2)+' ns',W/2,by+22,'#dde6f0',13.5,'center',true);
+      slTxt(ctx,'x = v₀t = '+(xHit*100).toFixed(1)+' cm  <  L = '+(L*100).toFixed(0)+' cm',W/2,by+44,'#94a3b8',12,'center');
+    } else {
+      slTxt(ctx,'t = L/v₀ = '+(tf*1e9).toFixed(2)+' ns      y = ½at² = '+(yEx*1000).toFixed(2)+' mm',W/2,by+22,'#dde6f0',13.5,'center',true);
+      slTxt(ctx,'α = '+(ang*180/Math.PI).toFixed(1)+'°',W/2,by+44,'#94a3b8',12,'center');
+    }
     simText(ctx,hit?'⚠ הסטייה עולה על חצי המרווח — החלקיק פוגע בלוח':
       'החלקיק יוצא מהלוחות וממשיך בקו ישר עד המסך',
       W/2,by+68,hit?'#ef4444':'#10b981',12,'center',true);
