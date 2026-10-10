@@ -21530,77 +21530,40 @@ runAnim('anim-n3',(canvas,ctx,W,H,t)=>{
 
 runAnim('anim-vecadd',(canvas,ctx,W,H,t)=>{
   bg(ctx,W,H);
-  const cx=W*0.38, cy=H*0.52;
-  // Animated angle between vectors
-  const theta=t*0.5; // slowly rotating B
-  const magA=62, magB=44;
-  const angA=0; // A points right
-  const angB=theta;
-  const Ax=magA*Math.cos(angA), Ay=-magA*Math.sin(angA);
-  const Bx=magB*Math.cos(angB), By=-magB*Math.sin(angB);
-  const Rx=Ax+Bx, Ry=Ay+By;
-  // Ay/By/Ry above are SCREEN values, used by the arrow and dash-path calls.
-  // Every READOUT must use the physics components, or an upward resultant gets
-  // reported as negative.
-  const Ayp=magA*Math.sin(angA), Byp=magB*Math.sin(angB), Ryp=Ayp+Byp;
-  const Rmag=Math.sqrt(Rx*Rx+Ry*Ry);
-
-  // Grid dots
+  // A = 3 units along +x, B = 2 units turning slowly; head to tail, R = A + B.
+  // (Lengths and readouts used to be raw pixels -- "A = 62" -- and the boxed
+  // labels piled on top of one another.)
+  const panelW=Math.min(W*0.3,190), U=Math.min((W-panelW-40)/6.2,(H-30)/4.6);
+  const cx=Math.max(20+2*U,(W-panelW)*0.36), cy=H*0.58;
+  const theta=t*0.5, a=3, b=2;
+  const Ax=a, Ay=0, Bx=b*Math.cos(theta), By=b*Math.sin(theta);
+  const Rx=Ax+Bx, Ry=Ay+By, Rm=Math.hypot(Rx,Ry);
+  const P=(x,y)=>[cx+x*U, cy-y*U];
   ctx.save(); ctx.fillStyle='rgba(30,58,82,.4)';
-  for(let gx=16;gx<W;gx+=28) for(let gy=14;gy<H;gy+=28){
-    ctx.beginPath(); ctx.arc(gx,gy,1.5,0,Math.PI*2); ctx.fill();
-  }ctx.restore();
-
-  // Origin
+  for(let gx=cx%U;gx<W-panelW-10;gx+=U) for(let gy=cy%U;gy<H;gy+=U){ ctx.beginPath(); ctx.arc(gx,gy,1.4,0,Math.PI*2); ctx.fill(); }
+  ctx.restore();
   circle(ctx,cx,cy,4,'#334e68','#475569',1);
-
-  // Vector A
-  arrow(ctx,cx,cy,cx+Ax,cy+Ay,'#3b82f6',3,12);
-  ctx.save(); ctx.fillStyle='rgba(6,14,28,.88)'; ctx.strokeStyle='#3b82f6'; ctx.lineWidth=1;
-  ctx.beginPath(); ctx.roundRect(cx+Ax/2-22,cy+Ay/2-10,44,16,3); ctx.fill(); ctx.stroke(); ctx.restore();
-  label(ctx,'A='+magA.toFixed(0),cx+Ax/2,cy+Ay/2+2,'#93c5fd',8.5);
-
-  // Vector B (from tip of A — head-to-tail)
-  arrow(ctx,cx+Ax,cy+Ay,cx+Ax+Bx,cy+Ay+By,'#f59e0b',3,12);
-  ctx.save(); ctx.fillStyle='rgba(6,14,28,.88)'; ctx.strokeStyle='#f59e0b'; ctx.lineWidth=1;
-  ctx.beginPath(); ctx.roundRect(cx+Ax+Bx/2-22,cy+Ay+By/2-10,44,16,3); ctx.fill(); ctx.stroke(); ctx.restore();
-  label(ctx,'B='+magB.toFixed(0),cx+Ax+Bx/2,cy+Ay+By/2+2,'#fde68a',8.5);
-
-  // Resultant R
+  // components of R
+  ctx.save(); ctx.strokeStyle='rgba(52,211,153,.35)'; ctx.lineWidth=1; ctx.setLineDash([3,5]);
+  ctx.beginPath(); ctx.moveTo(...P(0,0)); ctx.lineTo(...P(Rx,0)); ctx.lineTo(...P(Rx,Ry)); ctx.stroke(); ctx.setLineDash([]); ctx.restore();
+  arrow(ctx,...P(0,0),...P(Ax,Ay),'#3b82f6',3,12);
+  label(ctx,'A',P(Ax/2,0)[0],P(0,0)[1]+(Ry>=0?14:-6),'#93c5fd',11);
+  arrow(ctx,...P(Ax,Ay),...P(Ax+Bx,Ay+By),'#f59e0b',3,12);
+  label(ctx,'B',P(Ax+Bx/2,0)[0]+(Bx>=0?10:-10)*(Math.abs(By)>0.3?1:0),P(0,Ay+By/2)[1]+(Math.abs(By)>0.3?4:-10),'#fde68a',11);
   ctx.save(); ctx.shadowColor='rgba(52,211,153,.6)'; ctx.shadowBlur=10;
-  arrow(ctx,cx,cy,cx+Rx,cy+Ry,'#34d399',3.5,14); ctx.restore();
-  ctx.save(); ctx.fillStyle='rgba(6,14,28,.92)'; ctx.strokeStyle='#34d399'; ctx.lineWidth=1.5;
-  ctx.beginPath(); ctx.roundRect(cx+Rx/2-32,cy+Ry/2-11,64,18,4); ctx.fill(); ctx.stroke(); ctx.restore();
-  label(ctx,'R='+Rmag.toFixed(1),cx+Rx/2,cy+Ry/2+2,'#34d399',9.5);
-
-  // Component dashes from tip
-  ctx.save(); ctx.strokeStyle='rgba(52,211,153,.3)'; ctx.lineWidth=1; ctx.setLineDash([3,5]);
-  ctx.beginPath(); ctx.moveTo(cx,cy); ctx.lineTo(cx+Rx,cy); ctx.lineTo(cx+Rx,cy+Ry); ctx.stroke();
-  ctx.setLineDash([]); ctx.restore();
-  label(ctx,'Rx='+Rx.toFixed(1),cx+Rx/2,cy+12,'rgba(52,211,153,.6)',8);
-  label(ctx,'Ry='+(Ryp>=0?'+':'')+Ryp.toFixed(1),cx+Rx+6,cy+Ry/2,'rgba(52,211,153,.6)',8,'left');
-
-  // Angle indicator
-  ctx.save(); ctx.strokeStyle='rgba(251,191,36,.5)'; ctx.lineWidth=1.5;
-  ctx.beginPath(); ctx.arc(cx,cy,22,Math.atan2(Ry,Rx),0,Ry>0); ctx.stroke(); ctx.restore();
-  const Ra=Math.atan2(-Ry,Rx)*180/Math.PI;
-  label(ctx,(Ra>=0?Ra:-Ra).toFixed(0)+'°',cx+28,cy-8,'#fbbf24',8);
-
-  // Formula panel right
+  arrow(ctx,...P(0,0),...P(Rx,Ry),'#34d399',3.5,14); ctx.restore();
+  label(ctx,'R = A + B',P(Rx,Ry)[0]+(Rx>=0?10:-10),P(Rx,Ry)[1]+(Ry>=0?-6:14),'#34d399',10,Rx>=0?'left':'right');
+  // panel
+  const PX=W-panelW-6;
   ctx.save(); ctx.fillStyle='rgba(6,14,28,.88)'; ctx.strokeStyle='#1e4060'; ctx.lineWidth=1;
-  ctx.beginPath(); ctx.roundRect(W*0.72,H*0.08,W*0.26,H*0.5,7); ctx.fill(); ctx.stroke(); ctx.restore();
-  const px=W*0.85, py=H*0.18;
-  label(ctx,'חיבור וקטורי',px,py,'#94a3b8',9);
-  label(ctx,'Rx=Ax+Bx',px,py+16,'#34d399',8.5);
-  label(ctx,'='+Ax.toFixed(1)+'+'+Bx.toFixed(1),px,py+30,'#34d399',8);
-  label(ctx,'='+Rx.toFixed(1),px,py+44,'#34d399',9);
-  label(ctx,'Ry=Ay+By',px,py+64,'#34d399',8.5);
-  label(ctx,'='+Ayp.toFixed(1)+'+'+Byp.toFixed(1),px,py+78,'#34d399',8);
-  label(ctx,'='+Ryp.toFixed(1),px,py+92,'#34d399',9);
-  label(ctx,'|R|=√(Rx²+Ry²)',px,py+112,'#22d3ee',8.5);
-  label(ctx,'='+Rmag.toFixed(2),px,py+126,'#22d3ee',9);
-
-  label(ctx,'חיבור וקטורים ראש-אל-זנב — ירוק = A+B',W/2,H-5,'#7d8da6',7.5);
+  ctx.beginPath(); ctx.roundRect(PX,8,panelW,H-16,7); ctx.fill(); ctx.stroke(); ctx.restore();
+  const pc=PX+panelW/2, f=v=>(v>=0?'+':'')+v.toFixed(2);
+  label(ctx,'חיבור ברכיבים',pc,24,'#94a3b8',9);
+  label(ctx,'Rx = Ax + Bx = '+f(Rx),pc,46,'#34d399',9);
+  label(ctx,'Ry = Ay + By = '+f(Ry),pc,66,'#34d399',9);
+  label(ctx,'|R| = √(Rx² + Ry²) = '+Rm.toFixed(2),pc,90,'#22d3ee',9);
+  label(ctx,'|A| = 3,  |B| = 2',pc,112,'#cbd5e1',9);
+  label(ctx,'1 ≤ |R| ≤ 5',pc,132,'#fbbf24',9);
 });
 
 // CH2 ANIM: רכיבי ווקטור
@@ -21620,11 +21583,12 @@ runAnim('anim-vcomp',(canvas,ctx,W,H,t)=>{
   }ctx.restore();
   // Axes
   ctx.save(); ctx.strokeStyle='#2d5275'; ctx.lineWidth=1.5;
-  ctx.beginPath(); ctx.moveTo(cx-12,cy); ctx.lineTo(W*0.72,cy); ctx.stroke();
+  // the x axis stops short of the formula panel instead of running under it
+  ctx.beginPath(); ctx.moveTo(cx-12,cy); ctx.lineTo(W*0.60,cy); ctx.stroke();
   ctx.beginPath(); ctx.moveTo(cx,cy+12); ctx.lineTo(cx,14); ctx.stroke(); ctx.restore();
-  arrow(ctx,W*0.70,cy,W*0.72,cy,'#2d5275',1.5,7);
+  arrow(ctx,W*0.58,cy,W*0.60,cy,'#2d5275',1.5,7);
   arrow(ctx,cx,16,cx,14,'#2d5275',1.5,7);
-  label(ctx,'x',W*0.72,cy+10,'#7d8da6',9,'left'); label(ctx,'y',cx-10,16,'#7d8da6',9);
+  label(ctx,'x',W*0.60,cy+12,'#94a3b8',9,'left'); label(ctx,'y',cx-10,16,'#94a3b8',9);
 
   // Component lines (dashed)
   ctx.save(); ctx.strokeStyle='rgba(251,191,36,.4)'; ctx.lineWidth=1.5; ctx.setLineDash([4,5]);
@@ -23243,11 +23207,13 @@ runAnim('anim-vecdiff',(canvas,ctx,W,H,t)=>{
   ctx.save();ctx.strokeStyle='rgba(167,139,250,.4)';ctx.lineWidth=1.5;ctx.setLineDash([4,5]);
   ctx.beginPath();ctx.moveTo(CX+bx,CY+by);ctx.lineTo(CX+ax,CY+ay);ctx.stroke();ctx.setLineDash([]);ctx.restore();
   arrow(ctx,CX+bx,CY+by,CX+ax,CY+ay,'#a78bfa',2.5,10);
-  label(ctx,'A\u2212B',CX+(ax+bx)/2+6,CY+(ay+by)/2-8,'#a78bfa',9);
+  label(ctx,'A\u2212B',CX+(ax+bx)/2+8,CY+(ay+by)/2-6,'#c4b5fd',10,'left');
   var mag=Math.hypot(rx,ry)/40;
   ctx.save();ctx.fillStyle='rgba(6,14,28,.85)';ctx.strokeStyle='#1e4060';ctx.lineWidth=1;
   ctx.beginPath();ctx.roundRect(4,4,W-8,20,3);ctx.fill();ctx.stroke();ctx.restore();
-  label(ctx,'A\u2212B: \u05de\u05e7\u05e6\u05d4 B \u05dc\u05e7\u05e6\u05d4 A | |A\u2212B|='+mag.toFixed(1),W/2,13,'#a78bfa',7.5);
+  // Hebrew sentence and number as separate runs (the '|' made one garbled line)
+  label(ctx,'A − B הוא החץ מקצה B לקצה A (כששניהם יוצאים מאותה נקודה)',W/2,14,'#c4b5fd',9);
+  label(ctx,'|A − B| = '+mag.toFixed(1),CX+(ax+bx)/2+8,CY+(ay+by)/2+10,'#c4b5fd',9,'left');
   ctx.save();ctx.fillStyle='#475569';ctx.beginPath();ctx.arc(CX,CY,4,0,Math.PI*2);ctx.fill();ctx.restore();
 });
 
