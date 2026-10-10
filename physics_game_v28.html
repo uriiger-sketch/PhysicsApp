@@ -30975,7 +30975,7 @@ var SENSOR_LABS={
    ttl:'מדדו את '+M('\\mu_k')+' ישירות מההאטה',
    how:'הניחו מסך למעלה על משטח <b>ישר</b> — שולחן, או הלוח מהסעיף הקודם מונח שטוח — לחצו <b>↺ אתחל</b> במנוחה, ואז <b>דחפו והרפו</b>, כך שיחליק כמה עשרות סנטימטרים ויעצור על המשטח. קטע ההחלקה החופשית מזוהה ונמדד לבד.',
    pred:'לפני המדידה: נחשו אם '+M('\\mu_k')+' שתמדדו יהיה גדול או קטן מ-'+M('\\mu_s')+' שמדדתם בסעיף הקודם — על אותו משטח. ולמה?',
-   note:'בהחלקה חופשית על מישור אופקי הכוח האופקי היחיד הוא החיכוך, ולכן <b>הרכיב האופקי של הקריאה חלקי '+M('g')+' הוא ישירות '+M('\\mu_k')+'</b> — בלי אינטגרציה, בלי מסה ובלי אורך. קטע הדחיפה מוחרג: שם היד מוסיפה כוח. השוו למקדם הסטטי: '+M('\\mu_k<\\mu_s')+' כמעט תמיד, ולכן קשה יותר להזיז רהיט מאשר להמשיך להזיזו.',
+   note:'בהחלקה חופשית על מישור אופקי הכוח האופקי היחיד הוא החיכוך, ולכן <b>הרכיב האופקי של הקריאה חלקי '+M('g')+' הוא ישירות '+M('\\mu_k')+'</b> — בלי אינטגרציה, בלי מסה ובלי אורך. קטע הדחיפה מוחרג: שם היד מוסיפה כוח, והקריאה מצביעה <b>עם</b> הדחיפה — בהחלקה החופשית היא מצביעה <b>נגדה</b>, כי החיכוך מנוגד לתנועה. השוו למקדם הסטטי: '+M('\\mu_k<\\mu_s')+' כמעט תמיד, ולכן קשה יותר להזיז רהיט מאשר להמשיך להזיזו.',
    chips:[['mu','μ רגעי',''],['muk','μk ממוצע',''],['n','החלקות',''],['tl','מישוריות','']],
    ctrl:'<button class="sl-sec" id="sl-clr">🗑 נקה</button>'},
 
@@ -31973,12 +31973,12 @@ var SL_IMPL={
 // mu_k straight off the reading: on the level, the horizontal part of proper
 // acceleration during a free slide is mu_k*g and nothing else.
 'slide-mu':{
-  resume:function(st){st.run=0;st.sum=0;st.cnt=0;st.muPrev=undefined;},
+  resume:function(st){st.run=0;st.sum=0;st.cnt=0;st.muPrev=undefined;st.dir=null;st.rest=0;},
   init:function(st){st.tr=slTrace(240);st.h={v:.6};st.pts=[];st.reset(st);},
   reset:function(st){if(st.tr)st.tr.clear();
     st.ph='cal';st.calN=0;st.calS=[0,0,0];st.g0=0;st.u=null;
     st.mu=0;st.run=0;st.sum=0;st.cnt=0;st.flatOK=true;
-    st.muPrev=undefined;st.auF=undefined;st.tiltMu=0;},
+    st.muPrev=undefined;st.auF=undefined;st.tiltMu=0;st.dir=null;st.rest=0;},
   clear:function(st){st.pts=[];},
   sample:function(s,st){
     var A=[s.gx,s.gy,s.gz],i;
@@ -32004,9 +32004,25 @@ var SL_IMPL={
     var cs=Math.min(1,Math.abs(st.auF)/st.g0);
     st.tiltMu=Math.sqrt(Math.max(0,1-cs*cs));
     st.flatOK=st.tiltMu<0.06;
-    // a free slide is a steady horizontal reading in a plausible band; a hand
-    // pushing gives a much larger and far more erratic one
-    var ok=st.flatOK&&st.mu>0.03&&st.mu<1.2&&Math.abs(st.mu-(st.muPrev||st.mu))<0.05;
+    // Which way is the push? While the hand pushes, the reading points along
+    // the push; once it lets go, the only horizontal force left is friction,
+    // which points AGAINST the motion -- so a free slide reads the opposite way
+    // to the push that started it. Without this, a hand pushing steadily was
+    // indistinguishable from friction and was recorded as a mu_k. The push
+    // direction is the first clear horizontal reading after a rest; a phone
+    // that turns while it slides carries it round by the gyroscope's turn
+    // about the vertical (a world-fixed direction turns the other way in the
+    // phone's frame). A rest of 0.3 s ends the trial.
+    if(st.mu<0.05){st.rest+=s.dt;if(st.rest>0.3)st.dir=null;}
+    else{st.rest=0;if(!st.dir&&st.mu>0.15)st.dir=[hx/ah,hy/ah,hz/ah];}
+    if(st.dir&&s.gyro){
+      var u=st.u,wu=(s.rb*u[0]+s.rg*u[1]+s.ra*u[2])*Math.PI/180,ph=-wu*s.dt,c=Math.cos(ph),sn=Math.sin(ph),d=st.dir;
+      var cx=u[1]*d[2]-u[2]*d[1],cy=u[2]*d[0]-u[0]*d[2],cz=u[0]*d[1]-u[1]*d[0];
+      st.dir=[d[0]*c+cx*sn,d[1]*c+cy*sn,d[2]*c+cz*sn];}
+    var against=!!st.dir&&ah>0&&(hx*st.dir[0]+hy*st.dir[1]+hz*st.dir[2])/ah<-0.7;
+    // a free slide is a steady horizontal reading in a plausible band, pointing
+    // against the push; a hand pushing gives a larger, erratic one along it
+    var ok=st.flatOK&&against&&st.mu>0.03&&st.mu<1.2&&Math.abs(st.mu-(st.muPrev||st.mu))<0.05;
     st.muPrev=st.muPrev===undefined?st.mu:st.muPrev+(st.mu-st.muPrev)*0.25;
     if(ok){st.run+=s.dt;st.sum+=st.mu;st.cnt++;}
     else{

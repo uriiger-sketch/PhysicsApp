@@ -52,7 +52,7 @@ const push = (p, key, n, src) => p.evaluate(([key, n, src]) => {
   const f = eval(src), type = SENSOR_LABS[key].t, impl = SL_IMPL[type], st = _sl.st;
   for (let i = 0; i < n; i++) {
     const o = f(i), g = o.g, a = o.a || [0, 0, 0], r = o.r || [0, 0, 0];
-    impl.sample({ dt: 0.02, t: i * 0.02, exact: true, hz: 50,
+    impl.sample({ dt: 0.02, t: i * 0.02, exact: true, gyro: true, hz: 50,
       ax: a[0], ay: a[1], az: a[2],
       gx: g[0], gy: g[1], gz: g[2],
       Gx: g[0], Gy: g[1], Gz: g[2],
@@ -173,6 +173,9 @@ const S = p => p.evaluate(() => JSON.parse(JSON.stringify(_sl.st, (k, v) =>
   await push(p, 'forces2.kinetic-friction', 60, '()=>({g:[0,0,9.81]})');
   t('calibrated', (await S(p)).ph, 'run');
   for (const MU of [0.35, 0.22]) {
+    // every free slide starts with a push, and friction then reads AGAINST it:
+    // pushed toward -x, the slide reads +x
+    await push(p, 'forces2.kinetic-friction', 6, '()=>({g:[-4,0,9.81]})');
     await push(p, 'forces2.kinetic-friction', 40, `()=>({g:[${MU * 9.81},0,9.81]})`);
     t(`instantaneous μ during a ${MU} slide`, (await S(p)).mu, MU, 0.005);
     await push(p, 'forces2.kinetic-friction', 25, '()=>({g:[0,0,9.81]})');
@@ -190,9 +193,23 @@ const S = p => p.evaluate(() => JSON.parse(JSON.stringify(_sl.st, (k, v) =>
   }), false);
   const nB = (await S(p)).pts.length;
   await push(p, 'forces2.kinetic-friction', 60, '()=>({g:[0,0,9.81]})');   // settle back
+  await push(p, 'forces2.kinetic-friction', 6, '()=>({g:[-4,0,9.81]})');
   await push(p, 'forces2.kinetic-friction', 6, '()=>({g:[3.4,0,9.81]})');  // too brief
   await push(p, 'forces2.kinetic-friction', 20, '()=>({g:[0,0,9.81]})');
   t('a slide too short to be steady is not recorded', (await S(p)).pts.length, nB);
+  // a hand that pushes steadily reads like friction in size, but along the push
+  await push(p, 'forces2.kinetic-friction', 30, '()=>({g:[2.9,0,9.81]})');
+  await push(p, 'forces2.kinetic-friction', 30, '()=>({g:[0,0,9.81]})');
+  t('a steady push is not a free slide', (await S(p)).pts.length, nB);
+  // a slide that turns as it goes: friction keeps its direction in the room,
+  // so in the phone's frame it swings round at the turn rate (a turn a second)
+  await push(p, 'forces2.kinetic-friction', 6, '()=>({g:[-4,0,9.81]})');
+  await push(p, 'forces2.kinetic-friction', 40,
+    'i=>{const a=-(i+1)*0.02*2*Math.PI;return {g:[2.5*Math.cos(a),2.5*Math.sin(a),9.81],r:[360,0,0]};}');
+  await push(p, 'forces2.kinetic-friction', 30, '()=>({g:[0,0,9.81]})');
+  s = await S(p);
+  t('a slide that turns is still followed, by the gyroscope', s.pts.length, nB + 1);
+  t('  and measured', s.pts[s.pts.length - 1], 2.5 / 9.81, 0.01);
 
   console.log('\n7) momentum.momentum-def — same Δv, different Δt, different force');
   await openLab(p, 'momentum.momentum-def');
