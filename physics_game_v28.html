@@ -2793,7 +2793,7 @@ const CONTENT={
       <p>${M('\\dot m')} הוא קצב פליטת המסה (קילוגרמים בשנייה), ו-${M('v_e')} מהירות הגז ביחס לרקטה. מנועי הטיל שהביא אדם לירח פלטו כ-13 טון גז בשנייה.</p>`
     }
   },
-  sim:{type:'newton3',title:'פעולה ותגובה',desc:'גררו כדי לדחוף — ראו כוחות שווים הפוכים ותאוצות הפוכות. שנו מסות.'},
+  sim:{type:'newton3',title:'פעולה ותגובה',desc:'שני גולשים על קרח דוחפים זה את זה. גררו ביניהם ושחררו (או לחצו ״דחוף!״): הכוחות שווים בגודלם והפוכים בכיוונם — והתאוצות תלויות במסות.'},
   example:{title:'פעולה ותגובה',text:`סוס מושך עגלה בכוח של ${M('800\\,\\text{N}')}.`,steps:[
     {q:'באיזה כוח מושכת העגלה את הסוס?',a:`${M('800\\,\\text{N}')} בדיוק, בכיוון ההפוך — החוק השלישי.`},
     {q:'אם הכוחות שווים, איך העגלה זזה?',a:'שני הכוחות פועלים על גופים שונים, ולכן אינם מבטלים זה את זה. העגלה זזה כי על העגלה עצמה הכוח של הסוס גדול מהחיכוך. הסוס מתקדם כי הקרקע דוחפת את רגליו קדימה חזק יותר מהעגלה שמושכת אותו לאחור.'},
@@ -13454,6 +13454,7 @@ function simNewton3(canvas){
   var mA=60, mB=30; // kg (people)
   var posA=W/2-30, posB=W/2+30, velA=0, velB=0;
   var pushed=false, contactForce=0, pushPhase=0; // 0=resting, 1=contact(push), 2=separating
+  var hitWall=false;   // once a skater reaches the rink's edge, an external force acts
   var histA=[], histB=[];
 
   function getMA(){var e=document.getElementById('inp-n3-mA'); return e?parseFloat(e.value):mA;}
@@ -13467,7 +13468,7 @@ function simNewton3(canvas){
     mA=getMA(); mB=getMB();
     var totW=Math.max(30,mA*0.45)+Math.max(30,mB*0.45);
     posA=W/2-totW/2-4; posB=W/2+totW/2+4;
-    velA=0; velB=0; histA=[]; histB=[]; pushed=false; pushPhase=0; contactForce=0;
+    velA=0; velB=0; histA=[]; histB=[]; pushed=false; pushPhase=0; contactForce=0; hitWall=false;
     // pushTimer was never cleared here. After the first push it stayed above
     // pushDuration forever, so every later press ran phase 1 for a single frame
     // and jumped to phase 2 with contactForce=0: no push, no arrows, no motion.
@@ -13546,8 +13547,8 @@ function simNewton3(canvas){
       var widB=Math.max(30,mB*0.45);
       // They used to bounce with restitution 0.5 off invisible walls, creating
       // an impulse out of nothing in a momentum demonstration.
-      if(posA-widA/2<10){posA=10+widA/2;velA=0;}
-      if(posB+widB/2>W-10){posB=W-10-widB/2;velB=0;}
+      if(posA-widA/2<10){posA=10+widA/2;velA=0;hitWall=true;}
+      if(posB+widB/2>W-10){posB=W-10-widB/2;velB=0;hitWall=true;}
     }
     histA.push(posA); if(histA.length>60)histA.shift();
     histB.push(posB); if(histB.length>60)histB.shift();
@@ -13585,21 +13586,21 @@ function simNewton3(canvas){
       ctx.save(); ctx.fillStyle=col+'99'; ctx.strokeStyle=col; ctx.lineWidth=1.5;
       ctx.beginPath(); ctx.arc(cx,cy-bh-12,12,0,Math.PI*2); ctx.fill(); ctx.stroke(); ctx.restore();
       // Label
-      simText(ctx,label,cx,cy-bh/2+4,'#fff',9.5,undefined,true);
-      simText(ctx,mass+'kg',cx,cy-bh/2+16,'rgba(255,255,255,.7)',8.5,undefined,true);
+      simText(ctx,label,cx,cy-bh/2+2,'#fff',10,undefined,true);
+      simText(ctx,mass+' kg',cx,cy-bh/2+16,'#e2e8f0',9,undefined,true);
       // Velocity
       if(Math.abs(vel2)>0.2){
         var vLen=Math.min(70,Math.abs(vel2)*5);
         var vDir=Math.sign(vel2);
         simArrow(ctx,cx,cy-bh-30,cx+vDir*vLen,cy-bh-30,'#22d3ee',2,9);
-        simText(ctx,'v='+vel2.toFixed(1)+'m/s',cx+vDir*(vLen+4),cy-bh-36,
-                '#22d3ee',8,vel2>0?'left':'right');
+        simText(ctx,'v = '+vel2.toFixed(2)+' m/s',cx+vDir*(vLen+4),cy-bh-36,
+                '#22d3ee',10,vel2>0?'left':'right');
       }
       // Force arrow (during push)
       if(forceArrow>0){
-        var fLen=Math.min(60,forceArrow*0.15);
+        var fLen=Math.min(70,forceArrow*0.12);
         simArrow(ctx,cx+faDir*(bw/2+2),cy-bh/2,cx+faDir*(bw/2+2+fLen),cy-bh/2,col,3.5,12);
-        simText(ctx,'F='+forceArrow.toFixed(0)+'N',cx+faDir*(bw/2+fLen/2+2),cy-bh/2-12,col,8.5,undefined,true);
+        simText(ctx,(faDir<0?'F על A = ':'F על B = ')+forceArrow.toFixed(0)+' N',cx+faDir*(bw/2+fLen/2+2),cy-bh/2-14,col,10,undefined,true);
       }
     }
 
@@ -13614,7 +13615,7 @@ function simNewton3(canvas){
       for(var ci=0;ci<8;ci++){var fq=(ci+0.5)/8, fm=(ci+1)/8;
         ctx.lineTo(sx1+(sx2-sx1)*fq,sy+(ci%2?7:-7)); ctx.lineTo(sx1+(sx2-sx1)*fm,sy);}
       ctx.stroke(); ctx.restore();
-      simText(ctx,'\u200eמשוך והרפה —  F = '+dragF.toFixed(0)+' N',(sx1+sx2)/2,sy-16,'#fbbf24',10,undefined,true);
+      simText(ctx,'משכו ושחררו:  F = '+dragF.toFixed(0)+' N',(sx1+sx2)/2,sy-16,'#fbbf24',10,undefined,true);
     }
     // Push zone indicator
     if(pushPhase===1){
@@ -13628,7 +13629,7 @@ function simNewton3(canvas){
     var GX=20, GY=FLOOR_Y+H*0.25+10, GW=W-40, GH=60;
     ctx.save(); ctx.fillStyle='rgba(6,14,28,.88)'; ctx.strokeStyle='#1e4060'; ctx.lineWidth=1.5;
     ctx.beginPath(); ctx.roundRect(GX,GY,GW,GH,5); ctx.fill(); ctx.stroke(); ctx.restore();
-    simText(ctx,'מד-כוח A (אדום) ← → מד-כוח B (כחול)',GX+GW/2,GY+12,'#7d8da6',8.5,undefined,true);
+    simText(ctx,'הכוח על A (נמדד מ-Δp שלו)   |   הכוח על B (נמדד מ-Δp שלו)',GX+GW/2,GY+12,'#94a3b8',9,undefined,true);
     // Gauge A (left)
     var gAW=(GW/2-20), gAX=GX+6;
     ctx.save(); ctx.fillStyle='rgba(15,28,48,.8)'; ctx.strokeStyle='#1e3a52'; ctx.lineWidth=1;
@@ -13648,26 +13649,27 @@ function simNewton3(canvas){
     ctx.save(); ctx.fillStyle='rgba(59,130,246,.7)';
     ctx.beginPath(); ctx.roundRect(gBX,GY+20,fillB,18,2); ctx.fill(); ctx.restore();
     simText(ctx,'\u200eB: '+gaugeB.toFixed(0)+' N',gBX+gAW/2,GY+32,'#93c5fd',9,undefined,true);
+    var _pt=mA*velA+mB*velB;
     simText(ctx, pushPhase===1
-        ? '\u200e|F_AB| = '+gaugeA.toFixed(0)+' N   =   |F_BA| = '+gaugeB.toFixed(0)+' N   ✓ נמדד בנפרד'
-        : '\u200ep_כולל = '+(mA*velA).toFixed(1)+' + '+(mB*velB).toFixed(1)+' = '+
-          (mA*velA+mB*velB).toFixed(1)+' kg·m/s  — התחיל ב-0 ונשאר 0',
-      GX+GW/2,GY+54,'#fbbf24',9,undefined,true);
+        ? '|F_BA| = '+gaugeA.toFixed(0)+' N   =   |F_AB| = '+gaugeB.toFixed(0)+' N'
+        : hitWall ? 'מחסום הקצה עצר את הגולש — כוח חיצוני, ולכן Σp כבר אינו 0'
+        : 'Σp = mA·vA + mB·vB = '+(mA*velA).toFixed(1)+' + '+(mB*velB).toFixed(1)+' = '+(Math.abs(_pt)<0.05?'0.0':_pt.toFixed(1))+' kg·m/s',
+      GX+GW/2,GY+54,'#fbbf24',9.5,undefined,true);
 
     // ── Top info panel ─────────────────────────────────────
     ctx.save(); ctx.fillStyle='rgba(6,14,28,.92)'; ctx.strokeStyle='#1e4060'; ctx.lineWidth=1.5;
     ctx.beginPath(); ctx.roundRect(8,6,W-16,52,6); ctx.fill(); ctx.stroke(); ctx.restore();
-    simText(ctx,'חוק שלישי: F_AB = −F_BA',W/2,18,'#fbbf24',11,undefined,true);
+    simText(ctx,'החוק השלישי:  F_AB = −F_BA',W/2,18,'#fbbf24',11,undefined,true);
     if(pushPhase===0){
-      simText(ctx,'לחץ ״דחוף!״ לראות פעולה ותגובה',W/2,32,'#7d8da6',9,undefined,true);
-      simText(ctx,'שים לב: שנה מסות! כוח שווה → תאוצות שונות!',W/2,46,'#94a3b8',8.5,undefined,true);
+      simText(ctx,'לחצו ״דחוף!״, או גררו בין הגולשים ושחררו',W/2,33,'#94a3b8',10,undefined,true);
+      simText(ctx,'שנו את המסות: הכוחות תמיד שווים, התאוצות לא',W/2,48,'#94a3b8',9.5,undefined,true);
     } else if(pushPhase===1){
-      simText(ctx,'כוח זהה על שניהם! F='+contactForce.toFixed(0)+'N',W/2,32,'#fbbf24',9.5,undefined,true);
+      simText(ctx,'אותו כוח על שניהם, בכיוונים מנוגדים: F = '+contactForce.toFixed(0)+' N',W/2,33,'#fbbf24',10,undefined,true);
       var aA2=contactForce/mA, aB2=contactForce/mB;
-      simText(ctx,'aA=F/mA='+aA2.toFixed(1)+' m/s² ≠ aB=F/mB='+aB2.toFixed(1)+' m/s²',W/2,46,'#22d3ee',8.5,undefined,true);
+      simText(ctx,'aA = F/mA = '+aA2.toFixed(1)+' m/s²     aB = F/mB = '+aB2.toFixed(1)+' m/s²',W/2,48,'#22d3ee',10,undefined,true);
     } else {
-      simText(ctx,'לאחר הדחיפה: A→'+velA.toFixed(1)+' m/s  B→'+velB.toFixed(1)+' m/s',W/2,32,'#22d3ee',9,undefined,true);
-      simText(ctx,'מסה קטנה → תאוצה גדולה יותר! (אותו כוח)',W/2,46,'#34d399',8.5,undefined,true);
+      simText(ctx,'אחרי הדחיפה:  vA = '+velA.toFixed(2)+' m/s,   vB = '+velB.toFixed(2)+' m/s',W/2,33,'#22d3ee',10,undefined,true);
+      simText(ctx,'למסה הקטנה תאוצה ומהירות גדולות יותר — באותו כוח',W/2,48,'#34d399',9.5,undefined,true);
     }
 
     requestAnimationFrame(draw);
@@ -32617,7 +32619,7 @@ function buildSim(sim){
   else if(sim.type==='force-types')extra=C(rng('ft-F',0,40,12,1,'דחיפה F',' N')+rng('ft-x',0.01,0.15,0.05,0.01,'מתיחת הקפיץ x',' m'));
   else if(sim.type==='inertia')extra=C(rng('friction',0,0.8,0.4,0.05,'חיכוך μ')+rng('mass-in',1,15,5,0.5,'מסה m',' kg')+btn('push-right','💨 דחוף ימינה','btn-primary')+btn('push-left','דחוף שמאלה 💨','btn-secondary'));
   else if(sim.type==='newton2')extra=C(rng('mass',1,20,5,0.5,'מסה m',' kg')+rng('n2-F',-60,60,20,1,'כוח F',' N')+rng('n2-mu',0,0.8,0,0.05,'חיכוך μ')+btn('n2-reset','↺ אפס','btn-secondary'));
-  else if(sim.type==='newton3')extra=C(rng('n3-mA',1,15,3,0.5,'m_A',' kg')+rng('n3-mB',1,15,6,0.5,'m_B',' kg')+rng('n3-F',50,600,300,10,'כוח דחיפה',' N')+btn('n3-push','💥 דחוף!')+btn('n3-reset','↺ אפס','btn-secondary'));
+  else if(sim.type==='newton3')extra=C(rng('n3-mA',20,90,60,5,'מסת A',' kg')+rng('n3-mB',20,90,30,5,'מסת B',' kg')+rng('n3-F',50,600,300,10,'כוח דחיפה',' N')+btn('n3-push','💥 דחוף!')+btn('n3-reset','↺ אפס','btn-secondary'));
   else if(sim.type==='normal-force')extra=C(rng('nf-theta',0,70,0,1,'זווית θ','°')+rng('nf-mass',1,12,4,0.5,'מסה m',' kg')+rng('nf-mu',0,0.7,0,0.05,'חיכוך μ')+btn('nf-reset','↺ אפס','btn-secondary'));
   else if(sim.type==='incline')extra=C(rng('inc-theta',5,75,30,1,'זווית θ','°')+rng('inc-mu',0,0.8,0,0.05,'חיכוך μ')+rng('inc-m',0.5,10,3,0.5,'מסה m',' kg')+rng('inc-m1',0.5,10,3,0.5,'m₁ אטווד',' kg')+rng('inc-m2',0.5,10,5,0.5,'m₂ אטווד',' kg')+btn('inc-atwood','⚖️ מכונת אטווד','btn-secondary')+btn('inc-reset','↺ אפס','btn-secondary'));
   else if(sim.type==='tension')extra=C(rng('ten-m1',0.5,12,3,0.5,'m₁ אטווד',' kg')+rng('ten-m2',0.5,12,5,0.5,'m₂ אטווד',' kg')+rng('ten-el',0.5,5,3,0.5,'מסת הגוף במעלית',' kg')+rng('ten-ea',-5,5,0,0.5,'תאוצת המעלית',' m/s²')+btn('ten-launch','▶ שחרר!')+btn('ten-reset','↺ אפס','btn-secondary'));
