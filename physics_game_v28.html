@@ -2014,7 +2014,7 @@ const CONTENT={
       <p>מכוניות פורמולה 1 עוקפות את הגבול בעזרת כנפיים שמצמידות אותן לכביש, ומגיעות לכ-5g בבלימה.</p>`
     }
   },
-  sim:{type:'acceleration',title:'תאוצה אינטראקטיבית',desc:'גררו בשדה העליון לשנות תאוצה. גרף v(t) מצטייר. לחצו פעמיים לאיפוס.'},
+  sim:{type:'acceleration',title:'תאוצה אינטראקטיבית',desc:'גררו בפס העליון (או במחוון) כדי לשנות את a, ובחרו v₀. בגרף v(t) השיפוע הוא a והשטח שמתחת לקו הוא Δx; לידו x(t). ↺ אפס מתחיל מחדש.'},
   example:{title:'תאוצה קבועה מהמנוחה',text:`גוף יוצא ממנוחה ומגיע למהירות ${M('20\\,\\text{m/s}')} תוך ${M('4\\,\\text{s}')}.`,steps:[
     {q:'מה התאוצה?',a:`${M('a=\\dfrac{\\Delta v}{\\Delta t}=\\dfrac{20-0}{4}=5\\,\\text{m/s}^2')}`},
     {q:'איזה מרחק עבר בזמן הזה?',a:`${M('x=\\tfrac12at^2=\\tfrac12\\times5\\times4^2=40\\,\\text{m}')}`},
@@ -9241,8 +9241,8 @@ function simAvgInstant(canvas){
 
 // CH1 SIM 4: ACCELERATION
 function simAcceleration(canvas){
-  const H=470; const {ctx,W,dpr}=setupCanvas(canvas,H);
-  const AXISY=108, GL=56, GR=W-34, GT=184, GB=H-24;
+  const H=492; const {ctx,W,dpr}=setupCanvas(canvas,H);
+  const AXISY=108, GL=56, GR=W-34, GT=184, GB=H-42;
   const AMAX=10; const id=canvas.id;
   var acc=3, vel=0, xm=0, ballX=W/2, t=0, pT=null, dragging=false, hist=[];
   function getAcc(){var el=document.getElementById('inp-acc-a');return el?parseFloat(el.value)||0:acc;}
@@ -9283,26 +9283,24 @@ function simAcceleration(canvas){
     // The theory carries a misconception box about negative acceleration not
     // always meaning slowing down; name the case the learner is actually in.
     var _same=vel*acc>0;
-    var _verdict = Math.abs(acc)<0.05 ? 'a = 0  →  v קבועה' :
+    var _verdict = Math.abs(acc)<0.05 ? 'a = 0 — המהירות קבועה' :
                    Math.abs(vel)<0.06 ? 'רגע ההיפוך: v = 0 אבל a ≠ 0' :
-                   _same ? 'v ו-a באותו סימן  →  הגוף מאיץ'
-                         : 'v ו-a בסימנים מנוגדים  →  הגוף מאט';
+                   _same ? 'ל-v ול-a אותו סימן — הגוף מאיץ'
+                         : 'ל-v ול-a סימנים מנוגדים — הגוף מאט';
     simText(ctx,_verdict,W/2,AXISY+52,_same?'#4ade80':'#fbbf24',10,'center',true);
     var midDrag=(GL+GR)/2, aScale=(GR-GL-80)/(2*AMAX);
     ctx.save(); ctx.fillStyle='rgba(8,18,40,.85)'; ctx.strokeStyle='#1e3a52'; ctx.lineWidth=1.5;
     ctx.beginPath(); ctx.roundRect(GL,4,GR-GL,58,7); ctx.fill(); ctx.stroke(); ctx.restore();
     ctx.save(); ctx.strokeStyle='#1a3a5c'; ctx.lineWidth=3; ctx.lineCap='round';
-    ctx.beginPath(); ctx.moveTo(GL+18,36); ctx.lineTo(GR-18,36); ctx.stroke(); ctx.restore();
+    ctx.beginPath(); ctx.moveTo(GL+18,42); ctx.lineTo(GR-18,42); ctx.stroke(); ctx.restore();
     ctx.save(); ctx.strokeStyle='rgba(255,255,255,.15)'; ctx.lineWidth=1;
     ctx.beginPath(); ctx.moveTo(midDrag,10); ctx.lineTo(midDrag,56); ctx.stroke(); ctx.restore();
     var acol=acc>0?'#ef4444':acc<0?'#818cf8':'#94a3b8';
-    if(Math.abs(acc)>0.08) simArrow(ctx,midDrag,36,midDrag+acc*aScale,36,acol,4,14);
+    if(Math.abs(acc)>0.08) simArrow(ctx,midDrag,42,midDrag+acc*aScale,42,acol,4,14);
     ctx.save(); ctx.shadowColor=acol; ctx.shadowBlur=14;
-    simCircle(ctx,midDrag+acc*aScale,36,12,acol+'33',acol,2); ctx.restore();
-    ctx.save(); ctx.fillStyle='rgba(8,18,36,.88)'; ctx.strokeStyle=acol; ctx.lineWidth=1;
-    ctx.beginPath(); ctx.roundRect(W/2-52,60,104,20,4); ctx.fill(); ctx.stroke();
-    simText(ctx,'a='+(acc>=0?'+':'')+acc.toFixed(2)+' m/s²',W/2,73,acol,11,'center',true); ctx.restore();
-    simText(ctx,'גררו לשינוי a',W/2,9,'#7d8da6',8,'center');
+    simCircle(ctx,midDrag+acc*aScale,42,12,acol+'33',acol,2); ctx.restore();
+    simText(ctx,'a = '+(acc>=0?'+':'')+acc.toFixed(1)+' m/s²',GR-10,19,acol,11,'right',true);
+    simText(ctx,'גררו את העיגול לשינוי a',GL+10,19,'#94a3b8',10,'left');
     // Axis
     ctx.save(); ctx.fillStyle='rgba(248,113,113,.07)'; ctx.fillRect(GL,AXISY-38,(GR-GL)/2,76);
     ctx.fillStyle='rgba(52,211,153,.07)'; ctx.fillRect(GL+(GR-GL)/2,AXISY-38,(GR-GL)/2,76); ctx.restore();
@@ -9315,16 +9313,15 @@ function simAcceleration(canvas){
     ctx.save(); ctx.strokeStyle='#2d5275'; ctx.lineWidth=2.5;
     ctx.beginPath(); ctx.moveTo(GL-4,AXISY); ctx.lineTo(GR+4,AXISY); ctx.stroke(); ctx.restore();
     simArrow(ctx,GR-4,AXISY,GR+14,AXISY,'#2d5275',2.5,10);
-    simText(ctx,'x (m)',GR+18,AXISY+4,'#7d8da6',11,'left');
+    simText(ctx,'x (m)',GR+2,AXISY-15,'#94a3b8',10,'left');
     // Ball
-    var bx=Math.max(GL+22,Math.min(GR-22,ballX));
+    var bx=ballX;
     var arVLen=Math.sign(vel)*Math.min(Math.abs(vel)*5,72);
     var arALen=acc*8;
-    if(Math.abs(arVLen)>4) simArrow(ctx,bx,AXISY-30,bx+arVLen,AXISY-30,'#34d399',3,11);
-    if(Math.abs(arALen)>3) simArrow(ctx,bx,AXISY+30,bx+arALen,AXISY+30,acol,3,10);
+    if(Math.abs(arVLen)>4){ simArrow(ctx,bx,AXISY-30,bx+arVLen,AXISY-30,'#34d399',3,11); simText(ctx,'v',bx+arVLen+(arVLen>0?8:-8),AXISY-26,'#34d399',11,'center',true); }
+    if(Math.abs(arALen)>3){ simArrow(ctx,bx,AXISY+30,bx+arALen,AXISY+30,acol,3,10); simText(ctx,'a',bx+arALen+(arALen>0?8:-8),AXISY+34,acol,11,'center',true); }
     ctx.save(); ctx.shadowColor='rgba(99,102,241,.7)'; ctx.shadowBlur=14;
     drawBox(ctx,bx-21,AXISY-17,42,34,'#1e3a52','#6366f1',2.5); ctx.restore();
-    simText(ctx,vel.toFixed(1),bx,AXISY+4,'#c4b5fd',10,'center');
     // Dual graphs
     var gW2=Math.floor((GR-GL-16)/2), gH=GB-GT;
     // v(t)
@@ -9351,7 +9348,7 @@ function simAcceleration(canvas){
     [-20,-10,10,20].forEach(function(q){var yy=midV-(q/vMax)*(GB-GT)/2;simText(ctx,(q>0?'+':'')+q,gl-3,yy+3,'#5b7089',7,'right');ctx.save();ctx.strokeStyle='rgba(30,58,82,.5)';ctx.setLineDash([2,5]);ctx.beginPath();ctx.moveTo(gl,yy);ctx.lineTo(gr,yy);ctx.stroke();ctx.restore();});
         simText(ctx,'v (m/s) ↑',gl+3,GT+8,'#34d399',7,'left');
     simText(ctx,'v(t)',gl+12,GT+20,'#34d399',9,'left'); simText(ctx,'שיפוע=a',gl+(gr-gl)/2,GB-3,'#7d8da6',8,'center'); simText(ctx,'שטח = Δx',gl+(gr-gl)*0.75,GT+13,'#a7f3d0',8,'center');
-    simText(ctx,'t (s) →',gr-4,GB+3,'#7d8da6',7,'right');
+    simText(ctx,'t (s)',gr-4,GB-5,'#94a3b8',9,'right');
     // x(t)
     var gl2=GL+gW2+16, gr2=GR;
     ctx.save(); var gbg2=ctx.createLinearGradient(gl2,GT,gl2,GB); gbg2.addColorStop(0,'rgba(12,26,50,.7)'); gbg2.addColorStop(1,'rgba(6,14,28,.9)'); ctx.fillStyle=gbg2; ctx.fillRect(gl2,GT,gr2-gl2,gH); ctx.restore();
@@ -9371,9 +9368,15 @@ function simAcceleration(canvas){
     [-10,-5,5,10].forEach(function(q){var yy=midX-(q/xMax)*(GB-GT)/2;simText(ctx,(q>0?'+':'')+q,gr2-3,yy-2,'#5b7089',7,'right');ctx.save();ctx.strokeStyle='rgba(30,58,82,.5)';ctx.setLineDash([2,5]);ctx.beginPath();ctx.moveTo(gl2,yy);ctx.lineTo(gr2,yy);ctx.stroke();ctx.restore();});
         simText(ctx,'x (m) ↑',gl2+3,GT+8,'#818cf8',7,'left');
     simText(ctx,'x(t)',gl2+12,GT+20,'#818cf8',9,'left'); simText(ctx,'פרבולה',gl2+(gr2-gl2)/2,GB-3,'#7d8da6',8,'center');
-    simText(ctx,'t (s) →',gr2-4,GB+3,'#7d8da6',7,'right');
+    simText(ctx,'t (s)',gr2-4,GB-5,'#94a3b8',9,'right');
+    // time ticks under both plots, in seconds of this run
+    var _ts=runSpan(), _dk=_kinTick(_ts,W<480?3:5);
+    for(var _tk=0;_tk<=_ts+1e-9;_tk+=_dk){
+      simText(ctx,String(+_tk.toFixed(1)),gl+(_tk/_ts)*(gr-gl),GB+12,'#94a3b8',9,'center');
+      simText(ctx,String(+_tk.toFixed(1)),gl2+(_tk/_ts)*(gr2-gl2),GB+12,'#94a3b8',9,'center');
+    }
     // Status bar
-    simText(ctx,'t='+t.toFixed(1)+'s | v='+(vel>=0?'+':'')+vel.toFixed(1)+'m/s | a='+(acc>=0?'+':'')+acc.toFixed(1)+'m/s²',W/2,GB+16,'#7d8da6',9,'center');
+    simText(ctx,'t = '+t.toFixed(1)+' s   ·   x = '+(xm>=0?'+':'')+xm.toFixed(1)+' m   ·   v = '+(vel>=0?'+':'')+vel.toFixed(1)+' m/s   ·   a = '+(acc>=0?'+':'')+acc.toFixed(1)+' m/s²',W/2,GB+32,'#cbd5e1',10,'center');
     requestAnimationFrame(draw);
   }
   function _acDn(e){
