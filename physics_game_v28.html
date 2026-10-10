@@ -233,7 +233,9 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 /* DEF BLOCK */
 .def-block{background:rgba(59,130,246,.07);border:1px solid rgba(59,130,246,.2);border-radius:10px;padding:14px 18px;margin:14px 0;}
 .unit-badge{display:inline-block;direction:ltr;unicode-bidi:isolate;background:rgba(52,211,153,.14);border:1px solid rgba(52,211,153,.35);color:var(--t-unit);border-radius:5px;padding:1px 6px;font-size:.72rem;font-weight:600;letter-spacing:.02em;}
-.mis-block{background:rgba(251,191,36,.06);border:1px solid rgba(251,191,36,.28);border-right:3px solid rgba(251,191,36,.6);border-radius:10px;padding:14px 18px;margin:14px 0;}
+/* set like the theory's own paragraphs: as bare text it took the page's
+   16 px and tight default leading, larger and denser than the text around it */
+.mis-block{background:rgba(251,191,36,.06);border:1px solid rgba(251,191,36,.28);border-right:3px solid rgba(251,191,36,.6);border-radius:10px;padding:14px 18px;margin:14px 0;font-size:.93rem;line-height:1.8;}
 .ex-block{background:var(--ex-bg);border:1px solid var(--ex-border);border-right:4px solid var(--ex-accent);border-radius:12px;padding:16px 20px;margin:18px 0;}
 .ex-title{color:var(--t-green);font-weight:800;font-size:1rem;margin-bottom:10px;}
 .ex-block p{line-height:1.85;margin:0 0 8px;}
@@ -266,6 +268,9 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 
 /* INFO GRID */
 .info-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px;}
+/* two columns of "T = m(g+a) > mg" are wider than a 320 px phone: the
+   cards ran 17 px out of the theory card */
+@media (max-width:400px){.info-grid{grid-template-columns:1fr;}}
 .info-item{background:var(--bg);border:1px solid var(--border);border-radius:9px;padding:12px;}
 .info-item .il{font-size:.7rem;color:var(--muted);font-weight:700;letter-spacing:.5px;margin-bottom:3px;}
 .info-item .iv{font-size:.9rem;color:var(--text);font-weight:500;}
@@ -332,10 +337,14 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 .sl-slider span{color:var(--text);font-weight:600;font-variant-numeric:tabular-nums;min-width:3.6em;direction:ltr;}
 .sl-zoom{display:inline-flex;gap:4px;margin-inline-start:auto;}
 .sl-zoom button{padding:7px 9px;font-size:.8rem;}
-.anim-ctrl{display:flex;align-items:center;gap:8px;padding:7px 14px;background:rgba(255,255,255,.02);border-top:1px solid var(--border);}
+.anim-ctrl{display:flex;align-items:center;gap:8px;padding:7px 14px;background:rgba(255,255,255,.02);border-top:1px solid var(--border);flex-wrap:wrap;}
 .anim-ctrl button{padding:3px 13px;border:1px solid var(--border);background:var(--panel2);color:var(--text);border-radius:6px;cursor:pointer;font-family:'Heebo',sans-serif;font-size:.77rem;transition:all .15s;line-height:1.5;}
 .anim-ctrl button:hover{background:var(--accent);border-color:var(--accent);color:#fff;}
-.anim-ctrl .ac-lbl{font-size:.74rem;color:var(--muted);margin-right:auto;}
+/* the caption takes a line of its own when the two buttons leave it less
+   than 14em: at 360 px it was squeezed beside them into a 66-110 px column,
+   four or five lines tall (in 24 animations), and the buttons broke too */
+.anim-ctrl .ac-lbl{font-size:.74rem;line-height:1.5;color:var(--muted);margin-right:auto;flex:1 1 14em;}
+.anim-ctrl button{white-space:nowrap;}
 
 /* SIM */
 .sim-container{background:var(--panel);border:1px solid var(--border);border-radius:14px;overflow:hidden;}
