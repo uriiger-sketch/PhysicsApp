@@ -30964,7 +30964,7 @@ var SENSOR_LABS={
 
  'forces2.static-friction':{t:'slip-angle',h:300,
    ttl:'מדדו את '+M('\\mu_s')+' מזווית ההחלקה',
-   how:'הניחו את הטלפון על לוח או ספר <b>שטוח</b>, והרימו קצה אחד <b>לאט מאוד</b>. ברגע שהטלפון מתחיל להחליק, האפליקציה קופאת על הזווית שבה זה קרה.',
+   how:'הניחו את הטלפון, מסך למעלה, על לוח או ספר <b>שטוח</b>, ושימו <b>מגבת או כרית בתחתית</b> — שם הוא ייעצר. הרימו קצה אחד <b>לאט מאוד</b>. ברגע שהטלפון מתחיל להחליק, האפליקציה קופאת על הזווית שבה זה קרה.',
    pred:'לפני הניסוי: נחשו את הזווית שבה הטלפון יתחיל להחליק על העץ. ואז נסו משטח אחר — נייר, בד, זכוכית — ובדקו מי מהם ״דביק״ יותר.',
    note:'ברגע ההחלקה '+M('mg\\sin\\theta=\\mu_s\\,mg\\cos\\theta')+', המסה מצטמצמת, ולכן '+M('\\mu_s=\\tan\\theta')+' <b>ללא תלות במסה</b> — אותו מקדם לכל גוף על אותו זוג משטחים. הרימו <b>לאט</b>: הרמה מהירה מוסיפה תאוצה ומזייפת את הזווית.',
    chips:[['th','זווית','°'],['mu','μs = tanθ','' ],['thm','זווית ההחלקה','°'],['n','מדידות','']],
@@ -32077,41 +32077,53 @@ var SL_IMPL={
     } else simText(ctx,'אותו גובה, משטחים ברכות שונה — והשוו את העמודות',W/2,H-12,mu,11,'center');}},
 
 'slip-angle':{
-  resume:function(st){st.quiet=0;},
+  resume:function(st){st.quiet=0;st.inB=false;},
   init:function(st){st.tr=slTrace(240);st.h={v:1};st.pts=[];st.reset(st);},
   reset:function(st){if(st.tr)st.tr.clear();st.th=0;st.slip=0;st.hold=0;st.quiet=0;
-    st.thMin=0;st.algn=0;},
+    st.thMin=0;st.thQ=0;st.inB=false;st.bq=0;st.bt=0;st.dnT=0;st.dnN=0;st.dnS=0;st.fired=false;
+    st.tt=0;st.qh=[];},
   clear:function(st){st.pts=[];st.slip=0;},
   sample:function(s,st){
     var g=Math.hypot(s.gx,s.gy,s.gz)||9.81;
-    st.th=Math.acos(Math.min(1,Math.abs(s.gz)/g));          // tilt of the board
+    var th=Math.acos(Math.min(1,Math.abs(s.gz)/g));          // tilt of the board
     var lin=Math.hypot(s.ax,s.ay,s.az);
     st.tr.push(lin);
-    // The board must have been RAISED for this attempt. A knock on the table
-    // also gives a burst after a quiet stretch, and without this it was accepted
-    // as a slip and recorded at whatever angle the board happened to rest at.
-    // Testing "rising right now" was wrong: it lost the slip of anyone who paused
-    // at the angle before the block let go. Measure the rise instead -- from the
-    // lowest tilt seen since the last slip, which re-bases every time the board
-    // is lowered, so each trial needs its own lift and a bump at a standing tilt
-    // (where the board never came down and back up) still counts for nothing.
-    if(st.th<st.thMin)st.thMin=st.th;
-    // ...and the burst must point DOWN THE SLOPE, which is where a slipping
-    // phone accelerates and where a knock on the table has no reason to point.
+    // A slip is a SUSTAINED acceleration DOWN THE SLOPE after a still stretch.
     // At rest the in-plane part of the reading is -g*sin(theta) along the slope,
-    // so down-slope is the direction opposite to it.
-    var dn=Math.hypot(s.gx,s.gy),an=Math.hypot(s.ax,s.ay);
-    st.algn=(dn>0.3&&an>0.2)?-(s.ax*s.gx+s.ay*s.gy)/(dn*an):0;
-    if(lin<0.35){st.quiet+=s.dt;} else {
-      if(st.quiet>0.5&&lin>1.2&&st.th>0.08&&st.hold<=0&&st.th-st.thMin>0.05&&st.algn>0.5){
-        // one reading per slide: the burst lasts a fraction of a second, and the
-        // 0.5 s of stillness required beforehand already prevents re-triggering
-        // within the same slip, so a long lockout would only block the next trial
-        st.slip=st.th;st.hold=0.8;st.thMin=st.th;
-        st.pts.push([st.th*180/Math.PI,Math.tan(st.th)]);
+    // so down-slope is the direction opposite to it; a knock on the table has
+    // no reason to point that way, nor to last. The bar used to be a single
+    // sample above 1.2 m/s², but a phone that lets go slides off at
+    // a = g(sin θ − μk cos θ), typically 0.5–1 m/s², and its onset can take a
+    // sample or two: most real slips were never seen.
+    var dn=Math.hypot(s.gx,s.gy),ad=dn>0.3?-(s.ax*s.gx+s.ay*s.gy)/dn:0;
+    st.tt+=s.dt;
+    if(lin<0.35){
+      // The angle is read only while the phone is still. Once it slides, the
+      // reading carries the slip acceleration too and the same formula says
+      // ~14° for a phone that let go at 25°.
+      st.th=th;st.qh.push([st.tt,th]);
+      while(st.qh.length>2&&st.qh[0][0]<st.tt-0.5)st.qh.shift();
+      // The board must have been RAISED for this attempt: the rise is measured
+      // from the lowest still tilt since the last slip, which re-bases whenever
+      // the board is lowered, so a bump at a standing tilt counts for nothing.
+      if(th<st.thMin)st.thMin=th;
+      st.quiet+=s.dt;st.inB=false;
+    } else {
+      if(!st.inB){st.inB=true;st.bq=st.quiet;st.bt=0;st.dnT=0;st.dnN=0;st.dnS=0;st.fired=false;
+        // and not the very last still sample either: the first few hundredths
+        // of a second of a slip are still below the stillness bar, and already
+        // pull the angle down. Take it from 60 ms before the burst.
+        st.thQ=st.qh.length?st.qh[st.qh.length-1][1]:th;
+        for(var q=st.qh.length-1;q>=0;q--)if(st.qh[q][0]<=st.tt-s.dt-0.06){st.thQ=st.qh[q][1];break;}}
+      st.quiet=0;st.bt+=s.dt;
+      if(ad>0.35){st.dnT+=s.dt;st.dnN++;st.dnS+=ad;}else{st.dnT=0;st.dnN=0;st.dnS=0;}
+      if(!st.fired&&st.bq>0.5&&st.bt<0.4&&st.dnN>=3&&st.dnT>=0.045&&st.dnS/st.dnN>0.5&&
+         st.thQ>0.08&&st.hold<=0&&st.thQ-st.thMin>0.05){
+        // one reading per slide, at the angle of the last still moment before it
+        st.fired=true;st.slip=st.thQ;st.hold=0.8;st.thMin=st.thQ;
+        st.pts.push([st.thQ*180/Math.PI,Math.tan(st.thQ)]);
         if(st.pts.length>12)st.pts.shift();
       }
-      st.quiet=0;
     }
     if(st.hold>0)st.hold-=s.dt;},
   chips:function(st){

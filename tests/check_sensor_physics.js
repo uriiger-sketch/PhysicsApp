@@ -128,6 +128,39 @@ const rest = n => Array.from({ length: n }, () => ({ a: [0, 0, 0], g: [0, 0, G],
     t('rocked 5° and back, as the gyroscope saw it (°)', await run(true), 5, 0.1);
   }
 
+  // ── 2d. a real slip: slow, and the reading carries it ───────────────────
+  console.log('\n2d) board raised 10°→27° over 3 s, then the phone slides off at g(sinθ − μk cosθ) = 0.78 m/s²');
+  {
+    const key = 'forces2.static-friction', th1 = 27 * Math.PI / 180, muk = 0.42;
+    await open(p, key);
+    const aS = G * (Math.sin(th1) - muk * Math.cos(th1));
+    const S = [], at = (th, a) => {
+      // in the phone's frame: x down the slope. At rest the reading's in-plane
+      // part is -g sinθ (up the slope); sliding, it is that plus a.
+      S.push({ a: [a, 0, 0], g: [-G * Math.sin(th) + a, 0, G * Math.cos(th)] });
+    };
+    for (let i = 0; i < 100; i++) at(10 * Math.PI / 180, 0);
+    for (let i = 0; i < 300; i++) at((10 + 17 * i / 299) * Math.PI / 180, 0);
+    for (let i = 0; i < 60; i++) at(th1, 0);                    // held there a moment
+    at(th1, 0.3 * aS); at(th1, 0.7 * aS);                       // the onset takes two samples
+    for (let i = 0; i < 40; i++) at(th1, aS);                   // and it slides
+    await feed(p, key, S);
+    const r = await p.evaluate(() => ({ n: _sl.st.pts.length, th: _sl.st.slip * 180 / Math.PI }));
+    tb('the slip was caught although it never reached 1.2 m/s²', r.n === 1, 'readings ' + r.n);
+    t('at the angle it let go (°), not the angle the sliding reading implies', r.th, 27, 0.2);
+    // and when it lets go in the middle of a steady 5.7°/s lift, with no pause
+    await open(p, key);
+    S.length = 0;
+    for (let i = 0; i < 100; i++) at(10 * Math.PI / 180, 0);
+    for (let i = 0; i < 300; i++) at((10 + 17 * i / 299) * Math.PI / 180, 0);
+    at(th1, 0.3 * aS); at(th1, 0.7 * aS);
+    for (let i = 0; i < 40; i++) at(th1, aS);
+    await feed(p, key, S);
+    const r2 = await p.evaluate(() => ({ n: _sl.st.pts.length, th: _sl.st.slip * 180 / Math.PI }));
+    tb('a slip during the lift is caught too', r2.n === 1, 'readings ' + r2.n);
+    t('  within the lift of the last 60 ms (°)', r2.th, 27, 0.6);
+  }
+
   // ── 3. toss and catch: v must cross 0 at the top of the flight ────────────
   console.log('\n3) toss: 0.15 s at +g, free flight 0.30 s, catch at the same height');
   {
