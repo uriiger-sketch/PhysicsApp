@@ -30655,6 +30655,12 @@ function slStopAll(){
 window.addEventListener('resize',function(){
   if(_sl.onResize&&document.getElementById('sl-canvas'))_sl.onResize();
 });
+// A lab that is not running is painted once, in the theme's colours of that
+// moment; switching theme left its labels in the old colours on the new
+// background (light text on the light theme's page). Repaint it.
+try{new MutationObserver(function(){
+  if(_sl.onResize&&!_sl.run&&document.getElementById('sl-canvas'))_sl.onResize();
+}).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});}catch(e){}
 
 // Every simulation and every theory animation sizes its bitmap and works out
 // its coordinates ONCE, when it boots. Turning the phone changes the canvas's
@@ -32525,9 +32531,19 @@ function initSensorLab(key){
 
   // The canvas is sized once from its CSS width, so a rotation to landscape
   // would otherwise leave it drawing into the old, narrower bitmap.
+  // Before the first start there is nothing to show: drawing the lab's own
+  // first state put an empty plot, '0.0 N' forces or a 'calibrating 0%'
+  // banner under the prompt, the two texts printed over each other.
+  function paintIdle(){
+    ctx.clearRect(0,0,W,H);
+    if(st.started){impl.draw(ctx,W,H,st);return;}
+    var mu=slCss('--muted','#889');
+    simText(ctx,'לחצו ▶ הפעל חיישן כדי להתחיל למדוד',W/2,H/2-8,mu,13,'center',true);
+    simText(ctx,'הגרפים והמדידות יופיעו כאן',W/2,H/2+16,mu,11,'center');
+  }
   function resize(){
     var s2=setupCanvas(cv,L.h);ctx=s2.ctx;W=s2.W;H=s2.H;
-    if(!_sl.run){ctx.clearRect(0,0,W,H);impl.draw(ctx,W,H,st);}
+    if(!_sl.run)paintIdle();
   }
   _sl.onResize=resize;
 
@@ -32617,7 +32633,7 @@ function initSensorLab(key){
       btn.disabled=false;
       if(r==='denied'){say('ההרשאה לחיישני התנועה נדחתה. באייפון: סגרו את הלשונית, פתחו את הדף מחדש ואשרו כשתישאלו.');return;}
       if(r==='error'){say('לא ניתן לבקש הרשאה לחיישנים בדפדפן זה.');return;}
-      say('');_sensor.got=0;_sl.paused=false;st.reset(st);
+      say('');_sensor.got=0;_sl.paused=false;st.reset(st);st.started=true;
       var _hb=document.getElementById('sl-hold');
       if(_hb){_hb.textContent='⏸ הקפא';_hb.className='sl-sec';}
       sensorStart(function(s){if(_sl.st===st&&!_sl.paused)impl.sample(s,st);});
@@ -32637,8 +32653,7 @@ function initSensorLab(key){
     });
   }
   if(btn)btn.addEventListener('click',go);
-  ctx.clearRect(0,0,W,H);impl.draw(ctx,W,H,st);
-  simText(ctx,'לחצו ▶ כדי להתחיל למדוד',W/2,H/2,slCss('--muted','#889'),12.5,'center',true);
+  paintIdle();
 }
 
 function _ltSafe(s){

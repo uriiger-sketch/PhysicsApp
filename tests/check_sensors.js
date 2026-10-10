@@ -572,6 +572,18 @@ const S = p => p.evaluate(() => JSON.parse(JSON.stringify(_sl.st, (k, v) =>
   t('not running', life.after.run, false);
   t('the resize handler is released', life.after.resize, false);
 
+  console.log('\n16b) a lab that is not running repaints when the theme changes');
+  await openLab(p, 'forces.tension', false);
+  const rp = await p.evaluate(async () => {
+    let n = 0; const f = _sl.onResize; _sl.onResize = () => { n++; f(); };
+    applyTheme(state.theme === 'dark' ? 'light' : 'dark');
+    await new Promise(r => setTimeout(r, 30));
+    applyTheme(state.theme === 'dark' ? 'light' : 'dark');
+    await new Promise(r => setTimeout(r, 30));
+    return n;
+  });
+  t('repainted on each switch', rp, 2);
+
   console.log('\n17) every lab renders on a phone');
   const painted = await p.evaluate(async () => {
     let n = 0;
