@@ -9184,7 +9184,6 @@ function initSim(id,type){
     'avg-instant':simAvgInstant,
     'acceleration':simAcceleration,
     'freefall':simFreefall,
-    'multi-freefall':simMultiFreefall,
     'gravity-force':simGravityForce,
     'force-types':simForceTypes,
     'vectors-basic':simVectors,
@@ -10035,157 +10034,6 @@ function simFreefall(canvas){
   if(v0Inp){v0=parseFloat(v0Inp.value)||18; v0Inp.addEventListener('input',function(){v0=parseFloat(v0Inp.value)||18;});}
   if(gInp) {g=parseFloat(gInp.value)||9.8;  gInp.addEventListener('input',function(){g=parseFloat(gInp.value)||9.8;});}
   if(throwBtn)throwBtn.addEventListener('click',function(){v0=getV0();g=getG();ball={ym:0,vy:v0,t:0,v0:v0,g:g};});
-  requestAnimationFrame(draw);
-}
-
-
-// ─────────────────────────────────────────────────────────────
-// MULTI-FREEFALL: 3 masses fall under different g
-// ─────────────────────────────────────────────────────────────
-// ═══════════════════════════════════════════════════════════════
-// CH4 SIM 1: MULTI-FREEFALL — Galileo experiment, any g, rich
-// ═══════════════════════════════════════════════════════════════
-function simMultiFreefall(canvas){
-  const H=520; const {ctx,W,dpr}=setupCanvas(canvas,H);
-  const id=canvas.id;
-  let g=9.8, dropH=20, t=0, pT=null, phase='drop'; // phase: drop|bounce
-  const PADY=46, GND_Y=H-50;
-  const TRACK_H=GND_Y-PADY;
-
-  const balls=[
-    {m:0.05, col:'#3b82f6', sc:'#93c5fd', label:'50g'},
-    {m:1,    col:'#f59e0b', sc:'#fde68a', label:'1 kg'},
-    {m:10,   col:'#ef4444', sc:'#fca5a5', label:'10 kg'},
-    {m:100,  col:'#a78bfa', sc:'#c4b5fd', label:'100 kg'},
-  ];
-  const xPos = balls.map((_,i)=>(i+1)*(W/(balls.length+1)));
-
-  function getG()   { const e=document.getElementById('inp-g-mff');  return e?parseFloat(e.value):9.8; }
-  function getH()   { const e=document.getElementById('inp-mff-h');  return e?parseFloat(e.value):20; }
-  function reset()  { t=0; pT=null; phase='drop'; }
-
-  const resetBtn=document.getElementById('btn-mff-reset');
-  if(resetBtn) resetBtn.addEventListener('click', reset);
-
-  function draw(ts){
-    if(_simStop[id])return;
-    if(!pT){ pT=ts; }
-    const dt=Math.min((ts-pT)/1000,.04); pT=ts;
-    g=getG(); dropH=getH();
-    const tFall=Math.sqrt(2*dropH/g);
-    t+=dt;
-    if(t>tFall+0.6) reset();
-
-    simBg(ctx,W,H);
-
-    // ── Height ruler (left) ─────────────────────────────────
-    const rulerX=36;
-    ctx.save(); ctx.fillStyle='rgba(8,20,42,.7)'; ctx.strokeStyle='#1e4060'; ctx.lineWidth=1;
-    ctx.beginPath(); ctx.roundRect(6,PADY-2,rulerX-8,TRACK_H+4,4); ctx.fill(); ctx.stroke(); ctx.restore();
-    ctx.save(); ctx.strokeStyle='#2d5275'; ctx.lineWidth=1.5;
-    ctx.beginPath(); ctx.moveTo(rulerX,PADY); ctx.lineTo(rulerX,GND_Y); ctx.stroke(); ctx.restore();
-    // tick marks every 2m up to dropH
-    const tickInterval = dropH<=10?1:dropH<=20?2:5;
-    for(let hm=0; hm<=dropH; hm+=tickInterval){
-      const py = GND_Y - (hm/dropH)*TRACK_H;
-      const long = hm%5===0;
-      ctx.save(); ctx.strokeStyle=long?'#60a5fa':'#2d5275'; ctx.lineWidth=long?1.5:0.8;
-      ctx.beginPath(); ctx.moveTo(rulerX-( long?12:6), py); ctx.lineTo(rulerX, py); ctx.stroke(); ctx.restore();
-      if(long||dropH<=10) simText(ctx,hm+'m', rulerX-16, py+4,'#60a5fa',8,'right');
-    }
-
-    // ── Ground ──────────────────────────────────────────────
-    const gGrad=ctx.createLinearGradient(0,GND_Y,0,H);
-    gGrad.addColorStop(0,'#0f2035'); gGrad.addColorStop(1,'#060d1a');
-    ctx.fillStyle=gGrad; ctx.fillRect(0,GND_Y,W,H-GND_Y);
-    ctx.save(); ctx.strokeStyle='rgba(30,58,82,.45)'; ctx.lineWidth=1;
-    for(let x=0;x<W;x+=22){ ctx.beginPath(); ctx.moveTo(x,GND_Y); ctx.lineTo(x+14,GND_Y+10); ctx.stroke(); }
-    ctx.restore();
-    ctx.save(); ctx.strokeStyle='#2d5275'; ctx.lineWidth=2;
-    ctx.beginPath(); ctx.moveTo(0,GND_Y); ctx.lineTo(W,GND_Y); ctx.stroke(); ctx.restore();
-
-    // ── Physics ─────────────────────────────────────────────
-    const inFlight = t<=tFall;
-    const yFrac = inFlight ? Math.min(0.5*g*t*t/dropH, 1) : 1;
-    const vCur  = inFlight ? g*t : g*tFall;
-    const yCur  = inFlight ? 0.5*g*t*t : dropH;
-
-    balls.forEach((b,i)=>{
-      const cx=xPos[i];
-      const r=Math.max(8, Math.min(16, 6+Math.log10(b.m+1)*8));
-      const by = PADY + yFrac*TRACK_H;
-
-      // Trail dots
-      if(inFlight && t>0.1){
-        for(let s=1; s<=5; s++){
-          const tf=t-s*0.06;
-          if(tf<0) continue;
-          const yf=PADY+(0.5*g*tf*tf/dropH)*TRACK_H;
-          ctx.save(); ctx.globalAlpha=0.06*(6-s);
-          simCircle(ctx,cx,yf,r*0.7,b.col,b.sc,0);
-          ctx.restore();
-        }
-      }
-
-      // Shadow
-      ctx.save(); ctx.globalAlpha=0.18+yFrac*0.15;
-      const shadowR=r*(0.4+yFrac*0.7);
-      ctx.fillStyle='rgba(0,0,0,.5)';
-      ctx.beginPath(); ctx.ellipse(cx,GND_Y-2,shadowR,shadowR*0.35,0,0,Math.PI*2); ctx.fill();
-      ctx.restore();
-
-      // Ball
-      ctx.save(); ctx.shadowColor=b.col+'66'; ctx.shadowBlur=12;
-      const bg2=ctx.createRadialGradient(cx-r*0.3,by-r*0.3,r*0.1,cx,by,r);
-      bg2.addColorStop(0,b.sc+'ee'); bg2.addColorStop(1,b.col+'bb');
-      simCircle(ctx,cx,by,r,bg2,b.sc,1.5);
-      ctx.restore();
-
-      // Impact flash
-      if(!inFlight && t-tFall<0.18){
-        const alpha=(0.18-(t-tFall))/0.18;
-        ctx.save(); ctx.globalAlpha=alpha*0.6;
-        ctx.fillStyle=b.col;
-        ctx.beginPath(); ctx.ellipse(cx,GND_Y-3,r*2.5,r*0.8,0,0,Math.PI*2); ctx.fill();
-        ctx.restore();
-      }
-
-      // Label
-      simText(ctx,b.label,cx,by+r+12,b.sc,8.5,undefined,true);
-
-      // Velocity arrow (during fall)
-      if(inFlight && vCur>0.3){
-        const aLen=Math.min(vCur*3.5,36);
-        simArrow(ctx,cx,by+r+2,cx,by+r+2+aLen,b.col,2,8);
-      }
-    });
-
-    // ── Info panel ──────────────────────────────────────────
-    ctx.save(); ctx.fillStyle='rgba(6,14,28,.93)'; ctx.strokeStyle='#1e4060'; ctx.lineWidth=1.5;
-    ctx.beginPath(); ctx.roundRect(W-202,PADY-2,192,108,7); ctx.fill(); ctx.stroke(); ctx.restore();
-    simText(ctx,'g = '+g.toFixed(1)+' m/s²',W-106,PADY+15,'#fbbf24',13,undefined,true);
-    simText(ctx,'h = '+dropH+' m',W-106,PADY+33,'#94a3b8',11,undefined,true);
-    simText(ctx,'זמן נפילה: √(2h/g)',W-106,PADY+51,'#94a3b8',9.5,undefined,true);
-    simText(ctx,'= '+tFall.toFixed(3)+' s',W-106,PADY+67,'#22d3ee',12.5,undefined,true);
-    simText(ctx,'מהירות פגיעה: √(2gh)',W-106,PADY+85,'#94a3b8',9.5,undefined,true);
-    simText(ctx,'= '+(g*tFall).toFixed(2)+' m/s',W-106,PADY+101,'#34d399',11.5,undefined,true);
-
-    // ── Current state ────────────────────────────────────────
-    ctx.save(); ctx.fillStyle='rgba(6,14,28,.9)'; ctx.strokeStyle='#1e4060'; ctx.lineWidth=1;
-    ctx.beginPath(); ctx.roundRect(W/2-190,PADY-2,380,38,6); ctx.fill(); ctx.stroke(); ctx.restore();
-    if(inFlight){
-      simText(ctx,'y = ½gt² = '+yCur.toFixed(2)+' m   v = gt = '+vCur.toFixed(2)+' m/s',W/2,PADY+12,'#22d3ee',10.5,undefined,true);
-      simText(ctx,'כולם נופלים ביחד! — a = g, ללא תלות במסה',W/2,PADY+28,'#34d399',10,undefined,true);
-    } else {
-      simText(ctx,'פגיעה! v = '+vCur.toFixed(2)+' m/s   (אחרי '+tFall.toFixed(2)+' s)',W/2,PADY+12,'#ef4444',10.5,undefined,true);
-      simText(ctx,'גלילאו גליל (1638): כל הגופים נופלים אחת',W/2,PADY+28,'#fbbf24',10,undefined,true);
-    }
-
-    // Planet preset buttons hint
-    simText(ctx,'‏ירח 1.6 · מאדים 3.7 · כדור הארץ 9.8 · צדק 24.8',W/2,H-12,'#7d8da6',8.5);
-
-    requestAnimationFrame(draw);
-  }
   requestAnimationFrame(draw);
 }
 
@@ -32743,7 +32591,6 @@ function buildSim(sim){
   else if(sim.type==='avg-instant')extra=C(rng('ai-k',0.5,4,1.5,0.25,'מקדם k  (x = k·t²)')+btn('ai-reset','▶ הרץ Δt→0','btn-secondary'));
   else if(sim.type==='acceleration')extra=C(rng('acc-a',-10,10,3,0.5,'תאוצה a',' m/s²')+rng('acc-v0',-8,8,0,1,'v₀ ראשונית',' m/s')+btn('acc-reset','↺ אפס','btn-secondary'));
   else if(sim.type==='freefall')extra=C(rng('v0',0,30,18,1,'v₀ ראשונית',' m/s')+rng('ff-g',1.6,25,9.8,0.2,'g כבידה',' m/s²')+btn('throw','🎯 זרקו!','btn-primary'));
-  else if(sim.type==='multi-freefall')extra=C(rng('g-mff',1.6,25,9.8,0.1,'g (כבידה)',' m/s²')+rng('mff-h',5,40,20,1,'גובה h',' m')+btn('mff-reset','↺ שחרר שוב','btn-secondary'));
   else if(sim.type==='force-types')extra=C(rng('ft-F',0,40,12,1,'דחיפה F',' N')+rng('ft-x',0.01,0.15,0.05,0.01,'מתיחת הקפיץ x',' m'));
   else if(sim.type==='inertia')extra=C(rng('friction',0,0.8,0.4,0.05,'חיכוך μ')+rng('mass-in',1,15,5,0.5,'מסה m',' kg')+btn('push-right','💨 דחפו ימינה','btn-primary')+btn('push-left','דחפו שמאלה 💨','btn-secondary'));
   else if(sim.type==='newton2')extra=C(rng('mass',1,20,5,0.5,'מסה m',' kg')+rng('n2-F',-60,60,20,1,'כוח F',' N')+rng('n2-mu',0,0.8,0,0.05,'חיכוך μ')+btn('n2-reset','↺ אפס','btn-secondary'));
