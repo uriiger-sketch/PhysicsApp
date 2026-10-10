@@ -20276,7 +20276,7 @@ runAnim('anim-elc-plane-t',(canvas,ctx,W,H,t)=>{
       label(ctx,'E',x,H*0.5-14,'#fbbf24',9);
       // the two labelled points really are 1:4 apart on screen, so say 1:4 --
       // 1 and 10 invited the reader to measure and find the picture lying
-      if(s>0&&(d===1||d===4))label(ctx,d===1?'2 ס״מ':'8 ס״מ',x,H*0.5+18,'#7d8da6',8.5);
+      if(s>0&&(d===1||d===4))label(ctx,d===1?'2 cm':'8 cm',x,H*0.5+18,'#7d8da6',8.5);
     }
   }
   label(ctx,'σ/2ε₀',px+W*0.10,H*0.28,'#fbbf24',10);
@@ -25831,7 +25831,7 @@ runAnim('anim-elc-induct-t',(cv,ctx,W,H,t)=>{
                  '3. מנתקים את ההארקה — המטען החיובי נעול על הכדור',
                  '4. רק עכשיו מרחיקים את המוט — הכדור נשאר טעון +'];
   oLbl(ctx,titles[step],W/2,15,step===4?'#4ade80':'#94a3b8',10.5);
-  oLbl(ctx,'\u200eמטען הכדור: '+(qSphere<0.05?'0':'+'+qSphere.toFixed(1))+' יח׳',W*0.16,cy+R+30,qSphere>0.05?'#f87171':'#94a3b8',10);
+  oLbl(ctx,'\u200eמטען הכדור: '+(qSphere<0.05?'0':'+'+qSphere.toFixed(1))+' nC',W*0.16,cy+R+30,qSphere>0.05?'#f87171':'#94a3b8',10);
   if(step===4)oLbl(ctx,'✔ נטען בסימן ההפוך למוט — בלי לגעת בו',W/2,H-9,'#4ade80',10);
   else oLbl(ctx,'הסדר קריטי: הארקה תחילה, ורק אחר כך מרחיקים את המוט',W/2,H-9,'#a78bfa',9.5);
 });
@@ -28243,7 +28243,7 @@ function simElcCompare(canvas){
     }
     simText(ctx,showV?('V  ('+uName+'V)'):('E  ('+uName+'V/m)'),GX+4,gy-8,'#94a3b8',10,'left',true);
     for(var rr=0.15;rr<=RMAX+1e-9;rr+=0.15)
-      simText(ctx,(rr*100).toFixed(0)+' ס״מ',X(rr),gy+gh+13,'#7d8da6',8.5,'center');
+      simText(ctx,(rr*100).toFixed(0)+' cm',X(rr),gy+gh+13,'#7d8da6',8.5,'center');
     // the three curves
     ctx.save();ctx.beginPath();ctx.rect(GX,gy,GW,gh);ctx.clip();
     // Start where the curve first fits in the frame, so it enters from the top
@@ -28271,7 +28271,7 @@ function simElcCompare(canvas){
     if(!showV&&rCross>0.005&&rCross<RMAX){
       ctx.save();ctx.strokeStyle='rgba(148,163,184,.45)';ctx.setLineDash([3,3]);
       ctx.beginPath();ctx.moveTo(X(rCross),gy);ctx.lineTo(X(rCross),gy+gh);ctx.stroke();ctx.restore();
-      simText(ctx,'משתווים ב-'+(rCross*100).toFixed(0)+' ס״מ — ולא תלוי במטען',
+      simText(ctx,'משתווים ב-'+(rCross*100).toFixed(0)+' cm — ולא תלוי במטען',
         Math.min(X(rCross),GX+GW-90),gy+12,'#94a3b8',9,'center');
     }
     // the selected distance, and the three numbers it gives
@@ -28291,7 +28291,7 @@ function simElcCompare(canvas){
         :((showV?'V = ':'E = ')+(rv>=10?rv.toFixed(0):rv.toFixed(2))+' '+uName+(showV?'V':'V/m')),
         bx+(W-32)/6,gy+gh+52,'#e2e8f0',10.5,'center',true);
     });
-    simText(ctx,'r = '+(rSel*100).toFixed(1)+' ס״מ'+(rSel<R?'  (בתוך הכדור)':''),
+    simText(ctx,'r = '+(rSel*100).toFixed(1)+' cm'+(rSel<R?'  (בתוך הכדור)':''),
       W/2,gy-8,'#fbbf24',10.5,'center',true);
     simText(ctx,showV?'V של מישור יורד ליניארית ולעולם אינו מתאפס — ולכן נמדד כאן מקצה הציר'
       :(touched?'הנקודתי והכדור חופפים בדיוק מחוץ לכדור — ההבדל כולו בפנים'
@@ -28338,7 +28338,7 @@ function simElcSphere(canvas){
     for(var i=0;i<nQ;i++)
       optLabel(ctx,Q>0?'+':'−',X(R),sy-bh/2+4+(bh-8)*i/Math.max(1,nQ-1),qcol,10);
     simText(ctx,'מתכת',(GX+X(R))/2,sy,'#94a3b8',9.5,'center');
-    simText(ctx,'R = '+Rv().toFixed(1)+' ס״מ',X(R)+10,sy-bh/2-4,'#94a3b8',10,'left');
+    simText(ctx,'R = '+Rv().toFixed(1)+' cm',X(R)+10,sy-bh/2-4,'#94a3b8',10,'left');
     simText(ctx,'r →',GX+GW-4,sy-bh/2-4,'#7d8da6',9.5,'right');
     // ── two graphs sharing one r axis ──
     var g1=sy+64, g2=g1+150, gh=132;
@@ -28399,7 +28399,7 @@ function simElcSphere(canvas){
     ctx.save();ctx.fillStyle='#34d399';ctx.beginPath();ctx.arc(px,sy,5,0,6.2832);ctx.fill();ctx.restore();
     // ── readouts ──
     var inside=rProbe<R;
-    simText(ctx,'r = '+(rProbe*100).toFixed(1)+' ס״מ — '+(inside?'בתוך המתכת':'מחוץ לכדור'),
+    simText(ctx,'r = '+(rProbe*100).toFixed(1)+' cm — '+(inside?'בתוך המתכת':'מחוץ לכדור'),
       W/2,g1-24,inside?'#38bdf8':'#94a3b8',11,'center',true);
     simText(ctx,'E = '+(Math.abs(Ep)<1?'0':(Ep/1e6).toFixed(2)+'×10⁶')+' V/m     V = '+(Vp/1e5).toFixed(2)+'×10⁵ V',
       W/2,g2+gh+26,'#e2e8f0',11.5,'center',true);
@@ -29821,7 +29821,7 @@ function simElcPlane(canvas){
       :(S1*S2<0?'מטענים מנוגדים — קבל: כל השדה כלוא בפנים'
         :(S1*S2>0?'מטענים זהים — השדה נדחף החוצה, ובפנים מתאפס':'אחד הלוחות נייטרלי')),
       W/2,H-10,'#a78bfa',10.5,'center',true);
-    simText(ctx,two?('ΔV בין הלוחות = '+Math.abs(Etot((x1+x2)/2)*D_M).toFixed(0)+' V   (d = 2 ס״מ)')
+    simText(ctx,two?('ΔV בין הלוחות = '+Math.abs(Etot((x1+x2)/2)*D_M).toFixed(0)+' V   (d = 2 cm)')
       :'לוח בודד: הפרש הפוטנציאלים גדל ליניארית ללא גבול',
       W/2,gy0-6,'#c4b5fd',10,'center',true);
     requestAnimationFrame(draw);
