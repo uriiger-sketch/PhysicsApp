@@ -26092,10 +26092,11 @@ MAG_SIMS['mag-wire']=function(canvas){
     if(pn>0){var L=sc(pn);simArrow(ctx,pq[0],pq[1],pq[0]+pb[0]/pn*L,pq[1]-pb[1]/pn*L,'#34d399',2.8,10);}
     simHandle(ctx,pq[0],pq[1],'#34d399',12);
     var r1=Math.hypot(probe[0]-X1(),probe[1]);
-    ctx.save();ctx.fillStyle='rgba(2,8,16,.82)';ctx.fillRect(8,8,W*0.46,two?62:44);ctx.restore();
-    simText(ctx,'בגשש: B = '+(pn*1e6).toFixed(1)+' μT',8+W*0.23,24,'#34d399',12,'center',true);
-    simText(ctx,'r₁ = '+(r1*100).toFixed(1)+' cm   ·   B₁ = μ₀I₁/2πr₁ = '+(2e-7*Math.abs(Ls[0][2])/r1*1e6).toFixed(1)+' μT',8+W*0.23,42,'#94a3b8',9.5,'center');
-    if(two)simText(ctx,'צהוב + ורוד = ירוק: השדות מתחברים כווקטורים',8+W*0.23,60,'#94a3b8',9.5,'center');
+    var RW=W<600?W-16:W*0.46;
+    ctx.save();ctx.fillStyle='rgba(2,8,16,.82)';ctx.fillRect(8,8,RW,two?62:44);ctx.restore();
+    simText(ctx,'בגשש: B = '+(pn*1e6).toFixed(1)+' μT',8+RW/2,24,'#34d399',12,'center',true);
+    simText(ctx,'r₁ = '+(r1*100).toFixed(1)+' cm   ·   B₁ = μ₀I₁/2πr₁ = '+(2e-7*Math.abs(Ls[0][2])/r1*1e6).toFixed(1)+' μT',8+RW/2,42,'#94a3b8',9.5,'center');
+    if(two)simText(ctx,'צהוב + ורוד = ירוק: השדות מתחברים כווקטורים',8+RW/2,60,'#94a3b8',9.5,'center');
     // B(r) for the first wire, with the probe on it
     var gx=46,gy=TOP+10,gw=W-66,gh=H-TOP-40,Bmax=600e-6,rmax=0.15;
     magPlotBox(ctx,gx-38,gy-4,gw+50,gh+34,'',null);
@@ -26104,7 +26105,7 @@ MAG_SIMS['mag-wire']=function(canvas){
     ctx.save();ctx.strokeStyle='#1e3a52';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(gx,gy+8);ctx.lineTo(gx,gy+gh);ctx.lineTo(gx+gw,gy+gh);ctx.stroke();ctx.restore();
     [0,200,400,600].forEach(function(v){simText(ctx,String(v),gx-5,Y(v*1e-6)+3,'#64748b',8.5,'right');});
     [0,5,10,15].forEach(function(v){simText(ctx,String(v),X(v/100),gy+gh+13,'#64748b',8.5,'center');});
-    simText(ctx,'μT',gx-22,gy+14,'#64748b',8.5,'center');simText(ctx,'r (cm)',gx+gw-4,gy+gh+13,'#64748b',8.5,'right');
+    simText(ctx,'μT',gx-22,gy+14,'#64748b',8.5,'center');simText(ctx,'r (cm)',X(0.125),gy+gh+13,'#64748b',8.5,'center');
     ctx.save();ctx.strokeStyle='rgba(52,211,153,.5)';ctx.setLineDash([4,4]);ctx.beginPath();ctx.moveTo(gx,Y(30e-6));ctx.lineTo(gx+gw,Y(30e-6));ctx.stroke();ctx.restore();
     simText(ctx,'שדה כדור הארץ',gx+gw-4,Y(30e-6)-5,'#34d399',8.5,'right');
     var I1=Math.abs(Ls[0][2]),pts=[];for(var r=0.004;r<=rmax;r+=0.001){var B=2e-7*I1/r;if(B<=Bmax)pts.push([X(r),Y(B)]);}
@@ -26171,7 +26172,7 @@ MAG_SIMS['mag-loop']=function(canvas){
     magPoly(ctx,c,'#fbbf24',2.2);
     simCircle(ctx,X(px0),Y(Bx(px0)),5,'#34d399','#fff',1.5);
     [-15,-10,-5,0,5,10,15].forEach(function(v){simText(ctx,String(v),X(v/100),gy+gh+12,'#64748b',8.5,'center');});
-    simText(ctx,'x (cm)',gx+gw,gy+gh+12,'#64748b',8.5,'right');
+    simText(ctx,'x (cm)',X(0.125),gy+gh+12,'#64748b',8.5,'center');
     simText(ctx,magFmtB(Bx(0)),X(0)-6,Y(Bx(0))+2,'#fbbf24',9,'right',true);
     requestAnimationFrame(draw);
   }
@@ -26211,10 +26212,11 @@ MAG_SIMS['mag-solenoid']=function(canvas){
     simHandle(ctx,pq[0],pq[1],'#34d399',12);
     var n=N/Ln, Bid=MU0*n*I;
     var Bax=function(x){var b=0;for(var j=0;j<T.length;j++)b+=MU0*I*A*A/(2*Math.pow(A*A+(x-T[j])*(x-T[j]),1.5));return b;};
-    ctx.save();ctx.fillStyle='rgba(2,8,16,.85)';ctx.fillRect(8,8,W*0.56,64);ctx.restore();
-    simText(ctx,'n = N/L = '+n.toFixed(0)+' m⁻¹   ·   μ₀nI = '+magFmtB(Bid),8+W*0.28,24,'#e2e8f0',11,'center',true);
-    simText(ctx,'במרכז (סכום מדויק): '+magFmtB(Bax(0))+'  ('+(Bax(0)/Bid*100).toFixed(0)+'% מהאידיאלי)',8+W*0.28,43,'#fbbf24',10,'center',true);
-    simText(ctx,'בגשש: '+magFmtB(pn),8+W*0.28,62,'#34d399',10,'center',true);
+    var RW=W<600?W-16:W*0.56;
+    ctx.save();ctx.fillStyle='rgba(2,8,16,.85)';ctx.fillRect(8,8,RW,64);ctx.restore();
+    simText(ctx,'n = N/L = '+n.toFixed(0)+' m⁻¹   ·   μ₀nI = '+magFmtB(Bid),8+RW/2,24,'#e2e8f0',11,'center',true);
+    simText(ctx,'במרכז (סכום מדויק): '+magFmtB(Bax(0))+'  ('+(Bax(0)/Bid*100).toFixed(0)+'% מהאידיאלי)',8+RW/2,43,'#fbbf24',10,'center',true);
+    simText(ctx,'בגשש: '+magFmtB(pn),8+RW/2,62,'#34d399',10,'center',true);
     // B on the axis against the long-solenoid value
     var gx=48,gy=TOP+8,gw=W-66,gh=H-TOP-36,Bm=Math.max(Bid,Bax(0))*1.15;
     var X=function(x){return gx+(x+0.25)/0.5*gw;},Y=function(B){return gy+gh-B/Bm*(gh-18);};
@@ -26287,8 +26289,12 @@ MAG_SIMS['mag-lorentz']=function(canvas){
       simText(ctx,'v',P[0]+ux*(arrowLen()+14),P[1]+uy*(arrowLen()+14),'#34d399',12,'center',true);
       simText(ctx,'F',P[0]+fx*(38+F*1e13*16),P[1]+fy*(38+F*1e13*16),'#f87171',12,'center',true);
       var y0=H*0.85;magPlotBox(ctx,8,y0,W-16,H-y0-6,'',null);
-      simText(ctx,'F = qvB = '+sciTxt(F)+' N  ·  r = mv/qB = '+(r*100).toFixed(1)+' cm  ·  T = '+(2*Math.PI*MAG_MP/(q*B)*1e9).toFixed(0)+' ns',W/2,y0+20,'#e2e8f0',11,'center',true);
-      simText(ctx,'F ניצב תמיד ל-v ⇒ W = 0: הכיוון מסתובב, והגודל |v| = '+(v/1e6).toFixed(1)+'×10⁶ m/s לא משתנה',W/2,y0+42,'#94a3b8',10,'center');
+      var Tns=(2*Math.PI*MAG_MP/(q*B)*1e9).toFixed(0);
+      if(W<600){simText(ctx,'F = qvB = '+sciTxt(F)+' N',W/2,y0+16,'#e2e8f0',11,'center',true);
+        simText(ctx,'r = mv/qB = '+(r*100).toFixed(1)+' cm  ·  T = '+Tns+' ns',W/2,y0+33,'#e2e8f0',10.5,'center',true);
+        simText(ctx,'F ⊥ v ⇒ W = 0: הגודל |v| = '+(v/1e6).toFixed(1)+'×10⁶ m/s לא משתנה',W/2,y0+50,'#94a3b8',9.5,'center');}
+      else{simText(ctx,'F = qvB = '+sciTxt(F)+' N  ·  r = mv/qB = '+(r*100).toFixed(1)+' cm  ·  T = '+Tns+' ns',W/2,y0+20,'#e2e8f0',11,'center',true);
+      simText(ctx,'F ניצב תמיד ל-v ⇒ W = 0: הכיוון מסתובב, והגודל |v| = '+(v/1e6).toFixed(1)+'×10⁶ m/s לא משתנה',W/2,y0+42,'#94a3b8',10,'center');}
     } else {
       // B lies in the page, along ±x; the force is out of or into the page
       for(var y=24;y<H*0.8;y+=34){ctx.save();ctx.strokeStyle='rgba(129,140,248,.35)';ctx.lineWidth=1.2;ctx.beginPath();ctx.moveTo(10,y);ctx.lineTo(W*0.66,y);ctx.stroke();ctx.restore();
@@ -26857,8 +26863,11 @@ MAG_SIMS['mag-lenz']=function(canvas){
     simText(ctx,cut?'טבעת פתוחה: יש מתח, אין זרם — ואין כוח':Math.abs(rel)<0.01?'אין תנועה יחסית ⇒ אין זרם':(closing?'המגנט מתקרב ⇒ השטף גדל ⇒ הטבעת דוחה':'המגנט מתרחק ⇒ השטף קטן ⇒ הטבעת נמשכת'),8+BXW/2,46,'#94a3b8',10,'center',true);
     simText(ctx,'חום בטבעת: '+(heat*1000).toFixed(2)+' mJ — מהעבודה שהשקעתם',8+BXW/2,66,'#64748b',9.5,'center');
     var y0=H*0.86;magPlotBox(ctx,8,y0,W-16,H-y0-6,'',null);
-    simText(ctx,'גררו את המגנט אל הטבעת ובחזרה, או לחצו ״דחוף״. הכוח תמיד מתנגד לתנועה היחסית — עם כל קוטב',W/2,y0+22,'#94a3b8',10,'center');
-    simText(ctx,'בלי חוק לנץ: מגנט שנדחף היה נמשך עוד פנימה — אנרגיה יש מאין',W/2,y0+44,'#64748b',9.5,'center');
+    if(W<600){simText(ctx,'גררו את המגנט או לחצו ״דחוף״:',W/2,y0+16,'#94a3b8',9.5,'center');
+      simText(ctx,'הכוח תמיד מתנגד לתנועה היחסית — עם כל קוטב',W/2,y0+32,'#94a3b8',9.5,'center');
+      simText(ctx,'בלי חוק לנץ — אנרגיה יש מאין',W/2,y0+50,'#64748b',9,'center');}
+    else{simText(ctx,'גררו את המגנט אל הטבעת ובחזרה, או לחצו ״דחוף״. הכוח תמיד מתנגד לתנועה היחסית — עם כל קוטב',W/2,y0+22,'#94a3b8',10,'center');
+    simText(ctx,'בלי חוק לנץ: מגנט שנדחף היה נמשך עוד פנימה — אנרגיה יש מאין',W/2,y0+44,'#64748b',9.5,'center');}
     requestAnimationFrame(draw);
   }
   requestAnimationFrame(draw);
@@ -26915,18 +26924,19 @@ MAG_SIMS['mag-motional']=function(canvas){
     simText(ctx,'ε = BLv = '+eps.toFixed(3)+' V   ·   I = '+I.toFixed(3)+' A   ·   BIL = '+Math.abs(Fb).toFixed(3)+' N',W/2,y0+18,'#e2e8f0',11,'center',true);
     simText(ctx,drag?'גוררים ביד: הכוח הנדרש לשמור על v הוא B²L²v/R':Fx>0?'כוח קבוע: המוט מאיץ עד v_t = FR/B²L² = '+vt.toFixed(2)+' m/s':'בלי כוח: הבלימה המגנטית עוצרת את המוט',W/2,y0+38,'#94a3b8',10,'center');
     // v(t) and the power books
-    var gx=44,gy=y0+62,gw=W*0.56,gh=H-gy-14,Vm=Math.max(0.5,vt*1.25,Math.abs(v)*1.2);
+    // a phone stacks the power bars under the v(t) graph instead of beside it
+    var ph=W<600,gx=44,gy=y0+62,gw=ph?W-60:W*0.56,gh=ph?84:H-gy-14,Vm=Math.max(0.5,vt*1.25,Math.abs(v)*1.2);
     magPlotBox(ctx,gx-36,gy-4,gw+44,gh+12,'v(t)',null);
     var Y=function(q){return gy+gh-q/Vm*(gh-18);};
     if(vt>0){magPoly(ctx,[[gx,Y(vt)],[gx+gw,Y(vt)]],'rgba(52,211,153,.6)',1.4,[5,4]);simText(ctx,'v_t',gx+gw-4,Y(vt)-5,'#34d399',9,'right');}
     magPoly(ctx,hist.map(function(q){return [gx+gw-(tt-q[0])/14*gw,Y(Math.max(0,q[1]))];}),'#34d399',2);
     simText(ctx,Vm.toFixed(1),gx-4,Y(Vm)+3,'#64748b',8.5,'right');simText(ctx,'m/s',gx-4,Y(0)+3,'#64748b',8.5,'right');
-    var bx=W*0.70,bw=W*0.27,Pm=Math.max(0.02,Pin,Ph)*1.2;
-    magPlotBox(ctx,bx-6,gy-4,bw+12,gh+12,'הספקים: נכנס = חום + אנרגיה קינטית',null);
+    var bx=ph?14:W*0.70,bw=ph?W-28:W*0.27,py=ph?gy+gh+18:gy,pgh=ph?H-py-10:gh,Pm=Math.max(0.02,Pin,Ph)*1.2;
+    magPlotBox(ctx,bx-6,py-4,bw+12,pgh+12,'הספקים: נכנס = חום + אנרגיה קינטית',null);
     [['Fv',Pin,'#fb923c'],['I²R',Ph,'#f87171'],['ΔEk/Δt',drag?0:Fx*v-Ph,'#34d399']].forEach(function(q,i){
-      var yy=gy+22+i*((gh-18)/3),w=Math.max(0,q[1])/Pm*(bw-70);
+      var yy=py+22+i*((pgh-18)/3),w=Math.max(0,q[1])/Pm*(bw-110);
       ctx.save();ctx.fillStyle=q[2];ctx.fillRect(bx+60,yy-6,w,12);ctx.restore();
-      simText(ctx,q[0],bx+56,yy,q[2],9,'right',true);simText(ctx,q[1].toFixed(3),bx+64+w,yy,'#e2e8f0',9,'left');});
+      simText(ctx,q[0],bx+56,yy,q[2],9,'right',true);simText(ctx,q[1].toFixed(3)+' W',bx+64+w,yy,'#e2e8f0',9,'left');});
     requestAnimationFrame(draw);
   }
   requestAnimationFrame(draw);
