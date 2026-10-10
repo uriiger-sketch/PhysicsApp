@@ -17,6 +17,8 @@
 //   - charged sphere, Q < 0: |E| > 0 outside and V < 0;
 //   - three geometries, potential view: inside the sphere V = kQ/R;
 //   - deflection: a particle that hits the plate reports the hit.
+// Last, every draggable simulation is driven by a finger on a 390 px phone:
+// what it drives must change, and the page must not scroll under the drag.
 const { chromium } = require('playwright');
 const path = require('path');
 const F = 'file://' + path.resolve(__dirname, '..', 'physics_game_v28.html');
@@ -173,6 +175,59 @@ const sig2 = x => x === 0 ? 0 : Number(x.toPrecision(2));
   await setR('inp-df-v0', 1);
   const df = await txt();
   t('deflection: a hit reports y = d/2 and where', /y = d\/2/.test(df) && /x = v₀t/.test(df), df.split('\n').filter(l => /y = /.test(l)).slice(-1)[0]);
+
+  console.log('   every draggable simulation by touch, on a phone');
+  const tc = await b.newContext({ viewport: { width: 390, height: 1300 }, hasTouch: true, isMobile: true, deviceScaleFactor: 2 });
+  const q = await tc.newPage(); q.on('pageerror', x => errs.push(x.message));
+  await q.addInitScript(() => { window.__T = []; const o = CanvasRenderingContext2D.prototype.fillText;
+    CanvasRenderingContext2D.prototype.fillText = function (s) { if (typeof s === 'string' && this.canvas.id === 'sim-canvas') window.__T.push(s.replace(/[\u2066-\u2069\u200e]/g, ''));
+      if (window.__T.length > 4000) window.__T.splice(0, 2000); return o.apply(this, arguments); }; });
+  await q.goto(F); await q.waitForTimeout(700);
+  const cdp = await tc.newCDPSession(q);
+  const topen = async (s, c, se, pre) => { await q.evaluate(([s, c, se]) => { if (window.closeOnboarding) closeOnboarding(); window.showSimTooltip = function () {};
+    state.subject = s; state.chapter = c; state.section = se; state.tab = 'sim'; render(); }, [s, c, se]);
+    await q.waitForTimeout(900); await (await q.$('#sim-canvas')).scrollIntoViewIfNeeded();
+    if (pre) await q.evaluate(([k, v]) => { const e = document.getElementById('inp-' + k); e.value = v; e.dispatchEvent(new Event('input', { bubbles: true })); }, pre);
+    await q.waitForTimeout(300);
+    return q.evaluate(() => { const r = document.getElementById('sim-canvas').getBoundingClientRect(); return { x: r.left, y: r.top, w: r.width, h: r.height }; }); };
+  // a slider the drag drives, or the newest canvas line matching a pattern;
+  // {gone} is a hint that must stop being drawn once the learner has dragged
+  const probe = async c => q.evaluate(c => {
+    if (c.slider) { const e = document.getElementById('inp-' + c.slider); return e ? e.value : 'no slider'; }
+    const R = new RegExp(c.text || c.gone), a = window.__T.filter(s => R.test(s)); return a.length ? a[a.length - 1] : null; }, c);
+  const swipe = async (r, pts) => { const P = z => ({ x: r.x + z[0], y: r.y + z[1] });
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [P(pts[0])] });
+    for (let i = 1; i < pts.length; i++) { await q.waitForTimeout(50); await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [P(pts[i])] }); }
+    await q.waitForTimeout(150);
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] }); await q.waitForTimeout(200); };
+  // where each handle starts, from the simulation's own layout (W, H = canvas size)
+  const TOUCH = [
+    ['electro', 'elc-charge', 'elc-basics', W => [[W * 0.22, 170], [W * 0.35, 160], [W * 0.5, 150]], { text: '^[✓•] 1\\.' }],
+    ['electro', 'elc-charge', 'elc-coulomb', W => [[W / 2 - 110, 140], [W / 2 - 130, 140], [W / 2 - 150, 140]], { text: '^r = ' }],
+    ['electro', 'elc-charge', 'elc-field', (W, H) => [[W * 0.68, H * 0.3], [W * 0.62, H * 0.35], [W * 0.55, H * 0.4]], { text: '^\\|E\\| = ' }],
+    ['electro', 'elc-charge', 'elc-plane', (W, H) => [[W * 0.5, H * 0.3], [W * 0.45, H * 0.3], [W * 0.1, H * 0.3]], { text: '^E = E₁ \\+ E₂|^E₁ \\+ E₂' }],
+    ['electro', 'elc-charge', 'elc-conductor', (W, H) => [[W * 0.27 + 95, H * 0.42 - 40], [W * 0.27 + 60, H * 0.42 - 30], [W * 0.27 + 30, H * 0.42 - 10]], { text: '^גשוש r=' }],
+    ['electro', 'elc-energy', 'elc-potential', (W, H) => [[W * 0.7, H * 0.26], [W * 0.65, H * 0.3], [W * 0.6, H * 0.34]], { text: '^V = kQ/r = ' }],
+    ['electro', 'elc-energy', 'elc-upair', (W, H) => [[W * 0.66, H * 0.34], [W * 0.72, H * 0.34], [W * 0.8, H * 0.34]], { text: '^r = ' }],
+    ['electro', 'elc-energy', 'elc-sphere', W => [[46 + 0.2 * (W - 60), 300], [46 + 0.4 * (W - 60), 300], [46 + 0.6 * (W - 60), 300]], { text: '^r = [0-9]' }],
+    ['electro', 'elc-energy', 'elc-plates', (W, H) => [[W * 0.28 - 20, H / 2], [W * 0.28 - 40, H / 2], [W * 0.28 - 60, H / 2]], { slider: 'elc-v0' }],
+    ['electro', 'elc-energy', 'elc-capacitor', W => [[W * 0.3 + 72, 193], [W * 0.3 + 90, 193], [W * 0.3 + 110, 193]], { slider: 'elc-cd' }],
+    ['electro', 'elc-energy', 'elc-dielectric', (W, H) => [[W * 0.5, H * 0.28], [W * 0.4, H * 0.28], [W * 0.3, H * 0.28]], { slider: 'di-f' }],
+    ['electro', 'elc-energy', 'elc-compare', W => [[52 + 0.2 * (W - 68), 200], [52 + 0.4 * (W - 68), 200], [52 + 0.6 * (W - 68), 200]], { text: '^r = ' }],
+    ['electro', 'elc-motion', 'elc-millikan', W => [[W * 0.44, 200], [W * 0.44, 180], [W * 0.44, 150]], { slider: 'mk-V' }],
+  ];
+  const deaf = [], scrolled = [];
+  for (const [s, c, se, pf, chk, pre] of TOUCH) {
+    const r = await topen(s, c, se, pre), before = await probe(chk), y0 = await q.evaluate(() => scrollY);
+    await swipe(r, pf(r.w, r.h));
+    if (chk.gone) { await q.evaluate(() => { window.__T = []; }); await q.waitForTimeout(300); }
+    const after = await probe(chk);
+    if (await q.evaluate(() => scrollY) !== y0) scrolled.push(se);
+    if (chk.gone ? !(before && after === null) : (before === null || after === before)) deaf.push(se + ': ' + before + ' → ' + after);
+  }
+  t(TOUCH.length + ' simulations follow a finger (touch start, move, end)', deaf.length === 0, deaf.join(' | '));
+  t('dragging on a simulation does not scroll the page', scrolled.length === 0, scrolled.join(', '));
+  await tc.close();
 
   t('no page errors', errs.length === 0, errs.join(' | '));
   await b.close();
