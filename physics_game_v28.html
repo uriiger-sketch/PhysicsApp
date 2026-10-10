@@ -34635,9 +34635,14 @@ window.toggleTheme=function(){
 // ══════════════════════════════════════════════════════════════════
 // XP SOUND (Web Audio API — subtle reward beep)
 // ══════════════════════════════════════════════════════════════════
+// One audio context for the whole visit: a new one per reward was never
+// closed, and browsers cap how many a page may hold (Chrome warns at six;
+// older Safari stopped making sound at four).
+var _xpAudio=null;
 function playXPSound(){
   try{
-    var ctx2=new(window.AudioContext||window.webkitAudioContext)();
+    var ctx2=_xpAudio||(_xpAudio=new(window.AudioContext||window.webkitAudioContext)());
+    if(ctx2.state==='suspended'&&ctx2.resume)ctx2.resume();
     var osc=ctx2.createOscillator();
     var gain=ctx2.createGain();
     osc.connect(gain); gain.connect(ctx2.destination);
