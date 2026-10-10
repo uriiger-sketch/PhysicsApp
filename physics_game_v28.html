@@ -955,6 +955,12 @@ html{scroll-padding-top:72px;}
    direction from its own first letter: Latin units read left to right, a
    Hebrew unit (ס״מ) right to left, a bare number left to right. */
 .range-val,.range-wrap span,.unit-lbl,.sim-stat .sval{unicode-bidi:plaintext;}
+.sim-tip{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 14px;
+  background:var(--panel2);border-bottom:1px solid var(--border);color:var(--text);font-size:.85rem;line-height:1.6;}
+.sim-tip-x{background:none;border:none;color:var(--muted);cursor:pointer;font-size:1rem;flex-shrink:0;
+  min-width:32px;min-height:32px;border-radius:6px;}
+.sim-tip-x:hover{color:var(--text);background:var(--chip);}
+@media (pointer:coarse){.sim-tip-x{min-width:44px;min-height:44px;}}
 /* "Enter" means nothing on a touch screen */
 @media (pointer:coarse){ .quiz-card kbd{display:none;} }
 /* Reduced motion: no pulsing, popping or sliding; the theory animations
@@ -34029,21 +34035,20 @@ function celebrateSection(){
 function showSimTooltip(desc){
   var key='simtip_'+state.chapter+'.'+state.section;
   if(_ls.get(key)) return;
+  var wrap=document.querySelector('#app .sim-canvas-wrap');
+  if(!wrap||!desc) return;
   _ls.set(key,'1');
+  // Between the canvas and its controls, never over the canvas: laid over
+  // its bottom 60-80 px it hid the graphs and readouts there (on a phone,
+  // a third of the drawing). It stays until closed -- vanishing on a timer
+  // would move the sliders up under the finger reaching for them.
   var tip=document.createElement('div');
-  tip.style.cssText='position:absolute;bottom:10px;right:10px;left:10px;z-index:500;'+
-    'background:rgba(6,14,28,.92);border:1px solid var(--border);border-radius:10px;'+
-    'padding:10px 14px;color:var(--text);font-size:.85rem;text-align:right;direction:rtl;'+
-    'box-shadow:0 4px 16px rgba(0,0,0,.5);pointer-events:auto;';
-  tip.innerHTML='<div style="display:flex;align-items:center;gap:8px;justify-content:space-between">'+
-    '<span>🔬 '+desc+'</span>'+
-    '<button onclick="this.parentElement.parentElement.remove()" aria-label="סגירת ההסבר" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:1rem;padding:0 4px;min-width:32px;min-height:32px">✕</button>'+
-    '</div>';
-  var wrap=document.querySelector('.sim-canvas-wrap');
-  if(wrap){ wrap.style.position='relative'; wrap.appendChild(tip);
-    // built after render(), so the page-wide pass has already been and gone
-    fixInlineMath(tip); }
-  setTimeout(function(){ if(tip.parentElement) tip.remove(); },5000);
+  tip.className='sim-tip';tip.setAttribute('role','note');
+  tip.innerHTML='<span>🔬 '+desc+'</span><button type="button" class="sim-tip-x" aria-label="סגירת ההסבר">✕</button>';
+  tip.querySelector('button').onclick=function(){tip.remove();};
+  wrap.parentNode.insertBefore(tip,wrap.nextSibling);
+  // built after render(), so the page-wide passes have already been and gone
+  fixInlineMath(tip);ensureContrast(tip);
 }
 
 window.resetAllProgress=function(){
