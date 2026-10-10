@@ -11809,15 +11809,17 @@ function simSpring(canvas){
   }
 
   // Drag to set amplitude
+  // touchend carries changedTouches only: reading touches[0] there threw
+  function _pt(e){return (e.changedTouches&&e.changedTouches[0])||(e.touches&&e.touches[0])||e;}
   function getCanvasX(e){
     const r=canvas.getBoundingClientRect();
     const scl=(canvas.width/dpr)/r.width;
-    return ((e.touches?e.touches[0].clientX:e.clientX)-r.left)*scl;
+    return (_pt(e).clientX-r.left)*scl;
   }
   function getCanvasY(e){
     const r=canvas.getBoundingClientRect();
     const scl=(canvas.height/dpr)/r.height;
-    return ((e.touches?e.touches[0].clientY:e.clientY)-r.top)*scl;
+    return (_pt(e).clientY-r.top)*scl;
   }
   canvas.addEventListener('mousedown',function(e){
     const cx=getCanvasX(e), cy=getCanvasY(e);
@@ -15090,14 +15092,16 @@ function simEnergyPotential(canvas){
 
   function getCanvasY(ev){
     var r=canvas.getBoundingClientRect();
-    return ((ev.touches?ev.touches[0].clientY:ev.clientY)-r.top)*(canvas.height/dpr/r.height);
+    // touchend carries changedTouches only: reading touches[0] there threw
+    var pt=(ev.changedTouches&&ev.changedTouches[0])||(ev.touches&&ev.touches[0])||ev;
+    return (pt.clientY-r.top)*(canvas.height/dpr/r.height);
   }
   function onDown(ev){ev.preventDefault(); var cy=getCanvasY(ev); if(Math.abs(cy-objY)<BALL_R+10){dragging=true;vel=0;contactTimer=0;}}
   function onMove(ev){if(!dragging)return;ev.preventDefault();objY=Math.max(BALL_R+8,Math.min(FLOOR_POS-2,getCanvasY(ev)));vel=0;}
   function onUp(){dragging=false;}
   canvas.addEventListener('mousedown',onDown);canvas.addEventListener('touchstart',onDown,{passive:false});
   canvas.addEventListener('mousemove',onMove);canvas.addEventListener('touchmove',onMove,{passive:false});
-  canvas.addEventListener('mouseup',onUp);canvas.addEventListener('touchend',onUp);
+  canvas.addEventListener('mouseup',onUp);canvas.addEventListener('mouseleave',onUp);canvas.addEventListener('touchend',onUp);
 
   var elasticBtn=document.getElementById('btn-ep-elastic');
   if(elasticBtn){
