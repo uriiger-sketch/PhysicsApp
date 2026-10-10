@@ -19675,11 +19675,13 @@ runAnim('anim-elc-compare-t',(canvas,ctx,W,H,t)=>{
       for(let k=0;k<4;k++)label(ctx,'+',cx-24,cy-22+k*15,'#f87171',9);
     }
     // the probe and the arrow it feels
-    const d=17+f*38, tx=cx+d;
+    const d=17+f*28, tx=cx+d;
     ctx.save();ctx.fillStyle='#fbbf24';ctx.beginPath();ctx.arc(tx,cy,5,0,6.2832);ctx.fill();ctx.restore();
-    // 1/r^2 for the first two, constant for the plane
-    const rel=(i===2)?0.62:Math.min(1,(24/d)*(24/d));
-    simArrow(ctx,tx+5,cy,tx+5+9+rel*26,cy,'rgba(251,191,36,.9)',2,7);
+    // 1/r^2 for the first two, constant for the plane -- and the length IS the
+    // field: no additive offset and no clamp (a +9 px offset and a cap over the
+    // first stretch made the 1/r^2 arrows look nearly as steady as the plane's)
+    const len=(i===2)?20:36*(17/d)*(17/d);
+    simArrow(ctx,tx+5,cy,tx+5+len,cy,'rgba(251,191,36,.9)',2,7);
     // the arrow length IS the field strength, so name what it is doing
     label(ctx,(i===2)?'קבוע — σ/2ε₀':'נחלש כ-1/r²',cx,H*0.84,(i===2)?'#34d399':'#94a3b8',9.5);
   });
@@ -28260,7 +28262,10 @@ function simElcCompare(canvas){
       r1<=rStart+1e-9?ctx.moveTo(X(r1),Y(Epoint(r1))):ctx.lineTo(X(r1),Y(Epoint(r1)));}
     ctx.stroke();
     ctx.strokeStyle='rgba(56,189,248,.95)';ctx.lineWidth=2.2;ctx.setLineDash([7,4]);ctx.beginPath();
-    ctx.moveTo(GX,Y(0));ctx.lineTo(X(R),Y(0));
+    // inside the metal: E = 0, but V = kQ/R -- the potential view used to draw
+    // the sphere's V flat at ZERO inside, and then jump up to kQ/R at the surface
+    var inS=Esph(R*0.999);
+    ctx.moveTo(GX,Y(inS));ctx.lineTo(X(R),Y(inS));
     for(var r2=R;r2<=RMAX;r2+=RMAX/400)ctx.lineTo(X(r2),Y(Esph(r2)));
     ctx.stroke();ctx.setLineDash([]);
     ctx.strokeStyle='rgba(52,211,153,.9)';ctx.lineWidth=2.4;ctx.beginPath();
@@ -28285,7 +28290,7 @@ function simElcCompare(canvas){
     ctx.beginPath();ctx.moveTo(px,gy);ctx.lineTo(px,gy+gh);ctx.stroke();ctx.restore();
     var vals=[['מטען נקודתי',Epoint(rSel),'#f87171'],
               ['כדור מוליך',Esph(rSel),'#38bdf8'],
-              ['מישור (1 מ״ר)',showV?Vplane(rSel):Eplane,'#34d399']];
+              ['מישור (1 m²)',showV?Vplane(rSel):Eplane,'#34d399']];
     vals.forEach(function(v,i){
       var yy=Y(v[1]);
       if(yy>gy&&yy<gy+gh){ctx.save();ctx.fillStyle=v[2];ctx.beginPath();ctx.arc(px,yy,4.5,0,6.2832);ctx.fill();ctx.restore();}
