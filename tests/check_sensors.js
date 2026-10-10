@@ -189,9 +189,10 @@ const S = p => p.evaluate(() => JSON.parse(JSON.stringify(_sl.st, (k, v) =>
   t('calibrated', (await S(p)).ph, 'run');
   for (const MU of [0.35, 0.22]) {
     // every free slide starts with a push, and friction then reads AGAINST it:
-    // pushed toward -x, the slide reads +x
-    await push(p, 'forces2.kinetic-friction', 6, '()=>({g:[-4,0,9.81]})');
-    await push(p, 'forces2.kinetic-friction', 40, `()=>({g:[${MU * 9.81},0,9.81]})`);
+    // pushed toward -x, the slide reads +x. A phone that accelerates reports it
+    // on the gravity-free channel too (a = reading − g), as a real one does.
+    await push(p, 'forces2.kinetic-friction', 6, '()=>({g:[-4,0,9.81],a:[-4,0,0]})');
+    await push(p, 'forces2.kinetic-friction', 40, `()=>({g:[${MU * 9.81},0,9.81],a:[${MU * 9.81},0,0]})`);
     t(`instantaneous μ during a ${MU} slide`, (await S(p)).mu, MU, 0.005);
     await push(p, 'forces2.kinetic-friction', 25, '()=>({g:[0,0,9.81]})');
   }
@@ -208,19 +209,19 @@ const S = p => p.evaluate(() => JSON.parse(JSON.stringify(_sl.st, (k, v) =>
   }), false);
   const nB = (await S(p)).pts.length;
   await push(p, 'forces2.kinetic-friction', 60, '()=>({g:[0,0,9.81]})');   // settle back
-  await push(p, 'forces2.kinetic-friction', 6, '()=>({g:[-4,0,9.81]})');
-  await push(p, 'forces2.kinetic-friction', 6, '()=>({g:[3.4,0,9.81]})');  // too brief
+  await push(p, 'forces2.kinetic-friction', 6, '()=>({g:[-4,0,9.81],a:[-4,0,0]})');
+  await push(p, 'forces2.kinetic-friction', 6, '()=>({g:[3.4,0,9.81],a:[3.4,0,0]})');  // too brief
   await push(p, 'forces2.kinetic-friction', 20, '()=>({g:[0,0,9.81]})');
   t('a slide too short to be steady is not recorded', (await S(p)).pts.length, nB);
   // a hand that pushes steadily reads like friction in size, but along the push
-  await push(p, 'forces2.kinetic-friction', 30, '()=>({g:[2.9,0,9.81]})');
+  await push(p, 'forces2.kinetic-friction', 30, '()=>({g:[2.9,0,9.81],a:[2.9,0,0]})');
   await push(p, 'forces2.kinetic-friction', 30, '()=>({g:[0,0,9.81]})');
   t('a steady push is not a free slide', (await S(p)).pts.length, nB);
   // a slide that turns as it goes: friction keeps its direction in the room,
   // so in the phone's frame it swings round at the turn rate (a turn a second)
-  await push(p, 'forces2.kinetic-friction', 6, '()=>({g:[-4,0,9.81]})');
+  await push(p, 'forces2.kinetic-friction', 6, '()=>({g:[-4,0,9.81],a:[-4,0,0]})');
   await push(p, 'forces2.kinetic-friction', 40,
-    'i=>{const a=-(i+1)*0.02*2*Math.PI;return {g:[2.5*Math.cos(a),2.5*Math.sin(a),9.81],r:[360,0,0]};}');
+    'i=>{const a=-(i+1)*0.02*2*Math.PI;return {g:[2.5*Math.cos(a),2.5*Math.sin(a),9.81],a:[2.5*Math.cos(a),2.5*Math.sin(a),0],r:[360,0,0]};}');
   await push(p, 'forces2.kinetic-friction', 30, '()=>({g:[0,0,9.81]})');
   s = await S(p);
   t('a slide that turns is still followed, by the gyroscope', s.pts.length, nB + 1);

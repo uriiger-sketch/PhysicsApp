@@ -254,6 +254,18 @@ const t=(name,cond,detail)=>(cond?ok:bad).push(name+(detail?' — '+detail:''));
     t(`mixed V=${V} R=${R1},${R2},${R3}: I = V/(R₁+R₂∥R₃) and I₂+I₃ = I`,near(I,Iw)&&n5.length===3&&near(n5[0]+n5[1],n5[2],0.011)&&near(n5[2],Iw,0.011),l3+' | '+l5);
   }
 
+  // a source set in half volts is printed in half volts: at 12.5 V the mixed
+  // circuit's step ③ read '13 / 8.00 = 1.56 A', and the real-meter, capacitor
+  // and bridge batteries read 13 V
+  await setS('inp-mix-V',12.5);await setS('inp-mix-R1',6);await setS('inp-mix-R2',6);await setS('inp-mix-R3',3);
+  await p.waitForTimeout(150);
+  {const tx=await grab(), l3=tx.find(s2=>/^③/.test(s2))||'';
+   t('mixed V=12.5: step ③ divides the source as set',l3.includes('12.5 / 8.00 = 1.56 A'),l3);}
+  for(const [c,s,id] of [['dc-real','dc-realmeters','inp-rm-V'],['dc-real','dc-capacitor','inp-cap-V'],['dc-kirchhoff','dc-bridge','inp-br-V']]){
+    await go(c,s);await setS(id,12.5);await p.waitForTimeout(150);
+    t(s+': the battery reads 12.5 V, not 13',(await grab()).includes('12.5 V'),'');
+  }
+
   // EMF: V = ε − I·r and I = ε/(R+r), power split adds to εI
   await go('dc-real','dc-emf');
   for(const [E,r,R] of [[12,1,3],[24,0.1,0.2],[1.5,4,24]]){
