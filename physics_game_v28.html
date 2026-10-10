@@ -16799,7 +16799,7 @@ function simOptSnell(canvas){
     // Normal
     optDash(ctx,cx,MY-170,cx,MY+130,'#334155',0.7);
     optLabel(ctx,'נורמל',cx+22,MY-150,'#7d8da6',9);
-    var L=175;
+    var L=Math.min(175,W/2-14);
     // Incident beam (animated pulse)
     var ix=cx-L*Math.sin(th1),iy=MY-L*Math.cos(th1);
     optRay(ctx,ix,iy,cx,MY,wlHex,2.5,false);
@@ -16847,7 +16847,7 @@ function simOptSnell(canvas){
       ctx.save();ctx.fillStyle='rgba(4,9,20,.8)';ctx.beginPath();ctx.roundRect(cx+34,MY+30,44,18,3);ctx.fill();ctx.restore();
       optLabel(ctx,'\u200eθ₂ = '+(th2*180/Math.PI).toFixed(1)+'°',cx+56,MY+39,wlHex,10);
     }
-    optInfoBox(ctx,W-160,8,150,['n₁·sinθ₁=n₂·sinθ₂',tir?'TIR! θ > θ_c':'\u200eθ₂ = '+(th2*180/Math.PI).toFixed(1)+'°','נַפֶּץ: n תלוי ב-λ']);
+    optInfoBox(ctx,W-160,8,150,['n₁·sinθ₁=n₂·sinθ₂',tir?'החזרה מלאה: θ₁ > θc':'\u200eθ₂ = '+(th2*180/Math.PI).toFixed(1)+'°','פיזור: n תלוי ב-λ']);
     requestAnimationFrame(draw);
   }
   function poll(){if(_simStop[id])return;requestAnimationFrame(draw);}poll();
@@ -16889,7 +16889,7 @@ function simOptTIR(canvas){
     var _tr=wavelengthToRGB(wl).match(/\d+/g);
     function wlA(a){return 'rgba('+_tr[0]+','+_tr[1]+','+_tr[2]+','+a+')';}
     var thCritDeg=n2>=n1?90:Math.asin(n2/n1)*180/Math.PI;
-    var tir=th>=thCritDeg-0.5;
+    var tir=n2<n1&&th>=thCritDeg;   // exactly at θc the refracted ray grazes the surface
     var th2=tir?90:Math.asin((n1/n2)*Math.sin(th*Math.PI/180))*180/Math.PI;
     var MY=H*0.46,cx=W/2;
     // Backgrounds
@@ -16903,13 +16903,14 @@ function simOptTIR(canvas){
     ctx.save();var ig=ctx.createLinearGradient(0,MY,W,MY);
     ig.addColorStop(0,'transparent');ig.addColorStop(0.4,'rgba(99,102,241,.6)');ig.addColorStop(0.6,'rgba(99,102,241,.6)');ig.addColorStop(1,'transparent');
     ctx.strokeStyle=ig;ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(0,MY);ctx.lineTo(W,MY);ctx.stroke();ctx.restore();
-    var denseLabel='זכוכית (n₁='+n1.toFixed(2)+')';
-    var thinLabel='אוויר (n₂='+n2.toFixed(2)+')';
-    optLabel(ctx,denseLabel,W/2,18,'#a78bfa',10);
+    // the sliders can make any pair of media, so name them by number, not as glass and air
+    var denseLabel='תווך 1: n₁ = '+n1.toFixed(2)+(n1>n2?' (צפוף יותר)':'');
+    var thinLabel='תווך 2: n₂ = '+n2.toFixed(2)+(n2<n1?' (דליל יותר)':'');
+    optLabel(ctx,denseLabel,W*0.22,MY-14,'#a78bfa',10);
     optLabel(ctx,thinLabel,W/2,MY+16,'#94a3b8',10);
     // Normal
     optDash(ctx,cx,MY-170,cx,MY+120,'#334155',0.7);
-    var L=155,th1r=th*Math.PI/180;
+    var L=Math.min(155,W/2-14),th1r=th*Math.PI/180;
     // Incident ray
     var ix=cx-L*Math.sin(th1r),iy=MY-L*Math.cos(th1r);
     optRay(ctx,ix,iy,cx,MY,wlHex,2.5,false);
@@ -16938,11 +16939,17 @@ function simOptTIR(canvas){
     }
     // Critical angle indicator
     var thCritR=thCritDeg*Math.PI/180;
+    if(n2>=n1){
+      // into a denser (or equal) medium the ray bends toward the normal and can
+      // never reach 90°: there is no critical angle at all
+      optLabel(ctx,'n₂ ≥ n₁ — אין זווית קריטית, אין החזרה פנימית מלאה',W/2,MY-L-6,'#f59e0b',10);
+    } else {
     ctx.save();ctx.strokeStyle='#f59e0b';ctx.lineWidth=1.5;ctx.setLineDash([4,4]);ctx.globalAlpha=0.8;
     optGlow(ctx,'#f59e0b',6);
     ctx.beginPath();ctx.moveTo(cx,MY);ctx.lineTo(cx-L*Math.sin(thCritR),MY-L*Math.cos(thCritR));ctx.stroke();
     ctx.setLineDash([]);optNoGlow(ctx);ctx.restore();
-    optLabel(ctx,'\u200eθ_c(λ) = '+thCritDeg.toFixed(2)+'°',cx-L*Math.sin(thCritR)-24,MY-L*Math.cos(thCritR)-8,'#f59e0b',9);
+    optLabel(ctx,'\u200eθc(λ) = '+thCritDeg.toFixed(2)+'°',cx-0.62*L*Math.sin(thCritR)-34,MY-0.62*L*Math.cos(thCritR),'#f59e0b',9);
+    }
     // Fiber optic visualization at bottom
     if(tir){
       var fy=MY+70,fw=W-60,fh=20;
@@ -16967,190 +16974,110 @@ function simOptTIR(canvas){
     ctx.beginPath();ctx.moveTo(bx1,barY);ctx.lineTo(bx1+(bx2-bx1)*frac,barY);ctx.stroke();
     ctx.fillStyle=barCol;ctx.beginPath();ctx.arc(bx1+(bx2-bx1)*frac,barY,6,0,Math.PI*2);ctx.fill();
     optNoGlow(ctx);ctx.restore();
-    optLabel(ctx,(tir?'מעל':'מתחת ל')+'זווית הקריטית (θ='+Math.round(th)+'°)',W/2,barY-14,barCol,10);
+    optLabel(ctx,n2>=n1?'θ='+Math.round(th)+'° — שבירה בלבד':(tir?'מעל הזווית הקריטית':'מתחת לזווית הקריטית')+' (θ='+Math.round(th)+'°)',W/2,barY-14,barCol,10);
     requestAnimationFrame(draw);
   }
   function poll(){if(_simStop[id])return;requestAnimationFrame(draw);}poll();
 }
 
-// ─── PRISM — Enhanced ─────────────────────────────────────────────
+// ─── PRISM — every colour traced with Snell's law in vector form ────
+// A 60° flint-glass prism. Each wavelength is refracted at the first face,
+// carried to whichever face it meets next, and there either refracted out or,
+// past the critical angle, totally reflected and carried on. Nothing is
+// sketched: the angles on screen are the angles of the law.
 function simOptPrism(canvas){
   const H=460;const{ctx,W,dpr}=setupCanvas(canvas,H);
   const id=canvas.id;var animT=0;
-  // Cauchy dispersion: n(lambda_nm) for crown glass
-  function prismN(wl){return 1.458+3480/(wl*wl);}
-  // ── Direct manipulation: grab the white beam and change the incidence angle ──
-  var dragBeam=false;
-  function _entPt(){return {x:W*0.28+(W*0.5-W*0.28)*0.52,y:H*0.83+(H*0.1-H*0.83)*0.52};}
-  function _prHit(p){var en=_entPt();var d=Math.hypot(p.x-en.x,p.y-en.y);
-    return p.x<en.x+20&&d>36&&d<200;}
-  function _prDn(e){var p=simPointerXY(canvas,(window.devicePixelRatio||1),e);
-    if(_prHit(p)){dragBeam=true;canvas.style.cursor='grabbing';e.preventDefault();}}
-  function _prMv(e){var p=simPointerXY(canvas,(window.devicePixelRatio||1),e);
-    if(dragBeam){var en=_entPt();
-      var normAng=Math.atan2(0.22*W,0.73*H);
-      var thd=(normAng-Math.atan2(en.y-p.y,en.x-p.x))*180/Math.PI;
-      simSyncSlider('prism-ang',thd,0);e.preventDefault();
-    } else canvas.style.cursor=_prHit(p)?'grab':'';}
-  function _prUp(){dragBeam=false;canvas.style.cursor='';}
-  canvas.addEventListener('mousedown',_prDn);canvas.addEventListener('touchstart',_prDn,{passive:false});
-  canvas.addEventListener('mousemove',_prMv);canvas.addEventListener('touchmove',_prMv,{passive:false});
-  canvas.addEventListener('mouseup',_prUp);canvas.addEventListener('touchend',_prUp);
-  // Equilateral prism apex A=60 degrees
-  var A=Math.PI/3;
-  // Incident angle at entry face (in radians, from face normal)
-  var theta_i=0.4; // updated each frame from the angle slider
-  function computeRefraction(wl){
-    var n=prismN(wl);
-    var sinR1=Math.sin(theta_i)/n;
-    if(Math.abs(sinR1)>1)return null;
-    var r1=Math.asin(sinR1); // angle inside prism at entry
-    var r2=A-r1;             // angle at exit face (geometry of equilateral prism)
-    var sinOut=n*Math.sin(r2);
-    if(Math.abs(sinOut)>1)return null; // TIR
-    var theta_out=Math.asin(sinOut);
-    return{n:n,r1:r1,r2:r2,theta_out:theta_out};
+  // dense flint glass (like F2): n_d ≈ 1.62, n_F − n_C ≈ 0.017
+  function prismN(wl){return 1.62+8800*(1/(wl*wl)-1/(550*550));}
+  var s=Math.min(W*0.5,H*0.7/0.866,380), hgt=s*0.866;
+  var X0=W*0.42, yb=(W<520?78:H*0.12)+hgt;
+  var P=[{x:X0-s/2,y:yb},{x:X0+s/2,y:yb},{x:X0,y:yb-hgt}];          // base-left, base-right, apex
+  var faces=[[P[0],P[2]],[P[2],P[1]],[P[1],P[0]]];                  // left, right, base
+  var CEN={x:X0,y:yb-hgt/3};
+  function outN(f){var dx=f[1].x-f[0].x,dy=f[1].y-f[0].y,l=Math.hypot(dx,dy),n={x:dy/l,y:-dx/l};
+    var mx=(f[0].x+f[1].x)/2-CEN.x,my=(f[0].y+f[1].y)/2-CEN.y;if(n.x*mx+n.y*my<0){n.x=-n.x;n.y=-n.y;}return n;}
+  var ent={x:(P[0].x+P[2].x)/2,y:(P[0].y+P[2].y)/2};
+  var nL=outN(faces[0]), nin={x:-nL.x,y:-nL.y};
+  var toApex={x:P[2].x-ent.x,y:P[2].y-ent.y};
+  var sideApex=Math.sign(nin.x*toApex.y-nin.y*toApex.x);           // rotation sense toward the apex
+  function rot(v,a){var c=Math.cos(a),sn=Math.sin(a);return {x:v.x*c-v.y*sn,y:v.x*sn+v.y*c};}
+  function incDir(th){return rot(nin,sideApex*th);}
+  // vector Snell: d unit, n unit normal pointing back against d, eta = n1/n2
+  function refract(d,n,eta){var ci=-(n.x*d.x+n.y*d.y),k=1-eta*eta*(1-ci*ci);
+    if(k<0)return null;var a=eta*ci-Math.sqrt(k);return {x:eta*d.x+a*n.x,y:eta*d.y+a*n.y};}
+  function reflect(d,n){var ci=-(n.x*d.x+n.y*d.y);return {x:d.x+2*ci*n.x,y:d.y+2*ci*n.y};}
+  function hitFace(p,d,skip){var best=null;
+    faces.forEach(function(f,i){if(i===skip)return;
+      var ex=f[1].x-f[0].x,ey=f[1].y-f[0].y,den=d.x*ey-d.y*ex;if(Math.abs(den)<1e-9)return;
+      var t=((f[0].x-p.x)*ey-(f[0].y-p.y)*ex)/den,u=((f[0].x-p.x)*d.y-(f[0].y-p.y)*d.x)/den;
+      if(t>1e-6&&u>=-1e-6&&u<=1+1e-6&&(!best||t<best.t))best={t:t,i:i,x:p.x+d.x*t,y:p.y+d.y*t};});
+    return best;}
+  function trace(wl,th){
+    var n=prismN(wl),d0=incDir(th),inside=refract(d0,nL,1/n);
+    var pts=[{x:ent.x,y:ent.y}],d=inside,face=0,tir=0,out=null,exitFace=-1;
+    for(var b=0;b<5&&d;b++){
+      var h=hitFace(pts[pts.length-1],d,face);if(!h)break;
+      pts.push({x:h.x,y:h.y});
+      var no=outN(faces[h.i]),nb={x:-no.x,y:-no.y};
+      var t=refract(d,nb,n);                       // glass → air
+      if(t){out=t;exitFace=h.i;break;}
+      tir++;d=reflect(d,nb);face=h.i;
+    }
+    var dev=out?Math.acos(Math.max(-1,Math.min(1,d0.x*out.x+d0.y*out.y)))*180/Math.PI:null;
+    return {n:n,pts:pts,out:out,tir:tir,face:exitFace,dev:dev,d0:d0};
   }
-  var specColors=[400,430,470,510,550,590,630,670];
-  function draw(ts){
+  function toEdge(p,d){var t=1e9;if(d.x>0)t=Math.min(t,(W-6-p.x)/d.x);if(d.x<0)t=Math.min(t,(6-p.x)/d.x);
+    if(d.y>0)t=Math.min(t,(H-6-p.y)/d.y);if(d.y<0)t=Math.min(t,(6-p.y)/d.y);return {x:p.x+d.x*t,y:p.y+d.y*t};}
+  function getTh(){var e=document.getElementById('inp-prism-ang');return (e?parseFloat(e.value):55)*Math.PI/180;}
+  // drag the white beam: its angle to the normal of the first face
+  simDrag(canvas,dpr,{down:setTh,move:setTh});
+  function setTh(p){var d={x:ent.x-p.x,y:ent.y-p.y},l=Math.hypot(d.x,d.y);if(l<20)return;d.x/=l;d.y/=l;
+    var a=Math.atan2(nin.x*d.y-nin.y*d.x,nin.x*d.x+nin.y*d.y)*sideApex;
+    simSyncSlider('prism-ang',a*180/Math.PI,0);}
+  var cols=[400,430,460,490,520,550,580,610,640,670,700];
+  function draw(){
     if(_simStop[id])return;
     animT+=0.02;
-    var bgRad=ctx.createRadialGradient(W/2,H/2,0,W/2,H/2,W*0.8);
-    bgRad.addColorStop(0,'#040e1e');bgRad.addColorStop(1,'#020810');
-    ctx.fillStyle=bgRad;ctx.fillRect(0,0,W,H);
-    // Prism vertices (equilateral)
-    var pw=[W*0.28,W*0.72,W/2],ph=[H*0.83,H*0.83,H*0.1];
-    // Prism fill
-    var pg=ctx.createLinearGradient(pw[2],ph[2],pw[0],ph[0]);
-    pg.addColorStop(0,'rgba(99,102,241,.15)');pg.addColorStop(0.5,'rgba(147,197,253,.07)');pg.addColorStop(1,'rgba(99,102,241,.12)');
-    ctx.save();ctx.fillStyle=pg;
-    ctx.beginPath();ctx.moveTo(pw[0],ph[0]);ctx.lineTo(pw[1],ph[1]);ctx.lineTo(pw[2],ph[2]);ctx.closePath();ctx.fill();
-    ctx.strokeStyle='rgba(147,197,253,.55)';ctx.lineWidth=2;optGlow(ctx,'#93c5fd',8);ctx.stroke();optNoGlow(ctx);
-    ctx.restore();
-    optLabel(ctx,'\u200en(400nm)='+prismN(400).toFixed(3)+'  →  n(700nm)='+prismN(700).toFixed(3),W/2,H*0.62,'rgba(147,197,253,.55)',8.5);
-    // Entry point on left face
-    // Left face: from (pw[0],ph[0]) to (pw[2],ph[2])
-    // Entry ~60% up the left face
-    var et=0.52;
-    var entX=pw[0]+(pw[2]-pw[0])*et,entY=ph[0]+(ph[2]-ph[0])*et;
-    // Incident angle from the slider (measured from the face normal)
-    var angE=document.getElementById('inp-prism-ang');
-    theta_i=angE?parseFloat(angE.value)*Math.PI/180:0.4;
-    // Inward normal of the left face → beam direction that makes exactly θᵢ with it
-    var lfdx0=pw[2]-pw[0],lfdy0=ph[2]-ph[0],lflen0=Math.hypot(lfdx0,lfdy0);
-    var nInX0=-lfdy0/lflen0,nInY0=lfdx0/lflen0;
-    var normAng=Math.atan2(nInY0,nInX0);
-    var beamAng=normAng-theta_i;
-    var bdx=Math.cos(beamAng),bdy=Math.sin(beamAng);
-    var srcX=entX-bdx*150,srcY=entY-bdy*150;
-    // Dashed normal at the entry point
-    optDash(ctx,entX-nInX0*46,entY-nInY0*46,entX+nInX0*24,entY+nInY0*24,'#475569',0.7);
-    // Incident white beam
-    ctx.save();
-    var wbg=ctx.createLinearGradient(srcX,srcY,entX,entY);
-    wbg.addColorStop(0,'rgba(255,255,255,0)');wbg.addColorStop(1,'rgba(255,255,255,.85)');
-    ctx.strokeStyle=wbg;ctx.lineWidth=8;optGlow(ctx,'#ffffff',12);
-    ctx.beginPath();ctx.moveTo(srcX,srcY);ctx.lineTo(entX,entY);ctx.stroke();
-    optNoGlow(ctx);ctx.restore();
-    // Photon on incident beam
-    var pfr=(animT*0.3)%1;
-    ctx.save();ctx.fillStyle='#ffffff';optGlow(ctx,'#ffffff',18);
-    ctx.beginPath();ctx.arc(srcX+(entX-srcX)*pfr,srcY+(entY-srcY)*pfr,3.5,0,Math.PI*2);ctx.fill();
-    optNoGlow(ctx);ctx.restore();
-    optLabel(ctx,'אור לבן',srcX+16,srcY-12,'#e2e8f0',10);
-    optLabel(ctx,'θ='+Math.round(theta_i*180/Math.PI)+'°',entX-40,entY-24,'#fbbf24',9);
-    // Left face normal direction (outward): perpendicular to left face, pointing left
-    // Left face vector: (pw[2]-pw[0], ph[2]-ph[0])
-    var lfDx=pw[2]-pw[0],lfDy=ph[2]-ph[0];
-    var lfLen=Math.sqrt(lfDx*lfDx+lfDy*lfDy);
-    // Outward normal (pointing left-outward): rotate face vector 90° CCW
-    var nOutX=-lfDy/lfLen,nOutY=lfDx/lfLen;
-    // The refracted ray inside the prism travels in direction:
-    // Entry: ray comes horizontally (dx=1, dy=0), face normal is (nOutX, nOutY)
-    // Angle of incidence = angle between ray direction and inward normal
-    // Inward normal: (-nOutX, -nOutY)
-    // For computation: we already have theta_i defined = 0.4 rad from face normal
-    // Inside ray direction: rotate inward normal by r1 toward the ray side
-    // Right face: from (pw[1],ph[1]) to (pw[2],ph[2])
-    var rfDx=pw[2]-pw[1],rfDy=ph[2]-ph[1];
-    var rfLen=Math.sqrt(rfDx*rfDx+rfDy*rfDy);
-    var rfOutX=rfDy/rfLen,rfOutY=-rfDx/rfLen; // outward normal of right face (pointing right)
-    // Exit point on right face: parameterized by the refraction angle
-    specColors.forEach(function(wl,i){
-      var ref=computeRefraction(wl);
-      if(!ref)return;
-      var col=wavelengthToHex(wl);
-      // Inside the prism: ray direction based on r1
-      // The ray enters from the left, so it goes right-and-slightly-down
-      // Approximate: entry angle from horizontal ~theta_i, inside angle ~r1
-      // Direction inside prism: angled by r1 from the inward left-face normal
-      var inNx=-nOutX,inNy=-nOutY; // inward normal of left face
-      // Perpendicular (tangential) direction at entry: (nOutY, -nOutX) rotated to point "down"
-      var tanX=lfDx/lfLen,tanY=lfDy/lfLen; // tangent of left face (going up)
-      // Inside ray: inward_normal rotated by r1 toward "downward" tangent
-      var insRayX=inNx*Math.cos(ref.r1)-tanX*Math.sin(ref.r1);
-      var insRayY=inNy*Math.cos(ref.r1)-tanY*Math.sin(ref.r1);
-      // Find exit point: trace inside ray from entX,entY until it hits the right face
-      // Right face line: from (pw[1],ph[1]) to (pw[2],ph[2])
-      // Parametric intersection: entX+t*insRayX, entY+t*insRayY = pw[1]+s*(pw[2]-pw[1]), ph[1]+s*(ph[2]-ph[1])
-      // Solve: t*insRayX - s*(pw[2]-pw[1]) = pw[1]-entX
-      //         t*insRayY - s*(ph[2]-ph[1]) = ph[1]-entY
-      var dx=pw[2]-pw[1],dy=ph[2]-ph[1];
-      var det=insRayX*(-dy)-insRayY*(-dx);
-      var t_param,s_param;
-      if(Math.abs(det)>0.0001){
-        t_param=((pw[1]-entX)*(-dy)-(ph[1]-entY)*(-dx))/det;
-        s_param=(insRayX*(ph[1]-entY)-insRayY*(pw[1]-entX))/det;
-      } else {t_param=100;s_param=0.5;}
-      var exitX=entX+t_param*insRayX;
-      var exitY=entY+t_param*insRayY;
-      // Clamp to right face bounds
-      if(s_param<0||s_param>1){
-        exitX=pw[1]+(pw[2]-pw[1])*0.5;
-        exitY=ph[1]+(ph[2]-ph[1])*0.5;
-      }
-      // Exit ray direction: apply Snell at exit face
-      // Exit face outward normal: rfOutX, rfOutY
-      // Exit angle: theta_out
-      // Exit direction: rotate outward normal by theta_out
-      // Determine which side the ray is on to pick the right rotation direction
-      var outNx=rfOutX,outNy=rfOutY;
-      // The exit ray bends away from normal (going from dense to thin)
-      // Rotate rfOut by theta_out toward the tangent of right face
-      var rfTanX=-rfDy/rfLen,rfTanY=rfDx/rfLen; // tangent pointing upward on right face
-      var exitRayX=outNx*Math.cos(ref.theta_out)+rfTanX*Math.sin(ref.theta_out);
-      var exitRayY=outNy*Math.cos(ref.theta_out)+rfTanY*Math.sin(ref.theta_out);
-      var exitLen=90+i*4;
-      var ex2=exitX+exitRayX*exitLen;
-      var ey2=exitY+exitRayY*exitLen;
-      // Draw inside ray
-      ctx.save();ctx.strokeStyle=col;ctx.lineWidth=2;optGlow(ctx,col,8);
-      ctx.beginPath();ctx.moveTo(entX,entY);ctx.lineTo(exitX,exitY);ctx.stroke();
-      // Draw exit ray
-      ctx.beginPath();ctx.moveTo(exitX,exitY);ctx.lineTo(ex2,ey2);ctx.stroke();
-      // Animated photon
-      var sp=(animT*0.55+(i*0.1))%1;
-      var inLen=Math.sqrt((exitX-entX)*(exitX-entX)+(exitY-entY)*(exitY-entY));
-      var totalLen=inLen+exitLen;
-      var ppx,ppy;
-      if(sp*totalLen<inLen){
-        var frac=sp*totalLen/inLen;
-        ppx=entX+(exitX-entX)*frac;ppy=entY+(exitY-entY)*frac;
-      } else {
-        var frac=(sp*totalLen-inLen)/exitLen;
-        ppx=exitX+exitRayX*exitLen*frac;ppy=exitY+exitRayY*exitLen*frac;
-      }
-      ctx.fillStyle=col;ctx.shadowBlur=12;
-      ctx.beginPath();ctx.arc(ppx,ppy,3,0,Math.PI*2);ctx.fill();
-      optNoGlow(ctx);ctx.restore();
+    var th=getTh();
+    ctx.fillStyle='#030b17';ctx.fillRect(0,0,W,H);
+    // prism
+    ctx.save();ctx.fillStyle='rgba(147,197,253,.07)';ctx.strokeStyle='rgba(147,197,253,.6)';ctx.lineWidth=2;
+    ctx.beginPath();ctx.moveTo(P[0].x,P[0].y);ctx.lineTo(P[1].x,P[1].y);ctx.lineTo(P[2].x,P[2].y);ctx.closePath();ctx.fill();ctx.stroke();ctx.restore();
+    optLabel(ctx,'60°',P[2].x,P[2].y+24,'rgba(147,197,253,.8)',9);
+    // incident white beam and the normal at entry
+    var d0=incDir(th),src={x:ent.x-d0.x*170,y:ent.y-d0.y*170};
+    optDash(ctx,ent.x-nin.x*60,ent.y-nin.y*60,ent.x+nin.x*40,ent.y+nin.y*40,'#64748b',0.8);
+    ctx.save();ctx.strokeStyle='rgba(255,255,255,.85)';ctx.lineWidth=4;optGlow(ctx,'#ffffff',10);
+    ctx.beginPath();ctx.moveTo(src.x,src.y);ctx.lineTo(ent.x,ent.y);ctx.stroke();optNoGlow(ctx);ctx.restore();
+    optLabel(ctx,'אור לבן',src.x+10,src.y-12,'#e2e8f0',10);
+    optLabel(ctx,'θ='+Math.round(th*180/Math.PI)+'°',ent.x-46,ent.y-6,'#fbbf24',10);
+    var res=cols.map(function(wl){return {wl:wl,r:trace(wl,th)};});
+    res.forEach(function(o){
+      var col=wavelengthToHex(o.wl),pts=o.r.pts;
+      ctx.save();ctx.strokeStyle=col;ctx.lineWidth=1.6;ctx.globalAlpha=0.85;
+      ctx.beginPath();ctx.moveTo(pts[0].x,pts[0].y);for(var i=1;i<pts.length;i++)ctx.lineTo(pts[i].x,pts[i].y);
+      if(o.r.out){var e=toEdge(pts[pts.length-1],o.r.out);ctx.lineTo(e.x,e.y);}
+      ctx.stroke();ctx.restore();
     });
-    // Color labels
-    var refRed=computeRefraction(670),refVio=computeRefraction(400);
-    if(refRed)optLabel(ctx,'אדום → פיזור פחות',W*0.8,H*0.68,'#f87171',9);
-    if(refVio)optLabel(ctx,'סגול → פיזור רב יותר',W*0.8,H*0.38,'#a78bfa',9);
-    optLabel(ctx,'n(סגול)>n(אדום) → פיזור',W/2,H-8,'#7d8da6',9);
+    var rR=res[res.length-1].r,rV=res[0].r;
+    var lines=['\u200en(400 nm) = '+prismN(400).toFixed(3)+'   n(700 nm) = '+prismN(700).toFixed(3)];
+    if(rR.out&&rV.out&&rR.face===1&&rV.face===1&&!rR.tir&&!rV.tir){
+      lines.push('סטיית האדום: '+rR.dev.toFixed(1)+'°');
+      lines.push('סטיית הסגול: '+rV.dev.toFixed(1)+'°');
+      lines.push('הפרש: '+(rV.dev-rR.dev).toFixed(2)+'° — הסגול נשבר יותר');
+    } else if(rR.tir||rV.tir){
+      lines.push('החזרה פנימית מלאה בפאה השנייה');
+      lines.push('הגדילו את זווית הפגיעה כדי שהאור ייצא');
+    }
+    optInfoBox(ctx,8,8,Math.min(300,W-16),lines);
+    // photon on the incident beam
+    var ph=(animT*0.5)%1;ctx.save();ctx.fillStyle='#fff';optGlow(ctx,'#fff',14);
+    ctx.beginPath();ctx.arc(src.x+(ent.x-src.x)*ph,src.y+(ent.y-src.y)*ph,3.5,0,Math.PI*2);ctx.fill();optNoGlow(ctx);ctx.restore();
+    optLabel(ctx,'פלינט: n(סגול) > n(אדום), ולכן הסגול סוטה יותר',W/2,H-10,'#94a3b8',9);
     requestAnimationFrame(draw);
-  }requestAnimationFrame(draw);
+  }
+  requestAnimationFrame(draw);
 }
 
 // ─── CONVEX LENS — Enhanced ───────────────────────────────────────
@@ -32525,7 +32452,7 @@ function buildSim(sim){
   else if(sim.type==='opt-convex-mirror')extra=C(rng('cvm-do',0.5,4,2.5,0.1,'dₒ (מכפלות f)')+rng('cvm-f',45,140,85,5,'אורך מוקד |f|',' mm')+rng('cvm-wl',380,700,550,5,'צבע אור λ',' nm'));
   else if(sim.type==='opt-snell')extra=C(rng('snell-th',5,85,35,1,'זווית פגיעה θ₁','°')+rng('snell-n1',1,2,1,0.05,'n₁')+rng('snell-n2',1,2.5,1.5,0.05,'n₂')+rng('snell-wl',380,700,550,5,'צבע אור λ',' nm'));
   else if(sim.type==='opt-tir')extra=C(rng('tir-th',5,85,30,1,'זווית פגיעה θ','°')+rng('tir-n1',1.1,2.5,1.5,0.05,'n₁ (צפוף)')+rng('tir-n2',1,1.5,1,0.05,'n₂ (דליל)')+rng('tir-wl',380,700,550,5,'צבע אור λ',' nm'));
-  else if(sim.type==='opt-prism')extra=C(rng('prism-ang',10,55,23,1,'זווית פגיעה θ','°'));
+  else if(sim.type==='opt-prism')extra=C(rng('prism-ang',10,85,55,1,'זווית פגיעה θ','°'));
   else if(sim.type==='opt-convex-lens')extra=C(rng('cl-do',0.3,4,2.2,0.1,'dₒ (מכפלות f)')+rng('cl-f',50,160,95,5,'אורך מוקד f',' px')+rng('cl-wl',380,700,550,5,'צבע אור λ',' nm'));
   else if(sim.type==='opt-concave-lens')extra=C(rng('dcl-do',0.5,4,2.2,0.1,'dₒ (מכפלות f)')+rng('dcl-f',50,160,95,5,'אורך מוקד |f|',' px')+rng('dcl-wl',380,700,550,5,'צבע אור λ',' nm'));
   else if(sim.type==='opt-eye')extra=C(rng('eye-dist',0.25,6,2,0.05,'מרחק העצם',' m')+'<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px">'+
