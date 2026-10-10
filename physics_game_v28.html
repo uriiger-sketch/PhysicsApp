@@ -612,7 +612,7 @@ input[type=range]{accent-color:var(--accent);cursor:pointer;}
 
 /* Finished section glow on done-banner */
 .done-banner h2 { margin: 8px 0 4px; color: var(--text); }
-.done-banner p  { color: var(--muted); font-size: .9rem; margin: 0; }
+.done-banner p  { color: var(--muted); font-size: .9rem; margin: 0; line-height: 1.55; }
 
 /* Quiz reset link */
 .quiz-reset-link {
@@ -9015,12 +9015,24 @@ Object.assign(CONTENT, MAG_CONTENT);
 // threw inside render() and left a blank page on every reload after. Each
 // entry is repaired to the shape the code reads before anything reads it.
 function _okIdx(v){return typeof v==='number'&&v>=0&&isFinite(v)?Math.floor(v):0;}
+// ans[i] is the AUTHORED index of the option chosen for question i (v:2).
+// It used to be the DISPLAYED slot, and the slots were dealt over every
+// question in the app at once, so editing any question anywhere re-dealt
+// them and a finished quiz's stored answers were re-marked right or wrong
+// after an update. An answer saved before v:2 cannot be mapped back with
+// certainty (the deal it was made under is gone), so its marks are dropped;
+// the quiz's completion and its XP stay, and a finished quiz says it was
+// finished in an earlier version instead of showing a wrong score.
 function getQS(c,s){const k=`${c}.${s}`;var q=state.quizState[k];
-  if(!q||typeof q!=='object'||Array.isArray(q))q=state.quizState[k]={cur:0,ans:[],done:false};
+  if(!q||typeof q!=='object'||Array.isArray(q))q=state.quizState[k]={cur:0,ans:[],done:false,v:2};
   if(!Array.isArray(q.ans))q.ans=[];
   else if(q.ans.some(function(a){return a!==undefined&&typeof a!=='number';}))
     q.ans=q.ans.map(function(a){return typeof a==='number'?a:undefined;});
   q.cur=_okIdx(q.cur);q.done=q.done===true;
+  if(q.v!==2){
+    if(q.ans.some(function(a){return a!==undefined;})){q.ans=[];if(q.done)q.legacy=true;else q.cur=0;}
+    q.v=2;
+  }
   if(q.hints!==undefined&&(!q.hints||typeof q.hints!=='object'))q.hints={};
   return q;}
 
@@ -9031,45 +9043,51 @@ function getQS(c,s){const k=`${c}.${s}`;var q=state.quizState[k];
 // pressed the fourth lost almost nothing. Position was a stronger signal than
 // physics, and it is the kind of pattern a student finds within a chapter.
 //
-// The displayed order is derived from a hash of the question text: stable for a
+// The displayed order is dealt from the section's key (below): stable for a
 // given question, so the layout never jumps between renders and a returning
 // learner sees what they saw before, but uncorrelated with correctness. The
-// correct option moves to slot hash%n and the rest keep their relative order,
-// so authored orderings (e.g. ascending numeric distractors) are disturbed as
-// little as possible. Over the real question set this gives
-// 23.6 / 25.5 / 25.9 / 25.1 percent — chi-square 0.32 on 3 df.
+// correct option moves to the dealt slot and the rest keep their relative
+// order, so authored orderings (e.g. ascending numeric distractors) are
+// disturbed as little as possible. Over the real question set (642 questions)
+// this gives 25.1 / 24.6 / 24.9 / 25.4 percent — chi-square 0.08 on 3 df. A
+// question outside CONTENT takes slot hash%n.
 var _qvCache=new Map(), _qvSlots=null;
 function _qvHash(s){var h=2166136261;for(var i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619);}return h>>>0;}
 // Key on the question AND its options: two sections ask the identical question
 // text ("כוח נורמלי מכוון תמיד:") with different option wording, and keying on
 // the text alone handed the second one the first one's options.
 function _qvKey(q){return String(q.q)+'\u0000'+q.opts.join('\u0001');}
-// Deal the slots ONCE across every item in the app, so the counts are exactly
-// equal instead of merely probably equal. Hashing alone gave chi-square 8.50 on
-// this question set — past p=0.05. The deal order is hash-shuffled rather than
-// document order, because dealing in document order would put every section's
-// first answer in slot 0: a different rule, just as exploitable.
+// Deal the slots per SECTION: its questions take the slots k,k+1,k+2,... (mod
+// 4) from a seeded start k, in an order shuffled by a generator seeded with
+// the section's own key, so each slot is used equally often within a section
+// to within one (hashing alone gave chi-square 8.50 over the question set,
+// past p=0.05; every section has six questions, so a fixed start of 0 would
+// give 33/33/17/17) and in no fixed sequence (dealt in document order, every
+// section's first answer would sit in slot 0). A question's slot depends only on its section and its place in
+// it: editing any question -- even this one -- moves nobody. The deal used to
+// run once over every question of the app in hash order, so one edited
+// question anywhere re-dealt the slots everywhere.
+function _qvRand(seed){return function(){seed=(seed+0x6D2B79F5)>>>0;var t=seed;
+  t=Math.imul(t^(t>>>15),t|1);t^=t+Math.imul(t^(t>>>7),t|61);return ((t^(t>>>14))>>>0)/4294967296;};}
 function _qvBuild(){
   _qvSlots=new Map();
-  var items=[];
   try{
     for(var k in CONTENT){
       var qs=CONTENT[k]&&CONTENT[k].quiz;
       if(!qs||!qs.length)continue;
-      for(var i=0;i<qs.length;i++){
+      var deck=[],rnd=_qvRand(_qvHash(k)),off=Math.floor(rnd()*4),i,j,x;
+      for(i=0;i<qs.length;i++)deck.push((i+off)%4);
+      for(i=deck.length-1;i>0;i--){j=Math.floor(rnd()*(i+1));x=deck[i];deck[i]=deck[j];deck[j]=x;}
+      for(i=0;i<qs.length;i++){
         var qq=qs[i];
         if(!qq||!qq.opts||!qq.opts.length)continue;
-        var kk=_qvKey(qq);
-        items.push({k:kk,h:_qvHash(kk),n:qq.opts.length});
+        _qvSlots.set(_qvKey(qq),deck[i]%qq.opts.length);
       }
     }
   }catch(e){ /* fall back to the hash below */ }
-  items.sort(function(a,b){return (a.h-b.h)||(a.k<b.k?-1:a.k>b.k?1:0);});
-  var c=0;
-  items.forEach(function(it){ _qvSlots.set(it.k, c++ % it.n); });
 }
 function quizView(q){
-  if(!q||!q.opts||!q.opts.length)return{opts:[],correct:0,n:0};
+  if(!q||!q.opts||!q.opts.length)return{opts:[],correct:0,src:[],pos:[],n:0};
   var key=_qvKey(q);
   var hit=_qvCache.get(key);
   if(hit&&hit.n===q.opts.length)return hit;
@@ -9077,10 +9095,13 @@ function quizView(q){
   var n=q.opts.length, ci=(typeof q.correct==='number'&&q.correct>=0&&q.correct<n)?q.correct:0;
   var slot=_qvSlots.get(key);
   var tgt=(typeof slot==='number')?slot%n:_qvHash(key)%n;
-  var rest=[], out=[];
-  for(var i=0;i<n;i++)if(i!==ci)rest.push(q.opts[i]);
-  for(var j=0,r=0;j<n;j++)out.push(j===tgt?q.opts[ci]:rest[r++]);
-  var v={opts:out,correct:tgt,n:n};
+  var rest=[], out=[], src=[], pos=[];
+  for(var i=0;i<n;i++)if(i!==ci)rest.push(i);
+  for(var j=0,r=0;j<n;j++)src.push(j===tgt?ci:rest[r++]);
+  src.forEach(function(si,d){out.push(q.opts[si]);pos[si]=d;});
+  // correct: the displayed slot of the right option; ci: its authored index;
+  // src[slot] -> authored index, pos[authored index] -> slot
+  var v={opts:out,correct:tgt,ci:ci,src:src,pos:pos,n:n};
   _qvCache.set(key,v);
   return v;
 }
@@ -33729,8 +33750,9 @@ function buildQuiz(qs){
   if(!qs||!qs.length)return'';
   const st=getQS(state.chapter,state.section);
   if(st.done){
-    const ok=st.ans.filter(function(a,i){return a===quizView(qs[i]).correct;}).length;
-    const perfect=ok===qs.length;
+    // st.ans holds authored option indices (see getQS)
+    const ok=st.ans.filter(function(a,i){return a===quizView(qs[i]).ci;}).length;
+    const perfect=!st.legacy&&ok===qs.length;
     var nextSec=null;
     var _chs=getChapters();
     var chIdx=_chs.findIndex(function(c){return c.id===state.chapter;});
@@ -33752,7 +33774,7 @@ function buildQuiz(qs){
     return`<div class="done-banner">
       <div class="big-icon trophy-anim">${perfect?'🏆':'⭐'}</div>
       <h2>${perfect?'מושלם!':'חידון הושלם!'}</h2>
-      <p>${ok}/${qs.length} תשובות נכונות${perfect?' — ניקוד מלא!':''}</p>
+      <p>${st.legacy?'החידון הושלם בגרסה קודמת של האפליקציה, והניקוד שלו לא נשמר.':`${ok}/${qs.length} תשובות נכונות${perfect?' — ניקוד מלא!':''}`}</p>
       <div style="display:flex;gap:8px;justify-content:center;margin-top:12px;flex-wrap:wrap">
         <button class="btn btn-primary" onclick="resetQuiz()">🔄 נסו שוב</button>
         <button class="btn btn-secondary" onclick="setTab('problem')">📝 בעיה לפתרון</button>
@@ -33766,10 +33788,10 @@ function buildQuiz(qs){
   // as what it is: the quiz is over.
   if(st.cur>=qs.length){st.done=true;st.cur=qs.length-1;return buildQuiz(qs);}
   const qi=st.cur;const q=qs[qi];const ans=st.ans[qi]!==undefined;
-  const prog=`<div class="quiz-progress">${qs.map((_,i)=>`<div class="qp-dot${i<qi?(st.ans[i]===quizView(qs[i]).correct?' done':' wrong'):i===qi?' active':''}"></div>`).join('')}</div>`;
+  const prog=`<div class="quiz-progress">${qs.map((_,i)=>`<div class="qp-dot${i<qi?(st.ans[i]===quizView(qs[i]).ci?' done':' wrong'):i===qi?' active':''}"></div>`).join('')}</div>`;
   const lets=['א','ב','ג','ד'];
   const qv=quizView(q);
-  const opts=qv.opts.map((o,oi)=>{let cls='';if(ans){if(oi===qv.correct)cls='correct';else if(oi===st.ans[qi])cls='wrong';}
+  const opts=qv.opts.map((o,oi)=>{let cls='';if(ans){if(oi===qv.correct)cls='correct';else if(qv.src[oi]===st.ans[qi])cls='wrong';}
     return`<button class="quiz-opt${cls?' '+cls:''}"${ans?' disabled':''} onclick="answerQuiz(${oi})"><span class="quiz-opt-letter">${lets[oi]}</span><span class="quiz-opt-text">${_ltSafe(o)}</span></button>`;
   }).join('');
   // Hint button (if question has a hint and not answered yet, costs 5 XP)
@@ -33784,10 +33806,10 @@ function buildQuiz(qs){
   if(q.hint&&hintShown){
     hintHTML='<div class="quiz-hint-box">💡 '+_ltSafe(q.hint)+'</div>';
   }
-  const fb=ans?`<div class="quiz-feedback${st.ans[qi]===qv.correct?' fb-ok':' fb-err'}">
-    <div style="font-size:1rem;margin-bottom:4px">${st.ans[qi]===qv.correct?'✅ נכון!':'❌ לא נכון.'}</div>
+  const fb=ans?`<div class="quiz-feedback${st.ans[qi]===qv.ci?' fb-ok':' fb-err'}">
+    <div style="font-size:1rem;margin-bottom:4px">${st.ans[qi]===qv.ci?'✅ נכון!':'❌ לא נכון.'}</div>
     <div style="font-size:.88rem;color:var(--muted)">${_ltSafe(q.explain||'')}</div>
-    ${q.formula&&st.ans[qi]!==qv.correct?`<div style="margin-top:8px;padding:6px 10px;background:var(--chip);border-radius:6px;direction:ltr;unicode-bidi:isolate;text-align:right;font-family:'Cambria Math','Times New Roman',serif;color:var(--accent);font-size:1rem">${q.formula}</div>`:''}
+    ${q.formula&&st.ans[qi]!==qv.ci?`<div style="margin-top:8px;padding:6px 10px;background:var(--chip);border-radius:6px;direction:ltr;unicode-bidi:isolate;text-align:right;font-family:'Cambria Math','Times New Roman',serif;color:var(--accent);font-size:1rem">${q.formula}</div>`:''}
   </div>`:'';
   const nxt=ans?(qi<qs.length-1?`<button class="btn btn-primary" onclick="nextQ()" style="margin-top:12px">הבאה ← <kbd style="font-size:.75em">Enter</kbd></button>`:`<button class="btn btn-green" onclick="finishQuiz()" style="margin-top:12px">סיום החידון ✓</button>`):'';
   return`<div class="quiz-card">${prog}<div class="quiz-q"><span class="quiz-q-num">${qi+1}</span>${_ltSafe(q.q)}</div><div class="quiz-opts">${opts}</div>${hintHTML}${fb}${nxt}</div>`;
@@ -34018,9 +34040,12 @@ window.restartSim=function(){
   var c=CONTENT[state.chapter+'.'+state.section];
   if(c&&c.sim)initSim('sim-canvas',c.sim.type);
 };
-window.answerQuiz=(oi)=>{const st=getQS(state.chapter,state.section);if(st.ans[st.cur]!==undefined)return;st.ans[st.cur]=oi;render();
+// oi is the DISPLAYED slot; what is saved is the authored option it shows
+window.answerQuiz=(oi)=>{const st=getQS(state.chapter,state.section);if(st.ans[st.cur]!==undefined)return;
   var c=CONTENT[state.chapter+'.'+state.section],q=c&&c.quiz&&c.quiz[st.cur];
-  if(q)_say((oi===quizView(q).correct?'נכון! ':'לא נכון. ')+_ltSafe(q.explain||''));};
+  if(!q)return;var qv=quizView(q);if(qv.src[oi]===undefined)return;
+  st.ans[st.cur]=qv.src[oi];st.v=2;render();
+  _say((oi===qv.correct?'נכון! ':'לא נכון. ')+_ltSafe(q.explain||''));};
 window.nextQ=()=>{
   const st=getQS(state.chapter,state.section),c=CONTENT[state.chapter+'.'+state.section];
   // "next" on the last question is "finish": stepping past the end used to
@@ -34030,8 +34055,8 @@ window.nextQ=()=>{
 window.finishQuiz=()=>{const st=getQS(state.chapter,state.section);st.done=true;markCompleted(state.chapter,state.section,'quiz',100);
   // the score is on the banner the focus lands in; a screen reader hears it too
   var c=CONTENT[state.chapter+'.'+state.section],qs=(c&&c.quiz)||[];
-  _say('החידון הושלם: '+st.ans.filter(function(x,i){return qs[i]&&x===quizView(qs[i]).correct;}).length+' מתוך '+qs.length+' תשובות נכונות.');};
-window.resetQuiz=function(){state.quizState[state.chapter+'.'+state.section]={cur:0,ans:[],done:false};render();};
+  _say(st.legacy?'החידון הושלם.':'החידון הושלם: '+st.ans.filter(function(x,i){return qs[i]&&x===quizView(qs[i]).ci;}).length+' מתוך '+qs.length+' תשובות נכונות.');};
+window.resetQuiz=function(){state.quizState[state.chapter+'.'+state.section]={cur:0,ans:[],done:false,v:2};render();};
 // Keyboard: Enter advances quiz
 document.addEventListener('keydown',function(e){
   if(e.key!=='Enter'||e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA')return;
