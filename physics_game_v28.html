@@ -17120,11 +17120,13 @@ function simOptConvexLens(canvas){
   var animT=0;
   // ── Direct manipulation: drag the object arrow ──
   var dragObj=false,hasDragged=false;
-  function _objX(){return lx-getObj()*f;}
+  // px per unit of dₒ/f on screen (f in mm × the scale that fits 4f beside the lens)
+  var pxPerDo=95;
+  function _objX(){return lx-getObj()*pxPerDo;}
   function _hit(p){var ox=_objX();return Math.abs(p.x-ox)<24&&p.y>cy-82&&p.y<cy+14;}
   function _dn(e){var p=simPointerXY(canvas,dpr,e);if(_hit(p)){dragObj=true;hasDragged=true;canvas.style.cursor='grabbing';e.preventDefault();}}
   function _mv(e){var p=simPointerXY(canvas,dpr,e);
-    if(dragObj){simSyncSlider('cl-do',(lx-p.x)/f,2);e.preventDefault();}
+    if(dragObj){simSyncSlider('cl-do',(lx-p.x)/pxPerDo,2);e.preventDefault();}
     else canvas.style.cursor=_hit(p)?'grab':'';}
   function _up(){dragObj=false;canvas.style.cursor='';}
   canvas.addEventListener('mousedown',_dn);canvas.addEventListener('touchstart',_dn,{passive:false});
@@ -17139,8 +17141,12 @@ function simOptConvexLens(canvas){
     // 3% nearer than red. Without this the λ slider only recoloured the beam —
     // in the section about the one defect that distinguishes lenses from mirrors.
     var _f0=getF(), _n0=1.5, _nl=_n0+4241*(1/(wl*wl)-1/(550*550));
-    f=_f0*(_n0-1)/(_nl-1);
-    var doMult=getObj(),doPx=doMult*_f0;
+    // f is in mm; k (px per mm) keeps the farthest object (4f) on the canvas at
+    // any width -- at phone width the object used to be clamped near 1.4f, so
+    // the cases beyond 2f could not be reached at all
+    var k=Math.min(1,(lx-26)/(4*_f0));pxPerDo=_f0*k;
+    f=_f0*k*(_n0-1)/(_nl-1);
+    var doMult=getObj(),doPx=doMult*_f0*k;
     // Keep the object on the canvas AND in the arithmetic: it used to be drawn
     // off-screen entirely once dₒ exceeded the space to the left of the lens.
     var _maxDo=lx-26;
@@ -17219,7 +17225,7 @@ function simOptConvexLens(canvas){
       }
     }
     var m_=isFinite(diVal)?(-diVal/doPx).toFixed(2):'∞';
-    var diS=isFinite(diVal)?Math.round(diVal)+'px':'∞';
+    var diS=isFinite(diVal)?Math.round(diVal/k)+' mm':'∞';
     var _ln=wl<430?'UV':wl<470?'סגול':wl<500?'כחול':wl<560?'ירוק':wl<590?'צהוב':wl<625?'כתום':'אדום';
     ctx.save();ctx.fillStyle=wlHex;optGlow(ctx,wlHex,8);ctx.beginPath();ctx.arc(W-20,H-20,8,0,Math.PI*2);ctx.fill();optNoGlow(ctx);ctx.restore();
     // ── SCREEN: real images can be projected; virtual ones cannot ──
@@ -17253,13 +17259,13 @@ function simOptConvexLens(canvas){
         ctx.save();ctx.globalAlpha=0.5;ctx.fillStyle='rgba(248,113,113,.35)';
         ctx.beginPath();ctx.ellipse(scrPos,cy-imgHr/2,Math.max(3,blurR*0.5),Math.max(6,Math.abs(imgHr)/2+blurR),0,0,Math.PI*2);
         ctx.fill();ctx.restore();
-        optLabel(ctx,'מטושטש — הזז את המסך ל-dᵢ='+Math.round(diVal)+'px',scrPos,H-83,'#f87171',9);
+        optLabel(ctx,'מטושטש — הזיזו את המסך ל-dᵢ = '+Math.round(diVal/k)+' mm',scrPos,H-83,'#f87171',9);
       }
     } else {
       optLabel(ctx,'תמונה מדומה — לא ניתן להקרין על מסך!',scrPos,H-83,'#34d399',9);
     }
     if(!touchedScr&&animT<10)optLabel(ctx,'✋ גררו את המסך למוקד',scrPos,18+Math.sin(animT*4)*3,'#fbbf24',10);
-    optInfoBox(ctx,8,8,190,['\u200edₒ = '+Math.round(doPx)+' px','\u200edᵢ = '+diS,'\u200em = '+m_,diVal<0?'מדומה, ישרה':'ממשית, '+(parseFloat(m_)<0?'הפוכה':'ישרה'),'\u200eλ = '+Math.round(wl)+' nm '+_ln,'\u200ef(λ) = '+f.toFixed(1)+' px  (f₅₅₀='+_f0+')','אבירציה כרומטית: סגול מתמקד קרוב יותר']);
+    optInfoBox(ctx,8,8,190,['\u200edₒ = '+Math.round(doPx/k)+' mm','\u200edᵢ = '+diS,'\u200em = '+m_,diVal<0?'מדומה, ישרה':'ממשית, '+(parseFloat(m_)<0?'הפוכה':'ישרה'),'\u200eλ = '+Math.round(wl)+' nm '+_ln,'\u200ef(λ) = '+(f/k).toFixed(1)+' mm  (f₅₅₀='+_f0+')','אבירציה כרומטית: סגול מתמקד קרוב יותר']);
     if(dragObj){
       var _mm=Math.abs(doPx-f)<7?'dₒ = f — הקרניים יוצאות מקבילות: אין תמונה!':Math.abs(doPx-2*f)<9?'dₒ = 2f — תמונה ממשית הפוכה בגודל שווה!':doPx<f?'dₒ < f — זכוכית מגדלת: מדומה, ישרה ומוגדלת':'';
       if(_mm){ctx.save();ctx.fillStyle='rgba(4,9,20,.88)';ctx.strokeStyle='#fbbf24';ctx.lineWidth=1;
@@ -17287,11 +17293,12 @@ function simOptConcaveLens(canvas){
   var animT=0;
   // ── Direct manipulation: drag the object arrow ──
   var dragObj=false,hasDragged=false;
-  function _objX(){return lx-getObj()*f;}
+  var pxPerDo=95;
+  function _objX(){return lx-getObj()*pxPerDo;}
   function _hit(p){var ox=_objX();return Math.abs(p.x-ox)<24&&p.y>cy-82&&p.y<cy+14;}
   function _dn(e){var p=simPointerXY(canvas,dpr,e);if(_hit(p)){dragObj=true;hasDragged=true;canvas.style.cursor='grabbing';e.preventDefault();}}
   function _mv(e){var p=simPointerXY(canvas,dpr,e);
-    if(dragObj){simSyncSlider('dcl-do',(lx-p.x)/f,2);e.preventDefault();}
+    if(dragObj){simSyncSlider('dcl-do',(lx-p.x)/pxPerDo,2);e.preventDefault();}
     else canvas.style.cursor=_hit(p)?'grab':'';}
   function _up(){dragObj=false;canvas.style.cursor='';}
   canvas.addEventListener('mousedown',_dn);canvas.addEventListener('touchstart',_dn,{passive:false});
@@ -17303,8 +17310,9 @@ function simOptConcaveLens(canvas){
     // Same chromatic aberration as the converging lens: a diverging lens
     // refracts too, so its focal length is shorter for violet than for red.
     var _wl0=getWl(), _f0d=getF(), _n0d=1.5, _nld=_n0d+4241*(1/(_wl0*_wl0)-1/(550*550));
-    f=_f0d*(_n0d-1)/(_nld-1);
-    var doMult=getObj(),doPx=doMult*_f0d;
+    var k=Math.min(1,(lx-26)/(4*_f0d));pxPerDo=_f0d*k;     // px per mm, so 4|f| fits
+    f=_f0d*k*(_n0d-1)/(_nld-1);
+    var doMult=getObj(),doPx=doMult*_f0d*k;
     var _maxDoD=lx-26;
     if(doPx>_maxDoD){ doPx=_maxDoD; simSyncSlider('dcl-do',doPx/_f0d,2); }
     var wl=_wl0,wlHex=wavelengthToHex(wl);
@@ -17382,9 +17390,9 @@ function simOptConcaveLens(canvas){
     var mStr=m_mag.toFixed(2);
     var _dl=wl<430?'UV':wl<470?'סגול':wl<500?'כחול':wl<560?'ירוק':wl<590?'צהוב':wl<625?'כתום':'אדום';
     ctx.save();ctx.fillStyle=wlHex;optGlow(ctx,wlHex,8);ctx.beginPath();ctx.arc(W-20,H-20,8,0,Math.PI*2);ctx.fill();optNoGlow(ctx);ctx.restore();
-    optInfoBox(ctx,8,8,185,['dₒ='+Math.round(doPx)+'px','dᵢ='+Math.round(diVal)+'px','m=+'+mStr+' (ישרה, מוקטנת)','מדומה תמיד','λ='+Math.round(wl)+'nm '+_dl]);
+    optInfoBox(ctx,8,8,185,['\u200ef = −'+(f/k).toFixed(1)+' mm','\u200edₒ = '+Math.round(doPx/k)+' mm','\u200edᵢ = '+Math.round(diVal/k)+' mm','m=+'+mStr+' (ישרה, מוקטנת)','מדומה תמיד','λ='+Math.round(wl)+'nm '+_dl]);
     if(dragObj){
-      var _mm='שים לב: בכל מרחק — מדומה, ישרה ומוקטנת! (עדשה מפזרת)';
+      var _mm='שימו לב: בכל מרחק — מדומה, ישרה ומוקטנת! (עדשה מפזרת)';
       if(_mm){ctx.save();ctx.fillStyle='rgba(4,9,20,.88)';ctx.strokeStyle='#fbbf24';ctx.lineWidth=1;
         ctx.beginPath();ctx.roundRect(W/2-160,H-34,320,24,6);ctx.fill();ctx.stroke();ctx.restore();
         optLabel(ctx,_mm,W/2,H-21,'#fbbf24',10);}
@@ -17410,7 +17418,8 @@ function simOptEye(canvas){
     if(b)b.textContent=glasses?'❌ הסר משקפיים':'👓 הוסף משקפיים';};
   function getDist(){var e=document.getElementById('inp-eye-dist');return e?parseFloat(e.value):2;}
   // Geometry
-  var cx=W*0.72,cy=H*0.46,Rx=118,Ry=92;
+  var es=Math.min(1,(W*0.28-8)/118);   // shrink the eye to fit a phone-width canvas
+  var cx=W*0.72,cy=H*0.46,Rx=118*es,Ry=92*es;
   var eyeFront=cx-Rx,retinaX=cx+Rx*0.72;
   function distToX(d){return eyeFront-90-(Math.log(d/0.25)/Math.log(24))*(eyeFront-150);}
   function xToDist(x){return 0.25*Math.pow(24,(eyeFront-90-x)/(eyeFront-150));}
@@ -17439,7 +17448,7 @@ function simOptEye(canvas){
     var blur=Ddem<offEff?(offEff-Ddem):Ddem>offEff+4?(Ddem-offEff-4):0;
     var acc=Math.max(0,Math.min(4,Ddem-offEff));
     var focalShift=Ddem<offEff?-(offEff-Ddem)*16:Ddem>offEff+4?(Ddem-offEff-4)*16:0;
-    focalShift=Math.max(-34,Math.min(34,focalShift));
+    focalShift=Math.max(-34,Math.min(34,focalShift))*es;
     var focalX=retinaX+focalShift;
     var sharp=blur<0.05;
     // Background
@@ -17469,11 +17478,11 @@ function simOptEye(canvas){
     // Cornea
     ctx.save();ctx.strokeStyle='rgba(96,165,250,.9)';ctx.lineWidth=3.5;
     optGlow(ctx,'#60a5fa',12);
-    ctx.beginPath();ctx.arc(eyeFront+52,cy,58,Math.PI*0.7,Math.PI*1.3);ctx.stroke();
+    ctx.beginPath();ctx.arc(eyeFront+52*es,cy,58*es,Math.PI*0.7,Math.PI*1.3);ctx.stroke();
     optNoGlow(ctx);ctx.restore();
     optLabel(ctx,'קרנית',eyeFront+4,cy-Ry-10,'#60a5fa',10);
     // Crystalline lens — thickness shows ACCOMMODATION live
-    var lensX=eyeFront+42,lensW=9+acc*2.6,lensH=64;
+    var lensX=eyeFront+42*es,lensW=(9+acc*2.6)*es,lensH=64*es;
     ctx.save();
     var lG=ctx.createRadialGradient(lensX,cy,0,lensX,cy,lensH/2);
     lG.addColorStop(0,'rgba(180,210,255,.45)');lG.addColorStop(1,'rgba(100,140,220,.12)');
@@ -17483,7 +17492,7 @@ function simOptEye(canvas){
     optLabel(ctx,'עדשה',lensX,cy+lensH/2+14,'#93c5fd',9);
     optLabel(ctx,'אקומודציה: '+acc.toFixed(1)+'D',lensX+4,cy-lensH/2-12,'#93c5fd',9);
     // ── CORRECTIVE GLASSES ───────────────────────────────
-    var spectX=eyeFront-42;
+    var spectX=eyeFront-42*es;
     if(glasses&&mode==='myopia'){
       optDivLensShape(ctx,spectX,cy,12,124,'#22d3ee','rgba(34,211,238,.08)');
       optLabel(ctx,'עדשה מתקנת −2.0D',spectX,cy+80,'#22d3ee',9);
@@ -17505,8 +17514,13 @@ function simOptEye(canvas){
     }
     // ── RAYS: object tip → (glasses) → cornea → focus → retina ──
     var tipY=cy-objH+8;
+    // The rays from the arrow's tip meet at the tip's IMAGE: below the axis
+    // (the image on the retina is inverted), where the undeviated ray through
+    // the centre of the eye's optics crosses the focal plane. They used to
+    // meet on the axis itself, as if the tip were imaged at the centre.
+    var imgY=cy+Math.min(Ry*0.42,(cy-tipY)*(focalX-lensX)/Math.max(40,lensX-objX));   // the distance axis is compressed, so cap the size
     [-24,0,24].forEach(function(off2,ri){
-      var eyeHitX=eyeFront+16,eyeHitY=cy+off2*0.55;
+      var eyeHitX=eyeFront+16*es,eyeHitY=cy+off2*0.55*es;
       var path=[{x:objX,y:tipY}];
       if(glasses&&mode!=='normal'){
         var sy=tipY+((eyeHitY-tipY)*((spectX-objX)/(eyeHitX-objX)));
@@ -17514,9 +17528,9 @@ function simOptEye(canvas){
         path.push({x:spectX,y:sy});
       }
       path.push({x:eyeHitX,y:eyeHitY});
-      path.push({x:focalX,y:cy});
+      path.push({x:focalX,y:imgY});
       if(!sharp){
-        var sl=(cy-eyeHitY)/(focalX-eyeHitX);
+        var sl=(imgY-eyeHitY)/(focalX-eyeHitX);
         path.push({x:retinaX,y:eyeHitY+sl*(retinaX-eyeHitX)});
       }
       ctx.save();ctx.strokeStyle='rgba(251,191,36,'+(ri===1?0.85:0.45)+')';ctx.lineWidth=ri===1?2:1.4;
@@ -17544,14 +17558,16 @@ function simOptEye(canvas){
     });
     // Focus marker + retina blur disc
     ctx.save();ctx.fillStyle=sharp?'#34d399':'#f87171';optGlow(ctx,sharp?'#34d399':'#f87171',16);
-    ctx.beginPath();ctx.arc(focalX,cy,5,0,Math.PI*2);ctx.fill();optNoGlow(ctx);ctx.restore();
+    ctx.beginPath();ctx.arc(focalX,imgY,5,0,Math.PI*2);ctx.fill();optNoGlow(ctx);ctx.restore();
     if(!sharp){
       var blurR=Math.min(26,blur*10+5);
       ctx.save();ctx.fillStyle='rgba(248,113,113,.25)';optGlow(ctx,'#f87171',10);
-      ctx.beginPath();ctx.arc(retinaX,cy,blurR,0,Math.PI*2);ctx.fill();optNoGlow(ctx);ctx.restore();
-      optLabel(ctx,'טשטוש',retinaX,cy-blurR-10,'#f87171',9);
+      ctx.beginPath();ctx.arc(retinaX,imgY,blurR,0,Math.PI*2);ctx.fill();optNoGlow(ctx);ctx.restore();
+      optLabel(ctx,'טשטוש',retinaX,imgY+blurR+10,'#f87171',9);
     } else {
-      optLabel(ctx,'חד! ✓',retinaX+6,cy-16,'#34d399',10);
+      // the image on the retina is real and inverted (Kepler, 1604)
+      ctx.save();ctx.strokeStyle='#34d399';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(retinaX-3,cy);ctx.lineTo(retinaX-3,imgY);ctx.stroke();ctx.restore();
+      optLabel(ctx,'חד ✓ — תמונה הפוכה',retinaX-4,imgY+14,'#34d399',9);
     }
     // ── INSET: what the eye actually sees ────────────────
     var ibx=12,iby=12,ibw=158,ibh=112;
@@ -32471,8 +32487,8 @@ function buildSim(sim){
   else if(sim.type==='opt-snell')extra=C(rng('snell-th',5,85,35,1,'זווית פגיעה θ₁','°')+rng('snell-n1',1,2,1,0.05,'n₁')+rng('snell-n2',1,2.5,1.5,0.05,'n₂')+rng('snell-wl',380,700,550,5,'צבע אור λ',' nm'));
   else if(sim.type==='opt-tir')extra=C(rng('tir-th',5,85,30,1,'זווית פגיעה θ','°')+rng('tir-n1',1.1,2.5,1.5,0.05,'n₁ (צפוף)')+rng('tir-n2',1,1.5,1,0.05,'n₂ (דליל)')+rng('tir-wl',380,700,550,5,'צבע אור λ',' nm'));
   else if(sim.type==='opt-prism')extra=C(rng('prism-ang',10,85,55,1,'זווית פגיעה θ','°'));
-  else if(sim.type==='opt-convex-lens')extra=C(rng('cl-do',0.3,4,2.2,0.1,'dₒ (מכפלות f)')+rng('cl-f',50,160,95,5,'אורך מוקד f',' px')+rng('cl-wl',380,700,550,5,'צבע אור λ',' nm'));
-  else if(sim.type==='opt-concave-lens')extra=C(rng('dcl-do',0.5,4,2.2,0.1,'dₒ (מכפלות f)')+rng('dcl-f',50,160,95,5,'אורך מוקד |f|',' px')+rng('dcl-wl',380,700,550,5,'צבע אור λ',' nm'));
+  else if(sim.type==='opt-convex-lens')extra=C(rng('cl-do',0.3,4,2.2,0.1,'dₒ (מכפלות f)')+rng('cl-f',50,160,95,5,'אורך מוקד f',' mm')+rng('cl-wl',380,700,550,5,'צבע אור λ',' nm'));
+  else if(sim.type==='opt-concave-lens')extra=C(rng('dcl-do',0.5,4,2.2,0.1,'dₒ (מכפלות f)')+rng('dcl-f',50,160,95,5,'אורך מוקד |f|',' mm')+rng('dcl-wl',380,700,550,5,'צבע אור λ',' nm'));
   else if(sim.type==='opt-eye')extra=C(rng('eye-dist',0.25,6,2,0.05,'מרחק העצם',' m')+'<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px">'+
     '<button class="btn btn-primary" onclick="window._eyeMode(\'normal\')">😊 תקינה</button>'+
     '<button class="btn btn-secondary" onclick="window._eyeMode(\'myopia\')">👓 קוצר ראייה</button>'+
