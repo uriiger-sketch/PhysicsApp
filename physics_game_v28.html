@@ -922,6 +922,11 @@ html{scroll-padding-top:72px;}
 .drawer-panel,.formula-panel{visibility:hidden;overscroll-behavior:contain;
   transition:transform .28s cubic-bezier(.4,0,.2,1),visibility 0s linear .3s;}
 .drawer-panel.open,.formula-panel.open{visibility:visible;transition:transform .28s cubic-bezier(.4,0,.2,1);}
+.sidebar-foot{padding:14px 14px 22px;border-top:1px solid var(--border);margin-top:10px;text-align:center;}
+.reset-btn{background:none;border:1px solid var(--border);border-radius:8px;color:var(--muted);
+  font:600 .78rem 'Heebo',sans-serif;padding:7px 14px;cursor:pointer;}
+.reset-btn:hover{color:var(--t-err);border-color:var(--red);}
+@media (pointer:coarse){.reset-btn{min-height:44px;}}
 /* Reduced motion: no pulsing, popping or sliding; the theory animations
    start parked on their first frame (a tap plays them) */
 @media (prefers-reduced-motion:reduce){
@@ -30866,7 +30871,9 @@ function buildSidebar(){
       return `<button class="sec-btn${active?' active':''}" onclick="navigate('${ch.id}','${sec.id}')"${hasLab?' title="בסעיף זה יש ניסוי עם חיישני הטלפון"':''}>
         <span class="sec-dot ${dotCls}" title="${dotTitle}"></span>${sec.title}${hasLab?'<span class="sec-lab">📱</span>':''}</button>`;
     }).join('');
-  }).join('');
+  }).join('')+
+  // starting over has to be possible without clearing the browser's data
+  '<div class="sidebar-foot"><button class="reset-btn" onclick="resetAllProgress()">↺ איפוס ההתקדמות</button></div>';
 }
 
 function buildMain(ch,sec,content){
@@ -33035,7 +33042,13 @@ function buildQuiz(qs){
         nextSec={ch:_chs[chIdx+1].id,sec:_chs[chIdx+1].sections[0].id,title:_chs[chIdx+1].sections[0].title};
       }
     }
-    const nextBtn=nextSec?`<button class="next-section-btn" onclick="navigate('${nextSec.ch}','${nextSec.sec}')">▶ הנושא הבא: ${nextSec.title}</button>`:'<div style="color:var(--green);text-align:center;margin-top:12px;font-weight:700">🎓 סיימת את כל הנושאים!</div>';
+    // the last section of a subject is not the end of the course: offer the
+    // next subject rather than announcing that everything is done
+    var _SUBJ=[['mechanics','מכניקה'],['optics','אופטיקה'],['electro','חשמל סטטי'],['circuits','מעגלי זרם ישר'],['magnetism','מגנטיות והשראה']];
+    var _si=_SUBJ.findIndex(function(x){return x[0]===state.subject;}),nextSubj=(!nextSec&&_si>=0&&_si<_SUBJ.length-1)?_SUBJ[_si+1]:null;
+    const nextBtn=nextSec?`<button class="next-section-btn" onclick="navigate('${nextSec.ch}','${nextSec.sec}')">▶ הנושא הבא: ${nextSec.title}</button>`
+      :nextSubj?`<div style="color:var(--green);text-align:center;margin-top:12px;font-weight:700">🎓 סיימתם את כל הפרקים בנושא הזה!</div><button class="next-section-btn" onclick="switchSubject('${nextSubj[0]}')">▶ לנושא הבא: ${nextSubj[1]}</button>`
+      :'<div style="color:var(--green);text-align:center;margin-top:12px;font-weight:700">🎓 סיימתם את כל הנושאים!</div>';
     return`<div class="done-banner">
       <div class="big-icon trophy-anim">${perfect?'🏆':'⭐'}</div>
       <h2>${perfect?'מושלם!':'חידון הושלם!'}</h2>
@@ -33911,9 +33924,13 @@ function getChapterSummary(chId){
   var allDone=ch.sections.every(function(s){return isCompleted(chId,s.id,'quiz');});
   if(!allDone) return null;
   var totalXP=ch.sections.reduce(function(a,s){
+    // the same amounts the tabs award (finishTheory, finishSim, finishQuiz,
+    // the problem): the summary used to credit a quiz with 50 instead of 100
+    // and to leave the problem out
     return a+(isCompleted(chId,s.id,'theory')?20:0)+
            (isCompleted(chId,s.id,'sim')?30:0)+
-           (isCompleted(chId,s.id,'quiz')?50:0);
+           (isCompleted(chId,s.id,'quiz')?100:0)+
+           (isCompleted(chId,s.id,'problem')?150:0);
   },0);
   return {chapter:ch,totalXP:totalXP,sections:ch.sections.length};
 }
@@ -33960,8 +33977,12 @@ function maybeShowChapterSummary(){
     var div=document.createElement('div');
     div.innerHTML=html;
     if(!div.firstChild) return;
-    main.insertBefore(div.firstChild,main.firstChild);
-    main.scrollTop=0;
+    var card=div.firstChild;
+    main.insertBefore(card,main.firstChild);
+    // inserted after render(): the subscript and contrast passes run here
+    if(typeof fixInlineMath==='function')fixInlineMath(card);
+    if(typeof ensureContrast==='function')ensureContrast(card);
+    try{window.scrollTo(0,0);}catch(e){}
     playXPSound();
   },400);
 }
@@ -33978,9 +33999,9 @@ window.finishQuiz=function(){
 // ══════════════════════════════════════════════════════════════════
 var _onboardStep=0;
 var ONBOARD_STEPS=[
-  {icon:'⚛️',title:'ברוך הבא!',text:'משחק הלמידה של מכניקה ניוטונית — כל נושא כולל תיאוריה, סימולציה ואינטראקטיבית, ובחן עצמך בחידון.'},
-  {icon:'📚',title:'תיאוריה → סימולציה → חידון',text:'בכל נושא עבור לפי הסדר: קרא את התיאוריה, שחק בסימולציה, ואז ענה על שאלות החידון. לחץ ״✅ הבנתי״ כדי לעבור הלאה.'},
-  {icon:'⭐',title:'צבור XP והתקדם',text:'כל שלב שתסיים מעניק XP. ה-XP שלך נשמר אוטומטית. לחיצת Shift+F פותחת את לוח הנוסחאות המהיר.'},
+  {icon:'⚛️',title:'ברוכים הבאים!',text:'פיזיקה לבגרות בחמישה נושאים: מכניקה, אופטיקה, חשמל סטטי, מעגלי זרם ישר ומגנטיות. בכל פרק — תיאוריה, סימולציה אינטראקטיבית, חידון ובעיה מודרכת.'},
+  {icon:'📚',title:'תיאוריה → סימולציה → חידון → בעיה',text:'עברו לפי הסדר: קראו את התיאוריה, נסו את הסימולציה, ענו על החידון, ואז פתרו את הבעיה המודרכת שלב אחר שלב. ״✅ הבנתי״ מעביר לשלב הבא.'},
+  {icon:'⭐',title:'צוברים XP ומתקדמים',text:'כל שלב שמסיימים מעניק XP, וההתקדמות נשמרת אוטומטית בדפדפן הזה. הכפתור 📐 פותח את דף הנוסחאות, ו-☰ בטלפון פותח את רשימת הנושאים.'},
 ];
 function showOnboarding(){
   if(document.getElementById('onboard-overlay')) return;
@@ -33998,17 +34019,20 @@ function renderOnboard(){
     return '<div class="onboard-step'+(_onboardStep===i?' active':'')+'"></div>';
   }).join('');
   var isLast=_onboardStep===ONBOARD_STEPS.length-1;
+  ov.setAttribute('role','dialog');ov.setAttribute('aria-modal','true');ov.setAttribute('aria-labelledby','onboard-h');
   ov.innerHTML='<div class="onboard-card">'+
-    '<div class="onboard-icon">'+s.icon+'</div>'+
-    '<h2>'+s.title+'</h2>'+
+    '<div class="onboard-icon" aria-hidden="true">'+s.icon+'</div>'+
+    '<h2 id="onboard-h">'+s.title+'</h2>'+
     '<p>'+s.text+'</p>'+
     '<div class="onboard-steps">'+dots+'</div>'+
     '<div class="onboard-nav">'+
       (isLast?
         '<button class="btn btn-primary" onclick="closeOnboarding()">🚀 בואו נתחיל!</button>':
-        '<button class="btn btn-primary" onclick="nextOnboard()">הבא ←</button>')+
+        '<button class="btn btn-primary" onclick="nextOnboard()">הבא ←</button>'+
+        '<button class="btn btn-secondary" onclick="closeOnboarding()">דילוג</button>')+
     '</div>'+
   '</div>';
+  var b=ov.querySelector('.btn-primary');if(b)try{b.focus({preventScroll:true});}catch(e){}
 }
 window.nextOnboard=function(){
   _onboardStep=Math.min(_onboardStep+1,ONBOARD_STEPS.length-1);
@@ -34030,6 +34054,7 @@ document.addEventListener('keydown',function(e){
   // picker own their arrow keys. Alt+Arrow is the browser's back/forward.
   var editable=tag==='INPUT'||tag==='TEXTAREA'||tag==='SELECT'||e.target.isContentEditable;
   if(e.key==='Escape'){ if(typeof _closeTips==='function')_closeTips(null);
+    if(document.getElementById('onboard-overlay')){closeOnboarding();return;}
     var ae=document.activeElement;
     if(ae&&ae.classList&&ae.classList.contains('param-wrap'))ae.blur();
     closeDrawer(); closeFormulaPanel(); closeChangelog(); return; }
@@ -34088,18 +34113,23 @@ window.showQuizHint=function(qi){
 // PRINT SUMMARY
 // ══════════════════════════════════════════════════════════════════
 window.printSummary=function(){
-  var completed=Object.keys(state.completed).filter(function(k){return k.endsWith('.quiz');});
+  // by name, in course order, every subject -- it printed raw ids such as
+  // "kinematics | distance-time" under a mechanics-only title
+  var SUBJ=[['מכניקה',MECH_CHAPTERS],['אופטיקה',OPTICS_CHAPTERS],['חשמל סטטי',ELECTRO_CHAPTERS],['מעגלי זרם ישר',DC_CHAPTERS],['מגנטיות והשראה',MAG_CHAPTERS]];
+  var n=0,rows='';
+  SUBJ.forEach(function(sj){sj[1].forEach(function(ch){ch.sections.forEach(function(se){
+    var q=isCompleted(ch.id,se.id,'quiz'),pr=isCompleted(ch.id,se.id,'problem');
+    if(!q&&!pr)return; n++;
+    rows+='<tr><td>'+sj[0]+'</td><td>'+ch.title+'</td><td>'+se.title+'</td><td>'+(q?'✓':'')+'</td><td>'+(pr?'✓':'')+'</td></tr>';
+  });});});
   var win=window.open('','_blank');
   if(!win) return;
-  var rows=completed.map(function(k){
-    var parts=k.split('.');
-    return '<tr><td>'+parts[0]+'</td><td>'+parts[1]+'</td><td>✓</td></tr>';
-  }).join('');
-  win.document.write('<html dir="rtl"><head><title>סיכום התקדמות</title><style>body{font-family:Arial;direction:rtl}table{border-collapse:collapse;width:100%}td,th{border:1px solid #ccc;padding:8px}</style></head>'+
-    '<body><h1>⚛️ מכניקה ניוטונית — סיכום</h1>'+
-    '<p>XP שנצברו: <b>'+state.xp+'</b> | נושאים שהושלמו: <b>'+completed.length+'</b></p>'+
-    '<table><tr><th>פרק</th><th>נושא</th><th>חידון</th></tr>'+rows+'</table>'+
+  win.document.write('<!DOCTYPE html><html lang="he" dir="rtl"><head><meta charset="utf-8"><title>סיכום התקדמות — פיזיקה</title><style>body{font-family:Arial,sans-serif;direction:rtl;margin:24px}table{border-collapse:collapse;width:100%}td,th{border:1px solid #ccc;padding:6px 8px;text-align:right}th{background:#f1f5f9}</style></head>'+
+    '<body><h1>⚛️ פיזיקה — סיכום התקדמות</h1>'+
+    '<p>XP שנצברו: <b>'+state.xp+'</b> | סעיפים שהחידון בהם הושלם או הבעיה נפתרה: <b>'+n+'</b></p>'+
+    (n?'<table><tr><th>נושא</th><th>פרק</th><th>סעיף</th><th>חידון</th><th>בעיה</th></tr>'+rows+'</table>':'<p>עוד לא הושלם אף חידון.</p>')+
     '</body></html>');
+  win.document.close();
   win.print();
 };
 
