@@ -232,6 +232,33 @@ const rest = n => Array.from({ length: n }, () => ({ a: [0, 0, 0], g: [0, 0, G],
     }
   }
 
+  // ── 3b. the same toss, the phone turned 35° in the hand ─────────────────
+  console.log('\n3b) the same toss, but the phone turned 35° in the hand for the throw and the catch');
+  {
+    const key = 'kinematics.freefall';
+    await open(p, key);
+    const c = Math.cos(0.61), sn = Math.sin(0.61), S = rest(80);
+    // the hand still pushes straight up; in the turned phone's frame that is partly along x
+    const push = (acc, n) => { for (let i = 0; i < n; i++) S.push({ a: [0, 0, 0], g: [(G + acc) * sn, 0, (G + acc) * c] }); };
+    push(G, 15);
+    const vRel = G * 0.15, Tf = 2 * vRel / G;
+    for (let i = 0; i < Math.round(Tf / DT); i++) S.push({ a: [0, 0, 0], g: [0, 0, 0] });
+    push(G, 15);
+    for (let i = 0; i < 60; i++) S.push({ a: [0, 0, 0], g: [G * sn, 0, G * c] });
+    await feed(p, key, S);
+    const r = await p.evaluate(() => { const c = _sl.st.cap; if (!c) return null;
+      const P = c.p, at = t => { for (let i = 1; i < P.length; i++) if (P[i].t >= t) {
+        const f = (t - P[i - 1].t) / ((P[i].t - P[i - 1].t) || 1); return P[i - 1].v + f * (P[i].v - P[i - 1].v); } return P[P.length - 1].v; };
+      let zc = null; for (let i = 1; i < P.length; i++) if (P[i - 1].t >= c.fs && P[i - 1].v < 0 && P[i].v >= 0) {
+        const f = -P[i - 1].v / (P[i].v - P[i - 1].v); zc = P[i - 1].t + f * (P[i].t - P[i - 1].t); break; }
+      return { vfs: at(c.fs), zc, mid: (c.fs + c.fe) / 2 }; });
+    tb('a toss was captured', !!r);
+    if (r) {
+      t('v at release (m/s, down +)', r.vfs, -vRel, 0.08);
+      t('the top of the flight still in its middle', r.zc, r.mid, 0.02);
+    }
+  }
+
   // ── 4. landing: Δv over the whole contact equals the impact speed gT ──────
   console.log('\n4) drop 0.25 s onto a cushion whose force starts BELOW the weight');
   {
@@ -344,6 +371,18 @@ const rest = n => Array.from({ length: n }, () => ({ a: [0, 0, 0], g: [0, 0, G],
     tb('the swing is timed from the gyroscope', r.gyro);
     t('period', r.T, T, 0.02);
     t('amplitude (°)', r.amp, 10, 1.5);
+    // the same swing in a bag that twists steadily about the string (y) at 45°/s
+    await open(p, key);
+    await p.evaluate(L => { const e = document.getElementById('sl-L'); if (e) e.value = L; }, L);
+    await p.evaluate(([key, S, DT]) => {
+      const impl = SL_IMPL[SENSOR_LABS[key].t], st = _sl.st;
+      S.forEach((o, i) => impl.sample({ dt: DT, t: i * DT, exact: false, gyro: true, hz: 1 / DT,
+        ax: o.a[0], ay: o.a[1], az: o.a[2], gx: o.g[0], gy: o.g[1], gz: o.g[2], Gx: o.g[0], Gy: o.g[1], Gz: o.g[2],
+        ra: o.r[0], rb: o.r[1], rg: 45 }, st));
+    }, [key, S, DT]);
+    const r2 = await p.evaluate(() => ({ T: _sl.st.T, amp: _sl.st.amp * 180 / Math.PI }));
+    t('a twisting bag: the period of the swing, not of the twist', r2.T, T, 0.02);
+    t('  and its amplitude (°)', r2.amp, 10, 1.5);
   }
 
   // ── 6. iPhone sign: Safari reports gravity itself, not its reaction ───────

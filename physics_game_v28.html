@@ -30978,7 +30978,7 @@ var SENSOR_LABS={
    ttl:'זרקו ותפסו — ו-g מהשיפוע של v(t)',
    how:'החזיקו את הטלפון שטוח, מסך למעלה, ועמדו מעל מיטה או ספה. <b>זרקו בעדינות 20–30 cm מעלה, בלי לסובב, וקלטו בשתי ידיים</b>. הזריקה נלכדת אוטומטית וגרף המהירות נעצר — גררו את שני הסמנים אל תוך המעוף וקראו את השיפוע.',
    pred:'לפני הזריקה: איך ייראה גרף המהירות בזמן המעוף — קו ישר, פרבולה, או משהו אחר? ומה יהיה השיפוע שלו?',
-   note:'שני העקומים העליונים הם אותה תופעה משני צדדים. הכהה — מה שהחיישן <b>קורא</b>: 9.8 במנוחה, אפס באוויר (כך טלפון מזהה נפילה). הבהיר — <b>תאוצת הטלפון</b>, '+M('a=g_0-\\vec A\\cdot\\hat u')+': אפס במנוחה, 9.8 מטה בנפילה.<br><br>בגרף התחתון '+M('v(t)')+' ישר במעוף — זו המשמעות של תאוצה קבועה. בשיא (הנקודה הירוקה) '+M('v=0')+', אבל הקריאה לא זזה: גם שם התאוצה היא '+M('g')+'. מהירות אפס אינה תאוצה אפס. השיפוע מחושב מהכיול במנוחה, ולכן זו <b>בדיקת עקביות</b>, לא מדידה חוזרת של '+M('g')+'.',
+   note:'שני העקומים העליונים הם אותה תופעה משני צדדים. הכהה — מה שהחיישן <b>קורא</b>: 9.8 במנוחה, אפס באוויר (כך טלפון מזהה נפילה). הבהיר — <b>תאוצת הטלפון</b>, '+M('a=g_0-|\\vec A|')+': אפס במנוחה, 9.8 מטה בנפילה.<br><br>בגרף התחתון '+M('v(t)')+' ישר במעוף — זו המשמעות של תאוצה קבועה. בשיא (הנקודה הירוקה) '+M('v=0')+', אבל הקריאה לא זזה: גם שם התאוצה היא '+M('g')+'. מהירות אפס אינה תאוצה אפס. השיפוע מחושב מהכיול במנוחה, ולכן זו <b>בדיקת עקביות</b>, לא מדידה חוזרת של '+M('g')+'.',
    chips:[['T','זמן מעוף','s'],['a','תאוצה במעוף','m/s²'],['g','שיפוע v(t)','m/s²'],['g0','g במנוחה','m/s²']],
    ctrl:'<button class="sl-sec" id="sl-mid">📌 מרכז סמנים</button>'},
 
@@ -31360,8 +31360,11 @@ var SL_IMPL={
       return;
     }
     st.tacc+=s.dt;
-    var Au=A[0]*st.u[0]+A[1]*st.u[1]+A[2]*st.u[2];
-    var aDown=st.g0-Au;                 // 0 at rest, +g in free fall, <0 while thrown
+    // The hand pushes up, so the phone's downward acceleration is g − |reading|
+    // whatever way the phone faces. Projecting the reading on the 'up' found
+    // at calibration counted only cos θ of the throw and of the catch for a
+    // phone that turned in the hand by θ, and moved the top of the flight.
+    var aDown=st.g0-mag;                // 0 at rest, +g in free fall, <0 while thrown
     st.aNow=aDown;st.rawNow=mag;
     st.tr.push(aDown);st.trR.push(mag);
     st.buf.push({t:st.tacc,a:aDown});if(st.buf.length>1200)st.buf.shift();
@@ -32468,7 +32471,15 @@ var SL_IMPL={
     st.pd.reset();st.T=0;return true;},
   sample:function(s,st){
     var e=document.getElementById('sl-L');st.L=e?parseFloat(e.value):0.5;
-    var a=[s.ax,s.ay,s.az],r=[s.ra,s.rb,s.rg],i,kk=Math.min(1,s.dt/1.5);
+    // The swing turns the phone about an axis square to the string; a bag that
+    // twists turns it about the string itself, and a steady twist of a few
+    // tens of °/s was the 'largest' rotation, chosen over the swing, so no
+    // period was ever found. The string is along the reading (the pull of the
+    // string is all a hanging phone feels), so the part of ω along it is taken
+    // out first. (rotationRate: beta about x, gamma about y, alpha about z.)
+    var gm=Math.hypot(s.gx,s.gy,s.gz)||1,ux=s.gx/gm,uy=s.gy/gm,uz=s.gz/gm;
+    var wu=s.rb*ux+s.rg*uy+s.ra*uz;
+    var a=[s.ax,s.ay,s.az],r=[s.rb-wu*ux,s.rg-wu*uy,s.ra-wu*uz],i,kk=Math.min(1,s.dt/1.5);
     for(i=0;i<3;i++){st.va[i]+=kk*(a[i]*a[i]-st.va[i]);st.vr[i]+=kk*(r[i]*r[i]-st.vr[i]);}
     // The swing's own angular velocity oscillates at exactly the pendulum's
     // frequency, on every phone. The accelerometer does only when the OS supplies
