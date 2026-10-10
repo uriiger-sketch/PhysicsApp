@@ -26783,11 +26783,13 @@ MAG_SIMS['mag-flux']=function(canvas){
   var CX=W*0.30,CY=H*0.46,SC=Math.min(W*0.46,300)/0.25,dy0=-0.13;
   var P=function(x,y,z){return [CX+(x+z*0.42)*SC,CY-(y-z*0.30)*SC];};
   simDrag(canvas,dpr,{});                            // touch-action and cursor only
-  var lastY=null;
-  canvas.addEventListener('pointerdown',function(e){lastY=e.clientY;});
+  // a drag down or to the right tilts the loop forward; a sideways drag used
+  // to do nothing at all
+  var lastY=null,lastX=null;
+  canvas.addEventListener('pointerdown',function(e){lastY=e.clientY;lastX=e.clientX;});
   canvas.addEventListener('pointermove',function(e){if(lastY===null||!(e.buttons&1))return;
-    var th=magV('mgx-th',0)+(e.clientY-lastY)*0.8;lastY=e.clientY;simSyncSlider('mgx-th',((th%360)+360)%360,0);});
-  canvas.addEventListener('pointerup',function(){lastY=null;});
+    var th=magV('mgx-th',0)+((e.clientY-lastY)+(e.clientX-lastX))*0.8;lastY=e.clientY;lastX=e.clientX;simSyncSlider('mgx-th',((th%360)+360)%360,0);});
+  canvas.addEventListener('pointerup',function(){lastY=null;lastX=null;});
   function draw(){
     if(!magAlive(id,_g))return;
     var th=magV('mgx-th',0)*Math.PI/180,A=magV('mgx-A',0.02),B=magV('mgx-B',0.5),a=Math.sqrt(A),c=Math.cos(th),sn=Math.sin(th);
@@ -26826,7 +26828,7 @@ MAG_SIMS['mag-flux']=function(canvas){
     var y0=H*0.80;magPlotBox(ctx,8,y0,W-16,H-y0-6,'',null);
     simText(ctx,'θ = '+(th*180/Math.PI).toFixed(0)+'°   ·   Φ = BA·cosθ = '+(Phi*1000).toFixed(2)+' mWb',W/2,y0+22,'#e2e8f0',12.5,'center',true);
     simText(ctx,'קווים שעוברים דרך הלולאה: '+nIn+(c<0?' (מהצד השני — השטף שלילי)':'')+'  ·  ההצללה על הרצפה היא A·cosθ',W/2,y0+46,'#94a3b8',10,'center');
-    simText(ctx,'גררו למעלה ולמטה כדי להטות',W/2,y0+68,'#64748b',9,'center');
+    simText(ctx,'גררו כדי להטות את הלולאה',W/2,y0+68,'#64748b',9,'center');
     requestAnimationFrame(draw);
   }
   requestAnimationFrame(draw);
