@@ -32900,7 +32900,7 @@ function rng(id,min,max,val,step,lbl,unit,fmt){
                   :`parseFloat(this.value).toFixed(${decimals})+'${unit}'`;
   const init=named?window[fmt](parseFloat(val))
                   :((typeof val==='number'?val.toFixed(decimals):val)+unit);
-  return `<div class="range-wrap"><label>${lbl}:</label><input id="inp-${id}" type="range" min="${min}" max="${max}" value="${val}" step="${step}" oninput="document.getElementById('rv-${id}').textContent=${show}"><span class="range-val" id="rv-${id}">${init}</span></div>`;
+  return `<div class="range-wrap"><label for="inp-${id}">${lbl}:</label><input id="inp-${id}" type="range" min="${min}" max="${max}" value="${val}" step="${step}" oninput="document.getElementById('rv-${id}').textContent=${show}"><span class="range-val" id="rv-${id}">${init}</span></div>`;
 }window._fmtHalfCm=function(v){return (v/2).toFixed(0)+' ס״מ';};
 window._fmtOhm=function(e){var r=Math.pow(10,e);
   return r>=1000?(r/1000).toFixed(2)+' MΩ':r>=1?r.toFixed(1)+' kΩ':(r*1000).toFixed(0)+' Ω';};
