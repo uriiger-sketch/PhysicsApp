@@ -8,7 +8,9 @@
 // stricter test than the app's acceptance window. Then: the prism must spread
 // white light into a spectrum at its default angle (it once sent every colour
 // into total internal reflection and drew nothing), and the convex mirror's
-// image must lie behind the mirror.
+// image must lie behind the mirror. Last, every draggable simulation is
+// driven by a finger on a 390 px phone: what it drives must change, and the
+// page must not scroll under the drag.
 const { chromium } = require('playwright');
 const path = require('path');
 const F = 'file://' + path.resolve(__dirname, '..', 'physics_game_v28.html');
@@ -114,6 +116,72 @@ const EXPECT = {
     return { left, right };
   });
   t('convex mirror: the virtual image is drawn behind the mirror', behind.right > 40, JSON.stringify(behind));
+
+  console.log('   every draggable simulation by touch, on a phone');
+  const tc = await b.newContext({ viewport: { width: 390, height: 1300 }, hasTouch: true, isMobile: true, deviceScaleFactor: 2 });
+  const q = await tc.newPage(); q.on('pageerror', x => errs.push(x.message));
+  await q.addInitScript(() => { window.__T = []; const o = CanvasRenderingContext2D.prototype.fillText;
+    CanvasRenderingContext2D.prototype.fillText = function (s) { if (typeof s === 'string' && this.canvas.id === 'sim-canvas') window.__T.push(s.replace(/[\u2066-\u2069\u200e]/g, ''));
+      if (window.__T.length > 4000) window.__T.splice(0, 2000); return o.apply(this, arguments); }; });
+  await q.goto(F); await q.waitForTimeout(700);
+  const cdp = await tc.newCDPSession(q);
+  const topen = async (s, c, se, pre) => { await q.evaluate(([s, c, se]) => { if (window.closeOnboarding) closeOnboarding(); window.showSimTooltip = function () {};
+    state.subject = s; state.chapter = c; state.section = se; state.tab = 'sim'; render(); }, [s, c, se]);
+    await q.waitForTimeout(900); await (await q.$('#sim-canvas')).scrollIntoViewIfNeeded();
+    if (pre) await q.evaluate(([k, v]) => { const e = document.getElementById('inp-' + k); e.value = v; e.dispatchEvent(new Event('input', { bubbles: true })); }, pre);
+    await q.waitForTimeout(300);
+    return q.evaluate(() => { const r = document.getElementById('sim-canvas').getBoundingClientRect(); return { x: r.left, y: r.top, w: r.width, h: r.height }; }); };
+  // a slider the drag drives, or the newest canvas line matching a pattern;
+  // {gone} is a hint that must stop being drawn once the learner has dragged
+  const probe = async c => q.evaluate(c => {
+    if (c.slider) { const e = document.getElementById('inp-' + c.slider); return e ? e.value : 'no slider'; }
+    const R = new RegExp(c.text || c.gone), a = window.__T.filter(s => R.test(s)); return a.length ? a[a.length - 1] : null; }, c);
+  const swipe = async (r, pts) => { const P = z => ({ x: r.x + z[0], y: r.y + z[1] });
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [P(pts[0])] });
+    for (let i = 1; i < pts.length; i++) { await q.waitForTimeout(50); await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [P(pts[i])] }); }
+    await q.waitForTimeout(150);
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] }); await q.waitForTimeout(200); };
+  // where each handle starts, from the simulation's own layout (W, H = canvas size)
+  const mirrorObj = (W, concave) => { const mx = Math.round(W * 0.62), k = Math.min(1, (mx - 26) / 340, concave ? 9 : (W - mx - 24) / 170), ox = mx - 2.5 * 85 * k; return [[ox, 200], [ox - 15, 200], [ox - 30, 200]]; };
+  const lensObj = (W, y) => { const lx = W / 2, k = Math.min(1, (lx - 26) / 380), ox = lx - 2.2 * 95 * k; return [[ox, y], [ox - 15, y], [ox - 30, y]]; };
+  const TOUCH = [
+    ['optics', 'opt-light', 'light-nature', W => [[W / 2, 200], [W / 2 + 40, 200], [W / 2 + 80, 200]], { slider: 'emw-wl' }],
+    ['optics', 'opt-light', 'light-speed', () => [[44, 120], [44, 121]], { slider: 'ri-n' }],
+    ['optics', 'opt-light', 'em-spectrum', W => [[W * 0.3, 50], [W * 0.5, 50], [W * 0.7, 50]], { slider: 'ems-pos' }],
+    ['optics', 'opt-light', 'color-mixing', (W, H) => { const cr = Math.min(W * 0.2, H * 0.27), y = H * 0.42 - cr * 0.62; return [[W / 2, y], [W / 2, y - 20], [W / 2, y - 40]]; }, { gone: '^✋ גררו את העיגולים' }],
+    ['optics', 'opt-reflection', 'refl-laws', W => [[W * 0.3, 120], [W * 0.2, 200], [W * 0.15, 260]], { slider: 'ref-angle' }],
+    ['optics', 'opt-reflection', 'plane-mirror', W => [[W * 0.3, 210], [W * 0.25, 210], [W * 0.2, 210]], { slider: 'pm-dist' }],
+    ['optics', 'opt-reflection', 'concave-mirror', W => mirrorObj(W, true), { slider: 'cm-do' }],
+    ['optics', 'opt-reflection', 'convex-mirror', W => mirrorObj(W, false), { slider: 'cvm-do' }],
+    ['optics', 'opt-refraction', 'snell-law', (W, H) => [[W / 2 - 60, H * 0.44 - 80], [W / 2 - 90, H * 0.44 - 50], [W / 2 - 110, H * 0.44 - 30]], { slider: 'snell-th' }],
+    ['optics', 'opt-refraction', 'tir', (W, H) => [[W / 2 - 60, H * 0.46 - 80], [W / 2 - 90, H * 0.46 - 50], [W / 2 - 110, H * 0.46 - 30]], { slider: 'tir-th' }],
+    ['optics', 'opt-refraction', 'prism', () => [[20, 300], [20, 340], [30, 380]], { slider: 'prism-ang' }],
+    ['optics', 'opt-refraction', 'fiber-optics', (W, H) => [[W * 0.05, H * 0.4 + 30], [W * 0.05, H * 0.4 + 60], [W * 0.05, H * 0.4 + 90]], { slider: 'fib-ang' }],
+    ['optics', 'opt-lenses', 'convex-lens', W => lensObj(W, 200), { slider: 'cl-do' }],
+    ['optics', 'opt-lenses', 'concave-lens', W => lensObj(W, 180), { slider: 'dcl-do' }],
+    ['optics', 'opt-lenses', 'lens-eye', (W, H) => { const es = Math.min(1, (W * 0.28 - 8) / 118), ef = W * 0.72 - 118 * es, xR = ef - Math.max(60, 90 * es), xL = Math.min(60, W * 0.08), ox = xR - Math.log(8) / Math.log(24) * (xR - xL); return [[ox, H * 0.46 - 10], [ox + 15, H * 0.46 - 10], [ox + 30, H * 0.46 - 10]]; }, { slider: 'eye-dist' }],
+    ['optics', 'opt-lenses', 'telescope', (W, H) => { const m = W * 0.05, sc = (W - m * 2 - 70) / (150 * 1.3 + 25), L1 = m + 150 * sc * 0.3; return [[L1, H / 2], [L1 + 10, H / 2], [L1 + 20, H / 2]]; }, { slider: 'tel-fo' }],
+    ['optics', 'opt-waves', 'interference', W => [[W * 0.7, 120], [W * 0.75, 160]], { text: '^Δ = \\|r₂' }],
+    ['optics', 'opt-waves', 'youngs-slits', W => { const x = 136 + 0.2 * (W - 180); return [[x, 300], [x + 20, 300], [x + 40, 300]]; }, { slider: 'ys-L' }],
+    ['optics', 'opt-waves', 'diffraction', W => [[W - 52, 220], [W - 52, 260], [W - 52, 300]], { text: '^גלאי: a·sinθ' }],
+    ['optics', 'opt-waves', 'thin-film', W => [[W * 0.44, 150], [W * 0.44, 200], [W * 0.44, 260]], { slider: 'tf-thick' }],
+    ['optics', 'opt-modern', 'polarization', (W, H) => [[W * 0.62 + 20, H * 0.42], [W * 0.62 + 10, H * 0.42 + 20], [W * 0.62, H * 0.42 + 25]], { slider: 'pol-angle' }],
+    // the star rests at the centre when v = 0; a quick flick sets its speed
+    ['optics', 'opt-modern', 'doppler', (W, H) => [[W / 2, H / 2], [W / 2 + 40, H / 2], [W / 2 + 80, H / 2]], { slider: 'dop-v' }, ['dop-v', 0]],
+    ['optics', 'opt-modern', 'lasers', W => [[W * 0.4, 200], [W * 0.5, 200], [W * 0.6, 200]], { slider: 'laser-pump' }],
+  ];
+  const deaf = [], scrolled = [];
+  for (const [s, c, se, pf, chk, pre] of TOUCH) {
+    const r = await topen(s, c, se, pre), before = await probe(chk), y0 = await q.evaluate(() => scrollY);
+    await swipe(r, pf(r.w, r.h));
+    if (chk.gone) { await q.evaluate(() => { window.__T = []; }); await q.waitForTimeout(300); }
+    const after = await probe(chk);
+    if (await q.evaluate(() => scrollY) !== y0) scrolled.push(se);
+    if (chk.gone ? !(before && after === null) : (before === null || after === before)) deaf.push(se + ': ' + before + ' → ' + after);
+  }
+  t(TOUCH.length + ' simulations follow a finger (touch start, move, end)', deaf.length === 0, deaf.join(' | '));
+  t('dragging on a simulation does not scroll the page', scrolled.length === 0, scrolled.join(', '));
+  await tc.close();
 
   t('no page errors', errs.length === 0, errs.join(' | '));
   await b.close();
