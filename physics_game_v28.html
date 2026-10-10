@@ -1321,7 +1321,11 @@ function _texFallback(s){
     // a Greek letter swallows the space LaTeX needed to end its name (\Delta h
     // -> Delta-h), but a relation must keep it or it fuses with what follows
     if(_GREEK[w])return _GREEK[w];
-    if(_OPS[w])return _OPS[w]+(/[⟹⟸→←≈≠≤≥∝≡≅∈~]/.test(_OPS[w])?' ':sp);
+    if(_OPS[w]&&/[⟹⟸→←≈≠≤≥∝≡≅∈~]/.test(_OPS[w]))return _OPS[w]+' ';
+    // a binary operator is spaced on both sides or on neither: the space that
+    // only ended the command's name printed "g± a", "3× 10⁸", "a· b"
+    if(_OPS[w]&&/[×·÷±∓]/.test(_OPS[w]))return _OPS[w]+(str.charAt(off-1)===' '?sp:'');
+    if(_OPS[w])return _OPS[w]+sp;
     // a function name set against a letter needs its space: "mg sinθ", not "mg·sinθ"
     if(/^(sin|cos|tan|cot|sec|csc|arcsin|arccos|arctan|ln|log|exp)$/.test(w)&&/[A-Za-z0-9\u0370-\u03ff]/.test(str.charAt(off-1)))return ' '+w+sp;
     return w+sp;});
