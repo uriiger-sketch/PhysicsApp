@@ -34,8 +34,10 @@ var _kxS={js:0,css:0,ar:0,dom:0,late:0},_kxDone=false;
 function _kx(k,v){
   _kxS[k]=v;
   if(_kxDone||!_kxS.dom)return;
-  var s=_kxS,all=s.js>0&&s.css>0&&s.ar!==0;
-  if(!(all||s.js<0||s.css<0||s.late))return;
+  // auto-render is waited for, but it is optional: at the deadline a KaTeX
+  // with its stylesheet is used without it
+  var s=_kxS,all=s.js>0&&s.css>0;
+  if(!((all&&s.ar!==0)||s.js<0||s.css<0||s.late))return;
   _kxDone=true;
   // half a KaTeX is worse than none: its output without its stylesheet is
   // unreadable, and a copy that turns up after the start would typeset half
