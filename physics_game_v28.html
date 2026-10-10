@@ -387,6 +387,10 @@ input[type=range]{accent-color:var(--accent);cursor:pointer;}
 .quiz-opt.correct{border-color:var(--green);background:rgba(16,185,129,.1);color:var(--t-ok);}
 .quiz-opt.wrong{border-color:var(--red);background:rgba(239,68,68,.1);color:var(--t-err);}
 .quiz-opt-letter{width:26px;height:26px;border-radius:50%;border:2px solid currentColor;display:flex;align-items:center;justify-content:center;font-size:.78rem;font-weight:700;flex-shrink:0;}
+/* the option's words and formulas are one flex item: bare, each text run
+   and each maths span became a column of its own, and an option that mixed
+   Hebrew with a formula wrapped as separate stacks on a phone */
+.quiz-opt-text{flex:1 1 auto;min-width:0;}
 .quiz-feedback{margin-top:12px;padding:13px 16px;border-radius:9px;font-size:.88rem;line-height:1.65;}
 .fb-ok{background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.3);color:var(--t-ok);}
 .fb-err{background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);color:var(--t-err);}
@@ -33755,7 +33759,7 @@ function buildQuiz(qs){
   const lets=['א','ב','ג','ד'];
   const qv=quizView(q);
   const opts=qv.opts.map((o,oi)=>{let cls='';if(ans){if(oi===qv.correct)cls='correct';else if(oi===st.ans[qi])cls='wrong';}
-    return`<button class="quiz-opt${cls?' '+cls:''}"${ans?' disabled':''} onclick="answerQuiz(${oi})"><span class="quiz-opt-letter">${lets[oi]}</span>${_ltSafe(o)}</button>`;
+    return`<button class="quiz-opt${cls?' '+cls:''}"${ans?' disabled':''} onclick="answerQuiz(${oi})"><span class="quiz-opt-letter">${lets[oi]}</span><span class="quiz-opt-text">${_ltSafe(o)}</span></button>`;
   }).join('');
   // Hint button (if question has a hint and not answered yet, costs 5 XP)
   var hintKey=state.chapter+'.'+state.section+'.'+qi;
