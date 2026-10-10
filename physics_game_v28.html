@@ -11708,7 +11708,7 @@ function simSpring(canvas){
     // ── Equilibrium dashed line
     ctx.save();ctx.strokeStyle='rgba(255,255,255,.08)';ctx.lineWidth=1;ctx.setLineDash([4,5]);
     ctx.beginPath();ctx.moveTo(EQ,MY-92);ctx.lineTo(EQ,MY+56);ctx.stroke();ctx.setLineDash([]);ctx.restore();
-    simText(ctx,'מנוחה',EQ,MY-96,'#7d8da6',7.5,undefined,true);
+    simText(ctx,'שיווי משקל (x=0)',EQ,MY-96,'#7d8da6',8,undefined,true);
 
     // ── Spring coil
     const stretch=x/Math.max(amp,1);
@@ -11726,22 +11726,22 @@ function simSpring(canvas){
     mg2.addColorStop(0,'#fde68a');mg2.addColorStop(0.6,'#d97706');mg2.addColorStop(1,'#92400e');
     ctx.save();ctx.shadowColor='rgba(251,191,36,.5)';ctx.shadowBlur=14;
     simCircle(ctx,mx,MY,MR,mg2,'#fbbf24',2.5);ctx.restore();
-    simText(ctx,mass.toFixed(2)+'kg',mx,MY+5,'#1a0a00',9.5,undefined,true);
+    simText(ctx,mass.toFixed(2)+' kg',mx,MY+5,'#1a0a00',9.5,undefined,true);
 
     // ── Force arrow (from mass edge)
     const F_val=-k*x_m;
     if(Math.abs(F_val)>0.001){
       const fCol=F_val>0?'#34d399':'#fca5a5';
-      // Cap arrow length so it never overlaps wall or leaves canvas
-      const rawLen=F_val*4;
-      const maxR=F_val>0?(W-mx-MR-8):-(mx-MR-WX-8);
-      const fLen=Math.max(-80,Math.min(80,rawLen));
+      // Drawn relative to the largest force of THIS oscillation, kA: at 4 px
+      // per newton the default settings (k = 2 N/m, A = 0.9 m) gave a 7 px
+      // arrow that hid behind its own label.
+      const fLen=72*F_val/Math.max(1e-9,k*amp/100);
       if(Math.abs(fLen)>4){
         // the arrow leaves the side it points to: drawn from the right edge
         // when it pointed left, it and its label ran across the mass itself
         const fx0=fLen>0?mx+MR+3:mx-MR-3;
         simArrow(ctx,fx0,MY,fx0+fLen,MY,fCol,2.5,10);
-        simText(ctx,'F='+F_val.toFixed(3)+'N',fx0+fLen+(fLen>0?7:-7),MY-13,fCol,8.5,fLen>0?'left':'right',true);
+        simText(ctx,'F = −kx = '+F_val.toFixed(2)+' N',fx0+fLen/2,MY-28,fCol,8.5,'center',true);
       }
     }
 
@@ -11749,7 +11749,7 @@ function simSpring(canvas){
     if(Math.abs(x)>4){
       const col2=x>0?'#a78bfa':'#22d3ee';
       simArrow(ctx,EQ,MY+MR+12,mx,MY+MR+12,col2,1.8,7);
-      simText(ctx,'x='+x_m.toFixed(4)+'m',(EQ+mx)/2,MY+MR+24,col2,8,undefined,true);
+      simText(ctx,'x = '+x_m.toFixed(3)+' m',(EQ+mx)/2,MY+MR+24,col2,8,undefined,true);
     }
 
     // ── Info panel — BELOW the spring zone, above energy bars
@@ -11761,34 +11761,36 @@ function simSpring(canvas){
     const col1x=24, col2x=W*0.5+10;
     simText(ctx,'T = 2π√(m/k) = '+T.toFixed(3)+' s',col1x,IP_Y+13,'#22d3ee',8.5,'left',true);
     simText(ctx,'ω = '+omega.toFixed(3)+' rad/s',col1x,IP_Y+27,'#22d3ee',8,'left',true);
-    simText(ctx,'A = '+(amp/100).toFixed(3)+' m  (גררו מסה)',col1x,IP_Y+41,'#a78bfa',8,'left',true);
-    simText(ctx,'x = '+x_m.toFixed(4)+' m',col2x,IP_Y+13,'#f59e0b',8.5,'left',true);
-    simText(ctx,'v = '+v_ms.toFixed(4)+' m/s',col2x,IP_Y+27,'#22d3ee',8,'left',true);
+    simText(ctx,'A = '+(amp/100).toFixed(3)+' m  (גררו את המסה)',col1x,IP_Y+41,'#a78bfa',8,'left',true);
+    simText(ctx,'x = '+x_m.toFixed(3)+' m',col2x,IP_Y+13,'#f59e0b',8.5,'left',true);
+    simText(ctx,'v = '+v_ms.toFixed(3)+' m/s',col2x,IP_Y+27,'#22d3ee',8,'left',true);
     simText(ctx,'k='+k+' N/m  m='+mass.toFixed(2)+' kg',col2x,IP_Y+41,'#94a3b8',8,'left',true);
 
     // ── Energy bars — compact horizontal strip below info panel
     const Ek=0.5*mass*v_ms*v_ms;
     const Ep=0.5*k*x_m*x_m;
     const Etot=Math.max(0.5*k*Math.pow(amp/100,2),0.0001);
-    const EB_Y=IP_Y+IP_H+8, EB_H=18;
+    // The labels used to sit to the RIGHT of full-width bars, off the canvas.
+    const EB_Y=IP_Y+IP_H+8, EB_H=26;
     ctx.save();ctx.fillStyle='rgba(6,14,28,.85)';ctx.strokeStyle='#1e4060';ctx.lineWidth=1;
     ctx.beginPath();ctx.roundRect(8,EB_Y,W-16,EB_H+24,4);ctx.fill();ctx.stroke();ctx.restore();
-    const barW=W-40, barX=20;
-    // Ek bar (cyan, top)
+    const barX=104, barW=W-barX-18;
+    // Ek bar (green, top)
     ctx.save();ctx.fillStyle='rgba(34,211,153,.8)';
-    ctx.beginPath();ctx.roundRect(barX,EB_Y+3,Math.max(0,barW*(Ek/Etot)),8,2);ctx.fill();ctx.restore();
+    ctx.beginPath();ctx.roundRect(barX,EB_Y+5,Math.max(0,barW*(Ek/Etot)),9,2);ctx.fill();ctx.restore();
     ctx.save();ctx.strokeStyle='#22d3ee';ctx.lineWidth=1;
-    ctx.beginPath();ctx.roundRect(barX,EB_Y+3,barW,8,2);ctx.stroke();ctx.restore();
-    simText(ctx,'EK='+Ek.toFixed(4)+'J',barX+barW+6,EB_Y+10,'#22d3ee',7.5,'left');
+    ctx.beginPath();ctx.roundRect(barX,EB_Y+5,barW,9,2);ctx.stroke();ctx.restore();
+    simText(ctx,'E_k = '+Ek.toFixed(3)+' J',barX-8,EB_Y+13,'#22d3ee',8,'right');
     // Ep bar (yellow, bottom)
     ctx.save();ctx.fillStyle='rgba(245,158,11,.8)';
-    ctx.beginPath();ctx.roundRect(barX,EB_Y+14,Math.max(0,barW*(Ep/Etot)),8,2);ctx.fill();ctx.restore();
+    ctx.beginPath();ctx.roundRect(barX,EB_Y+19,Math.max(0,barW*(Ep/Etot)),9,2);ctx.fill();ctx.restore();
     ctx.save();ctx.strokeStyle='#f59e0b';ctx.lineWidth=1;
-    ctx.beginPath();ctx.roundRect(barX,EB_Y+14,barW,8,2);ctx.stroke();ctx.restore();
-    simText(ctx,'EP='+Ep.toFixed(4)+'J  E_כולל='+Etot.toFixed(4)+'J',barX+barW+6,EB_Y+21,'#f59e0b',7.5,'left');
+    ctx.beginPath();ctx.roundRect(barX,EB_Y+19,barW,9,2);ctx.stroke();ctx.restore();
+    simText(ctx,'E_p = '+Ep.toFixed(3)+' J',barX-8,EB_Y+27,'#f59e0b',8,'right');
+    simText(ctx,'E_k + E_p = ½kA² = '+Etot.toFixed(3)+' J — קבוע',W/2,EB_Y+43,'#94a3b8',8.5,'center',true);
 
     // ── Combined x(t)+v(t) graph — bottom section
-    const gL=8, gR=W-8, gTTop=EB_Y+EB_H+28, gBot=H-6;
+    const gL=8, gR=W-8, gTTop=EB_Y+EB_H+30, gBot=H-6;
     const gH=gBot-gTTop, gW=gR-gL;
     ctx.save();ctx.fillStyle='rgba(6,14,28,.88)';ctx.strokeStyle='#1e4060';ctx.lineWidth=1;
     ctx.beginPath();ctx.roundRect(gL,gTTop,gW,gH,5);ctx.fill();ctx.stroke();ctx.restore();
@@ -11850,12 +11852,16 @@ function simSpring(canvas){
     const curMX=EQ+amp*Math.cos(theta);
     if(Math.hypot(cx-curMX,cy-MY)<MR+8) drag=true;
   });
+  // the mass follows the pointer to either side of equilibrium
+  function dragTo(e){const cx=getCanvasX(e);
+    amp=Math.max(8,Math.min(110,Math.abs(cx-EQ))); theta=cx<EQ?Math.PI:0;
+    xHist=[]; vHist=[]; tHist=[];}
   canvas.addEventListener('mousemove',function(e){
     if(!drag)return;
-    amp=Math.max(8,Math.min(110,Math.abs(getCanvasX(e)-EQ)));
-    theta=0; xHist=[]; vHist=[]; tHist=[];
+    dragTo(e);
   });
   canvas.addEventListener('mouseup',function(){drag=false;});
+  canvas.addEventListener('mouseleave',function(){drag=false;});
   canvas.addEventListener('touchstart',function(e){
     const cx=getCanvasX(e), cy=getCanvasY(e);
     const curMX=EQ+amp*Math.cos(theta);
@@ -11863,8 +11869,7 @@ function simSpring(canvas){
   },{passive:false});
   canvas.addEventListener('touchmove',function(e){
     if(!drag)return;
-    amp=Math.max(8,Math.min(110,Math.abs(getCanvasX(e)-EQ)));
-    theta=0; xHist=[]; vHist=[]; tHist=[]; e.preventDefault();
+    dragTo(e); e.preventDefault();
   },{passive:false});
   canvas.addEventListener('touchend',function(){drag=false;});
 
