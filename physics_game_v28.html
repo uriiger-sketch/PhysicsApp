@@ -19971,30 +19971,35 @@ runAnim('anim-dc-bridge',(canvas,ctx,W,H,t)=>{
 // DC ANIM: the same charges pass every cross-section of a series loop
 runAnim('anim-dc-current',(canvas,ctx,W,H,t)=>{
   bg(ctx,W,H);
-  const L=W*0.12,R=W*0.88,T=H*0.28,B=H*0.66;
+  const L=W*0.12,R=W*0.88,T=H*0.28,B=H*0.66,ym=(T+B)/2;
   ctx.save();ctx.strokeStyle='#64748b';ctx.lineWidth=3;
   ctx.beginPath();ctx.rect(L,T,R-L,B-T);ctx.stroke();ctx.restore();
-  // battery on the left edge, lamp on the right
-  ctx.save();ctx.strokeStyle='#f87171';ctx.lineWidth=4;
-  ctx.beginPath();ctx.moveTo(L,(T+B)/2-7);ctx.lineTo(L,(T+B)/2+7);ctx.stroke();ctx.restore();
-  label(ctx,'סוללה',L+2,(T+B)/2+22,'#f87171',9);
   ctx.save();ctx.fillStyle='rgba(251,191,36,.25)';ctx.strokeStyle='#fbbf24';ctx.lineWidth=2;
-  ctx.beginPath();ctx.arc(R,(T+B)/2,13,0,6.2832);ctx.fill();ctx.stroke();ctx.restore();
-  label(ctx,'נורה',R-2,(T+B)/2+28,'#fbbf24',9);
-  // charges going round; the loop is traversed at a constant rate
-  const per=(u)=>{                     // u in [0,1) -> a point on the rectangle
-    const w=R-L,h=B-T,tot=2*(w+h);let d=u*tot;
-    if(d<w)return{x:L+d,y:T};d-=w;
-    if(d<h)return{x:R,y:T+d};d-=h;
-    if(d<w)return{x:R-d,y:B};d-=w;
-    return{x:L,y:B-d};
+  ctx.beginPath();ctx.arc(R,ym,13,0,6.2832);ctx.fill();ctx.stroke();ctx.restore();
+  label(ctx,'נורה',R-2,ym+28,'#fbbf24',9);
+  // what really moves: electrons, leaving the − terminal and going round the
+  // OTHER way to the conventional current (anticlockwise here), at one spacing
+  // everywhere -- the same number pass every cross-section each second
+  const per=(u)=>{                     // u in [0,1) -> a point on the rectangle, anticlockwise from (L,B)
+    const w=R-L,h=B-T;let d=u*2*(w+h);
+    if(d<w)return{x:L+d,y:B};d-=w;
+    if(d<h)return{x:R,y:B-d};d-=h;
+    if(d<w)return{x:R-d,y:T};d-=w;
+    return{x:L,y:T+d};
   };
   for(let i=0;i<16;i++){
-    const u=((t*0.11)+i/16)%1,p2=per(u);
+    const p2=per(((t*0.11)+i/16)%1);
     ctx.save();ctx.fillStyle='#38bdf8';ctx.beginPath();ctx.arc(p2.x,p2.y,4,0,6.2832);ctx.fill();ctx.restore();
   }
+  dcBatt(ctx,L,ym,'');                 // + up: conventional current leaves it upward
+  label(ctx,'סוללה',L+12,ym+4,'#f87171',9,'left');
+  // the two directions, named, on the same wire: opposite ways
+  arrow(ctx,W*0.24,T-12,W*0.40,T-12,'#fbbf24',2,7);
+  label(ctx,'I — זרם מוסכם',W*0.32,T-23,'#fbbf24',9);
+  arrow(ctx,W*0.40,T+12,W*0.24,T+12,'#38bdf8',2,7);
+  label(ctx,'e⁻ — האלקטרונים',W*0.32,T+27,'#38bdf8',9);
   // two meters, one on each side of the lamp, always reading the same
-  [[W*0.55,T,'לפני הנורה'],[W*0.55,B,'אחרי הנורה']].forEach(m=>{
+  [[W*0.66,T,'לפני הנורה'],[W*0.66,B,'אחרי הנורה']].forEach(m=>{
     ctx.save();ctx.strokeStyle='#fbbf24';ctx.setLineDash([4,3]);ctx.lineWidth=1.6;
     ctx.beginPath();ctx.moveTo(m[0],m[1]-16);ctx.lineTo(m[0],m[1]+16);ctx.stroke();ctx.restore();
     label(ctx,'2.0 A',m[0],m[1]+(m[1]===T?-23:26),'#fbbf24',10);
@@ -20014,12 +20019,15 @@ runAnim('anim-dc-ohm',(canvas,ctx,W,H,t)=>{
     ctx.beginPath();ctx.moveTo(W*0.22,y);ctx.lineTo(W*0.86,y);ctx.stroke();ctx.restore();
     ctx.save();ctx.fillStyle='rgba(148,163,184,.14)';ctx.strokeStyle=col;ctx.lineWidth=2;
     ctx.beginPath();ctx.rect(W*0.50-26,y-13,52,26);ctx.fill();ctx.stroke();ctx.restore();
-    // dots move at a speed proportional to the current
-    const n=Math.round(4+I*3);
-    for(let k=0;k<n;k++){
-      const u=((t*I*0.16)+k/n)%1, x=W*0.22+u*(W*0.64);
-      ctx.save();ctx.fillStyle=col;ctx.beginPath();ctx.arc(x,y,3.4,0,6.2832);ctx.fill();ctx.restore();
-    }
+    // the same spacing on both wires and a speed proportional to I, so three
+    // times the current is three times the charge per second (a dot count that
+    // grew with I as well made the ratio 4.5)
+    dcFlowI(ctx,[[W*0.22,y],[W*0.86,y]],t,I,col,60);
+    // the two ends are the two terminals of one 6 V source
+    [[W*0.22,'6 V'],[W*0.86,'0 V']].forEach(e=>{
+      ctx.save();ctx.fillStyle='#030c15';ctx.strokeStyle='#e2e8f0';ctx.lineWidth=1.6;
+      ctx.beginPath();ctx.arc(e[0],y,4,0,6.2832);ctx.fill();ctx.stroke();ctx.restore();
+      label(ctx,e[1],e[0],y-11,'#34d399',8.5);});
     label(ctx,'I = '+I.toFixed(1)+' A',W*0.93,y,col,11);
   });
   label(ctx,'I = V/R',W*0.26,H-10,'#fbbf24',10.5);
@@ -20038,6 +20046,12 @@ runAnim('anim-dc-power',(canvas,ctx,W,H,t)=>{
     const x=gx+gw*(v/VM), y=gy+gh-gh*((v*v/R)/PM);
     v?ctx.lineTo(x,y):ctx.moveTo(x,y);}
   ctx.stroke();ctx.restore();
+  // the claim in the caption, on the curve: 6 V gives 6 W, twice that gives four times as much
+  [[6,'6 W'],[12,'24 W']].forEach(m=>{const mx=gx+gw*(m[0]/VM), my=gy+gh-gh*((m[0]*m[0]/R)/PM);
+    ctx.save();ctx.strokeStyle='rgba(148,163,184,.5)';ctx.setLineDash([3,3]);ctx.lineWidth=1;
+    ctx.beginPath();ctx.moveTo(mx,gy+gh);ctx.lineTo(mx,my);ctx.lineTo(gx,my);ctx.stroke();ctx.restore();
+    label(ctx,m[0]+' V',mx,gy+gh+12,'#94a3b8',8.5);
+    label(ctx,m[1],gx-4,my+3,'#fbbf24',8.5,'right');});
   const px=gx+gw*(V/VM), py=gy+gh-gh*(P/PM);
   ctx.save();ctx.fillStyle='#34d399';ctx.beginPath();ctx.arc(px,py,5.5,0,6.2832);ctx.fill();ctx.restore();
   label(ctx,'P',gx+10,gy+12,'#fbbf24',10);
@@ -20063,6 +20077,11 @@ runAnim('anim-dc-series',(canvas,ctx,W,H,t)=>{
   dcRes(ctx,x1,wy,rw,22,'4 Ω','#38bdf8',0);
   dcRes(ctx,x2,wy,rw,22,'8 Ω','#a78bfa',0);
   dcFlow(ctx,[[L,wy],[R,wy]],t,0.13,'#fbbf24',12);
+  // the two ends are the battery's terminals, not loose wire
+  [[L,'+','#f87171',-10],[R,'−','#60a5fa',10]].forEach(e=>{
+    ctx.save();ctx.fillStyle='#030c15';ctx.strokeStyle=e[2];ctx.lineWidth=1.8;
+    ctx.beginPath();ctx.arc(e[0],wy,4.5,0,6.2832);ctx.fill();ctx.stroke();ctx.restore();
+    label(ctx,e[1],e[0]+e[3],wy+4,e[2],12);});
   label(ctx,'אותו זרם לפני, בין, ואחרי',W*0.30,H*0.09,'#64748b',9.5);
   label(ctx,'I = 1 A',W*0.62,H*0.09,'#fbbf24',10.5);
   // the potential profile below: flat, drop, flat, drop -- the same shape a
@@ -20106,6 +20125,11 @@ runAnim('anim-dc-parallel',(canvas,ctx,W,H,t)=>{
   lane([jL,yB],[jR,yB],Ib,'#a78bfa');
   lane([L,ym],[jL,ym],It,'#fbbf24');
   lane([jR,ym],[R,ym],It,'#fbbf24');
+  // the two ends are the battery's terminals, not loose wire
+  [[L,'+','#f87171',-10],[R,'−','#60a5fa',10]].forEach(e=>{
+    ctx.save();ctx.fillStyle='#030c15';ctx.strokeStyle=e[2];ctx.lineWidth=1.8;
+    ctx.beginPath();ctx.arc(e[0],ym,4.5,0,6.2832);ctx.fill();ctx.stroke();ctx.restore();
+    label(ctx,e[1],e[0]+e[3],ym+4,e[2],12);});
   // node potentials: 12 V in, 0 V out — so each branch has the whole 12 V across it
   label(ctx,'12 V',jL-20,ym+16,'#34d399',9.5);
   label(ctx,'0 V',jR+18,ym+16,'#34d399',9.5);
@@ -20173,8 +20197,9 @@ runAnim('anim-dc-mixed',(canvas,ctx,W,H,t)=>{
 // DC ANIM: the switch -- the whole loop starts and stops together
 runAnim('anim-dc-switch',(canvas,ctx,W,H,t)=>{
   bg(ctx,W,H);
-  const c=t%7, on=(c>1&&c<5.5);
+  const c=t%7;
   const sw=c<1?0:(c<1.5?(c-1)/0.5:(c<5.5?1:(c<6?1-(c-5.5)/0.5:0)));
+  const on=sw>=1;                      // not while the blade is still in the air
   const L=W*0.12,R=W*0.88,T=H*0.26,B=H*0.70;
   ctx.save();ctx.strokeStyle='#64748b';ctx.lineWidth=2.4;ctx.beginPath();
   ctx.moveTo(L,T);ctx.lineTo(W*0.40,T);ctx.moveTo(W*0.52,T);ctx.lineTo(R,T);
@@ -20207,20 +20232,22 @@ runAnim('anim-dc-switch',(canvas,ctx,W,H,t)=>{
 runAnim('anim-dc-meters',(canvas,ctx,W,H,t)=>{
   bg(ctx,W,H);
   const c=t%9, s=c<1?0:(c<2.4?(c-1)/1.4:(c<7?1:(c<8.4?1-(c-7)/1.4:0)));
-  const L=W*0.12,R=W*0.88,T=H*0.34,B=H*0.72,ax=W*0.40,vx=W*0.66;
+  const L=W*0.12,R=W*0.88,T=H*0.42,B=H*0.72,ax=W*0.40,vx=W*0.66;
   ctx.save();ctx.strokeStyle='#64748b';ctx.lineWidth=2.4;ctx.beginPath();
   ctx.moveTo(L,T);ctx.lineTo(ax-16,T);ctx.moveTo(ax+16,T);ctx.lineTo(R,T);
   ctx.moveTo(R,T);ctx.lineTo(R,B);ctx.lineTo(L,B);ctx.lineTo(L,T);
   ctx.stroke();ctx.restore();
   dcBatt(ctx,L,(T+B)/2,'');
+  label(ctx,'12 V',L+14,(T+B)/2+4,'#f87171',9.5,'left');
   dcRes(ctx,vx,T,54,22,'6 Ω','#38bdf8',0);
   // the ammeter drops INTO the gap; the voltmeter only bridges across
-  const ay=T-52*(1-s);
+  // (both start fully on the canvas -- the voltmeter used to be cut in half)
+  const ay=T-50*(1-s);
   ctx.save();ctx.fillStyle='rgba(2,10,20,.95)';ctx.strokeStyle='#fbbf24';ctx.lineWidth=2.4;
   ctx.beginPath();ctx.arc(ax,ay,15,0,6.2832);ctx.fill();ctx.stroke();ctx.restore();
   label(ctx,'A',ax,ay,'#fbbf24',12);
   if(s>0.98)dcFlow(ctx,[[L,B],[L,T],[R,T],[R,B],[L,B]],t,0.11,'#fbbf24',14);
-  const vy=T-26-40*(1-s);
+  const vy=T-26-28*(1-s);
   ctx.save();ctx.strokeStyle='#34d399';ctx.lineWidth=1.8;ctx.setLineDash([4,3]);
   ctx.globalAlpha=s;ctx.beginPath();
   ctx.moveTo(vx-27,T);ctx.lineTo(vx-27,vy);ctx.lineTo(vx+27,vy);ctx.lineTo(vx+27,T);
@@ -20246,8 +20273,9 @@ runAnim('anim-dc-realmeter',(canvas,ctx,W,H,t)=>{
   ctx.save();ctx.strokeStyle='#64748b';ctx.lineWidth=2.2;
   ctx.beginPath();ctx.rect(L,T,R2-L,B-T);ctx.stroke();ctx.restore();
   dcBatt(ctx,L,(T+B)/2,'');
-  dcRes(ctx,W*0.38,T,46,20,'10k','#38bdf8',0);
-  dcRes(ctx,W*0.66,T,46,20,'10k','#a78bfa',0);
+  label(ctx,'12 V',L+14,(T+B)/2+4,'#f87171',9.5,'left');
+  dcRes(ctx,W*0.38,T,52,20,'10 kΩ','#38bdf8',0);
+  dcRes(ctx,W*0.66,T,52,20,'10 kΩ','#a78bfa',0);
   ctx.save();ctx.strokeStyle='#34d399';ctx.lineWidth=1.6;ctx.setLineDash([4,3]);
   ctx.beginPath();ctx.moveTo(W*0.58,T);ctx.lineTo(W*0.58,T-30);
   ctx.lineTo(W*0.74,T-30);ctx.lineTo(W*0.74,T);ctx.stroke();ctx.restore();
@@ -20275,16 +20303,20 @@ runAnim('anim-dc-emf',(canvas,ctx,W,H,t)=>{
   bg(ctx,W,H);
   const E=12,r=1,R=0.4+7.6*(0.5+0.5*Math.cos(t*0.55));
   const I=E/(R+r),Vt=E-I*r,Imax=E/r;
-  const L=W*0.12,Rt=W*0.88,T=H*0.20,B=H*0.44;
+  const L=W*0.12,Rt=W*0.88,T=H*0.13,B=H*0.45;
   ctx.save();ctx.strokeStyle='#64748b';ctx.lineWidth=2.2;
   ctx.beginPath();ctx.rect(L,T,Rt-L,B-T);ctx.stroke();ctx.restore();
-  ctx.save();ctx.strokeStyle='rgba(248,113,113,.45)';ctx.setLineDash([5,4]);ctx.lineWidth=1.4;
-  ctx.beginPath();ctx.rect(L-14,(T+B)/2-34,62,68);ctx.stroke();ctx.restore();
-  dcBatt(ctx,L,(T+B)/2-10,'');
-  dcRes(ctx,L+22,(T+B)/2+18,34,16,'1Ω','#f87171',0);
-  label(ctx,'ε = 12 V',L+16,(T+B)/2-44,'#f87171',9.5);
-  dcRes(ctx,W*0.62,T,56,22,R.toFixed(1)+' Ω','#38bdf8',I*I*R/40);
   dcFlow(ctx,[[L,B],[L,T],[Rt,T],[Rt,B],[L,B]],t,Math.min(.55,I*0.035),'#fbbf24',12);
+  // the cell and its internal resistance, one above the other ON the same rail --
+  // r was drawn beside the wire, in no circuit at all
+  const yb=T+(B-T)*0.30, yr=T+(B-T)*0.70;
+  ctx.save();ctx.strokeStyle='rgba(248,113,113,.45)';ctx.setLineDash([5,4]);ctx.lineWidth=1.4;
+  ctx.beginPath();ctx.rect(L-30,T+5,Math.max(W*0.17,92),B-T-10);ctx.stroke();ctx.restore();
+  dcBatt(ctx,L,yb,'');
+  dcResV(ctx,L,yr,14,20,'','#f87171',I*I*r/40);
+  label(ctx,'ε = 12 V',L+12,yb+4,'#f87171',9,'left');
+  label(ctx,'r = 1 Ω',L+12,yr+4,'#f87171',9,'left');
+  dcRes(ctx,W*0.62,T,56,22,R.toFixed(1)+' Ω','#38bdf8',I*I*R/40);
   // the line V = ε - I·r, with the working point sliding along it
   const gx=W*0.10,gw=W*0.80,gy=H*0.60,gh=H*0.22;
   const X=(i)=>gx+gw*(i/Imax), Y=(v)=>gy+gh-(v/E)*gh;
@@ -20294,9 +20326,9 @@ runAnim('anim-dc-emf',(canvas,ctx,W,H,t)=>{
   ctx.save();ctx.fillStyle='#fbbf24';ctx.beginPath();ctx.arc(X(I),Y(Vt),5,0,6.2832);ctx.fill();ctx.restore();
   label(ctx,'ε',X(0)+8,Y(E)+8,'#34d399',10,'left');
   label(ctx,'I',X(Imax)-6,gy+gh-6,'#94a3b8',9.5,'right');
-  label(ctx,'I = '+I.toFixed(2)+' A',W*0.26,H*0.53,'#fbbf24',10.5);
-  label(ctx,'V = '+Vt.toFixed(2)+' V',W*0.50,H*0.53,'#34d399',10.5);
-  label(ctx,'מתח ההדקים',W*0.76,H*0.53,'#7d8da6',9.5);
+  label(ctx,'I = '+I.toFixed(2)+' A',W*0.26,H*0.54,'#fbbf24',10.5);
+  label(ctx,'V = '+Vt.toFixed(2)+' V',W*0.50,H*0.54,'#34d399',10.5);
+  label(ctx,'מתח ההדקים',W*0.76,H*0.54,'#7d8da6',9.5);
   label(ctx,'הכא״מ לא זז — מה שצנח הוא מה שנשאר אחרי הירידה I·r בתוך הסוללה',
     W/2,H-9,'#94a3b8',9.5);
 });
@@ -20327,11 +20359,14 @@ runAnim('anim-dc-cap',(canvas,ctx,W,H,t)=>{
   ctx.strokeStyle='#fbbf24';ctx.lineWidth=3;
   ctx.beginPath();ctx.moveTo(nx-15,cyT);ctx.lineTo(nx+15,cyT);
   ctx.moveTo(nx-15,cyB);ctx.lineTo(nx+15,cyB);ctx.stroke();ctx.restore();
-  dcFlow(ctx,[[L,B],[L,T],[nx,T]],t,0.055*I1,'#fbbf24',6);
-  dcFlow(ctx,[[nx,T],[Rt,T],[Rt,B],[nx,B],[L,B]],t,0.055*Math.max(0.05,I2),'#a78bfa',9);
-  if(Ic>0.06){
-    dcFlow(ctx,[[nx,T],[nx,cyT]],t,0.32*Ic,'#f472b6',2);     // into the + plate
-    dcFlow(ctx,[[nx,cyB],[nx,B]],t,0.32*Ic,'#f472b6',2);     // out of the − plate
+  // three closed paths meeting at the capacitor's node, one spacing, one speed
+  // scale: the battery's current returns along the bottom only as far as that
+  // node (R₂'s current used to be drawn all the way back into the battery)
+  dcFlowI(ctx,[[nx,B],[L,B],[L,T],[nx,T]],t,I1,'#fbbf24',40);
+  if(I2>0.01)dcFlowI(ctx,[[nx,T],[Rt,T],[Rt,B],[nx,B]],t,I2,'#a78bfa',40);
+  if(Ic>0.01){
+    dcFlowI(ctx,[[nx,T],[nx,cyT]],t,Ic,'#f472b6',40);     // into the + plate
+    dcFlowI(ctx,[[nx,cyB],[nx,B]],t,Ic,'#f472b6',40);     // out of the − plate
   }
   const nq=Math.round(f*5);
   if(nq){
