@@ -915,6 +915,13 @@ html{scroll-padding-top:72px;}
 .skip-link:focus{transform:none;}
 .sec-title:focus{outline:none;}
 .visually-hidden{position:absolute!important;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;}
+/* A closed panel is only slid off-screen; hidden as well, so Tab and a
+   screen reader do not wander through it. Its own scrolling stops at its
+   ends instead of dragging the page behind it (iOS ignores overflow:hidden
+   on the body). */
+.drawer-panel,.formula-panel{visibility:hidden;overscroll-behavior:contain;
+  transition:transform .28s cubic-bezier(.4,0,.2,1),visibility 0s linear .3s;}
+.drawer-panel.open,.formula-panel.open{visibility:visible;transition:transform .28s cubic-bezier(.4,0,.2,1);}
 /* Reduced motion: no pulsing, popping or sliding; the theory animations
    start parked on their first frame (a tap plays them) */
 @media (prefers-reduced-motion:reduce){
@@ -1644,11 +1651,20 @@ function initFolds(){
 // ══════════════════════════════════════════════
 // ── Persistence ─────────────────────────────────────────────────
 const SAVE_KEY='phys_game_state_v2';
+// Storage can refuse outright: Safari's private mode, a browser set to block
+// site data (getItem itself throws SecurityError there), a full quota. Every
+// read and write goes through here, so the app runs -- without memory --
+// instead of stopping at the first access.
+var _ls={
+  get:function(k){try{return window.localStorage.getItem(k);}catch(e){return null;}},
+  set:function(k,v){try{window.localStorage.setItem(k,v);return true;}catch(e){return false;}},
+  del:function(k){try{window.localStorage.removeItem(k);}catch(e){}}
+};
 function saveState(){
   try{
-    localStorage.setItem(SAVE_KEY,JSON.stringify({
+    _ls.set(SAVE_KEY,JSON.stringify({
       subject:state.subject,
-      chapter:state.chapter, section:state.section,
+      chapter:state.chapter, section:state.section, tab:state.tab,
       xp:state.xp, completed:state.completed, visited:state.visited,
       quizState:state.quizState, problemState:state.problemState,
       theme:state.theme,
@@ -1658,21 +1674,38 @@ function saveState(){
 }
 function loadState(){
   try{
-    var raw=localStorage.getItem(SAVE_KEY);
+    var raw=_ls.get(SAVE_KEY);
     if(!raw)return;
     var saved=JSON.parse(raw);
+    if(!saved||typeof saved!=='object')return;
+    var obj=function(o){return o&&typeof o==='object'&&!Array.isArray(o)?o:{};};
     if(saved.subject)state.subject=saved.subject;
     if(saved.chapter)state.chapter=saved.chapter;
     if(saved.section)state.section=saved.section;
-    if(saved.xp)state.xp=saved.xp||0;
-    if(saved.completed)state.completed=saved.completed||{};
-    if(saved.visited)state.visited=saved.visited||{};
-    if(saved.quizState)state.quizState=saved.quizState||{};
-    if(saved.problemState)state.problemState=saved.problemState||{};
-    if(saved.theme)state.theme=saved.theme||'dark';
+    if(/^(theory|sim|quiz|problem)$/.test(saved.tab))state.tab=saved.tab;
+    // a hand-edited or half-written save must not put NaN in the header
+    if(isFinite(saved.xp)&&saved.xp>0)state.xp=Math.round(+saved.xp);
+    state.completed=obj(saved.completed);
+    state.visited=obj(saved.visited);
+    state.quizState=obj(saved.quizState);
+    state.problemState=obj(saved.problemState);
+    if(saved.theme)state.theme=saved.theme;
     if(saved.difficulty)state.difficulty=saved.difficulty||'normal';
     applyTheme(state.theme);
   }catch(e){}
+}
+// The saved place can name a section that no longer exists (renamed in an
+// update) or a subject this version lacks; that used to open on "content in
+// development". Fall back to the subject's first section instead.
+function _validPos(){
+  var L={mechanics:MECH_CHAPTERS,optics:OPTICS_CHAPTERS,electro:ELECTRO_CHAPTERS,circuits:DC_CHAPTERS,magnetism:MAG_CHAPTERS};
+  if(!L[state.subject])state.subject='mechanics';
+  var chs=L[state.subject],ch=chs.find(function(c){return c.id===state.chapter;});
+  if(!ch||!ch.sections.some(function(s){return s.id===state.section;})){
+    ch=ch&&ch.sections.length?ch:chs[0];
+    state.chapter=ch.id;state.section=ch.sections[0].id;state.tab='theory';
+  }
+  if(!/^(theory|sim|quiz|problem)$/.test(state.tab))state.tab='theory';
 }
 function applyTheme(t){
   if(t!=='light')t='dark';
@@ -30541,6 +30574,102 @@ function simElcCap(canvas){
 // ══════════════════════════════════════════════
 // RENDER ENGINE
 // ══════════════════════════════════════════════
+// ── Focus survives a re-render ──────────────────────────────────────────
+// render() rebuilds the whole page, and the element that had focus went with
+// it: after answering a question from the keyboard, focus fell back to the
+// top of the document and the learner had to tab through fifty topic buttons
+// to reach "next". The focused control is remembered by id, or by class and
+// position, and its counterpart in the new page takes the focus back.
+var _FK_CLS=['tab','quiz-opt','sec-btn','subject-tab','next-section-btn','fold-btn','hint-btn','quiz-hint-btn','btn','theme-btn','ver-badge'];
+function _focusKey(){
+  var a=document.activeElement,app=document.getElementById('app');
+  if(!a||!app||!app.contains(a)||a===app)return null;
+  var k={inQuiz:!!a.closest('.quiz-card,.done-banner'),step:null};
+  var st=a.closest('.step-card');
+  if(st)k.step=[].indexOf.call(app.querySelectorAll('.step-card'),st);
+  if(a.id){k.id=a.id;return k;}
+  for(var i=0;i<_FK_CLS.length;i++)if(a.classList.contains(_FK_CLS[i])){
+    k.cls=_FK_CLS[i];k.idx=[].indexOf.call(app.querySelectorAll('.'+k.cls),a);return k;}
+  return k;
+}
+function _focusable(e){return !!e&&!e.disabled&&e.offsetParent!==null;}
+function _restoreFocus(k){
+  if(!k)return;
+  var app=document.getElementById('app'),e=null;
+  if(k.id)e=document.getElementById(k.id);
+  else if(k.inQuiz){
+    // an answered question disables its options, so focus moves to "next";
+    // once "next" is pressed, to the new question's first option
+    if(k.cls==='quiz-opt')e=app.querySelectorAll('.quiz-opt')[k.idx];
+    if(!_focusable(e))e=(k.cls!=='quiz-opt'&&app.querySelector('.quiz-opt:not([disabled])'))||
+      app.querySelector('.quiz-card .btn,.done-banner .btn')||app.querySelector('.quiz-opt:not([disabled])');
+  }
+  else if(k.cls)e=app.querySelectorAll('.'+k.cls)[k.idx];
+  // a solved step's field is gone: move on to the next step's field
+  if(!_focusable(e)&&k.id&&/^si\d+$/.test(k.id))e=document.getElementById('si'+(+k.id.slice(2)+1));
+  if(!_focusable(e)&&k.step!==null&&k.step>=0){var sc=app.querySelectorAll('.step-card')[k.step];
+    if(sc)e=sc.querySelector('input:not([disabled]),button');}
+  if(!_focusable(e))return;
+  // Applied a moment later, not inside the key event that caused the render:
+  // focus moved during Enter's keydown let the same Enter press the new
+  // control as well ("next", then the first option of the next question).
+  // Whatever takes focus in the meantime (the topic title after navigating)
+  // wins.
+  setTimeout(function(){
+    var a=document.activeElement;
+    if(!e.isConnected||(a&&a!==document.body&&a.isConnected))return;
+    try{e.focus({preventScroll:true});}catch(x){}
+  },0);
+}
+// ── Where the learner is goes in the address bar ────────────────────────
+// #/chapter/section/tab: the phone's back button steps back through topics
+// and tabs instead of leaving the app, and a link can open a given topic.
+var _pushNext=false;
+function _routeHash(){return '#/'+state.chapter+'/'+state.section+'/'+state.tab;}
+function _syncHash(){
+  var h=_routeHash(),push=_pushNext;_pushNext=false;
+  if(location.hash===h)return;
+  try{history[push&&location.hash?'pushState':'replaceState'](null,'',h);}catch(e){}
+}
+function _subjectOf(cid){
+  var L={mechanics:MECH_CHAPTERS,optics:OPTICS_CHAPTERS,electro:ELECTRO_CHAPTERS,circuits:DC_CHAPTERS,magnetism:MAG_CHAPTERS};
+  for(var s in L)if(L[s].some(function(c){return c.id===cid;}))return s;
+  return null;
+}
+function _applyHash(){
+  var m=/^#\/([\w-]+)\/([\w-]+)(?:\/(theory|sim|quiz|problem))?$/.exec(location.hash||'');
+  if(!m)return false;
+  var subj=_subjectOf(m[1]);if(!subj)return false;
+  if(!CONTENT[m[1]+'.'+m[2]])return false;
+  state.subject=subj;state.chapter=m[1];state.section=m[2];state.tab=m[3]||'theory';
+  return true;
+}
+window.addEventListener('popstate',function(){
+  if(typeof closeDrawer==='function')closeDrawer();
+  if(typeof closeFormulaPanel==='function')closeFormulaPanel();
+  if(typeof closeChangelog==='function')closeChangelog();
+  var before=state.chapter+'.'+state.section;
+  if(!_applyHash())return;
+  stopSim('sim-canvas');
+  render();
+  _toTop(state.chapter+'.'+state.section!==before);
+});
+// A new page starts at its top. The page scrolls the window, not .main --
+// attachEvents reset .main.scrollTop, which is never scrolled, so the next
+// topic opened as far down as the last one had been read.
+function _toTop(focusTitle){
+  try{window.scrollTo(0,0);}catch(e){}
+  if(!focusTitle)return;
+  var t=document.getElementById('sec-title');
+  if(!_focusable(t))t=document.querySelector('#app .tab.active');
+  if(t)try{t.focus({preventScroll:true});}catch(e){}
+}
+window._skipToMain=function(){
+  var t=document.getElementById('sec-title');
+  if(!_focusable(t))t=document.querySelector('#app .tab.active');
+  if(t){t.focus();t.scrollIntoView({block:'start'});}
+  return false;
+};
 function render(){
   // A sensor stream and its animation frame outlive innerHTML, so stop them
   // before the page they were drawing into is replaced.
@@ -30559,9 +30688,17 @@ function render(){
   const content=CONTENT[`${state.chapter}.${state.section}`];
   // opening a section is itself progress worth showing in the navigation
   if(sec&&!state.visited[`${state.chapter}.${state.section}`]){
-    state.visited[`${state.chapter}.${state.section}`]=true; saveState();
+    state.visited[`${state.chapter}.${state.section}`]=true;
   }
+  // Every answer, hint and step passes through here, so this is the one
+  // place that persists them: before, a quiz half done, a hint paid for or a
+  // step solved was saved only when a whole tab was completed -- a reload
+  // undid them, and refunded the hint.
+  saveState();
+  var _fk=_focusKey();
   document.getElementById('app').innerHTML=buildPage(ch,sec,content);
+  _restoreFocus(_fk);
+  _syncHash();
   // Immediately, not behind the KaTeX retry loop: a formula that reads backwards
   // for the first half second is still a formula that reads backwards.
   fixInlineMath();
@@ -30607,28 +30744,33 @@ function buildPage(ch,sec,content){
   const main=buildMain(ch,sec,content);
   const allSecs=[MECH_CHAPTERS,OPTICS_CHAPTERS,ELECTRO_CHAPTERS,DC_CHAPTERS,MAG_CHAPTERS]
     .reduce(function(t,list){return t+list.reduce(function(a,c){return a+c.sections.length;},0);},0);
-  const doneSecs=Object.keys(state.completed).filter(function(k){return k.endsWith('.quiz');}).length;
-  const pct=Math.round(doneSecs/allSecs*100);
+  // only sections that still exist: a quiz finished in a section that was
+  // later renamed must not push the count past the total
+  const doneSecs=Object.keys(state.completed).filter(function(k){
+    return k.endsWith('.quiz')&&!!CONTENT[k.slice(0,-5)];}).length;
+  const pct=Math.min(100,Math.round(doneSecs/allSecs*100));
+  const light=state.theme==='light';
   const subjIcon=state.subject==='optics'?'🔆':state.subject==='electro'?'⚡':state.subject==='circuits'?'🔌':state.subject==='magnetism'?'🧲':'⚛️';
   const subjName=state.subject==='optics'?'אופטיקה':state.subject==='electro'?'חשמל סטטי'
     :state.subject==='circuits'?'מעגלי זרם ישר':state.subject==='magnetism'?'מגנטיות והשראה':'מכניקה ניוטונית';
   return `
-  <div class="header">
-    <button class="hamburger-btn" id="hamburger-btn" onclick="openDrawer()" aria-label="נושאים">☰</button>
+  <a class="skip-link" href="#main-content" onclick="return _skipToMain()">דילוג לתוכן</a>
+  <header class="header">
+    <button class="hamburger-btn" id="hamburger-btn" onclick="openDrawer()" aria-label="נושאים" aria-haspopup="dialog" aria-controls="mobile-drawer" aria-expanded="false">☰</button>
     <div class="header-title">${subjIcon} ${subjName}</div>
-    <button class="ver-badge" id="ver-badge" onclick="openChangelog()" title="מה חדש בגרסה">v${APP_VERSION}</button>
+    <button class="ver-badge" id="ver-badge" onclick="openChangelog()" title="מה חדש בגרסה" aria-label="גרסה ${APP_VERSION} — מה חדש">v${APP_VERSION}</button>
     <div class="header-progress">
-      <div class="progress-bar-wrap" title="${pct}% הושלם"><div class="progress-bar-fill" style="width:${pct}%"></div></div>
+      <div class="progress-bar-wrap" title="${pct}% הושלם" role="progressbar" aria-label="התקדמות בקורס" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${pct}"><div class="progress-bar-fill" style="width:${pct}%"></div></div>
       <span class="xp-badge" id="xp-badge-el">⭐ ${state.xp} XP</span>
       <span class="done-badge">${doneSecs}/${allSecs} ✓</span>
-      <button class="theme-btn" onclick="toggleTheme()" title="עצב כהה/בהיר (Shift+D)">🌙</button>
-      <button class="theme-btn" onclick="openFormulaPanel()" title="נוסחאות (Shift+F)" style="font-size:.9rem">📐</button>
-      <button class="theme-btn print-btn" onclick="printSummary()" title="הדפס סיכום" style="font-size:.9rem">🖨</button>
+      <button class="theme-btn" onclick="toggleTheme()" title="עיצוב ${light?'כהה':'בהיר'} (Shift+D)" aria-label="מעבר לעיצוב ${light?'כהה':'בהיר'}">${light?'☀️':'🌙'}</button>
+      <button class="theme-btn" onclick="openFormulaPanel()" title="דף נוסחאות (Shift+F)" aria-label="דף נוסחאות" style="font-size:.9rem">📐</button>
+      <button class="theme-btn print-btn" onclick="printSummary()" title="הדפסת סיכום ההתקדמות" aria-label="הדפסת סיכום ההתקדמות" style="font-size:.9rem">🖨</button>
     </div>
-  </div>
+  </header>
   <div class="layout">
-    <div class="sidebar" id="sidebar-nav">${sidebar}</div>
-    <div class="main" id="main-content">${main}</div>
+    <nav class="sidebar" id="sidebar-nav" aria-label="נושאי לימוד">${sidebar}</nav>
+    <main class="main" id="main-content">${main}</main>
   </div>`;
 }
 window.switchSubject=function(subj){
@@ -30638,9 +30780,14 @@ window.switchSubject=function(subj){
   state.chapter=chs[0].id;
   state.section=chs[0].sections[0].id;
   state.tab='theory';
-  saveState();
-  closeDrawer();
+  _pushNext=true;
+  // Picked in the phone drawer, a subject is half the choice: keep the drawer
+  // open on the new subject's topics instead of dropping the learner on its
+  // first section and making them reopen it.
+  var dr=document.getElementById('mobile-drawer'),inDrawer=dr&&dr.classList.contains('open');
   render();
+  if(inDrawer)refreshDrawerNav(); else closeDrawer();
+  _toTop(!inDrawer);
 };
 function buildSidebar(){
   var subjectTabs=`<div class="subject-tabs">
@@ -30674,11 +30821,15 @@ function buildMain(ch,sec,content){
   if(!content)return `<div class="locked-sec"><div class="lock-icon">🔧</div><p>תוכן לנושא זה בפיתוח.<br>נסו נושא אחר.</p></div>`;
   const quizDone=isQuizDone(state.chapter,state.section);
   const badgeTxt={theory:['badge-theory','📚 תיאוריה'],sim:['badge-sim','🔬 סימולציה'],quiz:['badge-quiz','🎯 חידון'],problem:['badge-problem','📝 בעיה']};
-  const tabs=`<div class="tabs">
-    <button class="tab${state.tab==='theory'?' active':''}" onclick="setTab('theory')">📚 תיאוריה <span class="kbd-hint">1</span></button>
-    <button class="tab${state.tab==='sim'?' active':''}" onclick="setTab('sim')">🔬 סימולציה <span class="kbd-hint">2</span></button>
-    <button class="tab${state.tab==='quiz'?' active':''}" onclick="setTab('quiz')">🎯 חידון <span class="kbd-hint">3</span></button>
-    <button class="tab${state.tab==='problem'?' active':''}${!quizDone?' locked':''}" onclick="${quizDone?"setTab('problem')":'void(0)'}" title="${quizDone?'':'השלימו את החידון תחילה'}">📝 בעיה <span class="kbd-hint">4</span></button>
+  // aria-current names the open tab for a screen reader; a locked tab still
+  // opens -- onto the panel that says why it is locked and leads to the quiz
+  // (pressing it used to do nothing at all, which on a phone reads as broken)
+  const cur=t=>state.tab===t?' aria-current="true"':'';
+  const tabs=`<div class="tabs" role="group" aria-label="שלבי הנושא">
+    <button class="tab${state.tab==='theory'?' active':''}"${cur('theory')} onclick="setTab('theory')">📚 תיאוריה <span class="kbd-hint" aria-hidden="true">1</span></button>
+    <button class="tab${state.tab==='sim'?' active':''}"${cur('sim')} onclick="setTab('sim')">🔬 סימולציה <span class="kbd-hint" aria-hidden="true">2</span></button>
+    <button class="tab${state.tab==='quiz'?' active':''}"${cur('quiz')} onclick="setTab('quiz')">🎯 חידון <span class="kbd-hint" aria-hidden="true">3</span></button>
+    <button class="tab${state.tab==='problem'?' active':''}${!quizDone?' locked':''}"${cur('problem')}${!quizDone?' aria-disabled="true"':''} onclick="setTab('problem')" title="${quizDone?'':'השלימו את החידון תחילה'}">📝 בעיה <span class="kbd-hint" aria-hidden="true">4</span></button>
   </div>`;
   let body='';
   if(state.tab==='theory')body=buildTheory(content.theory);
@@ -30688,7 +30839,7 @@ function buildMain(ch,sec,content){
      <button class="btn btn-primary" onclick="setTab('quiz')" style="margin-top:14px">🎯 לחידון</button></div>`;
   return `<div class="sec-header${state.tab==='sim'?' sec-header--sim':''}">
     <span class="sec-badge ${badgeTxt[state.tab]?badgeTxt[state.tab][0]:'badge-theory'}">${badgeTxt[state.tab]?badgeTxt[state.tab][1]:''}</span>
-    <div class="sec-title">${(sec&&sec.title)||''}</div>
+    <h1 class="sec-title" id="sec-title" tabindex="-1">${(sec&&sec.title)||''}</h1>
     <div class="sec-desc">${(sec&&sec.sub)||''}</div>
   </div>${tabs}<div class="fade-in">${body}</div>`;
 }
@@ -32858,7 +33009,9 @@ function buildQuiz(qs){
   }).join('');
   // Hint button (if question has a hint and not answered yet, costs 5 XP)
   var hintKey=state.chapter+'.'+state.section+'.'+qi;
-  var hintShown=window._quizHints&&window._quizHints[hintKey];
+  // a paid hint is part of the quiz's saved state, so a reload neither hides
+  // it nor charges for it twice
+  var hintShown=(st.hints&&st.hints[qi])||(window._quizHints&&window._quizHints[hintKey]);
   var hintHTML='';
   if(q.hint&&!ans&&!hintShown){
     hintHTML='<button class="quiz-hint-btn" onclick="showQuizHint('+qi+')">💡 רמז (−5 XP)</button>';
@@ -32866,7 +33019,7 @@ function buildQuiz(qs){
   if(q.hint&&hintShown){
     hintHTML='<div class="quiz-hint-box">💡 '+_ltSafe(q.hint)+'</div>';
   }
-  const fb=ans?`<div class="quiz-feedback${st.ans[qi]===qv.correct?' fb-ok':' fb-err'}">
+  const fb=ans?`<div class="quiz-feedback${st.ans[qi]===qv.correct?' fb-ok':' fb-err'}" role="status">
     <div style="font-size:1rem;margin-bottom:4px">${st.ans[qi]===qv.correct?'✅ נכון!':'❌ לא נכון.'}</div>
     <div style="font-size:.88rem;color:var(--muted)">${_ltSafe(q.explain||'')}</div>
     ${q.formula&&st.ans[qi]!==qv.correct?`<div style="margin-top:8px;padding:6px 10px;background:rgba(0,0,0,.2);border-radius:6px;font-family:monospace;color:var(--accent);font-size:.9rem">${q.formula}</div>`:''}
@@ -32908,16 +33061,18 @@ function buildProblem(prob){
 function attachEvents(){
   // Stop any running simulation when switching tab or section
   stopSim('sim-canvas');
-  // Scroll main content area back to top on every navigation
-  var mainEl=document.querySelector('.main');
-  if(mainEl) mainEl.scrollTop=0;
+  // (scrolling back to the top belongs to navigation -- see _toTop -- not to
+  // every re-render: answering a question must not jump the page)
 }
 
 window.navigate=(c,s)=>{
+  var same=state.chapter===c&&state.section===s;
   state.chapter=c; state.section=s; state.tab='theory';
   stopSim('sim-canvas');
   closeDrawer();
+  _pushNext=!same;
   render();
+  _toTop(true);
 };
 
 // ── Mobile Drawer ──────────────────────────────────────────────
@@ -32929,38 +33084,86 @@ function ensureDrawer(){
   document.body.appendChild(ov);
   var panel=document.createElement('div');
   panel.id='mobile-drawer'; panel.className='drawer-panel';
+  panel.setAttribute('role','dialog');panel.setAttribute('aria-modal','true');
+  panel.setAttribute('aria-label','נושאי לימוד');
   panel.innerHTML=
     '<div class="drawer-close">'+
     '<span style="color:var(--text);font-size:.95rem">📚 נושאי לימוד</span>'+
-    '<button onclick="closeDrawer()" aria-label="סגור">✕</button>'+
+    '<button onclick="closeDrawer()" aria-label="סגירת רשימת הנושאים">✕</button>'+
     '</div><div id="drawer-nav"></div>';
   document.body.appendChild(panel);
 }
 function refreshDrawerNav(){
   var nav=document.getElementById('drawer-nav');
   if(nav) nav.innerHTML=buildSidebar();
+  // the drawer lives outside #app, so the render-time contrast pass misses it
+  var dr=document.getElementById('mobile-drawer');
+  if(dr&&typeof ensureContrast==='function')ensureContrast(dr);
 }
+// One rule for the three slide-in panels (topics, formulas, changelog): focus
+// goes into the panel when it opens and back to what opened it when it
+// closes, and Tab cycles inside the open panel instead of wandering into
+// the page hidden behind it.
+var _panelOpener=null;
+function _openPanel(panel,first){
+  var a=document.activeElement;
+  if(a&&a!==document.body&&!panel.contains(a))_panelOpener=a;
+  var f=first||panel.querySelector('button,[href],input,[tabindex]:not([tabindex="-1"])');
+  if(f)setTimeout(function(){try{f.focus({preventScroll:true});}catch(e){}},30);
+}
+function _closedPanel(panel){
+  if(!panel||!panel.contains(document.activeElement))return;
+  var o=_panelOpener;_panelOpener=null;
+  if(o&&o.isConnected&&o.offsetParent!==null){try{o.focus({preventScroll:true});}catch(e){}}
+  else if(document.activeElement&&document.activeElement.blur)document.activeElement.blur();
+}
+function _openPanelEl(){
+  var l=['mobile-drawer','formula-panel','changelog-panel'];
+  for(var i=0;i<l.length;i++){var e=document.getElementById(l[i]);if(e&&e.classList.contains('open'))return e;}
+  return null;
+}
+document.addEventListener('keydown',function(e){
+  if(e.key!=='Tab')return;
+  var p=_openPanelEl();if(!p)return;
+  var f=[].filter.call(p.querySelectorAll('button,[href],input,select,[tabindex]:not([tabindex="-1"])'),
+    function(x){return !x.disabled&&x.offsetParent!==null;});
+  if(!f.length)return;
+  var i=f.indexOf(document.activeElement);
+  if(e.shiftKey&&(i<=0)){e.preventDefault();f[f.length-1].focus();}
+  else if(!e.shiftKey&&(i<0||i===f.length-1)){e.preventDefault();f[0].focus();}
+});
 window.openDrawer=function(){
   ensureDrawer();
   refreshDrawerNav();
+  var dr=document.getElementById('mobile-drawer');
   document.getElementById('drawer-overlay').classList.add('open');
-  document.getElementById('mobile-drawer').classList.add('open');
+  dr.classList.add('open');
   document.body.style.overflow='hidden';
+  var hb=document.getElementById('hamburger-btn');if(hb)hb.setAttribute('aria-expanded','true');
+  // start at the open topic, already in view
+  var act=dr.querySelector('.sec-btn.active');
+  if(act)dr.scrollTop=Math.max(0,act.offsetTop-dr.clientHeight/2);
+  _openPanel(dr,act);
 };
 function closeDrawer(){
   var ov=document.getElementById('drawer-overlay');
   var dr=document.getElementById('mobile-drawer');
   if(ov) ov.classList.remove('open');
-  if(dr) dr.classList.remove('open');
+  if(dr&&dr.classList.contains('open')){dr.classList.remove('open');_closedPanel(dr);}
+  var hb=document.getElementById('hamburger-btn');if(hb)hb.setAttribute('aria-expanded','false');
   document.body.style.overflow='';
 }
-var _touchStartX=0;
-document.addEventListener('touchstart',function(e){_touchStartX=e.touches[0].clientX;},false);
+// a swipe toward the edge closes the drawer -- a swipe, not a scroll that
+// drifted sideways on its way down the list
+var _touchStartX=0,_touchStartY=0;
+document.addEventListener('touchstart',function(e){if(!e.touches[0])return;_touchStartX=e.touches[0].clientX;_touchStartY=e.touches[0].clientY;},{passive:true});
 document.addEventListener('touchend',function(e){
+  var t=e.changedTouches&&e.changedTouches[0];if(!t)return;
+  var dx=t.clientX-_touchStartX,dy=t.clientY-_touchStartY;
   if(document.getElementById('mobile-drawer')&&
      document.getElementById('mobile-drawer').classList.contains('open')&&
-     e.changedTouches[0].clientX-_touchStartX>60) closeDrawer();
-},false);
+     dx>60&&Math.abs(dx)>1.5*Math.abs(dy)) closeDrawer();
+},{passive:true});
 
 // ── Symbol tooltips ─────────────────────────────────────────────────────
 // A tooltip that opens on hover never opens under a finger. A tap toggles it
@@ -32991,7 +33194,15 @@ document.addEventListener('click',function(e){
     if(w)_placeTip(w);
   });
 });
-window.setTab=(t)=>{state.tab=t;render();};
+window.setTab=(t)=>{
+  if(state.tab===t){render();return;}
+  state.tab=t;_pushNext=true;render();
+  // a tab opened from the bottom of a long page ("got it -- on to the
+  // simulation") must open at its own start, not somewhere below it
+  var tb=document.querySelector('#app .tabs');
+  if(tb){var y=tb.getBoundingClientRect().top+window.pageYOffset-72;
+    if(window.pageYOffset>y+4)try{window.scrollTo(0,Math.max(0,y));}catch(e){}}
+};
 window.finishTheory=()=>{markCompleted(state.chapter,state.section,'theory',20);setTab('sim');};
 window.finishSim=()=>{markCompleted(state.chapter,state.section,'sim',30);setTab('quiz');};
 window.restartSim=function(){
@@ -33463,8 +33674,8 @@ function buildFormulaPanelHTML(){
       }).join('');
   }).join('');
   return '<div class="formula-panel-hdr">'+
-    '<h3>📐 נוסחאות מהיר</h3>'+
-    '<button class="formula-panel-close" onclick="closeFormulaPanel()">✕</button>'+
+    '<h3 id="formula-panel-h">📐 נוסחאות מהיר</h3>'+
+    '<button class="formula-panel-close" onclick="closeFormulaPanel()" aria-label="סגירת דף הנוסחאות">✕</button>'+
   '</div>'+rows;
 }
 
@@ -33474,6 +33685,8 @@ function openFormulaPanel(){
   if(!p){
     p=document.createElement('div');
     p.id='formula-panel'; p.className='formula-panel';
+    p.setAttribute('role','dialog');p.setAttribute('aria-modal','true');
+    p.setAttribute('aria-labelledby','formula-panel-h');
     document.body.appendChild(p);
     o=document.createElement('div');
     o.id='formula-overlay'; o.className='formula-overlay';
@@ -33484,22 +33697,27 @@ function openFormulaPanel(){
       var fab=document.createElement('button');
       fab.id='formula-fab'; fab.className='formula-fab';
       fab.title='נוסחאות'; fab.textContent='📐';
+      fab.setAttribute('aria-label','דף נוסחאות');
       fab.onclick=openFormulaPanel;
       document.body.appendChild(fab);
     }
   }
   // rebuilt on every open: the subject may have changed since last time
   p.innerHTML=buildFormulaPanelHTML();
+  // a row such as "F_s ≤ μₛN" printed its underscore: the page-wide pass that
+  // turns those into subscripts never reaches this panel
+  if(typeof _subifyDom==='function')_subifyDom(p);
   if(typeof ensureContrast==='function')ensureContrast(p);
   p.classList.add('open');
   o.classList.add('open');
   document.body.style.overflow='hidden';
+  _openPanel(p);
 }
 window.openFormulaPanel=openFormulaPanel;
 function closeFormulaPanel(){
   var p=document.getElementById('formula-panel');
   var o=document.getElementById('formula-overlay');
-  if(p) p.classList.remove('open');
+  if(p&&p.classList.contains('open')){p.classList.remove('open');_closedPanel(p);}
   if(o) o.classList.remove('open');
   document.body.style.overflow='';
 }
@@ -33511,8 +33729,10 @@ function openChangelog(){
   if(!p){
     p=document.createElement('div');
     p.id='changelog-panel'; p.className='formula-panel';
-    p.innerHTML='<div class="formula-panel-hdr"><h3>🆕 יומן גרסאות</h3>'+
-      '<button class="formula-panel-close" onclick="closeChangelog()">✕</button></div>'+
+    p.setAttribute('role','dialog');p.setAttribute('aria-modal','true');
+    p.setAttribute('aria-labelledby','changelog-h');
+    p.innerHTML='<div class="formula-panel-hdr"><h3 id="changelog-h">🆕 יומן גרסאות</h3>'+
+      '<button class="formula-panel-close" onclick="closeChangelog()" aria-label="סגירת יומן הגרסאות">✕</button></div>'+
       APP_CHANGELOG.map(function(e){
         return '<div class="cl-ver"><b>v'+e.v+'</b><span>'+e.d+'</span></div>'+
           '<ul class="cl-list">'+e.notes.map(function(n){return '<li>'+n+'</li>';}).join('')+'</ul>';
@@ -33525,12 +33745,13 @@ function openChangelog(){
   }
   p.classList.add('open'); o.classList.add('open');
   document.body.style.overflow='hidden';
+  _openPanel(p);
 }
 window.openChangelog=openChangelog;
 function closeChangelog(){
   var p=document.getElementById('changelog-panel');
   var o=document.getElementById('changelog-overlay');
-  if(p) p.classList.remove('open');
+  if(p&&p.classList.contains('open')){p.classList.remove('open');_closedPanel(p);}
   if(o) o.classList.remove('open');
   document.body.style.overflow='';
 }
@@ -33542,6 +33763,7 @@ function createFormuleFAB(){
   var fab=document.createElement('button');
   fab.id='formula-fab'; fab.className='formula-fab';
   fab.title='נוסחאות (Shift+F)'; fab.textContent='📐';
+  fab.setAttribute('aria-label','דף נוסחאות');
   fab.onclick=openFormulaPanel;
   document.body.appendChild(fab);
 }
@@ -33554,9 +33776,11 @@ window.toggleTheme=function(){
   applyTheme(next);
   ensureContrast();
   ['formula-panel','changelog-panel','mobile-drawer'].forEach(function(i){var e=document.getElementById(i);if(e)ensureContrast(e);});
-  // Update button icon
+  // Update button icon (render() draws the same one from state.theme)
   var btn=document.querySelector('.theme-btn');
-  if(btn) btn.textContent=next==='dark'?'🌙':'☀️';
+  if(btn){ btn.textContent=next==='dark'?'🌙':'☀️';
+    var lbl='מעבר לעיצוב '+(next==='dark'?'בהיר':'כהה');
+    btn.setAttribute('aria-label',lbl); btn.title=lbl+' (Shift+D)'; }
 };
 
 // ══════════════════════════════════════════════════════════════════
@@ -33692,7 +33916,7 @@ window.nextOnboard=function(){
 function closeOnboarding(){
   var ov=document.getElementById('onboard-overlay');
   if(ov) ov.remove();
-  localStorage.setItem('phys_onboarded','1');
+  _ls.set('phys_onboarded','1');
 }
 
 // ══════════════════════════════════════════════════════════════════
@@ -33700,8 +33924,17 @@ function closeOnboarding(){
 // ══════════════════════════════════════════════════════════════════
 document.addEventListener('keydown',function(e){
   var tag=e.target.tagName;
-  var editable=tag==='INPUT'||tag==='TEXTAREA'||e.target.isContentEditable;
-  if(editable&&!e.shiftKey) return;
+  // Typing belongs to the field: a capital F in an answer used to open the
+  // formula sheet (Shift+F) and a capital D flipped the theme. A slider and a
+  // picker own their arrow keys. Alt+Arrow is the browser's back/forward.
+  var editable=tag==='INPUT'||tag==='TEXTAREA'||tag==='SELECT'||e.target.isContentEditable;
+  if(e.key==='Escape'){ if(typeof _closeTips==='function')_closeTips(null);
+    var ae=document.activeElement;
+    if(ae&&ae.classList&&ae.classList.contains('param-wrap'))ae.blur();
+    closeDrawer(); closeFormulaPanel(); closeChangelog(); return; }
+  if(editable||e.altKey||e.ctrlKey||e.metaKey) return;
+  // with a panel open, the page behind it does not take shortcuts
+  if(typeof _openPanelEl==='function'&&_openPanelEl()) return;
   switch(e.key){
     // 1/2/3/4 → switch tabs
     case '1': if(!editable){e.preventDefault();setTab('theory');} break;
@@ -33741,9 +33974,12 @@ document.addEventListener('keydown',function(e){
 var _quizHints={};
 window.showQuizHint=function(qi){
   var k=state.chapter+'.'+state.section+'.'+qi;
-  if(_quizHints[k]) return;
+  var st=getQS(state.chapter,state.section);
+  if(_quizHints[k]||(st.hints&&st.hints[qi])) return;
   _quizHints[k]=true;
-  if(state.xp>=5){state.xp-=5;saveState();}
+  st.hints=st.hints||{}; st.hints[qi]=true;
+  // the same price as a problem hint, floored at zero like it
+  state.xp=Math.max(0,state.xp-5);
   render();
 };
 
@@ -33771,8 +34007,11 @@ window.printSummary=function(){
 // ══════════════════════════════════════════════════════════════════
 
 function celebrateSection(){
-  // Brief confetti burst using canvas overlay
+  // Brief confetti burst using canvas overlay -- not for a learner who asked
+  // the system for less motion
+  try{if(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches)return;}catch(e){}
   var ov=document.createElement('canvas');
+  ov.setAttribute('aria-hidden','true');
   ov.style.cssText='position:fixed;inset:0;z-index:9980;pointer-events:none;';
   ov.width=window.innerWidth; ov.height=window.innerHeight;
   document.body.appendChild(ov);
@@ -33810,8 +34049,8 @@ function celebrateSection(){
 
 function showSimTooltip(desc){
   var key='simtip_'+state.chapter+'.'+state.section;
-  if(localStorage.getItem(key)) return;
-  localStorage.setItem(key,'1');
+  if(_ls.get(key)) return;
+  _ls.set(key,'1');
   var tip=document.createElement('div');
   tip.style.cssText='position:absolute;bottom:10px;right:10px;left:10px;z-index:500;'+
     'background:rgba(6,14,28,.92);border:1px solid var(--border);border-radius:10px;'+
@@ -33819,7 +34058,7 @@ function showSimTooltip(desc){
     'box-shadow:0 4px 16px rgba(0,0,0,.5);pointer-events:auto;';
   tip.innerHTML='<div style="display:flex;align-items:center;gap:8px;justify-content:space-between">'+
     '<span>🔬 '+desc+'</span>'+
-    '<button onclick="this.parentElement.parentElement.remove()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:1rem;padding:0 4px">✕</button>'+
+    '<button onclick="this.parentElement.parentElement.remove()" aria-label="סגירת ההסבר" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:1rem;padding:0 4px;min-width:32px;min-height:32px">✕</button>'+
     '</div>';
   var wrap=document.querySelector('.sim-canvas-wrap');
   if(wrap){ wrap.style.position='relative'; wrap.appendChild(tip);
@@ -33829,20 +34068,24 @@ function showSimTooltip(desc){
 }
 
 window.resetAllProgress=function(){
-  if(!confirm('מחק את כל ההתקדמות? (לא ניתן לשחזר)')) return;
+  if(!confirm('למחוק את כל ההתקדמות — XP, חידונים, בעיות וסימוני הנושאים? אי אפשר לשחזר.')) return;
   state.xp=0; state.completed={}; state.quizState={};
-  state.problemState={}; _quizHints={};
-  localStorage.removeItem(SAVE_KEY);
+  state.problemState={}; state.visited={}; _quizHints={};
+  _ls.del(SAVE_KEY);
   _lastChapterSummaryShown='';
+  closeDrawer();
   render();
 };
 // Login screen bypassed — enter directly
 // To re-enable login: replace render() below with showLoginScreen()
 loadState();
+// a link to a topic (#/chapter/section/tab) wins over the saved place
+_applyHash();
+_validPos();
 createFormuleFAB();
 render();
 // Show onboarding on very first visit
-if(!localStorage.getItem('phys_onboarded'))showOnboarding();
+if(!_ls.get('phys_onboarded'))showOnboarding();
 </script>
 </body>
 </html>
