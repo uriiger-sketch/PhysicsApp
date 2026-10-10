@@ -12896,7 +12896,7 @@ function simStaticFriction(canvas){
   // filled with duplicates at the current F and five seconds of idling flushed
   // out the curve the learner had just swept.
   var _fsMap={}, _lastMu=null, _lastM=null;
-  var FLOOR_Y=H*0.52;
+  var FLOOR_Y=232;
 
   function getF(){var e=document.getElementById('inp-sft-F'); return e?parseFloat(e.value):F;}
   function getMu(){var e=document.getElementById('inp-sft-mu'); return e?parseFloat(e.value):mu_s;}
@@ -12938,7 +12938,7 @@ function simStaticFriction(canvas){
     simBg(ctx,W,H);
 
     // ── FLOOR ─────────────────────────────────────────────
-    ctx.save(); ctx.fillStyle='#0f2035'; ctx.fillRect(0,FLOOR_Y,W,H*0.30); ctx.restore();
+    ctx.save(); ctx.fillStyle='#0f2035'; ctx.fillRect(0,FLOOR_Y,W,96); ctx.restore();
     ctx.save(); ctx.strokeStyle='#2d5275'; ctx.lineWidth=2;
     ctx.beginPath(); ctx.moveTo(0,FLOOR_Y); ctx.lineTo(W,FLOOR_Y); ctx.stroke(); ctx.restore();
     // Roughness texture
@@ -12946,7 +12946,7 @@ function simStaticFriction(canvas){
       ctx.save(); ctx.strokeStyle='rgba(100,116,139,'+(mu_s*0.5)+')'; ctx.lineWidth=1;
       ctx.beginPath(); ctx.moveTo(xi,FLOOR_Y); ctx.lineTo(xi-7,FLOOR_Y+7); ctx.stroke(); ctx.restore();
     }
-    simText(ctx,'μs = '+mu_s.toFixed(2)+' | μk = '+(mu_s*0.72).toFixed(2),W/2,FLOOR_Y+14,'#7d8da6',8,undefined,true);
+    simText(ctx,'μₛ = '+mu_s.toFixed(2)+'     μₖ = '+(mu_s*0.72).toFixed(2),W-12,FLOOR_Y+86,'#cbd5e1',10,'right',true);
 
     // ── BLOCK ──────────────────────────────────────────────
     var bW=62, bH=52;
@@ -12970,33 +12970,36 @@ function simStaticFriction(canvas){
       }
     }
 
+    // One scale for F, f, N and W, so their lengths compare
+    var kA=Math.min(3,88/Math.max(N,F,fs_actual,1));
     // Applied force arrow
     if(F>0.3){
-      var arLen=Math.min(80,F*0.8);
+      var arLen=F*kA;
       simArrow(ctx,bX-4-arLen,bY+bH/2,bX-4,bY+bH/2,'#fbbf24',3,12);
-      simText(ctx,'F='+F.toFixed(0)+'N',bX-arLen/2-4,bY+bH/2-13,'#fbbf24',9.5,undefined,true);
+      simText(ctx,'F = '+F.toFixed(0)+' N',bX-arLen/2-4,bY+bH/2-13,'#fbbf24',10,undefined,true);
     }
     // Friction force arrow
+    // Friction: F pushes to the right, friction acts along the contact surface
+    // to the left. (It used to be drawn from the right face pointing back INTO
+    // the block, with its label out to the right.) Same scale as F.
     if(fs_actual>0.3){
-      var fLen=Math.min(70,fs_actual*0.8);
+      var fLen=fs_actual*kA;
       var fsCol=isSliding?'#f87171':'#34d399';
-      var fsName=isSliding?'fk':'fs';
-      simArrow(ctx,bX+bW+4,bY+bH/2,bX+bW+4-fLen,bY+bH/2,fsCol,3,12);
-      // Actually friction opposes motion (opposes F which goes left), so goes right... wait
-      // F pushes to the LEFT (negative x), friction opposes → friction points RIGHT (positive x)
-      // Arrow: right-pointing from right edge
-      simText(ctx,fsName+'='+fs_actual.toFixed(0)+'N',bX+bW+fLen/2+4,bY+bH/2-13,fsCol,9,undefined,true);
+      var fsName=isSliding?'fₖ':'fₛ';
+      simArrow(ctx,bX,FLOOR_Y+5,bX-fLen,FLOOR_Y+5,fsCol,3,12);
+      simText(ctx,fsName+' = '+fs_actual.toFixed(1)+' N',bX-fLen/2,FLOOR_Y+22,fsCol,10,undefined,true);
     }
     // N up, W down
-    simArrow(ctx,pos,bY,pos,bY-28,'#a78bfa',2,8);
-    simText(ctx,'N='+N.toFixed(0),pos+4,bY-14,'#a78bfa',7.5,'left');
-    simArrow(ctx,pos,bY+bH,pos,bY+bH+28,'#fbbf24',2,8);
+    simArrow(ctx,pos,bY,pos,bY-N*kA,'#a78bfa',2.5,9);
+    simText(ctx,'N = '+N.toFixed(0)+' N',pos+6,bY-N*kA*0.6,'#c4b5fd',10,'left');
+    simArrow(ctx,pos+14,bY+bH,pos+14,bY+bH+N*kA,'#fbbf24',2.5,9);
+    simText(ctx,'W = '+N.toFixed(0)+' N',pos+20,bY+bH+N*kA*0.6,'#fbbf24',10,'left');
 
     // ── TOP PANEL ──────────────────────────────────────────
     ctx.save(); ctx.fillStyle='rgba(6,14,28,.92)'; ctx.strokeStyle='#1e4060'; ctx.lineWidth=1.5;
     ctx.beginPath(); ctx.roundRect(8,6,W-16,54,6); ctx.fill(); ctx.stroke(); ctx.restore();
-    simText(ctx,'חיכוך סטטי: f_s ≤ μs × N',W/2,19,'#22d3ee',11,undefined,true);
-    simText(ctx,'f_s(max) = μs × N = '+mu_s.toFixed(2)+'×'+N.toFixed(0)+' = '+fs_max.toFixed(1)+' N',W/2,33,'#a78bfa',9.5,undefined,true);
+    simText(ctx,'חיכוך סטטי:  fₛ ≤ μₛN',W/2,19,'#22d3ee',11,undefined,true);
+    simText(ctx,'μₛN = '+mu_s.toFixed(2)+'×'+N.toFixed(1)+' = '+fs_max.toFixed(1)+' N',W/2,33,'#c4b5fd',10,undefined,true);
     // Progress bar F vs threshold
     var barX=40, barW2=W-80, barY2=44;
     ctx.save(); ctx.fillStyle='#0f2035'; ctx.strokeStyle='#1e3a52'; ctx.lineWidth=1;
@@ -13005,7 +13008,7 @@ function simStaticFriction(canvas){
     var maxPx=barX+(fs_max/(fs_max*1.4))*barW2;
     ctx.save(); ctx.strokeStyle='rgba(239,68,68,.7)'; ctx.lineWidth=2; ctx.setLineDash([2,3]);
     ctx.beginPath(); ctx.moveTo(maxPx,barY2-4); ctx.lineTo(maxPx,barY2+16); ctx.stroke(); ctx.setLineDash([]); ctx.restore();
-    simText(ctx,'fs_max',maxPx,barY2-6,'#ef4444',7.5,undefined,true);
+    simText(ctx,'μₛN',maxPx+16,barY2+10,'#f87171',9,undefined,true);
     // F bar
     var Fpx=Math.min(barW2, (F/(fs_max*1.4))*barW2);
     ctx.save(); ctx.fillStyle=isSliding?'rgba(239,68,68,.8)':'rgba(251,191,36,.8)';
@@ -13016,14 +13019,18 @@ function simStaticFriction(canvas){
     ctx.beginPath(); ctx.roundRect(barX,barY2+4,fspx,5,2); ctx.fill(); ctx.restore();
 
     // ── F(x) GRAPH ─────────────────────────────────────────
-    var GX=8, GY=FLOOR_Y+H*0.30+6, GW=W-16, GH=H-GY-8;
+    var GX=8, GY=FLOOR_Y+102, GW=W-16, GH=H-GY-8;
     ctx.save(); ctx.fillStyle='rgba(6,14,28,.88)'; ctx.strokeStyle='#1e3a52'; ctx.lineWidth=1;
     ctx.beginPath(); ctx.roundRect(GX,GY,GW,GH,4); ctx.fill(); ctx.stroke(); ctx.restore();
-    simText(ctx,'f_s כפונקציה של F המופעל',GX+GW/2,GY+9,'#7d8da6',8,undefined,true);
-    simText(ctx,'כוח מופעל (N) →',GX+GW-6,GY+GH-4,'#7d8da6',7,'right');
-    simText(ctx,'f_s (N) ↑',gAX+4,gAY-gAH+4,'#3b82f6',7,'left');
+    simText(ctx,'כוח החיכוך f כפונקציה של הכוח המופעל F',GX+GW/2,GY+12,'#cbd5e1',9.5,undefined,true);
     // Axes
-    var gAX=GX+8, gAY=GY+GH-18, gAW=GW-16, gAH=GH-22;
+    var gAX=GX+30, gAY=GY+GH-20, gAW=GW-40, gAH=GH-30;
+    simText(ctx,'f (N)',gAX+4,gAY-gAH+6,'#93c5fd',9,'left');
+    simText(ctx,'F (N)',gAX+gAW,gAY-6,'#94a3b8',9,'right');
+    for(var _tk=0;_tk<=80;_tk+=20){
+      simText(ctx,String(_tk),gAX+_tk/80*gAW,gAY+12,'#94a3b8',9,'center');
+      if(_tk>0)simText(ctx,String(_tk),gAX-4,gAY-_tk/80*gAH+3,'#94a3b8',9,'right');
+    }
     ctx.save(); ctx.strokeStyle='#1e3a52'; ctx.lineWidth=1;
     ctx.beginPath(); ctx.moveTo(gAX,gAY-gAH); ctx.lineTo(gAX,gAY); ctx.lineTo(gAX+gAW,gAY); ctx.stroke(); ctx.restore();
     // Max F scale
@@ -13069,7 +13076,7 @@ function simStaticFriction(canvas){
     var fmY=gAY-(fs_max/fScaleMax)*gAH;
     ctx.save(); ctx.strokeStyle='rgba(239,68,68,.5)'; ctx.lineWidth=1; ctx.setLineDash([3,4]);
     ctx.beginPath(); ctx.moveTo(gAX,fmY); ctx.lineTo(gAX+gAW,fmY); ctx.stroke(); ctx.setLineDash([]); ctx.restore();
-    simText(ctx,'fs_max='+fs_max.toFixed(0)+'N',gAX+gAW-2,fmY-4,'#ef4444',7.5,'right');
+    simText(ctx,'μₛN = '+fs_max.toFixed(1)+' N',gAX+gAW-2,fmY-4,'#f87171',9,'right');
 
     requestAnimationFrame(draw);
   }
