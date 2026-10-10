@@ -33402,7 +33402,13 @@ window.chkStep=(si)=>{
   else{
     const cands=_numCands(inp);
     if(!cands.length){ps.feedback[si]='✏️ לא זיהינו מספר. כתבו מספר בלבד, למשל 2.5 או ‎3e8‎ (= 3·10⁸).';render();return;}
-    const band=Math.max(tol,Math.abs(ans)*.04+.01);
+    // An explicit tolerance is absolute; otherwise 4 % of the answer, and
+    // never less than half a unit in the second significant figure, so any
+    // two-significant-figure rounding passes (1.05 -> 1.1). The band used to
+    // add a flat 0.01 on top, which swallowed every small answer whole: for
+    // 3.2e-16 C or 1.2e-3 F it accepted 0, or any small number at all.
+    const sf2=ans?0.5*Math.pow(10,Math.floor(Math.log10(Math.abs(ans)))-1):0;
+    const band=Math.max(tol,Math.abs(ans)*.04,sf2)*(1+1e-9);
     ok=cands.some(function(num){return Math.abs(num-ans)<=band;});
   }
   if(ok)_stepSolved(ps,si,content);
