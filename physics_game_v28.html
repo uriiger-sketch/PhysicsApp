@@ -33040,15 +33040,15 @@ function buildProblem(prob){
     const hintHTML=(lvl>=1?`<div class="hint-box">💡 ${_ltSafe(tier1)}</div>`:'')
                  +(lvl>=2&&st2.nudge?`<div class="hint-box">✏️ ${_ltSafe(st2.hint)}</div>`:'');
     return`<div class="step-card${locked?' locked-step':''}${solved?' solved':''}">
-      <div class="step-hdr"><div class="step-num${solved?' done':''}">${solved?'✓':si+1}</div><div class="step-q">${_ltSafe(st2.q)}</div></div>
+      <div class="step-hdr"><div class="step-num${solved?' done':''}">${solved?'✓':si+1}</div><div class="step-q" id="sq${si}">${_ltSafe(st2.q)}</div></div>
       ${!solved?`${hintHTML}
         <div class="step-inp-row">
-          <input class="step-inp${fb==='correct'?' ok':fb?' err':''}" type="text" id="si${si}" value="${inp}" placeholder="תשובה…" oninput="upInp(${si},this.value)" onkeydown="if(event.key==='Enter')chkStep(${si})" ${locked?'disabled':''}>
+          <input class="step-inp${fb==='correct'?' ok':fb?' err':''}" type="text" id="si${si}" value="${String(inp).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;')}" placeholder="תשובה…" aria-labelledby="sq${si}" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="done" oninput="upInp(${si},this.value)" onkeydown="if(event.key==='Enter')chkStep(${si})" ${locked?'disabled':''}>
           ${st2.unit?`<span class="unit-lbl">${st2.unit}</span>`:''}
           ${showBtn?`<button class="hint-btn" onclick="showHint(${si})">${lvl===0?'💡 רמז':'✏️ פתרון מלא'} (−5 XP)</button>`:''}
           ${!locked?`<button class="btn btn-primary" style="padding:7px 14px" onclick="chkStep(${si})">בדוק</button>`:''}
         </div>
-        ${fb&&fb!=='correct'?`<div class="step-fb err">${fb}</div>`:''}`
+        ${fb&&fb!=='correct'?`<div class="step-fb err" role="status">${_ltSafe(fb)}</div>`:''}`
       :`<div class="step-fb ok">✅ ${_ltSafe(st2.explain)}</div>`}
     </div>`;
   }).join('');
@@ -33109,7 +33109,8 @@ function _openPanel(panel,first){
   var a=document.activeElement;
   if(a&&a!==document.body&&!panel.contains(a))_panelOpener=a;
   var f=first||panel.querySelector('button,[href],input,[tabindex]:not([tabindex="-1"])');
-  if(f)setTimeout(function(){try{f.focus({preventScroll:true});}catch(e){}},30);
+  var go=function(){if(f&&!panel.contains(document.activeElement))try{f.focus({preventScroll:true});}catch(e){}};
+  go();setTimeout(go,60);
 }
 function _closedPanel(panel){
   if(!panel||!panel.contains(document.activeElement))return;
@@ -33210,12 +33211,21 @@ window.restartSim=function(){
   if(c&&c.sim)initSim('sim-canvas',c.sim.type);
 };
 window.answerQuiz=(oi)=>{const st=getQS(state.chapter,state.section);if(st.ans[st.cur]!==undefined)return;st.ans[st.cur]=oi;render();};
-window.nextQ=()=>{getQS(state.chapter,state.section).cur++;render();};
+window.nextQ=()=>{
+  const st=getQS(state.chapter,state.section),c=CONTENT[state.chapter+'.'+state.section];
+  // "next" on the last question is "finish": stepping past the end used to
+  // show the finished banner without ever crediting the quiz
+  if(c&&c.quiz&&st.cur>=c.quiz.length-1){window.finishQuiz();return;}
+  st.cur++;render();};
 window.finishQuiz=()=>{getQS(state.chapter,state.section).done=true;markCompleted(state.chapter,state.section,'quiz',100);};
 window.resetQuiz=function(){state.quizState[state.chapter+'.'+state.section]={cur:0,ans:[],done:false};render();};
 // Keyboard: Enter advances quiz
 document.addEventListener('keydown',function(e){
   if(e.key!=='Enter'||e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA')return;
+  // a focused control is activated by its own Enter; doing it here as well
+  // pressed "next" twice, or advanced the quiz from inside an open panel
+  if(e.target.closest&&e.target.closest('button,a,select,[tabindex],[role=dialog]'))return;
+  if(e.altKey||e.ctrlKey||e.metaKey||e.repeat)return;
   if(state.tab==='quiz'){
     var st=getQS(state.chapter,state.section);
     var c=CONTENT[state.chapter+'.'+state.section];
@@ -33234,39 +33244,78 @@ window.showHint=(si)=>{
   if(lvl>=hintMax(step))return;
   ps.hints[si]=lvl+1; state.xp=Math.max(0,state.xp-5); render();
 };
-// Accepts the forms a student actually types for a power of ten:
-//   3.2e-16 · 3.2E-16 · 3.2*10^-16 · 3.2x10^-16 · 3.2×10^-16 · 10^-16
-function _numIn(s){
-  let t=String(s==null?'':s).replace(/,/g,'.').replace(/\s+/g,'');
-  t=t.replace(/[×xX*·]10\^?/g,'e');   // 3.2×10^-16 / 3.2*10^-16 -> 3.2e-16
-  t=t.replace(/^10\^/,'1e');          // a bare 10^-16 -> 1e-16
-  t=t.replace(/[^0-9.eE+\-]/g,'');    // now safe: the exponent survives
-  return parseFloat(t);
+// Accepts the forms a student actually types for a number:
+//   3.2e-16 · 3.2E-16 · 3.2*10^-16 · 3.2x10^-16 · 3.2×10^-16 · 3·10⁻¹⁶ · 10^-16
+//   −4 (a typographic minus, as phones and copy-paste produce) · +2.5 · 2,5
+//   1,500 · 2/3 · "v = 20 m/s" (the number after the last "=")
+// _numCands returns every reading of what was typed: a comma is a decimal
+// point to some students ("2,5") and a thousands separator to others
+// ("1,500", the Israeli convention), and both are accepted.
+var _SUPN={'⁰':'0','¹':'1','²':'2','³':'3','⁴':'4','⁵':'5','⁶':'6','⁷':'7','⁸':'8','⁹':'9','⁻':'-','⁺':'+'};
+function _numCands(s){
+  let t=String(s==null?'':s).replace(/\s+/g,'');
+  t=t.replace(/[−‒–—‐‑﹣－]/g,'-');   // minus look-alikes
+  t=t.replace(/[⁰¹²³⁴⁵⁶⁷⁸⁹⁻⁺]+/g,function(m){return '^'+m.split('').map(function(c){return _SUPN[c];}).join('');});
+  t=t.replace(/\*\*/g,'^');
+  if(t.lastIndexOf('=')>=0)t=t.slice(t.lastIndexOf('=')+1);    // "v=20m/s" -> "20m/s"
+  t=t.replace(/[×xX*·⋅•∙]10\^?/g,'e');   // 3.2×10^-16 / 3.2*10^-16 -> 3.2e-16
+  t=t.replace(/^([-+]?)10\^/,'$11e');    // a bare 10^-16 -> 1e-16
+  const reads=[];
+  const one=function(u){
+    const f=/^([-+]?(?:\d+(?:\.\d*)?|\.\d+))\/(\d+(?:\.\d*)?)$/.exec(u.replace(/[^0-9.eE+\-\/]/g,''));
+    if(f&&+f[2]){reads.push(+f[1]/+f[2]);return;}       // a fraction, 2/3
+    const m=/[-+]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][-+]?\d+)?/.exec(u);
+    if(m)reads.push(parseFloat(m[0]));
+  };
+  if(t.indexOf(',')>=0){
+    if(/^[-+]?\d{1,3}(,\d{3})+(\.\d+)?(\D|$)/.test(t))one(t.replace(/,/g,''));   // 1,500
+    if((t.match(/,/g)||[]).length===1)one(t.replace(',','.'));                     // 2,5
+  } else one(t);
+  return reads.filter(function(x){return isFinite(x);});
+}
+function _numIn(s){const c=_numCands(s);return c.length?c[0]:NaN;}
+// A word answer ("V", "לא") is matched without the punctuation and spacing a
+// student adds around it ("לא.", " v ") and without letter case.
+function _wordNorm(x){return String(x==null?'':x).toUpperCase().replace(/[\s.,;:!?"'״׳()\-–—]/g,'');}
+function _stepSolved(ps,si,content){
+  ps.attempts[si]=0;ps.solved[si]=true;ps.feedback[si]='correct';ps.idx=Math.max(ps.idx,si+1);
+  if(ps.idx>=content.problem.steps.length){ps.done=true;markCompleted(state.chapter,state.section,'problem',150);}
+  else render();
 }
 window.chkStep=(si)=>{
   const ps=getPS(state.chapter,state.section);
   const content=CONTENT[`${state.chapter}.${state.section}`];
   const step=content.problem.steps[si];
   const inp=(ps.inputs[si]||'').trim();
+  // nothing typed, or nothing that reads as a number, is not an attempt: it
+  // used to count toward the three that give the solution away for free
+  if(!inp){ps.feedback[si]='✏️ הקלידו תשובה ואז לחצו "בדוק".';render();return;}
   if(step.tolerance===-1){
-    const ok=inp.toUpperCase()===step.answer.toUpperCase();
-    if(ok){ps.solved[si]=true;ps.feedback[si]='correct';ps.idx=Math.max(ps.idx,si+1);if(ps.idx>=content.problem.steps.length){ps.done=true;markCompleted(state.chapter,state.section,'problem',150);}else render();}
+    if(_wordNorm(inp)===_wordNorm(step.answer))_stepSolved(ps,si,content);
     else{ps.feedback[si]='❌ לא נכון. נסו שוב.';render();}return;
   }
   // The old sanitiser kept only [0-9.-], which DELETED the 'e' of an exponent:
   // "3.2e-16" became "3.2-16" and parsed as 3.2, "2e10" became 210. Twelve
   // steps have answers in scientific notation — all of electrostatics and part
   // of modern optics — and none of them could be answered correctly.
-  const num=_numIn(inp);
   const ans=parseFloat(step.answer);
   const tol=step.tolerance||0;
-  const ok=isNaN(ans)?inp.toLowerCase().includes(step.answer.toLowerCase()):Math.abs(num-ans)<=Math.max(tol,Math.abs(ans)*.04+.01);
-  if(ok){ps.attempts[si]=0;ps.solved[si]=true;ps.feedback[si]='correct';ps.idx=Math.max(ps.idx,si+1);if(ps.idx>=content.problem.steps.length){ps.done=true;markCompleted(state.chapter,state.section,'problem',150);}else render();}
+  let ok;
+  if(isNaN(ans))ok=inp.toLowerCase().includes(String(step.answer).toLowerCase());
+  else{
+    const cands=_numCands(inp);
+    if(!cands.length){ps.feedback[si]='✏️ לא זיהינו מספר. כתבו מספר בלבד, למשל 2.5 או ‎3e8‎ (= 3·10⁸).';render();return;}
+    const band=Math.max(tol,Math.abs(ans)*.04+.01);
+    ok=cands.some(function(num){return Math.abs(num-ans)<=band;});
+  }
+  if(ok)_stepSolved(ps,si,content);
   else{
     // Per step: a stumble on an earlier step must not hand out this step's hint,
     // and solving a step clears its own tally.
     const a=(ps.attempts[si]||0)+1; ps.attempts[si]=a;
-    if(a>=3){ps.feedback[si]=`❌ נסיון ${a}. רמז: ${step.hint}`;ps.hints[si]=2;}
+    // the third miss opens the hint and the worked solution above the field
+    // (it used to repeat the hint here as well)
+    if(a>=3){ps.feedback[si]=`❌ לא מדויק (נסיון ${a}). הרמז והפתרון המודרך נפתחו מעל לשדה — עברו עליהם ונסו שוב.`;ps.hints[si]=2;}
     else ps.feedback[si]=`❌ לא מדויק (נסיון ${a}/3). נסו שוב.`;
     render();}
 };
