@@ -22,7 +22,7 @@ const t = (name, got, want) => {
   await p.waitForTimeout(800);
   await p.evaluate(() => { if (window.closeOnboarding) closeOnboarding(); });
 
-  const chapters = await p.evaluate(() => [].concat(MECH_CHAPTERS, OPTICS_CHAPTERS, ELECTRO_CHAPTERS, DC_CHAPTERS)
+  const chapters = await p.evaluate(() => [].concat(MECH_CHAPTERS, OPTICS_CHAPTERS, ELECTRO_CHAPTERS, DC_CHAPTERS, MAG_CHAPTERS)
     .map(c => ({ id: c.id, s: c.sections.map(x => x.id) })));
 
   let seen = 0, noHandler = [], noScrub = [], noPause = [], blank = [];
@@ -76,7 +76,7 @@ const t = (name, got, want) => {
   // had been -- so: render at 6, go back to 3, return to 6, compare pixels.
   const impure = await p.evaluate(async () => {
     const bad = [];
-    const chapters = [].concat(MECH_CHAPTERS, OPTICS_CHAPTERS, ELECTRO_CHAPTERS, DC_CHAPTERS);
+    const chapters = [].concat(MECH_CHAPTERS, OPTICS_CHAPTERS, ELECTRO_CHAPTERS, DC_CHAPTERS, MAG_CHAPTERS);
     for (const ch of chapters) for (const se of ch.sections) {
       state.subject = ch.id.startsWith('opt-') ? 'optics' : ch.id.startsWith('elc-') ? 'electro' : ch.id.startsWith('dc-') ? 'circuits' : ch.id.startsWith('mag-') ? 'magnetism' : 'mechanics';
       state.chapter = ch.id; state.section = se.id; state.tab = 'theory'; render();
@@ -103,7 +103,7 @@ const t = (name, got, want) => {
   // worked examples and enrichment asides fold, and give everything back
   const folds = await p.evaluate(async () => {
     const out = { ex: 0, en: 0, hidden: 0, revealed: 0, lost: 0, chars: [0, 0] };
-    const chapters = [].concat(MECH_CHAPTERS, OPTICS_CHAPTERS, ELECTRO_CHAPTERS, DC_CHAPTERS);
+    const chapters = [].concat(MECH_CHAPTERS, OPTICS_CHAPTERS, ELECTRO_CHAPTERS, DC_CHAPTERS, MAG_CHAPTERS);
     for (const ch of chapters) for (const se of ch.sections) {
       state.subject = ch.id.startsWith('opt-') ? 'optics' : ch.id.startsWith('elc-') ? 'electro' : ch.id.startsWith('dc-') ? 'circuits' : ch.id.startsWith('mag-') ? 'magnetism' : 'mechanics';
       state.chapter = ch.id; state.section = se.id; state.tab = 'theory'; render();

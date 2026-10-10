@@ -29,7 +29,7 @@ const t = (name, got, want) => {
   await p.waitForTimeout(800);
   await p.evaluate(() => { if (window.closeOnboarding) closeOnboarding(); });
 
-  const chapters = await p.evaluate(() => [].concat(MECH_CHAPTERS, OPTICS_CHAPTERS, ELECTRO_CHAPTERS, DC_CHAPTERS)
+  const chapters = await p.evaluate(() => [].concat(MECH_CHAPTERS, OPTICS_CHAPTERS, ELECTRO_CHAPTERS, DC_CHAPTERS, MAG_CHAPTERS)
     .map(c => ({ id: c.id, s: c.sections.map(x => x.id) })));
 
   let n = 0, noInput = [], deaf = [], noHint = [], falseHint = [];

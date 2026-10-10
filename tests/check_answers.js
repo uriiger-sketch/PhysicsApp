@@ -24,7 +24,7 @@ const t = (name, got, want) => {
 
   const r = await p.evaluate(async () => {
     const out = { quiz: 0, quizOk: 0, quizBad: [], steps: 0, stepsOk: 0, stepsBad: [], noOpts: [] };
-    const chapters = [].concat(MECH_CHAPTERS, OPTICS_CHAPTERS, ELECTRO_CHAPTERS, DC_CHAPTERS);
+    const chapters = [].concat(MECH_CHAPTERS, OPTICS_CHAPTERS, ELECTRO_CHAPTERS, DC_CHAPTERS, MAG_CHAPTERS);
     for (const ch of chapters) for (const se of ch.sections) {
       const key = ch.id + '.' + se.id, c = CONTENT[key];
       state.subject = ch.id.startsWith('opt-') ? 'optics' : ch.id.startsWith('elc-') ? 'electro' : ch.id.startsWith('dc-') ? 'circuits' : ch.id.startsWith('mag-') ? 'magnetism' : 'mechanics';
