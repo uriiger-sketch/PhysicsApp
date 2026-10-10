@@ -1311,7 +1311,7 @@ function animCanvas(id, h, label){
   if(h===undefined)h=140; if(label===undefined)label='';
   label=String(label).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   return `<div class="theory-anim">
-    <canvas id="${id}" height="${h}" style="height:${h}px"></canvas>
+    <canvas id="${id}" height="${h}" style="height:${h}px" role="img" aria-label="${(label||'הדגמה מונפשת').replace(/"/g,'&quot;')}"></canvas>
     <div class="anim-ctrl">
       <button id="abtn_${id}" onclick="animToggle('${id}')">⏸ עצור</button>
       <button onclick="animReset('${id}')">↺ אתחל</button>
@@ -33008,7 +33008,7 @@ function buildSim(sim){
   if(!extra&&typeof MAG_CTRL!=='undefined'&&MAG_CTRL[sim.type])extra=C(MAG_CTRL[sim.type]());
   const simDone=isCompleted(state.chapter,state.section,'sim');
   return `<div class="sim-container">
-    <div class="sim-canvas-wrap"><canvas id="sim-canvas" height="280"></canvas></div>
+    <div class="sim-canvas-wrap"><canvas id="sim-canvas" height="280" role="img" aria-label="${String(sim.title||'סימולציה').replace(/"/g,'&quot;').replace(/<[^>]*>/g,'')}"></canvas></div>
     ${extra}
     <div class="sim-controls" style="border-top:1px solid var(--border);padding-top:12px">
       <p style="color:var(--muted);font-size:.85rem;flex:1">${sim.desc}</p>
