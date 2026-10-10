@@ -2000,7 +2000,8 @@ function saveState(){
       xp:state.xp, completed:state.completed, visited:state.visited,
       quizState:state.quizState, problemState:state.problemState,
       theme:state.theme,
-      difficulty:state.difficulty
+      difficulty:state.difficulty,
+      lastPos:state.lastPos
     }));
   }catch(e){}
 }
@@ -2023,6 +2024,7 @@ function loadState(){
     state.problemState=obj(saved.problemState);
     if(saved.theme)state.theme=saved.theme;
     if(saved.difficulty)state.difficulty=saved.difficulty||'normal';
+    state.lastPos=obj(saved.lastPos);
     applyTheme(state.theme);
   }catch(e){}
 }
@@ -2058,7 +2060,8 @@ const state={
   subject:'mechanics',
   chapter:'kinematics', section:'distance-time', tab:'theory',
   xp:0, completed:{}, visited:{}, quizState:{}, problemState:{}, simState:{},
-  theme:'dark', difficulty:'normal'  // 'easy'|'normal'|'hard'
+  theme:'dark', difficulty:'normal',  // 'easy'|'normal'|'hard'
+  lastPos:{}   // subject -> {c,s,t}: where the learner was in it
 };
 function isCompleted(c,s,t){return !!state.completed[`${c}.${s}.${t}`];}
 function markCompleted(c,s,t,xp){
@@ -31129,6 +31132,9 @@ function render(){
   if(sec&&!state.visited[`${state.chapter}.${state.section}`]){
     state.visited[`${state.chapter}.${state.section}`]=true;
   }
+  // where the learner is in this subject, for coming back to it
+  if(sec){if(!state.lastPos||typeof state.lastPos!=='object')state.lastPos={};
+    state.lastPos[state.subject]={c:state.chapter,s:state.section,t:state.tab};}
   // Every answer, hint and step passes through here, so this is the one
   // place that persists them: before, a quiz half done, a hint paid for or a
   // step solved was saved only when a whole tab was completed -- a reload
@@ -31228,17 +31234,26 @@ function buildPage(ch,sec,content){
 window.switchSubject=function(subj){
   stopSim('sim-canvas');
   state.subject=subj;
-  var chs=getChapters();
-  state.chapter=chs[0].id;
-  state.section=chs[0].sections[0].id;
-  state.tab='theory';
+  // back to where the learner was in that subject, not to its first page:
+  // a returning student going between subjects lost the place every time
+  var chs=getChapters(),lp=state.lastPos&&state.lastPos[subj];
+  var lc=lp&&chs.find(function(c){return c.id===lp.c;});
+  if(lc&&lc.sections.some(function(x){return x.id===lp.s;})){
+    state.chapter=lp.c;state.section=lp.s;state.tab=/^(theory|sim|quiz|problem)$/.test(lp.t)?lp.t:'theory';
+  }else{
+    state.chapter=chs[0].id;
+    state.section=chs[0].sections[0].id;
+    state.tab='theory';
+  }
   _pushNext=true;
   // Picked in the phone drawer, a subject is half the choice: keep the drawer
   // open on the new subject's topics instead of dropping the learner on its
   // first section and making them reopen it.
   var dr=document.getElementById('mobile-drawer'),inDrawer=dr&&dr.classList.contains('open');
   render();
-  if(inDrawer)refreshDrawerNav(); else closeDrawer();
+  if(inDrawer){refreshDrawerNav();
+    var act=dr.querySelector('.sec-btn.active');if(act)dr.scrollTop=Math.max(0,act.offsetTop-dr.clientHeight/2);}
+  else closeDrawer();
   _toTop(!inDrawer);
 };
 function buildSidebar(){
@@ -34916,7 +34931,7 @@ function showSimTooltip(desc){
 window.resetAllProgress=function(){
   if(!confirm('למחוק את כל ההתקדמות — XP, חידונים, בעיות וסימוני הנושאים? אי אפשר לשחזר.')) return;
   state.xp=0; state.completed={}; state.quizState={};
-  state.problemState={}; state.visited={}; _quizHints={};
+  state.problemState={}; state.visited={}; state.lastPos={}; _quizHints={};
   _ls.del(SAVE_KEY);
   _lastChapterSummaryShown='';
   closeDrawer();
