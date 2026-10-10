@@ -321,6 +321,13 @@ input[type=range]{accent-color:var(--accent);cursor:pointer;}
 .step-num.done{background:var(--btn-green);border-color:var(--btn-green);color:#fff;}
 .step-q{font-size:.9rem;font-weight:600;color:var(--text);line-height:1.55;}
 .step-inp-row{display:flex;gap:8px;align-items:center;margin-top:9px;}
+/* On a phone the row is narrower than field + unit + hint + check: the
+   buttons were pushed out of the card (x < 0 at 360 px) in every problem.
+   The field and its unit share the first line; the two buttons travel
+   together and drop to the next line when there is no room. */
+.step-inp-row{flex-wrap:wrap;}
+.step-inp-row .step-inp{flex:1 1 9em;min-width:0;}
+.step-btns{display:flex;gap:8px;align-items:center;flex:0 0 auto;}
 .step-inp{flex:1;padding:9px 13px;background:var(--panel);border:1.5px solid var(--border);border-radius:7px;color:var(--text);font-family:'Heebo',sans-serif;font-size:.93rem;outline:none;text-align:right;transition:border-color .18s;}
 .step-inp:focus{border-color:var(--accent);}
 .step-inp.ok{border-color:var(--green);background:rgba(16,185,129,.04);}
@@ -33135,8 +33142,8 @@ function buildProblem(prob){
         <div class="step-inp-row">
           <input class="step-inp${fb==='correct'?' ok':fb?' err':''}" type="text" id="si${si}" value="${String(inp).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;')}" placeholder="תשובה…" aria-labelledby="sq${si}" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="done" oninput="upInp(${si},this.value)" onkeydown="if(event.key==='Enter')chkStep(${si})" ${locked?'disabled':''}>
           ${st2.unit?`<span class="unit-lbl">${st2.unit}</span>`:''}
-          ${showBtn?`<button class="hint-btn" onclick="showHint(${si})">${lvl===0?'💡 רמז':'✏️ פתרון מלא'} (−5 XP)</button>`:''}
-          ${!locked?`<button class="btn btn-primary" style="padding:7px 14px" onclick="chkStep(${si})">בדוק</button>`:''}
+          <span class="step-btns">${showBtn?`<button class="hint-btn" onclick="showHint(${si})">${lvl===0?'💡 רמז':'✏️ פתרון מלא'} (−5 XP)</button>`:''}
+          ${!locked?`<button class="btn btn-primary" style="padding:7px 14px" onclick="chkStep(${si})">בדוק</button>`:''}</span>
         </div>
         ${fb&&fb!=='correct'?`<div class="step-fb err" role="status">${_ltSafe(fb)}</div>`:''}`
       :`<div class="step-fb ok">✅ ${_ltSafe(st2.explain)}</div>`}
