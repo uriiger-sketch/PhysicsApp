@@ -26346,7 +26346,7 @@ MAG_SIMS['mag-circle']=function(canvas){
   magBtn('mgr-Bdir',function(b){bz=-bz;marks=[];shots=[];b.textContent=bz<0?'⊗ השדה נכנס לדף':'⊙ השדה יוצא מהדף';});
   function fire(vs){
     var p=PARTS[pi],B=magV('mgr-B',0.2),q=p.q*MAG_E,rs=vs.map(function(v){return p.m*v/(q*B);}),rmax=Math.max.apply(null,rs);
-    sc=Math.min((H-70)/(2*rmax),(W-X0-16)/rmax);
+    sc=Math.min((H-(W<600?140:70))/(2*rmax),(W-X0-16)/rmax);    // on a phone, keep clear of the readout panel
     var T=2*Math.PI*p.m/(q*B);
     marks=[];shots=vs.map(function(v,i){return {v:v,r:rs[i],T:T,p:p,t0:tv,col:i?'#f472b6':p.c};});
   }
@@ -26387,7 +26387,7 @@ MAG_SIMS['mag-circle']=function(canvas){
     var y0=up?8:H-68;ctx.save();ctx.fillStyle='rgba(2,8,16,.85)';ctx.fillRect(W-Math.min(W*0.62,420)-8,y0,Math.min(W*0.62,420),60);ctx.restore();
     var bx=W-Math.min(W*0.62,420)/2-8;
     if(q0){var tin2=Math.max(0,(tv-q0.t0-0.35)/(Tvis/(q0.T/2)));
-      simText(ctx,'r = mv/qB = '+(q0.r*100).toFixed(2)+' cm   ·   T/2 = πm/qB = '+(q0.T/2*1e9).toFixed(1)+' ns',bx,y0+18,'#e2e8f0',10.5,'center',true);
+      simText(ctx,'r = mv/qB = '+(q0.r*100).toFixed(q0.r<1?2:0)+' cm   ·   T/2 = πm/qB = '+(q0.T/2*1e9).toFixed(1)+' ns',bx,y0+18,'#e2e8f0',10.5,'center',true);
       simText(ctx,'שעון (הילוך איטי): '+(Math.min(tin2,q0.T/2)*1e9).toFixed(1)+' ns',bx,y0+38,'#fbbf24',10.5,'center',true);
       simText(ctx,shots.length>1?'המהיר עושה מעגל כפול — ויוצא באותו רגע בדיוק':'שנו את v ושגרו שוב: הרדיוס משתנה, הזמן לא',bx,y0+54,'#94a3b8',9.5,'center');}
     else simText(ctx,'לחצו ״שגר״ — או ״שגר שניים״ להשוואת זמנים',bx,y0+30,'#94a3b8',10.5,'center');
