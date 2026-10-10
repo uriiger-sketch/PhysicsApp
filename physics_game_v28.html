@@ -10217,6 +10217,8 @@ function simNewton2(canvas){
 function simIncline(canvas){
   var H=360; var _cv=setupCanvas(canvas,H); var ctx=_cv.ctx; const W=_cv.W, dpr=_cv.dpr;
   function _fitCanvas(h){ if(h===H)return; H=h; ctx=setupCanvas(canvas,H).ctx; }
+  // a phone gets a taller canvas, so a steep ramp is not squeezed under the panel
+  const HB=W<480?430:360; _fitCanvas(HB);
   const id=canvas.id;
   const g=9.8;
   let s=0, vel=0, pT=null;
@@ -10228,7 +10230,9 @@ function simIncline(canvas){
   function getMass() { const e=document.getElementById('inp-inc-m');  return e?parseFloat(e.value):3; }
   // ── Direct manipulation: grab the ramp surface and tilt it ──
   var dragRamp=false;
-  function _rampHit(p){var cxi=W*0.14,cyi=H-72,LEN=Math.min(W*0.70,320);
+  // the ramp stays below the readout panel however steep it is
+  function rampLen(th){return Math.min(W*0.70,320,(H-72-150)/Math.max(Math.sin(th),0.05));}
+  function _rampHit(p){var cxi=W*0.14,cyi=H-72,LEN=rampLen(getTheta()*Math.PI/180);
     var d=Math.hypot(p.x-cxi,p.y-cyi);var a=Math.atan2(cyi-p.y,p.x-cxi)*180/Math.PI;
     return d>28&&d<LEN+28&&a>-6&&a<86;}
   function _rDn(e){var p=simPointerXY(canvas,(window.devicePixelRatio||1),e);
@@ -10262,7 +10266,7 @@ function simIncline(canvas){
     if(a>0.001){ s+=vel*dt+0.5*a*dt*dt; vel+=a*dt; }
     else if(a<-0.001&&vel>0){ vel+=a*dt; if(vel<0)vel=0; s+=Math.max(0,vel)*dt; }
     const CX=W*0.14, CY=H-72;
-    const INCLINE_LEN=Math.min(W*0.70,320);
+    const INCLINE_LEN=rampLen(th);
     const topX=CX+INCLINE_LEN*cosT, topY=CY-INCLINE_LEN*sinT;
     // s is distance travelled DOWN-slope in metres, drawn at 60 px/m.
     // The old limit divided pixels by 9.8 m/s², giving s_max ~ 27 m.
@@ -10314,7 +10318,7 @@ function simIncline(canvas){
       const vLen=Math.min(vel*22,62);
       simArrow(ctx,bCX-cosT*(bS/2+4),bCY+sinT*(bS/2+4),
                    bCX-cosT*(bS/2+4+vLen),bCY+sinT*(bS/2+4+vLen),'#22d3ee',2.5,10);
-      simText(ctx,'v='+vel.toFixed(2)+'m/s',bCX-cosT*(bS/2+vLen+18),bCY+sinT*(bS/2+vLen+18)-8,'#22d3ee',9,undefined,true);
+      simText(ctx,'v = '+vel.toFixed(2)+' m/s',bCX-cosT*(bS/2+vLen+18),bCY+sinT*(bS/2+vLen+18)-8,'#22d3ee',10,undefined,true);
     }
 
     // Block (rotated)
@@ -10326,13 +10330,15 @@ function simIncline(canvas){
     ctx.beginPath(); ctx.roundRect(-bS/2,-bS/2,bS,bS,5); ctx.fill(); ctx.stroke();
     ctx.shadowBlur=0;
     ctx.restore();
-    simText(ctx,getMass().toFixed(1)+' kg',bCX+cosT*(bS/2+22)-sinT*12,bCY-sinT*(bS/2+22)-cosT*12+4,
-      '#c4b5fd',10,'center',true);
 
     // FBD arrows — all vectors from block center
-    const SCALE=3.4;
+    // one scale for all forces, short enough to stay on the canvas
+    const SCALE=Math.min(3.4,170/(getMass()*g));
     const W_mag=getMass()*g, N_mag=getMass()*g*cosT;
-    const Wpar=getMass()*g*sinT, Fr_mag=getMu()*N_mag;
+    // At rest the friction is STATIC: exactly what holds the block, mg·sinθ,
+    // not μN (μN is only its ceiling). Sliding, it is kinetic, μN.
+    const holding=(a<=0.001&&vel<=0.0001);
+    const Wpar=getMass()*g*sinT, Fr_mag=holding?Wpar:getMu()*N_mag;
 
     // Weight (straight down)
     const wLen=W_mag*SCALE*0.40;
@@ -10348,15 +10354,18 @@ function simIncline(canvas){
     // W parallel (down-slope component)
     const wpLen=Wpar*SCALE*0.40;
     const wpEX=bCX-wpLen*cosT, wpEY=bCY+wpLen*sinT;
-    simArrow(ctx,bCX,bCY,wpEX,wpEY,'#fbbf24',2.5,10);
-    simText(ctx,'W∥='+Wpar.toFixed(1)+'N',wpEX-8,wpEY+14,'#fbbf24',9,'center');
+    // a COMPONENT of W, not another force: dashed, so it is not counted twice
+    ctx.save(); ctx.setLineDash([5,4]); ctx.strokeStyle='#fbbf24'; ctx.lineWidth=2;
+    ctx.beginPath(); ctx.moveTo(bCX,bCY); ctx.lineTo(wpEX,wpEY); ctx.stroke(); ctx.setLineDash([]); ctx.restore();
+    simArrow(ctx,wpEX+cosT*6,wpEY-sinT*6,wpEX,wpEY,'#fbbf24',2,9);
+    simText(ctx,'W∥ = '+Wpar.toFixed(1)+' N',wpEX-8,wpEY+14,'#fbbf24',9,'center');
 
-    // Friction arrow (up-slope, only when moving)
-    if(getMu()>0.01&&vel>0.05){
+    // Friction arrow, up-slope: kinetic while sliding, static while held
+    if(Fr_mag>0.05&&(getMu()>0.01)&&(vel>0.05||holding)){
       const frLen=Fr_mag*SCALE*0.40;
       const frEX=bCX+frLen*cosT, frEY=bCY-frLen*sinT;
       simArrow(ctx,bCX,bCY,frEX,frEY,'#a78bfa',2.5,10);
-      simText(ctx,'f='+Fr_mag.toFixed(1)+'N',frEX+5,frEY-14,'#a78bfa',9,'left');
+      simText(ctx,(holding?'fₛ = ':'fₖ = ')+Fr_mag.toFixed(1)+' N',frEX+5,frEY-14,'#c4b5fd',10,'left');
     }
 
     // Info panel
@@ -10371,9 +10380,15 @@ function simIncline(canvas){
       simText(ctx,'θ = '+th2+'°   m = '+m_inf.toFixed(1)+' kg',panX+panW/2,panY+16,'#94a3b8',9.5,undefined,true);
       simText(ctx,'N = mg·cosθ = '+N_mag.toFixed(1)+' N',panX+panW/2,panY+33,'#34d399',10,undefined,true);
       simText(ctx,'W∥= mg·sinθ = '+Wpar.toFixed(1)+' N',panX+panW/2,panY+50,'#fbbf24',10,undefined,true);
-      simText(ctx,'f  = μN      = '+Fr_mag.toFixed(1)+' N',panX+panW/2,panY+67,'#a78bfa',10,undefined,true);
-      simText(ctx,'a = g(sinθ-μ·cosθ)',panX+panW/2,panY+86,'#22d3ee',10,undefined,true);
-      simText(ctx,'= '+a_num.toFixed(4)+' m/s²',panX+panW/2,panY+103,'#22d3ee',13,undefined,true);
+      if(holding){
+        simText(ctx,'fₛ = mg·sinθ = '+Fr_mag.toFixed(1)+' N  (≤ μN)',panX+panW/2,panY+67,'#c4b5fd',10,undefined,true);
+        simText(ctx,'הגוף אינו מחליק, כי tanθ ≤ μ',panX+panW/2,panY+86,'#22d3ee',10,undefined,true);
+        simText(ctx,'a = 0',panX+panW/2,panY+103,'#22d3ee',13,undefined,true);
+      } else {
+        simText(ctx,'fₖ = μN = '+Fr_mag.toFixed(1)+' N',panX+panW/2,panY+67,'#c4b5fd',10,undefined,true);
+        simText(ctx,'a = g(sinθ − μ·cosθ)',panX+panW/2,panY+86,'#22d3ee',10,undefined,true);
+        simText(ctx,'= '+(vel>0.0001?a_num:Math.max(a_num,0)).toFixed(3)+' m/s²',panX+panW/2,panY+103,'#22d3ee',13,undefined,true);
+      }
       simText(ctx,'v = '+vel.toFixed(3)+' m/s',panX+panW/2,panY+120,'#94a3b8',9,undefined,true);
     } else {
       ctx.save(); ctx.fillStyle='rgba(6,14,28,.93)'; ctx.strokeStyle='#1e4060'; ctx.lineWidth=1.5;
@@ -10383,9 +10398,8 @@ function simIncline(canvas){
     }
 
     // Status bar
-    const sb=a_num<=0.002?'גוף בשיווי משקל — ΣF=0':'שנה θ, μ, m — FBD מתעדכן בזמן אמת';
-    const sbc=a_num<=0.002?'#34d399':'#334e68';
-    simText(ctx,sb,W/2,H-12,sbc,8.5);
+    const sb=holding?'הגוף בשיווי משקל: החיכוך הסטטי מאזן את W∥, ו-ΣF = 0':'גררו את המדרון או שנו θ, μ ו-m — תרשים הכוחות מתעדכן';
+    simText(ctx,sb,W/2,H-12,holding?'#34d399':'#94a3b8',10);
   }
 
   // ── ATWOOD MACHINE ────────────────────────────────────────
@@ -10485,9 +10499,9 @@ function simIncline(canvas){
     simText(ctx,'a = (m₂-m₁)g/(m₁+m₂)',W/2,H-94,'#94a3b8',9.5,undefined,true);
     simText(ctx,'= '+(m2-m1>=0?'+':'')+(m2-m1).toFixed(1)+'×9.8/'+( m1+m2).toFixed(1)+' = '+a_at.toFixed(3)+' m/s²',W/2,H-78,'#22d3ee',11,undefined,true);
     simText(ctx,'T = 2m₁m₂g/(m₁+m₂) = '+T_at.toFixed(2)+' N',W/2,H-58,'#34d399',11,undefined,true);
-    const dir=a_at>0.02?'m₂ יורד  →  m₁ עולה':a_at<-0.02?'m₁ יורד  →  m₂ עולה':'שיווי משקל — m₁=m₂';
+    const dir=a_at>0.02?'m₂ יורדת ו-m₁ עולה':a_at<-0.02?'m₁ יורדת ו-m₂ עולה':'שיווי משקל: m₁ = m₂';
     simText(ctx,dir,W/2,H-36,Math.abs(a_at)>0.02?'#fbbf24':'#34d399',11,undefined,true);
-    simText(ctx,'שנה m₁,m₂ — אפס = חזור להתחלה',W/2,H-14,'#334e68',8);
+    simText(ctx,'שנו את m₁ ו-m₂; ↺ אפס מחזיר להתחלה',W/2,H-14,'#94a3b8',9);
   }
 
   function draw(ts){
@@ -10502,7 +10516,7 @@ function simIncline(canvas){
   const resetBtn=document.getElementById('btn-inc-reset');
   if(atwBtn) atwBtn.addEventListener('click',()=>{
     atwoodMode=!atwoodMode;
-    _fitCanvas(atwoodMode?540:360);
+    _fitCanvas(atwoodMode?540:HB);
     atwBtn.textContent=atwoodMode?'↩ מדרון':'⚖️ מכונת אטווד';
     pT=null; pTAt=null;
     resetIncline(); resetAtwood();
