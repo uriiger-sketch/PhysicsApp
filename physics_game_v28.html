@@ -9248,10 +9248,46 @@ function drawBox(ctx,x,y,w,h,fill,stroke,lw,radius){
 const _simStop={};
 const _simGen={};
 function stopSim(id){_simStop[id]=true;}
-function initSim(id,type){
+// A second start on the same page -- "🔄 התחילו מחדש", or a phone turned on
+// its side -- found the canvas and the buttons still carrying the listeners
+// of the first instance, and the toggles still labelled for the state that
+// instance had reached: after a restart every one of the 36 toggles said the
+// opposite of what the new instance was doing, and its first press seemed to
+// do nothing (two handlers flipped two states). The canvas and the sim's own
+// controls (btn-*, inp-*) are swapped for clean copies, which keep their
+// slider values and inline handlers, and each button gets its first label
+// back. Inline handlers are attributes and survive the copy.
+function _simFresh(cv,host){
+  var n=cv.cloneNode(false);cv.parentNode.replaceChild(n,cv);
+  if(host)[].forEach.call(host.querySelectorAll('[id^="btn-"],[id^="inp-"]'),function(el){
+    var c=el.cloneNode(true);
+    if(el.tagName==='SELECT'||el.tagName==='INPUT')c.value=el.value;
+    if(el.dataset.l0!==undefined)c.innerHTML=el.dataset.l0;
+    el.parentNode.replaceChild(c,el);
+  });
+  return n;
+}
+// The presses on a sim's own buttons since it last started, so that a phone
+// turned mid-experiment can rebuild the sim at its new width and replay them:
+// the modes it was in come back (sliders keep their values by themselves).
+function _simLog(host){
+  if(!host||host._simLogOn)return;host._simLogOn=true;host._simClicks=[];
+  host.addEventListener('click',function(e){
+    var b=e.target&&e.target.closest&&e.target.closest('button[id^="btn-"]');
+    if(b&&!host._simReplay&&host._simClicks.length<300)host._simClicks.push(b.id);
+  },true);
+}
+function initSim(id,type,keep){
   stopSim(id);
-  const canvas=document.getElementById(id);
+  let canvas=document.getElementById(id);
   if(!canvas)return;
+  var host=canvas.closest&&canvas.closest('.sim-container'),replay=null;
+  if(canvas._simBooted){
+    if(keep&&host&&host._simClicks&&host._simClicks.length<300)replay=host._simClicks.slice();
+    canvas=_simFresh(canvas,host);
+  }else if(host)[].forEach.call(host.querySelectorAll('button[id^="btn-"]'),function(b){b.dataset.l0=b.innerHTML;});
+  canvas._simBooted=true;
+  _simLog(host);if(host)host._simClicks=[];
   var _g=(_simGen[id]=(_simGen[id]||0)+1);
   setTimeout(function(){
     if(_simGen[id]!==_g)return;
@@ -9387,6 +9423,11 @@ function initSim(id,type){
     'elc-network':simElcNetwork,
     'elc-upair':simElcUpair,
   }[type]||(typeof MAG_SIMS!=='undefined'&&MAG_SIMS[type])||simPlaceholder)(canvas,type);
+    if(replay&&replay.length&&host){
+      host._simReplay=true;
+      try{replay.forEach(function(bid){var b=document.getElementById(bid);if(b&&host.contains(b))b.click();});}
+      finally{host._simReplay=false;host._simClicks=replay;}
+    }
     })});
   },50);
 }
@@ -31282,7 +31323,8 @@ window.addEventListener('resize',function(){
     if(typeof state==='undefined')return;
     if(state.tab==='sim'){
       var c=CONTENT[state.chapter+'.'+state.section];
-      if(c&&c.sim&&document.getElementById('sim-canvas'))initSim('sim-canvas',c.sim.type);
+      // rebuilt at the new width with the presses replayed (initSim, keep)
+      if(c&&c.sim&&document.getElementById('sim-canvas'))initSim('sim-canvas',c.sim.type,true);
     }
     // theory animations resize themselves in place, keeping their moment
     // (_animResizeAll); restarting them all from t = 0 is no longer needed
