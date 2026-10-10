@@ -268,9 +268,10 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 /* SIM */
 .sim-container{background:var(--panel);border:1px solid var(--border);border-radius:14px;overflow:hidden;}
 .sim-canvas-wrap{position:relative;background:#04090f;}
-.sim-hint{position:absolute;top:10px;left:50%;transform:translateX(-50%);z-index:3;
-  background:rgba(8,20,36,.92);border:1px solid var(--accent);color:var(--text);
-  border-radius:999px;padding:5px 14px;font-size:.78rem;font-family:'Heebo',sans-serif;
+/* "drag / tap the diagram": a strip just under the canvas, not a pill over
+   the labels at its top centre; it goes at the first touch of the canvas */
+.sim-hint{display:block;text-align:center;background:var(--panel2);border-bottom:1px solid var(--border);
+  color:var(--text);padding:5px 12px;font-size:.78rem;font-family:'Heebo',sans-serif;
   pointer-events:none;animation:simhint 2.4s ease-in-out infinite;}
 @keyframes simhint{0%,100%{opacity:.55}50%{opacity:1}}
 .sim-canvas-wrap canvas{display:block;width:100%;}
@@ -848,7 +849,7 @@ input[type=range]{accent-color:var(--accent);cursor:pointer;}
    phone, and it was what pushed the fourth tab off the row */
 @media (max-width:560px){ .kbd-hint{ display:none; } }
 .tab.active .kbd-hint{ color:#fff; background:rgba(0,0,0,.25); border-color:rgba(255,255,255,.35); }
-.sim-hint{ color:#e2e8f0; }   /* its panel is dark in both themes */
+.sim-hint{ color:var(--text); }   /* a themed strip under the canvas now */
 
 /* ── Print styles ─────────────────────────────────────── */
 @media print{
@@ -955,6 +956,12 @@ html{scroll-padding-top:72px;}
    direction from its own first letter: Latin units read left to right, a
    Hebrew unit (ס״מ) right to left, a bare number left to right. */
 .range-val,.range-wrap span,.unit-lbl,.sim-stat .sval{unicode-bidi:plaintext;}
+.sim-tip{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 14px;
+  background:var(--panel2);border-bottom:1px solid var(--border);color:var(--text);font-size:.85rem;line-height:1.6;}
+.sim-tip-x{background:none;border:none;color:var(--muted);cursor:pointer;font-size:1rem;flex-shrink:0;
+  min-width:32px;min-height:32px;border-radius:6px;}
+.sim-tip-x:hover{color:var(--text);background:var(--chip);}
+@media (pointer:coarse){.sim-tip-x{min-width:44px;min-height:44px;}}
 /* "Enter" means nothing on a touch screen */
 @media (pointer:coarse){ .quiz-card kbd{display:none;} }
 /* Reduced motion: no pulsing, popping or sliding; the theory animations
@@ -1422,8 +1429,8 @@ function animCanvas(id, h, label){
   return `<div class="theory-anim">
     <canvas id="${id}" height="${h}" style="height:${h}px" role="img" aria-label="${(label||'הדגמה מונפשת').replace(/"/g,'&quot;')}"></canvas>
     <div class="anim-ctrl">
-      <button id="abtn_${id}" onclick="animToggle('${id}')">⏸ עצור</button>
-      <button onclick="animReset('${id}')">↺ אתחל</button>
+      <button id="abtn_${id}" onclick="animToggle('${id}')">⏸ עצרו</button>
+      <button onclick="animReset('${id}')">↺ מההתחלה</button>
       <span class="ac-lbl" title="גררו על התמונה כדי לדפדף בזמן, הקישו כדי לעצור">${label ? label + ' · ' : ''}↔ גררו</span>
     </div>
   </div>`;
@@ -1517,7 +1524,7 @@ function runAnim(id, fn){
     // a tap is a toggle; a real drag leaves it parked on the chosen frame
     if(s.moved < 4) s.paused = !s.wasPaused;
     const btn = document.getElementById('abtn_' + id);
-    if(btn) btn.textContent = s.paused ? '▶ הפעל' : '⏸ עצור';
+    if(btn) btn.textContent = s.paused ? '▶ הפעילו' : '⏸ עצרו';
   };
   cv.addEventListener('mousedown', down); cv.addEventListener('touchstart', down, {passive:false});
   cv.addEventListener('mousemove', move); cv.addEventListener('touchmove', move, {passive:false});
@@ -1542,7 +1549,7 @@ function runAnim(id, fn){
   if(_reducedMotion()){
     s.paused = true;
     const btn = document.getElementById('abtn_' + id);
-    if(btn) btn.textContent = '▶ הפעל';
+    if(btn) btn.textContent = '▶ הפעילו';
   }
   // paint one frame immediately, so a paused-on-arrival canvas is never blank
   fn(cv, animCtx, s.W, s.H, s.t);
@@ -1555,13 +1562,13 @@ window.animToggle = function(id){
   s.paused = !s.paused;
   s.prev = null;
   const btn = document.getElementById('abtn_' + id);
-  if(btn) btn.textContent = s.paused ? '▶ הפעל' : '⏸ עצור';
+  if(btn) btn.textContent = s.paused ? '▶ הפעילו' : '⏸ עצרו';
 };
 window.animReset = function(id){
   const s = _anim[id]; if(!s) return;
   s.t = 0; s.prev = null; s.paused = false; s.drag = false;
   const btn = document.getElementById('abtn_' + id);
-  if(btn) btn.textContent = '⏸ עצור';
+  if(btn) btn.textContent = '⏸ עצרו';
 };
 
 function stopAllAnims(){ Object.values(_anim).forEach(s=>s.paused=true); }
@@ -1623,7 +1630,11 @@ function _subifyDom(root){
 // number unless a Hebrew letter precedes it (ב-45° is a prefix, not −45).
 // No lookbehind: older iOS Safari cannot parse it, and one bad regex would
 // stop the whole app.
-var _MR_C='A-Za-z0-9⁰-₟²³¹¼-¾⅐-⅞Ͱ-Ͽ√∞∑ℓ';
+// ᵢ ᵣ ᵤ ᵥ and the Greek subscripts (U+1D62–1D6A) are letters of a symbol
+// too: without them "vᵢₙₛₜ" broke after the v and the index was flung to the
+// far end of the label. U+E000–E0FF are placeholders for subscripts that
+// have no Unicode form (see _cvSubSplit); they never occur in page text.
+var _MR_C='A-Za-z0-9⁰-₟²³¹¼-¾⅐-⅞Ͱ-Ͽ√∞∑ℓ\u1D62-\u1D6A\uE000-\uE0FF';
 var _MR_K='̀-ͯ⃐-⃿';
 var _MR_ATOM='['+_MR_C+'(\\[{|](?:['+_MR_C+_MR_K+'()\\[\\]{}.,^_|°%′″]*['+_MR_C+_MR_K+')\\]}°%′″|])?';
 var _MR_OP='[=≈≠<>≤≥±+\\-−×·*/^⇒→←⇔∝∥⊥–]';
@@ -1786,7 +1797,7 @@ function initFolds(){
     // used to sit permanently open because there was nothing "after" it.
     var rest=kids.length>i+1?kids.slice(i+1):kids.slice(i);
     if(!rest.length)return;
-    fold(bx,rest,'🔍 הצג פתרון','🙈 הסתר פתרון');
+    fold(bx,rest,'🔍 הציגו פתרון','🙈 הסתירו פתרון');
   });
   host.querySelectorAll('.enrich-card').forEach(function(bx){
     if(bx.dataset.fold)return;
@@ -9021,26 +9032,87 @@ function _cvLight(col){
   else if((m=/^rgba?\(([^)]+)\)$/.exec(col))){var q=m[1].split(',').map(parseFloat);if(q.length<4||q[3]>0.6)c=q.slice(0,3);}
   return (_cvLightCache[col]=!!c&&_cvLum(c)>0.3);
 }
+// ── Subscripts that Unicode does not have ───────────────────────────────
+// _cvSub turns v_0, a_x, θ_i into real subscript characters, but there are
+// none for c, b, d, f, g, q, w, y, z, for capitals or for Hebrew -- a_c,
+// k_eff, F_AB and p_כולל printed their underscore. Such a label is drawn
+// in pieces instead: each subscript in a smaller size, set below the line.
+// The pieces are laid out the way the browser lays out the whole label:
+// left to right without Hebrew; with Hebrew, right to left, every maths run
+// (an isolate) reading left to right inside.
+var _CV_SUBRE=/([A-Za-z\u0370-\u03FF\u1D62-\u1D6A\u2090-\u209C])_(\{[^{}]{1,8}\}|[A-Za-z0-9]{1,6}|[\u05D0-\u05EA\u05F3\u05F4]{1,10})/g;
+function _cvSubSplit(t){
+  var s=String(t).replace(/[\u2066-\u2069]/g,''),subs=[];
+  if(s.indexOf('_')<0)return null;
+  s=s.replace(_CV_SUBRE,function(m,a,b){
+    if(b.charAt(0)==='{')b=b.slice(1,-1);
+    subs.push(b);return a+String.fromCharCode(0xE000+subs.length-1);});
+  if(!subs.length||subs.length>200)return null;
+  // the placeholders count as letters, so a formula stays one maths run
+  return {s:_mathIso(s),subs:subs};
+}
+function _cvSubDraw(ctx,info,x,y,draw){
+  var s=info.s,font=ctx.font,m=/(\d*\.?\d+)px/.exec(font),px=m?parseFloat(m[1]):11;
+  var small=m?font.replace(m[0],(px*0.72).toFixed(2)+'px'):font,dy=px*0.25;
+  var heb=/[\u0590-\u05FF]/.test(s),pieces=[],re=/\u2066([^\u2069]*)\u2069/g,last=0,mm;
+  if(!heb)pieces.push({ltr:true,s:s.replace(/[\u2066-\u2069]/g,'')});
+  else{
+    while((mm=re.exec(s))){
+      if(mm.index>last)pieces.push({ltr:false,s:s.slice(last,mm.index)});
+      pieces.push({ltr:true,s:mm[1]});last=re.lastIndex;}
+    if(last<s.length)pieces.push({ltr:false,s:s.slice(last)});
+  }
+  var seg=function(str){var out=[],buf='';
+    for(var i=0;i<str.length;i++){var c=str.charCodeAt(i);
+      if(c>=0xE000&&c<0xE100){if(buf)out.push([buf,0]);buf='';out.push([info.subs[c-0xE000]||'',1]);}
+      else buf+=str.charAt(i);}
+    if(buf)out.push([buf,0]);return out;};
+  ctx.save();
+  var dir=ctx.direction;
+  if(dir!=='ltr'&&dir!=='rtl'){try{dir=getComputedStyle(ctx.canvas).direction;}catch(e){dir='ltr';}}
+  var widths=pieces.map(function(p){
+    if(!p.ltr){ctx.font=font;return ctx.measureText(p.s).width;}
+    p.seg=seg(p.s);
+    return p.seg.reduce(function(a,g){ctx.font=g[1]?small:font;return a+ctx.measureText(g[0]).width;},0);});
+  var W=widths.reduce(function(a,b){return a+b;},0),al=ctx.textAlign;
+  var L=al==='center'?x-W/2:al==='right'?x-W:al==='left'?x:al==='end'?(dir==='rtl'?x:x-W):(dir==='rtl'?x-W:x);
+  ctx.textAlign='left';
+  var cur=heb?L+W:L;
+  pieces.forEach(function(p,i){
+    var pw=widths[i],x0;
+    if(heb){cur-=pw;x0=cur;}else{x0=cur;cur+=pw;}
+    if(!p.ltr){ctx.direction='rtl';ctx.font=font;draw(p.s,x0,y);return;}
+    ctx.direction='ltr';var xx=x0;
+    p.seg.forEach(function(g){ctx.font=g[1]?small:font;draw(g[0],xx,g[1]?y+dy:y);xx+=ctx.measureText(g[0]).width;});
+  });
+  ctx.restore();
+}
 (function(){
   var P=window.CanvasRenderingContext2D&&CanvasRenderingContext2D.prototype;
   if(!P||P._rdHooked)return;P._rdHooked=true;
   var orig=P.fillText;
   P.fillText=function(t,x,y,w){
-    var cv=this.canvas;
+    var cv=this.canvas,self=this;
     if(cv&&cv._themed===undefined)cv._themed=!!(cv.closest&&cv.closest('.sensor-lab'));
     if(cv&&!cv._themed){
       var fs=this.fillStyle;
       if(typeof fs==='string'){var r=_cvReadable(fs);if(r!==fs)this.fillStyle=fs=r;}
       if(typeof t==='string')t=_mathIso(_cvSub(t));
+      var split=(typeof t==='string'&&t.indexOf('_')>=0)?_cvSubSplit(t):null;
       // a light label that crosses a coloured shape (a block, a bar, a ball)
       // keeps a thin dark halo, so it reads on the shape as well as beside it
-      if(typeof fs==='string'&&!this.shadowBlur&&_cvLight(fs)){
-        var sc=this.shadowColor,sb=this.shadowBlur,sx=this.shadowOffsetX,sy=this.shadowOffsetY;
+      var halo=typeof fs==='string'&&!this.shadowBlur&&_cvLight(fs),sc,sb,sx,sy,res;
+      if(halo){
+        sc=this.shadowColor;sb=this.shadowBlur;sx=this.shadowOffsetX;sy=this.shadowOffsetY;
         this.shadowColor='rgba(0,0,0,.75)';this.shadowBlur=3;this.shadowOffsetX=0;this.shadowOffsetY=0;
-        var res=w===undefined?orig.call(this,t,x,y):orig.call(this,t,x,y,w);
-        this.shadowColor=sc;this.shadowBlur=sb;this.shadowOffsetX=sx;this.shadowOffsetY=sy;
-        return res;
       }
+      try{
+        if(split)_cvSubDraw(this,split,x,y,function(s2,x2,y2){orig.call(self,s2,x2,y2);});
+        else res=w===undefined?orig.call(this,t,x,y):orig.call(this,t,x,y,w);
+      }finally{
+        if(halo){this.shadowColor=sc;this.shadowBlur=sb;this.shadowOffsetX=sx;this.shadowOffsetY=sy;}
+      }
+      return res;
     }
     return w===undefined?orig.call(this,t,x,y):orig.call(this,t,x,y,w);
   };
@@ -9059,16 +9131,19 @@ function simText(ctx,txt,x,y,col,sz,align,bold){
 }
 // "2.35e+19" is not a number a student reads. Canvas has no superscripts of
 // its own, so build the textbook form out of the superscript code points.
+// A negative value carries the minus sign of typeset maths (U+2212), not
+// the hyphen toFixed() produces; it is a letter-like symbol of the maths
+// run, so it stays with its number inside the left-to-right isolate.
 function sciTxt(x,d){
   if(x===0)return '0';
   if(!isFinite(x))return '—';
   if(d===undefined)d=2;
-  var ax=Math.abs(x);
-  if(ax>=1000&&ax<10000)return x.toFixed(0);
-  if(ax>=0.01&&ax<1000)return ax<1?x.toFixed(3):x.toFixed(2);
-  var e=Math.floor(Math.log10(ax)), m=x/Math.pow(10,e), S='⁰¹²³⁴⁵⁶⁷⁸⁹';
-  if(Math.abs(m)>=9.995){m/=10;e++;}
-  return m.toFixed(d)+'×10'+(e<0?'⁻':'')+String(Math.abs(e)).split('').map(function(ch){return S[+ch];}).join('');
+  var ax=Math.abs(x),neg=x<0?'\u2212':'';
+  if(ax>=1000&&ax<10000)return neg+ax.toFixed(0);
+  if(ax>=0.01&&ax<1000)return neg+(ax<1?ax.toFixed(3):ax.toFixed(2));
+  var e=Math.floor(Math.log10(ax)), m=ax/Math.pow(10,e), S='⁰¹²³⁴⁵⁶⁷⁸⁹';
+  if(m>=9.995){m/=10;e++;}
+  return neg+m.toFixed(d)+'×10'+(e<0?'⁻':'')+String(Math.abs(e)).split('').map(function(ch){return S[+ch];}).join('');
 }
 function simCircle(ctx,x,y,r,fill,stroke,lw){
   if(lw===undefined)lw=2;
@@ -9132,14 +9207,17 @@ function initSim(id,type){
     setTimeout(function(){
       canvas.addEventListener=_addL;
       if(!_takes||!canvas.parentNode)return;
-      var old=canvas.parentNode.querySelector('.sim-hint');if(old)old.remove();
+      // under the canvas, outside it: over the canvas it covered the labels
+      // drawn at its top centre. It stays until the canvas is first touched
+      // (vanishing on a timer moved the controls under a reaching finger).
+      var wrapEl=canvas.parentNode,host=wrapEl.parentNode||wrapEl;
+      [].forEach.call(host.querySelectorAll('.sim-hint'),function(o){o.remove();});
       var h=document.createElement('div');
       h.className='sim-hint';h.textContent=_drag?'✋ גררו על התרשים':'👆 הקישו על התרשים';
-      canvas.parentNode.appendChild(h);
+      if(wrapEl.parentNode)wrapEl.parentNode.insertBefore(h,wrapEl.nextSibling);else wrapEl.appendChild(h);
       var kill=function(){if(h.parentNode)h.remove();};
       canvas.addEventListener('mousedown',kill,{once:true});
       canvas.addEventListener('touchstart',kill,{once:true});
-      setTimeout(kill,9000);
     },0);
   ({
     'position-time':simPositionTime,
@@ -9147,7 +9225,6 @@ function initSim(id,type){
     'avg-instant':simAvgInstant,
     'acceleration':simAcceleration,
     'freefall':simFreefall,
-    'multi-freefall':simMultiFreefall,
     'gravity-force':simGravityForce,
     'force-types':simForceTypes,
     'vectors-basic':simVectors,
@@ -9998,157 +10075,6 @@ function simFreefall(canvas){
   if(v0Inp){v0=parseFloat(v0Inp.value)||18; v0Inp.addEventListener('input',function(){v0=parseFloat(v0Inp.value)||18;});}
   if(gInp) {g=parseFloat(gInp.value)||9.8;  gInp.addEventListener('input',function(){g=parseFloat(gInp.value)||9.8;});}
   if(throwBtn)throwBtn.addEventListener('click',function(){v0=getV0();g=getG();ball={ym:0,vy:v0,t:0,v0:v0,g:g};});
-  requestAnimationFrame(draw);
-}
-
-
-// ─────────────────────────────────────────────────────────────
-// MULTI-FREEFALL: 3 masses fall under different g
-// ─────────────────────────────────────────────────────────────
-// ═══════════════════════════════════════════════════════════════
-// CH4 SIM 1: MULTI-FREEFALL — Galileo experiment, any g, rich
-// ═══════════════════════════════════════════════════════════════
-function simMultiFreefall(canvas){
-  const H=520; const {ctx,W,dpr}=setupCanvas(canvas,H);
-  const id=canvas.id;
-  let g=9.8, dropH=20, t=0, pT=null, phase='drop'; // phase: drop|bounce
-  const PADY=46, GND_Y=H-50;
-  const TRACK_H=GND_Y-PADY;
-
-  const balls=[
-    {m:0.05, col:'#3b82f6', sc:'#93c5fd', label:'50g'},
-    {m:1,    col:'#f59e0b', sc:'#fde68a', label:'1 kg'},
-    {m:10,   col:'#ef4444', sc:'#fca5a5', label:'10 kg'},
-    {m:100,  col:'#a78bfa', sc:'#c4b5fd', label:'100 kg'},
-  ];
-  const xPos = balls.map((_,i)=>(i+1)*(W/(balls.length+1)));
-
-  function getG()   { const e=document.getElementById('inp-g-mff');  return e?parseFloat(e.value):9.8; }
-  function getH()   { const e=document.getElementById('inp-mff-h');  return e?parseFloat(e.value):20; }
-  function reset()  { t=0; pT=null; phase='drop'; }
-
-  const resetBtn=document.getElementById('btn-mff-reset');
-  if(resetBtn) resetBtn.addEventListener('click', reset);
-
-  function draw(ts){
-    if(_simStop[id])return;
-    if(!pT){ pT=ts; }
-    const dt=Math.min((ts-pT)/1000,.04); pT=ts;
-    g=getG(); dropH=getH();
-    const tFall=Math.sqrt(2*dropH/g);
-    t+=dt;
-    if(t>tFall+0.6) reset();
-
-    simBg(ctx,W,H);
-
-    // ── Height ruler (left) ─────────────────────────────────
-    const rulerX=36;
-    ctx.save(); ctx.fillStyle='rgba(8,20,42,.7)'; ctx.strokeStyle='#1e4060'; ctx.lineWidth=1;
-    ctx.beginPath(); ctx.roundRect(6,PADY-2,rulerX-8,TRACK_H+4,4); ctx.fill(); ctx.stroke(); ctx.restore();
-    ctx.save(); ctx.strokeStyle='#2d5275'; ctx.lineWidth=1.5;
-    ctx.beginPath(); ctx.moveTo(rulerX,PADY); ctx.lineTo(rulerX,GND_Y); ctx.stroke(); ctx.restore();
-    // tick marks every 2m up to dropH
-    const tickInterval = dropH<=10?1:dropH<=20?2:5;
-    for(let hm=0; hm<=dropH; hm+=tickInterval){
-      const py = GND_Y - (hm/dropH)*TRACK_H;
-      const long = hm%5===0;
-      ctx.save(); ctx.strokeStyle=long?'#60a5fa':'#2d5275'; ctx.lineWidth=long?1.5:0.8;
-      ctx.beginPath(); ctx.moveTo(rulerX-( long?12:6), py); ctx.lineTo(rulerX, py); ctx.stroke(); ctx.restore();
-      if(long||dropH<=10) simText(ctx,hm+'m', rulerX-16, py+4,'#60a5fa',8,'right');
-    }
-
-    // ── Ground ──────────────────────────────────────────────
-    const gGrad=ctx.createLinearGradient(0,GND_Y,0,H);
-    gGrad.addColorStop(0,'#0f2035'); gGrad.addColorStop(1,'#060d1a');
-    ctx.fillStyle=gGrad; ctx.fillRect(0,GND_Y,W,H-GND_Y);
-    ctx.save(); ctx.strokeStyle='rgba(30,58,82,.45)'; ctx.lineWidth=1;
-    for(let x=0;x<W;x+=22){ ctx.beginPath(); ctx.moveTo(x,GND_Y); ctx.lineTo(x+14,GND_Y+10); ctx.stroke(); }
-    ctx.restore();
-    ctx.save(); ctx.strokeStyle='#2d5275'; ctx.lineWidth=2;
-    ctx.beginPath(); ctx.moveTo(0,GND_Y); ctx.lineTo(W,GND_Y); ctx.stroke(); ctx.restore();
-
-    // ── Physics ─────────────────────────────────────────────
-    const inFlight = t<=tFall;
-    const yFrac = inFlight ? Math.min(0.5*g*t*t/dropH, 1) : 1;
-    const vCur  = inFlight ? g*t : g*tFall;
-    const yCur  = inFlight ? 0.5*g*t*t : dropH;
-
-    balls.forEach((b,i)=>{
-      const cx=xPos[i];
-      const r=Math.max(8, Math.min(16, 6+Math.log10(b.m+1)*8));
-      const by = PADY + yFrac*TRACK_H;
-
-      // Trail dots
-      if(inFlight && t>0.1){
-        for(let s=1; s<=5; s++){
-          const tf=t-s*0.06;
-          if(tf<0) continue;
-          const yf=PADY+(0.5*g*tf*tf/dropH)*TRACK_H;
-          ctx.save(); ctx.globalAlpha=0.06*(6-s);
-          simCircle(ctx,cx,yf,r*0.7,b.col,b.sc,0);
-          ctx.restore();
-        }
-      }
-
-      // Shadow
-      ctx.save(); ctx.globalAlpha=0.18+yFrac*0.15;
-      const shadowR=r*(0.4+yFrac*0.7);
-      ctx.fillStyle='rgba(0,0,0,.5)';
-      ctx.beginPath(); ctx.ellipse(cx,GND_Y-2,shadowR,shadowR*0.35,0,0,Math.PI*2); ctx.fill();
-      ctx.restore();
-
-      // Ball
-      ctx.save(); ctx.shadowColor=b.col+'66'; ctx.shadowBlur=12;
-      const bg2=ctx.createRadialGradient(cx-r*0.3,by-r*0.3,r*0.1,cx,by,r);
-      bg2.addColorStop(0,b.sc+'ee'); bg2.addColorStop(1,b.col+'bb');
-      simCircle(ctx,cx,by,r,bg2,b.sc,1.5);
-      ctx.restore();
-
-      // Impact flash
-      if(!inFlight && t-tFall<0.18){
-        const alpha=(0.18-(t-tFall))/0.18;
-        ctx.save(); ctx.globalAlpha=alpha*0.6;
-        ctx.fillStyle=b.col;
-        ctx.beginPath(); ctx.ellipse(cx,GND_Y-3,r*2.5,r*0.8,0,0,Math.PI*2); ctx.fill();
-        ctx.restore();
-      }
-
-      // Label
-      simText(ctx,b.label,cx,by+r+12,b.sc,8.5,undefined,true);
-
-      // Velocity arrow (during fall)
-      if(inFlight && vCur>0.3){
-        const aLen=Math.min(vCur*3.5,36);
-        simArrow(ctx,cx,by+r+2,cx,by+r+2+aLen,b.col,2,8);
-      }
-    });
-
-    // ── Info panel ──────────────────────────────────────────
-    ctx.save(); ctx.fillStyle='rgba(6,14,28,.93)'; ctx.strokeStyle='#1e4060'; ctx.lineWidth=1.5;
-    ctx.beginPath(); ctx.roundRect(W-202,PADY-2,192,108,7); ctx.fill(); ctx.stroke(); ctx.restore();
-    simText(ctx,'g = '+g.toFixed(1)+' m/s²',W-106,PADY+15,'#fbbf24',13,undefined,true);
-    simText(ctx,'h = '+dropH+' m',W-106,PADY+33,'#94a3b8',11,undefined,true);
-    simText(ctx,'זמן נפילה: √(2h/g)',W-106,PADY+51,'#94a3b8',9.5,undefined,true);
-    simText(ctx,'= '+tFall.toFixed(3)+' s',W-106,PADY+67,'#22d3ee',12.5,undefined,true);
-    simText(ctx,'מהירות פגיעה: √(2gh)',W-106,PADY+85,'#94a3b8',9.5,undefined,true);
-    simText(ctx,'= '+(g*tFall).toFixed(2)+' m/s',W-106,PADY+101,'#34d399',11.5,undefined,true);
-
-    // ── Current state ────────────────────────────────────────
-    ctx.save(); ctx.fillStyle='rgba(6,14,28,.9)'; ctx.strokeStyle='#1e4060'; ctx.lineWidth=1;
-    ctx.beginPath(); ctx.roundRect(W/2-190,PADY-2,380,38,6); ctx.fill(); ctx.stroke(); ctx.restore();
-    if(inFlight){
-      simText(ctx,'y = ½gt² = '+yCur.toFixed(2)+' m   v = gt = '+vCur.toFixed(2)+' m/s',W/2,PADY+12,'#22d3ee',10.5,undefined,true);
-      simText(ctx,'כולם נופלים ביחד! — a = g, ללא תלות במסה',W/2,PADY+28,'#34d399',10,undefined,true);
-    } else {
-      simText(ctx,'פגיעה! v = '+vCur.toFixed(2)+' m/s   (אחרי '+tFall.toFixed(2)+' s)',W/2,PADY+12,'#ef4444',10.5,undefined,true);
-      simText(ctx,'גלילאו גליל (1638): כל הגופים נופלים אחת',W/2,PADY+28,'#fbbf24',10,undefined,true);
-    }
-
-    // Planet preset buttons hint
-    simText(ctx,'‏ירח 1.6 · מאדים 3.7 · כדור הארץ 9.8 · צדק 24.8',W/2,H-12,'#7d8da6',8.5);
-
-    requestAnimationFrame(draw);
-  }
   requestAnimationFrame(draw);
 }
 
@@ -12333,10 +12259,10 @@ function simSpringForce(canvas){
   // survived leaving the section, so the button could name the mode on screen).
   var signedMode=false;
   var fmodeBtn=document.getElementById('btn-sf-fmode');
-  if(fmodeBtn){ fmodeBtn.textContent='📐 הצג F = −kx (עם סימן)';
+  if(fmodeBtn){ fmodeBtn.textContent='📐 הציגו F = −kx (עם סימן)';
     fmodeBtn.addEventListener('click',function(){
       signedMode=!signedMode;
-      fmodeBtn.textContent=signedMode?'📐 הצג |F| = k|x|':'📐 הצג F = −kx (עם סימן)';
+      fmodeBtn.textContent=signedMode?'📐 הציגו |F| = k|x|':'📐 הציגו F = −kx (עם סימן)';
     });
   }
 
@@ -13675,7 +13601,7 @@ function simNewton3(canvas){
   if(pushBtn)pushBtn.addEventListener('click',function(){
     if(pushPhase===0){
       pushed=true; pushPhase=1; pushTimer=0;
-      pushBtn.textContent='⏹ אפס';
+      pushBtn.textContent='⏹ איפוס';
     } else { reset(); }
   });
   if(resetBtn)resetBtn.addEventListener('click',reset);
@@ -13700,7 +13626,7 @@ function simNewton3(canvas){
   function _n3Up(){
     if(!dragN3)return; dragN3=false;
     if(dragF>70){ pushed=true; pushPhase=1; pushTimer=0;
-                  if(pushBtn)pushBtn.textContent='⏹ אפס'; }
+                  if(pushBtn)pushBtn.textContent='⏹ איפוס'; }
   }
   canvas.addEventListener('mousedown',_n3Down); canvas.addEventListener('touchstart',_n3Down,{passive:false});
   canvas.addEventListener('mousemove',_n3Move); canvas.addEventListener('touchmove',_n3Move,{passive:false});
@@ -14485,7 +14411,7 @@ function simElcDeflect(canvas){
   var isElectron=true, t0=0;
   var pb=document.getElementById('btn-df-part');
   if(pb)pb.addEventListener('click',function(){isElectron=!isElectron;t0=0;
-    pb.textContent=isElectron?'🔁 החלף לפרוטון':'🔁 החלף לאלקטרון';});
+    pb.textContent=isElectron?'🔁 החליפו לפרוטון':'🔁 החליפו לאלקטרון';});
   function gV(){var e=document.getElementById('inp-df-V');return e?parseFloat(e.value):100;}
   function gv0(){var e=document.getElementById('inp-df-v0');return e?parseFloat(e.value)*1e7:2e7;}
   function gL(){var e=document.getElementById('inp-df-L');return e?parseFloat(e.value)/100:0.10;}
@@ -14982,7 +14908,7 @@ function simCircular(canvas){
   function getV(){var e=document.getElementById('inp-circ-v'); return e?parseFloat(e.value):v;}
 
   var pauseBtn=document.getElementById('btn-circ-pause');
-  if(pauseBtn)pauseBtn.addEventListener('click',function(){paused=!paused;pauseBtn.textContent=paused?'▶ המשך':'⏸ עצור';});
+  if(pauseBtn)pauseBtn.addEventListener('click',function(){paused=!paused;pauseBtn.textContent=paused?'▶ המשיכו':'⏸ עצרו';});
 
   // ── Direct manipulation: drag the bob to set the radius ──
   var dragBob=false;
@@ -15555,10 +15481,10 @@ function simEnergyPotential(canvas){
 
   var elasticBtn=document.getElementById('btn-ep-elastic');
   if(elasticBtn){
-    elasticBtn.textContent='🟢 הצג אנרגיה אלסטית';
+    elasticBtn.textContent='🟢 הציגו אנרגיה אלסטית';
     elasticBtn.addEventListener('click',function(){
       showElasticBar=!showElasticBar;
-      elasticBtn.textContent=showElasticBar?'🔴 הסתר אנרגיה אלסטית':'🟢 הצג אנרגיה אלסטית';
+      elasticBtn.textContent=showElasticBar?'🔴 הסתירו אנרגיה אלסטית':'🟢 הציגו אנרגיה אלסטית';
     });
   }
   var resetBtn=document.getElementById('btn-ep-reset');
@@ -17658,7 +17584,7 @@ function simOptEye(canvas){
   window._eyeMode=function(m){mode=(m==='far')?'normal':m;};
   window._eyeGlasses=function(){glasses=!glasses;
     var b=document.getElementById('btn-eye-glasses');
-    if(b)b.textContent=glasses?'❌ הסר משקפיים':'👓 הוסף משקפיים';};
+    if(b)b.textContent=glasses?'❌ הסירו משקפיים':'👓 הוסיפו משקפיים';};
   function getDist(){var e=document.getElementById('inp-eye-dist');return e?parseFloat(e.value):2;}
   // Geometry
   var es=Math.min(1,(W*0.28-8)/118);   // shrink the eye to fit a phone-width canvas
@@ -24038,7 +23964,7 @@ runAnim('anim-plane-mirror-t',(canvas,ctx,W,H,t)=>{
   ctx.setLineDash([]);ctx.restore();
   oLbl(ctx,'d',ox+(mx-ox)/2,H-6,'#7d8da6',8);
   oLbl(ctx,'d',mx+(imgX-mx)/2,H-6,'#7d8da6',8);
-  oLbl(ctx,'דᵢ = −dₒ',W/2,8,'#e2e8f0',9);
+  oLbl(ctx,'dᵢ = −dₒ',W/2,8,'#e2e8f0',9);
 });
 
 // ─── 5. Concave mirror image formation ──────────────────────────────────────
@@ -27618,7 +27544,7 @@ function simElcScope(canvas){
   var gb=document.getElementById('btn-scope-ground');
   if(gb)gb.addEventListener('click',function(){
     grounded=!grounded;
-    gb.textContent=grounded?'⏚ נתק הארקה':'⏚ חבר הארקה';
+    gb.textContent=grounded?'⏚ נתקו הארקה':'⏚ חברו הארקה';
     evt=grounded?'gnd-on':'gnd-off'; evtT=animT;
   });
   function _dn(e){var p=simPointerXY(canvas,dpr,e);
@@ -27768,7 +27694,7 @@ function simElcCoulomb(canvas){
   var Q3=2; // μC, fixed
   var tb=document.getElementById('btn-clb-three');
   if(tb)tb.addEventListener('click',function(){on3=!on3;
-    tb.textContent=on3?'⊖ הסר את q₃':'⊕ הוסף מטען q₃ (סופרפוזיציה)';});
+    tb.textContent=on3?'⊖ הסירו את q₃':'⊕ הוסיפו מטען q₃ (סופרפוזיציה)';});
   function q1(){var e=document.getElementById('inp-elc-q1');return e?parseFloat(e.value):2;}
   function q2(){var e=document.getElementById('inp-elc-q2');return e?parseFloat(e.value):-3;}
   function _dn(e){var p=simPointerXY(canvas,dpr,e);
@@ -28086,10 +28012,10 @@ function simElcPotential(canvas){
   }
   var tb=document.getElementById('btn-pot-two');
   if(tb)tb.addEventListener('click',function(){two=!two;
-    tb.textContent=two?'⊖ הסר מטען שני':'⊕ הוסף מטען שני';});
+    tb.textContent=two?'⊖ הסירו מטען שני':'⊕ הוסיפו מטען שני';});
   var vq2=document.getElementById('inp-elc-Vq2');
   if(vq2)vq2.addEventListener('input',function(){
-    if(!two){two=true;if(tb)tb.textContent='⊖ הסר מטען שני';}});
+    if(!two){two=true;if(tb)tb.textContent='⊖ הסירו מטען שני';}});
   var mb=document.getElementById('btn-pot-mark');
   if(mb)mb.addEventListener('click',function(){markV=Vat(px2,py2);});
   function _dn(e){var p=simPointerXY(canvas,dpr,e);
@@ -28258,7 +28184,7 @@ function simElcCompare(canvas){
   var GX=52,GW=0,RMAX=0.60;
   var vb=document.getElementById('btn-cmp-v');
   if(vb)vb.addEventListener('click',function(){showV=!showV;
-    vb.textContent=showV?'⚡ הצג שדה E':'🔋 הצג פוטנציאל V';});
+    vb.textContent=showV?'⚡ הציגו שדה E':'🔋 הציגו פוטנציאל V';});
   function Qv(){var e=document.getElementById('inp-cmp-Q');return e?parseFloat(e.value):3;}
   function Rv(){var e=document.getElementById('inp-cmp-R');return e?parseFloat(e.value):5;}
   simDrag(canvas,dpr,{
@@ -30039,7 +29965,7 @@ function simElcConductor(canvas){
     smb.textContent=sharpMode?'⚪ כדור מוליך':'📐 חוד ופריקה';});
   var eb=document.getElementById('btn-cnd-ext');
   if(eb)eb.addEventListener('click',function(){ext=!ext;
-    eb.textContent=ext?'🚫 בטל שדה חיצוני':'⚡ שדה חיצוני';});
+    eb.textContent=ext?'🚫 בטלו שדה חיצוני':'⚡ שדה חיצוני';});
   function _dn(e){var p=simPointerXY(canvas,dpr,e);
     if(Math.hypot(p.x-pxp,p.y-pyp)<26){dragP=true;touched=true;canvas.style.cursor='grabbing';e.preventDefault();}}
   function _mv(e){var p=simPointerXY(canvas,dpr,e);
@@ -30365,7 +30291,7 @@ function simElcNetwork(canvas){
   function Vb(){var e=document.getElementById('inp-net-v');return e?parseFloat(e.value):12;}
   var tb=document.getElementById('btn-net-mode');
   if(tb)tb.addEventListener('click',function(){series=!series;
-    tb.textContent=series?'⇉ עבור למקביל':'⇶ עבור לטור';});
+    tb.textContent=series?'⇉ עברו למקביל':'⇶ עברו לטור';});
   function draw(){
     if(_simStop[id])return;animT+=0.03;
     var c1=C1(),c2=C2(),V=Vb();
@@ -30471,7 +30397,7 @@ function simElcPlates(canvas){
   if(pb)pb.addEventListener('click',function(){pol*=-1;});
   var qb=document.getElementById('btn-pl-part');
   if(qb)qb.addEventListener('click',function(){part=part==='e'?'p':'e';elec=null;ghosts=[];
-    qb.textContent=part==='e'?'🔁 החלף לפרוטון':'🔁 החלף לאלקטרון';});
+    qb.textContent=part==='e'?'🔁 החליפו לפרוטון':'🔁 החליפו לאלקטרון';});
   // Pull back (left) from the entry point to set v₀, release to launch
   function _plDn(e){var p=simPointerXY(canvas,dpr,e);
     if(p.x<PL-6&&Math.abs(p.y-cy)<70){aimP=true;aimX=p.x;canvas.style.cursor='grabbing';e.preventDefault();}}
@@ -30595,12 +30521,12 @@ function simElcCap(canvas){
   function Acm(){var e=document.getElementById('inp-elc-cA');return e?parseFloat(e.value):200;}
   function dmm(){var e=document.getElementById('inp-elc-cd');return e?parseFloat(e.value):4;}
   var db=document.getElementById('btn-cap-diel');
-  if(db)db.addEventListener('click',function(){kappa=kappa===1?3:1;db.textContent=kappa===3?'🚫 הוצא דיאלקטרן':'🧱 דיאלקטרן κ=3';});
+  if(db)db.addEventListener('click',function(){kappa=kappa===1?3:1;db.textContent=kappa===3?'🚫 הוציאו דיאלקטרן':'🧱 דיאלקטרן κ=3';});
   var disc=false,Qfroz=0;
   var xb=document.getElementById('btn-cap-disc');
   if(xb)xb.addEventListener('click',function(){disc=!disc;
     if(disc)Qfroz=kappa*ELC_EPS0*(Acm()*1e-4)/(dmm()*1e-3)*Vv();
-    xb.textContent=disc?'🔌 חבר חזרה לסוללה':'✂️ נתק מהסוללה (Q קבוע)';});
+    xb.textContent=disc?'🔌 חברו חזרה לסוללה':'✂️ נתקו מהסוללה (Q קבוע)';});
   function rx(){return LX+dmm()*18;}
   function _dn(e){var p=simPointerXY(canvas,dpr,e);
     if(Math.abs(p.x-rx())<18&&Math.abs(p.y-cy)<120){dragPlate=true;touched=true;canvas.style.cursor='grabbing';e.preventDefault();}}
@@ -32979,45 +32905,44 @@ function buildSim(sim){
   if(!sim)return '';
   let extra='';
   const C=(s)=>`<div class="sim-controls">${s}</div>`;
-  if(sim.type==='position-time')extra=C(btn('pt-reset','↺ אפס מסלול','btn-secondary'));
-  else if(sim.type==='const-velocity')extra=C(rng('cv-v',-10,10,2.5,0.5,'מהירות v',' m/s')+rng('cv-x0',-8,8,0,1,'מיקום x₀',' m')+btn('cv-reset','↺ אפס','btn-secondary'));
-  else if(sim.type==='avg-instant')extra=C(rng('ai-k',0.5,4,1.5,0.25,'מקדם k  (x = k·t²)')+btn('ai-reset','▶ הרץ Δt→0','btn-secondary'));
-  else if(sim.type==='acceleration')extra=C(rng('acc-a',-10,10,3,0.5,'תאוצה a',' m/s²')+rng('acc-v0',-8,8,0,1,'v₀ ראשונית',' m/s')+btn('acc-reset','↺ אפס','btn-secondary'));
+  if(sim.type==='position-time')extra=C(btn('pt-reset','↺ איפוס המסלול','btn-secondary'));
+  else if(sim.type==='const-velocity')extra=C(rng('cv-v',-10,10,2.5,0.5,'מהירות v',' m/s')+rng('cv-x0',-8,8,0,1,'מיקום x₀',' m')+btn('cv-reset','↺ איפוס','btn-secondary'));
+  else if(sim.type==='avg-instant')extra=C(rng('ai-k',0.5,4,1.5,0.25,'מקדם k  (x = k·t²)')+btn('ai-reset','▶ הריצו Δt→0','btn-secondary'));
+  else if(sim.type==='acceleration')extra=C(rng('acc-a',-10,10,3,0.5,'תאוצה a',' m/s²')+rng('acc-v0',-8,8,0,1,'v₀ ראשונית',' m/s')+btn('acc-reset','↺ איפוס','btn-secondary'));
   else if(sim.type==='freefall')extra=C(rng('v0',0,30,18,1,'v₀ ראשונית',' m/s')+rng('ff-g',1.6,25,9.8,0.2,'g כבידה',' m/s²')+btn('throw','🎯 זרקו!','btn-primary'));
-  else if(sim.type==='multi-freefall')extra=C(rng('g-mff',1.6,25,9.8,0.1,'g (כבידה)',' m/s²')+rng('mff-h',5,40,20,1,'גובה h',' m')+btn('mff-reset','↺ שחרר שוב','btn-secondary'));
   else if(sim.type==='force-types')extra=C(rng('ft-F',0,40,12,1,'דחיפה F',' N')+rng('ft-x',0.01,0.15,0.05,0.01,'מתיחת הקפיץ x',' m'));
   else if(sim.type==='inertia')extra=C(rng('friction',0,0.8,0.4,0.05,'חיכוך μ')+rng('mass-in',1,15,5,0.5,'מסה m',' kg')+btn('push-right','💨 דחפו ימינה','btn-primary')+btn('push-left','דחפו שמאלה 💨','btn-secondary'));
-  else if(sim.type==='newton2')extra=C(rng('mass',1,20,5,0.5,'מסה m',' kg')+rng('n2-F',-60,60,20,1,'כוח F',' N')+rng('n2-mu',0,0.8,0,0.05,'חיכוך μ')+btn('n2-reset','↺ אפס','btn-secondary'));
-  else if(sim.type==='newton3')extra=C(rng('n3-mA',20,90,60,5,'מסת A',' kg')+rng('n3-mB',20,90,30,5,'מסת B',' kg')+rng('n3-F',50,600,300,10,'כוח דחיפה',' N')+btn('n3-push','💥 דחפו!')+btn('n3-reset','↺ אפס','btn-secondary'));
-  else if(sim.type==='normal-force')extra=C(rng('nf-theta',0,70,0,1,'זווית θ','°')+rng('nf-mass',1,12,4,0.5,'מסה m',' kg')+rng('nf-mu',0,0.7,0,0.05,'חיכוך μ')+btn('nf-reset','↺ אפס','btn-secondary'));
-  else if(sim.type==='incline')extra=C(rng('inc-theta',5,75,30,1,'זווית θ','°')+rng('inc-mu',0,0.8,0,0.05,'חיכוך μ')+rng('inc-m',0.5,10,3,0.5,'מסה m',' kg')+rng('inc-m1',0.5,10,3,0.5,'m₁ אטווד',' kg')+rng('inc-m2',0.5,10,5,0.5,'m₂ אטווד',' kg')+btn('inc-atwood','⚖️ מכונת אטווד','btn-secondary')+btn('inc-reset','↺ אפס','btn-secondary'));
-  else if(sim.type==='tension')extra=C(rng('ten-m1',0.5,12,3,0.5,'m₁ אטווד',' kg')+rng('ten-m2',0.5,12,5,0.5,'m₂ אטווד',' kg')+rng('ten-el',0.5,5,3,0.5,'מסת הגוף במעלית',' kg')+rng('ten-ea',-5,5,0,0.5,'תאוצת המעלית',' m/s²')+btn('ten-launch','▶ שחררו!')+btn('ten-reset','↺ אפס','btn-secondary'));
-  else if(sim.type==='fbd')extra=C(rng('fbd-F',-10,25,0,0.5,'כוח נוסף על הגוף (+ מעלה)',' N')+btn('fbd-reset','↺ נקה הכל','btn-secondary'));
+  else if(sim.type==='newton2')extra=C(rng('mass',1,20,5,0.5,'מסה m',' kg')+rng('n2-F',-60,60,20,1,'כוח F',' N')+rng('n2-mu',0,0.8,0,0.05,'חיכוך μ')+btn('n2-reset','↺ איפוס','btn-secondary'));
+  else if(sim.type==='newton3')extra=C(rng('n3-mA',20,90,60,5,'מסת A',' kg')+rng('n3-mB',20,90,30,5,'מסת B',' kg')+rng('n3-F',50,600,300,10,'כוח דחיפה',' N')+btn('n3-push','💥 דחפו!')+btn('n3-reset','↺ איפוס','btn-secondary'));
+  else if(sim.type==='normal-force')extra=C(rng('nf-theta',0,70,0,1,'זווית θ','°')+rng('nf-mass',1,12,4,0.5,'מסה m',' kg')+rng('nf-mu',0,0.7,0,0.05,'חיכוך μ')+btn('nf-reset','↺ איפוס','btn-secondary'));
+  else if(sim.type==='incline')extra=C(rng('inc-theta',5,75,30,1,'זווית θ','°')+rng('inc-mu',0,0.8,0,0.05,'חיכוך μ')+rng('inc-m',0.5,10,3,0.5,'מסה m',' kg')+rng('inc-m1',0.5,10,3,0.5,'m₁ אטווד',' kg')+rng('inc-m2',0.5,10,5,0.5,'m₂ אטווד',' kg')+btn('inc-atwood','⚖️ מכונת אטווד','btn-secondary')+btn('inc-reset','↺ איפוס','btn-secondary'));
+  else if(sim.type==='tension')extra=C(rng('ten-m1',0.5,12,3,0.5,'m₁ אטווד',' kg')+rng('ten-m2',0.5,12,5,0.5,'m₂ אטווד',' kg')+rng('ten-el',0.5,5,3,0.5,'מסת הגוף במעלית',' kg')+rng('ten-ea',-5,5,0,0.5,'תאוצת המעלית',' m/s²')+btn('ten-launch','▶ שחררו!')+btn('ten-reset','↺ איפוס','btn-secondary'));
+  else if(sim.type==='fbd')extra=C(rng('fbd-F',-10,25,0,0.5,'כוח נוסף על הגוף (+ מעלה)',' N')+btn('fbd-reset','↺ נקו הכול','btn-secondary'));
   else if(sim.type==='momentum')extra=C(rng('mom-mass',0.5,8,2,0.5,'מסה',' kg')+rng('mom-vel',-10,10,4,1,'מהירות',' m/s'));
-  else if(sim.type==='momentum-cons')extra=C(rng('mc-m1',1,8,3,0.5,'m₁',' kg')+rng('mc-m2',1,8,2,0.5,'m₂',' kg')+rng('mc-v1',-8,8,4,1,'v₁',' m/s')+rng('mc-v2',-8,8,-2,1,'v₂',' m/s')+btn('mc-reset','↺ אפס','btn-secondary'));
-  else if(sim.type==='collision')extra=C(rng('col-e',0,1,1,0.05,'מקדם התקומה e (0 נצמדים, 1 אלסטית)')+rng('col-m1',1,8,3,0.5,'m₁',' kg')+rng('col-m2',1,8,2,0.5,'m₂',' kg')+rng('col-v1',0,8,4,0.5,'v₁ התחלתית',' m/s')+rng('col-v2',-8,0,-2,0.5,'v₂ התחלתית',' m/s')+btn('col-reset','↺ אפס','btn-secondary'));
-  else if(sim.type==='energy-kinetic')extra=C(rng('ek-F',2,50,10,1,'כוח F',' N')+rng('ek-m',0.5,10,2,0.5,'מסה m',' kg')+btn('ek-launch','▶ הפעל!','btn-primary')+btn('ek-reset','↺ אפס','btn-secondary'));
-  else if(sim.type==='energy-potential')extra=C(rng('ep-m',0.5,8,2,0.5,'מסה m',' kg')+rng('ep-g',1.6,25,9.8,0.5,'g',' m/s²')+btn('ep-elastic','⚡ אנרגיה אלסטית','btn-secondary')+btn('ep-reset','↺ אפס','btn-secondary'));
-  else if(sim.type==='energy')extra=C(rng('energy-m',0.5,4,1,0.5,'מסה m',' kg')+rng('energy-mu',0,0.1,0,0.005,'מקדם חיכוך μ','')+btn('energy-reset','↺ אפס','btn-secondary'));
-  else if(sim.type==='shm-def')extra=C(rng('shm-A',2,13,8,0.5,'אמפליטודה A',' cm')+rng('shm-T',0.5,5,2,0.1,'מחזור T',' s')+btn('shm-reset','↺ אפס','btn-secondary'));
-  else if(sim.type==='vec-ops')extra=C(rng('vo-scalar',-3,3,2,0.1,'מכפיל c')+btn('vo-add','A+B')+btn('vo-sub','A−B','btn-secondary')+btn('vo-scalar','c·A','btn-secondary')+btn('vo-dot','A·B','btn-secondary')+btn('vo-reset','↺ אפס','btn-secondary'));
-  else if(sim.type==='vec-components')extra=C(rng('vc-mag',0.5,4,2.8,0.1,'גודל |A|')+rng('vc-ang',0,360,32,1,'זווית θ','°')+btn('vc-reset','↺ אפס','btn-secondary'));
+  else if(sim.type==='momentum-cons')extra=C(rng('mc-m1',1,8,3,0.5,'m₁',' kg')+rng('mc-m2',1,8,2,0.5,'m₂',' kg')+rng('mc-v1',-8,8,4,1,'v₁',' m/s')+rng('mc-v2',-8,8,-2,1,'v₂',' m/s')+btn('mc-reset','↺ איפוס','btn-secondary'));
+  else if(sim.type==='collision')extra=C(rng('col-e',0,1,1,0.05,'מקדם התקומה e (0 נצמדים, 1 אלסטית)')+rng('col-m1',1,8,3,0.5,'m₁',' kg')+rng('col-m2',1,8,2,0.5,'m₂',' kg')+rng('col-v1',0,8,4,0.5,'v₁ התחלתית',' m/s')+rng('col-v2',-8,0,-2,0.5,'v₂ התחלתית',' m/s')+btn('col-reset','↺ איפוס','btn-secondary'));
+  else if(sim.type==='energy-kinetic')extra=C(rng('ek-F',2,50,10,1,'כוח F',' N')+rng('ek-m',0.5,10,2,0.5,'מסה m',' kg')+btn('ek-launch','▶ הפעילו!','btn-primary')+btn('ek-reset','↺ איפוס','btn-secondary'));
+  else if(sim.type==='energy-potential')extra=C(rng('ep-m',0.5,8,2,0.5,'מסה m',' kg')+rng('ep-g',1.6,25,9.8,0.5,'g',' m/s²')+btn('ep-elastic','⚡ אנרגיה אלסטית','btn-secondary')+btn('ep-reset','↺ איפוס','btn-secondary'));
+  else if(sim.type==='energy')extra=C(rng('energy-m',0.5,4,1,0.5,'מסה m',' kg')+rng('energy-mu',0,0.1,0,0.005,'מקדם חיכוך μ','')+btn('energy-reset','↺ איפוס','btn-secondary'));
+  else if(sim.type==='shm-def')extra=C(rng('shm-A',2,13,8,0.5,'אמפליטודה A',' cm')+rng('shm-T',0.5,5,2,0.1,'מחזור T',' s')+btn('shm-reset','↺ איפוס','btn-secondary'));
+  else if(sim.type==='vec-ops')extra=C(rng('vo-scalar',-3,3,2,0.1,'מכפיל c')+btn('vo-add','A+B')+btn('vo-sub','A−B','btn-secondary')+btn('vo-scalar','c·A','btn-secondary')+btn('vo-dot','A·B','btn-secondary')+btn('vo-reset','↺ איפוס','btn-secondary'));
+  else if(sim.type==='vec-components')extra=C(rng('vc-mag',0.5,4,2.8,0.1,'גודל |A|')+rng('vc-ang',0,360,32,1,'זווית θ','°')+btn('vc-reset','↺ איפוס','btn-secondary'));
   else if(sim.type==='spring')extra=C(rng('spring-k',0.1,25,2,0.1,'k (N/m)')+rng('spring-m',0.1,2,0.5,0.1,'מסה',' kg'));
   else if(sim.type==='gravity-force')extra=C(rng('gf-m',1,200,70,1,'מסה m',' kg'));
-  else if(sim.type==='spring-force')extra=C(rng('sf-k',5,200,40,5,'k קשיחות',' N/m')+rng('sf-m',0.1,2,0.4,0.05,'מסה m',' kg')+rng('sf-damp',0,2,0.8,0.1,'ריסון b')+btn('sf-reset','↺ אפס','btn-secondary')+btn('sf-fmode','📐 הצג F = −kx (עם סימן)','btn-secondary'));
-  else if(sim.type==='static-friction')extra=C(rng('sft-mu',0.1,0.9,0.55,0.05,'μ_s')+rng('sft-mass',1,15,3,0.5,'מסה m',' kg')+rng('sft-F',0,80,0,1,'כוח F',' N')+btn('sft-reset','↺ אפס','btn-secondary'));
-  else if(sim.type==='kinetic-friction')extra=C(rng('kf-v0',2,20,10,1,'מהירות v₀',' m/s')+rng('kf-mass',1,15,5,0.5,'מסה m',' kg')+rng('kf-mu',0.1,0.8,0.38,0.02,'μ_k')+btn('kf-launch','▶ שגרו!','btn-primary')+btn('kf-reset','↺ אפס','btn-secondary'));
-  else if(sim.type==='friction-combined')extra=C(rng('fc-theta',5,70,20,1,'זווית θ','°')+rng('fc-F',0,80,0,2,'כוח F',' N')+rng('fc-mu',0.05,0.8,0.45,0.05,'μ')+rng('fc-m',0.5,10,5,0.5,'מסה m',' kg')+btn('fc-reset','↺ אפס','btn-secondary'));
-  else if(sim.type==='pendulum')extra=C(rng('pend-L',0.3,3,1,0.1,'אורך L',' m')+rng('pend-g',1.6,25,9.8,0.5,'g',' m/s²')+rng('pend-damp',0,0.1,0,0.005,'ריסון b',' 1/s')+btn('pend-reset','↺ אפס','btn-secondary'));
-  else if(sim.type==='projectile')extra=C(rng('proj-angle',10,80,45,1,'זווית θ','°')+rng('proj-v0',5,35,20,1,'מהירות v₀',' m/s')+btn('proj-launch','▶ שגר!','btn-primary')+btn('proj-reset','↺ אפס','btn-secondary'));
+  else if(sim.type==='spring-force')extra=C(rng('sf-k',5,200,40,5,'k קשיחות',' N/m')+rng('sf-m',0.1,2,0.4,0.05,'מסה m',' kg')+rng('sf-damp',0,2,0.8,0.1,'ריסון b')+btn('sf-reset','↺ איפוס','btn-secondary')+btn('sf-fmode','📐 הציגו F = −kx (עם סימן)','btn-secondary'));
+  else if(sim.type==='static-friction')extra=C(rng('sft-mu',0.1,0.9,0.55,0.05,'μ_s')+rng('sft-mass',1,15,3,0.5,'מסה m',' kg')+rng('sft-F',0,80,0,1,'כוח F',' N')+btn('sft-reset','↺ איפוס','btn-secondary'));
+  else if(sim.type==='kinetic-friction')extra=C(rng('kf-v0',2,20,10,1,'מהירות v₀',' m/s')+rng('kf-mass',1,15,5,0.5,'מסה m',' kg')+rng('kf-mu',0.1,0.8,0.38,0.02,'μ_k')+btn('kf-launch','▶ שגרו!','btn-primary')+btn('kf-reset','↺ איפוס','btn-secondary'));
+  else if(sim.type==='friction-combined')extra=C(rng('fc-theta',5,70,20,1,'זווית θ','°')+rng('fc-F',0,80,0,2,'כוח F',' N')+rng('fc-mu',0.05,0.8,0.45,0.05,'μ')+rng('fc-m',0.5,10,5,0.5,'מסה m',' kg')+btn('fc-reset','↺ איפוס','btn-secondary'));
+  else if(sim.type==='pendulum')extra=C(rng('pend-L',0.3,3,1,0.1,'אורך L',' m')+rng('pend-g',1.6,25,9.8,0.5,'g',' m/s²')+rng('pend-damp',0,0.1,0,0.005,'ריסון b',' 1/s')+btn('pend-reset','↺ איפוס','btn-secondary'));
+  else if(sim.type==='projectile')extra=C(rng('proj-angle',10,80,45,1,'זווית θ','°')+rng('proj-v0',5,35,20,1,'מהירות v₀',' m/s')+btn('proj-launch','▶ שגרו!','btn-primary')+btn('proj-reset','↺ איפוס','btn-secondary'));
   else if(sim.type==='elc-dielectric')extra=C(rng('di-k',1,8,4,0.5,'קבוע דיאלקטרי κ')+rng('di-f',0,1,0,0.05,'הכנסת הלוח')+btn('di-mode','🔌 הסוללה מחוברת','btn-secondary'));
-  else if(sim.type==='elc-deflect')extra=C(rng('df-V',0,300,100,10,'מתח V',' V')+rng('df-v0',1,5,2,0.25,'v₀',' ×10⁷ m/s')+rng('df-L',4,14,10,1,'אורך הלוחות',' cm')+btn('df-part','🔁 החלף לפרוטון','btn-secondary'));
+  else if(sim.type==='elc-deflect')extra=C(rng('df-V',0,300,100,10,'מתח V',' V')+rng('df-v0',1,5,2,0.25,'v₀',' ×10⁷ m/s')+rng('df-L',4,14,10,1,'אורך הלוחות',' cm')+btn('df-part','🔁 החליפו לפרוטון','btn-secondary'));
   else if(sim.type==='elc-millikan')extra=C(rng('mk-V',0,1000,300,1,'מתח V',' V')+btn('mk-new','🎲 טיפה חדשה','btn-primary'));
   else if(sim.type==='statics-torque')extra=C(rng('tq-r',0.05,0.50,0.30,0.01,'מרחק r',' m')+rng('tq-F',5,60,30,1,'כוח F',' N')+rng('tq-th',0,180,60,5,'זווית θ',' °'));
   else if(sim.type==='statics-beam')extra=C(rng('bm-P',0,600,300,10,'עומס P',' N')+rng('bm-xp',0,4,3,0.1,'מיקום העומס',' m')+rng('bm-W',0,400,200,20,'משקל הקורה',' N')+rng('bm-xb',1.5,4,4,0.1,'מיקום משען B',' m'));
   else if(sim.type==='statics-com')extra=C(rng('cm-w',0.15,0.9,0.30,0.05,'רוחב w',' m')+rng('cm-h',0.2,1.2,0.50,0.05,'גובה h',' m')+rng('cm-mu',0.05,1.2,0.40,0.05,'חיכוך μs')+rng('cm-th',0,55,15,1,'זווית המדרון',' °'));
-  else if(sim.type==='circular')extra=C(rng('circ-r',0.5,3,1.2,0.1,'רדיוס r',' m')+rng('circ-v',2,15,6,0.5,'מהירות v',' m/s')+btn('circ-pause','⏸ השהה/המשך','btn-secondary'));
-  else if(sim.type==='atwood')extra=C(rng('atw-m1',0.5,10,3,0.5,'m₁',' kg')+rng('atw-m2',0.5,10,5,0.5,'m₂',' kg')+btn('atw-launch','▶ שחררו!','btn-primary')+btn('atw-reset','↺ אפס','btn-secondary'));
+  else if(sim.type==='circular')extra=C(rng('circ-r',0.5,3,1.2,0.1,'רדיוס r',' m')+rng('circ-v',2,15,6,0.5,'מהירות v',' m/s')+btn('circ-pause','⏸ עצרו','btn-secondary'));
+  else if(sim.type==='atwood')extra=C(rng('atw-m1',0.5,10,3,0.5,'m₁',' kg')+rng('atw-m2',0.5,10,5,0.5,'m₂',' kg')+btn('atw-launch','▶ שחררו!','btn-primary')+btn('atw-reset','↺ איפוס','btn-secondary'));
   // OPTICS CONTROLS
   else if(sim.type==='opt-em-wave')extra=C(rng('emw-wl',380,700,500,5,'אורך גל λ',' nm'));
   else if(sim.type==='opt-refr-index')extra=C(rng('ri-n',1,2.5,1.5,0.01,'מדד שבירה n'));
@@ -33034,7 +32959,7 @@ function buildSim(sim){
     '<button class="btn btn-primary" onclick="window._eyeMode(\'normal\')">😊 תקינה</button>'+
     '<button class="btn btn-secondary" onclick="window._eyeMode(\'myopia\')">👓 קוצר ראייה</button>'+
     '<button class="btn btn-secondary" onclick="window._eyeMode(\'hyper\')">🔭 רוחק ראייה</button>'+
-    '<button class="btn btn-secondary" id="btn-eye-glasses" onclick="window._eyeGlasses()">👓 הוסף משקפיים</button></div>');
+    '<button class="btn btn-secondary" id="btn-eye-glasses" onclick="window._eyeGlasses()">👓 הוסיפו משקפיים</button></div>');
   else if(sim.type==='opt-interference')extra=C(rng('int-lambda',380,700,500,10,'אורך גל λ',' nm')+rng('int-d',1,4,2,0.1,'מרחק מקורות d',' μm'));
   else if(sim.type==='opt-youngs')extra=C(rng('ys-lambda',400,700,500,10,'אורך גל λ',' nm')+rng('ys-d',0.1,1,0.3,0.05,'מרחק סדקים d',' mm')+rng('ys-L',0.5,3,1,0.1,'מרחק מסך L',' m'));
   else if(sim.type==='opt-diffraction')extra=C(rng('diff-a',0.05,1,0.1,0.01,'רוחב סדק a',' mm')+rng('diff-lambda',380,700,500,10,'אורך גל λ',' nm'));
@@ -33047,10 +32972,10 @@ function buildSim(sim){
   else if(sim.type==='opt-telescope')extra=C(rng('tel-fo',30,300,150,5,'מוקד אובייקטיב fₒ','mm')+rng('tel-fe',5,60,25,5,'מוקד עדשת עין fₑ','mm'));
   else if(sim.type==='opt-thin-film')extra=C(rng('tf-thick',50,600,300,5,'עובי קרום t','nm')+rng('tf-n',1.10,2.00,1.33,0.02,'מדד שבירה n',''));
   else if(sim.type==='opt-grating')extra=C(rng('gr-d',0.5,5.0,1.5,0.1,'מרווח סריג d','μm')+rng('gr-lambda',380,700,550,5,'אורך גל λ','nm')+btn('gr-white','🌈 אור לבן','btn-secondary'));
-  else if(sim.type==='elc-scope')extra=C(rng('scope-q',1,10,5,1,'עוצמת מטען המוט',' nC')+btn('scope-flip','↔ החלף סימן','btn-secondary')+btn('scope-touch','👆 גע — הולכה','btn-secondary')+btn('scope-ground','⏚ חבר הארקה','btn-secondary'));
-  else if(sim.type==='elc-coulomb')extra=C(rng('elc-q1',-5,5,2,0.5,'q₁',' μC')+rng('elc-q2',-5,5,-3,0.5,'q₂',' μC')+btn('clb-three','⊕ הוסף מטען q₃ (סופרפוזיציה)','btn-secondary'));
+  else if(sim.type==='elc-scope')extra=C(rng('scope-q',1,10,5,1,'עוצמת מטען המוט',' nC')+btn('scope-flip','↔ החליפו סימן','btn-secondary')+btn('scope-touch','👆 געו — הולכה','btn-secondary')+btn('scope-ground','⏚ חברו הארקה','btn-secondary'));
+  else if(sim.type==='elc-coulomb')extra=C(rng('elc-q1',-5,5,2,0.5,'q₁',' μC')+rng('elc-q2',-5,5,-3,0.5,'q₂',' μC')+btn('clb-three','⊕ הוסיפו מטען q₃ (סופרפוזיציה)','btn-secondary'));
   else if(sim.type==='elc-field')extra=C(rng('elc-Q',-6,6,4,0.5,'מטען Q₁',' μC')+rng('elc-Q2',-6,6,-4,0.5,'מטען Q₂',' μC')+btn('field-dipole','⇄ שני מטענים','btn-secondary')+btn('field-lines','✒️ קווי שדה רציפים','btn-secondary'));
-  else if(sim.type==='elc-compare')extra=C(rng('cmp-Q',0.1,4,0.5,0.1,'מטען Q',' μC')+rng('cmp-R',2,12,5,0.5,'רדיוס הכדור R',' cm')+btn('cmp-v','🔋 הצג פוטנציאל V','btn-secondary'));
+  else if(sim.type==='elc-compare')extra=C(rng('cmp-Q',0.1,4,0.5,0.1,'מטען Q',' μC')+rng('cmp-R',2,12,5,0.5,'רדיוס הכדור R',' cm')+btn('cmp-v','🔋 הציגו פוטנציאל V','btn-secondary'));
   else if(sim.type==='elc-sphere')extra=C(rng('sph-Q',-6,6,3,0.5,'מטען Q',' μC')+rng('sph-R',2,30,20,1,'רדיוס R',' cm'));
   else if(sim.type==='dc-junction')extra=C(rng('jn-I1',0,6,3,0.1,'I₁ — נכנס',' A')+rng('jn-I2',0,6,2,0.1,'I₂ — נכנס',' A')+rng('jn-I3',0,6,4,0.1,'I₃ — יוצא',' A'));
   else if(sim.type==='dc-loop')extra=C(rng('lp-E1',2,24,12,0.5,'כא״מ ε₁',' V')+rng('lp-E2',0,12,0,0.5,'כא״מ ε₂',' V')+rng('lp-R1',1,20,4,1,'R₁',' Ω')+rng('lp-R2',1,20,8,1,'R₂',' Ω')+btn('lp-aid','🔋 סוללה 2: מסייעת','btn-secondary')+btn('lp-dir','↻ הליכה: עם כיוון השעון','btn-secondary'));
@@ -33069,11 +32994,11 @@ function buildSim(sim){
   else if(sim.type==='dc-power')extra=C(rng('pw-V',1,24,12,0.5,'מתח V',' V')+rng('pw-R',2,48,6,1,'התנגדות R',' Ω')+btn('pw-run','⏸ עצור','btn-secondary')+btn('pw-reset','↺ אפס אנרגיה','btn-secondary'));
   else if(sim.type==='elc-plane')extra=C(rng('pln-s1',-6,6,4,0.5,'σ₁ של הלוח השמאלי',' μC/m²')+rng('pln-s2',-6,6,-4,0.5,'σ₂ של הלוח הימני',' μC/m²')+btn('pln-two','➖ לוח אחד','btn-secondary')+btn('pln-sign','🔴 מטען בוחן חיובי','btn-secondary'));
   else if(sim.type==='elc-conductor')extra=C(rng('cnd-Q',-8,8,4,0.5,'מטען המוליך Q',' μC')+rng('cnd-R',30,70,50,2,'רדיוס R','','_fmtHalfCm')+btn('cnd-mode','📐 חוד ופריקה','btn-secondary')+btn('cnd-ext','⚡ שדה חיצוני','btn-secondary'));
-  else if(sim.type==='elc-potential')extra=C(rng('elc-Vq',-8,8,2,0.5,'מטען Q₁',' μC')+rng('elc-Vq2',-8,8,-3,0.5,'מטען Q₂',' μC')+rng('elc-q0',-5,5,1,0.5,'מטען בוחן q₀',' nC')+btn('pot-two','⊕ הוסף מטען שני','btn-secondary')+btn('pot-mark','📌 סמן נקודה A','btn-secondary'));
-  else if(sim.type==='elc-plates')extra=C(rng('elc-V',50,400,200,10,'מתח V',' V')+rng('elc-d',2,8,4,0.5,'מרווח d',' cm')+rng('elc-v0',5,30,20,1,'v₀ כניסה',' ×10⁶ m/s')+btn('pl-launch','🚀 שגר','btn-primary')+btn('pl-flip','± הפוך קוטביות','btn-secondary')+btn('pl-part','🔁 החלף לפרוטון','btn-secondary'));
-  else if(sim.type==='elc-upair')extra=C(rng('up-q1',-5,5,2,0.5,'מטען q₁',' μC')+rng('up-q2',-5,5,3,0.5,'מטען q₂',' μC')+btn('up-release','🚀 שחרר','btn-primary'));
-  else if(sim.type==='elc-network')extra=C(rng('net-c1',1,12,2,0.5,'קיבול C₁',' μF')+rng('net-c2',1,12,3,0.5,'קיבול C₂',' μF')+rng('net-v',1,24,12,1,'מתח הסוללה V',' V')+btn('net-mode','⇶ עבור לטור','btn-secondary'));
-  else if(sim.type==='elc-cap')extra=C(rng('elc-cV',1,24,12,1,'מתח V',' V')+rng('elc-cA',50,400,200,10,'שטח A',' cm²')+rng('elc-cd',1,10,4,0.5,'מרווח d',' mm')+btn('cap-diel','🧱 דיאלקטרן κ=3','btn-secondary')+btn('cap-disc','✂️ נתק מהסוללה (Q קבוע)','btn-secondary'));
+  else if(sim.type==='elc-potential')extra=C(rng('elc-Vq',-8,8,2,0.5,'מטען Q₁',' μC')+rng('elc-Vq2',-8,8,-3,0.5,'מטען Q₂',' μC')+rng('elc-q0',-5,5,1,0.5,'מטען בוחן q₀',' nC')+btn('pot-two','⊕ הוסיפו מטען שני','btn-secondary')+btn('pot-mark','📌 סמנו נקודה A','btn-secondary'));
+  else if(sim.type==='elc-plates')extra=C(rng('elc-V',50,400,200,10,'מתח V',' V')+rng('elc-d',2,8,4,0.5,'מרווח d',' cm')+rng('elc-v0',5,30,20,1,'v₀ כניסה',' ×10⁶ m/s')+btn('pl-launch','🚀 שגרו','btn-primary')+btn('pl-flip','± הפכו קוטביות','btn-secondary')+btn('pl-part','🔁 החליפו לפרוטון','btn-secondary'));
+  else if(sim.type==='elc-upair')extra=C(rng('up-q1',-5,5,2,0.5,'מטען q₁',' μC')+rng('up-q2',-5,5,3,0.5,'מטען q₂',' μC')+btn('up-release','🚀 שחררו','btn-primary'));
+  else if(sim.type==='elc-network')extra=C(rng('net-c1',1,12,2,0.5,'קיבול C₁',' μF')+rng('net-c2',1,12,3,0.5,'קיבול C₂',' μF')+rng('net-v',1,24,12,1,'מתח הסוללה V',' V')+btn('net-mode','⇶ עברו לטור','btn-secondary'));
+  else if(sim.type==='elc-cap')extra=C(rng('elc-cV',1,24,12,1,'מתח V',' V')+rng('elc-cA',50,400,200,10,'שטח A',' cm²')+rng('elc-cd',1,10,4,0.5,'מרווח d',' mm')+btn('cap-diel','🧱 דיאלקטרן κ=3','btn-secondary')+btn('cap-disc','✂️ נתקו מהסוללה (Q קבוע)','btn-secondary'));
   if(!extra&&typeof MAG_CTRL!=='undefined'&&MAG_CTRL[sim.type])extra=C(MAG_CTRL[sim.type]());
   const simDone=isCompleted(state.chapter,state.section,'sim');
   return `<div class="sim-container">
@@ -33081,7 +33006,7 @@ function buildSim(sim){
     ${extra}
     <div class="sim-controls" style="border-top:1px solid var(--border);padding-top:12px">
       <p style="color:var(--muted);font-size:.85rem;flex:1">${sim.desc}</p>
-      <button class="btn btn-secondary" onclick="restartSim()" style="font-size:.82rem;padding:6px 12px">🔄 אתחל</button>
+      <button class="btn btn-secondary" onclick="restartSim()" style="font-size:.82rem;padding:6px 12px">🔄 התחילו מחדש</button>
       ${!simDone?'<button class="btn btn-green" onclick="finishSim()">✅ סיימתי</button>':'<span style="color:var(--green);font-weight:700">✅ הושלמה</span>'}
     </div>
   </div>`;
@@ -33186,7 +33111,7 @@ function buildProblem(prob){
           <input class="step-inp${fb==='correct'?' ok':fb?' err':''}" type="text" id="si${si}" value="${String(inp).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;')}" placeholder="תשובה…" aria-labelledby="sq${si}" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="done" oninput="upInp(${si},this.value)" onkeydown="if(event.key==='Enter')chkStep(${si})" ${locked?'disabled':''}>
           ${st2.unit?`<span class="unit-lbl">${st2.unit}</span>`:''}
           <span class="step-btns">${showBtn?`<button class="hint-btn" onclick="showHint(${si})">${lvl===0?'💡 רמז':'✏️ פתרון מלא'} (−5 XP)</button>`:''}
-          ${!locked?`<button class="btn btn-primary" style="padding:7px 14px" onclick="chkStep(${si})">בדוק</button>`:''}</span>
+          ${!locked?`<button class="btn btn-primary" style="padding:7px 14px" onclick="chkStep(${si})">בדקו</button>`:''}</span>
         </div>
         ${fb&&fb!=='correct'?`<div class="step-fb err" role="status">${_ltSafe(fb)}</div>`:''}`
       :`<div class="step-fb ok">✅ ${_ltSafe(st2.explain)}</div>`}
@@ -33972,7 +33897,11 @@ function openChangelog(){
     o.id='changelog-overlay'; o.className='formula-overlay';
     o.onclick=closeChangelog;
     document.body.appendChild(o);
+    // the notes carry maths inside Hebrew ("(m₂−m₁)", "3 m/s", "1.2·10⁻³");
+    // the page-wide isolation pass never reaches this panel
+    if(typeof fixInlineMath==='function')fixInlineMath(p);
   }
+  if(typeof ensureContrast==='function')ensureContrast(p);
   p.classList.add('open'); o.classList.add('open');
   document.body.style.overflow='hidden';
   _openPanel(p);
@@ -34066,7 +33995,7 @@ function buildChapterSummaryHTML(chId){
       '<div class="stat-chip"><div class="val">'+info.totalXP+'</div><div class="lbl">XP שנצברו</div></div>'+
     '</div>'+
     (fRows?'<div class="summary-formulas"><div style="font-size:.8rem;font-weight:700;color:var(--muted);margin-bottom:6px">נוסחאות מפתח</div>'+fRows+'</div>':'')+
-    '<button class="btn btn-primary" onclick="this.parentElement.style.display=\'none\'">המשך ←</button>'+
+    '<button class="btn btn-primary" onclick="this.parentElement.style.display=\'none\'">המשיכו ←</button>'+
   '</div>';
 }
 
@@ -34293,21 +34222,20 @@ function celebrateSection(){
 function showSimTooltip(desc){
   var key='simtip_'+state.chapter+'.'+state.section;
   if(_ls.get(key)) return;
+  var wrap=document.querySelector('#app .sim-canvas-wrap');
+  if(!wrap||!desc) return;
   _ls.set(key,'1');
+  // Between the canvas and its controls, never over the canvas: laid over
+  // its bottom 60-80 px it hid the graphs and readouts there (on a phone,
+  // a third of the drawing). It stays until closed -- vanishing on a timer
+  // would move the sliders up under the finger reaching for them.
   var tip=document.createElement('div');
-  tip.style.cssText='position:absolute;bottom:10px;right:10px;left:10px;z-index:500;'+
-    'background:rgba(6,14,28,.92);border:1px solid var(--border);border-radius:10px;'+
-    'padding:10px 14px;color:var(--text);font-size:.85rem;text-align:right;direction:rtl;'+
-    'box-shadow:0 4px 16px rgba(0,0,0,.5);pointer-events:auto;';
-  tip.innerHTML='<div style="display:flex;align-items:center;gap:8px;justify-content:space-between">'+
-    '<span>🔬 '+desc+'</span>'+
-    '<button onclick="this.parentElement.parentElement.remove()" aria-label="סגירת ההסבר" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:1rem;padding:0 4px;min-width:32px;min-height:32px">✕</button>'+
-    '</div>';
-  var wrap=document.querySelector('.sim-canvas-wrap');
-  if(wrap){ wrap.style.position='relative'; wrap.appendChild(tip);
-    // built after render(), so the page-wide pass has already been and gone
-    fixInlineMath(tip); }
-  setTimeout(function(){ if(tip.parentElement) tip.remove(); },5000);
+  tip.className='sim-tip';tip.setAttribute('role','note');
+  tip.innerHTML='<span>🔬 '+desc+'</span><button type="button" class="sim-tip-x" aria-label="סגירת ההסבר">✕</button>';
+  tip.querySelector('button').onclick=function(){tip.remove();};
+  wrap.parentNode.insertBefore(tip,wrap.nextSibling);
+  // built after render(), so the page-wide passes have already been and gone
+  fixInlineMath(tip);ensureContrast(tip);
 }
 
 window.resetAllProgress=function(){

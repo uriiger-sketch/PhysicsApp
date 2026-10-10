@@ -157,7 +157,7 @@ const sig2 = x => x === 0 ? 0 : Number(x.toPrecision(2));
   await setR('inp-sph-Q', -6);
   await drag(0.5, 0.5, 0.6, 0.5);
   const sph = await txt();
-  const eS = num(sph, /E = ([0-9.]+×10[⁻⁰-⁹¹²³⁴⁵⁶⁷⁸⁹]+) V\/m/), vS = num(sph, /V = (-?[0-9.]+×10[⁻⁰¹²³⁴⁵⁶⁷⁸⁹]+) V/);
+  const eS = num(sph, /E = ([0-9.]+×10[⁻⁰-⁹¹²³⁴⁵⁶⁷⁸⁹]+) V\/m/), vS = num(sph, /V = ([-−]?[0-9.]+×10[⁻⁰¹²³⁴⁵⁶⁷⁸⁹]+) V/);
   t('negative sphere: |E| > 0 outside and V < 0', eS > 0 && vS < 0, 'E=' + eS + ' V=' + vS);
 
   // three geometries, potential view: inside the sphere V = kQ/R (not 0)
