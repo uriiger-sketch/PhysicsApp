@@ -9083,16 +9083,19 @@ function simText(ctx,txt,x,y,col,sz,align,bold){
 }
 // "2.35e+19" is not a number a student reads. Canvas has no superscripts of
 // its own, so build the textbook form out of the superscript code points.
+// A negative value carries the minus sign of typeset maths (U+2212), not
+// the hyphen toFixed() produces; it is a letter-like symbol of the maths
+// run, so it stays with its number inside the left-to-right isolate.
 function sciTxt(x,d){
   if(x===0)return '0';
   if(!isFinite(x))return '—';
   if(d===undefined)d=2;
-  var ax=Math.abs(x);
-  if(ax>=1000&&ax<10000)return x.toFixed(0);
-  if(ax>=0.01&&ax<1000)return ax<1?x.toFixed(3):x.toFixed(2);
-  var e=Math.floor(Math.log10(ax)), m=x/Math.pow(10,e), S='⁰¹²³⁴⁵⁶⁷⁸⁹';
-  if(Math.abs(m)>=9.995){m/=10;e++;}
-  return m.toFixed(d)+'×10'+(e<0?'⁻':'')+String(Math.abs(e)).split('').map(function(ch){return S[+ch];}).join('');
+  var ax=Math.abs(x),neg=x<0?'\u2212':'';
+  if(ax>=1000&&ax<10000)return neg+ax.toFixed(0);
+  if(ax>=0.01&&ax<1000)return neg+(ax<1?ax.toFixed(3):ax.toFixed(2));
+  var e=Math.floor(Math.log10(ax)), m=ax/Math.pow(10,e), S='⁰¹²³⁴⁵⁶⁷⁸⁹';
+  if(m>=9.995){m/=10;e++;}
+  return neg+m.toFixed(d)+'×10'+(e<0?'⁻':'')+String(Math.abs(e)).split('').map(function(ch){return S[+ch];}).join('');
 }
 function simCircle(ctx,x,y,r,fill,stroke,lw){
   if(lw===undefined)lw=2;
