@@ -587,6 +587,23 @@ const S = p => p.evaluate(() => JSON.parse(JSON.stringify(_sl.st, (k, v) =>
   t('not running', life.after.run, false);
   t('the resize handler is released', life.after.resize, false);
 
+  console.log('\n16a) a permission granted after the learner has left starts nothing');
+  await openLab(p, 'forces.tension', false);
+  const late = await p.evaluate(async () => {
+    let release; const orig = DeviceMotionEvent.requestPermission;
+    DeviceMotionEvent.requestPermission = () => new Promise(r => { release = r; });
+    document.getElementById('sl-start').click();         // the sheet is now 'open'
+    state.chapter = 'forces2'; state.section = 'gravity-force'; state.tab = 'theory'; render();
+    await new Promise(r => setTimeout(r, 400));
+    release('granted');
+    await new Promise(r => setTimeout(r, 50));
+    const out = { run: _sl.run, stream: !!_sensor.stop };
+    if (orig) DeviceMotionEvent.requestPermission = orig; else delete DeviceMotionEvent.requestPermission;
+    return out;
+  });
+  t('no lab running', late.run, false);
+  t('no sensor stream left open', late.stream, false);
+
   console.log('\n16b) a lab that is not running repaints when the theme changes');
   await openLab(p, 'forces.tension', false);
   await p.waitForTimeout(1200);          // let the page finish booting the lab

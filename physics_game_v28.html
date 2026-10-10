@@ -32663,6 +32663,10 @@ function initSensorLab(key){
     btn.disabled=true;
     sensorRequest().then(function(r){
       btn.disabled=false;
+      // The permission sheet can stay open while the learner moves on; a grant
+      // that arrives for a lab no longer on the page must not start a stream
+      // and an animation loop for it (nor leave _sl.run set for the next one).
+      if(_sl.st!==st||!cv.isConnected)return;
       if(r==='denied'){say('ההרשאה לחיישני התנועה נדחתה. באייפון: סגרו את הלשונית, פתחו את הדף מחדש ואשרו כשתישאלו.');return;}
       if(r==='error'){say('לא ניתן לבקש הרשאה לחיישנים בדפדפן זה.');return;}
       say('');_sensor.got=0;_sl.paused=false;st.reset(st);st.started=true;
