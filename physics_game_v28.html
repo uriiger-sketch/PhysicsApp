@@ -1312,22 +1312,63 @@ function animCanvas(id, h, label){
   </div>`;
 }
 
+// ── Animation housekeeping, shared by every theory animation ──
+// A theory page carries up to a dozen animations, and each one used to draw
+// sixty frames a second whether or not it was on screen: on a phone that is
+// the battery and the scroll smoothness spent on canvases nobody can see.
+// One IntersectionObserver parks a loop while its canvas is out of view and
+// restarts it when it scrolls back (the hidden-tab case the browser already
+// handles). A width change -- a phone turned on its side, a window resized --
+// rebuilds the backing store at the new size and device-pixel ratio and
+// repaints the same moment: every animation is a function of its time, so
+// nothing is lost and nothing is stretched or blurred.
+var _animIO=null;
+function _animObserve(cv,s){
+  if(!('IntersectionObserver' in window)){s.visible=true;return;}
+  if(!_animIO)_animIO=new IntersectionObserver(function(ents){
+    ents.forEach(function(en){
+      var c=en.target,st=c._animState;
+      if(!st||!c.isConnected||_anim[st.id]!==st){_animIO.unobserve(c);return;}
+      st.visible=en.isIntersecting;
+      if(st.visible&&st.raf===null){st.prev=null;st.raf=requestAnimationFrame(st.tick);}
+    });
+  },{rootMargin:'120px 0px'});
+  cv._animState=s;_animIO.observe(cv);
+}
+function _animSize(cv,s){
+  var dpr=window.devicePixelRatio||1;
+  var cssW=cv.offsetWidth||s.W||680;
+  var cssH=cv.offsetHeight||parseInt(cv.getAttribute('height'))||140;
+  s.W=cssW;s.H=cssH;s.dpr=dpr;
+  cv.width=Math.round(cssW*dpr);cv.height=Math.round(cssH*dpr);
+  // the width follows the layout (100%); only the height is pinned
+  cv.style.height=cssH+'px';
+  var g=cv.getContext('2d');g.setTransform(dpr,0,0,dpr,0,0);
+  return g;
+}
+function _animResizeAll(){
+  Object.keys(_anim).forEach(function(id){
+    var s=_anim[id],cv=s&&s.cv;
+    if(!cv||!cv.isConnected)return;
+    var w=cv.offsetWidth,d=window.devicePixelRatio||1;
+    if(!w||(Math.abs(w-s.W)<1&&d===s.dpr))return;
+    _animSize(cv,s);s.prev=null;
+    try{s.fn(cv,s.ctx,s.W,s.H,s.t);}catch(e){}
+  });
+}
+var _animRzT=0;
+window.addEventListener('resize',function(){clearTimeout(_animRzT);_animRzT=setTimeout(_animResizeAll,150);});
+function _reducedMotion(){try{return !!(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches);}catch(e){return false;}}
+
 function runAnim(id, fn){
   if(_anim[id]) cancelAnimationFrame(_anim[id].raf);
-  const s = {t:0, paused:false, fn, raf:null, prev:null};
+  const s = {id, t:0, paused:false, fn, raf:null, prev:null, visible:true};
   _anim[id] = s;
   const cv = document.getElementById(id);
   if(!cv) return;
   // Set up DPR-correct canvas dimensions
-  const dpr = window.devicePixelRatio || 1;
-  const cssW = cv.offsetWidth || 680;
-  const cssH = cv.offsetHeight || parseInt(cv.getAttribute('height')) || 140;
-  cv.width  = Math.round(cssW * dpr);
-  cv.height = Math.round(cssH * dpr);
-  cv.style.width  = cssW + 'px';
-  cv.style.height = cssH + 'px';
-  const animCtx = cv.getContext('2d');
-  animCtx.scale(dpr, dpr);
+  const animCtx = _animSize(cv, s);
+  s.cv = cv; s.ctx = animCtx;
   // Every theory animation is a pure function of one number, its time -- so
   // handing that number to the reader costs one set of pointer handlers and
   // turns a hundred running loops into a hundred things you can stop on the
@@ -1339,7 +1380,7 @@ function runAnim(id, fn){
     const t = (e.touches && e.touches[0]) || (e.changedTouches && e.changedTouches[0]) || e;
     return t.clientX - r.left;
   };
-  const paint = () => { s.prev = null; fn(cv, animCtx, cssW, cssH, s.t); s.scrubbed = true; };
+  const paint = () => { s.prev = null; fn(cv, animCtx, s.W, s.H, s.t); s.scrubbed = true; };
   const down = e => {
     s.drag = true; s.x0 = px(e); s.t0 = s.t; s.moved = 0;
     s.wasPaused = s.paused; s.paused = true;
@@ -1349,7 +1390,7 @@ function runAnim(id, fn){
     if(!s.drag) return;
     const d = px(e) - s.x0;
     s.moved = Math.max(s.moved, Math.abs(d));
-    s.t = Math.max(0, s.t0 + d / Math.max(1, cssW) * SPAN);
+    s.t = Math.max(0, s.t0 + d / Math.max(1, s.W) * SPAN);
     paint();
     if(e.cancelable) e.preventDefault();
   };
@@ -1368,17 +1409,28 @@ function runAnim(id, fn){
   cv.style.touchAction = 'none'; cv.style.cursor = 'ew-resize';
   function tick(ts){
     if(_anim[id] !== s) return;
+    // out of view: stop asking for frames; the observer restarts the loop
+    if(!s.visible){ s.raf = null; s.prev = null; return; }
     if(!s.paused){
       if(s.prev !== null){ const dt = Math.min((ts - s.prev)/1000, .05); s.t += dt; }
       s.prev = ts;
       // Pass CSS pixel dimensions (W, H) so draw fns use CSS coords, not raw pixels
-      fn(cv, animCtx, cssW, cssH, s.t);
+      fn(cv, animCtx, s.W, s.H, s.t);
     }
     s.raf = requestAnimationFrame(tick);
   }
+  s.tick = tick;
+  // A learner who asked the system for less motion gets the first frame,
+  // parked; the play button (or a tap) starts it.
+  if(_reducedMotion()){
+    s.paused = true;
+    const btn = document.getElementById('abtn_' + id);
+    if(btn) btn.textContent = '▶ הפעל';
+  }
   // paint one frame immediately, so a paused-on-arrival canvas is never blank
-  fn(cv, animCtx, cssW, cssH, s.t);
+  fn(cv, animCtx, s.W, s.H, s.t);
   s.raf = requestAnimationFrame(tick);
+  _animObserve(cv, s);
 }
 
 window.animToggle = function(id){
@@ -30967,9 +31019,9 @@ window.addEventListener('resize',function(){
     if(state.tab==='sim'){
       var c=CONTENT[state.chapter+'.'+state.section];
       if(c&&c.sim&&document.getElementById('sim-canvas'))initSim('sim-canvas',c.sim.type);
-    } else if(state.tab==='theory'&&document.querySelector('#app canvas')){
-      initTheoryAnims();
     }
+    // theory animations resize themselves in place, keeping their moment
+    // (_animResizeAll); restarting them all from t = 0 is no longer needed
   },240);
 });
 document.addEventListener('visibilitychange',function(){
