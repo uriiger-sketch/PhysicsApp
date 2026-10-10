@@ -247,6 +247,14 @@ const S = p => p.evaluate(() => JSON.parse(JSON.stringify(_sl.st, (k, v) =>
     amp * amp / 16 * 100 > 1, true);
   t('g from the slope of T² against L', s.g, 9.81, 0.4);
   t('and the fit is a straight line', s.r2 > 0.99, true);
+  t('a single swing is not yet a period to record', await p.evaluate(() => {
+    const st = _sl.st, impl = SL_IMPL['pendulum-fit'];
+    impl.reset(st);
+    for (let i = 0; i < 170; i++) impl.sample({ dt: 0.02, t: 100 + i * 0.02, exact: true, hz: 50,
+      ax: 0.8 * Math.sin(2 * Math.PI * i * 0.02 / 1.42), ay: 0, az: 0, gx: 0, gy: 0, gz: 9.81,
+      Gx: 0, Gy: 0, Gz: 9.81, ra: 0, rb: 0, rg: 0 }, st);
+    return [st.T > 0, impl.record(st)].join(',');
+  }), 'true,false');
 
   console.log('\n10) kinematics.freefall — the toss');
   await openLab(p, 'kinematics.freefall');
