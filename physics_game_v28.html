@@ -13704,8 +13704,9 @@ function simProjectile(canvas){
   var launchBtn=document.getElementById('btn-proj-launch');
   var resetBtn=document.getElementById('btn-proj-reset');
 
+  var Lv0=v0, Lang=angle;           // the values the shot in the air was fired with
   function launch(){
-    v0=getV0(); angle=getAngle();
+    v0=getV0(); angle=getAngle(); Lv0=v0; Lang=angle;
     var rad=angle*Math.PI/180;
     vx=v0*Math.cos(rad); vy=v0*Math.sin(rad);
     x=0; y=0; running=true; launched=true; trail=[]; landT=-1;
@@ -13748,6 +13749,9 @@ function simProjectile(canvas){
     if(!pT)pT=ts; var dt=Math.min((ts-pT)/1000,0.04); pT=ts;
     t+=dt;
     v0=getV0(); angle=getAngle();
+    // While a shot is in the air, everything drawn about it — the dashed
+    // parabola, R, H, the scale — belongs to that shot, not to the sliders.
+    if(running){v0=Lv0; angle=Lang;}
 
     // Recompute scale based on current settings
     var rad2=angle*Math.PI/180;
@@ -13783,10 +13787,10 @@ function simProjectile(canvas){
         if(targetX>0){
           var miss=x-targetX;
           if(Math.abs(miss)<3){
-            hits++;feedbackMsg='🎯 פגיעה מדויקת! נחיתה ב-'+x.toFixed(1)+'m';
+            hits++;feedbackMsg='🎯 פגיעה מדויקת! נחיתה ב-'+x.toFixed(1)+' m';
             hitFxT=t;hitFxX=targetX;newTarget();
           } else {
-            feedbackMsg='החטאה ב-'+Math.abs(miss).toFixed(1)+'m — '+(miss<0?'הגדל טווח: העלה v₀ או קרב את θ ל-45°':'הקטן טווח: הורד v₀ או הרחק את θ מ-45°');
+            feedbackMsg='החטאה ב-'+Math.abs(miss).toFixed(1)+' m — '+(miss<0?'הגדילו את הטווח: הגבירו את v₀ או קרבו את θ ל-45°':'הקטינו את הטווח: הנמיכו את v₀ או הרחיקו את θ מ-45°');
           }
           feedbackT=t;
         }
@@ -13799,17 +13803,21 @@ function simProjectile(canvas){
     ctx.save(); ctx.fillStyle='#0f2035'; ctx.fillRect(0,GND_Y,W,H-GND_Y); ctx.restore();
     ctx.save(); ctx.strokeStyle='#2d5275'; ctx.lineWidth=2;
     ctx.beginPath(); ctx.moveTo(0,GND_Y); ctx.lineTo(W,GND_Y); ctx.stroke(); ctx.restore();
-    // Grid lines
-    for(var xi=0;xi<W;xi+=60){
+    // Grid: ticks at round numbers of metres. A fixed 60 px pitch labelled
+    // with rounded values read "15 m, 17 m, 20 m" — uneven steps of 2.9 m.
+    var _stp=[1,2,5,10,20,50,100].find(function(q){return q*SCALE>=48;})||100;
+    for(var xm=0;LAUNCH_X+xm*SCALE<W-14;xm+=_stp){
+      var xi=xm*SCALE;
       ctx.save(); ctx.strokeStyle='rgba(30,58,82,.2)'; ctx.lineWidth=1;
       ctx.beginPath(); ctx.moveTo(LAUNCH_X+xi,GND_Y-4); ctx.lineTo(LAUNCH_X+xi,GND_Y+4); ctx.stroke();
-      simText(ctx,(xi/SCALE).toFixed(0)+'m',LAUNCH_X+xi,GND_Y+14,'#7d8da6',7,undefined,true);
+      simText(ctx,xm+' m',LAUNCH_X+xi,GND_Y+14,'#7d8da6',7,undefined,true);
       ctx.restore();
     }
-    for(var yi=0;yi<GND_Y-60;yi+=50){
+    for(var ym=_stp;ym*SCALE<GND_Y-70;ym+=_stp){
+      var yi=ym*SCALE;
       ctx.save(); ctx.strokeStyle='rgba(30,58,82,.15)'; ctx.lineWidth=1; ctx.setLineDash([2,6]);
       ctx.beginPath(); ctx.moveTo(LAUNCH_X-10,GND_Y-yi); ctx.lineTo(W-10,GND_Y-yi); ctx.stroke(); ctx.setLineDash([]); ctx.restore();
-      if(yi>0) simText(ctx,(yi/SCALE).toFixed(0)+'m',LAUNCH_X-12,GND_Y-yi+4,'#7d8da6',7,'right');
+      simText(ctx,ym+' m',LAUNCH_X-12,GND_Y-yi+4,'#7d8da6',7,'right');
     }
 
     // ── Theoretical parabola (dashed) ─────────────────
@@ -13830,7 +13838,7 @@ function simProjectile(canvas){
       if(rx<W-20){
         ctx.save(); ctx.strokeStyle='rgba(34,211,153,.4)'; ctx.lineWidth=1.5; ctx.setLineDash([3,4]);
         ctx.beginPath(); ctx.moveTo(rx,GND_Y-4); ctx.lineTo(rx,GND_Y+4); ctx.stroke(); ctx.setLineDash([]); ctx.restore();
-        simText(ctx,'R='+(vx0*tf).toFixed(1)+'m',rx,GND_Y+16,'#22d3ee',8,undefined,true);
+        simText(ctx,'R='+(vx0*tf).toFixed(1)+' m',Math.min(rx,W-34),GND_Y+16,'#22d3ee',8,undefined,true);
       }
       // Peak marker
       var tpk=vy0/g, pkX=LAUNCH_X+(vx0*tpk)*SCALE, pkY=GND_Y-(vy0*tpk-0.5*g*tpk*tpk)*SCALE;
@@ -13869,9 +13877,9 @@ function simProjectile(canvas){
     if(aiming&&!running){
       var ar3=angle*Math.PI/180,al3=Math.min(200,v0*6);
       simArrow(ctx,LAUNCH_X,GND_Y,LAUNCH_X+Math.cos(ar3)*al3,GND_Y-Math.sin(ar3)*al3,'#fbbf24',3.5,14);
-      simText(ctx,'שחרר לשיגור!',LAUNCH_X+Math.cos(ar3)*al3+12,GND_Y-Math.sin(ar3)*al3-10,'#fbbf24',10,'left');
+      simText(ctx,'שחררו לשיגור!',LAUNCH_X+Math.cos(ar3)*al3+12,GND_Y-Math.sin(ar3)*al3-10,'#fbbf24',10,'left');
     } else if(!launched){
-      simText(ctx,'✋ גררו מהתותח כדי לכוון — שחרר לירי',LAUNCH_X+6,GND_Y-74+Math.sin(t*3)*3,'#fbbf24',9,'left');
+      simText(ctx,'✋ גררו מהתותח כדי לכוון — שחררו לירי',LAUNCH_X+6,GND_Y-74+Math.sin(t*3)*3,'#fbbf24',9,'left');
     }
     // ── Target challenge ──────────────────────────────
     if(targetX>0){
@@ -13886,15 +13894,16 @@ function simProjectile(canvas){
         ctx.fillStyle='#ef4444';
         ctx.beginPath();ctx.moveTo(tgx,GND_Y-34);ctx.lineTo(tgx+16,GND_Y-29);ctx.lineTo(tgx,GND_Y-24);ctx.closePath();ctx.fill();
         ctx.restore();
-        simText(ctx,'מטרה: '+targetX.toFixed(0)+'m',tgx,GND_Y+26,'#f87171',8.5,'center');
+        simText(ctx,'מטרה: '+targetX.toFixed(0)+' m',tgx,GND_Y+26,'#f87171',8.5,'center');
       } else {
-        simText(ctx,'🎯 המטרה ב-'+targetX.toFixed(0)+'m — מחוץ למסך, הגדל טווח!',W-16,68,'#f87171',8.5,'right');
+        simText(ctx,'🎯 המטרה ב-'+targetX.toFixed(0)+' m — מחוץ למסך: הגדילו את הטווח!',W-16,68,'#f87171',8.5,'right');
       }
       simText(ctx,'🎯 פגיעות: '+hits,W-16,GND_Y+40,'#fbbf24',10,'right');
       if(feedbackT>0&&t-feedbackT<2.8&&!running){
         var goodHit=feedbackMsg.indexOf('🎯')===0;
         ctx.save();ctx.fillStyle='rgba(4,9,20,.9)';ctx.strokeStyle=goodHit?'#34d399':'#f59e0b';ctx.lineWidth=1.5;
-        ctx.beginPath();ctx.roundRect(W/2-200,62,400,26,6);ctx.fill();ctx.stroke();ctx.restore();
+        var _fbw=Math.min(400,W-16);
+        ctx.beginPath();ctx.roundRect(W/2-_fbw/2,62,_fbw,26,6);ctx.fill();ctx.stroke();ctx.restore();
         simText(ctx,feedbackMsg,W/2,78,goodHit?'#34d399':'#fbbf24',9.5,'center');
       }
       if(hitFxT>0&&t-hitFxT<1){
@@ -13933,9 +13942,9 @@ function simProjectile(canvas){
       var arLen=50;
       simArrow(ctx,LAUNCH_X,GND_Y,LAUNCH_X+Math.cos(rad4)*arLen,GND_Y-Math.sin(rad4)*arLen,'#fbbf24',2.5,10);
       ctx.save(); ctx.strokeStyle='rgba(251,191,36,.4)'; ctx.lineWidth=1.5;
-      ctx.beginPath(); ctx.arc(LAUNCH_X,GND_Y,24,Math.PI,Math.PI+rad4,false); ctx.stroke(); ctx.restore();
+      ctx.beginPath(); ctx.arc(LAUNCH_X,GND_Y,24,-rad4,0,false); ctx.stroke(); ctx.restore();   // between the ground and the barrel
       simText(ctx,angle+'°',LAUNCH_X+28,GND_Y-12,'#fbbf24',9,'left');
-      simText(ctx,'v₀='+v0+'m/s',LAUNCH_X+Math.cos(rad4)*arLen+6,GND_Y-Math.sin(rad4)*arLen,'#fbbf24',8,'left');
+      simText(ctx,'v₀='+v0+' m/s',LAUNCH_X+Math.cos(rad4)*arLen+6,GND_Y-Math.sin(rad4)*arLen,'#fbbf24',8,'left');
     }
 
     // ── Top info panel ─────────────────────────────────
@@ -13944,11 +13953,11 @@ function simProjectile(canvas){
     simText(ctx,'תנועה בליסטית: x ו-y בלתי תלויים!',W/2,18,'#22d3ee',11,undefined,true);
     simText(ctx,'x(t) = v₀·cosθ·t   |   y(t) = v₀·sinθ·t − ½gt²',W/2,32,'#94a3b8',9.5,undefined,true);
     if(launched){
-      var R=(getV0()*getV0()*Math.sin(2*getAngle()*Math.PI/180)/g);
-      var Hmax=(getV0()*Math.sin(getAngle()*Math.PI/180)); Hmax=Hmax*Hmax/(2*g);
-      simText(ctx,'R='+R.toFixed(1)+'m | H='+Hmax.toFixed(1)+'m | T='+( 2*getV0()*Math.sin(getAngle()*Math.PI/180)/g).toFixed(2)+'s | v='+spd.toFixed(1)+'m/s',W/2,46,'#fbbf24',8.5,undefined,true);
+      var _r=Lang*Math.PI/180;
+      var R=Lv0*Lv0*Math.sin(2*_r)/g, Hmax=Math.pow(Lv0*Math.sin(_r),2)/(2*g);
+      simText(ctx,'R = '+R.toFixed(1)+' m | H = '+Hmax.toFixed(1)+' m | t_tot = '+(2*Lv0*Math.sin(_r)/g).toFixed(2)+' s | v = '+spd.toFixed(1)+' m/s',W/2,46,'#fbbf24',8.5,undefined,true);
     } else {
-      simText(ctx,'הגדר v₀ וזווית, לחץ ▶ שגר!',W/2,46,'#64748b',9,undefined,true);
+      simText(ctx,'קבעו v₀ וזווית ולחצו ▶ שגר!',W/2,46,'#64748b',9,undefined,true);
     }
 
     requestAnimationFrame(draw);
