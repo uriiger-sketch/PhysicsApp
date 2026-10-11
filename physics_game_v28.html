@@ -714,6 +714,12 @@ input[type=range]{accent-color:var(--accent);cursor:pointer;}
   /* Range sliders: stack vertically */
   .sim-controls { flex-wrap: wrap; gap: 8px; }
   .range-wrap { flex: 1 1 100%; }
+  /* a long label ("מקדם התקומה e (0 נצמדים, 1 אלסטית)") stayed on one
+     line and pushed the slider and its value out of the card, which cut
+     them off: the label wraps, the slider keeps a usable width */
+  .range-wrap label { white-space: normal; flex: 0 1 auto; min-width: 0; line-height: 1.35; }
+  .range-wrap input[type=range] { flex: 1 1 96px; min-width: 96px; }
+  .range-wrap .range-val { flex: 0 0 auto; white-space: nowrap; }
 
   /* Quiz options: bigger tap targets */
   .quiz-opt { padding: 14px 12px; font-size: .9rem; }
