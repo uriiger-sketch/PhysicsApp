@@ -177,6 +177,29 @@ const t=(name,cond,detail)=>(cond?ok:bad).push(name+(detail?' — '+detail:''));
     t(k+': quiz keys in range, options distinct',content[k].quiz.every(Boolean));
   }
 
+  // ── the learning experience ────────────────────────────────────────────
+  // every section confronts a misconception; every second-level hint says in
+  // Hebrew what to look at and stays shorter than the explanation; a nudge
+  // never hands over the formula; the quiz key is not given away by its length
+  const lx=await p.evaluate(()=>{const div=document.createElement('div');div.style.cssText='position:absolute;left:0;top:0;width:2000px';document.body.appendChild(div);
+    const txt=h=>{div.innerHTML=String(h||'');return div.innerText.replace(/\s+/g,' ').trim();};
+    const r={mis:[],hint:[],long:[],nudge:[],q:0,longest:0,consp:[]};
+    for(const ch of DC_CHAPTERS)for(const se of ch.sections){const k=ch.id+'.'+se.id,C=CONTENT[k];
+      if(!/mis-block/.test(C.theory.html))r.mis.push(k);
+      C.problem.steps.forEach((s2,i)=>{const h=txt(s2.hint);
+        if((h.match(/[א-ת]+/g)||[]).length<3)r.hint.push(k+'#'+(i+1));
+        if(h.length>=txt(s2.explain).length)r.long.push(k+'#'+(i+1));
+        if(s2.nudge&&/=/.test(txt(s2.nudge)))r.nudge.push(k+'#'+(i+1));});
+      C.quiz.forEach((q,i)=>{r.q++;const L=q.opts.map(o=>txt(o).length),key=L[q.correct],next=Math.max(...L.filter((_,j)=>j!==q.correct));
+        if(key>next){r.longest++;if(key>1.3*next)r.consp.push(k+'#'+(i+1));}});}
+    div.remove();return r;});
+  t('every DC section has a misconception box',lx.mis.length===0,lx.mis.join(' '));
+  t('every problem hint opens with a Hebrew sentence',lx.hint.length===0,lx.hint.join(' '));
+  t('every hint is shorter than its explanation',lx.long.length===0,lx.long.join(' '));
+  t('no nudge hands over a formula',lx.nudge.length===0,lx.nudge.join(' '));
+  t('the quiz key is the longest option in at most 30 % of questions',lx.longest<=0.3*lx.q,lx.longest+'/'+lx.q);
+  t('and never conspicuously (more than 1.3× the next option)',lx.consp.length===0,lx.consp.join(' '));
+
   // ── what the simulations print obeys Kirchhoff ─────────────────────────
   // every label on the simulation canvas, captured for a few frames
   await p.evaluate(()=>{const f=CanvasRenderingContext2D.prototype.fillText;
