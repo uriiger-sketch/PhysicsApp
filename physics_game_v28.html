@@ -154,6 +154,8 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 .sec-lab{margin-inline-start:auto;font-size:.72rem;line-height:1;opacity:.85;flex-shrink:0;
   filter:saturate(1.2);}
 .sec-btn.active .sec-lab{opacity:1;}
+/* the sentence is one flex item (a span): bare, each word run, <b> and
+   formula was an item of its own and the line broke into columns */
 .lab-flag{display:inline-flex;align-items:center;gap:6px;margin:10px 0 0;padding:7px 12px;
   border-radius:9px;font-size:.8rem;font-weight:600;color:var(--accent2);
   background:rgba(6,182,212,.10);border:1px solid var(--accent2);}
@@ -33739,7 +33741,7 @@ function buildTheory(th){
   // the learner had no reason to think was different from the other 67.
   const _labKey=`${state.chapter}.${state.section}`;
   const _hasLab=(typeof SENSOR_LABS!=='undefined')&&!!SENSOR_LABS[_labKey];
-  const _flag=_hasLab?`<div class="lab-flag">📱 בסעיף זה יש <b>מעבדת חיישנים</b> בסוף הדף — ${SENSOR_LABS[_labKey].ttl}</div>`:'';
+  const _flag=_hasLab?`<div class="lab-flag">📱 <span>בסעיף זה יש <b>מעבדת חיישנים</b> בסוף הדף — ${SENSOR_LABS[_labKey].ttl}</span></div>`:'';
   const _sec=(getChapters().find(ch=>ch.id===state.chapter)||{sections:[]})
     .sections.find(s=>s.id===state.section);
   const _ttl=th.title||(_sec&&_sec.title)||'';
