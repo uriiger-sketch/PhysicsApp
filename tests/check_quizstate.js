@@ -20,6 +20,8 @@ const FILE = path.resolve(process.argv[2] || path.join(__dirname, '..', 'physics
 const ORIGIN = 'http://quizstate.test/';
 const URL = ORIGIN + 'physics_game_v28.html';
 const MARK = ' (נוסח מעודכן)';
+const K = require('./_katex');   // KATEX=local: also compare question identities with KaTeX
+const F2 = 'file://' + FILE;
 
 let fail = 0, checks = 0;
 const t = (name, ok, info) => {
@@ -158,6 +160,121 @@ const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
   g = await look(L.a);
   t('a legacy quiz taken again shows its new score', g.banner === `${n}/${n} תשובות נכונות — ניקוד מלא!` && g.icon === '🏆', JSON.stringify(g));
   t('taking it again earns no XP twice', await p.evaluate(() => state.xp) === 777);
+
+  // ── 4. questions inserted and removed: the answers follow their questions
+  // (a v28.17 save -- answers by position, no question identities -- first)
+  body = original;
+  await p.goto(ORIGIN + 'blank.html');
+  await p.evaluate(() => localStorage.clear());
+  await load();
+  const S4 = { a: keys.done1, b: keys.mid, c: keys.done2 };
+  const v2 = await p.evaluate(S4 => {
+    // what v28.17 saved: the same answers, by position, without ids
+    const o = {}, n = CONTENT[S4.a].quiz.length;
+    o[S4.a] = { cur: n - 1, ans: CONTENT[S4.a].quiz.map((q, i) => i % 3 === 0 ? (q.correct + 1) % q.opts.length : q.correct), done: true, v: 2 };
+    return o;
+  }, S4);
+  await p.goto(ORIGIN + 'blank.html');
+  await p.evaluate(([v2, a]) => {
+    const comp = {}; comp[a + '.quiz'] = true;
+    localStorage.setItem('phys_game_state_v2', JSON.stringify({ subject: 'mechanics', chapter: a.split('.')[0], section: a.split('.')[1], tab: 'quiz', xp: 500, completed: comp, visited: {}, quizState: v2, problemState: {}, theme: 'dark' }));
+  }, [v2, S4.a]);
+  await load();
+  await open(S4.a, 'quiz');
+  g = await look(S4.a);
+  t('v28.17 save (no ids): its answers are taken by position', g.done && (g.banner || '').startsWith('4/6') && same(g.ans, v2[S4.a].ans), JSON.stringify(g));
+  // the learner goes on: one more quiz finished, one half done
+  for (const [key, k] of [[S4.c, 99], [S4.b, 3]]) {
+    await open(key, 'quiz');
+    const n = await p.evaluate(k => CONTENT[k].quiz.length, key);
+    for (let qi = 0; qi < Math.min(n, k); qi++) { await answer(plan(qi)); await next(); }
+    if (k < n) await answer('wrong');
+  }
+  // every question's mark, by the question it belongs to
+  const marks = keys => p.evaluate(keys => {
+    const o = {};
+    keys.forEach(k => { const [c, s] = k.split('.'), st = getQS(c, s);
+      o[k] = { done: st.done, cur: CONTENT[k].quiz[st.cur] ? CONTENT[k].quiz[st.cur].q : null,
+        q: CONTENT[k].quiz.map((q, i) => ({ q: q.q, a: st.ans[i], ok: st.ans[i] === undefined ? null : st.ans[i] === quizView(q).ci })) }; });
+    return o;
+  }, keys);
+  for (const key of [S4.a, S4.b, S4.c]) await open(key, 'quiz');
+  const m0 = await marks([S4.a, S4.b, S4.c]);
+  const xp0 = await p.evaluate(() => state.xp), comp4 = await p.evaluate(() => JSON.stringify(state.completed));
+  // the update: a question inserted into the finished quiz and the one in
+  // progress (before the learner's place), and one removed from the other
+  // finished quiz. Located in the source by question text.
+  const objAt = (src, start) => {   // [start, end) of the object literal opening at start, and a following comma
+    let d = 0, i = start, q = null;
+    for (; i < src.length; i++) {
+      const ch = src[i];
+      if (q) { if (ch === '\\') i++; else if (ch === q) q = null; continue; }
+      if (ch === "'" || ch === '"' || ch === '`') q = ch;
+      else if ('{[('.includes(ch)) d++;
+      else if ('}])'.includes(ch) && --d === 0) { i++; break; }
+    }
+    while (/\s/.test(src[i])) i++;
+    if (src[i] === ',') i++;
+    return [start, i];
+  };
+  const locate = (src, key, from) => p.evaluate(([key, from]) => CONTENT[key].quiz.map((q, i) => [i, q.q]).filter(x => x[0] >= from), [key, from])
+    .then(list => { for (const [i, q] of list) { const needle = "{q:'" + q + "'"; if (!/[\\'"`]/.test(q) && src.split(needle).length === 2) return { i, at: src.indexOf(needle) }; } return null; });
+  const NEWQ = "{q:'שאלה שנוספה בעדכון: כמה הם 2+2?',opts:['3','4','5','22'],correct:1,explain:'2+2=4.'},\n    ";
+  let src = original;
+  const insA = await locate(src, S4.a, 1), insB = await locate(src, S4.b, 1), remC = await locate(src, S4.c, 1);
+  t('found the places to insert and remove a question', !!(insA && insB && remC), JSON.stringify([insA, insB, remC]));
+  if (insA && insB && remC) {
+    const cut = objAt(src, remC.at);
+    const edits = [[insA.at, insA.at, NEWQ], [insB.at, insB.at, NEWQ], [cut[0], cut[1], '']].sort((x, y) => y[0] - x[0]);
+    edits.forEach(([a, z, s]) => { src = src.slice(0, a) + s + src.slice(z); });
+    body = src;
+    await load();
+    const n4 = await p.evaluate(S4 => [S4.a, S4.b, S4.c].map(k => CONTENT[k].quiz.length), S4);
+    t('the reloaded app has the inserted and removed questions', same(n4, [m0[S4.a].q.length + 1, m0[S4.b].q.length + 1, m0[S4.c].q.length - 1]), JSON.stringify(n4));
+    for (const key of [S4.a, S4.b, S4.c]) await open(key, 'quiz');
+    const m1 = await marks([S4.a, S4.b, S4.c]);
+    const byQ = m => Object.fromEntries(m.q.map(x => [x.q, [x.a, x.ok]]));
+    for (const key of [S4.a, S4.b, S4.c]) {
+      const was = byQ(m0[key]), now = byQ(m1[key]);
+      const lost = Object.keys(was).filter(q => q in now && JSON.stringify(now[q]) !== JSON.stringify(was[q]));
+      t(`${key}: every question that stayed keeps its answer and its mark`, lost.length === 0, lost.length + ' changed, e.g. ' + (lost[0] || '').slice(0, 50) + ' ' + JSON.stringify([was[lost[0]], now[lost[0]]]));
+      const fresh = m1[key].q.filter(x => !(x.q in was));
+      t(`${key}: an inserted question is unanswered`, fresh.every(x => x.a === undefined), JSON.stringify(fresh));
+    }
+    t(`${S4.a}: the finished quiz reopens on the inserted question`, !m1[S4.a].done && /שנוספה בעדכון/.test(m1[S4.a].cur || ''), JSON.stringify([m1[S4.a].done, m1[S4.a].cur]));
+    t(`${S4.b}: the quiz in progress stays on the learner's question`, m1[S4.b].cur === m0[S4.b].cur && !m1[S4.b].done, JSON.stringify([m0[S4.b].cur, m1[S4.b].cur]));
+    await open(S4.c, 'quiz');
+    g = await look(S4.c);
+    const okC = m1[S4.c].q.filter(x => x.ok).length;
+    t(`${S4.c}: a quiz with a question removed stays finished, scored on the rest`, m1[S4.c].done && g.banner === `${okC}/${m1[S4.c].q.length} תשובות נכונות`, g.banner);
+    t('completion and XP unchanged by the update', (await p.evaluate(() => state.xp)) === xp0 && (await p.evaluate(() => JSON.stringify(state.completed))) === comp4);
+    // the learner answers the new question in the finished quiz: it finishes again, nothing paid twice
+    await open(S4.a, 'quiz');
+    g = await look(S4.a);
+    const okDots = m1[S4.a].q.map((x, i) => x.ok === null ? null : x.ok);
+    t(`${S4.a}: the reopened quiz shows the other answers' dots`, g.dots.every((d, i) => okDots[i] === null ? !/ (done|wrong)/.test(d) : (okDots[i] ? / done/.test(d) : / wrong/.test(d))), JSON.stringify([g.dots, okDots]));
+    if (!g.done) { await answer('right'); await next(); }
+    g = await look(S4.a);
+    const okA = m1[S4.a].q.filter(x => x.ok).length + 1;
+    t(`${S4.a}: answering it finishes the quiz again with the new score`, g.done && g.banner === `${okA}/${m1[S4.a].q.length} תשובות נכונות`, JSON.stringify(g));
+    t('no XP paid twice for the reopened quiz', (await p.evaluate(() => state.xp)) === xp0);
+    // and the next update changes nothing more
+    await load();
+    for (const key of [S4.a, S4.b, S4.c]) await open(key, 'quiz');
+    const m2 = await marks([S4.a, S4.b, S4.c]);
+    t('a reload after that keeps every answer', same(m2[S4.b], m1[S4.b]) && same(m2[S4.c], m1[S4.c]) && m2[S4.a].done, JSON.stringify(m2[S4.a].done));
+  }
+  body = original;
+
+  // ── 5. with KaTeX (KATEX=local) and without it, a question has the same identity
+  if (K.ON) {
+    const ids = async (pg) => pg.evaluate(() => { const o = {}; for (const k in CONTENT) if (CONTENT[k].quiz) o[k] = _qidsOf(k).join(','); return o; });
+    const kp = await b.newPage(); await K.route(kp); await kp.goto(F2); await kp.waitForTimeout(900); await K.ready(kp);
+    const op = await b.newPage(); await op.goto(F2); await op.waitForTimeout(900);
+    const A = await ids(kp), B = await ids(op);
+    const diff = Object.keys(A).filter(k => A[k] !== B[k]);
+    t('every question has the same identity with KaTeX as offline', diff.length === 0 && await op.evaluate(() => !window.katex), diff.slice(0, 5).join(' '));
+  } else console.log('   SKIP same identity with and without KaTeX (run with KATEX=local)');
 
   t('no page errors', errs.length === 0, errs.slice(0, 3).join(' | '));
   await b.close();
