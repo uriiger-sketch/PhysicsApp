@@ -2,7 +2,8 @@
 // every problem recomputed from first principles and put through the app's
 // own answer check, the physics the simulations and animations claim,
 // measured from what they actually draw, plus every draggable canvas driven
-// by real touch events.
+// by real touch events, and the learning-experience standards of
+// tests/mech_learning.js (misconception boxes, quiz keys, hints, units).
 //
 //   node tests/check_mech2.js
 const { chromium } = require('playwright');
@@ -209,6 +210,9 @@ const EXPECT = {
   await open('statics.center-mass'); r = await rect(); W = r.w;
   await drag(r, [[W * 0.6, 300], [W * 0.6, 250], [W * 0.6, 200]]);
   t('centre of mass: dragging tilts the ramp', num(await p.evaluate(() => document.getElementById('inp-cm-th').value)) > 25);
+
+  console.log('\n4) misconception boxes, quiz keys, hints, units');
+  await require('./mech_learning')(p, ['statics', 'planar', 'momentum', 'energy', 'shm'], t);
 
   t('no page errors, touchend included', errs.length === 0, errs.length ? errs.join(' | ') : 'none');
   await b.close();
