@@ -11973,6 +11973,10 @@ function simMomentumDisplay(canvas){
 // ─────────────────────────────────────────────────────────────
 // MOMENTUM CONSERVATION: two balls collide
 // ─────────────────────────────────────────────────────────────
+// momentum-cons slider readouts in one format: "3.0 kg" beside "4.0 m/s"
+// (by step size they read "3.00 kg" beside "4 m/s")
+window._fmtKg1=function(v){return v.toFixed(1)+' kg';};
+window._fmtMs1=function(v){return v.toFixed(1)+' m/s';};
 function simMomentumCons(canvas){
   var H=480; var setup=setupCanvas(canvas,H); var ctx=setup.ctx; var W=setup.W;
   var id=canvas.id;
@@ -33941,7 +33945,7 @@ function buildSim(sim){
   else if(sim.type==='tension')extra=C(rng('ten-m1',0.5,12,3,0.5,'m₁ אטווד',' kg')+rng('ten-m2',0.5,12,5,0.5,'m₂ אטווד',' kg')+rng('ten-el',0.5,5,3,0.5,'מסת הגוף במעלית',' kg')+rng('ten-ea',-5,5,0,0.5,'תאוצת המעלית',' m/s²')+btn('ten-launch','▶ שחררו!')+btn('ten-reset','↺ איפוס','btn-secondary'));
   else if(sim.type==='fbd')extra=C(rng('fbd-F',-10,25,0,0.5,'כוח נוסף על הגוף (+ מעלה)',' N')+btn('fbd-reset','↺ נקו הכול','btn-secondary'));
   else if(sim.type==='momentum')extra=C(rng('mom-mass',0.5,8,2,0.5,'מסה',' kg')+rng('mom-vel',-10,10,4,1,'מהירות',' m/s'));
-  else if(sim.type==='momentum-cons')extra=C(rng('mc-m1',1,8,3,0.5,'m₁',' kg')+rng('mc-m2',1,8,2,0.5,'m₂',' kg')+rng('mc-v1',-8,8,4,1,'v₁',' m/s')+rng('mc-v2',-8,8,-2,1,'v₂',' m/s')+btn('mc-reset','↺ איפוס','btn-secondary'));
+  else if(sim.type==='momentum-cons')extra=C(rng('mc-m1',1,8,3,0.5,'m₁',' kg','_fmtKg1')+rng('mc-m2',1,8,2,0.5,'m₂',' kg','_fmtKg1')+rng('mc-v1',-8,8,4,1,'v₁',' m/s','_fmtMs1')+rng('mc-v2',-8,8,-2,1,'v₂',' m/s','_fmtMs1')+btn('mc-reset','↺ איפוס','btn-secondary'));
   else if(sim.type==='collision')extra=C(rng('col-e',0,1,1,0.05,'מקדם התקומה e (0 נצמדים, 1 אלסטית)')+rng('col-m1',1,8,3,0.5,'m₁',' kg')+rng('col-m2',1,8,2,0.5,'m₂',' kg')+rng('col-v1',0,8,4,0.5,'v₁ התחלתית',' m/s')+rng('col-v2',-8,0,-2,0.5,'v₂ התחלתית',' m/s')+btn('col-reset','↺ איפוס','btn-secondary'));
   else if(sim.type==='energy-kinetic')extra=C(rng('ek-F',2,50,10,1,'כוח F',' N')+rng('ek-m',0.5,10,2,0.5,'מסה m',' kg')+btn('ek-launch','▶ הפעילו!','btn-primary')+btn('ek-reset','↺ איפוס','btn-secondary'));
   else if(sim.type==='energy-potential')extra=C(rng('ep-m',0.5,8,2,0.5,'מסה m',' kg')+rng('ep-g',1.6,25,9.8,0.2,'g',' m/s²')+btn('ep-elastic','⚡ אנרגיה אלסטית','btn-secondary')+btn('ep-reset','↺ איפוס','btn-secondary'));
