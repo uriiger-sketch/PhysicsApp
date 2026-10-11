@@ -15467,10 +15467,16 @@ function simCircular(canvas){
   // SECTION: planar.circular — תנועה מעגלית
   // PEDAGOGY: Uniform circular motion. Shows centripetal acceleration a=v²/r pointing inward.
   // Velocity tangential, acceleration centripetal. Period T=2πr/v. Student changes r and v.
-  const H=490; const {ctx,W,dpr}=setupCanvas(canvas,H);
+  var H=490; var _cv=setupCanvas(canvas,H), ctx=_cv.ctx; const W=_cv.W, dpr=_cv.dpr;
+  // On a phone the side panel took the right third, the circle was squeezed
+  // into what was left (36 px for R = 1.2 m) and the lower 40 % stayed empty.
+  // There the readouts go to a strip at the bottom and the circle gets the
+  // whole width.
+  var _bn=W<480;
+  if(_bn){ H=580; ctx=setupCanvas(canvas,H).ctx; }
   const id=canvas.id;
   let pT=null, t=0;
-  var r=1.2, v=4.0; // radius (m), speed (m/s)
+  var r=2.0, v=4.0; // radius (m), speed (m/s)
   var theta=0; // current angle
   var trail=[];
   var paused=false;
@@ -15479,6 +15485,10 @@ function simCircular(canvas){
   // so the 3 m maximum radius fits it (it ran over both at r = 3 m).
   var CX=W*0.35, CY=(56+H-8)/2;
   var PX_PER_M=Math.min(CX-26,(H-64)/2-24)/3; // pixels per metre
+  // phone: free area between the banner (to y = 60) and the strip (from H-146);
+  // 44 px kept round the 3 m circle for the arrows that leave it
+  var STRIP=146;
+  if(_bn){ CX=W/2; CY=(64+H-STRIP)/2; PX_PER_M=Math.min(W/2-44,(H-STRIP-64)/2-44)/3; }
 
   function getR(){var e=document.getElementById('inp-circ-r'); return e?parseFloat(e.value):r;}
   function getV(){var e=document.getElementById('inp-circ-v'); return e?parseFloat(e.value):v;}
@@ -15540,7 +15550,8 @@ function simCircular(canvas){
     // Radius line
     ctx.save(); ctx.strokeStyle='rgba(100,116,139,.25)'; ctx.lineWidth=1;
     ctx.beginPath(); ctx.moveTo(CX,CY); ctx.lineTo(px,py); ctx.stroke(); ctx.restore();
-    simText(ctx,'R = '+r.toFixed(1)+' m',(CX+px)/2+6,(CY+py)/2-8,'#7d8da6',8,'left');
+    // under the circle, not on the radius: there it sat on the ball
+    simText(ctx,'R = '+r.toFixed(1)+' m',CX,CY+r*PX_PER_M+30,'#7d8da6',9,'center');
 
     // ── Comet tail ────────────────────────────────────
     for(var i=1;i<trail.length;i++){
@@ -15563,7 +15574,12 @@ function simCircular(canvas){
     var vscale=100/15;
     var ve=v*vscale;
     simArrow(ctx,px,py,px+vx_dir*ve,py+vy_dir*ve,'#34d399',3,11);
-    simText(ctx,'v='+v.toFixed(1)+'m/s',px+vx_dir*ve+vx_dir*8,py+vy_dir*ve+vy_dir*8,'#34d399',9,undefined,true);
+    // a label beyond the tip, growing away from it (centred on the tip it
+    // covered the arrowhead and, for short arrows, the ball)
+    function _tipLab(tx,ty,dx,dy,txt,col){
+      simText(ctx,txt,tx+dx*9,ty+dy*9+(dy>0.3?9:(dy<-0.3?-3:3)),col,9,dx>0.3?'left':(dx<-0.3?'right':'center'),true);
+    }
+    _tipLab(px+vx_dir*ve,py+vy_dir*ve,vx_dir,vy_dir,'v = '+v.toFixed(1)+' m/s','#34d399');
 
     // ── Centripetal acceleration (toward center) ──────
     // a_c = v²/r spans 1.3 to 450 m/s² across the sliders. At 8 px per m/s² the
@@ -15586,10 +15602,28 @@ function simCircular(canvas){
       }
       ctx.restore();
     }
-    simText(ctx,'\u200eac = '+ac.toFixed(1)+' m/s²'+(acClip?'  (החץ מקוצר)':''),
-            px+ax_dir*(ae+8),py+ay_dir*(ae+8),'#f87171',9,undefined,true);
+    _tipLab(px+ax_dir*ae,py+ay_dir*ae,ax_dir,ay_dir,'\u200eac = '+ac.toFixed(1)+' m/s²'+(acClip?'  (החץ מקוצר)':''),'#f87171');
 
-    // ── Right panel ───────────────────────────────────
+    // ── Readouts ──────────────────────────────────────
+    if(_bn){
+      var SY=H-STRIP+6;
+      ctx.save(); ctx.fillStyle='rgba(6,14,28,.92)'; ctx.strokeStyle='#1e4060'; ctx.lineWidth=1.5;
+      ctx.beginPath(); ctx.roundRect(8,SY,W-16,STRIP-14,6); ctx.fill(); ctx.stroke(); ctx.restore();
+      var CA=W*0.74, CB=W*0.27;
+      simText(ctx,'R = '+r.toFixed(1)+' m',CA,SY+16,'#60a5fa',9.5,undefined,true);
+      simText(ctx,'v = '+v.toFixed(1)+' m/s',CA,SY+32,'#34d399',9.5,undefined,true);
+      simText(ctx,'ω = v/R = '+omega.toFixed(2)+' rad/s',CA,SY+48,'#a78bfa',9,undefined,true);
+      simText(ctx,'T = 2πR/v = '+T.toFixed(2)+' s',CA,SY+64,'#fbbf24',9,undefined,true);
+      simText(ctx,'ירוק: מהירות (משיק)',CA,SY+86,'#34d399',8.5,undefined,true);
+      simText(ctx,'אדום: תאוצה (מרכז)',CA,SY+102,'#f87171',8.5,undefined,true);
+      simText(ctx,'תאוצה צנטריפטלית:',CB,SY+16,'#22d3ee',9,undefined,true);
+      simText(ctx,'ac = v²/R = '+v.toFixed(1)+'²/'+r.toFixed(1),CB,SY+32,'#94a3b8',9,undefined,true);
+      simText(ctx,'= '+ac.toFixed(2)+' m/s²',CB,SY+50,'#f87171',11,undefined,true);
+      simText(ctx,'Fc = m·ac, אל המרכז',CB,SY+70,'#a78bfa',9,undefined,true);
+      simText(ctx,'90° זה לזה תמיד!',CB,SY+102,'#fbbf24',8.5,undefined,true);
+      ctx.save(); ctx.strokeStyle='#1e4060'; ctx.lineWidth=1;
+      ctx.beginPath(); ctx.moveTo(W/2,SY+8); ctx.lineTo(W/2,SY+STRIP-22); ctx.stroke(); ctx.restore();
+    } else {
     var PX2=W*0.70, PW2=W-PX2-10, PY2=10;
     ctx.save(); ctx.fillStyle='rgba(6,14,28,.92)'; ctx.strokeStyle='#1e4060'; ctx.lineWidth=1.5;
     ctx.beginPath(); ctx.roundRect(PX2,PY2,PW2,H-PY2-10,6); ctx.fill(); ctx.stroke(); ctx.restore();
@@ -15622,15 +15656,16 @@ function simCircular(canvas){
     simText(ctx,'ירוק: מהירות (משיק)',PC,PY2+248,'#34d399',8,undefined,true);
     simText(ctx,'אדום: תאוצה (מרכז)',PC,PY2+260,'#f87171',8,undefined,true);
     simText(ctx,'90° זה לזה תמיד!',PC,PY2+272,'#fbbf24',8.5,undefined,true);
+    }
 
     // ── Top banner ────────────────────────────────────
     ctx.save(); ctx.fillStyle='rgba(6,14,28,.92)'; ctx.strokeStyle='#1e4060'; ctx.lineWidth=1.5;
     // on a phone the subtitle is two lines: as one it ran out of the banner
-    var _bn=W<480;
-    ctx.beginPath(); ctx.roundRect(8,6,W*0.62,_bn?54:44,6); ctx.fill(); ctx.stroke(); ctx.restore();
-    simText(ctx,'תנועה מעגלית אחידה — ac = v²/R',W*0.31,20,'#22d3ee',11,undefined,true);
-    if(_bn){simText(ctx,'המהירות תמיד משיקה למעגל,',W*0.31,35,'#94a3b8',8.5,undefined,true);
-      simText(ctx,'והתאוצה תמיד מכוונת למרכז',W*0.31,48,'#94a3b8',8.5,undefined,true);}
+    ctx.beginPath(); ctx.roundRect(8,6,_bn?W-16:W*0.62,_bn?54:44,6); ctx.fill(); ctx.stroke(); ctx.restore();
+    var BX=_bn?W/2:W*0.31;
+    simText(ctx,'תנועה מעגלית אחידה — ac = v²/R',BX,20,'#22d3ee',11,undefined,true);
+    if(_bn){simText(ctx,'המהירות תמיד משיקה למעגל,',BX,35,'#94a3b8',8.5,undefined,true);
+      simText(ctx,'והתאוצה תמיד מכוונת למרכז',BX,48,'#94a3b8',8.5,undefined,true);}
     else simText(ctx,'המהירות תמיד משיקה למעגל, והתאוצה תמיד מכוונת למרכז',W*0.31,36,'#94a3b8',8.5,undefined,true);
 
     requestAnimationFrame(draw);
@@ -33928,7 +33963,7 @@ function buildSim(sim){
   else if(sim.type==='statics-torque')extra=C(rng('tq-r',0.05,0.50,0.30,0.01,'מרחק r',' m')+rng('tq-F',5,60,30,1,'כוח F',' N')+rng('tq-th',0,180,60,5,'זווית θ',' °'));
   else if(sim.type==='statics-beam')extra=C(rng('bm-P',0,600,300,10,'עומס P',' N')+rng('bm-xp',0,4,3,0.1,'מיקום העומס',' m')+rng('bm-W',0,400,200,20,'משקל הקורה',' N')+rng('bm-xb',1.5,4,4,0.1,'מיקום משען B',' m'));
   else if(sim.type==='statics-com')extra=C(rng('cm-w',0.15,0.9,0.30,0.05,'רוחב w',' m')+rng('cm-h',0.2,1.2,0.50,0.05,'גובה h',' m')+rng('cm-mu',0.05,1.2,0.40,0.05,'חיכוך μs')+rng('cm-th',0,55,15,1,'זווית המדרון',' °'));
-  else if(sim.type==='circular')extra=C(rng('circ-r',0.5,3,1.2,0.1,'רדיוס R',' m')+rng('circ-v',2,15,6,0.5,'מהירות v',' m/s')+btn('circ-pause','⏸ עצרו','btn-secondary'));
+  else if(sim.type==='circular')extra=C(rng('circ-r',0.5,3,2,0.1,'רדיוס R',' m')+rng('circ-v',2,15,6,0.5,'מהירות v',' m/s')+btn('circ-pause','⏸ עצרו','btn-secondary'));
   else if(sim.type==='atwood')extra=C(rng('atw-m1',0.5,10,3,0.5,'m₁',' kg')+rng('atw-m2',0.5,10,5,0.5,'m₂',' kg')+btn('atw-launch','▶ שחררו!','btn-primary')+btn('atw-reset','↺ איפוס','btn-secondary'));
   // OPTICS CONTROLS
   else if(sim.type==='opt-em-wave')extra=C(rng('emw-wl',380,700,500,5,'אורך גל λ',' nm'));
