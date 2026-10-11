@@ -1856,6 +1856,9 @@ function _mathRuns(s,single){
   }
   return out;
 }
+// two runs of letters, digits or Greek with something neutral between them:
+// the shape the right-to-left algorithm can reorder
+var _LTR_ISLAND=/[0-9A-Za-z\u0370-\u03FF√∞][\s\S]*[\s,;:=+\-−×·\/()–—~≈<>][\s\S]*[0-9A-Za-z\u0370-\u03FF√∞]/;
 function fixInlineMath(root){
   root=root||document.getElementById('app');if(!root)return;
   var HEB=/[֐-׿]/;
@@ -1879,7 +1882,24 @@ function fixInlineMath(root){
   var nodes=[],n;
   while((n=walk.nextNode()))nodes.push(n);
   nodes.forEach(function(node){
-    if(!node.parentElement||!HEB.test(node.parentElement.textContent))return;
+    if(!node.parentElement)return;
+    if(!HEB.test(node.parentElement.textContent)){
+      // Maths with no Hebrew around it -- a quiz option "7 N", a table cell
+      // "620–700 nm", a bold "9.8 m/s²" -- still sits in a right-to-left
+      // page, where the bidi algorithm swaps a number and its unit ("N 7").
+      // Two or more letter/number runs set right to left: one isolate.
+      var v=node.nodeValue,a=v.search(/\S/),z=v.replace(/\s+$/,'').length;
+      var core=v.slice(a,z);
+      if(core.length<2||!_LTR_ISLAND.test(core))return;
+      if(getComputedStyle(node.parentElement).direction!=='rtl')return;
+      var isp=document.createElement('span');isp.className='ltr-run'+(core.length<=14&&/\s/.test(core)?' nb':'');isp.textContent=core;
+      var fr=document.createDocumentFragment();
+      if(a)fr.appendChild(document.createTextNode(v.slice(0,a)));
+      fr.appendChild(isp);
+      if(z<v.length)fr.appendChild(document.createTextNode(v.slice(z)));
+      node.parentNode.replaceChild(fr,node);
+      return;
+    }
     var s=node.nodeValue,last=0,parts=[],any=false;
     _mathRuns(s).forEach(function(r){
       var run=s.slice(r[0],r[1]);
