@@ -169,9 +169,30 @@ const EXPECT = {
     if (c.includes('מתקרב') && e) sgn.app.push(e); if (c.includes('מתרחק') && e) sgn.rec.push(e); } }
   t('  N approaching: ε < 0 (the coil sets up a field toward the magnet — repulsion)', sgn.app.length > 3 && sgn.app.every(e => e < 0), sgn.app.slice(0, 4).join(','));
   t('  N receding: ε > 0 (attraction)', sgn.rec.length > 3 && sgn.rec.every(e => e > 0), sgn.rec.slice(0, 4).join(','));
-  await open('mag-induction', 'mag-lenz'); await click('btn-mgn-push'); let fa = [], fr = [];
-  for (let i = 0; i < 30; i++) { for (const [f, c] of pairs(await read(70), /F = (-?[\d.]+) mN/)) {
-    if (c.includes('מתקרב') && f) fa.push(f); if (c.includes('מתרחק') && f) fr.push(f); } }
+  // The ring is stepped once per animation frame, and on a busy machine a
+  // frame can be 40 ms long: then one frame's readout and caption could
+  // disagree, and this check failed now and then (seen at load 8.8). Here
+  // the sim runs on a clock of exactly 1/60 s per frame, the rate it is
+  // built for, and EVERY frame of the push and the return is checked --
+  // the same assertion, on all frames instead of a sample, whatever the load.
+  await open('mag-induction', 'mag-lenz');
+  const lz = await p.evaluate(async () => {
+    const real = window.requestAnimationFrame, q = [];
+    let T = performance.now() + 1000;
+    window.requestAnimationFrame = cb => { q.push(cb); return q.length; };
+    // the frame already asked of the browser runs once more and hands over
+    for (let i = 0; i < 40 && !q.length; i++) await new Promise(r => setTimeout(r, 25));
+    const tick = () => { const cbs = q.splice(0); T += 1000 / 60; window.__txt = []; cbs.forEach(c => c(T)); return window.__txt.slice(); };
+    for (let i = 0; i < 6; i++) tick();
+    document.getElementById('btn-mgn-push').click();
+    const frames = [];
+    for (let i = 0; i < 90; i++) frames.push(tick());   // 1.5 s: in, back out, at rest
+    window.requestAnimationFrame = real; q.splice(0).forEach(c => real(c));
+    return frames;
+  });
+  let fa = [], fr = [];
+  for (const fm of lz) for (const [f, c] of pairs(fm, /F = (-?[\d.]+) mN/)) {
+    if (c.includes('מתקרב') && f) fa.push(f); if (c.includes('מתרחק') && f) fr.push(f); }
   t('Lenz: magnet pushed in — the ring is pushed AWAY (F > 0)', fa.length > 2 && fa.every(f => f > 0), fa.slice(0, 4).join(','));
   t('  magnet drawn out — the ring is pulled AFTER it (F < 0)', fr.length > 1 && fr.every(f => f < 0), fr.slice(0, 4).join(','));
   await click('btn-mgn-reset'); await click('btn-mgn-cut'); await click('btn-mgn-push'); fa = [];
