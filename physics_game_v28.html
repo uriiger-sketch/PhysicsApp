@@ -8087,7 +8087,7 @@ const DC_CONTENT={
 'dc-kirchhoff.dc-junction':{
   theory:{title:'חוק הצמתים — מה שנכנס, יוצא',html:`
     <p>עד כה צמצמנו כל מעגל לטור ולמקביל. יש מעגלים שאי אפשר לצמצם — ואז צריך את שני החוקים שעליהם כל מה שעשינו נשען ממילא. הראשון פשוט להפליא.</p>
-    ${fBox('\\sum I_{\\text{נכנס}} = \\sum I_{\\text{יוצא}}','חוק הצמתים של קירכהוף',[['I','זרם בענף','A — בסימן, לפי הכיוון שבחרנו'],['צומת','נקודה שבה נפגשים שלושה ענפים או יותר','—']])}
+    ${fBox('\\sum I_{\\text{in}} = \\sum I_{\\text{out}}','חוק הצמתים של קירכהוף',[['I','זרם בענף','A — בסימן, לפי הכיוון שבחרנו'],['\\text{in},\\,\\text{out}','נכנס לצומת, יוצא ממנו','צומת: נקודה שבה נפגשים שלושה ענפים או יותר']])}
     <div class="def-block"><div class="def-title">למה זה נכון?</div>
       <p>זהו <b>שימור המטען</b> ותו לא. מטען אינו נוצר, אינו נעלם, ואינו מצטבר בצומת: צומת הוא נקודת חיבור, לא מאגר. כל קולון שנכנס חייב לצאת באותו רגע — אחרת היה שם מטען הולך וגדל, והשדה החשמלי שלו היה עוצר את הזרימה תוך ננו-שניות.</p>
     </div>
@@ -8146,7 +8146,7 @@ const DC_CONTENT={
 'dc-kirchhoff.dc-loop':{
   theory:{title:'חוק הלולאות — לסגור מעגל ולחזור לאותו פוטנציאל',html:`
     <p>החוק השני של קירכהוף מסתכל על <b>אנרגיה</b>. קולון שיוצא לסיבוב שלם סביב לולאה וחוזר לנקודת המוצא — חייב לחזור לאותו פוטנציאל בדיוק.</p>
-    ${fBox('\\sum \\Delta V = 0','חוק הלולאות של קירכהוף',[['\\Delta V','שינוי הפוטנציאל בכל רכיב','V — בסימן'],['לולאה','כל מסלול סגור במעגל','—']])}
+    ${fBox('\\sum \\Delta V = 0','חוק הלולאות של קירכהוף',[['\\Delta V','שינוי הפוטנציאל בכל רכיב','V — בסימן'],['\\sum','סכום לאורך לולאה','לולאה: כל מסלול סגור במעגל']])}
     <div class="def-block"><div class="def-title">כללי הסימן — כל מה שצריך לזכור</div>
       <p>בוחרים כיוון הליכה סביב הלולאה, ואז:<br>
       <b>סוללה</b> — נכנסים מהקוטב ה־− ויוצאים ב־+: ${M('+\\varepsilon')}. בכיוון ההפוך: ${M('-\\varepsilon')}.<br>
@@ -27562,7 +27562,7 @@ MAG_SIMS['mag-lenz']=function(canvas){
     if(!magAlive(id,_g))return;
     var dt=pT?Math.min(0.04,(ts-pT)/1000):0;pT=ts;
     // push: thrust the magnet into the ring and draw it back out
-    if(push===1){xm+=0.8*dt;vm=0.8;if(xm>=xr-0.006){push=2;}}   // up to (not past) the ring's centre
+    if(push===1){xm+=0.8*dt;vm=0.8;if(xm>=xr-0.006){xm=xr-0.006;push=2;}}   // up to (not past) the ring's centre, at any frame rate
     else if(push===2){xm-=0.8*dt;vm=-0.8;if(xm<=-0.2){push=0;vm=0;}}
     else if(drag){if(lastX!==null&&dt>0)vm=vm*0.5+(xm-lastX)/dt*0.5;lastX=xm;}
     else vm=0;
@@ -27570,7 +27570,10 @@ MAG_SIMS['mag-lenz']=function(canvas){
     for(var i=0;i<20;i++){var h=dt/20,z=xr-xm,dP=magBarFluxD(m,LPm,A,z);
       I=cut?0:-dP*(vr-vm)/RR;var F=I*dP;
       vr+=(F-MR*9.8/ELL*xr-0.004*vr)/MR*h;xr+=vr*h;heat+=I*I*RR*h;}
-    var zf=xr-xm,dPf=magBarFluxD(m,LPm,A,zf),Fr=I*dPf;
+    // the readout, the arrow and the caption all describe the END of the frame:
+    // the current of the last sub-step times dΦ/dz at the end position flipped
+    // sign on a slow phone, where one frame can carry the ring across the pole
+    var zf=xr-xm,dPf=magBarFluxD(m,LPm,A,zf);I=cut?0:-dPf*(vr-vm)/RR;var Fr=I*dPf;
     simBg(ctx,W,H);
     // magnet
     magBar(ctx,toSx(xm),YR,0.08*s,Math.max(16,0.02*s),flip>0?0:Math.PI);
