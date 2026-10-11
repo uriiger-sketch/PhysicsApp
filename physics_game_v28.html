@@ -1056,6 +1056,11 @@ html{scroll-padding-top:72px;}
    same. */
 @media (max-width:600px){
   .math-ltr{max-width:100%;overflow-x:auto;overflow-y:hidden;padding:.12em 0;}
+  /* KaTeX breaks a long chain after a relation, and its pieces are exactly
+     as tall as their ink: on the next line a numerator touched the
+     denominator above it (R1 on "250 x 200"). Air between the lines. */
+  .katex .base{margin:.2em 0;}
+  .katex-display .base{margin:0;}
   .theory-card table,.wx table{display:block;max-width:100%;overflow-x:auto;}
   .formula-box,.enrich-formula{overflow-x:auto;}
   /* the offline renderer's display formulas are chains with spaced
