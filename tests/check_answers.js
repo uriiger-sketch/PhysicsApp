@@ -24,7 +24,7 @@ const t = (name, got, want) => {
 
   const r = await p.evaluate(async () => {
     const out = { quiz: 0, quizOk: 0, quizBad: [], steps: 0, stepsOk: 0, stepsBad: [], noOpts: [] };
-    const chapters = [].concat(MECH_CHAPTERS, OPTICS_CHAPTERS, ELECTRO_CHAPTERS, DC_CHAPTERS);
+    const chapters = [].concat(MECH_CHAPTERS, OPTICS_CHAPTERS, ELECTRO_CHAPTERS, DC_CHAPTERS, MAG_CHAPTERS);
     for (const ch of chapters) for (const se of ch.sections) {
       const key = ch.id + '.' + se.id, c = CONTENT[key];
       state.subject = ch.id.startsWith('opt-') ? 'optics' : ch.id.startsWith('elc-') ? 'electro' : ch.id.startsWith('dc-') ? 'circuits' : ch.id.startsWith('mag-') ? 'magnetism' : 'mechanics';
@@ -39,9 +39,11 @@ const t = (name, got, want) => {
         const opts = document.querySelectorAll('#app .quiz-opt');
         if (!opts.length) { out.noOpts.push(key + '#' + qi); continue; }
         const qs = getQS(ch.id, se.id);
-        opts[c.quiz[qi].correct].click();
+        // click the slot the correct option is displayed in; the app records
+        // the authored index of the option chosen, so "accepted" is that it
+        // equals correct
+        opts[quizView(c.quiz[qi]).correct].click();
         await new Promise(r2 => setTimeout(r2, 30));
-        // the app records the chosen index; "accepted" is that it equals correct
         if (qs.ans[qi] === c.quiz[qi].correct) out.quizOk++; else out.quizBad.push(key + '#' + qi);
         if (qi < c.quiz.length - 1) nextQ(); else finishQuiz();
         await new Promise(r2 => setTimeout(r2, 30));
