@@ -9066,7 +9066,87 @@ function getQS(c,s){const k=`${c}.${s}`;var q=state.quizState[k];
     q.v=2;
   }
   if(q.hints!==undefined&&(!q.hints||typeof q.hints!=='object'))q.hints={};
+  _qsAlign(k,q);
   return q;}
+// ── A saved answer belongs to its QUESTION, not to its place ──────────────
+// ans[i] and hints[i] are kept by position, and q.ids records which question
+// stood at each position when they were saved. A question inserted, removed
+// or moved in an update used to hand every later answer to its neighbour --
+// the quiz re-marked, a finished one scored against questions never seen.
+// Now the answers follow their questions:
+//  1. the same question text, wherever it stands now, keeps its answer --
+//     its options may have been reworded, or its key corrected, but not both
+//     at once (that is what reordered options look like) and not their number;
+//  2. a question whose text was reworded keeps its answer when its options
+//     and key are unchanged and no other question left over shares them;
+//  3. anything else is a new question: unanswered. A finished quiz that now
+//     has one reopens on it (its completion and XP stay); no mark is guessed.
+// A save from v28.17 (v:2, no ids) was made under that version's questions,
+// which this one keeps in place: it is taken by position, the first time.
+// A question's text is HTML that holds its formulas as typeset by KaTeX, or by
+// the offline renderer when KaTeX did not load -- and a learner meets both
+// (at home, then on a school network that blocks the CDN). Its identity is
+// therefore what both show alike: its letters and digits (Hebrew, Latin,
+// Greek; sub- and superscripts folded), not the markup or the symbols -- and
+// in sorted order, since KaTeX writes a fraction's denominator before its
+// numerator (\frac12 reads "21" there, "1/2" offline). Over the 642 questions
+// both renderers give every question the same identity.
+var _qidCache=new Map();
+function _qidText(s){
+  s=String(s).replace(/<[^>]*>/g,'').replace(/&[#0-9A-Za-z]+;/g,'');
+  try{s=s.normalize('NFKC');}catch(e){}
+  s=s.replace(/∑/g,'Σ').replace(/∏/g,'Π').replace(/∆/g,'Δ');   // ∑ is a Σ
+  return s.replace(/[^0-9A-Za-zͰ-Ͽא-ת]+/g,'').split('').sort().join('');}
+function _qid(q){
+  if(!q||!q.opts)return '';
+  var h=function(s){return _qvHash(_qidText(s)).toString(36);};
+  return h(q.q)+':'+h(q.opts.map(_qidText).join('|'))+':'+(typeof q.correct==='number'?q.correct:0)+':'+q.opts.length;}
+function _qidsOf(k){
+  var v=_qidCache.get(k);
+  if(!v){var c=CONTENT[k],qs=(c&&Array.isArray(c.quiz))?c.quiz:[];v=qs.map(_qid);_qidCache.set(k,v);}
+  return v;}
+// -> m[i] = the saved position of current question i, or -1
+function _qidMatch(old,cur){
+  var m=cur.map(function(){return -1;}),used=old.map(function(){return false;}),i,j;
+  var part=function(x){return String(x).split(':');};
+  var O=old.map(part),C=cur.map(part);
+  for(i=0;i<C.length;i++)for(j=0;j<O.length;j++){
+    if(used[j]||O[j][0]!==C[i][0]||O[j][3]!==C[i][3])continue;
+    if(O[j][1]!==C[i][1]&&O[j][2]!==C[i][2])continue;
+    m[i]=j;used[j]=true;break;}
+  var rest=function(p){return p.slice(1).join(':');};
+  for(i=0;i<C.length;i++){
+    if(m[i]>=0)continue;
+    var cand=[],rivals=0;
+    for(j=0;j<O.length;j++)if(!used[j]&&rest(O[j])===rest(C[i]))cand.push(j);
+    for(j=0;j<C.length;j++)if(m[j]<0&&rest(C[j])===rest(C[i]))rivals++;
+    if(cand.length===1&&rivals===1){m[i]=cand[0];used[cand[0]]=true;}}
+  return m;}
+function _qsAlign(k,q){
+  var cur=_qidsOf(k);
+  if(Array.isArray(q.ids)&&q.ids.join('|')===cur.join('|'))return;
+  var old=Array.isArray(q.ids)?q.ids:null,m,i;
+  if(old)m=_qidMatch(old,cur);
+  else m=cur.map(function(x,i2){return i2;});      // v28.17: by position
+  var c=CONTENT[k],qs=(c&&Array.isArray(c.quiz))?c.quiz:[];
+  var ans=[],hints={},oc=q.cur,nc=-1;
+  for(i=0;i<cur.length;i++){
+    var j=m[i];if(j<0)continue;
+    var a=q.ans[j],n=qs[i]&&qs[i].opts?qs[i].opts.length:0;
+    if(typeof a==='number'&&a>=0&&a<n)ans[i]=a;
+    if(q.hints&&q.hints[j])hints[i]=q.hints[j];
+    if(j===oc)nc=i;
+  }
+  var moved=old?m.some(function(j,i2){return j!==i2;})||old.length!==cur.length:
+    q.ans.some(function(a,i2){return a!==undefined&&ans[i2]!==a;});
+  q.ans=ans;q.ids=cur.slice();
+  if(q.hints)q.hints=hints;
+  if(!moved)return;
+  var first=-1;for(i=0;i<cur.length;i++)if(ans[i]===undefined){first=i;break;}
+  if(q.done){
+    if(!q.legacy&&first>=0){q.done=false;q.cur=first;}
+  }else q.cur=nc>=0?nc:(first>=0?first:Math.max(0,cur.length-1));
+}
 
 // ── Option order ────────────────────────────────────────────────────────────
 // The AUTHORED position of the correct option, measured over all 259 items,
@@ -33820,7 +33900,7 @@ function buildQuiz(qs){
   // as what it is: the quiz is over.
   if(st.cur>=qs.length){st.done=true;st.cur=qs.length-1;return buildQuiz(qs);}
   const qi=st.cur;const q=qs[qi];const ans=st.ans[qi]!==undefined;
-  const prog=`<div class="quiz-progress">${qs.map((_,i)=>`<div class="qp-dot${i<qi?(st.ans[i]===quizView(qs[i]).ci?' done':' wrong'):i===qi?' active':''}"></div>`).join('')}</div>`;
+  const prog=`<div class="quiz-progress">${qs.map((_,i)=>`<div class="qp-dot${i===qi?' active':st.ans[i]!==undefined?(st.ans[i]===quizView(qs[i]).ci?' done':' wrong'):''}"></div>`).join('')}</div>`;
   const lets=['א','ב','ג','ד'];
   const qv=quizView(q);
   const opts=qv.opts.map((o,oi)=>{let cls='';if(ans){if(oi===qv.correct)cls='correct';else if(qv.src[oi]===st.ans[qi])cls='wrong';}
@@ -33843,7 +33923,9 @@ function buildQuiz(qs){
     <div style="font-size:.88rem;color:var(--muted)">${_ltSafe(q.explain||'')}</div>
     ${q.formula&&st.ans[qi]!==qv.ci?`<div style="margin-top:8px;padding:6px 10px;background:var(--chip);border-radius:6px;direction:ltr;unicode-bidi:isolate;text-align:right;font-family:'Cambria Math','Times New Roman',serif;color:var(--accent);font-size:1rem">${q.formula}</div>`:''}
   </div>`:'';
-  const nxt=ans?(qi<qs.length-1?`<button class="btn btn-primary" onclick="nextQ()" style="margin-top:12px">הבאה ← <kbd style="font-size:.75em">Enter</kbd></button>`:`<button class="btn btn-green" onclick="finishQuiz()" style="margin-top:12px">סיום החידון ✓</button>`):'';
+  // "next" while another question is unanswered (a quiz reopened on a
+  // question added in an update may have them on either side), else "finish"
+  const nxt=ans?(_qNext(st,qs.length)>=0?`<button class="btn btn-primary" onclick="nextQ()" style="margin-top:12px">הבאה ← <kbd style="font-size:.75em">Enter</kbd></button>`:`<button class="btn btn-green" onclick="finishQuiz()" style="margin-top:12px">סיום החידון ✓</button>`):'';
   return`<div class="quiz-card">${prog}<div class="quiz-q"><span class="quiz-q-num">${qi+1}</span>${_ltSafe(q.q)}</div><div class="quiz-opts">${opts}</div>${hintHTML}${fb}${nxt}</div>`;
 }
 function buildProblem(prob){
@@ -34082,8 +34164,15 @@ window.nextQ=()=>{
   const st=getQS(state.chapter,state.section),c=CONTENT[state.chapter+'.'+state.section];
   // "next" on the last question is "finish": stepping past the end used to
   // show the finished banner without ever crediting the quiz
-  if(c&&c.quiz&&st.cur>=c.quiz.length-1){window.finishQuiz();return;}
-  st.cur++;render();};
+  var nx=_qNext(st,c&&c.quiz?c.quiz.length:0);
+  if(nx<0){window.finishQuiz();return;}
+  st.cur=nx;render();};
+// the next question to answer: the first unanswered one after the current
+// one, else before it; -1 when none is left
+function _qNext(st,n){var i;
+  for(i=st.cur+1;i<n;i++)if(st.ans[i]===undefined)return i;
+  for(i=0;i<st.cur&&i<n;i++)if(st.ans[i]===undefined)return i;
+  return -1;}
 window.finishQuiz=()=>{const st=getQS(state.chapter,state.section);st.done=true;markCompleted(state.chapter,state.section,'quiz',100);
   // the score is on the banner the focus lands in; a screen reader hears it too
   var c=CONTENT[state.chapter+'.'+state.section],qs=(c&&c.quiz)||[];
@@ -34102,8 +34191,7 @@ document.addEventListener('keydown',function(e){
     if(!c||!c.quiz)return;
     var qs=c.quiz;
     if(st.done)return;
-    if(st.ans[st.cur]!==undefined&&st.cur<qs.length-1){window.nextQ();}
-    else if(st.ans[st.cur]!==undefined&&st.cur===qs.length-1){window.finishQuiz();}
+    if(st.ans[st.cur]!==undefined)window.nextQ();   // the next question, or finish
   }
 }, false);;
 window.upInp=(si,v)=>{getPS(state.chapter,state.section).inputs[si]=v;};
