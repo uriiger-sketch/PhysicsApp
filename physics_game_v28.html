@@ -1080,7 +1080,7 @@ html{scroll-padding-top:72px;}
   /* the offline renderer's display formulas are chains with spaced
      separators: they may break there rather than scroll (the enrichment
      box clipped "...=500 s ≈ 8.3 min" after "500 s") */
-  .formula-box .tex-fb,.enrich-formula .tex-fb{white-space:normal;}
+  .formula-box .tex-fb,.enrich-formula .tex-fb,.math-ltr .tex-fb{white-space:normal;}
   /* a chain typed as plain text in a quiz explanation has no space to
      break at: sinθ=mλ/a=1×500×10⁻⁹/(0.5×10⁻³)=10⁻³ ran out of its card */
   #app .ltr-run{overflow-wrap:anywhere;}
@@ -33931,7 +33931,8 @@ function buildTheory(th){
 }
 function rng(id,min,max,val,step,lbl,unit,fmt){
   if(unit===undefined)unit='';
-  const decimals=step<1?2:0;
+  // as many decimals as the step has: a 0.5 step reads "2.5 m/s", not "2.50"
+  const decimals=Math.min(3,(String(step).split('.')[1]||'').length);
   // fmt names a global that turns the raw slider value into what the learner
   // should read, so a slider carrying an exponent can still show "10.0 kΩ"
   const named=fmt&&typeof window[fmt]==='function';
