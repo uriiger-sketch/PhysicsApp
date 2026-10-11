@@ -11,6 +11,9 @@
 // image must lie behind the mirror. Last, every draggable simulation is
 // driven by a finger on a 390 px phone: what it drives must change, and the
 // page must not scroll under the drag.
+// Also the learning experience: a misconception box per section, quiz keys
+// that are not conspicuously the longest option, hints that are sentences,
+// and no number glued to its unit.
 const { chromium } = require('playwright');
 const path = require('path');
 const F = 'file://' + path.resolve(__dirname, '..', 'physics_game_v28.html');
@@ -82,6 +85,37 @@ const EXPECT = {
     });
     t(k + ': quiz keys in range', content[k].quiz.every(Boolean));
   }
+
+  // ── the learning experience: a misconception box in every section; quiz keys
+  // that do not give themselves away by length (strictly longest in at most
+  // 30 % of questions, never more than 1.3x the next option); second-tier
+  // hints that are a Hebrew sentence, not a bare formula; numbers spaced
+  // from their units ──
+  const lx = await p.evaluate(() => {
+    const txt = h => { const d = document.createElement('template'); d.innerHTML = _ltSafe(String(h || '')); return d.content.textContent.replace(/\s+/g, ' ').trim(); };
+    const r = { noMis: [], q: 0, longest: 0, loud: [], bareHint: [], glued: [] };
+    for (const ch of OPTICS_CHAPTERS) for (const se of ch.sections) {
+      const k = ch.id + '.' + se.id, C = CONTENT[k];
+      if (!/mis-block/.test(C.theory.html + ((C.theory.enrich || {}).html || ''))) r.noMis.push(k);
+      (C.quiz || []).forEach((q, i) => {
+        r.q++;
+        const L = q.opts.map(o => txt(o).length), key = L[q.correct], rest = Math.max(...L.filter((_, j) => j !== q.correct));
+        if (key > rest) r.longest++;
+        if (key > 1.3 * rest) r.loud.push(k + '#' + i);
+      });
+      const steps = (C.problem || {}).steps || [];
+      steps.forEach((st, i) => { if (!/[א-ת]{3,}/.test(txt(st.hint))) r.bareHint.push(k + '#' + i); });
+      const all = [C.theory.html, ...(C.quiz || []).flatMap(q => [q.q, ...q.opts, q.explain]), ...steps.flatMap(s => [s.q, s.nudge, s.hint, s.explain])].map(txt).join(' | ');
+      const m = all.match(/(?<![A-Za-z_])\d(?:nm|mm|cm|μm|keV|meV|eV|kHz|MHz|GHz|THz|Hz|kV|V)(?![A-Za-z0-9\/])/g);
+      if (m) r.glued.push(k + ': ' + m.join(','));
+    }
+    return r;
+  });
+  t('every section has a misconception box', lx.noMis.length === 0, lx.noMis.join(' '));
+  t('quiz key strictly longest in at most 30 % of questions', lx.longest <= 0.3 * lx.q, lx.longest + '/' + lx.q);
+  t('no quiz key more than 1.3x longer than every other option', lx.loud.length === 0, lx.loud.join(' '));
+  t('every problem hint says something in Hebrew', lx.bareHint.length === 0, lx.bareHint.join(' '));
+  t('no number glued to its unit', lx.glued.length === 0, lx.glued.join(' | '));
 
   // ── simulations ──
   const open = async (chId, se) => {
