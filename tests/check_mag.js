@@ -269,7 +269,7 @@ const EXPECT = {
       state.subject = 'magnetism'; state.chapter = ch.id; state.section = se.id; state.quizState = {}; state.tab = 'quiz'; render(); await wait(40);
       for (let qi = 0; qi < c.quiz.length; qi++) { out.quiz++; const opts = document.querySelectorAll('#app .quiz-opt'); const qs = getQS(ch.id, se.id);
         if (opts.length !== 4) { out.quizBad.push(key + '#' + qi + ' opts'); continue; }
-        opts[c.quiz[qi].correct].click(); await wait(20); if (qs.ans[qi] !== c.quiz[qi].correct) out.quizBad.push(key + '#' + qi);
+        opts[quizView(c.quiz[qi]).correct].click(); await wait(20); if (qs.ans[qi] !== c.quiz[qi].correct) out.quizBad.push(key + '#' + qi);
         if (qi < c.quiz.length - 1) nextQ(); else finishQuiz(); await wait(20); }
       markCompleted(ch.id, se.id, 'quiz', 0); state.problemState = {}; state.tab = 'problem'; render(); await wait(40);
       const try1 = (si, v) => { upInp(si, String(v)); chkStep(si); return getPS(ch.id, se.id).feedback[si] === 'correct'; };

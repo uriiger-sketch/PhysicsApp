@@ -13,15 +13,68 @@
 <meta property="og:description" content="תיאוריה, סימולציות אינטראקטיביות, חידונים ובעיות מודרכות בחמישה נושאים — לומדים פיזיקה בעברית, בטלפון ובמחשב.">
 <meta name="twitter:card" content="summary">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23071426'/%3E%3Cg fill='none' stroke='%2322d3ee' stroke-width='3.5'%3E%3Cellipse cx='32' cy='32' rx='24' ry='9'/%3E%3Cellipse cx='32' cy='32' rx='24' ry='9' transform='rotate(60 32 32)'/%3E%3Cellipse cx='32' cy='32' rx='24' ry='9' transform='rotate(-60 32 32)'/%3E%3C/g%3E%3Ccircle cx='32' cy='32' r='5' fill='%23f59e0b'/%3E%3C/svg%3E">
-<link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <!-- the fonts are a nicety, not a dependency: loaded without holding up the
      first paint, so a slow or blocked Google Fonts never leaves a blank page -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800;900&family=Rubik:wght@300;400;500;700;900&display=swap" media="print" onload="this.media='all'">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js"></script>
+<script>
+// ── KaTeX, fetched beside the page instead of in front of it ──────────
+// It used to load synchronously right here, so a CDN that hangs rather than
+// fails (a filtering school network, a captive portal) left the page blank
+// until the browser gave up on it -- 12 s in a measured hang, up to a minute
+// in the wild. Now the three files load in parallel with the page, pinned
+// by Subresource Integrity (the hashes KaTeX publishes for exactly these
+// jsDelivr URLs), and the app script below (#app-js) starts as soon as they
+// are in, or as soon as one has failed, or 3 s after the page itself has
+// arrived -- with the offline formula renderer then. The formulas are still
+// typeset when the app script runs, so nothing it builds changes.
+var _kxS={js:0,css:0,ar:0,dom:0,late:0},_kxDone=false;
+function _kx(k,v){
+  _kxS[k]=v;
+  if(_kxDone||!_kxS.dom)return;
+  // auto-render is waited for, but it is optional: at the deadline a KaTeX
+  // with its stylesheet is used without it
+  var s=_kxS,all=s.js>0&&s.css>0;
+  if(!((all&&s.ar!==0)||s.js<0||s.css<0||s.late))return;
+  _kxDone=true;
+  // half a KaTeX is worse than none: its output without its stylesheet is
+  // unreadable, and a copy that turns up after the start would typeset half
+  // the page. Either way the app gets no katex and uses its own renderer.
+  if(!all)try{Object.defineProperty(window,'katex',{configurable:true,get:function(){},set:function(){}});}catch(e){}
+  var src=document.getElementById('app-js');if(!src)return;
+  // padded to its place in this file, so an error names the line it is on
+  var sc=document.createElement('script'),pad='';
+  // (the doctype and <html> take the first two lines; <head> opens the third)
+  try{var n=3,e;
+    n+=document.head.outerHTML.split('\n').length-1;
+    for(e=document.head.nextSibling;e&&e!==document.body;e=e.nextSibling)n+=(e.textContent||'').split('\n').length-1;
+    for(e=document.body.firstChild;e&&e!==src;e=e.nextSibling)n+=((e.outerHTML||e.textContent)||'').split('\n').length-1;
+    pad=new Array(n).join('\n');}catch(x){pad='';}
+  sc.text=pad+src.text+'\n//# sourceURL='+String(location.href).split('#')[0];
+  document.body.appendChild(sc);
+}
+(function(){
+  var D='https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/',H=document.head;
+  var l=document.createElement('link');
+  l.rel='stylesheet';l.href=D+'katex.min.css';l.crossOrigin='anonymous';
+  l.integrity='sha384-n8MVd4RsNIU0tAv4ct0nTaAbDJwPJzDEaqSD1odI+WdtXRGWt2kTvGFasHpSy3SV';
+  l.onload=function(){_kx('css',1);};l.onerror=function(){_kx('css',-1);};
+  H.appendChild(l);
+  var j=document.createElement('script');
+  j.src=D+'katex.min.js';j.crossOrigin='anonymous';
+  j.integrity='sha384-XjKyOOlGwcjNTAIQHIpgOno0Hl1YQqzUOEleOLALmuqehneUG+vnGctmUb0ZY0l8';
+  j.onload=function(){
+    var a=document.createElement('script');
+    a.src=D+'contrib/auto-render.min.js';a.crossOrigin='anonymous';
+    a.integrity='sha384-+VBxd3r6XgURycqtZ117nYw44OOcIax56Z4dCRWbxyPt0Koah1uHoK0o4+/RRE05';
+    a.onload=function(){_kx('ar',1);};a.onerror=function(){_kx('ar',-1);};
+    H.appendChild(a);_kx('js',1);};
+  j.onerror=function(){_kx('js',-1);};
+  H.appendChild(j);
+})();
+</script>
 <style>
 :root,[data-theme='dark']{
   --bg:#07101f;--panel:#0f1c2e;--panel2:#162236;--accent:#3b82f6;--accent2:#06b6d4;
@@ -58,10 +111,15 @@
 body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden;}
 body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse at 15% 40%,rgba(59,130,246,.06) 0%,transparent 55%),radial-gradient(ellipse at 85% 15%,rgba(139,92,246,.05) 0%,transparent 55%);pointer-events:none;z-index:0;}
 #app{position:relative;z-index:1;}
+/* the first paint, while KaTeX settles (at most 3 s after the page) */
+.boot-wait{padding:96px 16px;text-align:center;color:var(--muted);font-size:1rem;}
 
 /* HEADER */
 .header{background:var(--hdr-bg);border-bottom:1px solid var(--border);padding:0 24px;display:flex;align-items:center;justify-content:space-between;height:62px;position:sticky;top:0;z-index:200;box-shadow:0 4px 28px rgba(0,0,0,.5);}
-.header-title{font-family:'Rubik',sans-serif;font-weight:900;font-size:1.35rem;background:var(--hdr-title);-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+.header-title{font-family:'Rubik',sans-serif;font-weight:900;font-size:1.35rem;}
+/* the gradient fill is for the name only: clipped to an emoji's outline it
+   turned ⚛️ into a plain cyan square and the other icons into silhouettes */
+.header-title .ht-name{background:var(--hdr-title);-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
 .header-xp{display:flex;align-items:center;gap:10px;font-size:.88rem;}
 .xp-badge{background:rgba(245,158,11,.15);border:1px solid rgba(245,158,11,.3);color:var(--gold);padding:4px 14px;border-radius:20px;font-weight:700;}
 .done-badge{color:var(--muted);font-size:.78rem;}
@@ -120,7 +178,10 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 .tab{flex:1;padding:9px 12px;border:none;background:none;color:var(--muted);cursor:pointer;font-family:'Heebo',sans-serif;font-size:.84rem;font-weight:600;border-radius:8px;transition:all .18s;display:flex;align-items:center;justify-content:center;gap:5px;}
 .tab:hover{color:var(--text);background:var(--panel2);}
 .tab.active{background:var(--btn);color:#fff;}
-.tab.locked{cursor:not-allowed;opacity:.38;}
+/* the problem tab before its quiz is done: it still opens (onto the panel
+   that says why), so its name must be read -- at 38 % opacity it was 2:1
+   on dark and 1.8:1 on light. The lock says it is locked. */
+.tab.locked{cursor:not-allowed;}
 
 /* THEORY */
 .theory-card{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:26px;margin-bottom:18px;}
@@ -144,6 +205,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 #app sup{top:-.45em}
 .math-ltr{direction:ltr;display:inline-flex;align-items:center;vertical-align:middle;margin:0 3px;font-size:1.05em;}
 .ltr-run{direction:ltr;unicode-bidi:isolate;}
+.ltr-run.nb{white-space:nowrap;}
 .sum-open{background:rgba(96,165,250,.07);border-right:3px solid rgba(96,165,250,.5);
   border-radius:8px;padding:9px 14px;margin:8px 0 14px;font-size:.9rem;color:var(--t-sum);line-height:1.9;}
 .sum-open b{color:var(--t-sumb);}
@@ -171,7 +233,9 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 /* DEF BLOCK */
 .def-block{background:rgba(59,130,246,.07);border:1px solid rgba(59,130,246,.2);border-radius:10px;padding:14px 18px;margin:14px 0;}
 .unit-badge{display:inline-block;direction:ltr;unicode-bidi:isolate;background:rgba(52,211,153,.14);border:1px solid rgba(52,211,153,.35);color:var(--t-unit);border-radius:5px;padding:1px 6px;font-size:.72rem;font-weight:600;letter-spacing:.02em;}
-.mis-block{background:rgba(251,191,36,.06);border:1px solid rgba(251,191,36,.28);border-right:3px solid rgba(251,191,36,.6);border-radius:10px;padding:14px 18px;margin:14px 0;}
+/* set like the theory's own paragraphs: as bare text it took the page's
+   16 px and tight default leading, larger and denser than the text around it */
+.mis-block{background:rgba(251,191,36,.06);border:1px solid rgba(251,191,36,.28);border-right:3px solid rgba(251,191,36,.6);border-radius:10px;padding:14px 18px;margin:14px 0;font-size:.93rem;line-height:1.8;}
 .ex-block{background:var(--ex-bg);border:1px solid var(--ex-border);border-right:4px solid var(--ex-accent);border-radius:12px;padding:16px 20px;margin:18px 0;}
 .ex-title{color:var(--t-green);font-weight:800;font-size:1rem;margin-bottom:10px;}
 .ex-block p{line-height:1.85;margin:0 0 8px;}
@@ -204,6 +268,9 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 
 /* INFO GRID */
 .info-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px;}
+/* two columns of "T = m(g+a) > mg" are wider than a 320 px phone: the
+   cards ran 17 px out of the theory card */
+@media (max-width:400px){.info-grid{grid-template-columns:1fr;}}
 .info-item{background:var(--bg);border:1px solid var(--border);border-radius:9px;padding:12px;}
 .info-item .il{font-size:.7rem;color:var(--muted);font-weight:700;letter-spacing:.5px;margin-bottom:3px;}
 .info-item .iv{font-size:.9rem;color:var(--text);font-weight:500;}
@@ -239,11 +306,21 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 .sl-ctrl button:disabled{opacity:.45;cursor:default;}
 .sl-ctrl button.on{background:var(--red);}
 .sl-read{padding:0 15px 10px;display:flex;gap:7px;flex-wrap:wrap;}
+/* A chip reads like the page: its label at the start (right), then the value
+   with its unit as one left-to-right run -- "1.35 m/s²", never "m/s² 1.35",
+   and a negative value with its minus in front, never "1.35−". Laid out
+   left to right as a whole it put Latin labels on the far side, and Hebrew
+   ones written right to left (slChip's inline style) reversed the value and
+   the unit instead. That inline style still marks a label with Hebrew in
+   it; a label without (θ, Δp, √(gx²+gy²)) is itself a left-to-right run. */
 .sl-chip{background:var(--bg);border:1px solid var(--border);border-radius:9px;padding:5px 10px;
-  font-size:.78rem;color:var(--muted);display:flex;align-items:baseline;gap:5px;direction:ltr;}
-.sl-chip i{font-style:normal;color:var(--muted);}
-.sl-chip b{font-size:.98rem;color:var(--text);font-variant-numeric:tabular-nums;min-width:3.2em;text-align:left;}
-.sl-chip u{text-decoration:none;font-size:.72rem;color:var(--muted);}
+  font-size:.78rem;color:var(--muted);display:flex;align-items:baseline;gap:5px;direction:rtl;}
+.sl-chip i{font-style:normal;color:var(--muted);order:0;}
+.sl-chip:not([style*="rtl"]) i{direction:ltr;unicode-bidi:isolate;}
+.sl-chip b{font-size:.98rem;color:var(--text);font-variant-numeric:tabular-nums;min-width:3.2em;text-align:right;
+  direction:ltr;unicode-bidi:isolate;order:2;}
+.sl-chip u{text-decoration:none;font-size:.72rem;color:var(--muted);direction:ltr;unicode-bidi:isolate;order:1;}
+.sl-chip u:empty{display:none;}
 .sensor-lab canvas{display:block;width:100%;background:var(--bg);border-top:1px solid var(--border);
   border-bottom:1px solid var(--border);}
 .sl-pred{margin:0 15px 11px;padding:9px 13px;border-radius:10px;font-size:.82rem;line-height:1.6;
@@ -260,10 +337,14 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 .sl-slider span{color:var(--text);font-weight:600;font-variant-numeric:tabular-nums;min-width:3.6em;direction:ltr;}
 .sl-zoom{display:inline-flex;gap:4px;margin-inline-start:auto;}
 .sl-zoom button{padding:7px 9px;font-size:.8rem;}
-.anim-ctrl{display:flex;align-items:center;gap:8px;padding:7px 14px;background:rgba(255,255,255,.02);border-top:1px solid var(--border);}
+.anim-ctrl{display:flex;align-items:center;gap:8px;padding:7px 14px;background:rgba(255,255,255,.02);border-top:1px solid var(--border);flex-wrap:wrap;}
 .anim-ctrl button{padding:3px 13px;border:1px solid var(--border);background:var(--panel2);color:var(--text);border-radius:6px;cursor:pointer;font-family:'Heebo',sans-serif;font-size:.77rem;transition:all .15s;line-height:1.5;}
 .anim-ctrl button:hover{background:var(--accent);border-color:var(--accent);color:#fff;}
-.anim-ctrl .ac-lbl{font-size:.74rem;color:var(--muted);margin-right:auto;}
+/* the caption takes a line of its own when the two buttons leave it less
+   than 14em: at 360 px it was squeezed beside them into a 66-110 px column,
+   four or five lines tall (in 24 animations), and the buttons broke too */
+.anim-ctrl .ac-lbl{font-size:.74rem;line-height:1.5;color:var(--muted);margin-right:auto;flex:1 1 14em;}
+.anim-ctrl button{white-space:nowrap;}
 
 /* SIM */
 .sim-container{background:var(--panel);border:1px solid var(--border);border-radius:14px;overflow:hidden;}
@@ -306,6 +387,10 @@ input[type=range]{accent-color:var(--accent);cursor:pointer;}
 .quiz-opt.correct{border-color:var(--green);background:rgba(16,185,129,.1);color:var(--t-ok);}
 .quiz-opt.wrong{border-color:var(--red);background:rgba(239,68,68,.1);color:var(--t-err);}
 .quiz-opt-letter{width:26px;height:26px;border-radius:50%;border:2px solid currentColor;display:flex;align-items:center;justify-content:center;font-size:.78rem;font-weight:700;flex-shrink:0;}
+/* the option's words and formulas are one flex item: bare, each text run
+   and each maths span became a column of its own, and an option that mixed
+   Hebrew with a formula wrapped as separate stacks on a phone */
+.quiz-opt-text{flex:1 1 auto;min-width:0;}
 .quiz-feedback{margin-top:12px;padding:13px 16px;border-radius:9px;font-size:.88rem;line-height:1.65;}
 .fb-ok{background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.3);color:var(--t-ok);}
 .fb-err{background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);color:var(--t-err);}
@@ -527,7 +612,7 @@ input[type=range]{accent-color:var(--accent);cursor:pointer;}
 
 /* Finished section glow on done-banner */
 .done-banner h2 { margin: 8px 0 4px; color: var(--text); }
-.done-banner p  { color: var(--muted); font-size: .9rem; margin: 0; }
+.done-banner p  { color: var(--muted); font-size: .9rem; margin: 0; line-height: 1.55; }
 
 /* Quiz reset link */
 .quiz-reset-link {
@@ -647,8 +732,9 @@ input[type=range]{accent-color:var(--accent);cursor:pointer;}
   .xp-badge { font-size: .78rem; padding: 3px 8px; white-space: nowrap; }
   .progress-bar-wrap { width: 60px; }
   /* keyboard hints mean nothing on a phone, and they were what made the
-     four tabs wrap; dropping them lets each tab keep its own line */
-  .tab.locked::after { content: ''; }
+     four tabs wrap; dropping them lets each tab keep its own line. The
+     lock stays, without its space: it is the only sign the tab is locked */
+  .tab.locked::after { content: '🔒'; font-size: .7em; }
   .tabs { gap: 2px; padding: 3px; }
   .tab { padding: 8px 4px; font-size: .78rem; gap: 3px; white-space: nowrap; }
 }
@@ -659,6 +745,9 @@ input[type=range]{accent-color:var(--accent);cursor:pointer;}
   background:var(--chip); border-radius: 5px;
   padding: 1px 5px; font-size: .82rem; color: var(--text);
   font-weight: 600;
+  /* "150 mm", "2.00 μm" are one reading: on a phone the value broke from
+     its unit when the slider row was tight */
+  white-space: nowrap;
 }
 
 /* Subject tabs (מכניקה / אופטיקה) */
@@ -765,10 +854,16 @@ input[type=range]{accent-color:var(--accent);cursor:pointer;}
   transition:background .12s;
 }
 .formula-row:hover{ background:rgba(255,255,255,.04); }
-.formula-math{ flex:1; font-size:.92rem; color:var(--text);
-  direction:ltr; text-align:left; font-family:'Courier New',monospace; }
-.formula-desc{ font-size:.78rem; color:var(--muted);
-  text-align:right; min-width:120px; }
+/* The formula keeps its own width and never breaks ("τ =" over
+   "NBIA·sinθ" at 360 px); the description takes the rest and wraps. Left-
+   aligned in a stretched box, every formula used to start at a different
+   place, wherever its description ended. The face is the one the formulas
+   have in the lessons, not a typewriter's. */
+.formula-math{ flex:0 0 auto; max-width:72%; font-size:.95rem; color:var(--text);
+  direction:ltr; unicode-bidi:isolate; text-align:left; white-space:nowrap; overflow-x:auto;
+  font-family:'Cambria Math','Times New Roman',serif; }
+.formula-desc{ flex:1 1 0; min-width:0; font-size:.78rem; line-height:1.45; color:var(--muted);
+  text-align:right; }
 
 /* ── Onboarding overlay ─────────────────────────────────── */
 .onboard-overlay{
@@ -897,6 +992,20 @@ html{scroll-padding-top:72px;}
      the course-progress bar was what pushed the page 28 px sideways */
   .progress-bar-wrap{display:none;}
 }
+/* A touch screen of any width -- a phone on its side, a tablet: the floating
+   formula button duplicated the header's and sat over the simulation and the
+   "check" buttons, and the tabs' keyboard hints (1-4) have no keyboard */
+@media (hover:none) and (pointer:coarse){
+  .formula-fab{display:none;}
+  .kbd-hint{display:none;}
+}
+/* A phone on its side has 360-430 px of height, and the sticky header took
+   62 of them over every simulation: there it scrolls away with the page */
+@media (max-height:480px) and (orientation:landscape){
+  .header{position:relative;}
+  .sidebar{top:0;height:100vh;}
+  html{scroll-padding-top:8px;}
+}
 /* Touch: every control at least 44 px tall, the size of a fingertip */
 @media (pointer:coarse){
   .hamburger-btn{min-width:44px;min-height:44px;justify-content:center;}
@@ -946,10 +1055,14 @@ html{scroll-padding-top:72px;}
 @media (max-width:600px){
   .math-ltr{max-width:100%;overflow-x:auto;overflow-y:hidden;padding:.12em 0;}
   .theory-card table,.wx table{display:block;max-width:100%;overflow-x:auto;}
-  .formula-box{overflow-x:auto;}
+  .formula-box,.enrich-formula{overflow-x:auto;}
   /* the offline renderer's display formulas are chains with spaced
-     separators: they may break there rather than scroll */
-  .formula-box .tex-fb{white-space:normal;}
+     separators: they may break there rather than scroll (the enrichment
+     box clipped "...=500 s ≈ 8.3 min" after "500 s") */
+  .formula-box .tex-fb,.enrich-formula .tex-fb{white-space:normal;}
+  /* a chain typed as plain text in a quiz explanation has no space to
+     break at: sinθ=mλ/a=1×500×10⁻⁹/(0.5×10⁻³)=10⁻³ ran out of its card */
+  #app .ltr-run{overflow-wrap:anywhere;}
 }
 /* A slider readout, an answer's unit, a stat value: "85 mm" laid out in the
    right-to-left page came out as "mm 85", and "-3" as "3-". Each takes its
@@ -978,9 +1091,9 @@ html{scroll-padding-top:72px;}
   <h1 style="font-size:1.3rem;margin-bottom:10px">פיזיקה לבגרות</h1>
   <p>האפליקציה בנויה כולה מסימולציות וחידונים אינטראקטיביים, ולכן היא זקוקה ל-JavaScript. הפעילו JavaScript בדפדפן (או פתחו את הדף בדפדפן אחר) ורעננו את הדף.</p>
 </div></noscript>
-<div id="app"></div>
+<div id="app"><p class="boot-wait" role="status">⚛️ טוען…</p></div>
 
-<script>
+<script type="text/x-physics-app" id="app-js">
 // ── App version ────────────────────────────────────────────────────
 // One number per push: MAJOR.MINOR. Every push that changes this file bumps
 // MINOR and adds an entry at the TOP of APP_CHANGELOG (tests/check_version.js
@@ -1245,6 +1358,8 @@ function _texFracs(t){
     if(!a){out+=t.slice(st,st+m[0].length);i=st+m[0].length;continue;}
     k=a.end; while(t[k]===' ')k++;
     b=t[k]==='{'?_texGrab(t,k):null;
+    // \frac{a}b: an unbraced second argument is one token
+    if(!b){var tk=/^(\\[A-Za-z]+|[^\s{}\\])/.exec(t.slice(k));if(tk)b={body:tk[1],end:k+tk[0].length};}
     if(!b){out+=a.body;i=k;continue;}
     pa=/[+\-\u2212\s]/.test(a.body)?'('+a.body+')':a.body;
     // a product below the line needs brackets too: 0.02·9.8/0.4·0.2 is not
@@ -1280,6 +1395,11 @@ function _texFallback(s){
   // the letters "rm" and glued them into the subscript that followed
   t=t.replace(/\\(rm|bf|it|sf|tt|scriptstyle|textstyle|boldsymbol)\b\s*/g,'');
   t=t.replace(/\\dot\{([^{}]*)\}/g,'$1̇').replace(/\\dot\s*(\w)/g,'$1̇');
+  // a fraction of single tokens -- \dfrac VR, \dfrac1T, \frac L{v_0},
+  // \tfrac12 -- is that fraction with braces, as KaTeX reads it; left
+  // unbraced, "\dfrac VR" printed "dfrac VR"
+  t=t.replace(/\\([dt]?frac)\s*(\\[A-Za-z]+|[^\s{}\\])\s*(\\[A-Za-z]+|[^\s{}\\]|\{)/g,function(m,f,x,y){
+    return '\\'+f+'{'+x+'}'+(y==='{'?'{':'{'+y+'}');});
   // the common small fractions have their own characters
   t=t.replace(/\\[dt]?frac\{1\}\{2\}/g,'½').replace(/\\[dt]?frac\{1\}\{3\}/g,'⅓')
      .replace(/\\[dt]?frac\{1\}\{4\}/g,'¼').replace(/\\[dt]?frac\{2\}\{3\}/g,'⅔')
@@ -1298,7 +1418,11 @@ function _texFallback(s){
     if(a==='3'&&b==='4')return '¾';
     return a+'/'+b;});
   t=t.replace(/\\_/g,'\u0005').replace(/\\([%&$#{}])/g,'$1');
-  t=t.replace(/\\sqrt\{([^{}]*)\}/g,'√($1)').replace(/\\sqrt(\w)/g,'√$1');
+  // a root over a group with braces of its own (\sqrt{\dfrac{2eV}{m}} with
+  // 10^{-19} inside) printed the word "sqrt": the group is matched whole
+  for(var q=t.indexOf('\\sqrt{');q>=0;q=t.indexOf('\\sqrt{',q)){var g=_texGrab(t,q+5);if(!g)break;
+    t=t.slice(0,q)+'√('+g.body+')'+t.slice(g.end);}
+  t=t.replace(/\\sqrt\s*(\w)/g,'√$1');           // \sqrt m, as \sqrt{m}
   // a vector keeps its arrow: F⃗, not a bare F, and "\vec F" (with a space)
   // used to fall through to the generic rule and print the word "vec"
   t=t.replace(/\\vec\{([^{}]*)\}/g,'$1⃗').replace(/\\vec\s*(\w)/g,'$1⃗');
@@ -1311,7 +1435,12 @@ function _texFallback(s){
     // a Greek letter swallows the space LaTeX needed to end its name (\Delta h
     // -> Delta-h), but a relation must keep it or it fuses with what follows
     if(_GREEK[w])return _GREEK[w];
-    if(_OPS[w])return _OPS[w]+(/[⟹⟸→←≈≠≤≥∝≡≅∈~]/.test(_OPS[w])?' ':sp);
+    // ...on both sides: "500 s\approx 8.3 min" printed "500 s≈ 8.3 min"
+    if(_OPS[w]&&/[⟹⟸→←≈≠≤≥∝≡≅∈~]/.test(_OPS[w]))return (off&&!/[\s({\[]/.test(str.charAt(off-1))?' ':'')+_OPS[w]+' ';
+    // a binary operator is spaced on both sides or on neither: the space that
+    // only ended the command's name printed "g± a", "3× 10⁸", "a· b"
+    if(_OPS[w]&&/[×·÷±∓]/.test(_OPS[w]))return _OPS[w]+(str.charAt(off-1)===' '?sp:'');
+    if(_OPS[w])return _OPS[w]+sp;
     // a function name set against a letter needs its space: "mg sinθ", not "mg·sinθ"
     if(/^(sin|cos|tan|cot|sec|csc|arcsin|arccos|arctan|ln|log|exp)$/.test(w)&&/[A-Za-z0-9\u0370-\u03ff]/.test(str.charAt(off-1)))return ' '+w+sp;
     return w+sp;});
@@ -1717,6 +1846,10 @@ function _mathRuns(s,single){
     if(cut>=0){_MR_RE.lastIndex=a+cut+1;run=run.slice(0,cut);}
     run=run.replace(/[ \t]+$/,'');
     if(!run)continue;
+    // "sinθ=?" asks for the unknown: the question mark is its value, not the
+    // sentence's. Left out, the page drew "?=sinθ" (in 16 questions).
+    var unk=/^[ \t]*[=≈][ \t]*\?/.exec(s.slice(a+run.length));
+    if(unk&&!/[֐-׿]/.test(run)){run+=unk[0];_MR_RE.lastIndex=Math.max(_MR_RE.lastIndex,a+run.length);}
     var joined=/[ \t=≈≠<>≤≥±+\-−×·*\/^⇒→←⇔∝∥⊥–]/.test(run.slice(1))||/^[\-−]/.test(run);
     if(!joined&&!(single&&run.length>=2))continue;
     out.push([a,a+run.length]);
@@ -1752,7 +1885,10 @@ function fixInlineMath(root){
       var run=s.slice(r[0],r[1]);
       if(run.length<2||HEB.test(run)||r[0]<last)return;
       parts.push(document.createTextNode(s.slice(last,r[0])));
-      var sp=document.createElement('span');sp.className='ltr-run';sp.textContent=run;
+      // a short run -- "24 cm", "9.795 m/s²", "I = 2 A" -- is one word: it
+      // broke at its space, the number ending one line and the unit opening
+      // the next
+      var sp=document.createElement('span');sp.className='ltr-run'+(run.length<=14&&/\s/.test(run)?' nb':'');sp.textContent=run;
       parts.push(sp);last=r[1];any=true;
     });
     if(!any)return;
@@ -1903,7 +2039,8 @@ function saveState(){
       xp:state.xp, completed:state.completed, visited:state.visited,
       quizState:state.quizState, problemState:state.problemState,
       theme:state.theme,
-      difficulty:state.difficulty
+      difficulty:state.difficulty,
+      lastPos:state.lastPos
     }));
   }catch(e){}
 }
@@ -1926,6 +2063,7 @@ function loadState(){
     state.problemState=obj(saved.problemState);
     if(saved.theme)state.theme=saved.theme;
     if(saved.difficulty)state.difficulty=saved.difficulty||'normal';
+    state.lastPos=obj(saved.lastPos);
     applyTheme(state.theme);
   }catch(e){}
 }
@@ -1961,7 +2099,8 @@ const state={
   subject:'mechanics',
   chapter:'kinematics', section:'distance-time', tab:'theory',
   xp:0, completed:{}, visited:{}, quizState:{}, problemState:{}, simState:{},
-  theme:'dark', difficulty:'normal'  // 'easy'|'normal'|'hard'
+  theme:'dark', difficulty:'normal',  // 'easy'|'normal'|'hard'
+  lastPos:{}   // subject -> {c,s,t}: where the learner was in it
 };
 function isCompleted(c,s,t){return !!state.completed[`${c}.${s}.${t}`];}
 function markCompleted(c,s,t,xp){
@@ -8871,7 +9010,31 @@ Object.assign(CONTENT, MAG_CONTENT);
 // ══════════════════════════════════════════════
 // QUIZ / PROBLEM STATE
 // ══════════════════════════════════════════════
-function getQS(c,s){const k=`${c}.${s}`;if(!state.quizState[k])state.quizState[k]={cur:0,ans:[],done:false};return state.quizState[k];}
+// A saved entry comes back from storage, and storage holds whatever an older
+// version or a hand edit left there: {"cur":-3}, "ans":"x", a bare {"idx":1}
+// threw inside render() and left a blank page on every reload after. Each
+// entry is repaired to the shape the code reads before anything reads it.
+function _okIdx(v){return typeof v==='number'&&v>=0&&isFinite(v)?Math.floor(v):0;}
+// ans[i] is the AUTHORED index of the option chosen for question i (v:2).
+// It used to be the DISPLAYED slot, and the slots were dealt over every
+// question in the app at once, so editing any question anywhere re-dealt
+// them and a finished quiz's stored answers were re-marked right or wrong
+// after an update. An answer saved before v:2 cannot be mapped back with
+// certainty (the deal it was made under is gone), so its marks are dropped;
+// the quiz's completion and its XP stay, and a finished quiz says it was
+// finished in an earlier version instead of showing a wrong score.
+function getQS(c,s){const k=`${c}.${s}`;var q=state.quizState[k];
+  if(!q||typeof q!=='object'||Array.isArray(q))q=state.quizState[k]={cur:0,ans:[],done:false,v:2};
+  if(!Array.isArray(q.ans))q.ans=[];
+  else if(q.ans.some(function(a){return a!==undefined&&typeof a!=='number';}))
+    q.ans=q.ans.map(function(a){return typeof a==='number'?a:undefined;});
+  q.cur=_okIdx(q.cur);q.done=q.done===true;
+  if(q.v!==2){
+    if(q.ans.some(function(a){return a!==undefined;})){q.ans=[];if(q.done)q.legacy=true;else q.cur=0;}
+    q.v=2;
+  }
+  if(q.hints!==undefined&&(!q.hints||typeof q.hints!=='object'))q.hints={};
+  return q;}
 
 // ── Option order ────────────────────────────────────────────────────────────
 // The AUTHORED position of the correct option, measured over all 259 items,
@@ -8880,45 +9043,51 @@ function getQS(c,s){const k=`${c}.${s}`;if(!state.quizState[k])state.quizState[k
 // pressed the fourth lost almost nothing. Position was a stronger signal than
 // physics, and it is the kind of pattern a student finds within a chapter.
 //
-// The displayed order is derived from a hash of the question text: stable for a
+// The displayed order is dealt from the section's key (below): stable for a
 // given question, so the layout never jumps between renders and a returning
 // learner sees what they saw before, but uncorrelated with correctness. The
-// correct option moves to slot hash%n and the rest keep their relative order,
-// so authored orderings (e.g. ascending numeric distractors) are disturbed as
-// little as possible. Over the real question set this gives
-// 23.6 / 25.5 / 25.9 / 25.1 percent — chi-square 0.32 on 3 df.
+// correct option moves to the dealt slot and the rest keep their relative
+// order, so authored orderings (e.g. ascending numeric distractors) are
+// disturbed as little as possible. Over the real question set (642 questions)
+// this gives 25.1 / 24.6 / 24.9 / 25.4 percent — chi-square 0.08 on 3 df. A
+// question outside CONTENT takes slot hash%n.
 var _qvCache=new Map(), _qvSlots=null;
 function _qvHash(s){var h=2166136261;for(var i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619);}return h>>>0;}
 // Key on the question AND its options: two sections ask the identical question
 // text ("כוח נורמלי מכוון תמיד:") with different option wording, and keying on
 // the text alone handed the second one the first one's options.
 function _qvKey(q){return String(q.q)+'\u0000'+q.opts.join('\u0001');}
-// Deal the slots ONCE across every item in the app, so the counts are exactly
-// equal instead of merely probably equal. Hashing alone gave chi-square 8.50 on
-// this question set — past p=0.05. The deal order is hash-shuffled rather than
-// document order, because dealing in document order would put every section's
-// first answer in slot 0: a different rule, just as exploitable.
+// Deal the slots per SECTION: its questions take the slots k,k+1,k+2,... (mod
+// 4) from a seeded start k, in an order shuffled by a generator seeded with
+// the section's own key, so each slot is used equally often within a section
+// to within one (hashing alone gave chi-square 8.50 over the question set,
+// past p=0.05; every section has six questions, so a fixed start of 0 would
+// give 33/33/17/17) and in no fixed sequence (dealt in document order, every
+// section's first answer would sit in slot 0). A question's slot depends only on its section and its place in
+// it: editing any question -- even this one -- moves nobody. The deal used to
+// run once over every question of the app in hash order, so one edited
+// question anywhere re-dealt the slots everywhere.
+function _qvRand(seed){return function(){seed=(seed+0x6D2B79F5)>>>0;var t=seed;
+  t=Math.imul(t^(t>>>15),t|1);t^=t+Math.imul(t^(t>>>7),t|61);return ((t^(t>>>14))>>>0)/4294967296;};}
 function _qvBuild(){
   _qvSlots=new Map();
-  var items=[];
   try{
     for(var k in CONTENT){
       var qs=CONTENT[k]&&CONTENT[k].quiz;
       if(!qs||!qs.length)continue;
-      for(var i=0;i<qs.length;i++){
+      var deck=[],rnd=_qvRand(_qvHash(k)),off=Math.floor(rnd()*4),i,j,x;
+      for(i=0;i<qs.length;i++)deck.push((i+off)%4);
+      for(i=deck.length-1;i>0;i--){j=Math.floor(rnd()*(i+1));x=deck[i];deck[i]=deck[j];deck[j]=x;}
+      for(i=0;i<qs.length;i++){
         var qq=qs[i];
         if(!qq||!qq.opts||!qq.opts.length)continue;
-        var kk=_qvKey(qq);
-        items.push({k:kk,h:_qvHash(kk),n:qq.opts.length});
+        _qvSlots.set(_qvKey(qq),deck[i]%qq.opts.length);
       }
     }
   }catch(e){ /* fall back to the hash below */ }
-  items.sort(function(a,b){return (a.h-b.h)||(a.k<b.k?-1:a.k>b.k?1:0);});
-  var c=0;
-  items.forEach(function(it){ _qvSlots.set(it.k, c++ % it.n); });
 }
 function quizView(q){
-  if(!q||!q.opts||!q.opts.length)return{opts:[],correct:0,n:0};
+  if(!q||!q.opts||!q.opts.length)return{opts:[],correct:0,src:[],pos:[],n:0};
   var key=_qvKey(q);
   var hit=_qvCache.get(key);
   if(hit&&hit.n===q.opts.length)return hit;
@@ -8926,10 +9095,13 @@ function quizView(q){
   var n=q.opts.length, ci=(typeof q.correct==='number'&&q.correct>=0&&q.correct<n)?q.correct:0;
   var slot=_qvSlots.get(key);
   var tgt=(typeof slot==='number')?slot%n:_qvHash(key)%n;
-  var rest=[], out=[];
-  for(var i=0;i<n;i++)if(i!==ci)rest.push(q.opts[i]);
-  for(var j=0,r=0;j<n;j++)out.push(j===tgt?q.opts[ci]:rest[r++]);
-  var v={opts:out,correct:tgt,n:n};
+  var rest=[], out=[], src=[], pos=[];
+  for(var i=0;i<n;i++)if(i!==ci)rest.push(i);
+  for(var j=0,r=0;j<n;j++)src.push(j===tgt?ci:rest[r++]);
+  src.forEach(function(si,d){out.push(q.opts[si]);pos[si]=d;});
+  // correct: the displayed slot of the right option; ci: its authored index;
+  // src[slot] -> authored index, pos[authored index] -> slot
+  var v={opts:out,correct:tgt,ci:ci,src:src,pos:pos,n:n};
   _qvCache.set(key,v);
   return v;
 }
@@ -8945,9 +9117,13 @@ function hintMax(step){return (step&&step.nudge)?2:1;}
 // attempts is an ARRAY, one entry per step. It used to be a single counter for
 // the whole problem that was never reset, so three misses anywhere caused every
 // later step to reveal its hint on the learner's first wrong answer.
-function getPS(c,s){const k=`${c}.${s}`;if(!state.problemState[k])state.problemState[k]={idx:0,inputs:[],solved:[],hints:[],feedback:[],done:false,attempts:[]};
-  if(!Array.isArray(state.problemState[k].attempts))state.problemState[k].attempts=[];
-  return state.problemState[k];}
+// tried[si] is the last wrong answer checked, so the same answer checked again
+// (a double click, a held Enter) is not a second attempt.
+function getPS(c,s){const k=`${c}.${s}`;var p=state.problemState[k];
+  if(!p||typeof p!=='object'||Array.isArray(p))p=state.problemState[k]={idx:0,inputs:[],solved:[],hints:[],feedback:[],done:false,attempts:[]};
+  ['inputs','solved','hints','feedback','attempts','tried'].forEach(function(f){if(!Array.isArray(p[f]))p[f]=[];});
+  p.idx=_okIdx(p.idx);p.done=p.done===true;
+  return p;}
 
 // ══════════════════════════════════════════════
 // SIMULATION REGISTRY
@@ -9146,6 +9322,21 @@ function _cvSubDraw(ctx,info,x,y,draw){
   });
   ctx.restore();
 }
+// ── A canvas font that names only the web font ──────────────────────────
+// Labels ask for 'Heebo' and nothing after it. Before Google Fonts has
+// arrived, or wherever it is blocked, a canvas then fell back to the
+// browser's default face -- a serif, Times -- for every label of every sim
+// and animation, while the page around them is sans. The font setter adds
+// the generic family the page itself falls back to; with Heebo loaded
+// nothing changes.
+(function(){
+  var P=window.CanvasRenderingContext2D&&CanvasRenderingContext2D.prototype;
+  var d=P&&Object.getOwnPropertyDescriptor(P,'font');
+  if(!d||!d.set||P._fontHooked)return;P._fontHooked=true;
+  var G=/(^|[\s,])(sans-serif|serif|monospace|cursive|fantasy|system-ui)\s*$/i;
+  Object.defineProperty(P,'font',{configurable:true,enumerable:d.enumerable,get:d.get,
+    set:function(v){d.set.call(this,(typeof v==='string'&&!G.test(v))?v+', sans-serif':v);}});
+})();
 (function(){
   var P=window.CanvasRenderingContext2D&&CanvasRenderingContext2D.prototype;
   if(!P||P._rdHooked)return;P._rdHooked=true;
@@ -9232,10 +9423,46 @@ function drawBox(ctx,x,y,w,h,fill,stroke,lw,radius){
 const _simStop={};
 const _simGen={};
 function stopSim(id){_simStop[id]=true;}
-function initSim(id,type){
+// A second start on the same page -- "🔄 התחילו מחדש", or a phone turned on
+// its side -- found the canvas and the buttons still carrying the listeners
+// of the first instance, and the toggles still labelled for the state that
+// instance had reached: after a restart every one of the 36 toggles said the
+// opposite of what the new instance was doing, and its first press seemed to
+// do nothing (two handlers flipped two states). The canvas and the sim's own
+// controls (btn-*, inp-*) are swapped for clean copies, which keep their
+// slider values and inline handlers, and each button gets its first label
+// back. Inline handlers are attributes and survive the copy.
+function _simFresh(cv,host){
+  var n=cv.cloneNode(false);cv.parentNode.replaceChild(n,cv);
+  if(host)[].forEach.call(host.querySelectorAll('[id^="btn-"],[id^="inp-"]'),function(el){
+    var c=el.cloneNode(true);
+    if(el.tagName==='SELECT'||el.tagName==='INPUT')c.value=el.value;
+    if(el.dataset.l0!==undefined)c.innerHTML=el.dataset.l0;
+    el.parentNode.replaceChild(c,el);
+  });
+  return n;
+}
+// The presses on a sim's own buttons since it last started, so that a phone
+// turned mid-experiment can rebuild the sim at its new width and replay them:
+// the modes it was in come back (sliders keep their values by themselves).
+function _simLog(host){
+  if(!host||host._simLogOn)return;host._simLogOn=true;host._simClicks=[];
+  host.addEventListener('click',function(e){
+    var b=e.target&&e.target.closest&&e.target.closest('button[id^="btn-"]');
+    if(b&&!host._simReplay&&host._simClicks.length<300)host._simClicks.push(b.id);
+  },true);
+}
+function initSim(id,type,keep){
   stopSim(id);
-  const canvas=document.getElementById(id);
+  let canvas=document.getElementById(id);
   if(!canvas)return;
+  var host=canvas.closest&&canvas.closest('.sim-container'),replay=null;
+  if(canvas._simBooted){
+    if(keep&&host&&host._simClicks&&host._simClicks.length<300)replay=host._simClicks.slice();
+    canvas=_simFresh(canvas,host);
+  }else if(host)[].forEach.call(host.querySelectorAll('button[id^="btn-"]'),function(b){b.dataset.l0=b.innerHTML;});
+  canvas._simBooted=true;
+  _simLog(host);if(host)host._simClicks=[];
   var _g=(_simGen[id]=(_simGen[id]||0)+1);
   setTimeout(function(){
     if(_simGen[id]!==_g)return;
@@ -9371,6 +9598,11 @@ function initSim(id,type){
     'elc-network':simElcNetwork,
     'elc-upair':simElcUpair,
   }[type]||(typeof MAG_SIMS!=='undefined'&&MAG_SIMS[type])||simPlaceholder)(canvas,type);
+    if(replay&&replay.length&&host){
+      host._simReplay=true;
+      try{replay.forEach(function(bid){var b=document.getElementById(bid);if(b&&host.contains(b))b.click();});}
+      finally{host._simReplay=false;host._simClicks=replay;}
+    }
     })});
   },50);
 }
@@ -16367,7 +16599,16 @@ function _fitFont(ctx,txt,sz,family){
   var w; try{w=ctx.measureText(String(txt)).width;}catch(e){return sz;}
   if(w<=avail||w<=0)return sz;
   var ns=Math.max(6.5,sz*avail/w);
-  ctx.font=ns+'px '+(family||'Heebo,sans-serif');
+  // The weight goes in front of the size: simText passes 'bold Heebo' as the
+  // family, and "10.6px bold Heebo" is not a font, so the canvas kept its
+  // old size and the label still ran off. A weight or style given with the
+  // family, or else the one in force, is kept; so is the family in force
+  // when none is given.
+  var cur=/^(.*?)(\d*\.?\d+)px\s+(.*)$/.exec(String(ctx.font||'')),pre=cur?cur[1]:'';
+  var fam=family||(cur&&cur[3])||'Heebo,sans-serif';
+  var wm=/^(?:(?:normal|bold|bolder|lighter|italic|oblique|[1-9]00)\s+)+/.exec(fam);
+  if(wm){pre=wm[0];fam=fam.slice(wm[0].length);}
+  ctx.font=pre+ns+'px '+fam;
   return ns;
 }
 function _fitY(ctx,y,sz){
@@ -30882,6 +31123,11 @@ function _restoreFocus(k){
     var a=document.activeElement;
     if(!e.isConnected||(a&&a!==document.body&&a.isConnected))return;
     try{e.focus({preventScroll:true});}catch(x){}
+    // in a quiz or a problem the control that takes the focus ("next", the
+    // next step's field) can sit below the screen's edge, under the
+    // explanation that just opened: bring it just into view
+    if(k.inQuiz||k.step!==null){var r=e.getBoundingClientRect();
+      if(r.bottom>window.innerHeight||r.top<0)try{e.scrollIntoView({block:'nearest'});}catch(x){}}
   },0);
 }
 // ── Where the learner is goes in the address bar ────────────────────────
@@ -30912,7 +31158,9 @@ window.addEventListener('popstate',function(){
   if(typeof closeFormulaPanel==='function')closeFormulaPanel();
   if(typeof closeChangelog==='function')closeChangelog();
   var before=state.chapter+'.'+state.section;
-  if(!_applyHash())return;
+  // a link to no topic, typed or followed on this page, changes nothing --
+  // and the address bar says so again instead of keeping the dead link
+  if(!_applyHash()){_syncHash();return;}
   stopSim('sim-canvas');
   render();
   _toTop(state.chapter+'.'+state.section!==before);
@@ -30953,12 +31201,16 @@ function render(){
   if(sec&&!state.visited[`${state.chapter}.${state.section}`]){
     state.visited[`${state.chapter}.${state.section}`]=true;
   }
+  // where the learner is in this subject, for coming back to it
+  if(sec){if(!state.lastPos||typeof state.lastPos!=='object')state.lastPos={};
+    state.lastPos[state.subject]={c:state.chapter,s:state.section,t:state.tab};}
   // Every answer, hint and step passes through here, so this is the one
   // place that persists them: before, a quiz half done, a hint paid for or a
   // step solved was saved only when a whole tab was completed -- a reload
   // undid them, and refunded the hint.
   saveState();
   var _fk=_focusKey();
+  _renderT=Date.now();
   document.getElementById('app').innerHTML=buildPage(ch,sec,content);
   _restoreFocus(_fk);
   _syncHash();
@@ -31003,12 +31255,13 @@ function render(){
         throwOnError:false,strict:false
       }); }catch(e){}
       _bootUI();
-    } else if(typeof katex!=='undefined'&&_katexTries++<10){
+    } else if(typeof katex!=='undefined'&&typeof _kxDone==='undefined'&&_katexTries++<10){
       setTimeout(_tryKatex,40);
     } else {
-      // KaTeX is loaded synchronously in <head>: if it is not here now it
-      // never will be (offline, blocked CDN), and waiting 400 ms more on
-      // every tab only held back the simulation and the animations
+      // the app starts only once KaTeX has settled (the loader in <head>):
+      // if it is not here now it never will be (offline, blocked CDN), and
+      // waiting 400 ms more on every tab only held back the simulation and
+      // the animations
       _bootUI(); }
   }
   setTimeout(_tryKatex,15);
@@ -31032,7 +31285,7 @@ function buildPage(ch,sec,content){
   <a class="skip-link" href="#main-content" onclick="return _skipToMain()">דילוג לתוכן</a>
   <header class="header">
     <button class="hamburger-btn" id="hamburger-btn" onclick="openDrawer()" aria-label="נושאים" aria-haspopup="dialog" aria-controls="mobile-drawer" aria-expanded="false">☰</button>
-    <div class="header-title">${subjIcon} ${subjName}</div>
+    <div class="header-title"><span aria-hidden="true">${subjIcon}</span> <span class="ht-name">${subjName}</span></div>
     <button class="ver-badge" id="ver-badge" onclick="openChangelog()" title="מה חדש בגרסה" aria-label="גרסה ${APP_VERSION} — מה חדש">v${APP_VERSION}</button>
     <div class="header-progress">
       <div class="progress-bar-wrap" title="${pct}% הושלם" role="progressbar" aria-label="התקדמות בקורס" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${pct}"><div class="progress-bar-fill" style="width:${pct}%"></div></div>
@@ -31051,17 +31304,26 @@ function buildPage(ch,sec,content){
 window.switchSubject=function(subj){
   stopSim('sim-canvas');
   state.subject=subj;
-  var chs=getChapters();
-  state.chapter=chs[0].id;
-  state.section=chs[0].sections[0].id;
-  state.tab='theory';
+  // back to where the learner was in that subject, not to its first page:
+  // a returning student going between subjects lost the place every time
+  var chs=getChapters(),lp=state.lastPos&&state.lastPos[subj];
+  var lc=lp&&chs.find(function(c){return c.id===lp.c;});
+  if(lc&&lc.sections.some(function(x){return x.id===lp.s;})){
+    state.chapter=lp.c;state.section=lp.s;state.tab=/^(theory|sim|quiz|problem)$/.test(lp.t)?lp.t:'theory';
+  }else{
+    state.chapter=chs[0].id;
+    state.section=chs[0].sections[0].id;
+    state.tab='theory';
+  }
   _pushNext=true;
   // Picked in the phone drawer, a subject is half the choice: keep the drawer
   // open on the new subject's topics instead of dropping the learner on its
   // first section and making them reopen it.
   var dr=document.getElementById('mobile-drawer'),inDrawer=dr&&dr.classList.contains('open');
   render();
-  if(inDrawer)refreshDrawerNav(); else closeDrawer();
+  if(inDrawer){refreshDrawerNav();
+    var act=dr.querySelector('.sec-btn.active');if(act)dr.scrollTop=Math.max(0,act.offsetTop-dr.clientHeight/2);}
+  else closeDrawer();
   _toTop(!inDrawer);
 };
 function buildSidebar(){
@@ -31266,7 +31528,8 @@ window.addEventListener('resize',function(){
     if(typeof state==='undefined')return;
     if(state.tab==='sim'){
       var c=CONTENT[state.chapter+'.'+state.section];
-      if(c&&c.sim&&document.getElementById('sim-canvas'))initSim('sim-canvas',c.sim.type);
+      // rebuilt at the new width with the presses replayed (initSim, keep)
+      if(c&&c.sim&&document.getElementById('sim-canvas'))initSim('sim-canvas',c.sim.type,true);
     }
     // theory animations resize themselves in place, keeping their moment
     // (_animResizeAll); restarting them all from t = 0 is no longer needed
@@ -33332,7 +33595,7 @@ function buildTheory(th){
   }
   html+=sensorLabCard(`${state.chapter}.${state.section}`);
   if(!isCompleted(state.chapter,state.section,'theory')){
-    html+=`<button class="btn btn-primary" onclick="finishTheory()" style="margin-top:14px;width:100%">✅ הבנתי — קדימה לסימולציה →</button>`;
+    html+=`<button class="btn btn-primary" onclick="finishTheory()" style="margin-top:14px;width:100%">✅ הבנתי — קדימה לסימולציה ←</button>`;
   }else{
     html+=`<div class="theory-done-msg">✅ תיאוריה הושלמה
       <button class="btn btn-primary" onclick="setTab('sim')" style="margin-right:auto;padding:5px 14px;font-size:.85rem">🔬 לסימולציה</button>
@@ -33456,11 +33719,14 @@ function buildSim(sim){
   else if(sim.type==='elc-cap')extra=C(rng('elc-cV',1,24,12,1,'מתח V',' V')+rng('elc-cA',50,400,200,10,'שטח A',' cm²')+rng('elc-cd',1,10,4,0.5,'מרווח d',' mm')+btn('cap-diel','🧱 הכניסו דיאלקטרי κ=3','btn-secondary')+btn('cap-disc','✂️ נתקו מהסוללה (Q קבוע)','btn-secondary'));
   if(!extra&&typeof MAG_CTRL!=='undefined'&&MAG_CTRL[sim.type])extra=C(MAG_CTRL[sim.type]());
   const simDone=isCompleted(state.chapter,state.section,'sim');
+  // the description under the sim takes a line of its own when the two
+  // buttons leave it less than 15em: at 360 px it was squeezed into a
+  // 90 px column beside them, one or two words a line, in every sim
   return `<div class="sim-container">
     <div class="sim-canvas-wrap"><canvas id="sim-canvas" height="280" role="img" aria-label="${String(sim.title||'סימולציה').replace(/"/g,'&quot;').replace(/<[^>]*>/g,'')}"></canvas></div>
     ${extra}
     <div class="sim-controls" style="border-top:1px solid var(--border);padding-top:12px">
-      <p style="color:var(--muted);font-size:.85rem;flex:1">${sim.desc}</p>
+      <p style="color:var(--muted);font-size:.85rem;line-height:1.6;flex:1 1 15em">${sim.desc}</p>
       <button class="btn btn-secondary" onclick="restartSim()" style="font-size:.82rem;padding:6px 12px">🔄 התחילו מחדש</button>
       ${!simDone?'<button class="btn btn-green" onclick="finishSim()">✅ סיימתי</button>':'<span style="color:var(--green);font-weight:700">✅ הושלמה</span>'}
     </div>
@@ -33484,8 +33750,9 @@ function buildQuiz(qs){
   if(!qs||!qs.length)return'';
   const st=getQS(state.chapter,state.section);
   if(st.done){
-    const ok=st.ans.filter(function(a,i){return a===quizView(qs[i]).correct;}).length;
-    const perfect=ok===qs.length;
+    // st.ans holds authored option indices (see getQS)
+    const ok=st.ans.filter(function(a,i){return a===quizView(qs[i]).ci;}).length;
+    const perfect=!st.legacy&&ok===qs.length;
     var nextSec=null;
     var _chs=getChapters();
     var chIdx=_chs.findIndex(function(c){return c.id===state.chapter;});
@@ -33507,7 +33774,7 @@ function buildQuiz(qs){
     return`<div class="done-banner">
       <div class="big-icon trophy-anim">${perfect?'🏆':'⭐'}</div>
       <h2>${perfect?'מושלם!':'חידון הושלם!'}</h2>
-      <p>${ok}/${qs.length} תשובות נכונות${perfect?' — ניקוד מלא!':''}</p>
+      <p>${st.legacy?'החידון הושלם בגרסה קודמת של האפליקציה, והניקוד שלו לא נשמר.':`${ok}/${qs.length} תשובות נכונות${perfect?' — ניקוד מלא!':''}`}</p>
       <div style="display:flex;gap:8px;justify-content:center;margin-top:12px;flex-wrap:wrap">
         <button class="btn btn-primary" onclick="resetQuiz()">🔄 נסו שוב</button>
         <button class="btn btn-secondary" onclick="setTab('problem')">📝 בעיה לפתרון</button>
@@ -33521,11 +33788,11 @@ function buildQuiz(qs){
   // as what it is: the quiz is over.
   if(st.cur>=qs.length){st.done=true;st.cur=qs.length-1;return buildQuiz(qs);}
   const qi=st.cur;const q=qs[qi];const ans=st.ans[qi]!==undefined;
-  const prog=`<div class="quiz-progress">${qs.map((_,i)=>`<div class="qp-dot${i<qi?(st.ans[i]===quizView(qs[i]).correct?' done':' wrong'):i===qi?' active':''}"></div>`).join('')}</div>`;
+  const prog=`<div class="quiz-progress">${qs.map((_,i)=>`<div class="qp-dot${i<qi?(st.ans[i]===quizView(qs[i]).ci?' done':' wrong'):i===qi?' active':''}"></div>`).join('')}</div>`;
   const lets=['א','ב','ג','ד'];
   const qv=quizView(q);
-  const opts=qv.opts.map((o,oi)=>{let cls='';if(ans){if(oi===qv.correct)cls='correct';else if(oi===st.ans[qi])cls='wrong';}
-    return`<button class="quiz-opt${cls?' '+cls:''}"${ans?' disabled':''} onclick="answerQuiz(${oi})"><span class="quiz-opt-letter">${lets[oi]}</span>${_ltSafe(o)}</button>`;
+  const opts=qv.opts.map((o,oi)=>{let cls='';if(ans){if(oi===qv.correct)cls='correct';else if(qv.src[oi]===st.ans[qi])cls='wrong';}
+    return`<button class="quiz-opt${cls?' '+cls:''}"${ans?' disabled':''} onclick="answerQuiz(${oi})"><span class="quiz-opt-letter">${lets[oi]}</span><span class="quiz-opt-text">${_ltSafe(o)}</span></button>`;
   }).join('');
   // Hint button (if question has a hint and not answered yet, costs 5 XP)
   var hintKey=state.chapter+'.'+state.section+'.'+qi;
@@ -33539,10 +33806,10 @@ function buildQuiz(qs){
   if(q.hint&&hintShown){
     hintHTML='<div class="quiz-hint-box">💡 '+_ltSafe(q.hint)+'</div>';
   }
-  const fb=ans?`<div class="quiz-feedback${st.ans[qi]===qv.correct?' fb-ok':' fb-err'}" role="status">
-    <div style="font-size:1rem;margin-bottom:4px">${st.ans[qi]===qv.correct?'✅ נכון!':'❌ לא נכון.'}</div>
+  const fb=ans?`<div class="quiz-feedback${st.ans[qi]===qv.ci?' fb-ok':' fb-err'}">
+    <div style="font-size:1rem;margin-bottom:4px">${st.ans[qi]===qv.ci?'✅ נכון!':'❌ לא נכון.'}</div>
     <div style="font-size:.88rem;color:var(--muted)">${_ltSafe(q.explain||'')}</div>
-    ${q.formula&&st.ans[qi]!==qv.correct?`<div style="margin-top:8px;padding:6px 10px;background:rgba(0,0,0,.2);border-radius:6px;font-family:monospace;color:var(--accent);font-size:.9rem">${q.formula}</div>`:''}
+    ${q.formula&&st.ans[qi]!==qv.ci?`<div style="margin-top:8px;padding:6px 10px;background:var(--chip);border-radius:6px;direction:ltr;unicode-bidi:isolate;text-align:right;font-family:'Cambria Math','Times New Roman',serif;color:var(--accent);font-size:1rem">${q.formula}</div>`:''}
   </div>`:'';
   const nxt=ans?(qi<qs.length-1?`<button class="btn btn-primary" onclick="nextQ()" style="margin-top:12px">הבאה ← <kbd style="font-size:.75em">Enter</kbd></button>`:`<button class="btn btn-green" onclick="finishQuiz()" style="margin-top:12px">סיום החידון ✓</button>`):'';
   return`<div class="quiz-card">${prog}<div class="quiz-q"><span class="quiz-q-num">${qi+1}</span>${_ltSafe(q.q)}</div><div class="quiz-opts">${opts}</div>${hintHTML}${fb}${nxt}</div>`;
@@ -33563,12 +33830,12 @@ function buildProblem(prob){
       <div class="step-hdr"><div class="step-num${solved?' done':''}">${solved?'✓':si+1}</div><div class="step-q" id="sq${si}">${_ltSafe(st2.q)}</div></div>
       ${!solved?`${hintHTML}
         <div class="step-inp-row">
-          <input class="step-inp${fb==='correct'?' ok':fb?' err':''}" type="text" id="si${si}" value="${String(inp).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;')}" placeholder="תשובה…" aria-labelledby="sq${si}" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="done" oninput="upInp(${si},this.value)" onkeydown="if(event.key==='Enter')chkStep(${si})" ${locked?'disabled':''}>
+          <input class="step-inp${fb==='correct'?' ok':fb?' err':''}" type="text" id="si${si}" value="${String(inp).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;')}" placeholder="תשובה…" dir="auto" aria-labelledby="sq${si}" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="done" oninput="upInp(${si},this.value)" onkeydown="if(event.key==='Enter')chkStep(${si})" ${locked?'disabled':''}>
           ${st2.unit?`<span class="unit-lbl">${st2.unit}</span>`:''}
-          <span class="step-btns">${showBtn?`<button class="hint-btn" onclick="showHint(${si})">${lvl===0?'💡 רמז':'✏️ פתרון מלא'} (−5 XP)</button>`:''}
+          <span class="step-btns">${showBtn?`<button class="hint-btn" onclick="showHint(${si})">${lvl===0?'💡 רמז':'✏️ רמז נוסף'} (−5 XP)</button>`:''}
           ${!locked?`<button class="btn btn-primary" style="padding:7px 14px" onclick="chkStep(${si})">בדקו</button>`:''}</span>
         </div>
-        ${fb&&fb!=='correct'?`<div class="step-fb err" role="status">${_ltSafe(fb)}</div>`:''}`
+        ${fb&&fb!=='correct'?`<div class="step-fb err">${_ltSafe(fb)}</div>`:''}`
       :`<div class="step-fb ok">✅ ${_ltSafe(st2.explain)}</div>`}
     </div>`;
   }).join('');
@@ -33585,6 +33852,17 @@ function attachEvents(){
   // every re-render: answering a question must not jump the page)
 }
 
+// A double click -- or a double tap the browser reads as one -- on a button
+// that rebuilds the page spent its second click on whatever the new page
+// put under the pointer: "got it -- on to the simulation" clicked twice also
+// pressed the simulation's "I'm done" and skipped it; "next" clicked twice
+// answered the next question. The second click of a double click on a
+// button, just after a render, is dropped.
+var _renderT=0;
+document.addEventListener('click',function(e){
+  var bt=e.detail>1&&e.isTrusted&&Date.now()-_renderT<700&&e.target&&e.target.closest&&e.target.closest('#app button');
+  if(bt){e.stopPropagation();e.preventDefault();if(document.activeElement===bt)bt.blur();}
+},true);
 window.navigate=(c,s)=>{
   var same=state.chapter===c&&state.section===s;
   state.chapter=c; state.section=s; state.tab='theory';
@@ -33639,6 +33917,9 @@ function _closedPanel(panel){
   else if(document.activeElement&&document.activeElement.blur)document.activeElement.blur();
 }
 function _openPanelEl(){
+  // the first-visit welcome is a modal dialog too: Tab used to walk out of
+  // it into the page hidden behind, and "2" switched that page's tab
+  var ob=document.getElementById('onboard-overlay');if(ob)return ob;
   var l=['mobile-drawer','formula-panel','changelog-panel'];
   for(var i=0;i<l.length;i++){var e=document.getElementById(l[i]);if(e&&e.classList.contains('open'))return e;}
   return null;
@@ -33715,30 +33996,67 @@ document.addEventListener('click',function(e){
     if(w)_placeTip(w);
   });
 });
-window.setTab=(t)=>{
+// ── One voice for a screen reader ──
+// render() rebuilds the page, so a live region inside it is a new element
+// every time, and a region that arrives already filled is not reliably
+// read: the verdict on an answer, a paid hint, a step's feedback went
+// unheard. They are spoken through one region that outlives every render.
+function _say(html){
+  try{
+    var r=document.getElementById('sr-live');
+    if(!r){r=document.createElement('div');r.id='sr-live';r.className='visually-hidden';
+      r.setAttribute('role','status');r.setAttribute('aria-live','polite');document.body.appendChild(r);}
+    var d=document.createElement('template');d.innerHTML=String(html||'');   // inert
+    var t=(d.content.textContent||'').replace(/\s+/g,' ').trim();
+    // emptied first, so the same words said twice are said twice
+    r.textContent='';setTimeout(function(){r.textContent=t;},50);
+  }catch(e){}
+}
+// The button that led to another tab ("got it -- on to the simulation",
+// "to the quiz") goes with the old tab, and the keyboard was left on the
+// page body (or, by position, on an unrelated button of the new tab). It
+// lands on the new tab's title instead -- or on the tab itself where the
+// title is hidden. A tab button pressed keeps its own focus.
+function _hadFocus(){var a=document.activeElement;return !!(a&&a!==document.body&&!(a.classList&&a.classList.contains('tab')));}
+window.setTab=(t,land)=>{
   if(state.tab===t){render();return;}
+  if(land===undefined)land=_hadFocus();
+  if(land&&document.activeElement&&document.activeElement.blur)document.activeElement.blur();
   state.tab=t;_pushNext=true;render();
+  if(land)setTimeout(function(){
+    var a=document.activeElement;if(a&&a!==document.body)return;
+    var h=document.getElementById('sec-title');if(!_focusable(h))h=document.querySelector('#app .tab.active');
+    if(h)try{h.focus({preventScroll:true});}catch(e){}
+  },0);
   // a tab opened from the bottom of a long page ("got it -- on to the
   // simulation") must open at its own start, not somewhere below it
   var tb=document.querySelector('#app .tabs');
   if(tb){var y=tb.getBoundingClientRect().top+window.pageYOffset-72;
     if(window.pageYOffset>y+4)try{window.scrollTo(0,Math.max(0,y));}catch(e){}}
 };
-window.finishTheory=()=>{markCompleted(state.chapter,state.section,'theory',20);setTab('sim');};
-window.finishSim=()=>{markCompleted(state.chapter,state.section,'sim',30);setTab('quiz');};
+window.finishTheory=()=>{var f=_hadFocus();markCompleted(state.chapter,state.section,'theory',20);setTab('sim',f);};
+window.finishSim=()=>{var f=_hadFocus();markCompleted(state.chapter,state.section,'sim',30);setTab('quiz',f);};
 window.restartSim=function(){
   var c=CONTENT[state.chapter+'.'+state.section];
   if(c&&c.sim)initSim('sim-canvas',c.sim.type);
 };
-window.answerQuiz=(oi)=>{const st=getQS(state.chapter,state.section);if(st.ans[st.cur]!==undefined)return;st.ans[st.cur]=oi;render();};
+// oi is the DISPLAYED slot; what is saved is the authored option it shows
+window.answerQuiz=(oi)=>{const st=getQS(state.chapter,state.section);if(st.ans[st.cur]!==undefined)return;
+  var c=CONTENT[state.chapter+'.'+state.section],q=c&&c.quiz&&c.quiz[st.cur];
+  if(!q)return;var qv=quizView(q);if(qv.src[oi]===undefined)return;
+  st.ans[st.cur]=qv.src[oi];st.v=2;render();
+  _say((oi===qv.correct?'נכון! ':'לא נכון. ')+_ltSafe(q.explain||''));};
 window.nextQ=()=>{
   const st=getQS(state.chapter,state.section),c=CONTENT[state.chapter+'.'+state.section];
   // "next" on the last question is "finish": stepping past the end used to
   // show the finished banner without ever crediting the quiz
   if(c&&c.quiz&&st.cur>=c.quiz.length-1){window.finishQuiz();return;}
   st.cur++;render();};
-window.finishQuiz=()=>{getQS(state.chapter,state.section).done=true;markCompleted(state.chapter,state.section,'quiz',100);};
-window.resetQuiz=function(){state.quizState[state.chapter+'.'+state.section]={cur:0,ans:[],done:false};render();};
+window.finishQuiz=()=>{const st=getQS(state.chapter,state.section);st.done=true;markCompleted(state.chapter,state.section,'quiz',100);
+  // the score is on the banner the focus lands in; a screen reader hears it too
+  var c=CONTENT[state.chapter+'.'+state.section],qs=(c&&c.quiz)||[];
+  _say(st.legacy?'החידון הושלם.':'החידון הושלם: '+st.ans.filter(function(x,i){return qs[i]&&x===quizView(qs[i]).ci;}).length+' מתוך '+qs.length+' תשובות נכונות.');};
+window.resetQuiz=function(){state.quizState[state.chapter+'.'+state.section]={cur:0,ans:[],done:false,v:2};render();};
 // Keyboard: Enter advances quiz
 document.addEventListener('keydown',function(e){
   if(e.key!=='Enter'||e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA')return;
@@ -33763,6 +34081,7 @@ window.showHint=(si)=>{
   const lvl=hintLvl(ps,si);
   if(lvl>=hintMax(step))return;
   ps.hints[si]=lvl+1; state.xp=Math.max(0,state.xp-5); render();
+  _say(lvl===0?(step.nudge||step.hint):step.hint);
 };
 // Accepts the forms a student actually types for a number:
 //   3.2e-16 · 3.2E-16 · 3.2*10^-16 · 3.2x10^-16 · 3.2×10^-16 · 3·10⁻¹⁶ · 10^-16
@@ -33782,8 +34101,11 @@ function _numCands(s){
   t=t.replace(/^([-+]?)10\^/,'$11e');    // a bare 10^-16 -> 1e-16
   const reads=[];
   const one=function(u){
-    const f=/^([-+]?(?:\d+(?:\.\d*)?|\.\d+))\/(\d+(?:\.\d*)?)$/.exec(u.replace(/[^0-9.eE+\-\/]/g,''));
-    if(f&&+f[2]){reads.push(+f[1]/+f[2]);return;}       // a fraction, 2/3
+    // a fraction, 2/3 or (2/3) -- at the start of what was typed: with the
+    // letters stripped first, an answer with its unit, "-5 m/s²", read as
+    // the fraction -5/2 and was marked wrong
+    const f=/^[(\[]?([-+]?(?:\d+(?:\.\d*)?|\.\d+))\/(\d+(?:\.\d*)?)(?![\d.eE^])/.exec(u);
+    if(f&&+f[2]){reads.push(+f[1]/+f[2]);return;}
     const m=/[-+]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][-+]?\d+)?/.exec(u);
     if(m)reads.push(parseFloat(m[0]));
   };
@@ -33801,18 +34123,19 @@ function _stepSolved(ps,si,content){
   ps.attempts[si]=0;ps.solved[si]=true;ps.feedback[si]='correct';ps.idx=Math.max(ps.idx,si+1);
   if(ps.idx>=content.problem.steps.length){ps.done=true;markCompleted(state.chapter,state.section,'problem',150);}
   else render();
+  _say('✅ '+_ltSafe(content.problem.steps[si].explain||'')+(ps.done?' — הבעיה הושלמה!':''));
 }
 window.chkStep=(si)=>{
   const ps=getPS(state.chapter,state.section);
   const content=CONTENT[`${state.chapter}.${state.section}`];
   const step=content.problem.steps[si];
-  const inp=(ps.inputs[si]||'').trim();
+  const inp=String(ps.inputs[si]||'').trim();
   // nothing typed, or nothing that reads as a number, is not an attempt: it
   // used to count toward the three that give the solution away for free
-  if(!inp){ps.feedback[si]='✏️ הקלידו תשובה ואז לחצו "בדוק".';render();return;}
+  if(!inp){ps.feedback[si]='✏️ הקלידו תשובה ואז לחצו "בדקו".';render();_say(ps.feedback[si]);return;}
   if(step.tolerance===-1){
     if(_wordNorm(inp)===_wordNorm(step.answer))_stepSolved(ps,si,content);
-    else{ps.feedback[si]='❌ לא נכון. נסו שוב.';render();}return;
+    else{ps.feedback[si]='❌ לא נכון. נסו שוב.';render();_say(ps.feedback[si]);}return;
   }
   // The old sanitiser kept only [0-9.-], which DELETED the 'e' of an exponent:
   // "3.2e-16" became "3.2-16" and parsed as 3.2, "2e10" became 210. Twelve
@@ -33824,7 +34147,7 @@ window.chkStep=(si)=>{
   if(isNaN(ans))ok=inp.toLowerCase().includes(String(step.answer).toLowerCase());
   else{
     const cands=_numCands(inp);
-    if(!cands.length){ps.feedback[si]='✏️ לא זיהינו מספר. כתבו מספר בלבד, למשל 2.5 או ‎3e8‎ (= 3·10⁸).';render();return;}
+    if(!cands.length){ps.feedback[si]='✏️ לא זיהינו מספר. כתבו מספר בלבד, למשל 2.5 או ‎3e8‎ (= 3·10⁸).';render();_say(ps.feedback[si]);return;}
     // An explicit tolerance is absolute; otherwise 4 % of the answer, and
     // never less than half a unit in the second significant figure, so any
     // two-significant-figure rounding passes (1.05 -> 1.1). The band used to
@@ -33838,12 +34161,17 @@ window.chkStep=(si)=>{
   else{
     // Per step: a stumble on an earlier step must not hand out this step's hint,
     // and solving a step clears its own tally.
+    // The answer already marked wrong, checked again, is the same attempt: a
+    // double click on "check" spent two of the three tries before the worked
+    // solution opens, and a held Enter all three.
+    if(ps.attempts[si]&&ps.tried[si]===inp){render();_say(ps.feedback[si]);return;}
+    ps.tried[si]=inp;
     const a=(ps.attempts[si]||0)+1; ps.attempts[si]=a;
     // the third miss opens the hint and the worked solution above the field
     // (it used to repeat the hint here as well)
-    if(a>=3){ps.feedback[si]=`❌ לא מדויק (נסיון ${a}). הרמז והפתרון המודרך נפתחו מעל לשדה — עברו עליהם ונסו שוב.`;ps.hints[si]=2;}
-    else ps.feedback[si]=`❌ לא מדויק (נסיון ${a}/3). נסו שוב.`;
-    render();}
+    if(a>=3){ps.feedback[si]=`❌ לא מדויק (ניסיון ${a}). ${step.nudge?'שני הרמזים נפתחו':'הרמז נפתח'} מעל לשדה — עברו ${step.nudge?'עליהם':'עליו'} ונסו שוב.`;ps.hints[si]=2;}
+    else ps.feedback[si]=`❌ לא מדויק (ניסיון ${a}/3). נסו שוב.`;
+    render();_say(ps.feedback[si]);}
 };
 window.resetProblem=()=>{state.problemState[`${state.chapter}.${state.section}`]={idx:0,inputs:[],solved:[],hints:[],feedback:[],done:false,attempts:[]};render();};
 
@@ -34395,9 +34723,14 @@ window.toggleTheme=function(){
 // ══════════════════════════════════════════════════════════════════
 // XP SOUND (Web Audio API — subtle reward beep)
 // ══════════════════════════════════════════════════════════════════
+// One audio context for the whole visit: a new one per reward was never
+// closed, and browsers cap how many a page may hold (Chrome warns at six;
+// older Safari stopped making sound at four).
+var _xpAudio=null;
 function playXPSound(){
   try{
-    var ctx2=new(window.AudioContext||window.webkitAudioContext)();
+    var ctx2=_xpAudio||(_xpAudio=new(window.AudioContext||window.webkitAudioContext)());
+    if(ctx2.state==='suspended'&&ctx2.resume)ctx2.resume();
     var osc=ctx2.createOscillator();
     var gain=ctx2.createGain();
     osc.connect(gain); gain.connect(ctx2.destination);
@@ -34495,7 +34828,7 @@ window.finishQuiz=function(){
 var _onboardStep=0;
 var ONBOARD_STEPS=[
   {icon:'⚛️',title:'ברוכים הבאים!',text:'פיזיקה לבגרות בחמישה נושאים: מכניקה, אופטיקה, חשמל סטטי, מעגלי זרם ישר ומגנטיות. בכל פרק — תיאוריה, סימולציה אינטראקטיבית, חידון ובעיה מודרכת.'},
-  {icon:'📚',title:'תיאוריה → סימולציה → חידון → בעיה',text:'עברו לפי הסדר: קראו את התיאוריה, נסו את הסימולציה, ענו על החידון, ואז פתרו את הבעיה המודרכת שלב אחר שלב. ״✅ הבנתי״ מעביר לשלב הבא.'},
+  {icon:'📚',title:'תיאוריה ← סימולציה ← חידון ← בעיה',text:'עברו לפי הסדר: קראו את התיאוריה, נסו את הסימולציה, ענו על החידון, ואז פתרו את הבעיה המודרכת שלב אחר שלב. ״✅ הבנתי״ מעביר לשלב הבא.'},
   {icon:'⭐',title:'צוברים XP ומתקדמים',text:'כל שלב שמסיימים מעניק XP, וההתקדמות נשמרת אוטומטית בדפדפן הזה. הכפתור 📐 פותח את דף הנוסחאות, ו-☰ בטלפון פותח את רשימת הנושאים.'},
 ];
 function showOnboarding(){
@@ -34535,8 +34868,13 @@ window.nextOnboard=function(){
 };
 function closeOnboarding(){
   var ov=document.getElementById('onboard-overlay');
+  // closed from inside, the keyboard goes on at the top of the topic, not on
+  // the page body
+  var inside=!!(ov&&ov.contains(document.activeElement));
   if(ov) ov.remove();
   _ls.set('phys_onboarded','1');
+  if(inside){var t=document.getElementById('sec-title');if(!_focusable(t))t=document.querySelector('#app .tab.active');
+    if(t)try{t.focus({preventScroll:true});}catch(e){}}
 }
 
 // ══════════════════════════════════════════════════════════════════
@@ -34602,6 +34940,8 @@ window.showQuizHint=function(qi){
   // the same price as a problem hint, floored at zero like it
   state.xp=Math.max(0,state.xp-5);
   render();
+  var c=CONTENT[state.chapter+'.'+state.section],q=c&&c.quiz&&c.quiz[qi];
+  if(q&&q.hint)_say(_ltSafe(q.hint));
 };
 
 // ══════════════════════════════════════════════════════════════════
@@ -34695,7 +35035,7 @@ function showSimTooltip(desc){
 window.resetAllProgress=function(){
   if(!confirm('למחוק את כל ההתקדמות — XP, חידונים, בעיות וסימוני הנושאים? אי אפשר לשחזר.')) return;
   state.xp=0; state.completed={}; state.quizState={};
-  state.problemState={}; state.visited={}; _quizHints={};
+  state.problemState={}; state.visited={}; state.lastPos={}; _quizHints={};
   _ls.del(SAVE_KEY);
   _lastChapterSummaryShown='';
   closeDrawer();
@@ -34712,5 +35052,7 @@ render();
 // Show onboarding on very first visit
 if(!_ls.get('phys_onboarded'))showOnboarding();
 </script>
+<!-- the app above runs now if KaTeX is already settled, else when it is (head) -->
+<script>_kx('dom',1);setTimeout(function(){_kx('late',1);},3000);</script>
 </body>
 </html>
