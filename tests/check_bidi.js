@@ -65,6 +65,15 @@ const SCAN = `(() => {
       if (A.left > B.left) out.push(run);                  // first char to the RIGHT of last
     }
   }
+  // KaTeX's own output (KATEX=local): a formula is a row of inline blocks, one
+  // per relation or operator, which a right-to-left line lays out in reverse
+  host.querySelectorAll('.katex').forEach(k => {
+    const bs = k.querySelectorAll(':scope > .katex-html > .base');
+    for (let i = 1; i < bs.length; i++) {
+      const a = bs[i - 1].getBoundingClientRect(), c = bs[i].getBoundingClientRect();
+      if (a.width && c.width && Math.abs(a.top - c.top) < 4 && a.left > c.left + 1) { out.push('KaTeX: ' + k.textContent.slice(0, 40)); break; }
+    }
+  });
   return out;
 })()`;
 
