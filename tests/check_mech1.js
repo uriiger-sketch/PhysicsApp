@@ -16,6 +16,7 @@
 //    distance actually travelled, F = mg cosθ, T = 2π√(m/k), and every
 //    slider's default on its own step grid.
 // 3) Touch drags that must move the quantity they claim to.
+// 4) The learning-experience standards of tests/mech_learning.js.
 const { chromium } = require('playwright');
 const path = require('path');
 const F = 'file://' + path.resolve(__dirname, '..', 'physics_game_v28.html');
@@ -285,6 +286,10 @@ const EXPECT = {
   const GL = 58, GR = W - 34, VPX = Math.min(18, (GR - GL) / 32), x0px = GL + 10 / 20 * (GR - GL);
   await drag(rr, [[x0px, 112], [x0px + 2 * VPX, 112], [x0px + 4 * VPX, 112]]);
   t('constant velocity: dragging from the ball sets v = +4 m/s', close(await val('cv-v'), 4, 0.51), await val('cv-v'));
+
+  // ── 4. the learning experience ──────────────────────────────────────
+  console.log('\n4) misconception boxes, quiz keys, hints, units');
+  await require('./mech_learning')(p, ['kinematics', 'vectors', 'forces', 'newton2', 'forces2'], t);
 
   t('no page errors, touchend included', errs.length === 0, errs.join(' | ') || 'none');
   await b.close();
