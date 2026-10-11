@@ -11168,7 +11168,9 @@ function simIncline(canvas){
     // s is distance travelled DOWN-slope in metres, drawn at 60 px/m.
     // The old limit divided pixels by 9.8 m/s², giving s_max ~ 27 m.
     const PPM_I=60;
-    const maxS=(INCLINE_LEN-36)/PPM_I;
+    // The run restarts before the block reaches the angle arc at the foot,
+    // where its W∥ label used to land on the "θ°" label.
+    const maxS=Math.max(0.5,(INCLINE_LEN-94)/PPM_I);
     if(s>maxS){ s=0; vel=0; }
 
     simBg(ctx,W,H);
@@ -11198,7 +11200,8 @@ function simIncline(canvas){
     // Angle arc
     ctx.save(); ctx.strokeStyle='#f59e0b'; ctx.lineWidth=2;
     ctx.beginPath(); ctx.arc(CX,CY,44,-th,0,false); ctx.stroke(); ctx.restore();
-    simText(ctx,theta+'°',CX+54,CY-14,'#fbbf24',12);
+    // left of the foot, where neither the block nor its labels ever pass
+    simText(ctx,theta+'°',CX-8,CY-8,'#fbbf24',12,'right');
 
     // Block
     const bS=36;
@@ -11212,10 +11215,14 @@ function simIncline(canvas){
     if(vel>0.1){
       // The block slides DOWN-slope, so v points down-slope too. This arrow
       // used to point up the ramp, opposite to the motion beside it.
-      const vLen=Math.min(vel*22,62);
-      simArrow(ctx,bCX-cosT*(bS/2+4),bCY+sinT*(bS/2+4),
-                   bCX-cosT*(bS/2+4+vLen),bCY+sinT*(bS/2+4+vLen),'#22d3ee',2.5,10);
-      simText(ctx,'v = '+vel.toFixed(2)+' m/s',bCX-cosT*(bS/2+vLen+18),bCY+sinT*(bS/2+vLen+18)-8,'#22d3ee',10,undefined,true);
+      // Drawn just above the block's down-slope edge, off the surface line:
+      // on the centre line it lay on the dashed W∥ and its label on W∥'s.
+      const vLen=Math.min(vel*22,62), vOff=bS/2+12;
+      const vSX=bCX-cosT*(bS/2+2)-sinT*vOff, vSY=bCY+sinT*(bS/2+2)-cosT*vOff;
+      simArrow(ctx,vSX,vSY,vSX-cosT*vLen,vSY+sinT*vLen,'#22d3ee',2.5,10);
+            // Only the symbol at the tip — the value is in the panel. A full
+      // "v = … m/s" label had no free spot at every slope angle.
+      simText(ctx,'v',vSX-cosT*(vLen+10),vSY+sinT*(vLen+10)+4,'#22d3ee',12,'center',true);
     }
 
     // Block (rotated)
@@ -11255,7 +11262,9 @@ function simIncline(canvas){
     ctx.save(); ctx.setLineDash([5,4]); ctx.strokeStyle='#fbbf24'; ctx.lineWidth=2;
     ctx.beginPath(); ctx.moveTo(bCX,bCY); ctx.lineTo(wpEX,wpEY); ctx.stroke(); ctx.setLineDash([]); ctx.restore();
     simArrow(ctx,wpEX+cosT*6,wpEY-sinT*6,wpEX,wpEY,'#fbbf24',2,9);
-    simText(ctx,'W∥ = '+Wpar.toFixed(1)+' N',wpEX-8,wpEY+14,'#fbbf24',9,'center');
+    // a short component (gentle slope) left its label on the block itself
+    const wpLab=Math.max(wpLen,bS/2+16);
+    simText(ctx,'W∥ = '+Wpar.toFixed(1)+' N',bCX-wpLab*cosT-8,bCY+wpLab*sinT+14,'#fbbf24',9,'center');
 
     // Friction arrow, up-slope: kinetic while sliding, static while held
     if(Fr_mag>0.05&&(getMu()>0.01)&&(vel>0.05||holding)){
