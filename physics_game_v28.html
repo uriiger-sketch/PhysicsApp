@@ -530,6 +530,8 @@ input[type=range]{accent-color:var(--accent);cursor:pointer;}
   width: 100% !important;
   max-width: 100%;
 }
+/* a phone on its side: the whole sim, scaled to the screen's height (_simFit) */
+.sim-canvas-wrap canvas.sim-fit{width:var(--fit-w) !important;margin:0 auto;}
 
 /* Section badge always visible */
 .sec-badge {
@@ -9244,14 +9246,39 @@ function getPS(c,s){const k=`${c}.${s}`;var p=state.problemState[k];
 // ── DPR-aware canvas setup ─────────────────────
 function setupCanvas(canvas, H){
   const dpr = window.devicePixelRatio || 1;
+  _simUnfit(canvas);
   const cssW = canvas.offsetWidth || canvas.parentElement && canvas.parentElement.offsetWidth || 720;
   const cssH = H;
   canvas.style.height = cssH + 'px';
   canvas.width  = cssW * dpr;
   canvas.height = cssH * dpr;
+  _simFit(canvas, cssW, cssH);
   const ctx = canvas.getContext('2d');
   ctx.scale(dpr, dpr);
   return { ctx, W: cssW, H: cssH, dpr };
+}
+// A phone on its side has 360-430 px of height and the simulations are
+// 320-600 px tall: the top of the drawing or its graph was always off the
+// screen, and dragging a handle scrolled the page under the finger. There the
+// canvas is shown scaled down whole, to the height of the screen, centred --
+// the same picture, smaller. Only its CSS box changes: the bitmap and the
+// sim's own W x H coordinates are untouched, and every pointer read maps the
+// box back by canvas.width / box width -- one factor for x and y alike, as the
+// scale keeps the aspect ratio.
+function _simFit(canvas,W,H){
+  var on=false;
+  try{on=window.matchMedia('(max-height:480px) and (orientation:landscape)').matches;}catch(e){}
+  if(!on||!canvas.closest||!canvas.closest('.sim-canvas-wrap'))return;
+  var room=window.innerHeight-12;
+  if(H<=room||room<160)return;
+  var h=Math.floor(room);
+  canvas.classList.add('sim-fit');
+  canvas.style.height=h+'px';
+  canvas.style.setProperty('--fit-w',(W*h/H)+'px');
+}
+function _simUnfit(canvas){
+  if(!canvas.classList||!canvas.classList.contains('sim-fit'))return;
+  canvas.classList.remove('sim-fit');canvas.style.removeProperty('--fit-w');
 }
 
 // ── Pointer helpers: dpr-safe canvas coords + drag→slider sync ──
@@ -9546,6 +9573,7 @@ function stopSim(id){_simStop[id]=true;}
 // back. Inline handlers are attributes and survive the copy.
 function _simFresh(cv,host){
   var n=cv.cloneNode(false);cv.parentNode.replaceChild(n,cv);
+  _simUnfit(n);   // the sim measures its width before it calls setupCanvas
   if(host)[].forEach.call(host.querySelectorAll('[id^="btn-"],[id^="inp-"]'),function(el){
     var c=el.cloneNode(true);
     if(el.tagName==='SELECT'||el.tagName==='INPUT')c.value=el.value;
