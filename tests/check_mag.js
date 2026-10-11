@@ -63,6 +63,27 @@ const EXPECT = {
       s.steps.map((st, i) => st.a + '≈' + (e[i] === undefined ? '?' : +e[i].toPrecision(4))).join(' | '));
   }
 
+  console.log('\n1b) the learning experience: misconceptions, hints that guide, keys not given away');
+  const LX = await p.evaluate(() => {
+    const div = document.createElement('div'); div.style.cssText = 'position:absolute;left:0;top:0;width:2000px'; document.body.appendChild(div);
+    const txt = h => { div.innerHTML = String(h || ''); return div.innerText.replace(/\s+/g, ' ').trim(); };
+    const r = { mis: [], hint: [], long: [], nudge: [], q: 0, longest: 0, consp: [] };
+    for (const ch of MAG_CHAPTERS) for (const se of ch.sections) { const k = ch.id + '.' + se.id, C = MAG_CONTENT[k];
+      if (!/mis-block/.test(C.theory.html)) r.mis.push(k);
+      C.problem.steps.forEach((s, i) => { const h = txt(s.hint);
+        if ((h.match(/[א-ת]+/g) || []).length < 3) r.hint.push(k + '#' + (i + 1));
+        if (h.length >= txt(s.explain).length) r.long.push(k + '#' + (i + 1));
+        if (s.nudge && /=/.test(txt(s.nudge))) r.nudge.push(k + '#' + (i + 1)); });
+      C.quiz.forEach((q, i) => { r.q++; const L = q.opts.map(o => txt(o).length), key = L[q.correct], next = Math.max(...L.filter((_, j) => j !== q.correct));
+        if (key > next) { r.longest++; if (key > 1.3 * next) r.consp.push(k + '#' + (i + 1)); } }); }
+    div.remove(); return r; });
+  t('every section has a misconception box', LX.mis.length === 0, LX.mis.join(' '));
+  t('every problem hint opens with a Hebrew sentence', LX.hint.length === 0, LX.hint.join(' '));
+  t('every hint is shorter than its explanation', LX.long.length === 0, LX.long.join(' '));
+  t('no nudge hands over a formula', LX.nudge.length === 0, LX.nudge.join(' '));
+  t('the quiz key is the longest option in at most 30 % of questions', LX.longest <= 0.3 * LX.q, LX.longest + '/' + LX.q);
+  t('and never conspicuously (more than 1.3× the next option)', LX.consp.length === 0, LX.consp.join(' '));
+
   console.log('\n2) the field helpers against first principles');
   const H = await p.evaluate(() => {
     const bs = (R, I, rho, z) => { let Br = 0, Bz = 0; const n = 4000;
