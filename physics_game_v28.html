@@ -1949,6 +1949,7 @@ function fixInlineMath(root){
   });
   _mergeLtr(root);
   _subifyDom(root);
+  _fitMath(root);
 }
 // A formula and its unit, or two halves of one chain, can arrive as separate
 // pieces -- a KaTeX span followed by " m/s", or "a = " then a bold result.
@@ -2024,6 +2025,32 @@ function ensureContrast(root){
 // the enrichment asides too, which are worth reading but not worth pushing the
 // physics down the page. Purely a view over the same markup: nothing is lost,
 // and one press brings it all back.
+// ── A display formula wider than its box ─────────────────────────────────
+// KaTeX never breaks a display formula, so on a phone a formula box or an
+// enrichment formula a little wider than the screen was cut at its edge,
+// with nothing to say the rest is a swipe away (24 boxes at 360 px). One
+// up to about a quarter too wide is set smaller to fit; a longer chain
+// keeps its size and scrolls in its box as before. Fold bodies are measured
+// when they open; a turned phone measures again.
+function _fitMath(root){
+  if(!root||!root.querySelectorAll)return;
+  var fitted=root.querySelectorAll('.katex[data-fit]');
+  for(var i=0;i<fitted.length;i++){fitted[i].style.fontSize='';fitted[i].removeAttribute('data-fit');}
+  // the boxes first, then a formula inside a line of text
+  ['.formula-box,.enrich-formula','.math-ltr'].forEach(function(sel){
+    root.querySelectorAll(sel).forEach(function(box){
+      var kx=box.querySelector('.katex');
+      if(!kx||!box.clientWidth||box.scrollWidth<=box.clientWidth+1)return;
+      var cs=getComputedStyle(box),pad=parseFloat(cs.paddingLeft)+parseFloat(cs.paddingRight);
+      var r=(box.clientWidth-pad-2)/(box.scrollWidth-pad);
+      if(!(r>=0.74&&r<1))return;
+      kx.style.fontSize=(parseFloat(getComputedStyle(kx).fontSize)*r).toFixed(2)+'px';
+      kx.setAttribute('data-fit','1');
+    });
+  });
+}
+var _fitRzT=null;
+window.addEventListener('resize',function(){clearTimeout(_fitRzT);_fitRzT=setTimeout(function(){_fitMath(document.getElementById('app'));},200);});
 function initFolds(){
   var host=document.getElementById('app');if(!host)return;
   host.querySelectorAll('.ex-block').forEach(function(bx){
@@ -2061,6 +2088,7 @@ function initFolds(){
       var open=body.style.display==='none';
       body.style.display=open?'':'none';
       b.textContent=open?hide:show;
+      if(open)_fitMath(body);   // measurable only now that it shows
     });
     bx.appendChild(b);bx.appendChild(body);
   }
