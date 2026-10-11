@@ -17,6 +17,7 @@
 const { chromium } = require('playwright');
 const fs = require('fs');
 const path = require('path');
+const K = require('./_katex');   // KATEX=local: with KaTeX loaded
 const F = 'file://' + path.resolve(__dirname, '..', 'physics_game_v28.html');
 const MODE = process.argv[2] || 'all', ONLY = process.argv[3] || '';
 const OUT = process.env.READABLE_OUT || '';
@@ -180,7 +181,9 @@ const CVEVAL = `(function(rows,pageBg){
     const p = await ctx.newPage();
     const errs = []; p.on('pageerror', e => errs.push(e.message));
     await p.addInitScript(HOOK);
+    await K.route(p);
     await p.goto(F); await p.waitForTimeout(900);
+    await K.ready(p);
     await p.addStyleTag({ content: '*,*::before,*::after{transition:none!important;animation:none!important}' });
     await p.evaluate(th => { if (window.closeOnboarding) closeOnboarding(); window.showSimTooltip = function () {}; applyTheme(th); }, theme);
     const subjects = await p.evaluate(() => [['mechanics', MECH_CHAPTERS], ['optics', OPTICS_CHAPTERS], ['electro', ELECTRO_CHAPTERS], ['circuits', DC_CHAPTERS], ['magnetism', MAG_CHAPTERS]]

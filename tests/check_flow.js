@@ -12,6 +12,7 @@
 // changelog and the "next topic" button.
 const { chromium } = require('playwright');
 const path = require('path');
+const K = require('./_katex');   // KATEX=local: with KaTeX loaded
 const F = 'file://' + path.resolve(__dirname, '..', 'physics_game_v28.html');
 const ONLY = process.argv[2] || '';
 
@@ -27,8 +28,10 @@ const t = (name, ok, info) => {
   const errs = [];
   p.on('pageerror', e => errs.push(e.message));
   p.on('dialog', d => d.dismiss().catch(() => {}));
+  await K.route(p);
   await p.goto(F);
   await p.waitForTimeout(900);
+  await K.ready(p);
   await p.evaluate(() => { if (window.closeOnboarding) closeOnboarding(); window.showSimTooltip = function () {}; });
 
   const SUBJ = ['mechanics', 'optics', 'electro', 'circuits', 'magnetism'].filter(s => !ONLY || s === ONLY);

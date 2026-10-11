@@ -6,6 +6,7 @@
 //   node tests/check_bidi.js
 const { chromium } = require('playwright');
 const path = require('path');
+const K = require('./_katex');   // KATEX=local: with KaTeX loaded
 const F = 'file://' + path.resolve(__dirname, '..', 'physics_game_v28.html');
 
 let fail = 0;
@@ -70,8 +71,10 @@ const SCAN = `(() => {
 (async () => {
   const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium', args: ['--no-sandbox'] });
   const p = await b.newPage();
+  await K.route(p);
   await p.goto(F);
   await p.waitForTimeout(800);
+  await K.ready(p);
   await p.evaluate(() => { if (window.closeOnboarding) closeOnboarding(); });
 
   const chapters = await p.evaluate(() => [].concat(MECH_CHAPTERS, OPTICS_CHAPTERS, ELECTRO_CHAPTERS, DC_CHAPTERS, MAG_CHAPTERS)
