@@ -450,7 +450,10 @@ input[type=range]{accent-color:var(--accent);cursor:pointer;}
 .fade-in{animation:fadeIn .3s ease;}
 
 
-.anim-note{font-size:.85rem;color:var(--muted);line-height:1.5;margin:.4rem 0 .2rem;padding:.3rem .5rem;border-right:2px solid var(--blue);background:rgba(14,52,90,.18);border-radius:3px;}
+/* --blue was never defined, so the note had no accent edge in either theme;
+   and its dark wash read as a grey box on the light page */
+.anim-note{font-size:.85rem;color:var(--muted);line-height:1.5;margin:.4rem 0 .2rem;padding:.3rem .5rem;border-right:2px solid var(--t-blue);background:rgba(14,52,90,.18);border-radius:3px;}
+[data-theme='light'] .anim-note{background:rgba(59,130,246,.07);}
 .anim-note b{color:var(--text);}
 
 /* ══ LOGIN SCREEN ══════════════════════════════════ */
