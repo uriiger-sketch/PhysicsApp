@@ -136,10 +136,10 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 @media (max-width:400px){.lang-btn .lang-code{display:none;}}
 @media (max-width:360px){.header-progress{gap:4px !important;}.header .xp-badge{padding:3px 7px;font-size:.74rem;}.header .ver-badge{margin-inline-start:4px;}}
 @media (max-width:340px){.header .ver-badge{padding:3px 4px;font-size:.62rem;margin-inline-start:2px;}.header .xp-badge{padding:3px 5px;}.header-progress{gap:3px !important;}}
-.cl-ver{padding:14px 20px 4px;display:flex;align-items:baseline;gap:10px;direction:rtl}
+.cl-ver{padding:14px 20px 4px;display:flex;align-items:baseline;gap:10px}
 .cl-ver b{font-size:.95rem;color:var(--text);direction:ltr}
 .cl-ver span{font-size:.75rem;color:var(--muted);direction:ltr}
-.cl-list{margin:0;padding:0 38px 10px 20px;color:var(--text);font-size:.86rem;line-height:1.6}
+.cl-list{margin:0;padding:0 0 10px;padding-inline:38px 20px;color:var(--text);font-size:.86rem;line-height:1.6}
 .cl-list li{margin:3px 0}
 
 /* LAYOUT */
@@ -845,16 +845,18 @@ input[type=range]{accent-color:var(--accent);cursor:pointer;}
 }
 .formula-overlay.open{ display:block; }
 .formula-panel{
-  position:fixed; bottom:0; left:0; top:0; z-index:860;
+  position:fixed; bottom:0; inset-inline-end:0; top:0; z-index:860;
   width:min(420px,95vw);
   background:var(--panel);
-  border-right:1px solid var(--border);
+  border-inline-start:1px solid var(--border);
   overflow-y:auto; padding:0;
   transform:translateX(-100%);
   transition:transform .3s cubic-bezier(.4,0,.2,1);
   box-shadow:8px 0 32px rgba(0,0,0,.4);
 }
 .formula-panel.open{ transform:translateX(0); }
+[dir=ltr] .formula-panel{ transform:translateX(100%); box-shadow:-8px 0 32px rgba(0,0,0,.4); }
+[dir=ltr] .formula-panel.open{ transform:translateX(0); }
 .formula-panel-hdr{
   position:sticky; top:0; z-index:1;
   background:var(--hdr-bg);
@@ -888,14 +890,13 @@ input[type=range]{accent-color:var(--accent);cursor:pointer;}
   direction:ltr; unicode-bidi:isolate; text-align:left; white-space:nowrap; overflow-x:auto;
   font-family:'Cambria Math','Times New Roman',serif; }
 .formula-desc{ flex:1 1 0; min-width:0; font-size:.78rem; line-height:1.45; color:var(--muted);
-  text-align:right; }
+  text-align:start; }
 
 /* ── Onboarding overlay ─────────────────────────────────── */
 .onboard-overlay{
   position:fixed; inset:0; z-index:9990;
   background:rgba(4,9,15,.88); backdrop-filter:blur(6px);
   display:flex; align-items:center; justify-content:center;
-  direction:rtl;
 }
 .onboard-card{
   background:var(--card-bg);
@@ -919,7 +920,7 @@ input[type=range]{accent-color:var(--accent);cursor:pointer;}
 .chapter-summary{
   background:linear-gradient(135deg,rgba(16,185,129,.12),rgba(6,182,212,.08));
   border:1px solid rgba(16,185,129,.3); border-radius:16px;
-  padding:28px 32px; margin:20px 0; text-align:center; direction:rtl;
+  padding:28px 32px; margin:20px 0; text-align:center;
 }
 .chapter-summary h2{ color:var(--green); margin:0 0 8px; }
 .chapter-summary .summary-stats{
@@ -934,7 +935,7 @@ input[type=range]{accent-color:var(--accent);cursor:pointer;}
 .stat-chip .lbl{ font-size:.75rem; color:var(--muted); margin-top:2px; }
 .summary-formulas{
   background:rgba(0,0,0,.2); border-radius:10px;
-  padding:14px 18px; margin:14px 0; text-align:right;
+  padding:14px 18px; margin:14px 0; text-align:start;
 }
 .summary-formula-row{
   font-size:.85rem; color:var(--muted); padding:3px 0;
