@@ -218,7 +218,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 .math-ltr{direction:ltr;display:inline-flex;align-items:center;vertical-align:middle;margin:0 3px;font-size:1.05em;}
 .ltr-run{direction:ltr;unicode-bidi:isolate;}
 .ltr-run.nb{white-space:nowrap;}
-.sum-open{background:rgba(96,165,250,.07);border-right:3px solid rgba(96,165,250,.5);
+.sum-open{background:rgba(96,165,250,.07);border-inline-start:3px solid rgba(96,165,250,.5);
   border-radius:8px;padding:9px 14px;margin:8px 0 14px;font-size:.9rem;color:var(--t-sum);line-height:1.9;}
 .sum-open b{color:var(--t-sumb);}
 .tex-fb{font-family:'Cambria Math','Times New Roman',serif;font-size:1.05em;white-space:nowrap;}
@@ -247,15 +247,15 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 .unit-badge{display:inline-block;direction:ltr;unicode-bidi:isolate;background:rgba(52,211,153,.14);border:1px solid rgba(52,211,153,.35);color:var(--t-unit);border-radius:5px;padding:1px 6px;font-size:.72rem;font-weight:600;letter-spacing:.02em;}
 /* set like the theory's own paragraphs: as bare text it took the page's
    16 px and tight default leading, larger and denser than the text around it */
-.mis-block{background:rgba(251,191,36,.06);border:1px solid rgba(251,191,36,.28);border-right:3px solid rgba(251,191,36,.6);border-radius:10px;padding:14px 18px;margin:14px 0;font-size:.93rem;line-height:1.8;}
-.ex-block{background:var(--ex-bg);border:1px solid var(--ex-border);border-right:4px solid var(--ex-accent);border-radius:12px;padding:16px 20px;margin:18px 0;}
+.mis-block{background:rgba(251,191,36,.06);border:1px solid rgba(251,191,36,.28);border-inline-start:3px solid rgba(251,191,36,.6);border-radius:10px;padding:14px 18px;margin:14px 0;font-size:.93rem;line-height:1.8;}
+.ex-block{background:var(--ex-bg);border:1px solid var(--ex-border);border-inline-start:4px solid var(--ex-accent);border-radius:12px;padding:16px 20px;margin:18px 0;}
 .ex-title{color:var(--t-green);font-weight:800;font-size:1rem;margin-bottom:10px;}
 .ex-block p{line-height:1.85;margin:0 0 8px;}
 .ex-block .ex-given{color:var(--text);}
 .ex-block ol.ex-steps{list-style:none;counter-reset:exs;margin:4px 0 0;padding:0;}
-.ex-block ol.ex-steps>li{counter-increment:exs;position:relative;padding:6px 34px 6px 0;line-height:1.85;color:var(--t-body);border-bottom:1px dashed var(--ex-border);}
+.ex-block ol.ex-steps>li{counter-increment:exs;position:relative;padding:6px 0;padding-inline-start:34px;line-height:1.85;color:var(--t-body);border-bottom:1px dashed var(--ex-border);}
 .ex-block ol.ex-steps>li:last-child{border-bottom:none;}
-.ex-block ol.ex-steps>li::before{content:counter(exs);position:absolute;right:0;top:8px;width:22px;height:22px;border-radius:50%;background:var(--ex-accent);color:var(--bg);font-size:.75rem;font-weight:800;display:flex;align-items:center;justify-content:center;}
+.ex-block ol.ex-steps>li::before{content:counter(exs);position:absolute;inset-inline-start:0;top:8px;width:22px;height:22px;border-radius:50%;background:var(--ex-accent);color:var(--bg);font-size:.75rem;font-weight:800;display:flex;align-items:center;justify-content:center;}
 .ex-block .ex-lesson{margin-top:10px;padding:9px 14px;background:var(--ex-a);border-radius:8px;color:var(--text);}
 .ex-block .ex-lesson b:first-child{color:var(--t-green);}
 /* worked example card (quiz tab) */
@@ -266,10 +266,10 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 .wx-given{background:var(--wx-given);border:1px solid var(--border);border-radius:10px;padding:10px 14px;margin:0 0 14px;color:var(--text);line-height:1.9;font-size:.95rem;}
 .wx-given::before{content:'נתון: ';font-weight:800;color:var(--wx-accent);}
 .wx-steps{list-style:none;counter-reset:wx;margin:0;padding:0;}
-.wx-steps>li{counter-increment:wx;position:relative;padding:0 38px 14px 0;}
-.wx-steps>li::before{content:counter(wx);position:absolute;right:0;top:1px;width:26px;height:26px;border-radius:50%;background:var(--btn);color:#fff;font-size:.8rem;font-weight:800;display:flex;align-items:center;justify-content:center;}
+.wx-steps>li{counter-increment:wx;position:relative;padding:0 0 14px;padding-inline-start:38px;}
+.wx-steps>li::before{content:counter(wx);position:absolute;inset-inline-start:0;top:1px;width:26px;height:26px;border-radius:50%;background:var(--btn);color:#fff;font-size:.8rem;font-weight:800;display:flex;align-items:center;justify-content:center;}
 .wx-q{color:var(--text);font-weight:600;line-height:1.8;font-size:.95rem;}
-.wx-a{margin-top:6px;padding:8px 14px;border-right:3px solid var(--wx-accent);background:var(--wx-a);border-radius:6px;color:var(--text);line-height:1.9;font-size:.93rem;}
+.wx-a{margin-top:6px;padding:8px 14px;border-inline-start:3px solid var(--wx-accent);background:var(--wx-a);border-radius:6px;color:var(--text);line-height:1.9;font-size:.93rem;}
 .fold-btn{display:block;width:100%;margin-top:10px;padding:7px 12px;border:1px dashed rgba(52,211,153,.5);
   background:rgba(52,211,153,.07);color:var(--t-green);border-radius:8px;cursor:pointer;
   font-family:'Heebo',sans-serif;font-size:.82rem;font-weight:600;transition:all .15s;}
@@ -409,7 +409,7 @@ input[type=range]{accent-color:var(--accent);cursor:pointer;}
 
 /* PROBLEM */
 .problem-card{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:26px;margin-bottom:14px;}
-.problem-text{font-size:.97rem;line-height:1.85;color:var(--text);margin-bottom:22px;border-right:3px solid var(--gold);padding-right:15px;}
+.problem-text{font-size:.97rem;line-height:1.85;color:var(--text);margin-bottom:22px;border-inline-start:3px solid var(--gold);padding-inline-start:15px;}
 .problem-steps{display:flex;flex-direction:column;gap:12px;}
 .step-card{background:var(--bg);border:1px solid var(--border);border-radius:11px;padding:16px;}
 .step-card.locked-step{opacity:.38;pointer-events:none;}
@@ -462,7 +462,7 @@ input[type=range]{accent-color:var(--accent);cursor:pointer;}
 
 /* --blue was never defined, so the note had no accent edge in either theme;
    and its dark wash read as a grey box on the light page */
-.anim-note{font-size:.85rem;color:var(--muted);line-height:1.5;margin:.4rem 0 .2rem;padding:.3rem .5rem;border-right:2px solid var(--t-blue);background:rgba(14,52,90,.18);border-radius:3px;}
+.anim-note{font-size:.85rem;color:var(--muted);line-height:1.5;margin:.4rem 0 .2rem;padding:.3rem .5rem;border-inline-start:2px solid var(--t-blue);background:rgba(14,52,90,.18);border-radius:3px;}
 [data-theme='light'] .anim-note{background:rgba(59,130,246,.07);}
 .anim-note b{color:var(--text);}
 
