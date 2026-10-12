@@ -2103,6 +2103,18 @@ function ensureContrast(root){
   var dark=document.documentElement.getAttribute('data-theme')!=='light';
   root.querySelectorAll('[style*="color"]').forEach(function(el){
     if(el.closest('canvas,svg'))return;
+    // Measured with transitions off. Reset to its original and read straight
+    // back, a colour came out as the one it was transitioning from -- under
+    // "reduce motion" every element transitions everything, for .01 ms -- so
+    // a second pass read the corrected colour, found it readable, and left
+    // the pale original in place: the light theme's lesson text went back to
+    // the dark theme's colours 60 ms after every render.
+    var tr=el.style.transition;el.style.transition='none';
+    _contrastFix(el,dark);
+    void getComputedStyle(el).color;el.style.transition=tr;
+  });
+}
+function _contrastFix(el,dark){
     if(el.dataset.c0!==undefined){el.style.color=el.dataset.c0;}
     if(!el.style.color)return;
     if(!el.textContent||!el.textContent.trim())return;
@@ -2115,7 +2127,6 @@ function ensureContrast(root){
       if(_contrast(c2,bg)>=need)break;}
     if(el.dataset.c0===undefined)el.dataset.c0=el.style.color;
     el.style.color='rgb('+c2.map(Math.round).join(',')+')';
-  });
 }
 
 // A worked example printed in full is a solution the learner reads instead of
