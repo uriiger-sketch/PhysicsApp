@@ -482,7 +482,7 @@ input[type=range]{accent-color:var(--accent);cursor:pointer;}
   position:fixed;inset:0;z-index:9999;
   background:linear-gradient(135deg,#020b18 0%,#051525 50%,#020b18 100%);
   display:flex;align-items:center;justify-content:center;
-  font-family:inherit;direction:rtl;
+  font-family:inherit;
 }
 .login-card{
   background:rgba(6,18,40,.95);border:1px solid rgba(30,64,95,.7);
@@ -496,7 +496,7 @@ input[type=range]{accent-color:var(--accent);cursor:pointer;}
   letter-spacing:-.5px;
 }
 .login-sub{font-size:.85rem;color:#64748b;margin-bottom:28px;}
-.login-field{margin-bottom:16px;text-align:right;}
+.login-field{margin-bottom:16px;text-align:start;}
 .login-field label{display:block;font-size:.8rem;color:#94a3b8;margin-bottom:5px;font-weight:600;}
 .login-field input{
   width:100%;box-sizing:border-box;
@@ -517,10 +517,10 @@ input[type=range]{accent-color:var(--accent);cursor:pointer;}
 }
 .login-toggle-track.on{background:#3b82f6;border-color:#60a5fa;}
 .login-toggle-thumb{
-  position:absolute;top:2px;right:2px;width:16px;height:16px;
+  position:absolute;top:2px;inset-inline-start:2px;width:16px;height:16px;
   border-radius:50%;background:#64748b;transition:all .2s;
 }
-.login-toggle-track.on .login-toggle-thumb{right:auto;left:2px;background:#fff;}
+.login-toggle-track.on .login-toggle-thumb{inset-inline-start:auto;inset-inline-end:2px;background:#fff;}
 .login-toggle-label{font-size:.85rem;color:#94a3b8;}
 .login-btn{
   width:100%;padding:12px;border:none;border-radius:10px;
@@ -4776,7 +4776,7 @@ const CONTENT={
     html:`
       <p><b>תנועה הרמונית פשוטה</b> — תנודה שבה הכוח המשחזר יחסי להסטה: ${M('F=-kx')}. התוצאה: תנועה סינוסואידלית מדויקת.</p>
       <div class="def-block"><div class="def-title">גדלים בסיסיים</div>
-        <ul style="padding-right:20px;color:#b8cfe0;font-size:.9rem;line-height:2">
+        <ul style="padding-inline-start:20px;color:#b8cfe0;font-size:.9rem;line-height:2">
           <li><b>אמפליטודה (משרעת) A</b> — הסטה מרבית ממצב שיווי משקל [m]</li>
           <li><b>מחזור T</b> — זמן לתנודה מלאה [s]</li>
           <li><b>תדירות f</b> — מספר תנודות בשנייה [Hz = 1/s]</li>
@@ -5518,7 +5518,7 @@ const OPTICS_CONTENT={
     html:`
       <p>המראה המישורית יוצרת <b>תמונה מדומה</b>: נראית מאחורי המראה, אף שהאור אינו עובר שם.</p>
       <div class="def-block"><div class="def-title">תכונות התמונה</div>
-        <ul style="padding-right:20px;color:#b8cfe0;font-size:.9rem;line-height:2">
+        <ul style="padding-inline-start:20px;color:#b8cfe0;font-size:.9rem;line-height:2">
           <li><b>מדומה</b> — לא ניתן להקרין על מסך</li>
           <li><b>ישרה</b> ו<b>שווה גודל</b> — |m|=1</li>
           <li><b>מרחק שווה</b> — התמונה במרחק dₒ מאחורי המראה</li>
@@ -5582,7 +5582,7 @@ const OPTICS_CONTENT={
     html:`
       <p>מראה קעורה מרכזת קרניים מקבילות לנקודה אחת — ה<b>מוקד F</b> — ויוצרת תמונה ממשית או מדומה לפי מיקום העצם.</p>
       <div class="def-block"><div class="def-title">מושגי מפתח</div>
-        <ul style="padding-right:20px;color:#b8cfe0;font-size:.9rem;line-height:1.9">
+        <ul style="padding-inline-start:20px;color:#b8cfe0;font-size:.9rem;line-height:1.9">
           <li><b>ציר ראשי</b> (= ציר אופטי) — קו הסימטריה של המראה.</li>
           <li><b>מרכז עקמומיות C</b> — במרחק ${M('R')}; קרן דרכו מוחזרת על עצמה.</li>
           <li><b>מוקד F</b> — שם מתכנסות קרניים מקבילות לציר, ${M('f=R/2')}.</li>
@@ -5973,7 +5973,7 @@ const OPTICS_CONTENT={
         <p>ואם התמונה הפוכה, למה העולם לא נראה לנו הפוך? כי המוח לומד לפרש את האותות שמגיעים מהרשתית — ״ההיפוך״ נעשה בפענוח, לא באופטיקה.</p>
       </div>
       <div class="def-block"><div class="def-title">מרכיבי העין</div>
-        <ul style="padding-right:20px;color:#b8cfe0;font-size:.9rem;line-height:1.8">
+        <ul style="padding-inline-start:20px;color:#b8cfe0;font-size:.9rem;line-height:1.8">
           <li><b>קרנית (Cornea)</b> — כ־70% מכוח השבירה (~43 דיופטר). קבועה.</li>
           <li><b>עדשה (Lens)</b> — מוסיפה ~20 דיופטר, <em>משתנה</em> (אקומודציה)</li>
           <li><b>אישון</b> — קוטרו 2–8 mm (שינוי שטח פי 16)</li>
@@ -6213,7 +6213,7 @@ const OPTICS_CONTENT={
       ${fBox('c = \\lambda f','קשר אורך גל-תדירות',[['c','מהירות האור','3×10⁸ m/s'],['\\lambda','אורך הגל','מטרים'],['f','תדירות','הרץ (Hz)'] ])}
       ${fBox('E = hf = \\dfrac{hc}{\\lambda}','אנרגיית פוטון',[['h','קבוע פלאנק','6.626×10⁻³⁴ J·s'],['f','תדירות','Hz'],['E','אנרגיית פוטון','ג\'ול'] ])}
       <div style="overflow-x:auto;margin:16px 0"><table style="width:100%;border-collapse:collapse;font-size:.82rem;margin:0">
-        <tr style="background:rgba(99,102,241,.18);color:#c7d2fe"><th style="padding:6px 8px;text-align:right">קטע</th><th dir="ltr" style="padding:6px 8px">λ</th><th dir="ltr" style="padding:6px 8px">f</th><th dir="ltr" style="padding:6px 8px">E (פוטון)</th><th style="padding:6px 8px;text-align:right">שימוש</th></tr>
+        <tr style="background:rgba(99,102,241,.18);color:#c7d2fe"><th style="padding:6px 8px;text-align:start">קטע</th><th dir="ltr" style="padding:6px 8px">λ</th><th dir="ltr" style="padding:6px 8px">f</th><th dir="ltr" style="padding:6px 8px">E (פוטון)</th><th style="padding:6px 8px;text-align:right">שימוש</th></tr>
         <tr style="border-bottom:1px solid rgba(99,102,241,.15)"><td style="padding:5px 8px;color:#e2e8f0">גלי רדיו</td><td dir="ltr" style="padding:5px 8px;color:#94a3b8">&gt;1 m</td><td dir="ltr" style="padding:5px 8px;color:#94a3b8">&lt;300 MHz</td><td dir="ltr" style="padding:5px 8px;color:#94a3b8">&lt;1.2 μeV</td><td style="padding:5px 8px;color:#94a3b8">שידורי רדיו וטלוויזיה</td></tr>
         <tr style="border-bottom:1px solid rgba(99,102,241,.15)"><td style="padding:5px 8px;color:#e2e8f0">מיקרוגל</td><td dir="ltr" style="padding:5px 8px;color:#94a3b8">1 mm–1 m</td><td dir="ltr" style="padding:5px 8px;color:#94a3b8">0.3–300 GHz</td><td dir="ltr" style="padding:5px 8px;color:#94a3b8">1.2 μeV–1.2 meV</td><td style="padding:5px 8px;color:#94a3b8">תנורי מיקרוגל, רדאר, סלולר, WiFi</td></tr>
         <tr style="border-bottom:1px solid rgba(99,102,241,.15)"><td style="padding:5px 8px;color:#fbbf24">אינפרא-אדום (IR)</td><td dir="ltr" style="padding:5px 8px;color:#94a3b8">700 nm–1 mm</td><td dir="ltr" style="padding:5px 8px;color:#94a3b8">0.3–430 THz</td><td dir="ltr" style="padding:5px 8px;color:#94a3b8">1.2 meV–1.8 eV</td><td style="padding:5px 8px;color:#94a3b8">חום, שלט רחוק, ראיית לילה</td></tr>
@@ -7449,7 +7449,7 @@ const ELECTRO_CONTENT={
     <p>כל האלקטרוסטטיקה של הפרק בנויה משלוש גאומטריות. אותם ארבעה גדלים נראים אחרת בכל אחת, וכל השאלה בכל תרגיל היא <b>באיזו מהן מדובר</b>.</p>
     <div style="overflow-x:auto;margin:16px 0"><table style="width:100%;min-width:430px;border-collapse:collapse;font-size:.82rem;direction:rtl">
       <tr style="background:rgba(99,102,241,.18);color:#c7d2fe">
-        <th style="padding:6px 8px;text-align:right">גודל</th>
+        <th style="padding:6px 8px;text-align:start">גודל</th>
         <th style="padding:6px 8px">מטען נקודתי</th>
         <th style="padding:6px 8px">כדור מוליך</th>
         <th style="padding:6px 8px">מישור אינסופי</th>
@@ -34808,13 +34808,13 @@ window.doLogin=function(){
 function showTeacherPanel(){
   var d=document.createElement('div');
   d.id='teacher-panel';
-  d.style.cssText='position:fixed;inset:0;z-index:9998;background:linear-gradient(135deg,#020b18,#051525);display:flex;align-items:center;justify-content:center;direction:rtl;font-family:inherit;';
+  d.style.cssText='position:fixed;inset:0;z-index:9998;background:linear-gradient(135deg,#020b18,#051525);display:flex;align-items:center;justify-content:center;font-family:inherit;';
   d.innerHTML=`
   <div style="background:rgba(6,18,40,.97);border:1px solid rgba(30,64,95,.7);border-radius:18px;padding:36px 42px;min-width:380px;max-width:480px;box-shadow:0 24px 80px rgba(0,0,0,.6);text-align:center;">
     <div style="font-size:2rem;margin-bottom:6px;">👩‍🏫</div>
     <div style="font-size:1.3rem;font-weight:800;color:#e2e8f0;margin-bottom:4px;">פאנל מורה</div>
     <div style="font-size:.82rem;color:#64748b;margin-bottom:24px;">מחובר כ: <b style="color:#60a5fa">${_loggedInUser}</b></div>
-    <div style="text-align:right;margin-bottom:18px;">
+    <div style="text-align:start;margin-bottom:18px;">
       <div style="font-size:.8rem;color:#94a3b8;margin-bottom:6px;font-weight:600;">צפה ביומן כניסות</div>
       <textarea id="teacher-log" readonly rows="8" style="width:100%;box-sizing:border-box;background:#0a1c30;border:1.5px solid #1e3a52;border-radius:8px;color:#cbd5e1;font-size:.75rem;padding:8px 10px;resize:vertical;font-family:monospace;direction:ltr;"></textarea>
     </div>
@@ -34823,7 +34823,7 @@ function showTeacherPanel(){
       <button onclick="exportTeacherLog()" style="padding:8px 18px;border:none;border-radius:8px;background:#065f46;color:#fff;font-size:.85rem;font-weight:700;cursor:pointer;">📥 ייצוא CSV</button>
       <button onclick="document.getElementById('teacher-panel').remove();render();" style="padding:8px 18px;border:none;border-radius:8px;background:#334155;color:#cbd5e1;font-size:.85rem;font-weight:700;cursor:pointer;">🎮 כנס למשחק</button>
     </div>
-    <div style="margin-top:18px;padding:12px;background:rgba(59,130,246,.08);border-radius:8px;border:1px solid rgba(59,130,246,.2);font-size:.75rem;color:#64748b;text-align:right;line-height:1.6;">
+    <div style="margin-top:18px;padding:12px;background:rgba(59,130,246,.08);border-radius:8px;border:1px solid rgba(59,130,246,.2);font-size:.75rem;color:#64748b;text-align:start;line-height:1.6;">
       📊 <b style="color:#3b82f6">Google Sheets:</b> כניסות נשמרות אוטומטית.<br>
       <span id="sheets-status" style="color:#34d399">🔌 מוכן לחיבור</span>
     </div>
