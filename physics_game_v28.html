@@ -211,6 +211,8 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 .formula-box .katex{font-size:1.5rem;}
 .formula-box .katex-display{margin:0 !important;}
 .formula-name{direction:rtl;font-size:.75rem;color:var(--muted);margin-top:8px;text-align:center;font-style:italic;}
+/* the caption is page text inside the formula's left-to-right box */
+[dir=ltr] .formula-name{direction:ltr;}
 /* Inline math — always LTR inside RTL text */
 #app sub,#app sup{font-size:.72em;line-height:0;position:relative;vertical-align:baseline}
 #app sub{bottom:-.22em}
@@ -333,6 +335,12 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
   direction:ltr;unicode-bidi:isolate;order:2;}
 .sl-chip u{text-decoration:none;font-size:.72rem;color:var(--muted);direction:ltr;unicode-bidi:isolate;order:1;}
 .sl-chip u:empty{display:none;}
+/* A left-to-right page lays the chip out left to right: label, then the
+   value, then its unit -- the orders above put the unit between the label
+   and the value, which only reads right in a right-to-left chip */
+[dir=ltr] .sl-chip:not([style*="rtl"]){direction:ltr;}
+[dir=ltr] .sl-chip:not([style*="rtl"]) b{order:1;}
+[dir=ltr] .sl-chip:not([style*="rtl"]) u{order:2;}
 .sensor-lab canvas{display:block;width:100%;background:var(--bg);border-top:1px solid var(--border);
   border-bottom:1px solid var(--border);}
 .sl-pred{margin:0 15px 11px;padding:9px 13px;border-radius:10px;font-size:.82rem;line-height:1.6;
