@@ -392,9 +392,9 @@ input[type=range]{accent-color:var(--accent);cursor:pointer;}
 .qp-dot.active{background:var(--accent);}
 .qp-dot.wrong{background:var(--red);}
 .quiz-q{font-size:1rem;font-weight:600;line-height:1.65;margin-bottom:18px;color:var(--text);}
-.quiz-q-num{display:inline-flex;align-items:center;justify-content:center;background:var(--btn);color:#fff;border-radius:50%;width:26px;height:26px;font-size:.8rem;font-weight:800;margin-left:8px;flex-shrink:0;}
+.quiz-q-num{display:inline-flex;align-items:center;justify-content:center;background:var(--btn);color:#fff;border-radius:50%;width:26px;height:26px;font-size:.8rem;font-weight:800;margin-inline-end:8px;flex-shrink:0;}
 .quiz-opts{display:flex;flex-direction:column;gap:9px;}
-.quiz-opt{width:100%;text-align:right;padding:13px 16px;background:var(--bg);border:2px solid var(--border);border-radius:9px;cursor:pointer;font-family:'Heebo',sans-serif;font-size:.9rem;color:var(--text);transition:all .18s;display:flex;align-items:center;gap:10px;}
+.quiz-opt{width:100%;text-align:start;padding:13px 16px;background:var(--bg);border:2px solid var(--border);border-radius:9px;cursor:pointer;font-family:'Heebo',sans-serif;font-size:.9rem;color:var(--text);transition:all .18s;display:flex;align-items:center;gap:10px;}
 .quiz-opt:hover:not(:disabled){border-color:var(--accent);background:rgba(59,130,246,.05);}
 .quiz-opt.correct{border-color:var(--green);background:rgba(16,185,129,.1);color:var(--t-ok);}
 .quiz-opt.wrong{border-color:var(--red);background:rgba(239,68,68,.1);color:var(--t-err);}
@@ -428,6 +428,9 @@ input[type=range]{accent-color:var(--accent);cursor:pointer;}
 .step-btns{display:flex;gap:8px;align-items:center;flex:0 0 auto;}
 .step-inp{flex:1;padding:9px 13px;background:var(--panel);border:1.5px solid var(--border);border-radius:7px;color:var(--text);font-family:'Heebo',sans-serif;font-size:.93rem;outline:none;text-align:right;transition:border-color .18s;}
 .step-inp:focus{border-color:var(--accent);}
+/* the field is dir=auto (a typed "-5" or "ק״מ" keeps its own order), so
+   "start" would follow what is typed: the answer sits on the page's side */
+[dir=ltr] .step-inp{text-align:left;}
 .step-inp.ok{border-color:var(--green);background:rgba(16,185,129,.04);}
 .step-inp.err{border-color:var(--red);background:rgba(239,68,68,.04);}
 .unit-lbl{color:var(--muted);font-size:.88rem;white-space:nowrap;}
@@ -580,8 +583,7 @@ input[type=range]{accent-color:var(--accent);cursor:pointer;}
   font-weight: 700;
   width: 100%;
   transition: all .2s;
-  text-align: right;
-  direction: rtl;
+  text-align: start;
 }
 .next-section-btn:hover {
   background: linear-gradient(135deg, rgba(16,185,129,.28), rgba(6,182,212,.2));
@@ -990,7 +992,7 @@ input[type=range]{accent-color:var(--accent);cursor:pointer;}
 .quiz-hint-box{
   background:rgba(245,158,11,.08); border:1px solid rgba(245,158,11,.25);
   border-radius:8px; padding:10px 14px; margin-top:10px;
-  font-size:.88rem; color:var(--gold); direction:rtl; text-align:right;
+  font-size:.88rem; color:var(--gold); text-align:start;
 }
 
 /* ── Phones, fingers, keyboards ─────────────────────────────────────── */
@@ -34228,7 +34230,7 @@ function buildQuiz(qs){
   const fb=ans?`<div class="quiz-feedback${st.ans[qi]===qv.ci?' fb-ok':' fb-err'}">
     <div style="font-size:1rem;margin-bottom:4px">${st.ans[qi]===qv.ci?'✅ נכון!':'❌ לא נכון.'}</div>
     <div style="font-size:.88rem;color:var(--muted)">${_ltSafe(q.explain||'')}</div>
-    ${q.formula&&st.ans[qi]!==qv.ci?`<div style="margin-top:8px;padding:6px 10px;background:var(--chip);border-radius:6px;direction:ltr;unicode-bidi:isolate;text-align:right;font-family:'Cambria Math','Times New Roman',serif;color:var(--accent);font-size:1rem">${q.formula}</div>`:''}
+    ${q.formula&&st.ans[qi]!==qv.ci?`<div style="margin-top:8px;padding:6px 10px;background:var(--chip);border-radius:6px;text-align:start;font-family:'Cambria Math','Times New Roman',serif;color:var(--accent);font-size:1rem"><span dir="ltr">${q.formula}</span></div>`:''}
   </div>`:'';
   // "next" while another question is unanswered (a quiz reopened on a
   // question added in an update may have them on either side), else "finish"
