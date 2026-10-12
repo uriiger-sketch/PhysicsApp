@@ -13,6 +13,10 @@
 //                                       error (and on a missing one with --strict)
 //   node tools/i18n.js build <lang>     write the language's app file
 //   node tools/i18n.js stats <lang>     what is translated, per file
+//   node tools/i18n.js todo <lang> <area> [n] [--all] [--from=k]
+//                                       the next units to translate (or review)
+//   node tools/i18n.js set <lang> <patch.json> [--reviewed=tag]
+//                                       save a batch {id: translation}, validated
 //
 // What a translation unit is. The parser (acorn, vendored in tools/vendor)
 // finds every JavaScript string that holds Hebrew. A whole expression that
@@ -261,6 +265,19 @@ function collect() {
   return { M, units, logic, byId, html };
 }
 
+// the master's units, cached by its hash (check/stats/todo/set need no AST)
+function units() {
+  const src = fs.readFileSync(MASTER, 'utf8');
+  const h = crypto.createHash('sha1').update(src).update(fs.readFileSync(__filename)).digest('hex').slice(0, 16);
+  const dir = path.join(ROOT, 'i18n', '.cache'), f = path.join(dir, 'units-' + h + '.json');
+  if (fs.existsSync(f)) { const d = JSON.parse(fs.readFileSync(f, 'utf8')); return { byId: new Map(d.units.map(u => [u.id, u])), logic: d.logic }; }
+  const { byId, logic } = collect();
+  fs.mkdirSync(dir, { recursive: true });
+  for (const x of fs.readdirSync(dir)) if (x.startsWith('units-')) try { fs.unlinkSync(path.join(dir, x)); } catch (e) {}
+  fs.writeFileSync(f, JSON.stringify({ units: [...byId.values()], logic }));
+  return { byId, logic };
+}
+
 // ── translation files ────────────────────────────────────────────────────
 function loadLang(lang) {
   const dir = path.join(ROOT, 'i18n', lang);
@@ -335,7 +352,7 @@ function validate(e, lang) {
 
 function cmdCheck(lang, strict) {
   langConf(lang);
-  const { byId, logic } = collect();
+  const { byId, logic } = units();
   const L = loadLang(lang);
   let missing = 0, nerr = 0, nwarn = 0; const lines = [];
   for (const e of byId.values()) {
@@ -352,7 +369,7 @@ function cmdCheck(lang, strict) {
 }
 
 function cmdStats(lang) {
-  const { byId } = collect();
+  const { byId } = units();
   const L = loadLang(lang);
   const per = {};
   for (const e of byId.values()) {
@@ -363,6 +380,46 @@ function cmdStats(lang) {
   let T = { units: 0, words: 0, done: 0, reviewed: 0 };
   for (const [f, s] of Object.entries(per).sort()) { console.log(`${f.padEnd(22)} ${String(s.units).padStart(5)} units ${String(s.words).padStart(6)} Hebrew words   translated ${s.done}   reviewed ${s.reviewed}`); for (const k in T) T[k] += s[k]; }
   console.log(`${'TOTAL'.padEnd(22)} ${String(T.units).padStart(5)} units ${String(T.words).padStart(6)} Hebrew words   translated ${T.done}   reviewed ${T.reviewed}`);
+}
+
+// todo <lang> <area> [n] [--all]: the next untranslated units of an area, as
+// compact JSON a translator works from (id, he, ph, at); --all includes the
+// translated ones (for review), with their current translation
+function cmdTodo(lang) {
+  const area = process.argv[4], n = +(process.argv[5] || 40), all = process.argv.includes('--all');
+  const from = +(process.argv.find(a => a.startsWith('--from=')) || '--from=0').slice(7);
+  if (!area) die('usage: todo <lang> <area> [n] [--all] [--from=k]');
+  const { byId } = units(); const L = loadLang(lang);
+  const list = [...byId.values()].filter(e => e.area === area).filter(e => { const t = L.tr.get(e.id); return all || !(t && ((t[lang] || '').trim() || t.keep)); });
+  const out = list.slice(from, from + n).map(e => { const t = L.tr.get(e.id) || {}; const o = { id: e.id, he: e.he };
+    if (e.ph && e.ph.length) o.ph = e.ph; o.at = e.at[0]; if (all) o[lang] = t[lang] || ''; if (t.note) o.note = t.note; return o; });
+  console.log(JSON.stringify(out, null, 1));
+  console.error(`(${list.length} ${all ? 'units' : 'untranslated'} in ${area}; showing ${from}–${from + out.length})`);
+}
+// set <lang> <patch.json> [--reviewed=physics|language]: merge {id: translation}
+// (or {id: {"<lang>": ..., "note": ...}}) into the right area files, validate it
+function cmdSet(lang) {
+  const pf = process.argv[4]; if (!pf) die('usage: set <lang> <patch.json> [--reviewed=tag]');
+  const rv = (process.argv.find(a => a.startsWith('--reviewed=')) || '').slice(11);
+  const patch = JSON.parse(fs.readFileSync(pf, 'utf8'));
+  const { byId } = units(); const L = loadLang(lang);
+  let ok = 0, bad = 0; const touched = new Set();
+  for (const [id, v] of Object.entries(patch)) {
+    const e = byId.get(id), f = L.fileOf.get(id);
+    if (!e || !f) { console.log(`ERROR ${id}: no such unit (run extract?)`); bad++; continue; }
+    const val = typeof v === 'string' ? { [lang]: v } : v;
+    const u = L.data[f].units[id];
+    const cand = Object.assign({}, u, val, { he: e.he });
+    const { errs, warns } = validate(cand, lang);
+    if (errs.length) { console.log(`ERROR ${id}: ${errs.join('; ')}   «${e.he.slice(0, 60)}»`); bad++; continue; }
+    for (const w of warns) console.log(`warn  ${id}: ${w}   «${e.he.slice(0, 60)}»`);
+    Object.assign(u, val);
+    if (rv) { u.reviewed = Array.from(new Set([...(u.reviewed || []), rv])); }
+    touched.add(f); ok++;
+  }
+  for (const f of touched) fs.writeFileSync(path.join(L.dir, f), JSON.stringify(L.data[f], null, 1) + '\n');
+  console.log(`i18n set ${lang}: ${ok} saved, ${bad} refused`);
+  process.exit(bad ? 1 : 0);
 }
 
 // ── build ────────────────────────────────────────────────────────────────
@@ -466,5 +523,5 @@ async function cmdBuild(lang) {
 
 const [cmd, lang] = process.argv.slice(2);
 if (!cmd || !lang) die('usage: node tools/i18n.js extract|check|build|stats <lang>');
-Promise.resolve(({ extract: cmdExtract, check: (l) => cmdCheck(l, process.argv.includes('--strict')), build: cmdBuild, stats: cmdStats }[cmd] || (() => die('unknown command ' + cmd)))(lang))
+Promise.resolve(({ extract: cmdExtract, check: (l) => cmdCheck(l, process.argv.includes('--strict')), build: cmdBuild, stats: cmdStats, todo: cmdTodo, set: cmdSet }[cmd] || (() => die('unknown command ' + cmd)))(lang))
   .catch(e => { console.error(e); process.exit(2); });
