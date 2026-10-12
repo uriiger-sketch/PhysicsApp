@@ -1703,7 +1703,9 @@ function fBox(latexStr, name, params){
   if(name) html += `<div class="formula-name">${name}</div>`;
   html += `</div>`;
   if(params.length){
-    html += `<div style="direction:rtl;display:flex;flex-wrap:wrap;gap:8px;margin:-8px 0 16px;justify-content:center">`;
+    // the row and each chip take the page's direction: "Δx — name [unit]"
+    // reads from the start side in Hebrew and in a left-to-right edition alike
+    html += `<div style="display:flex;flex-wrap:wrap;gap:8px;margin:-8px 0 16px;justify-content:center">`;
     params.forEach(([sym,nm,desc,unit])=>{
       const u = _siUnit(sym, nm, desc, unit);
       html += `<div class="param-wrap" tabindex="0" style="background:rgba(59,130,246,.07);border:1px solid rgba(59,130,246,.15);border-radius:7px;padding:5px 12px;font-size:.8rem;display:flex;align-items:center;gap:5px;cursor:help">
