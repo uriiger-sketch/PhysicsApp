@@ -146,7 +146,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 .layout{display:flex;min-height:calc(100vh - 62px);}
 
 /* SIDEBAR */
-.sidebar{width:272px;background:var(--panel);border-left:1px solid var(--border);overflow-y:auto;position:sticky;top:62px;height:calc(100vh - 62px);flex-shrink:0;transition:transform .3s ease;}
+.sidebar{width:272px;background:var(--panel);border-inline-end:1px solid var(--border);overflow-y:auto;position:sticky;top:62px;height:calc(100vh - 62px);flex-shrink:0;transition:transform .3s ease;}
 .sidebar-chapter{padding:14px 14px 6px;font-size:.68rem;font-weight:800;color:var(--muted);letter-spacing:1.2px;border-top:1px solid var(--border);margin-top:6px;}
 .sidebar-chapter:first-child{margin-top:0;border-top:none;}
 /* sec-btn defined below */
@@ -618,11 +618,10 @@ input[type=range]{accent-color:var(--accent);cursor:pointer;}
 /* Section buttons: show mini XP badges */
 .sec-btn {
   display: flex; align-items: center; gap: 8px;
-  width: 100%; text-align: right; padding: 9px 16px;
+  width: 100%; text-align: start; padding: 9px 16px;
   background: none; border: none; color: var(--muted);
   cursor: pointer; font-family: 'Heebo', sans-serif;
   font-size: .88rem; border-radius: 8px; transition: all .15s;
-  direction: rtl;
 }
 .sec-btn:hover  { background: rgba(255,255,255,.04); color: var(--text); }
 .sec-btn.active{ background: rgba(99,102,241,.15); color:var(--t-active); }
@@ -655,7 +654,7 @@ input[type=range]{accent-color:var(--accent);cursor:pointer;}
   padding: 6px 10px;
   font-size: 1.1rem;
   line-height: 1;
-  margin-right: 8px;
+  margin-inline-start: 8px;
   transition: background .15s;
 }
 .hamburger-btn:hover { background: rgba(255,255,255,.07); }
@@ -671,14 +670,14 @@ input[type=range]{accent-color:var(--accent);cursor:pointer;}
 }
 .drawer-overlay.open { display: block; }
 
-/* Drawer panel — slides in from right on mobile */
+/* Drawer panel — slides in from the inline start (right in Hebrew) on mobile */
 .drawer-panel {
   position: fixed;
-  top: 0; right: 0; bottom: 0;
+  top: 0; inset-inline-start: 0; bottom: 0;
   z-index: 900;
   width: min(82vw, 320px);
   background: var(--panel);
-  border-left: 1px solid var(--border);
+  border-inline-end: 1px solid var(--border);
   overflow-y: auto;
   transform: translateX(100%);
   transition: transform .28s cubic-bezier(.4,0,.2,1);
@@ -686,6 +685,9 @@ input[type=range]{accent-color:var(--accent);cursor:pointer;}
   padding-bottom: 24px;
 }
 .drawer-panel.open { transform: translateX(0); }
+/* a transform has no logical form: a left-to-right page slides it in from the left */
+[dir=ltr] .drawer-panel { transform: translateX(-100%); box-shadow: 8px 0 32px rgba(0,0,0,.4); }
+[dir=ltr] .drawer-panel.open { transform: translateX(0); }
 
 /* Drawer close button */
 .drawer-close {
@@ -749,7 +751,7 @@ input[type=range]{accent-color:var(--accent);cursor:pointer;}
      sideways; tighter spacing, and printing is not a phone task */
   .header { padding: 0 10px; }
   .header-progress { gap: 5px; }
-  .header-progress .theme-btn { margin-left: 0; padding: 4px 6px; }
+  .header-progress .theme-btn { margin-inline-end: 0; padding: 4px 6px; }
   .header-progress .print-btn { display: none; }
   .ver-badge { margin-inline-start: 6px; padding: 3px 7px; }
   .xp-badge { font-size: .78rem; padding: 3px 8px; white-space: nowrap; }
@@ -782,7 +784,7 @@ input[type=range]{accent-color:var(--accent);cursor:pointer;}
   flex: 1; padding: 8px 6px; border: 1.5px solid var(--border);
   border-radius: 8px; background: none; color: var(--muted);
   cursor: pointer; font-family: 'Heebo',sans-serif; font-size: .82rem;
-  font-weight: 700; transition: all .18s; direction: rtl;
+  font-weight: 700; transition: all .18s;
   /* five subjects share 272px: icon over label keeps every name whole */
   display: flex; flex-direction: column; align-items: center; gap: 2px;
   font-size: .72rem; padding: 6px 2px; min-width: 0; white-space: nowrap;
@@ -944,7 +946,7 @@ input[type=range]{accent-color:var(--accent);cursor:pointer;}
 .theme-btn{
   background:none; border:1px solid var(--border); border-radius:8px;
   color:var(--muted); cursor:pointer; padding:4px 8px;
-  font-size:.85rem; transition:all .15s; margin-left:6px;
+  font-size:.85rem; transition:all .15s; margin-inline-end:6px;
 }
 .theme-btn:hover{ background:rgba(255,255,255,.07); color:var(--text); }
 
@@ -1065,7 +1067,7 @@ html{scroll-padding-top:72px;}
 /* a topic button spans the whole scrolling sidebar, which cut its ring off at
    both sides: there the ring is drawn inside the button */
 .sec-btn:focus-visible{outline-offset:-2px;}
-.skip-link{position:fixed;top:8px;right:8px;z-index:10000;padding:10px 16px;border-radius:8px;
+.skip-link{position:fixed;top:8px;inset-inline-start:8px;z-index:10000;padding:10px 16px;border-radius:8px;
   background:var(--btn);color:#fff;font:700 .9rem 'Heebo',sans-serif;text-decoration:none;
   transform:translateY(-200%);transition:transform .15s;}
 .skip-link:focus{transform:none;}
@@ -34371,8 +34373,9 @@ function closeDrawer(){
   var hb=document.getElementById('hamburger-btn');if(hb)hb.setAttribute('aria-expanded','false');
   document.body.style.overflow='';
 }
-// a swipe toward the edge closes the drawer -- a swipe, not a scroll that
-// drifted sideways on its way down the list
+// a swipe toward the edge closes the drawer (the right edge in Hebrew, the
+// left in a left-to-right edition) -- a swipe, not a scroll that drifted
+// sideways on its way down the list
 var _touchStartX=0,_touchStartY=0;
 document.addEventListener('touchstart',function(e){if(!e.touches[0])return;_touchStartX=e.touches[0].clientX;_touchStartY=e.touches[0].clientY;},{passive:true});
 document.addEventListener('touchend',function(e){
@@ -34380,7 +34383,7 @@ document.addEventListener('touchend',function(e){
   var dx=t.clientX-_touchStartX,dy=t.clientY-_touchStartY;
   if(document.getElementById('mobile-drawer')&&
      document.getElementById('mobile-drawer').classList.contains('open')&&
-     dx>60&&Math.abs(dx)>1.5*Math.abs(dy)) closeDrawer();
+     (document.dir==='ltr'?-dx:dx)>60&&Math.abs(dx)>1.5*Math.abs(dy)) closeDrawer();
 },{passive:true});
 
 // ── Symbol tooltips ─────────────────────────────────────────────────────
@@ -35361,7 +35364,8 @@ document.addEventListener('keydown',function(e){
     case '2': if(!editable){e.preventDefault();setTab('sim');} break;
     case '3': if(!editable){e.preventDefault();setTab('quiz');} break;
     case '4': if(!editable&&isQuizDone(state.chapter,state.section)){e.preventDefault();setTab('problem');} break;
-    // ArrowLeft/Right → prev/next section
+    // the arrow that points back along the reading direction → the previous
+    // section (→ in Hebrew, ← in a left-to-right edition), the other → the next
     case 'ArrowRight':
     case 'ArrowLeft':{
       if(editable) break;
@@ -35370,7 +35374,7 @@ document.addEventListener('keydown',function(e){
       var chIdx=_chs2.findIndex(function(c){return c.id===state.chapter;});
       if(chIdx<0) break;
       var secIdx=_chs2[chIdx].sections.findIndex(function(s){return s.id===state.section;});
-      if(e.key==='ArrowRight'){
+      if(e.key===(document.dir==='ltr'?'ArrowLeft':'ArrowRight')){
         if(secIdx>0) navigate(state.chapter,_chs2[chIdx].sections[secIdx-1].id);
         else if(chIdx>0){var pc=_chs2[chIdx-1];navigate(pc.id,pc.sections[pc.sections.length-1].id);}
       } else {
