@@ -126,6 +126,16 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 
 .ver-badge{margin-inline-start:10px;margin-inline-end:auto;font:600 .7rem/1 'Heebo',sans-serif;color:var(--muted);background:rgba(148,163,184,.08);border:1px solid var(--border);border-radius:999px;padding:4px 9px;cursor:pointer;direction:ltr;letter-spacing:.02em;transition:color .15s,border-color .15s;}
 .ver-badge:hover{color:var(--text);border-color:#3b82f6;}
+.lang-btn{display:inline-flex;align-items:center;gap:4px;font-size:.85rem;}
+.lang-btn .lang-code{font:700 .68rem/1 'Heebo',sans-serif;letter-spacing:.04em;}
+.lang-menu{position:absolute;z-index:9990;min-width:150px;padding:6px;background:var(--panel);border:1px solid var(--border);border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.35);display:flex;flex-direction:column;gap:2px;}
+.lang-item{all:unset;box-sizing:border-box;display:block;width:100%;min-height:44px;padding:10px 14px;border-radius:8px;cursor:pointer;color:var(--text);font:500 .95rem/1.4 'Heebo',sans-serif;text-align:start;}
+.lang-item:hover,.lang-item:focus-visible{background:var(--panel2);outline:2px solid var(--accent);outline-offset:-2px;}
+.lang-item.cur{color:var(--t-accent);font-weight:700;}
+/* the header fits 320 px: on a narrow phone the globe alone says it */
+@media (max-width:400px){.lang-btn .lang-code{display:none;}}
+@media (max-width:360px){.header-progress{gap:4px !important;}.header .xp-badge{padding:3px 7px;font-size:.74rem;}.header .ver-badge{margin-inline-start:4px;}}
+@media (max-width:340px){.header .ver-badge{padding:3px 4px;font-size:.62rem;margin-inline-start:2px;}.header .xp-badge{padding:3px 5px;}.header-progress{gap:3px !important;}}
 .cl-ver{padding:14px 20px 4px;display:flex;align-items:baseline;gap:10px;direction:rtl}
 .cl-ver b{font-size:.95rem;color:var(--text);direction:ltr}
 .cl-ver span{font-size:.75rem;color:var(--muted);direction:ltr}
@@ -1132,8 +1142,23 @@ html{scroll-padding-top:72px;}
 // One number per push: MAJOR.MINOR. Every push that changes this file bumps
 // MINOR and adds an entry at the TOP of APP_CHANGELOG (tests/check_version.js
 // fails if the file changed without a bump). Shown as the badge in the header.
-var APP_VERSION='28.24';
+// ── Languages ──────────────────────────────────────────────────────────
+// This file is the Hebrew master: the one source of code and physics. Every
+// other language is GENERATED from it by tools/i18n.js (see i18n/README.md),
+// which sets APP_LANG and translates every text; nothing else differs. Each
+// language is its own page, so a learner's progress (kept in localStorage,
+// shared by all of them) follows them from one language to another.
+var APP_LANG='he';
+var APP_LANGS=[
+  {code:'he',name:'עברית',file:'physics_game_v28.html'},
+  {code:'en',name:'English',file:'physics_game_en.html'}
+];
+var APP_VERSION='28.25';
 var APP_CHANGELOG=[
+  {v:'28.25',d:'2026-10-12',notes:[
+    'כפתור שפה 🌐 בכותרת: בוחרים שפה, והאפליקציה נפתחת באותו נושא ובאותה כרטיסייה; ההתקדמות, כולל תשובות החידון, משותפת לכל השפות',
+    'תשתית לגרסאות בשפות נוספות: כל שפה נבנית מהגרסה העברית, כך שתיקון בפיזיקה או בקוד מגיע לכל השפות'
+  ]},
   {v:'28.24',d:'2026-10-12',notes:[
     'טבלה או נוסחה רחבה מהמסך מוצגת עם דהייה בצד שבו יש עוד תוכן, וטבלה רחבה אומרת שאפשר להחליק אותה — הקצה החתוך כבר לא נראה כמו הסוף',
     'טלפון לרוחב: רשימת הנושאים עברה לכפתור התפריט, והסימולציה מקבלת את כל רוחב המסך (במקום כשליש ממנו)',
@@ -9294,7 +9319,11 @@ function _qid(q){
   return h(q.q)+':'+h(q.opts.map(_qidText).join('|'))+':'+(typeof q.correct==='number'?q.correct:0)+':'+q.opts.length;}
 function _qidsOf(k){
   var v=_qidCache.get(k);
-  if(!v){var c=CONTENT[k],qs=(c&&Array.isArray(c.quiz))?c.quiz:[];v=qs.map(_qid);_qidCache.set(k,v);}
+  // a translated page carries the Hebrew identities (QID_TABLE, written by
+  // tools/i18n.js), so a quiz answered in one language is answered in all
+  if(!v){var c=CONTENT[k],qs=(c&&Array.isArray(c.quiz))?c.quiz:[];
+    var tb=(typeof QID_TABLE!=='undefined'&&QID_TABLE)?QID_TABLE[k]:null;
+    v=(Array.isArray(tb)&&tb.length===qs.length)?tb.slice():qs.map(_qid);_qidCache.set(k,v);}
   return v;}
 // -> m[i] = the saved position of current question i, or -1
 function _qidMatch(old,cur){
@@ -31677,6 +31706,7 @@ function buildPage(ch,sec,content){
       <button class="theme-btn" onclick="toggleTheme()" title="עיצוב ${light?'כהה':'בהיר'} (Shift+D)" aria-label="מעבר לעיצוב ${light?'כהה':'בהיר'}">${light?'☀️':'🌙'}</button>
       <button class="theme-btn" onclick="openFormulaPanel()" title="דף נוסחאות (Shift+F)" aria-label="דף נוסחאות" style="font-size:.9rem">📐</button>
       <button class="theme-btn print-btn" onclick="printSummary()" title="הדפסת סיכום ההתקדמות" aria-label="הדפסת סיכום ההתקדמות" style="font-size:.9rem">🖨</button>
+      <button class="theme-btn lang-btn" id="lang-btn" onclick="openLangMenu(this)" title="שפה · Language" aria-label="שפה · Language" aria-haspopup="menu" aria-expanded="false"><span aria-hidden="true">🌐</span><span class="lang-code">${APP_LANG.toUpperCase()}</span></button>
     </div>
   </header>
   <div class="layout">
@@ -35106,6 +35136,43 @@ function createFormuleFAB(){
 // ══════════════════════════════════════════════════════════════════
 // THEME TOGGLE
 // ══════════════════════════════════════════════════════════════════
+// ── Language menu ─────────────────────────────────────────────────────
+// Every language is its own page; choosing one opens that page at the same
+// topic and tab (the #/chapter/section/tab address), and remembers the
+// choice for index.html.
+function _langGo(code){
+  var L=APP_LANGS.filter(function(x){return x.code===code;})[0];
+  try{localStorage.setItem('phys_lang',code);}catch(e){}
+  if(!L||code===APP_LANG){closeLangMenu();return;}
+  location.href=L.file+(location.hash||'');
+}
+window.openLangMenu=function(btn){
+  var m=document.getElementById('lang-menu');
+  if(m){closeLangMenu();return;}
+  m=document.createElement('div');m.id='lang-menu';m.className='lang-menu';m.setAttribute('role','menu');
+  m.innerHTML=APP_LANGS.map(function(L){var cur=L.code===APP_LANG;
+    return '<button role="menuitemradio" aria-checked="'+cur+'" lang="'+L.code+'" dir="auto" class="lang-item'+(cur?' cur':'')+'" onclick="_langGo(\''+L.code+'\')">'+(cur?'✓ ':'')+L.name+'</button>';}).join('');
+  document.body.appendChild(m);
+  var r=(btn||document.getElementById('lang-btn')).getBoundingClientRect();
+  m.style.top=Math.round(r.bottom+6+window.scrollY)+'px';
+  var left=Math.min(Math.max(8,r.left+r.width/2-m.offsetWidth/2),window.innerWidth-m.offsetWidth-8);
+  m.style.left=Math.round(left)+'px';
+  var b=document.getElementById('lang-btn');if(b)b.setAttribute('aria-expanded','true');
+  var first=m.querySelector('.lang-item:not(.cur)')||m.querySelector('.lang-item');if(first)first.focus();
+  setTimeout(function(){document.addEventListener('pointerdown',_langOutside,true);},0);
+};
+function _langOutside(e){var m=document.getElementById('lang-menu');if(m&&!m.contains(e.target)&&!(e.target.closest&&e.target.closest('#lang-btn')))closeLangMenu();}
+window.closeLangMenu=function(){
+  var m=document.getElementById('lang-menu');if(m)m.remove();
+  document.removeEventListener('pointerdown',_langOutside,true);
+  var b=document.getElementById('lang-btn');if(b){b.setAttribute('aria-expanded','false');}
+};
+document.addEventListener('keydown',function(e){
+  var m=document.getElementById('lang-menu');if(!m)return;
+  if(e.key==='Escape'){closeLangMenu();var b=document.getElementById('lang-btn');if(b)b.focus();e.preventDefault();}
+  if(e.key==='ArrowDown'||e.key==='ArrowUp'){var it=[].slice.call(m.querySelectorAll('.lang-item')),i=it.indexOf(document.activeElement);
+    i=(i+(e.key==='ArrowDown'?1:it.length-1))%it.length;it[i].focus();e.preventDefault();}
+});
 window.toggleTheme=function(){
   var next=state.theme==='dark'?'light':'dark';
   applyTheme(next);

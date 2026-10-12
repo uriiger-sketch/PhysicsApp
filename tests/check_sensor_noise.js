@@ -11,7 +11,7 @@
 //   node tests/check_sensor_noise.js
 const { chromium, devices } = require('playwright');
 const path = require('path');
-const F = 'file://' + path.resolve(process.env.SL_FILE || path.resolve(__dirname, '..', 'physics_game_v28.html'));
+const F = 'file://' + path.resolve(process.env.SL_FILE || process.env.APP_FILE || path.resolve(__dirname, '..', 'physics_game_v28.html'));
 
 let fail = 0, checks = 0;
 const t = (name, got, want, tol) => {

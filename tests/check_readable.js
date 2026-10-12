@@ -18,7 +18,7 @@ const { chromium } = require('playwright');
 const fs = require('fs');
 const path = require('path');
 const K = require('./_katex');   // KATEX=local: with KaTeX loaded
-const F = 'file://' + path.resolve(__dirname, '..', 'physics_game_v28.html');
+const F = 'file://' + (process.env.APP_FILE ? path.resolve(process.env.APP_FILE) : path.resolve(__dirname, '..', 'physics_game_v28.html'));   // APP_FILE: test a language build
 const MODE = process.argv[2] || 'all', ONLY = process.argv[3] || '';
 const OUT = process.env.READABLE_OUT || '';
 
