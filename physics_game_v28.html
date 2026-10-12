@@ -234,7 +234,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 .param-wrap{position:relative;display:inline-block;}
 .param-val{cursor:help;color:var(--t-param);font-weight:700;border-bottom:1.5px dashed rgba(125,211,252,.4);transition:color .15s;}
 .param-val:hover{color:var(--t-param-h);}
-.param-tip{display:none;position:absolute;bottom:calc(100% + 8px);right:50%;transform:translateX(50%);background:var(--tip-bg);border:1px solid rgba(59,130,246,.4);border-radius:8px;padding:9px 13px;font-size:.8rem;color:var(--tip-t);white-space:nowrap;z-index:999;pointer-events:none;box-shadow:0 6px 24px rgba(0,0,0,.4);min-width:160px;text-align:right;}
+.param-tip{display:none;position:absolute;bottom:calc(100% + 8px);right:50%;transform:translateX(50%);background:var(--tip-bg);border:1px solid rgba(59,130,246,.4);border-radius:8px;padding:9px 13px;font-size:.8rem;color:var(--tip-t);white-space:nowrap;z-index:999;pointer-events:none;box-shadow:0 6px 24px rgba(0,0,0,.4);min-width:160px;text-align:start;}
 .param-tip::after{content:'';position:absolute;top:100%;right:50%;transform:translateX(50%);border:6px solid transparent;border-top-color:rgba(59,130,246,.4);}
 /* a hover that a finger cannot do: on touch the tip opens on a tap (tip-open,
    toggled in script) and for the keyboard on focus */
@@ -289,12 +289,12 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 
 /* ENRICHMENT SECTION */
 .enrich-card{background:var(--enrich);border:1px solid var(--enrich-border);border-radius:14px;padding:22px 26px;margin-top:20px;position:relative;overflow:hidden;}
-.enrich-card::before{content:'✨ העשרה';position:absolute;top:14px;left:18px;font-size:.7rem;font-weight:800;color:var(--t-green);letter-spacing:.8px;text-transform:uppercase;background:rgba(16,185,129,.15);padding:3px 10px;border-radius:12px;border:1px solid rgba(16,185,129,.25);}
+.enrich-card::before{content:'✨ העשרה';position:absolute;top:14px;inset-inline-end:18px;font-size:.7rem;font-weight:800;color:var(--t-green);letter-spacing:.8px;text-transform:uppercase;background:rgba(16,185,129,.15);padding:3px 10px;border-radius:12px;border:1px solid rgba(16,185,129,.25);}
 .enrich-card .enrich-title{font-weight:700;font-size:1rem;color:var(--t-green);margin-bottom:10px;margin-top:28px;}
 .enrich-card p{font-size:.9rem;color:var(--t-enrich);line-height:1.8;margin-bottom:10px;}
 .enrich-formula{background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.25);border-radius:8px;padding:12px 20px;text-align:center;margin:12px 0;}
 .enrich-formula .katex{font-size:1.2rem;}
-.enrich-card .enrich-list{margin:4px 0 12px;padding:0 20px 0 0;}
+.enrich-card .enrich-list{margin:4px 0 12px;padding:0;padding-inline-start:20px;}
 .enrich-card .enrich-list li{font-size:.9rem;color:var(--t-enrich);line-height:1.85;margin:3px 0;}
 .enrich-card .enrich-list li::marker{color:var(--t-green);}
 .enrich-cap{font-size:.82rem;color:var(--muted);text-align:center;margin:6px 0 0!important;}
@@ -355,7 +355,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 /* the caption takes a line of its own when the two buttons leave it less
    than 14em: at 360 px it was squeezed beside them into a 66-110 px column,
    four or five lines tall (in 24 animations), and the buttons broke too */
-.anim-ctrl .ac-lbl{font-size:.74rem;line-height:1.5;color:var(--muted);margin-right:auto;flex:1 1 14em;}
+.anim-ctrl .ac-lbl{font-size:.74rem;line-height:1.5;color:var(--muted);margin-inline-start:auto;flex:1 1 14em;}
 .anim-ctrl button{white-space:nowrap;}
 
 /* SIM */
@@ -828,7 +828,7 @@ input[type=range]{accent-color:var(--accent);cursor:pointer;}
 
 /* ── Formula Panel ─────────────────────────────────────── */
 .formula-fab{
-  position:fixed; bottom:20px; left:20px; z-index:700;
+  position:fixed; bottom:20px; inset-inline-end:20px; z-index:700;
   width:46px; height:46px; border-radius:50%;
   background:linear-gradient(135deg,var(--accent),var(--accent2));
   border:none; color:#fff; font-size:1.15rem; cursor:pointer;
