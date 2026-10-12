@@ -8,13 +8,16 @@
 //   node tests/check_ltr_islands.js
 const { chromium } = require('playwright');
 const path = require('path');
+const K = require('./_katex');   // KATEX=local: with KaTeX loaded
 const F = 'file://' + path.resolve(__dirname, '..', 'physics_game_v28.html');
 
 (async () => {
   const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium', args: ['--no-sandbox'] });
   const p = await b.newPage({ viewport: { width: 1280, height: 900 } });
   const errs = []; p.on('pageerror', e => errs.push(e.message));
+  await K.route(p);
   await p.goto(F); await p.waitForTimeout(1200);
+  await K.ready(p);
   await p.evaluate(() => { if (window.closeOnboarding) closeOnboarding(); window.showSimTooltip = function () {}; });
 
   const SCAN = () => {

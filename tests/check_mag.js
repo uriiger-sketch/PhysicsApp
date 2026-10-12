@@ -63,6 +63,27 @@ const EXPECT = {
       s.steps.map((st, i) => st.a + '≈' + (e[i] === undefined ? '?' : +e[i].toPrecision(4))).join(' | '));
   }
 
+  console.log('\n1b) the learning experience: misconceptions, hints that guide, keys not given away');
+  const LX = await p.evaluate(() => {
+    const div = document.createElement('div'); div.style.cssText = 'position:absolute;left:0;top:0;width:2000px'; document.body.appendChild(div);
+    const txt = h => { div.innerHTML = String(h || ''); return div.innerText.replace(/\s+/g, ' ').trim(); };
+    const r = { mis: [], hint: [], long: [], nudge: [], q: 0, longest: 0, consp: [] };
+    for (const ch of MAG_CHAPTERS) for (const se of ch.sections) { const k = ch.id + '.' + se.id, C = MAG_CONTENT[k];
+      if (!/mis-block/.test(C.theory.html)) r.mis.push(k);
+      C.problem.steps.forEach((s, i) => { const h = txt(s.hint);
+        if ((h.match(/[א-ת]+/g) || []).length < 3) r.hint.push(k + '#' + (i + 1));
+        if (h.length >= txt(s.explain).length) r.long.push(k + '#' + (i + 1));
+        if (s.nudge && /=/.test(txt(s.nudge))) r.nudge.push(k + '#' + (i + 1)); });
+      C.quiz.forEach((q, i) => { r.q++; const L = q.opts.map(o => txt(o).length), key = L[q.correct], next = Math.max(...L.filter((_, j) => j !== q.correct));
+        if (key > next) { r.longest++; if (key > 1.3 * next) r.consp.push(k + '#' + (i + 1)); } }); }
+    div.remove(); return r; });
+  t('every section has a misconception box', LX.mis.length === 0, LX.mis.join(' '));
+  t('every problem hint opens with a Hebrew sentence', LX.hint.length === 0, LX.hint.join(' '));
+  t('every hint is shorter than its explanation', LX.long.length === 0, LX.long.join(' '));
+  t('no nudge hands over a formula', LX.nudge.length === 0, LX.nudge.join(' '));
+  t('the quiz key is the longest option in at most 30 % of questions', LX.longest <= 0.3 * LX.q, LX.longest + '/' + LX.q);
+  t('and never conspicuously (more than 1.3× the next option)', LX.consp.length === 0, LX.consp.join(' '));
+
   console.log('\n2) the field helpers against first principles');
   const H = await p.evaluate(() => {
     const bs = (R, I, rho, z) => { let Br = 0, Bz = 0; const n = 4000;
@@ -148,12 +169,39 @@ const EXPECT = {
     if (c.includes('מתקרב') && e) sgn.app.push(e); if (c.includes('מתרחק') && e) sgn.rec.push(e); } }
   t('  N approaching: ε < 0 (the coil sets up a field toward the magnet — repulsion)', sgn.app.length > 3 && sgn.app.every(e => e < 0), sgn.app.slice(0, 4).join(','));
   t('  N receding: ε > 0 (attraction)', sgn.rec.length > 3 && sgn.rec.every(e => e > 0), sgn.rec.slice(0, 4).join(','));
-  await open('mag-induction', 'mag-lenz'); await click('btn-mgn-push'); let fa = [], fr = [];
-  for (let i = 0; i < 30; i++) { for (const [f, c] of pairs(await read(70), /F = (-?[\d.]+) mN/)) {
-    if (c.includes('מתקרב') && f) fa.push(f); if (c.includes('מתרחק') && f) fr.push(f); } }
-  t('Lenz: magnet pushed in — the ring is pushed AWAY (F > 0)', fa.length > 2 && fa.every(f => f > 0), fa.slice(0, 4).join(','));
-  t('  magnet drawn out — the ring is pulled AFTER it (F < 0)', fr.length > 1 && fr.every(f => f < 0), fr.slice(0, 4).join(','));
-  await click('btn-mgn-reset'); await click('btn-mgn-cut'); await click('btn-mgn-push'); fa = [];
+  // The ring is stepped once per animation frame, and on a busy machine a
+  // frame can be 40 ms long: then one frame's readout and caption could
+  // disagree, and this check failed now and then (seen at load 8.8). Here
+  // the sim runs on a clock of exactly 1/60 s per frame, the rate it is
+  // built for, and EVERY frame of the push and the return is checked --
+  // the same assertion, on all frames instead of a sample, whatever the load.
+  // And at 1/20 s per frame -- a slow phone: there one frame carried the
+  // magnet past the ring's centre and the force was the last sub-step's
+  // current times dΦ/dz at the end position, so it flipped sign for a frame.
+  for (const [hz, tag] of [[60, ''], [20, ' (20 fps)']]) {
+  await open('mag-induction', 'mag-lenz');
+  const lz = await p.evaluate(async (hz) => {
+    const real = window.requestAnimationFrame, q = [];
+    let T = performance.now() + 1000;
+    window.requestAnimationFrame = cb => { q.push(cb); return q.length; };
+    // the frame already asked of the browser runs once more and hands over
+    for (let i = 0; i < 40 && !q.length; i++) await new Promise(r => setTimeout(r, 25));
+    const tick = () => { const cbs = q.splice(0); T += 1000 / hz; window.__txt = []; cbs.forEach(c => c(T)); return window.__txt.slice(); };
+    for (let i = 0; i < 6; i++) tick();
+    document.getElementById('btn-mgn-push').click();
+    const frames = [];
+    for (let i = 0; i < Math.ceil(1.5 * hz); i++) frames.push(tick());   // 1.5 s: in, back out, at rest
+    window.requestAnimationFrame = real; q.splice(0).forEach(c => real(c));
+    return frames;
+  }, hz);
+  let fa = [], fr = [];
+  for (const fm of lz) for (const [f, c] of pairs(fm, /F = (-?[\d.]+) mN/)) {
+    if (c.includes('מתקרב') && f) fa.push(f); if (c.includes('מתרחק') && f) fr.push(f); }
+  t('Lenz' + tag + ': magnet pushed in — the ring is pushed AWAY (F > 0)', fa.length > 2 && fa.every(f => f > 0), fa.slice(0, 4).join(','));
+  t('  magnet drawn out' + tag + ' — the ring is pulled AFTER it (F < 0)', fr.length > 1 && fr.every(f => f < 0), fr.slice(0, 4).join(','));
+  }
+  let fa = [];
+  await click('btn-mgn-reset'); await click('btn-mgn-cut'); await click('btn-mgn-push');
   for (let i = 0; i < 12; i++) { const r = await read(70); fa.push(num(r, /F = (-?[\d.]+) mN/)); }
   t('  a cut ring: no current, no force', fa.every(f => f === 0));
   await open('mag-induction', 'mag-motional'); await click('btn-mgv-go'); T = await read();

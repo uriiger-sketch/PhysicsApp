@@ -4,6 +4,7 @@
 //   node tests/smoke.js
 const { chromium } = require('playwright');
 const path = require('path');
+const K = require('./_katex');   // KATEX=local: with KaTeX loaded
 const F = 'file://' + path.resolve(__dirname, '..', 'physics_game_v28.html');
 
 let fail = 0, checks = 0;
@@ -18,8 +19,10 @@ const t = (name, got, want) => {
   const p = await b.newPage();
   const errs = [];
   p.on('pageerror', e => errs.push(e.message));
+  await K.route(p);
   await p.goto(F);
   await p.waitForTimeout(900);
+  await K.ready(p);
   await p.evaluate(() => { if (window.closeOnboarding) closeOnboarding(); });
 
   const subjects = await p.evaluate(() => ['mechanics', 'optics', 'electro', 'circuits', 'magnetism'].map(s => {

@@ -6,6 +6,7 @@
 //   node tests/check_bidi.js
 const { chromium } = require('playwright');
 const path = require('path');
+const K = require('./_katex');   // KATEX=local: with KaTeX loaded
 const F = 'file://' + path.resolve(__dirname, '..', 'physics_game_v28.html');
 
 let fail = 0;
@@ -64,14 +65,25 @@ const SCAN = `(() => {
       if (A.left > B.left) out.push(run);                  // first char to the RIGHT of last
     }
   }
+  // KaTeX's own output (KATEX=local): a formula is a row of inline blocks, one
+  // per relation or operator, which a right-to-left line lays out in reverse
+  host.querySelectorAll('.katex').forEach(k => {
+    const bs = k.querySelectorAll(':scope > .katex-html > .base');
+    for (let i = 1; i < bs.length; i++) {
+      const a = bs[i - 1].getBoundingClientRect(), c = bs[i].getBoundingClientRect();
+      if (a.width && c.width && Math.abs(a.top - c.top) < 4 && a.left > c.left + 1) { out.push('KaTeX: ' + k.textContent.slice(0, 40)); break; }
+    }
+  });
   return out;
 })()`;
 
 (async () => {
   const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium', args: ['--no-sandbox'] });
   const p = await b.newPage();
+  await K.route(p);
   await p.goto(F);
   await p.waitForTimeout(800);
+  await K.ready(p);
   await p.evaluate(() => { if (window.closeOnboarding) closeOnboarding(); });
 
   const chapters = await p.evaluate(() => [].concat(MECH_CHAPTERS, OPTICS_CHAPTERS, ELECTRO_CHAPTERS, DC_CHAPTERS, MAG_CHAPTERS)
