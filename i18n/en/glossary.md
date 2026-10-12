@@ -158,7 +158,10 @@ can grow.
 
 These were decided while the first areas were translated; they bind every area.
 
-- **גוף** → *object* (never “body”, except in “free-body diagram” and “celestial body”).
+- **גוף** → *object* (never “body”, except in “free-body diagram”, “celestial body” and a living body — the human body, a bird’s body).
+- **משותף** (series/parallel): “the same voltage across both” / “the same charge on both” — never “shared”, which reads as “divided”.
+- **כוח תגובה** of a surface → “constraint force” (or simply “normal force”), never “reaction force”: it is not the action–reaction partner of the weight.
+- **שווים** for forces of an action–reaction pair → “equal in magnitude” (and opposite in direction).
 - **Factor changes** (quiz options above all): גדל פי N / קטן פי N → “Increases by a factor of N” / “Decreases by a factor of N”; נחלש / מתחזק פי N → “Weakens / Strengthens by a factor of N”; ללא שינוי → “Unchanged”; אינו משתנה → “Does not change”. Never “doubles/halves” for one option and “by a factor of 4” for its neighbor.
 - **Quiz options** start with a capital letter, even when they complete the stem.
 - **Formula-box parameter names** are in sentence case (“Total charge”, “Focal length”).
@@ -207,6 +210,9 @@ These were decided while the first areas were translated; they bind every area.
 | תמונת ביניים | intermediate image |
 | סגול (בספקטרום) · ורוד (R+B) | violet · magenta |
 | מטען בוחן · גשוש · מטען היסוד | test charge · probe · elementary charge |
+| הולכה (טעינה) · עקרון החוד | conduction (charging by contact) · the sharp-point effect |
+| שדה הפריצה · חוזק הפריצה | breakdown field · dielectric strength |
+| הסטה (קפיץ) · משקולת | displacement (from equilibrium) · an (extra) load |
 | קבוע קולון · חדירות הריק | Coulomb constant · permittivity of free space |
 | סופרפוזיציה · משפט ארנשו · שיווי משקל אלקטרוסטטי | superposition · Earnshaw’s theorem · electrostatic equilibrium |
 | פריקת חוד (קורונה) · כליא ברק | point (corona) discharge · lightning rod |
