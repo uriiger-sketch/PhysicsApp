@@ -209,6 +209,20 @@ These were decided while the first areas were translated; they bind every area.
 | שאיבה · סף · הגברה (לייזר) | pump · threshold · gain |
 | תמונת ביניים | intermediate image |
 | סגול (בספקטרום) · ורוד (R+B) | violet · magenta |
+| משוואת העדשה הדקה · שלוש הקרניים | thin-lens equation · the three principal rays |
+| אורך הטובוס · הגדלה זוויתית · שטח איסוף | tube length · angular magnification · collecting area |
+| כוח שבירה (של העין) | refractive power |
+| פרסביופיה · אסטיגמטיזם · השריר הריסי · מדוכים · קנים · עצב הראייה | presbyopia · astigmatism · ciliary muscle · cones · rods · optic nerve |
+| מרחק הראייה הברורה | standard near-point distance (25 cm) |
+| כושר הפרדה · קריטריון ריילי | resolving power · Rayleigh criterion |
+| עקרון הויגנס-פרנל · גל משני · צרורות גלים | Huygens–Fresnel principle · secondary wavelet · wave trains |
+| מרווח פסים · פס מרכזי · סדר (עקיפה) · נקודת פואסון | fringe spacing · central band (maximum) · (diffraction) order · Poisson’s spot |
+| היפוך פאזה · ציפוי אנטי-החזרה · שכבת רבע גל · צבע מבני | phase reversal · anti-reflection (AR) coating · quarter-wave layer · structural color |
+| חריצים (סריג) · קווי בליעה / פליטה | grooves · absorption / emission lines |
+| גל רוחבי · זווית ברוסטר · מקטבים מוצלבים · גביש נוזלי · סנוור | transverse wave · Brewster’s angle · crossed polarizers · liquid crystal · glare |
+| מהירות התרחקות · חוק האבל · פעימות · קו הראייה | speed of recession · Hubble’s law · beats · line of sight |
+| פליטה ספונטנית · רמה יציבה-למחצה · חלל תהודה · תווך פעיל · מראה חלקית | spontaneous emission · metastable level · resonant cavity · active medium · partially reflecting mirror |
+| דואליות גל-חלקיק · אור עז / חלש | wave–particle duality · bright / dim light |
 | מטען בוחן · גשוש · מטען היסוד | test charge · probe · elementary charge |
 | הולכה (טעינה) · עקרון החוד | conduction (charging by contact) · the sharp-point effect |
 | שדה הפריצה · חוזק הפריצה | breakdown field · dielectric strength |
