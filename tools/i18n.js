@@ -240,6 +240,12 @@ function codeRegions(code, base) {
   return (line) => { let a = 'ui'; for (const [l, ar] of at) { if (l <= line) a = ar; else break; } return a; };
 }
 
+const CSS_CONTENT = /content:\s*(['"])((?:(?!\1)[^\\]|\\.)*[\u0590-\u05FF](?:(?!\1)[^\\]|\\.)*)\1/g;
+function cssTexts(html) {
+  const out = []; const re = /<style\b[^>]*>([\s\S]*?)<\/style>/g; let m;
+  while ((m = re.exec(html))) { const css = m[1].replace(/\/\*[\s\S]*?\*\//g, ''); let c; const r = new RegExp(CSS_CONTENT.source, 'g'); while ((c = r.exec(css))) out.push(c[2]); }
+  return out;
+}
 const idOf = (text) => crypto.createHash('sha1').update(text).digest('hex').slice(0, 12);
 
 function collect() {
@@ -261,6 +267,11 @@ function collect() {
   for (const h of html) {
     const id = idOf(h.text);
     if (!byId.has(id)) byId.set(id, { id, area: 'ui', he: h.text, n: 1, at: ['(html head/body)'], ph: [] });
+  }
+  // generated text in the stylesheet: content:'נתון: '
+  for (const t of cssTexts(M.before + M.after)) {
+    const id = idOf(t);
+    if (!byId.has(id)) byId.set(id, { id, area: 'ui', he: t, n: 1, at: ['(CSS content)'], ph: [] });
   }
   return { M, units, logic, byId, html };
 }
@@ -509,7 +520,14 @@ async function cmdBuild(lang) {
     }
     return out + part.slice(last);
   };
-  let before = html(M.before), after = html(M.after);
+  const css = (part) => part.replace(/(<style\b[^>]*>)([\s\S]*?)(<\/style>)/g, (all, o, body, c) => o + body.replace(new RegExp(CSS_CONTENT.source, 'g'), (a, q, text) => {
+    const e = L.tr.get(idOf(text));
+    let v = e && (e[lang] || '').trim() && !e.keep ? e[lang] : null;
+    if (!v && PSEUDO) v = pseudo(text);
+    if (!v) { fallbacks++; return a; }
+    return 'content:' + q + v.replace(/\\/g, '\\\\').replace(new RegExp(q, 'g'), '\\' + q) + q;
+  }) + c);
+  let before = css(html(M.before)), after = css(html(M.after));
   for (const [from, to] of C.htmlPatches || []) {
     const n = before.split(from).length - 1;
     if (n !== 1) die(`html patch must match exactly once (${n}×): ${from}`);

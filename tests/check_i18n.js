@@ -50,6 +50,11 @@ const HOOK = `(() => {
 
   const meta = await p.evaluate(() => ({ lang: document.documentElement.lang, dir: document.documentElement.dir, app: typeof APP_LANG === 'string' ? APP_LANG : null }));
   const found = {}; const note = (where, list) => list.forEach(x => { (found[x] = found[x] || []).push(where); });
+  // text the stylesheet generates (content:'…') is on screen too
+  const html = fs.readFileSync(FILE, 'utf8');
+  for (const m of html.matchAll(/<style\b[^>]*>([\s\S]*?)<\/style>/g))
+    for (const c of m[1].replace(/\/\*[\s\S]*?\*\//g, '').matchAll(/content:\s*(['"])([^'"]*)\1/g))
+      if (/[\u0590-\u05FF]/.test(c[2])) note('stylesheet', ['css content: ' + c[2]]);
   await p.evaluate(() => { if (window.closeOnboarding) closeOnboarding(); });
 
   const subjects = await p.evaluate(() => [['mechanics', MECH_CHAPTERS], ['optics', OPTICS_CHAPTERS], ['electro', ELECTRO_CHAPTERS], ['circuits', DC_CHAPTERS], ['magnetism', MAG_CHAPTERS]]
