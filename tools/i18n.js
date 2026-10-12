@@ -298,8 +298,25 @@ function loadLang(lang) {
     const d = JSON.parse(fs.readFileSync(path.join(dir, f), 'utf8'));
     data[f] = d;
     for (const [id, e] of Object.entries(d.units || {})) { tr.set(id, e); fileOf.set(id, f); }
+    for (const [id, e] of Object.entries(d._stale || {})) if (!tr.has(id)) { tr.set(id, e); fileOf.set(id, f); }
   }
   return { dir, files, tr, fileOf, data };
+}
+
+// A unit whose Hebrew changed only in its tags' code attributes (a class, a
+// style, an onclick) -- same reading text, same tags -- keeps its translation:
+// the translation's tags take the new attributes, matched tag by tag.
+const TAG_RE = /<[a-zA-Z][^<>]*>/g;
+const codeless = (tag) => tag.replace(/\s[a-zA-Z_:][-a-zA-Z0-9_:.]*\s*=\s*("[^"]*"|'[^']*')/g, (a) => TEXT_ATTRS.has(a.trim().split('=')[0].trim().toLowerCase()) ? a : '');
+const attrSig = (s) => s.replace(TAG_RE, codeless);
+function migrate(oldHe, newHe, oldTr) {
+  const A = oldHe.match(TAG_RE) || [], B = newHe.match(TAG_RE) || [];
+  if (A.length !== B.length || A.some((t, i) => codeless(t) !== codeless(B[i]))) return null;
+  const pool = new Map();                          // old tag text -> queue of new tag texts
+  A.forEach((t, i) => { if (!pool.has(t)) pool.set(t, []); pool.get(t).push(B[i]); });
+  let bad = false;
+  const out = oldTr.replace(TAG_RE, (t) => { const q = pool.get(t); if (!q || !q.length) { bad = true; return t; } return q.shift(); });
+  return bad ? null : out;
 }
 
 function cmdExtract(lang) {
@@ -307,9 +324,19 @@ function cmdExtract(lang) {
   const { byId, logic } = collect();
   const L = loadLang(lang);
   const out = {};
+  const gone = new Map();                          // attribute signature -> a translation that left the master
+  for (const [id, e] of L.tr) if (!byId.has(id) && e.he && (e[lang] || '').trim()) gone.set(attrSig(e.he), e);
+  let migrated = 0;
   for (const e of byId.values()) {
     const f = e.area + '.json';
-    const old = L.tr.get(e.id);
+    let old = L.tr.get(e.id);
+    if (!(old && (old[lang] || '').trim()) && gone.has(attrSig(e.he))) {
+      const g = gone.get(attrSig(e.he)), t = migrate(g.he, e.he, g[lang]);
+      if (t != null && !validate(Object.assign({}, g, { he: e.he, [lang]: t }), lang).errs.length) {
+        old = Object.assign({}, g, { [lang]: t, note: ((g.note ? g.note + ' ' : '') + '(attributes migrated from the previous Hebrew)').trim() });
+        migrated++;
+      }
+    }
     (out[f] = out[f] || {})[e.id] = {
       he: e.he,
       [lang]: old ? (old[lang] || '') : '',
@@ -334,7 +361,7 @@ function cmdExtract(lang) {
   fs.writeFileSync(path.join(L.dir, '_logic.txt'), '# Hebrew strings the code compares or searches for: logic, not display text.\n# They are never translated; if one is shown to the learner, change the code.\n' +
     logic.map(l => `L${l.line}\t${l.at}\t${l.text.replace(/\s+/g, ' ').slice(0, 100)}`).join('\n') + '\n');
   const n = byId.size, done = [...byId.keys()].filter(id => (L.tr.get(id) || {})[lang]).length;
-  console.log(`i18n extract ${lang}: ${n} units (${done} translated), ${logic.length} logic strings listed in i18n/${lang}/_logic.txt`);
+  console.log(`i18n extract ${lang}: ${n} units (${done} translated${migrated ? ', ' + migrated + ' carried over after an attribute-only change' : ''}), ${logic.length} logic strings listed in i18n/${lang}/_logic.txt`);
 }
 
 // ── guards ───────────────────────────────────────────────────────────────
