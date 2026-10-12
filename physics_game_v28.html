@@ -2171,8 +2171,33 @@ function _markScroll(root){
     }
   });
 }
+// ── A subject's name fits its tab ────────────────────────────────────────
+// Five subjects share the 272 px topic list, so a tab is about 45 px wide.
+// The Hebrew names fit; a longer name in another language ("Magnetism",
+// "Electricity") ran out over the tab's border into its neighbour. When a
+// name is wider than its tab, the row's five names are set at the one size
+// at which all of them fit; a row whose names fit is left exactly as it is.
+// Measured again when the web font arrives (it is wider or narrower than
+// the fallback) and when the window changes.
+function _fitTabs(root){
+  if(!root||!root.querySelectorAll)return;
+  root.querySelectorAll('.subject-tabs').forEach(function(row){
+    var ls=row.querySelectorAll('.subject-tab>span:last-child'),k=1,i;
+    for(i=0;i<ls.length;i++)ls[i].style.fontSize='';
+    for(i=0;i<ls.length;i++){
+      var room=ls[i].parentNode.clientWidth;         // inside the tab's border
+      if(!room)return;                               // not laid out (hidden)
+      var w=ls[i].getBoundingClientRect().width;
+      if(w>room+1)k=Math.min(k,room/w);
+    }
+    if(k>=1)return;
+    var fs=parseFloat(getComputedStyle(ls[0]).fontSize);
+    for(i=0;i<ls.length;i++)ls[i].style.fontSize=Math.max(8,Math.floor(fs*k*10)/10)+'px';
+  });
+}
+try{document.fonts.addEventListener('loadingdone',function(){_fitTabs(document);});}catch(e){}
 var _fitRzT=null;
-window.addEventListener('resize',function(){clearTimeout(_fitRzT);_fitRzT=setTimeout(function(){_fitMath(document.getElementById('app'));},200);});
+window.addEventListener('resize',function(){clearTimeout(_fitRzT);_fitRzT=setTimeout(function(){_fitMath(document.getElementById('app'));_fitTabs(document);},200);});
 function initFolds(){
   var host=document.getElementById('app');if(!host)return;
   host.querySelectorAll('.ex-block').forEach(function(bx){
@@ -31637,6 +31662,7 @@ function render(){
   // for the first half second is still a formula that reads backwards.
   fixInlineMath();
   ensureContrast();
+  _fitTabs(document.getElementById('app'));
   // Restore sidebar scroll position
   var _sidebarElNew=document.getElementById('sidebar-nav');
   if(_sidebarElNew){
@@ -34316,7 +34342,7 @@ function ensureDrawer(){
 }
 function refreshDrawerNav(){
   var nav=document.getElementById('drawer-nav');
-  if(nav) nav.innerHTML=buildSidebar();
+  if(nav){ nav.innerHTML=buildSidebar(); _fitTabs(nav); }
   // the drawer lives outside #app, so the render-time contrast pass misses it
   var dr=document.getElementById('mobile-drawer');
   if(dr&&typeof ensureContrast==='function')ensureContrast(dr);
