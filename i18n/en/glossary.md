@@ -153,3 +153,65 @@ can grow.
 | נושאים · פרק · סעיף | Topics · Chapter · Section |
 | עיצוב כהה · בהיר | Dark theme · Light theme |
 | טעות נפוצה / הסבר / תשובה נכונה | Common misconception / Explanation / Correct answer |
+
+## Conventions settled during translation
+
+These were decided while the first areas were translated; they bind every area.
+
+- **גוף** → *object* (never “body”, except in “free-body diagram” and “celestial body”).
+- **Factor changes** (quiz options above all): גדל פי N / קטן פי N → “Increases by a factor of N” / “Decreases by a factor of N”; נחלש / מתחזק פי N → “Weakens / Strengthens by a factor of N”; ללא שינוי → “Unchanged”; אינו משתנה → “Does not change”. Never “doubles/halves” for one option and “by a factor of 4” for its neighbor.
+- **Quiz options** start with a capital letter, even when they complete the stem.
+- **Formula-box parameter names** are in sentence case (“Total charge”, “Focal length”).
+- **Image properties** (shared by quiz options and simulation readouts, capitalized): Real · Virtual · Upright · Inverted · Enlarged · Reduced · Same size.
+- **Yes/no answers**: a problem whose answer is typed text compares the typed word with the translated answer — לא → “No”, כן → “Yes”.
+- **Buttons named in text** (sim descriptions, hints) use exactly the label of that button in its own unit (grep `i18n/en/*.json` for it).
+- **Arrows** in a sequence written right-to-left (א ← ב ← ג) become left-to-right (A → B → C). Bidi control characters (RLM/LRM) are dropped.
+- **Apostrophes and quotes**: typographic ’ “ ” in reading text (Newton’s, Snell’s); the serial comma is used.
+- **Hebrew synonyms and glosses** written in brackets — (core), (Additive), ״זווית הגבול״ — are dropped when English needs only one term.
+
+## Terms added during translation
+
+| Hebrew | English |
+|---|---|
+| דרך | distance (“distance traveled” where introduced) |
+| מיתר · משיק (on a graph) | secant line · tangent line |
+| תנועה קצובה | uniform motion |
+| פונקציית / נוסחת מקום-זמן | position–time function / equation |
+| המשוואה חסרת-הזמן | the time-independent equation |
+| שקול | net force (forces) · resultant (other vector sums) |
+| פירוק לרכיבים · ראש-לזנב · כלל המקבילית | resolving into components · head-to-tail method · parallelogram rule |
+| מכפלה סקלרית | dot product |
+| משקל נמדד | apparent weight |
+| אורך רפוי · התארכות · דחיסה · כוח משחזר | natural (relaxed) length · extension · compression · restoring force |
+| גבול האלסטיות · עיוות פלסטי | elastic limit · plastic deformation |
+| זווית ההחלקה · חיכוך גלגול | angle of repose · rolling friction |
+| מסה כבידתית · התמדתית · עקרון השקילות | gravitational · inertial mass · equivalence principle |
+| התארכות הזמן | time dilation |
+| תנופה (the everyday notion) | impetus (kept apart from momentum = תנע) |
+| בדיקת שפיות | sanity check |
+| מצלמת חריר · מודל הקרן · אופטיקה גיאומטרית | pinhole camera · ray model · geometric optics |
+| תווך · צפוף · דליל (אופטית) | medium · (optically) denser · less dense |
+| החזרה ספקולרית · דיפוזית | specular · diffuse reflection |
+| ציר ראשי · קדקוד | principal axis · vertex |
+| מרחק עצם · מרחק תמונה | object distance · image distance |
+| עומק נדמה · ממשי | apparent · actual depth |
+| זווית הראש · פאה · סטייה מינימלית | apex angle · face · minimum deviation |
+| ליבה · מעטה · זווית / חרוט קבלה | core · cladding · acceptance angle / cone |
+| הנחתה · רוחב פס | attenuation · bandwidth |
+| פיזור ריילי | Rayleigh scattering (פיזור = dispersion or scattering, by context) |
+| ערבוב חיבורי · חיסורי · צבעי יסוד · מטמריזם | additive · subtractive mixing · primary colors · metamerism |
+| מדוך (בעין) | cone (of the retina) |
+| פינת קובייה · חלון סנל · פאטה מורגנה | corner cube · Snell’s window · Fata Morgana |
+| אבירציה כרומטית · זכוכית פלינט | chromatic aberration · flint glass |
+| שאיבה · סף · הגברה (לייזר) | pump · threshold · gain |
+| תמונת ביניים | intermediate image |
+| סגול (בספקטרום) · ורוד (R+B) | violet · magenta |
+| מטען בוחן · גשוש · מטען היסוד | test charge · probe · elementary charge |
+| קבוע קולון · חדירות הריק | Coulomb constant · permittivity of free space |
+| סופרפוזיציה · משפט ארנשו · שיווי משקל אלקטרוסטטי | superposition · Earnshaw’s theorem · electrostatic equilibrium |
+| פריקת חוד (קורונה) · כליא ברק | point (corona) discharge · lightning rod |
+| חוזק הפריצה · פריצת אוויר · אפקט שוליים | dielectric strength · air breakdown · fringing (edge effect) |
+| מטען כבול · קבוע דיאלקטרי | bound charge · dielectric constant |
+| אנרגיה עצמית · מצב קשור · אנרגיית קשר | self-energy · bound state · binding energy |
+| גרר · צמיגות · ריחוף (מיליקן) | drag · viscosity · hovering |
+| מרווח (בין לוחות) · לוחות מסיטים | plate separation (gap) · deflection plates |
