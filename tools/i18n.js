@@ -476,6 +476,64 @@ async function qidTable() {
   } finally { await b.close(); }
 }
 
+// ── unit badges ──────────────────────────────────────────────────────────
+// A symbol chip P(sym, name, desc) and a formula-box parameter [sym, name,
+// desc] get their SI badge from _siUnit, which reads the HEBREW name and
+// description (T is a tension or a period, W a weight or work, m a mass or a
+// magnification). In an edition those words are translated, so the build
+// works every badge out from the master's own Hebrew, with the master's own
+// _siUnit, and writes it into the call as its explicit unit argument (null:
+// no badge). Every language shows exactly the badges the Hebrew shows.
+function badgeInserts(code) {
+  const a = code.indexOf('var _UNIT_HE='), b = code.indexOf('function fBox(');
+  if (a < 0 || b < a || code.indexOf('function _siUnit(') < a) die('_siUnit not found in the master');
+  const siUnit = new Function(code.slice(a, b) + '\nreturn _siUnit;')();
+  const ast = acorn.parse(code, { ecmaVersion: 'latest', sourceType: 'script' });
+  const str = (n) => {                       // the literal text of an argument ('' for its ${...} parts)
+    if (!n) return undefined;
+    if (n.type === 'Literal' && typeof n.value === 'string') return n.value;
+    if (n.type === 'TemplateLiteral') return n.quasis.map((q) => q.value.cooked).join('');
+    if (n.type === 'BinaryExpression' && n.operator === '+') { const l = str(n.left), r = str(n.right); return l === null || r === null ? null : (l || '') + (r || ''); }
+    if (n.type === 'Identifier' && n.name === 'undefined') return undefined;
+    return n.type === 'CallExpression' || n.type === 'Identifier' || n.type === 'MemberExpression' || n.type === 'ConditionalExpression' ? '' : null;
+  };
+  const ins = [], stat = { chips: 0, params: 0, explicit: 0, skipped: 0 };
+  const add = (node, last, args) => {        // insert before the closing ) or ], minding a trailing comma
+    const pos = node.end - 1, tail = last ? code.slice(last.end, pos) : '';
+    ins.push([pos, (last && !/,/.test(tail) ? ',' : '') + args]);
+  };
+  const lit = (u) => (u ? JSON.stringify(u) : 'null');
+  (function walk(n) {
+    if (!n || typeof n.type !== 'string') return;
+    if (n.type === 'CallExpression' && n.callee.type === 'Identifier') {
+      const A = n.arguments;
+      if (n.callee.name === 'P' && A.length >= 2 && A.length <= 3 && A[0].type === 'Literal' && typeof A[0].value === 'string') {
+        const nm = str(A[1]), desc = str(A[2]);
+        if (nm === null || desc === null) stat.skipped++;
+        else { stat.chips++; add(n, A[A.length - 1], (A.length === 2 ? 'undefined,' : '') + lit(siUnit(A[0].value, nm, desc))); }
+      }
+      if (n.callee.name === 'fBox' && A[2] && A[2].type === 'ArrayExpression') {
+        for (const el of A[2].elements) {
+          if (!el || el.type !== 'ArrayExpression') { stat.skipped++; continue; }
+          const E = el.elements;
+          if (E.length >= 4 && E[3] && str(E[3])) { stat.explicit++; continue; }
+          if (E.length !== 3 || !E[0] || E[0].type !== 'Literal') { stat.skipped++; continue; }
+          const nm = str(E[1]), desc = str(E[2]);
+          if (nm === null || desc === null) { stat.skipped++; continue; }
+          stat.params++; add(el, E[2], lit(siUnit(E[0].value, nm, desc)));
+        }
+      }
+    }
+    for (const k in n) {
+      if (k === 'type' || k === 'start' || k === 'end') continue;
+      const v = n[k];
+      if (Array.isArray(v)) v.forEach(walk); else if (v && typeof v.type === 'string') walk(v);
+    }
+  })(ast);
+  ins.sort((x, y) => x[0] - y[0]);
+  return { ins, stat };
+}
+
 async function cmdBuild(lang) {
   const C = langConf(lang);
   const { M, units } = collect();
@@ -501,15 +559,24 @@ async function cmdBuild(lang) {
   const sorted = units.slice().sort((a, b) => a.start - b.start || b.end - a.end);
   const code = M.code;
   let fallbacks = 0;
+  const { ins, stat } = badgeInserts(code);
+  let ii = 0;
+  const copy = (a, b) => {                   // code[a, b) with the badge arguments inserted
+    while (ii > 0 && ins[ii - 1][0] >= a) ii--;
+    while (ii < ins.length && ins[ii][0] < a) ii++;
+    let out = '', p = a;
+    for (let j = ii; j < ins.length && ins[j][0] < b; j++) { out += code.slice(p, ins[j][0]) + ins[j][1]; p = ins[j][0]; }
+    return out + code.slice(p, b);
+  };
   function emit(start, end, skip) {
     let out = '', pos = start;
     for (const u of sorted) {
       if (u === skip || u.start < pos || u.end > end || u.start < start) continue;
-      out += code.slice(pos, u.start);
+      out += copy(pos, u.start);
       out += unitCode(u);
       pos = u.end;
     }
-    return out + code.slice(pos, end);
+    return out + copy(pos, end);
   }
   function unitCode(u) {
     const t = tr(u);
@@ -563,7 +630,7 @@ async function cmdBuild(lang) {
   const outFile = process.env.I18N_OUT ? path.resolve(process.env.I18N_OUT) : path.join(ROOT, C.file);
   const banner = `<!-- GENERATED by tools/i18n.js from physics_game_v28.html and i18n/${lang}/ -- do not edit by hand -->\n`;
   fs.writeFileSync(outFile, banner + before + newCode + after);
-  console.log(`i18n build ${lang}: wrote ${path.relative(ROOT, outFile)} (${fallbacks} texts still in Hebrew)`);
+  console.log(`i18n build ${lang}: wrote ${path.relative(ROOT, outFile)} (${fallbacks} texts still in Hebrew; unit badges fixed from the Hebrew: ${stat.chips} chips, ${stat.params} formula-box parameters, ${stat.explicit} explicit${stat.skipped ? ', ' + stat.skipped + ' not static' : ''})`);
 }
 
 const [cmd, lang] = process.argv.slice(2);

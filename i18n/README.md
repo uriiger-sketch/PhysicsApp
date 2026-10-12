@@ -11,6 +11,7 @@ The app is one page per language, all generated from one master:
 | `i18n/<lang>/glossary.md` | the binding glossary and style guide of that language |
 | `tools/i18n.js` | extract · check · build · stats |
 | `tests/check_i18n.js` | the edition shows no Hebrew anywhere and no placeholder, with no page error |
+| `tests/check_i18n_badges.js` | the edition shows the same SI unit badges as the Hebrew (the build works them out from the Hebrew wording) |
 
 The 🌐 menu in the header (`APP_LANGS` in the master) lists the languages; a
 choice opens the same topic and tab in the other page and is remembered by
