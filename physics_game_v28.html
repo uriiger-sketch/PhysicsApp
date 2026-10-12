@@ -2145,13 +2145,21 @@ function _fitMath(root){
 // and nothing said so: the cut edge looked like the end. A box that can
 // scroll fades out on the side where more is hidden (the side follows the
 // scroll), and a wide table says once, above it, that it can be swiped.
+// The side follows the box's own direction, not the page's: a right-to-left
+// box (a table in Hebrew) starts at its right edge, scrollLeft running from 0
+// down to -max; a left-to-right one (every formula, in Hebrew too, and
+// everything in a left-to-right edition) starts at its left edge, 0 up to
+// +max. Taking every box for right-to-left faded the visible start of each
+// formula instead of its hidden end. And a few pixels past the edge is a
+// glyph's overhang (a subscript, an italic correction), not more content:
+// KaTeX's "Δxᵢ" is 25 px in a 23 px box, and a 34 px fade dimmed all of it.
 function _scrollEdges(el){
   var max=el.scrollWidth-el.clientWidth;
-  if(max<=1){el.classList.remove('x-more-l','x-more-r');return;}
-  // right to left: 0 at the start (right edge), negative toward the left
-  var off=Math.abs(el.scrollLeft);
-  el.classList.toggle('x-more-r',off>1);
-  el.classList.toggle('x-more-l',off<max-1);
+  var off=Math.abs(el.scrollLeft);                  // from the start edge
+  var rtl=getComputedStyle(el).direction==='rtl';
+  var atStart=off,atEnd=max-off;                     // hidden before / after
+  el.classList.toggle('x-more-l',(rtl?atEnd:atStart)>6);
+  el.classList.toggle('x-more-r',(rtl?atStart:atEnd)>6);
 }
 function _markScroll(root){
   if(!root||!root.querySelectorAll)return;
