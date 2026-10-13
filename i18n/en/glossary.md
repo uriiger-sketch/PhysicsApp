@@ -163,7 +163,7 @@ These were decided while the first areas were translated; they bind every area.
 - **כוח תגובה** of a surface → “constraint force” (or simply “normal force”), never “reaction force”: it is not the action–reaction partner of the weight.
 - **שווים** for forces of an action–reaction pair → “equal in magnitude” (and opposite in direction).
 - **Factor changes** (quiz options above all): גדל פי N / קטן פי N → “Increases by a factor of N” / “Decreases by a factor of N”; נחלש / מתחזק פי N → “Weakens / Strengthens by a factor of N”; ללא שינוי → “Unchanged”; אינו משתנה → “Does not change”. Never “doubles/halves” for one option and “by a factor of 4” for its neighbor.
-- **Quiz options** start with a capital letter, even when they complete the stem.
+- **Quiz options** start with a capital letter, even when they complete the stem. One object: “Is attracted / Is repelled”; two: “Are attracted / Are repelled”.
 - **Formula-box parameter names** are in sentence case (“Total charge”, “Focal length”).
 - **Image properties** (shared by quiz options and simulation readouts, capitalized): Real · Virtual · Upright · Inverted · Enlarged · Reduced · Same size.
 - **Yes/no answers**: a problem whose answer is typed text compares the typed word with the translated answer — לא → “No”, כן → “Yes”.
@@ -226,6 +226,24 @@ These were decided while the first areas were translated; they bind every area.
 | מבט ניצב (קרום דק) | normal incidence (“viewed straight on” in a question) |
 | סגול שאינו צבע ספקטרלי (פיגמנט, ציפוי) | purple — “violet” is kept for the spectral color only |
 | סדר נופל (סריג) | an order drops out / does not exist — not “missing order”, which has a technical meaning |
+| חלק (משטח, מדרון, גלגלת) | frictionless (“smooth” only in “Smooth surface: μ = 0”) |
+| אי-אלסטית חלקית (0 < e < 1) | partially inelastic |
+| תדירות זוויתית (תנועה הרמונית) · מהירות זוויתית (תנועה מעגלית) | angular frequency · angular velocity |
+| מהירות משותפת · מהירות התרחקות / התקרבות | common velocity · speed of separation / approach |
+| קו הפעולה · נקודת ההפעלה | line of action · point of application |
+| גוף בעל גודל · מוט חסר משקל · כוח מדומה · מטוטלת שניות | extended object · massless rod · fictitious force · seconds pendulum |
+| גרר (תווית כוח) | drag force |
+| הופכים את הנוסחה · חלצו את המהירות | solve … for (rearrange) · solve for the speed — never “invert”, never “extract” |
+| חתך (ערך ב־mm²) · חתך (מישור ספירה) | cross-sectional area · cross-section |
+| מאמ״ת · לוח החשמל · מגע רופף | circuit breaker · electrical panel · loose contact |
+| זרועות היחס · מד מאמץ · מקור תבנין · שגיאת העמסה | ratio arms · strain gauge · Thévenin equivalent · loading error |
+| מומנט מגנטי · כא״מ נגדי · טבעת מפוצלת | magnetic moment · back emf · split ring |
+| ערך אפקטיבי · ערך שיא | rms (effective) value · peak value |
+| שנאי מעלה / מוריד מתח · יחס הליפופים · המתח במשני | step-up / step-down transformer · turns ratio · the voltage ACROSS the secondary |
+| קו הולכה · הפסד · עומס | transmission line · (I²R) loss · load |
+| השטף שמשתלב בסליל (NΦ) | flux linkage |
+| קוטב בודד · נקודה ניטרלית · תחומים מגנטיים · טמפרטורת קירי | isolated pole (monopole) · neutral point · magnetic domains · Curie temperature |
+| בלימה מגנטית · רגנרטיבית · מחוג (גלוונומטר) | magnetic · regenerative braking · needle |
 | מטען בוחן · גשוש · מטען היסוד | test charge · probe · elementary charge |
 | הולכה (טעינה) · עקרון החוד | conduction (charging by contact) · the sharp-point effect |
 | שדה הפריצה · חוזק הפריצה | breakdown field · dielectric strength |
