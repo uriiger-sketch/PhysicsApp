@@ -46,7 +46,9 @@ async function badges(b, url) {
   for (const k of Object.keys(he.out)) {
     const A = he.out[k], B = ed.out[k] || [];
     if (A.length !== B.length) { bad++; console.log(`   FAIL ${k}: ${A.length} chips in Hebrew, ${B.length} in the edition`); continue; }
-    A.forEach((a, i) => { n++; const ua = a.replace(/^.* \[/, '['), ub = B[i].replace(/^.* \[/, '[');
+    // a unit's name in words, "Wb (ובר)", is translated with the page: compare the units
+    const unit = (s) => s.replace(/^.* \[/, '[').replace(/\s*\([^)]*\)/g, '');
+    A.forEach((a, i) => { n++; const ua = unit(a), ub = unit(B[i]);
       if (ua !== ub) { bad++; console.log(`   FAIL ${k} #${i}: ${a} (Hebrew) vs ${B[i]} (edition)`); } });
   }
   for (const e of he.errs.concat(ed.errs)) { bad++; console.log('   page error: ' + e); }
