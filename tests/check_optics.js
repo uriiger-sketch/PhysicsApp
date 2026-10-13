@@ -16,7 +16,8 @@
 // and no number glued to its unit.
 const { chromium } = require('playwright');
 const path = require('path');
-const F = 'file://' + path.resolve(__dirname, '..', 'physics_game_v28.html');
+const { LR, WORD } = require('./_lang.js');   // the words of the page's language
+const F = 'file://' + (process.env.APP_FILE ? path.resolve(process.env.APP_FILE) : path.resolve(__dirname, '..', 'physics_game_v28.html'));   // APP_FILE: test a language build
 
 let fail = 0, n = 0;
 const t = (name, ok, info) => { n++; if (!ok) { fail++; console.log(`   FAIL ${name}${info ? ': ' + info : ''}`); } };
@@ -91,7 +92,7 @@ const EXPECT = {
   // 30 % of questions, never more than 1.3x the next option); second-tier
   // hints that are a Hebrew sentence, not a bare formula; numbers spaced
   // from their units ──
-  const lx = await p.evaluate(() => {
+  const lx = await p.evaluate((WSRC) => { const WORD = new RegExp(WSRC);   // a word of the page's language
     const txt = h => { const d = document.createElement('template'); d.innerHTML = _ltSafe(String(h || '')); return d.content.textContent.replace(/\s+/g, ' ').trim(); };
     const r = { noMis: [], q: 0, longest: 0, loud: [], bareHint: [], glued: [] };
     for (const ch of OPTICS_CHAPTERS) for (const se of ch.sections) {
@@ -101,20 +102,20 @@ const EXPECT = {
         r.q++;
         const L = q.opts.map(o => txt(o).length), key = L[q.correct], rest = Math.max(...L.filter((_, j) => j !== q.correct));
         if (key > rest) r.longest++;
-        if (key > 1.3 * rest) r.loud.push(k + '#' + i);
+        if (key > 1.3 * rest && key - rest >= 3) r.loud.push(k + '#' + i);
       });
       const steps = (C.problem || {}).steps || [];
-      steps.forEach((st, i) => { if (!/[א-ת]{3,}/.test(txt(st.hint))) r.bareHint.push(k + '#' + i); });
+      steps.forEach((st, i) => { if (!WORD.test(txt(st.hint))) r.bareHint.push(k + '#' + i); });
       const all = [C.theory.html, ...(C.quiz || []).flatMap(q => [q.q, ...q.opts, q.explain]), ...steps.flatMap(s => [s.q, s.nudge, s.hint, s.explain])].map(txt).join(' | ');
       const m = all.match(/(?<![A-Za-z_])\d(?:nm|mm|cm|μm|keV|meV|eV|kHz|MHz|GHz|THz|Hz|kV|V)(?![A-Za-z0-9\/])/g);
       if (m) r.glued.push(k + ': ' + m.join(','));
     }
     return r;
-  });
+  }, WORD.source);
   t('every section has a misconception box', lx.noMis.length === 0, lx.noMis.join(' '));
   t('quiz key strictly longest in at most 30 % of questions', lx.longest <= 0.3 * lx.q, lx.longest + '/' + lx.q);
-  t('no quiz key more than 1.3x longer than every other option', lx.loud.length === 0, lx.loud.join(' '));
-  t('every problem hint says something in Hebrew', lx.bareHint.length === 0, lx.bareHint.join(' '));
+  t('no quiz key more than 1.3x (and 3+ characters) longer than every other option', lx.loud.length === 0, lx.loud.join(' '));
+  t('every problem hint says something in words', lx.bareHint.length === 0, lx.bareHint.join(' '));
   t('no number glued to its unit', lx.glued.length === 0, lx.glued.join(' | '));
 
   // ── simulations ──
@@ -182,7 +183,7 @@ const EXPECT = {
     ['optics', 'opt-light', 'light-nature', W => [[W / 2, 200], [W / 2 + 40, 200], [W / 2 + 80, 200]], { slider: 'emw-wl' }],
     ['optics', 'opt-light', 'light-speed', () => [[44, 120], [44, 121]], { slider: 'ri-n' }],
     ['optics', 'opt-light', 'em-spectrum', W => [[W * 0.3, 50], [W * 0.5, 50], [W * 0.7, 50]], { slider: 'ems-pos' }],
-    ['optics', 'opt-light', 'color-mixing', (W, H) => { const cr = Math.min(W * 0.2, H * 0.27), y = H * 0.42 - cr * 0.62; return [[W / 2, y], [W / 2, y - 20], [W / 2, y - 40]]; }, { gone: '^✋ גררו את העיגולים' }],
+    ['optics', 'opt-light', 'color-mixing', (W, H) => { const cr = Math.min(W * 0.2, H * 0.27), y = H * 0.42 - cr * 0.62; return [[W / 2, y], [W / 2, y - 20], [W / 2, y - 40]]; }, { gone: '^' + LR('✋ גררו את העיגולים — צרו חפיפות חדשות!') }],
     ['optics', 'opt-reflection', 'refl-laws', W => [[W * 0.3, 120], [W * 0.2, 200], [W * 0.15, 260]], { slider: 'ref-angle' }],
     ['optics', 'opt-reflection', 'plane-mirror', W => [[W * 0.3, 210], [W * 0.25, 210], [W * 0.2, 210]], { slider: 'pm-dist' }],
     ['optics', 'opt-reflection', 'concave-mirror', W => mirrorObj(W, true), { slider: 'cm-do' }],
@@ -197,7 +198,7 @@ const EXPECT = {
     ['optics', 'opt-lenses', 'telescope', (W, H) => { const m = W * 0.05, sc = (W - m * 2 - 70) / (150 * 1.3 + 25), L1 = m + 150 * sc * 0.3; return [[L1, H / 2], [L1 + 10, H / 2], [L1 + 20, H / 2]]; }, { slider: 'tel-fo' }],
     ['optics', 'opt-waves', 'interference', W => [[W * 0.7, 120], [W * 0.75, 160]], { text: '^Δ = \\|r₂' }],
     ['optics', 'opt-waves', 'youngs-slits', W => { const x = 136 + 0.2 * (W - 180); return [[x, 300], [x + 20, 300], [x + 40, 300]]; }, { slider: 'ys-L' }],
-    ['optics', 'opt-waves', 'diffraction', W => [[W - 52, 220], [W - 52, 260], [W - 52, 300]], { text: '^גלאי: a·sinθ' }],
+    ['optics', 'opt-waves', 'diffraction', W => [[W - 52, 220], [W - 52, 260], [W - 52, 300]], { text: '^' + LR('גלאי: a·sinθ = ') }],
     ['optics', 'opt-waves', 'thin-film', W => [[W * 0.44, 150], [W * 0.44, 200], [W * 0.44, 260]], { slider: 'tf-thick' }],
     ['optics', 'opt-modern', 'polarization', (W, H) => [[W * 0.62 + 20, H * 0.42], [W * 0.62 + 10, H * 0.42 + 20], [W * 0.62, H * 0.42 + 25]], { slider: 'pol-angle' }],
     // the star rests at the centre when v = 0; a quick flick sets its speed

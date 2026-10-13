@@ -7,7 +7,7 @@
 //   node tests/check_frame.js
 const { chromium, devices } = require('playwright');
 const path = require('path');
-const F = 'file://' + path.resolve(__dirname, '..', 'physics_game_v28.html');
+const F = 'file://' + (process.env.APP_FILE ? path.resolve(process.env.APP_FILE) : path.resolve(__dirname, '..', 'physics_game_v28.html'));   // APP_FILE: test a language build
 
 const INSTRUMENT = () => {
   const P = CanvasRenderingContext2D.prototype;

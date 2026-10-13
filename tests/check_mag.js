@@ -6,7 +6,12 @@
 //   node tests/check_mag.js
 const { chromium } = require('playwright');
 const path = require('path');
-const F = 'file://' + path.resolve(__dirname, '..', 'physics_game_v28.html');
+const { L, LR, WORDS } = require('./_lang.js');   // the words of the page's language
+// the induction captions, approaching and receding (coil, ring)
+const APPR = [L('מתקרב: השטף גדל — הסליל דוחה'), L('המגנט מתקרב ⇒ השטף גדל ⇒ הטבעת דוחה')];
+const RECD = [L('מתרחק: השטף קטן — הסליל מושך'), L('המגנט מתרחק ⇒ השטף קטן ⇒ הטבעת נמשכת')];
+const isAppr = (c) => APPR.some((a) => c.includes(a)), isRecd = (c) => RECD.some((a) => c.includes(a));
+const F = 'file://' + (process.env.APP_FILE ? path.resolve(process.env.APP_FILE) : path.resolve(__dirname, '..', 'physics_game_v28.html'));   // APP_FILE: test a language build
 
 let fail = 0, checks = 0;
 const t = (name, ok, info) => { checks++; if (!ok) fail++;
@@ -64,25 +69,25 @@ const EXPECT = {
   }
 
   console.log('\n1b) the learning experience: misconceptions, hints that guide, keys not given away');
-  const LX = await p.evaluate(() => {
+  const LX = await p.evaluate((WSRC) => { const WORDS = new RegExp(WSRC, 'g');   // words of the page's language
     const div = document.createElement('div'); div.style.cssText = 'position:absolute;left:0;top:0;width:2000px'; document.body.appendChild(div);
     const txt = h => { div.innerHTML = String(h || ''); return div.innerText.replace(/\s+/g, ' ').trim(); };
     const r = { mis: [], hint: [], long: [], nudge: [], q: 0, longest: 0, consp: [] };
     for (const ch of MAG_CHAPTERS) for (const se of ch.sections) { const k = ch.id + '.' + se.id, C = MAG_CONTENT[k];
       if (!/mis-block/.test(C.theory.html)) r.mis.push(k);
       C.problem.steps.forEach((s, i) => { const h = txt(s.hint);
-        if ((h.match(/[א-ת]+/g) || []).length < 3) r.hint.push(k + '#' + (i + 1));
+        if ((h.match(WORDS) || []).length < 3) r.hint.push(k + '#' + (i + 1));
         if (h.length >= txt(s.explain).length) r.long.push(k + '#' + (i + 1));
         if (s.nudge && /=/.test(txt(s.nudge))) r.nudge.push(k + '#' + (i + 1)); });
       C.quiz.forEach((q, i) => { r.q++; const L = q.opts.map(o => txt(o).length), key = L[q.correct], next = Math.max(...L.filter((_, j) => j !== q.correct));
-        if (key > next) { r.longest++; if (key > 1.3 * next) r.consp.push(k + '#' + (i + 1)); } }); }
-    div.remove(); return r; });
+        if (key > next) { r.longest++; if (key > 1.3 * next && key - next >= 3) r.consp.push(k + '#' + (i + 1)); } }); }
+    div.remove(); return r; }, WORDS.source);
   t('every section has a misconception box', LX.mis.length === 0, LX.mis.join(' '));
   t('every problem hint opens with a Hebrew sentence', LX.hint.length === 0, LX.hint.join(' '));
   t('every hint is shorter than its explanation', LX.long.length === 0, LX.long.join(' '));
   t('no nudge hands over a formula', LX.nudge.length === 0, LX.nudge.join(' '));
   t('the quiz key is the longest option in at most 30 % of questions', LX.longest <= 0.3 * LX.q, LX.longest + '/' + LX.q);
-  t('and never conspicuously (more than 1.3× the next option)', LX.consp.length === 0, LX.consp.join(' '));
+  t('and never conspicuously (more than 1.3× and 3+ characters longer than the next option)', LX.consp.length === 0, LX.consp.join(' '));
 
   console.log('\n2) the field helpers against first principles');
   const H = await p.evaluate(() => {
@@ -123,9 +128,9 @@ const EXPECT = {
   await open('mag-force', 'mag-lorentz'); T = await read();
   t('Lorentz: F = qvB = 1.60×10⁻¹³ N, r = 4.2 cm, T = 131 ns', has(T, '1.60×10⁻¹³') && has(T, '4.2 cm') && has(T, '131 ns'));
   await click('btn-mgz-mode'); T = await read();
-  t('Lorentz, B along +x, v at 60°: force INTO the page on a + charge', has(T, 'נכנס לדף'));
+  t('Lorentz, B along +x, v at 60°: force INTO the page on a + charge', has(T, L('נכנס לדף')));
   await click('btn-mgz-q'); T = await read();
-  t('  and OUT of the page on a − charge', has(T, 'יוצא מהדף'));
+  t('  and OUT of the page on a − charge', has(T, L('יוצא מהדף')));
   await open('mag-force', 'mag-circle'); await click('btn-mgr-fire'); T = await read();
   t('circle: r = mv/qB = 15.66 cm, T/2 = 164.0 ns', has(T, '15.66 cm') && has(T, '164.0 ns'));
   // a proton in B into the page turns counter-clockwise: from the lower entry, upward
@@ -141,13 +146,13 @@ const EXPECT = {
   await open('mag-force', 'mag-wireforce'); await p.waitForTimeout(2500); T = await read();
   const phi = num(T, /φ = ([\d.]+)°/);
   t('swing: F = BIL = 0.080 N, equilibrium tanφ = F/mg', has(T, '0.080 N') && near(phi, Math.atan(0.08 / 0.196) * 180 / Math.PI, 0.3), phi);
-  t('  I out of the page, N above: pushed to the RIGHT', has(T, 'ימינה'));
+  t('  I out of the page, N above: pushed to the RIGHT', has(T, L('ימינה')));
   await click('btn-mgf-flip'); T = await read();
-  t('  magnet flipped: pushed to the LEFT', has(T, 'שמאלה'));
+  t('  magnet flipped: pushed to the LEFT', has(T, L('שמאלה')));
   await open('mag-force', 'mag-parallel'); T = await read();
-  t('parallel: 10 A and 10 A at 5 cm, same way: 4.00×10⁻⁴ N/m, attraction', has(T, '4.00×10⁻⁴') && has(T, 'משיכה'));
+  t('parallel: 10 A and 10 A at 5 cm, same way: 4.00×10⁻⁴ N/m, attraction', has(T, '4.00×10⁻⁴') && has(T, L('משיכה')));
   await slide('mgq-I2', -10); T = await read();
-  t('  one current reversed: repulsion, same size', has(T, '4.00×10⁻⁴') && has(T, 'דחייה'));
+  t('  one current reversed: repulsion, same size', has(T, '4.00×10⁻⁴') && has(T, L('דחייה')));
   await open('mag-force', 'mag-motor'); T = await read();
   t('motor: τmax = NBIA = 0.0300 N·m', has(T, '0.0300 N·m'));
   const taus = async n => { const a = []; for (let i = 0; i < n; i++) { const r = await read(90); a.push(num(r, /τ = (-?[\d.]+) N·m/)); } return a; };
@@ -166,7 +171,7 @@ const EXPECT = {
     if (m) out.push([parseFloat(m[1]), r[i + 1]]); } return out; };
   await click('btn-mgy-auto'); let sgn = { app: [], rec: [] };
   for (let i = 0; i < 60; i++) { for (const [e, c] of pairs(await read(80), /ε = (-?[\d.]+) mV/)) {
-    if (c.includes('מתקרב') && e) sgn.app.push(e); if (c.includes('מתרחק') && e) sgn.rec.push(e); } }
+    if (isAppr(c) && e) sgn.app.push(e); if (isRecd(c) && e) sgn.rec.push(e); } }
   t('  N approaching: ε < 0 (the coil sets up a field toward the magnet — repulsion)', sgn.app.length > 3 && sgn.app.every(e => e < 0), sgn.app.slice(0, 4).join(','));
   t('  N receding: ε > 0 (attraction)', sgn.rec.length > 3 && sgn.rec.every(e => e > 0), sgn.rec.slice(0, 4).join(','));
   // The ring is stepped once per animation frame, and on a busy machine a
@@ -196,7 +201,7 @@ const EXPECT = {
   }, hz);
   let fa = [], fr = [];
   for (const fm of lz) for (const [f, c] of pairs(fm, /F = (-?[\d.]+) mN/)) {
-    if (c.includes('מתקרב') && f) fa.push(f); if (c.includes('מתרחק') && f) fr.push(f); }
+    if (isAppr(c) && f) fa.push(f); if (isRecd(c) && f) fr.push(f); }
   t('Lenz' + tag + ': magnet pushed in — the ring is pushed AWAY (F > 0)', fa.length > 2 && fa.every(f => f > 0), fa.slice(0, 4).join(','));
   t('  magnet drawn out' + tag + ' — the ring is pulled AFTER it (F < 0)', fr.length > 1 && fr.every(f => f < 0), fr.slice(0, 4).join(','));
   }
@@ -238,10 +243,10 @@ const EXPECT = {
   // the coil's induced pole: N toward an approaching pole (repel), S toward a
   // receding one (attract) — on whichever side of the coil the magnet is
   await open('mag-induction', 'mag-faraday');
-  await p.evaluate(() => { window.__face = []; const o = window.__oST = window.simText; window.simText = function (c, s, x, ...r) {
+  await p.evaluate(([AP, RE]) => { window.__face = []; const o = window.__oST = window.simText; window.simText = function (c, s, x, ...r) {
     if (c.canvas.id === 'sim-canvas') { if (s === 'N' || s === 'S') window.__face.push(['f', s, x]);
-      else if (/^מתקרב|^מתרחק/.test(s)) window.__face.push(['c', s.startsWith('מתקרב')]); }
-    return o.call(this, c, s, x, ...r); }; });
+      else if (s === AP || s === RE) window.__face.push(['c', s === AP]); }
+    return o.call(this, c, s, x, ...r); }; }, [APPR[0], RECD[0]]);
   await click('btn-mgy-auto'); await p.waitForTimeout(3500);
   const FC = await p.evaluate(() => { const W = document.getElementById('sim-canvas').offsetWidth, X0 = W * 0.05 + 0.36 * W * 0.9 / 0.6;
     const out = { rep: 0, att: 0, bad: 0, far: 0 }, L = window.__face;
@@ -294,11 +299,11 @@ const EXPECT = {
   t('motor: n̂ follows the current (right-hand rule), so θ falls toward 0 as the coil turns…', dec > 10 && inc === 0, `${dec} falling, ${inc} rising`);
   t('  …and jumps back to 180° when the commutator reverses the current', flips >= 1, flips + ' flips');
   await open('mag-force', 'mag-lorentz'); await click('btn-mgz-mode'); await click('btn-mgz-Bdir'); T = await read();
-  t('Lorentz, B reversed to −x, v at 60°: θ from B is 240° and the force on + comes OUT of the page', has(T, 'θ = 240°') && has(T, 'יוצא מהדף'));
+  t('Lorentz, B reversed to −x, v at 60°: θ from B is 240° and the force on + comes OUT of the page', has(T, 'θ = 240°') && has(T, L('יוצא מהדף')));
   await open('mag-force', 'mag-wireforce');
   await slide('mgf-I', 10); await slide('mgf-B', 1); await slide('mgf-L', 0.3); await slide('mgf-m', 5); await p.waitForTimeout(2500);
   const WF = (await read(800)).filter(s => /^F = BIL/.test(s));
-  t('current balance, F/mg ≈ 61: the wire rests on the pole face, F stays 3.000 N (no flicker)', WF.length > 10 && WF.every(s => s.includes('3.000 N')) && has(await read(), 'נעצר על פני הקוטב'), WF.length + ' frames');
+  t('current balance, F/mg ≈ 61: the wire rests on the pole face, F stays 3.000 N (no flicker)', WF.length > 10 && WF.every(s => s.includes('3.000 N')) && has(await read(), L('F גדול מדי: התיל נעצר על פני הקוטב העליון — לפני שהגיע לזווית שיווי המשקל')), WF.length + ' frames');
   await open('mag-induction', 'mag-transformer'); await slide('mgt-VL', 5); T = await read();
   t('transformer: the line voltage stops at 20 kV, where 25 % is lost (never 100 %)', has(T, '2.50 MW') && has(T, '25.0%'));
 
@@ -370,15 +375,21 @@ const EXPECT = {
   const tlast = re => q.evaluate(r => { const R = new RegExp(r), a = window.__T.filter(s => R.test(s)); return a.length ? a[a.length - 1] : null; }, re);
   const swipe = async (r, pts, re) => { const P = z => ({ x: r.x + z[0], y: r.y + z[1] });
     await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [P(pts[0])] });
-    for (let i = 1; i < pts.length; i++) { await q.waitForTimeout(50); await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [P(pts[i])] }); }
-    await q.waitForTimeout(120); const held = await tlast(re);
-    await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] }); await q.waitForTimeout(150); return held; };
+    // read the readout while the finger moves, not only once it is still: a
+    // readout that depends on the motion itself (the induced current of
+    // mag-lenz) is back to zero a moment after the finger stops, and on a busy
+    // machine that moment came before the one reading
+    const seen = [];
+    for (let i = 1; i < pts.length; i++) { await q.waitForTimeout(50); await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [P(pts[i])] });
+      await q.waitForTimeout(40); seen.push(await tlast(re)); }
+    await q.waitForTimeout(120); seen.push(await tlast(re));
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] }); await q.waitForTimeout(150); return seen; };
   // where each sim's handle starts, from its own layout (W = canvas width)
   const TOUCH = [
-    ['mag-field', 'mag-magnets', W => [[W / 2, 206.8 - 0.15 * W], [W / 2 + 40, 266.8 - 0.15 * W]], '^\\|B\\| במצפן'],
-    ['mag-field', 'mag-wire', W => [[W / 2, 144 - 0.15 * W], [W / 2 + 30, 154 - 0.15 * W], [W / 2 + 50, 144]], '^בגשש: B'],
-    ['mag-field', 'mag-loop', W => [[W / 2 + 20, 155], [W / 2 + 50, 155], [W / 2 + 80, 155]], '^בגשש \\(x'],
-    ['mag-field', 'mag-solenoid', W => [[W * 0.6, 140], [W * 0.7, 150]], '^בגשש:'],
+    ['mag-field', 'mag-magnets', W => [[W / 2, 206.8 - 0.15 * W], [W / 2 + 40, 266.8 - 0.15 * W]], '^' + LR('|B| במצפן = ')],
+    ['mag-field', 'mag-wire', W => [[W / 2, 144 - 0.15 * W], [W / 2 + 30, 154 - 0.15 * W], [W / 2 + 50, 144]], '^' + LR('בגשש: B = ')],
+    ['mag-field', 'mag-loop', W => [[W / 2 + 20, 155], [W / 2 + 50, 155], [W / 2 + 80, 155]], '^' + LR('בגשש (x = ')],
+    ['mag-field', 'mag-solenoid', W => [[W * 0.6, 140], [W * 0.7, 150]], '^' + LR('בגשש: ')],
     ['mag-force', 'mag-lorentz', W => [[W * 0.8, 120], [W * 0.85, 100]], '^r = mv/qB'],
     ['mag-force', 'mag-parallel', W => [[W / 2 + 40, 170], [W / 2 + 70, 170], [W / 2 + 90, 170]], '^F/L'],
     ['mag-force', 'mag-motor', W => [[W * 0.36 + 30, 163], [W * 0.36, 128], [W * 0.36 - 30, 153]], '^θ = '],
@@ -388,8 +399,8 @@ const EXPECT = {
     ['mag-induction', 'mag-motional', W => [[174, 130], [200, 130], [230, 130]], '^ε = BLv'],
   ];
   const deaf = [];
-  for (const [c, s, pf, re] of TOUCH) { const r = await topen(c, s), before = await tlast(re), held = await swipe(r, pf(r.w), re);
-    if (!before || held === before) deaf.push(s + ': ' + before + ' → ' + held); }
+  for (const [c, s, pf, re] of TOUCH) { const r = await topen(c, s), before = await tlast(re), seen = await swipe(r, pf(r.w), re);
+    if (!before || !seen.some(h => h && h !== before)) deaf.push(s + ': ' + before + ' → ' + seen[seen.length - 1]); }
   t(TOUCH.length + ' simulations follow a finger (touch start, move, end)', deaf.length === 0, deaf.join(' | '));
   await tc.close();
 

@@ -13,7 +13,7 @@
 const { chromium } = require('playwright');
 const path = require('path');
 const K = require('./_katex');   // KATEX=local: with KaTeX loaded
-const F = 'file://' + path.resolve(__dirname, '..', 'physics_game_v28.html');
+const F = 'file://' + (process.env.APP_FILE ? path.resolve(process.env.APP_FILE) : path.resolve(__dirname, '..', 'physics_game_v28.html'));   // APP_FILE: test a language build
 const ONLY = process.argv[2] || '';
 
 let fail = 0, checks = 0;
@@ -96,7 +96,7 @@ const t = (name, ok, info) => {
           }
           out.ranges++;
         }
-        const btns = roots.flatMap(r => [...r.querySelectorAll('button')]).filter(x => x.offsetParent && !/סיימתי/.test(x.textContent));
+        const btns = roots.flatMap(r => [...r.querySelectorAll('button')]).filter(x => x.offsetParent && !/finishSim/.test(x.getAttribute('onclick') || ''));   // not the “done” button
         for (const x of btns.slice(0, 12)) {
           try { x.click(); out.buttons++; } catch (e) { out.bad.push(x.textContent); }
           await wait(60);

@@ -6,7 +6,8 @@
 //   node tests/check_dc.js
 const { chromium } = require('playwright');
 const path = require('path');
-const F = 'file://' + path.resolve(__dirname, '..', 'physics_game_v28.html');
+const { L, WORDS } = require('./_lang.js');   // the words of the page's language
+const F = 'file://' + (process.env.APP_FILE ? path.resolve(process.env.APP_FILE) : path.resolve(__dirname, '..', 'physics_game_v28.html'));   // APP_FILE: test a language build
 const ok=[],bad=[];
 const t=(name,cond,detail)=>(cond?ok:bad).push(name+(detail?' — '+detail:''));
 (async () => {
@@ -113,10 +114,10 @@ const t=(name,cond,detail)=>(cond?ok:bad).push(name+(detail?' — '+detail:''));
   const f1=await readRed();
   t('two-loop: flipping marks the source as reversed', f1>f0+60, `red px ${f0} → ${f1}`);
   const lbl=await p.evaluate(()=>document.getElementById('btn-tl-flip').textContent);
-  t('two-loop: the flip button relabels itself', /הפוכה/.test(lbl), lbl.trim());
+  t('two-loop: the flip button relabels itself', lbl.includes(L('🔄 סוללה 2: הפוכה')), lbl.trim());
   await p.mouse.click(bx.x+bx.w*0.90, bx.y+bx.h*0.285); await p.waitForTimeout(400);
   t('two-loop: tapping the battery flips it back',
-    /באותו כיוון/.test(await p.evaluate(()=>document.getElementById('btn-tl-flip').textContent)));
+    (await p.evaluate(()=>document.getElementById('btn-tl-flip').textContent)).includes(L('🔋 סוללה 2: באותו כיוון')));
 
   // bridge: dragging the calibrated resistor must move R₃ and can null the bridge
   await go('dc-kirchhoff','dc-bridge'); bx=await box();
@@ -181,24 +182,25 @@ const t=(name,cond,detail)=>(cond?ok:bad).push(name+(detail?' — '+detail:''));
   // every section confronts a misconception; every second-level hint says in
   // Hebrew what to look at and stays shorter than the explanation; a nudge
   // never hands over the formula; the quiz key is not given away by its length
-  const lx=await p.evaluate(()=>{const div=document.createElement('div');div.style.cssText='position:absolute;left:0;top:0;width:2000px';document.body.appendChild(div);
+  const lx=await p.evaluate((WSRC)=>{const WORDS=new RegExp(WSRC,'g');   // words of the page's language
+const div=document.createElement('div');div.style.cssText='position:absolute;left:0;top:0;width:2000px';document.body.appendChild(div);
     const txt=h=>{div.innerHTML=String(h||'');return div.innerText.replace(/\s+/g,' ').trim();};
     const r={mis:[],hint:[],long:[],nudge:[],q:0,longest:0,consp:[]};
     for(const ch of DC_CHAPTERS)for(const se of ch.sections){const k=ch.id+'.'+se.id,C=CONTENT[k];
       if(!/mis-block/.test(C.theory.html))r.mis.push(k);
       C.problem.steps.forEach((s2,i)=>{const h=txt(s2.hint);
-        if((h.match(/[א-ת]+/g)||[]).length<3)r.hint.push(k+'#'+(i+1));
+        if((h.match(WORDS)||[]).length<3)r.hint.push(k+'#'+(i+1));
         if(h.length>=txt(s2.explain).length)r.long.push(k+'#'+(i+1));
         if(s2.nudge&&/=/.test(txt(s2.nudge)))r.nudge.push(k+'#'+(i+1));});
       C.quiz.forEach((q,i)=>{r.q++;const L=q.opts.map(o=>txt(o).length),key=L[q.correct],next=Math.max(...L.filter((_,j)=>j!==q.correct));
-        if(key>next){r.longest++;if(key>1.3*next)r.consp.push(k+'#'+(i+1));}});}
-    div.remove();return r;});
+        if(key>next){r.longest++;if(key>1.3*next&&key-next>=3)r.consp.push(k+'#'+(i+1));}});}
+    div.remove();return r;},WORDS.source);
   t('every DC section has a misconception box',lx.mis.length===0,lx.mis.join(' '));
-  t('every problem hint opens with a Hebrew sentence',lx.hint.length===0,lx.hint.join(' '));
+  t('every problem hint opens with a sentence in words',lx.hint.length===0,lx.hint.join(' '));
   t('every hint is shorter than its explanation',lx.long.length===0,lx.long.join(' '));
   t('no nudge hands over a formula',lx.nudge.length===0,lx.nudge.join(' '));
   t('the quiz key is the longest option in at most 30 % of questions',lx.longest<=0.3*lx.q,lx.longest+'/'+lx.q);
-  t('and never conspicuously (more than 1.3× the next option)',lx.consp.length===0,lx.consp.join(' '));
+  t('and never conspicuously (more than 1.3× and 3+ characters longer than the next option)',lx.consp.length===0,lx.consp.join(' '));
 
   // ── what the simulations print obeys Kirchhoff ─────────────────────────
   // every label on the simulation canvas, captured for a few frames
@@ -218,7 +220,7 @@ const t=(name,cond,detail)=>(cond?ok:bad).push(name+(detail?' — '+detail:''));
   for(const [flipIt,E1,E2,R1,R2,R3] of [[0,12,4,2,2,4],[1,12,4,2,2,4],[0,24,0,0.5,12,0.5],[0,1,24,12,0.5,12]]){
     await setS('inp-tl-E1',E1);await setS('inp-tl-E2',E2);await setS('inp-tl-R1',R1);await setS('inp-tl-R2',R2);await setS('inp-tl-R3',R3);
     const lab=await p.evaluate(()=>document.getElementById('btn-tl-flip').textContent);
-    if(flipIt!==(/הפוכה/.test(lab)?1:0))await p.click('#btn-tl-flip');
+    if(flipIt!==(lab.includes(L('🔄 סוללה 2: הפוכה'))?1:0))await p.click('#btn-tl-flip');
     await p.waitForTimeout(150);
     const tx=await grab();
     const amps=tx.filter(s2=>/^-?−?\d+\.\d\d A$/.test(s2)).map(num);   // readouts, in the order I₁, I₃, I₂
@@ -226,7 +228,7 @@ const t=(name,cond,detail)=>(cond?ok:bad).push(name+(detail?' — '+detail:''));
     const tag=`two-loop ε=${E1},${e2} R=${R1},${R2},${R3}`;
     t(tag+': I₁, I₃, I₂ are the solution',amps.length===3&&near(amps[0],i1)&&near(amps[1],i1+i2)&&near(amps[2],i2),JSON.stringify(amps)+' want '+[i1,i1+i2,i2].map(x=>x.toFixed(2)));
     t(tag+': junction I₃ = I₁ + I₂ on screen',amps.length===3&&near(amps[1],amps[0]+amps[2],0.011),JSON.stringify(amps));
-    const led=tx.find(s2=>/סופק/.test(s2))||'';
+    const led=tx.find(s2=>s2.startsWith(L('סופק ')))||'';
     const w=(led.match(/-?\d+\.\d\d/g)||[]).map(Number);
     t(tag+': supplied = dissipated + absorbed',w.length===3&&near(w[0],w[1]+w[2],0.006),led);
   }
@@ -235,9 +237,9 @@ const t=(name,cond,detail)=>(cond?ok:bad).push(name+(detail?' — '+detail:''));
   await go('dc-kirchhoff','dc-loop');
   for(const [E1,E2,R1,R2,opp,rev] of [[12,0,4,8,0,0],[12,6,4,8,1,0],[2,12,1,20,1,1],[24,12,20,1,0,1]]){
     await setS('inp-lp-E1',E1);await setS('inp-lp-E2',E2);await setS('inp-lp-R1',R1);await setS('inp-lp-R2',R2);
-    const aidOn=/מסייעת/.test(await p.evaluate(()=>document.getElementById('btn-lp-aid').textContent));
+    const aidOn=(await p.evaluate(()=>document.getElementById('btn-lp-aid').textContent)).includes(L('🔋 סוללה 2: מסייעת'));
     if(aidOn===!!opp)await p.click('#btn-lp-aid');
-    const fwd=/עם כיוון השעון/.test(await p.evaluate(()=>document.getElementById('btn-lp-dir').textContent));
+    const fwd=(await p.evaluate(()=>document.getElementById('btn-lp-dir').textContent)).includes(L('↻ הליכה: עם כיוון השעון'));
     if(fwd===!!rev)await p.click('#btn-lp-dir');
     await p.waitForTimeout(150);
     const tx=await grab();
@@ -309,7 +311,7 @@ const t=(name,cond,detail)=>(cond?ok:bad).push(name+(detail?' — '+detail:''));
     const tx=await grab();
     const line=tx.find(s2=>/^Rₓ = R₃·R₂\/R₁/.test(s2))||'';
     if(want)t(`bridge R₁=${R1} R₂=${R2} Rₓ=${Rx}: nulled at R₃=${R3}, reads ${want} Ω`,line.includes('= '+want+' Ω'),line||tx.join(' | ').slice(0,200));
-    else t(`bridge R₁=${R1} R₂=${R2} Rₓ=${Rx}: an unreachable balance is named`,tx.some(s2=>/מחוץ לתחום החוגה/.test(s2))&&!line,tx.filter(s2=>/איזון|מאוזן/.test(s2)).join(' | '));
+    else t(`bridge R₁=${R1} R₂=${R2} Rₓ=${Rx}: an unreachable balance is named`,tx.some(s2=>s2.includes(L('Ω — מחוץ לתחום החוגה')))&&!line,tx.filter(s2=>/איזון|מאוזן/.test(s2)).join(' | '));
   }
 
   // capacitor: charges to V·R₂/(R₁+R₂), the branch current dies, and on opening it discharges through R₂

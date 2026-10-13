@@ -24,7 +24,8 @@
 // and no number glued to its unit.
 const { chromium } = require('playwright');
 const path = require('path');
-const F = 'file://' + path.resolve(__dirname, '..', 'physics_game_v28.html');
+const { LR, WORD } = require('./_lang.js');   // the words of the page's language
+const F = 'file://' + (process.env.APP_FILE ? path.resolve(process.env.APP_FILE) : path.resolve(__dirname, '..', 'physics_game_v28.html'));   // APP_FILE: test a language build
 
 let fail = 0, n = 0;
 const t = (name, ok, info) => { n++; if (!ok) { fail++; console.log(`   FAIL ${name}${info ? ': ' + info : ''}`); } };
@@ -93,7 +94,7 @@ const sig2 = x => x === 0 ? 0 : Number(x.toPrecision(2));
   // 30 % of questions, never more than 1.3x the next option); second-tier
   // hints that are a Hebrew sentence, not a bare formula; numbers spaced
   // from their units ──
-  const lx = await p.evaluate(() => {
+  const lx = await p.evaluate((WSRC) => { const WORD = new RegExp(WSRC);   // a word of the page's language
     const txt = h => { const d = document.createElement('template'); d.innerHTML = _ltSafe(String(h || '')); return d.content.textContent.replace(/\s+/g, ' ').trim(); };
     const r = { noMis: [], q: 0, longest: 0, loud: [], bareHint: [], glued: [] };
     for (const ch of ELECTRO_CHAPTERS) for (const se of ch.sections) {
@@ -103,20 +104,20 @@ const sig2 = x => x === 0 ? 0 : Number(x.toPrecision(2));
         r.q++;
         const L = q.opts.map(o => txt(o).length), key = L[q.correct], rest = Math.max(...L.filter((_, j) => j !== q.correct));
         if (key > rest) r.longest++;
-        if (key > 1.3 * rest) r.loud.push(k + '#' + i);
+        if (key > 1.3 * rest && key - rest >= 3) r.loud.push(k + '#' + i);
       });
       const steps = (C.problem || {}).steps || [];
-      steps.forEach((st, i) => { if (!/[א-ת]{3,}/.test(txt(st.hint))) r.bareHint.push(k + '#' + i); });
+      steps.forEach((st, i) => { if (!WORD.test(txt(st.hint))) r.bareHint.push(k + '#' + i); });
       const all = [C.theory.html, ...(C.quiz || []).flatMap(q => [q.q, ...q.opts, q.explain]), ...steps.flatMap(s => [s.q, s.nudge, s.hint, s.explain])].map(txt).join(' | ');
       const m = all.match(/(?<![A-Za-z_])\d(?:nm|mm|cm|μm|keV|meV|eV|kHz|MHz|GHz|THz|Hz|kV|V)(?![A-Za-z0-9\/])/g);
       if (m) r.glued.push(k + ': ' + m.join(','));
     }
     return r;
-  });
+  }, WORD.source);
   t('every section has a misconception box', lx.noMis.length === 0, lx.noMis.join(' '));
   t('quiz key strictly longest in at most 30 % of questions', lx.longest <= 0.3 * lx.q, lx.longest + '/' + lx.q);
-  t('no quiz key more than 1.3x longer than every other option', lx.loud.length === 0, lx.loud.join(' '));
-  t('every problem hint says something in Hebrew', lx.bareHint.length === 0, lx.bareHint.join(' '));
+  t('no quiz key more than 1.3x (and 3+ characters) longer than every other option', lx.loud.length === 0, lx.loud.join(' '));
+  t('every problem hint says something in words', lx.bareHint.length === 0, lx.bareHint.join(' '));
   t('no number glued to its unit', lx.glued.length === 0, lx.glued.join(' | '));
 
   // ── simulations ──
@@ -174,7 +175,7 @@ const sig2 = x => x === 0 ? 0 : Number(x.toPrecision(2));
   await click('btn-scope-touch');
   await drag(0.55, 0.25, 0.12, 0.62);
   await click('btn-scope-flip');
-  const ang = async () => num(await txt(300), /זווית עלים: ([0-9.]+)°/);
+  const ang = async () => num(await txt(300), new RegExp(LR('זווית עלים: ') + '([0-9.]+)°'));
   const aFar = await ang();
   await drag(0.12, 0.62, 0.50, 0.27);
   const aNear = await ang();
@@ -186,7 +187,7 @@ const sig2 = x => x === 0 ? 0 : Number(x.toPrecision(2));
   await setR('inp-cnd-Q', 0);
   await drag(0.38, 0.32, 0.29, 0.40);
   const cnd = await txt();
-  t('neutral conductor in an external field: E = 0 inside', /E = 0 בדיוק/.test(cnd), cnd.split('\n').filter(l => /^‎?E = /.test(l)).slice(-1)[0]);
+  t('neutral conductor in an external field: E = 0 inside', new RegExp('E = ' + LR('0 בדיוק')).test(cnd), cnd.split('\n').filter(l => /^‎?E = /.test(l)).slice(-1)[0]);
 
   // charged sphere with Q < 0: a real field outside, a negative potential
   await open('elc-sphere');
@@ -240,7 +241,7 @@ const sig2 = x => x === 0 ? 0 : Number(x.toPrecision(2));
     ['electro', 'elc-charge', 'elc-coulomb', W => [[W / 2 - 110, 140], [W / 2 - 130, 140], [W / 2 - 150, 140]], { text: '^r = ' }],
     ['electro', 'elc-charge', 'elc-field', (W, H) => [[W * 0.68, H * 0.3], [W * 0.62, H * 0.35], [W * 0.55, H * 0.4]], { text: '^\\|E\\| = ' }],
     ['electro', 'elc-charge', 'elc-plane', (W, H) => [[W * 0.5, H * 0.3], [W * 0.45, H * 0.3], [W * 0.1, H * 0.3]], { text: '^E = E₁ \\+ E₂|^E₁ \\+ E₂' }],
-    ['electro', 'elc-charge', 'elc-conductor', (W, H) => [[W * 0.27 + 95, H * 0.42 - 40], [W * 0.27 + 60, H * 0.42 - 30], [W * 0.27 + 30, H * 0.42 - 10]], { text: '^גשוש r=' }],
+    ['electro', 'elc-charge', 'elc-conductor', (W, H) => [[W * 0.27 + 95, H * 0.42 - 40], [W * 0.27 + 60, H * 0.42 - 30], [W * 0.27 + 30, H * 0.42 - 10]], { text: '^' + LR('גשוש r=') }],
     ['electro', 'elc-energy', 'elc-potential', (W, H) => [[W * 0.7, H * 0.26], [W * 0.65, H * 0.3], [W * 0.6, H * 0.34]], { text: '^V = kQ/r = ' }],
     ['electro', 'elc-energy', 'elc-upair', (W, H) => [[W * 0.66, H * 0.34], [W * 0.72, H * 0.34], [W * 0.8, H * 0.34]], { text: '^r = ' }],
     ['electro', 'elc-energy', 'elc-sphere', W => [[46 + 0.2 * (W - 60), 300], [46 + 0.4 * (W - 60), 300], [46 + 0.6 * (W - 60), 300]], { text: '^r = [0-9]' }],

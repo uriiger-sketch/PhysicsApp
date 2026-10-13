@@ -19,7 +19,8 @@
 // 4) The learning-experience standards of tests/mech_learning.js.
 const { chromium } = require('playwright');
 const path = require('path');
-const F = 'file://' + path.resolve(__dirname, '..', 'physics_game_v28.html');
+const { L, LR } = require('./_lang.js');   // the words of the page's language
+const F = 'file://' + (process.env.APP_FILE ? path.resolve(process.env.APP_FILE) : path.resolve(__dirname, '..', 'physics_game_v28.html'));   // APP_FILE: test a language build
 
 let fail = 0, n = 0;
 const t = (name, ok, info) => { n++; if (!ok) { fail++; console.log(`   FAIL ${name}${info !== undefined ? ': ' + info : ''}`); } else if (process.env.VERBOSE) console.log(`   PASS ${name}${info !== undefined ? ': ' + info : ''}`); };
@@ -46,7 +47,7 @@ const EXPECT = {
   'newton2.n2-law': { v: [60 - 24, (60 - 24) / 15, (60 - 24) / 15 * 5], W: [[84], [4, 5.6], [20]] },
   'newton2.n2-apps': { v: [2 * 10 * 0.8, 10 * (0.6 + 0.2 * 0.8), 7.6 ** 2 / (2 * 10 * (0.6 + 0.2 * 0.8))], W: [[20, 12], [4.4, 6], [7.6 ** 2 / 8.8]] },
   'newton2.n2-atwood': { v: [(6 - 4) * 10 / 10, 2 * 4 * 6 * 10 / 10, Math.sqrt(2 * 2 * 2)], W: [[10, 3.33], [60, 40], [8, 4]] },
-  'forces2.gravity-force': { v: [55 * 9.8, 55 * 3.72, 'לא'], W: [[55], [89.1, 539], ['כן']] },
+  'forces2.gravity-force': { v: [55 * 9.8, 55 * 3.72, L('לא')], W: [[55], [89.1, 539], [L('כן')]] },
   'forces2.static-friction': { v: [8 * 10, 0.45 * 80, 0.45 * (8 + 4) * 10], W: [[8], [80, 3.6], [36, 18]] },
   'forces2.kinetic-friction': { v: [0.4 * 5 * 10, -0.4 * 10, 12 ** 2 / (2 * 0.4 * 10)], W: [[2], [4, -20], [36]] },
   'forces2.friction-combined': { v: [0.5 * 60, 28, (40 - 0.3 * 60) / 6], W: [[18], [30], [(40 - 30) / 6, 40 / 6]] },
@@ -157,7 +158,7 @@ const EXPECT = {
   t('free fall: g starts at 9.8', await p.evaluate(() => document.getElementById('inp-ff-g').value) === '9.8');
   for (const [v0, g] of [[18, 9.8], [12, 1.6]]) {
     await set('v0', v0); await set('ff-g', g); await fresh(); await p.waitForTimeout(250);
-    const hm = nums(await last('^hₘₐₓ = '))[0], tu = nums(await last('^זמן עלייה = זמן ירידה = '))[0];
+    const hm = nums(await last('^hₘₐₓ = '))[0], tu = nums(await last('^' + LR('זמן עלייה = זמן ירידה = ')))[0];
     t(`free fall v0 = ${v0}, g = ${g}: hmax = v0²/2g and t_up = v0/g`, close(hm, v0 * v0 / 2 / g, 0.06) && close(tu, v0 / g, 0.006), hm + ' m, ' + tu + ' s');
   }
 
@@ -165,7 +166,7 @@ const EXPECT = {
   await p.waitForTimeout(1500);
   const dts = (await all('^Δt = ')).map(s => nums(s)[0]);
   const gaps = (await all('^\\|v̄ − v\\(t₀\\)\\| = ')).map(s => nums(s)[1] !== undefined ? nums(s).pop() : nums(s)[0]);
-  const vi = nums(await last('^משיק: ')).pop();
+  const vi = nums(await last('^' + LR('משיק:  v(t₀) = '))).pop();
   const pairs = Math.min(dts.length, gaps.length);
   t('average velocity on x = 1.5t²: v(t0) = 2k·t0 = 3.6 m/s', close(vi, 3.6, 0.0005), vi);
   t('... and the chord exceeds the tangent by exactly kΔt', pairs > 10 && [...Array(pairs).keys()].every(i => close(gaps[i], 1.5 * dts[i], 0.0025)), pairs + ' frames');
@@ -198,7 +199,7 @@ const EXPECT = {
 
   await open('forces.tension');
   await set('ten-ea', 2); await fresh(); await p.waitForTimeout(300);
-  const at = await last('^אטווד: '), el = await last('^במעלית: ');
+  const at = await last('^' + LR('אטווד:  a = ')), el = await last('^' + LR('במעלית:  T = m(g + a) = '));
   const g = 9.8, A1 = (5 - 3) * g / 8, T1 = 2 * 3 * 5 * g / 8;
   t('tension: Atwood a and T, the lift T = m(g + a)', close(nums(at)[0], A1, 0.006) && close(nums(at).pop(), T1, 0.06) && close(nums(el).pop(), 3 * (g + 2), 0.06), at + ' | ' + el);
 
