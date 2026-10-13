@@ -6,7 +6,8 @@
 // A simulation or animation label that does not fit the canvas is not drawn
 // (_fitLabel returns null), so a translation longer than its Hebrew can make a
 // label silently disappear. This opens every section's simulation and theory,
-// at phone and desktop width, in the master and in the edition, records every
+// at phone and desktop width — and every slider at both ends — in the master
+// and in the edition, records every
 // label that was dropped, and fails where the edition drops more labels than
 // the Hebrew does in the same view.
 const { chromium } = require('playwright');
@@ -34,6 +35,12 @@ async function drops(b, url, width) {
       for (const c of chs) for (const x of c.sections) for (const tab of ['sim', 'theory']) {
         state.subject = s; state.chapter = c.id; state.section = x.id; state.tab = tab; render();
         rec = new Set(); await wait(tab === 'sim' ? 900 : 1200);
+        // every slider at its two ends: the states where captions change
+        if (tab === 'sim') for (const r of [...document.querySelectorAll('#app input[type=range]')]) {
+          const v0 = r.value;
+          for (const v of [r.min, r.max]) { r.value = v; r.dispatchEvent(new Event('input', { bubbles: true })); await wait(260); }
+          r.value = v0; r.dispatchEvent(new Event('input', { bubbles: true })); await wait(60);
+        }
         o[c.id + '.' + x.id + '/' + tab] = [...rec]; rec = null;
       }
     return o;
