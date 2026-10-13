@@ -17181,6 +17181,33 @@ function _splitHalf(t){
       if(sc<bs){bs=sc;c1=sep===' '?i:i+sep.length-1;c2=i+sep.length;}}});
   return c1<0?null:[t.slice(0,c1).trim(),t.slice(c2).trim()];
 }
+// The centre of an arrow's name (w by h, drawn centred as optLabel draws) at
+// the arrow's head: just beyond the head along the arrow, so no part of the
+// text lies on the shaft -- or, where the canvas has no room there, beside
+// the last stretch of the arrow on whichever side has room.
+function _tipSpot(x1,y1,x2,y2,w,h,W,H,gap){
+  var L=Math.hypot(x2-x1,y2-y1)||1,ux=(x2-x1)/L,uy=(y2-y1)/L,nx=-uy,ny=ux;gap=gap||6;
+  var ok=function(c){return c.x-w/2>=3&&c.x+w/2<=W-3&&c.y-h/2>=3&&c.y+h/2<=H-3;};
+  var d=gap+w/2*Math.abs(ux)+h/2*Math.abs(uy),c0={x:x2+ux*d,y:y2+uy*d};
+  if(ok(c0))return c0;
+  // beside it: pulled inside the canvas, and kept only if the shaft stays clear
+  var e=gap+w/2*Math.abs(nx)+h/2*Math.abs(ny),b=Math.min(L/2,w/2*Math.abs(ux)+h/2*Math.abs(uy));
+  var cl=function(c){return {x:Math.max(3+w/2,Math.min(W-3-w/2,c.x)),y:Math.max(3+h/2,Math.min(H-3-h/2,c.y))};};
+  var free=function(c){return !_segHitsBox([x1,y1,x2,y2],[c.x-w/2,c.y-h/2,c.x+w/2,c.y+h/2],2);};
+  var cs=[1,-1].map(function(s){return cl({x:x2+s*nx*e-ux*b,y:y2+s*ny*e-uy*b});}).filter(free)
+    .sort(function(p,q){return p.y-q.y;});                   // above the arrow, where both fit
+  return cs.length?cs[0]:cl(c0);
+}
+// A text cut in two lines at the space that makes the longer line the
+// shortest, measured in the context's current font; null for one word.
+function _splitBal(ctx,t){
+  var best=null,bw=1e9;
+  for(var i=t.indexOf(' ');i>0;i=t.indexOf(' ',i+1)){
+    var a=t.slice(0,i).trim(),b=t.slice(i+1).trim();if(!a||!b)continue;
+    var w=Math.max(ctx.measureText(_mathIso(a)).width,ctx.measureText(_mathIso(b)).width);
+    if(w<bw){bw=w;best=[a,b];}}
+  return best;
+}
 // The width an info box needs for its lines at their own size.
 function optInfoBoxW(ctx,lines){
   ctx.save();ctx.font='9px Heebo,sans-serif';var m=0;
@@ -17705,11 +17732,17 @@ function _optMirrorSim(canvas,P){
     var mLbl=concave?'מראה קעורה':'מראה קמורה',mLy=cy+AP+12;   // drawn once the bottom rows are known
     // F and C: in front for concave (real), behind for convex (virtual)
     var sgn=concave?-1:1, Fx=mx+sgn*fpx, Cx=mx+sgn*R;
+    var virt=isFinite(diV)&&diV<0, ix=mx-diV*k, iy=cy-mV*objH;
+    var imgOn=isFinite(diV)&&ix>8&&ix<W-8&&Math.abs(iy-cy)<cy-6;
     [{x:Fx,l:concave?'F':'F (מדומה)'},{x:Cx,l:concave?'C':'C (מדומה)'}].forEach(function(q,qi){
       if(q.x<6||q.x>W-6)return;
       ctx.save();ctx.strokeStyle=qi?'#94a3b8':'#f59e0b';ctx.lineWidth=2;if(!concave)ctx.setLineDash([3,3]);
       ctx.beginPath();ctx.moveTo(q.x,cy-8);ctx.lineTo(q.x,cy+8);ctx.stroke();ctx.restore();
-      optLabel(ctx,q.l,q.x,cy+20,qi?'#94a3b8':'#f59e0b',10);
+      // a name the image would stand on (C at dₒ = 2f: the image is on C,
+      // under the object) goes to the right of its tick
+      ctx.save();ctx.font='10px Heebo,sans-serif';var qW=ctx.measureText(_mathIso(q.l)).width;ctx.restore();
+      var onImg=imgOn&&Math.abs(ix-q.x)<qW/2+9&&Math.min(cy,iy)<cy+26&&Math.max(cy,iy)>cy+14;
+      optLabel(ctx,q.l,onImg?ix+9+qW/2:q.x,cy+20,qi?'#94a3b8':'#f59e0b',10);
     });
     // object
     var ox=mx-doV*k,ty=cy-objH;
@@ -17723,9 +17756,7 @@ function _optMirrorSim(canvas,P){
     if(concave&&Math.abs(ox-Cx)<oW)optLabel(ctx,oTx,ox-12,cy+14,'#60a5fa',10,'right');
     else optLabel(ctx,oTx,ox,(concave&&Math.abs(ox-Fx)<oW)?cy+34:cy+14,'#60a5fa',10);
     if(!hasDragged&&animT<7)optLabel(ctx,'✋ גררו את העצם',ox,ty-22+Math.sin(animT*4)*3,'#fbbf24',10);
-    // image
-    var virt=isFinite(diV)&&diV<0, ix=mx-diV*k, iy=cy-mV*objH;
-    var imgOn=isFinite(diV)&&ix>8&&ix<W-8&&Math.abs(iy-cy)<cy-6;
+    // image (its place is worked out above, with F and C)
     var C1='rgba(251,191,36,.8)',C2='rgba(167,139,250,.8)',C3='rgba(52,211,153,.8)';
     var used=[];
     // ray A: parallel to the axis → reflects through F (or away from virtual F)
@@ -18896,11 +18927,16 @@ function simOptYoungs(canvas){
       yy2===6?ctx.moveTo(xx,yy2):ctx.lineTo(xx,yy2);
     }
     ctx.stroke();ctx.restore();
-    optLabel(ctx,'I(y)',scrX-56,16,'#7d8da6',8);
     // Screen frame (draggable → L)
     ctx.save();ctx.strokeStyle='rgba(148,163,184,.5)';ctx.lineWidth=1.5;
     ctx.strokeRect(scrX-8,6,16,H-12);ctx.restore();
-    optLabel(ctx,'מסך ↔ L='+v.L.toFixed(2)+'m',scrX,H-10,'#94a3b8',9);
+    // The screen's name goes beside the verdict panel where the panel (drawn
+    // later) would cover it -- the screen near the slits, on a phone -- or,
+    // with no room there either, just above the panel.
+    var scT='מסך ↔ L='+v.L.toFixed(2)+'m';ctx.save();ctx.font='9px Heebo,sans-serif';var scW=ctx.measureText(_mathIso(scT)).width;ctx.restore();
+    var scX=scrX,scY=H-10;
+    if(scX-scW/2<246+4){scX=Math.min(Math.max(scX,252+scW/2),W-4-scW/2);if(scX-scW/2<250){scX=scrX;scY=H-88;}}
+    optLabel(ctx,scT,scX,scY,'#94a3b8',9);
     // Δy bracket
     if(DyPx>H*0.44){
       optLabel(ctx,'\u200eΔy = '+(c.Dy_m*1000).toFixed(2)+' mm — רחב מהמסך',scrX-92,cy-H*0.30,'#fbbf24',8.5);
@@ -18929,8 +18965,12 @@ function simOptYoungs(canvas){
     ctx.strokeStyle='rgba(34,211,238,.75)';
     ctx.beginPath();ctx.moveTo(slitX,s2y);ctx.lineTo(scrX-8,detY);ctx.stroke();
     ctx.setLineDash([]);ctx.restore();
-    optLabel(ctx,'r₁',slitX+(scrX-slitX)*0.45,s1y+(detY-s1y)*0.45-10,'#fbbf24',9);
-    optLabel(ctx,'r₂',slitX+(scrX-slitX)*0.45,s2y+(detY-s2y)*0.45+12,'#22d3ee',9);
+    // r₁ and r₂ are named a little way along their rays -- far enough to clear
+    // "d=…mm ↕" beside the slits, which r₂ ran into with the screen near them
+    ctx.save();ctx.font='9px Heebo,sans-serif';var dEnd=slitX+26+ctx.measureText(_mathIso('d='+v.d.toFixed(2)+'mm ↕')).width/2;ctx.restore();
+    var rf=Math.min(0.75,Math.max(0.45,(dEnd+10-slitX)/Math.max(1,scrX-slitX)));
+    optLabel(ctx,'r₁',slitX+(scrX-slitX)*rf,s1y+(detY-s1y)*rf-10,'#fbbf24',9);
+    optLabel(ctx,'r₂',slitX+(scrX-slitX)*rf,s2y+(detY-s2y)*rf+12,'#22d3ee',9);
     // detector marker
     ctx.save();ctx.fillStyle=kCol;optGlow(ctx,kCol,14);
     ctx.beginPath();ctx.arc(scrX+16,detY,8,0,Math.PI*2);ctx.fill();optNoGlow(ctx);
@@ -18944,7 +18984,11 @@ function simOptYoungs(canvas){
     optLabel(ctx,'גלאי: y = '+(y_m*1000).toFixed(2)+' mm',127,H-62,'#e2e8f0',10);
     optLabel(ctx,'Δ = r₂−r₁ = '+mVal.toFixed(2)+'λ',127,H-45,kCol,11);
     optLabel(ctx,kind==='max'?'התאבכות בונה — פס בהיר (m='+mR+')':kind==='min'?'התאבכות הורסת — פס כהה':'בין מקסימום למינימום',127,H-26,kCol,9.5);
-    optInfoBox(ctx,8,8,176,['λ='+v.lambda+'nm','d='+v.d.toFixed(2)+'mm  (גררו סדק)','L='+v.L.toFixed(2)+'m  (גררו מסך)','Δy=λL/d='+(c.Dy_m*1000).toFixed(2)+'mm']);
+    var ib=optInfoBox(ctx,8,8,176,['λ='+v.lambda+'nm','d='+v.d.toFixed(2)+'mm  (גררו סדק)','L='+v.L.toFixed(2)+'m  (גררו מסך)','Δy=λL/d='+(c.Dy_m*1000).toFixed(2)+'mm']);
+    // I(y) names its curve at the top -- or just under the info box, which
+    // covered that spot (and "λ=500nm") whenever the screen stood near the slits
+    ctx.save();ctx.font='8px Heebo,sans-serif';var iyW=ctx.measureText('I(y)').width;ctx.restore();
+    optLabel(ctx,'I(y)',scrX-56,scrX-56-iyW/2<ib.x+ib.w+3?ib.y+ib.h+10:16,'#7d8da6',8);
     requestAnimationFrame(draw);
   }
   function poll(){if(_simStop[id])return;requestAnimationFrame(draw);}poll();
@@ -20447,6 +20491,50 @@ function label(ctx,txt,x,y,col,sz,align){
   if(fx!==null)ctx.fillText(txt,fx,_fitY(ctx,y,sz));
   ctx.restore();
 }
+// The width label() gives a text (its 9 px floor included), so that a layout
+// can make room for a label -- in whatever language it is -- before drawing it.
+function labelW(ctx,txt,sz){
+  if(sz===undefined)sz=11; if(sz<9)sz=9;
+  ctx.save();ctx.font=sz+'px Heebo';var w=ctx.measureText(_mathIso(_cvSub(String(txt)))).width;ctx.restore();
+  return w;
+}
+// Two labels on one row, each centred over its own object (a left of b) while
+// there is room; nearer than their widths allow, they move apart by equal
+// steps -- and never past an edge of the canvas. Returns the two centres.
+function _spread2(xa,wa,xb,wb,gap,W){
+  var need=(wa+wb)/2+gap,d=xb-xa;
+  if(d<need){xa-=(need-d)/2;xb+=(need-d)/2;}
+  if(xa<4+wa/2){xb+=4+wa/2-xa;xa=4+wa/2;}
+  if(xb>W-4-wb/2){xa-=xb-(W-4-wb/2);xb=W-4-wb/2;}
+  return [xa,xb];
+}
+function _boxOver(a,b,p){var ox=Math.min(a[2],b[2])-Math.max(a[0],b[0])+p,oy=Math.min(a[3],b[3])-Math.max(a[1],b[1])+p;return ox>0&&oy>0?ox*oy:0;}
+function _segHitsBox(g,b,p){
+  var n=Math.max(2,Math.ceil(Math.hypot(g[2]-g[0],g[3]-g[1])/2));
+  for(var i=0;i<=n;i++){var x=g[0]+(g[2]-g[0])*i/n,y=g[1]+(g[3]-g[1])*i/n;
+    if(x>b[0]-p&&x<b[2]+p&&y>b[1]-p&&y<b[3]+p)return true;}
+  return false;
+}
+// A label that moves with its drawing (a turning vector) goes, frame by frame,
+// to the first of its candidate spots whose box keeps clear of the boxes in
+// keep (other labels, panels), of the segments in segs ([x1,y1,x2,y2,cost]:
+// an arrow, a dashed line) and of the canvas edges -- or, where none does, to
+// the one that costs least: lying on a dashed line costs less than lying on
+// an arrow, and that less than lying on another text. A candidate is what
+// label() takes: {x, y (baseline), al}. Returns it, with its box [x0,y0,x1,y1].
+function labelSpot(ctx,txt,sz,cands,keep,segs,W,H){
+  var w=labelW(ctx,txt,sz),s=Math.max(9,sz||11),best=null,bs=1e9;
+  for(var i=0;i<cands.length;i++){
+    var c=cands[i],al=c.al||'center',x0=al==='left'?c.x:al==='right'?c.x-w:c.x-w/2;
+    var b=[x0,c.y-s*0.75,x0+w,c.y+s*0.25],sc=0;
+    if(b[0]<3||b[2]>W-3||b[1]<1||b[3]>H-1)sc+=5000;
+    (keep||[]).forEach(function(k){var o=_boxOver(b,k,3);if(o)sc+=300+o*5;});
+    (segs||[]).forEach(function(g){if(_segHitsBox(g,b,3))sc+=g[4]||200;});
+    if(sc===0)return {x:c.x,y:c.y,al:al,box:b};
+    if(sc<bs){bs=sc;best={x:c.x,y:c.y,al:al,box:b};}
+  }
+  return best;
+}
 function circle(ctx,x,y,r,fill,stroke,lw){
   if(stroke===undefined)stroke=''; if(lw===undefined)lw=2;
   ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fillStyle=fill;ctx.fill();
@@ -21868,14 +21956,20 @@ runAnim('anim-accel',(canvas,ctx,W,H,t)=>{
   for(let i=1;i<=5;i++){const ti=i/5*PERIOD;const xi=0.5*a*ti*ti;const spx=toXpx(xi);ctx.save();ctx.strokeStyle='rgba(139,92,246,.25)';ctx.lineWidth=1;ctx.setLineDash([2,3]);ctx.beginPath();ctx.moveTo(spx,ay-16);ctx.lineTo(spx,ay+6);ctx.stroke();ctx.setLineDash([]);ctx.restore();}
   // v arrow
   const arVLen=Math.min(vv*7,78);
-  if(arVLen>3){arrow(ctx,bx,ay-22,bx+arVLen,ay-22,'#34d399',2.5,10);label(ctx,'v = '+vv.toFixed(1)+' m/s',bx+arVLen+4,ay-18,'#34d399',9,'left');}
+  // each arrow is named past its head -- or, near the end of the run, where
+  // that would leave the canvas (the name was pushed back onto the arrow),
+  // behind the ball
+  const tipLbl=(txt,x,y,col)=>{if(x+labelW(ctx,txt,9)>R+12)label(ctx,txt,bx-16,y,col,9,'right');else label(ctx,txt,x,y,col,9,'left');};
+  if(arVLen>3){arrow(ctx,bx,ay-22,bx+arVLen,ay-22,'#34d399',2.5,10);tipLbl('v = '+vv.toFixed(1)+' m/s',bx+arVLen+4,ay-18,'#34d399');}
   // a arrow
   arrow(ctx,bx,ay+20,bx+a*7,ay+20,'#f59e0b',2.5,9);
-  label(ctx,'a = '+a+' m/s²',bx+a*7+4,ay+24,'#f59e0b',9,'left');
+  tipLbl('a = '+a+' m/s²',bx+a*7+4,ay+24,'#f59e0b');
   // Ball
   ctx.save(); ctx.shadowColor='rgba(99,102,241,.7)'; ctx.shadowBlur=12;
   circle(ctx,bx,ay,12,'#4f46e5','#a78bfa',2); ctx.restore();
-  label(ctx,'t = '+tt.toFixed(2)+' s',L+2,panH-4,'#94a3b8',9,'left');
+  // the clock reads at the top: at the panel's foot it was on the row of the
+  // a label, which rides with the ball and ran into it for the first second
+  label(ctx,'t = '+tt.toFixed(2)+' s',L+2,12,'#94a3b8',9,'left');
   // Dual graphs
   const grT=panH+6, grB=H-5, gW2=Math.floor((W-36)/2);
   // v(t)
@@ -21934,7 +22028,8 @@ runAnim('anim-fall',(canvas,ctx,W,H,t)=>{
   // y axis
   ctx.save(); ctx.strokeStyle='#2d5275'; ctx.lineWidth=1.5;
   ctx.beginPath(); ctx.moveTo(26,groundY+3); ctx.lineTo(26,ceilY-2); ctx.stroke(); ctx.restore();
-  arrow(ctx,26,ceilY,26,ceilY-2,'#2d5275',1.5,5); label(ctx,'y',26,ceilY-6,'#7d8da6',8);
+  // the axis letter beside its arrowhead, under the info bar (above the head, half of it was under the bar)
+  arrow(ctx,26,ceilY,26,ceilY-2,'#2d5275',1.5,5); label(ctx,'y',21,ceilY+4,'#7d8da6',8,'right');
   const vy=v0f-g*phase;
   balls.forEach(b=>{
     const by=toY(yM);
@@ -22453,14 +22548,17 @@ runAnim('anim-n3',(canvas,ctx,W,H,t)=>{
     label(ctx,'F(B→A) = −'+FMag+' N',xA-bWA/2-24,ay+34,'#93c5fd',8.5,'right');
   }
 
-  // Acceleration while touching; constant velocity once they part.
+  // Acceleration while touching; constant velocity once they part. Each is
+  // centred over its block while there is room; just after the push the two
+  // blocks are closer than the two labels are wide, and the labels used to be
+  // printed into each other -- they now stand apart, each over its own side.
+  const row=(tA,tB)=>{const p=_spread2(xA,labelW(ctx,tA,8),xB,labelW(ctx,tB,8),10,W);
+    label(ctx,tA,p[0],ay-bH/2-10,'#fca5a5',8);label(ctx,tB,p[1],ay-bH/2-10,'#93c5fd',8);};
   if(tt>1){
     if(inContact){
-      label(ctx,'a(A) = '+(FMag/mA).toFixed(1)+' m/s² ←',xA,ay-bH/2-10,'#fca5a5',8);
-      label(ctx,'a(B) = '+(FMag/mB).toFixed(1)+' m/s² →',xB,ay-bH/2-10,'#93c5fd',8);
+      row('a(A) = '+(FMag/mA).toFixed(1)+' m/s² ←','a(B) = '+(FMag/mB).toFixed(1)+' m/s² →');
     } else {
-      label(ctx,'v='+vA.toFixed(1)+' m/s ←  (a=0)',xA,ay-bH/2-10,'#fca5a5',8);
-      label(ctx,'v='+vB.toFixed(1)+' m/s →  (a=0)',xB,ay-bH/2-10,'#93c5fd',8);
+      row('v='+vA.toFixed(1)+' m/s ←  (a=0)','v='+vB.toFixed(1)+' m/s →  (a=0)');
       // equal and opposite impulses ⇒ the pair's momentum never left zero
       label(ctx,'\u200ep = '+(mA*vA).toFixed(1)+' + (−'+(mB*vB).toFixed(1)+') = 0 kg·m/s',
             W/2,ay+bH/2+24,'#fbbf24',8.5);
@@ -22480,11 +22578,25 @@ runAnim('anim-vecadd',(canvas,ctx,W,H,t)=>{
   // A = 3 units along +x, B = 2 units turning slowly; head to tail, R = A + B.
   // (Lengths and readouts used to be raw pixels -- "A = 62" -- and the boxed
   // labels piled on top of one another.)
-  const panelW=Math.min(W*0.3,190), U=Math.min((W-panelW-40)/6.2,(H-30)/4.6);
-  const cx=Math.max(20+2*U,(W-panelW)*0.36), cy=H*0.58;
   const theta=t*0.5, a=3, b=2;
   const Ax=a, Ay=0, Bx=b*Math.cos(theta), By=b*Math.sin(theta);
   const Rx=Ax+Bx, Ry=Ay+By, Rm=Math.hypot(Rx,Ry);
+  // The panel is as wide as its widest line (measured with the widest values
+  // it shows): on a phone its sums ran out of it to the left.
+  const f=v=>(v>=0?'+':'')+v.toFixed(2), tPan='חיבור ברכיבים';
+  const pRows=[[tPan,24,'#94a3b8'],['Rx = Ax + Bx = '+f(Rx),46,'#34d399'],['Ry = Ay + By = '+f(Ry),66,'#34d399'],
+    ['|R| = √(Rx² + Ry²) = '+Rm.toFixed(2),90,'#22d3ee'],['|A| = 3,  |B| = 2',112,'#cbd5e1'],['1 ≤ |R| ≤ 5',132,'#fbbf24']];
+  const pMax=Math.max(...pRows.map((r,i)=>labelW(ctx,i===1||i===2?r[0].replace(/[-+]\d\.\d\d$/,'+5.00'):i===3?r[0].replace(/\d\.\d\d$/,'5.00'):r[0],9)));
+  const panelW=Math.min(Math.max(Math.min(W*0.3,190),pMax+14),W*0.45);
+  // R's name is centred over (or under) its head, and the head reaches
+  // Rx = 5 units, Ry = ±2: on a phone the diagram used to run on under the
+  // panel, and "R = A + B" was printed over its sums. Nothing lies left of the
+  // origin (Rx >= 1), so the origin moves left until the name clears the
+  // panel, and the scale leaves the name room under the canvas' bottom edge.
+  const PX=W-panelW-6, rW=labelW(ctx,'R = A + B',10);
+  let U=Math.min((W-panelW-40)/6.2,(H-30)/4.6,(H*0.5-22)/2);
+  U=Math.min(U,(PX-8-rW/2-14)/5);
+  const cx=Math.max(14,Math.min(Math.max(20+2*U,(W-panelW)*0.36),PX-8-rW/2-5*U)), cy=H*0.5;
   const P=(x,y)=>[cx+x*U, cy-y*U];
   ctx.save(); ctx.fillStyle='rgba(30,58,82,.4)';
   for(let gx=cx%U;gx<W-panelW-10;gx+=U) for(let gy=cy%U;gy<H;gy+=U){ ctx.beginPath(); ctx.arc(gx,gy,1.4,0,Math.PI*2); ctx.fill(); }
@@ -22496,21 +22608,25 @@ runAnim('anim-vecadd',(canvas,ctx,W,H,t)=>{
   arrow(ctx,...P(0,0),...P(Ax,Ay),'#3b82f6',3,12);
   label(ctx,'A',P(Ax/2,0)[0],P(0,0)[1]+(Ry>=0?14:-6),'#93c5fd',11);
   arrow(ctx,...P(Ax,Ay),...P(Ax+Bx,Ay+By),'#f59e0b',3,12);
-  label(ctx,'B',P(Ax+Bx/2,0)[0]+(Bx>=0?10:-10)*(Math.abs(By)>0.3?1:0),P(0,Ay+By/2)[1]+(Math.abs(By)>0.3?4:-10),'#fde68a',11);
+  // B is named beside its middle, outside the triangle (a fixed step right
+  // and down put the name on B's own arrow while B lay low). B lying along
+  // the axis is named on the side away from R's name (the two used to meet
+  // when B folds back over A), a little toward its tail, clear of A's.
+  const flat=Math.abs(By)<=0.3, bw=labelW(ctx,'B',11), nx=Math.abs(Math.sin(theta)), ny=(By>=0?1:-1)*Math.cos(theta);
+  const bd=6+bw/2*nx+5*Math.abs(ny), bm=P(Ax+Bx/2,Ay+By/2);
+  const bL=flat?[P(Ax+Bx/2+(Bx<0?0.6:0),0)[0],P(0,By/2)[1]+(Ry>=0?14:-10)]:[bm[0]+nx*bd,bm[1]+ny*bd+4];
+  label(ctx,'B',bL[0],bL[1],'#fde68a',11);
   ctx.save(); ctx.shadowColor='rgba(52,211,153,.6)'; ctx.shadowBlur=10;
   arrow(ctx,...P(0,0),...P(Rx,Ry),'#34d399',3.5,14); ctx.restore();
-  label(ctx,'R = A + B',P(Rx,Ry)[0]+(Rx>=0?10:-10),P(Rx,Ry)[1]+(Ry>=0?-6:14),'#34d399',10,Rx>=0?'left':'right');
+  // with B folded back, R is short and its name can reach B's: it then moves left
+  let rx=P(Rx,Ry)[0];const ry=P(Rx,Ry)[1]+(Ry>=0?-12:18);
+  if(rx+rW/2>bL[0]-bw/2-3&&rx-rW/2<bL[0]+bw/2+3&&ry-7.5<bL[1]+5.75&&ry+5.5>bL[1]-8.25)rx=Math.max(3+rW/2,bL[0]-bw/2-3-rW/2);
+  label(ctx,'R = A + B',rx,ry,'#34d399',10,'center');
   // panel
-  const PX=W-panelW-6;
   ctx.save(); ctx.fillStyle='rgba(6,14,28,.88)'; ctx.strokeStyle='#1e4060'; ctx.lineWidth=1;
   ctx.beginPath(); ctx.roundRect(PX,8,panelW,H-16,7); ctx.fill(); ctx.stroke(); ctx.restore();
-  const pc=PX+panelW/2, f=v=>(v>=0?'+':'')+v.toFixed(2);
-  label(ctx,'חיבור ברכיבים',pc,24,'#94a3b8',9);
-  label(ctx,'Rx = Ax + Bx = '+f(Rx),pc,46,'#34d399',9);
-  label(ctx,'Ry = Ay + By = '+f(Ry),pc,66,'#34d399',9);
-  label(ctx,'|R| = √(Rx² + Ry²) = '+Rm.toFixed(2),pc,90,'#22d3ee',9);
-  label(ctx,'|A| = 3,  |B| = 2',pc,112,'#cbd5e1',9);
-  label(ctx,'1 ≤ |R| ≤ 5',pc,132,'#fbbf24',9);
+  const pc=PX+panelW/2;
+  pRows.forEach(r=>label(ctx,r[0],pc,r[1],r[2],9));
 });
 
 // CH2 ANIM: רכיבי ווקטור
@@ -23185,31 +23301,29 @@ runAnim('anim-vec',(canvas,ctx,W,H,t)=>{
   const PW0=W*0.30, R=Math.max(24,Math.min(62,(W-PW0*2-20)/2-8,CY-16)), k=R/mag;
   const vx=R*Math.cos(angle), vy=R*Math.sin(angle);
 
-  // ── Left panel: Scalar examples
-  const PW=W*0.30, PH=H-14;
-  ctx.save();ctx.fillStyle='rgba(6,14,28,.75)';ctx.strokeStyle='rgba(30,64,96,.6)';ctx.lineWidth=1;
-  ctx.beginPath();ctx.roundRect(6,6,PW,PH-6,5);ctx.fill();ctx.stroke();ctx.restore();
-  label(ctx,'סקלרי',6+PW/2,18,'#7d8da6',8,'center');
+  // ── The two panels: scalar examples (left), vector examples (right). A name
+  // and its value share a row while both fit in it; on a phone "Acceleration"
+  // ran into "← 5 m/s²" and "Momentum" into "↗ 30 kg·m/s", so where any row of
+  // either panel is too narrow, every row of both puts its value under its name.
+  const PW=W*0.30, PH=H-14, RPX=W-6-PW, RPY=6;
   const scalars=[['מסה','5 kg'],['זמן','3.2 s'],['טמפ׳','37°C'],['מרחק','12 m']];
-  scalars.forEach(([name,val],i)=>{
-    const sy=30+i*22;
-    ctx.save();ctx.fillStyle='rgba(15,30,55,.6)';ctx.beginPath();ctx.roundRect(12,sy,PW-12,16,3);ctx.fill();ctx.restore();
-    label(ctx,name,22,sy+11,'#60a5fa',7.5,'left');
-    label(ctx,val,6+PW-6,sy+11,'#94a3b8',7.5,'right');
-  });
-
-  // ── Right panel: Vector examples
-  const RPX=W-6-PW, RPY=6;
-  ctx.save();ctx.fillStyle='rgba(6,14,28,.75)';ctx.strokeStyle='rgba(167,139,250,.4)';ctx.lineWidth=1;
-  ctx.beginPath();ctx.roundRect(RPX,RPY,PW,PH-6,5);ctx.fill();ctx.stroke();ctx.restore();
-  label(ctx,'וקטורי',RPX+PW/2,RPY+12,'#a78bfa',8,'center');
   const vectors=[['מהירות','→ 20 m/s'],['כוח','↑ 15 N'],['תאוצה','← 5 m/s²'],['תנע','↗ 30 kg·m/s']];
-  vectors.forEach(([name,val],i)=>{
-    const sy=RPY+24+i*22;
-    ctx.save();ctx.fillStyle='rgba(15,30,55,.6)';ctx.beginPath();ctx.roundRect(RPX+6,sy,PW-12,16,3);ctx.fill();ctx.restore();
-    label(ctx,name,RPX+12,sy+11,'#a78bfa',7.5,'left');
-    label(ctx,val,RPX+PW-6,sy+11,'#c4b5fd',7.5,'right');
-  });
+  const fit=(list,nx)=>list.every(([n,v])=>labelW(ctx,n,7.5)+labelW(ctx,v,7.5)+5<=PW-6-nx);
+  const one=fit(scalars,16)&&fit(vectors,12);
+  const row0=one?30:26, rowS=one?22:27, rowH=one?16:24;
+  const panel=(px,stroke,title,tcol,list,nx,ncol,vcol)=>{
+    ctx.save();ctx.fillStyle='rgba(6,14,28,.75)';ctx.strokeStyle=stroke;ctx.lineWidth=1;
+    ctx.beginPath();ctx.roundRect(px,6,PW,PH-6,5);ctx.fill();ctx.stroke();ctx.restore();
+    label(ctx,title,px+PW/2,18,tcol,8,'center');
+    list.forEach(([name,val],i)=>{
+      const sy=row0+i*rowS;
+      ctx.save();ctx.fillStyle='rgba(15,30,55,.6)';ctx.beginPath();ctx.roundRect(px+6,sy,PW-12,rowH,3);ctx.fill();ctx.restore();
+      label(ctx,name,px+nx,sy+(one?11:10),ncol,7.5,'left');
+      label(ctx,val,px+PW-6,sy+(one?11:20.5),vcol,7.5,'right');
+    });
+  };
+  panel(6,'rgba(30,64,96,.6)','סקלרי','#7d8da6',scalars,16,'#60a5fa','#94a3b8');
+  panel(RPX,'rgba(167,139,250,.4)','וקטורי','#a78bfa',vectors,12,'#a78bfa','#c4b5fd');
 
   // ── Center: animated vector demonstration
   const CCX=PW+10+(W-PW*2-20)/2, CCY=CY;
@@ -23218,26 +23332,54 @@ runAnim('anim-vec',(canvas,ctx,W,H,t)=>{
   ctx.save();ctx.strokeStyle='rgba(251,191,36,.5)';ctx.lineWidth=1.2;
   ctx.beginPath();ctx.arc(CCX,CCY,22,0,angle%(Math.PI*2),angle<0);ctx.stroke();ctx.restore();
   const aDisp=(((-angle)%(Math.PI*2))*180/Math.PI);
-  label(ctx,aDisp.toFixed(0)+'°',CCX+28,CCY-10,'#fbbf24',8);
 
   // Vector arrow
   arrow(ctx,CCX,CCY,CCX+vx,CCY+vy,'#34d399',2.5,10);
-  // Magnitude label on arrow
-  label(ctx,'|v|='+mag+' m/s',CCX+vx/2+8,CCY+vy/2-8,'#34d399',8);
 
   // Component dashed lines
   ctx.save();ctx.strokeStyle='rgba(96,165,250,.5)';ctx.lineWidth=1.2;ctx.setLineDash([4,5]);
   ctx.beginPath();ctx.moveTo(CCX+vx,CCY);ctx.lineTo(CCX+vx,CCY+vy);ctx.stroke();
   ctx.beginPath();ctx.moveTo(CCX,CCY+vy);ctx.lineTo(CCX+vx,CCY+vy);ctx.stroke();
   ctx.setLineDash([]);ctx.restore();
-  label(ctx,'vₓ='+(vx/k).toFixed(0),CCX+vx/2,CCY+8,'#60a5fa',7.5,'center');
-  // vy is a SCREEN component (canvas y grows downward). Negate for the label
-  // only — the draw calls above must keep using CCY+vy.
-  label(ctx,'vᵧ='+(-vy/k).toFixed(0),CCX+vx+(vx>0?5:-20),CCY+vy/2,'#f87171',7.5);
 
   // Origin dot
   circle(ctx,CCX,CCY,3,'#fff','#94a3b8',1.5);
-  label(ctx,'ראשית',CCX,CCY+20,'#7d8da6',7,'center');
+
+  // The labels of the turning vector used to sit at fixed offsets from it:
+  // |v| lay on the angle, on vₓ and on "origin", and on a phone vᵧ ran into
+  // the scalar panel's values. |v| -- the one number that never changes --
+  // now heads the picture; "origin" sits on the side of the origin away from
+  // the arrow, beyond the arc; the angle on the arc's bisector; and vₓ and vᵧ
+  // take, frame by frame, the first of their spots beside their own dashed
+  // line that keeps clear of the arrow, the dashed lines, the arc, the panels
+  // and the labels placed before them.
+  const ux=vx/R, uy=vy/R, up=vy<0, am=angle/2, sx=ux>0?1:-1;
+  const keep=[[6,6,6+PW,PH],[RPX,RPY,RPX+PW,PH]];
+  const segs=[[CCX,CCY,CCX+vx,CCY+vy,200],[CCX+vx,CCY,CCX+vx,CCY+vy,30],[CCX,CCY+vy,CCX+vx,CCY+vy,30]];
+  for(let i=0;i<12;i++){const a0=angle*i/12,a1=angle*(i+1)/12;
+    segs.push([CCX+22*Math.cos(a0),CCY+22*Math.sin(a0),CCX+22*Math.cos(a1),CCY+22*Math.sin(a1),30]);}
+  const put=(txt,sz,col,cands)=>{const s=labelSpot(ctx,txt,sz,cands,keep,segs,W,H);keep.push(s.box);label(ctx,txt,s.x,s.y,col,sz,s.al);};
+  // the baseline spot whose box (w by h) just clears the point (x,y) in the direction (dx,dy)
+  const off=(x,y,dx,dy,w,h,gap)=>{const d=gap+w/2*Math.abs(dx)+h/2*Math.abs(dy);return {x:x+dx*d,y:y+dy*d+h*0.3};};
+  const tv='|v|='+mag+' m/s';
+  put(tv,8,'#34d399',[{x:CCX,y:16}]);
+  const yO=up?11:-5, yI=up?-5:11, yF=CCY+vy+(up?-8:15);      // outside / inside the axis; beyond the far side
+  put('vₓ='+(vx/k).toFixed(0),7.5,'#60a5fa',[{x:CCX+vx/2,y:CCY+yO},{x:CCX+vx/2,y:yF},
+    {x:CCX+vx/2,y:CCY+yI},{x:CCX-sx*5,y:CCY+yO,al:ux>0?'right':'left'}]);
+  // vy is a SCREEN component (canvas y grows downward). Negate for the label
+  // only — the draw calls above must keep using CCY+vy.
+  put('vᵧ='+(-vy/k).toFixed(0),7.5,'#f87171',[{x:CCX+vx+sx*5,y:CCY+vy/2+3,al:ux>0?'left':'right'},
+    {x:CCX+vx,y:yF},{x:CCX-sx*5,y:CCY+vy/2+3,al:ux>0?'right':'left'},
+    {x:CCX+vx-sx*5,y:CCY+vy/2+3,al:ux>0?'right':'left'},{x:CCX+sx*5,y:CCY+vy/2+3,al:ux>0?'left':'right'}]);
+  const ta=aDisp.toFixed(0)+'°', wa=labelW(ctx,ta,8), ca=Math.cos(am), sa=Math.sin(am);
+  put(ta,8,'#fbbf24',[off(CCX,CCY,ca,sa,wa,9,26),off(CCX,CCY,ca,sa,wa,9,38),
+    {x:CCX+28,y:CCY-10},{x:CCX+28,y:CCY+14},{x:CCX-28,y:CCY+14},{x:CCX-28,y:CCY-10}]);
+  // "origin" in the part of the turn the arc has not swept, nearest its middle
+  // -- or, where the others leave no room there, at the nearest free spot round it
+  const to='ראשית', wo=labelW(ctx,to,7), bo=Math.PI+am, co=[];
+  for(let j=0;j<14;j++){const d=(j%2?-1:1)*Math.ceil(j/2)*0.45;
+    [6,16].forEach(g=>co.push(off(CCX,CCY,Math.cos(bo+d),Math.sin(bo+d),wo,9,g)));}
+  put(to,7,'#7d8da6',co);
 });
 
 // ── CH3 ANIM: anim-tension — rope tension, T=m(g±a)
@@ -23788,22 +23930,42 @@ runAnim('anim-projectile-arc',(canvas,ctx,W,H,t)=>{
   const P=(f,tt)=>[ORIG_X+v0*Math.cos(f.th)*tt*scale, GND-(v0*Math.sin(f.th)*tt-0.5*g*tt*tt)*scale];
   ctx.save(); ctx.strokeStyle='#1e4060'; ctx.lineWidth=2;
   ctx.beginPath(); ctx.moveTo(ORIG_X-8,GND); ctx.lineTo(ORIG_X+Rmax*scale+20,GND); ctx.stroke(); ctx.restore();
-  // the flights already made in this cycle, faint, with their landing points
+  // the flights already made in this cycle, faint, with their landing points.
+  // 20° and 70° land on the same spot (so do 35° and 55°, next to 45°): each
+  // name takes the one of the two rows under the ground where it has to move
+  // least to clear the names already there -- they used to be printed on top
+  // of one another.
+  // The ball that has just landed keeps its velocity, whose vy arrow points
+  // down through the rows: its own name keeps clear of that arrow too.
+  const VS=2.0, rows=[[],[]], vyL=v0*Math.sin(cur.th)*VS;
   for(let j=0;j<=k;j++){
     const f=fl[j], cur2=(j===k);
     ctx.save(); ctx.strokeStyle=cur2?'rgba(96,165,250,.35)':'rgba(148,163,184,.22)'; ctx.lineWidth=1.6; ctx.setLineDash([5,6]);
     ctx.beginPath();
     for(let i=0;i<=60;i++){const q=P(f,f.T*i/60); i===0?ctx.moveTo(q[0],q[1]):ctx.lineTo(q[0],q[1]);}
     ctx.stroke(); ctx.restore();
-    if(!cur2||tc>cur.T){const R=v0*v0*Math.sin(2*f.th)/g, lx=ORIG_X+R*scale;
+    if(!cur2||tc>cur.T){const R=v0*v0*Math.sin(2*f.th)/g, lx=ORIG_X+R*scale, tx=f.d+'°', hw=labelW(ctx,tx,9)/2+2;
       ctx.save();ctx.fillStyle=cur2?'#60a5fa':'#64748b';ctx.beginPath();ctx.arc(lx,GND,3,0,6.2832);ctx.fill();ctx.restore();
-      label(ctx,f.d+'°',lx,GND+12+(j%2)*10,cur2?'#93c5fd':'#7d8da6',9);}
+      if(cur2)rows.forEach((rw,ri)=>{if(ri*10+5<vyL)rw.push([lx,2]);});
+      let best=null;
+      rows.forEach((rw,ri)=>{[lx].concat(rw.map(q=>q[0]-q[1]-hw),rw.map(q=>q[0]+q[1]+hw)).forEach(x=>{
+        if(rw.some(q=>Math.abs(x-q[0])<q[1]+hw-0.01))return;
+        const c=Math.abs(x-lx)+ri*0.5;if(!best||c<best.c)best={c:c,x:x,ri:ri};});});
+      rows[best.ri].push([best.x,hw]);
+      label(ctx,tx,best.x,GND+12+best.ri*10,cur2?'#93c5fd':'#7d8da6',9);}
   }
-  const b=P(cur,tNow), vx=v0*Math.cos(cur.th), vy=v0*Math.sin(cur.th)-g*tNow, VS=2.0;
+  const b=P(cur,tNow), vx=v0*Math.cos(cur.th), vy=v0*Math.sin(cur.th)-g*tNow;
   arrow(ctx,b[0],b[1],b[0]+vx*VS,b[1],'#60a5fa',1.8,7);
   if(Math.abs(vy)>0.5)arrow(ctx,b[0],b[1],b[0],b[1]-vy*VS,'#f87171',1.8,7);
-  label(ctx,'vx='+vx.toFixed(1),b[0]+vx*VS/2,b[1]+13,'#60a5fa',9);
-  if(Math.abs(vy)>0.5)label(ctx,'vy='+vy.toFixed(1),b[0]+8,b[1]-vy*VS/2,'#f87171',9,'left');
+  // Each component is named on the side of its arrow away from the other one:
+  // on the way down vy's arrow points under the ball, where vx's name was --
+  // the two were printed into each other -- so vx goes above its arrow, and vy
+  // to the left of its own, above the ground and the landing names. Where the
+  // canvas' right edge pushes vx's name back over the ball, it rises a row.
+  const down=vy<-0.5, txv='vx='+vx.toFixed(1), wxv=labelW(ctx,txv,9);
+  const xv=Math.min(b[0]+vx*VS/2,W-3-wxv/2);
+  label(ctx,txv,xv,down?(xv-wxv/2<b[0]+4?b[1]-17:b[1]-7):b[1]+13,'#60a5fa',9);
+  if(Math.abs(vy)>0.5)label(ctx,'vy='+vy.toFixed(1),down?b[0]-8:b[0]+8,down?Math.min(b[1]-vy*VS/2,GND-4):b[1]-vy*VS/2,'#f87171',9,down?'right':'left');
   circle(ctx,b[0],b[1],7,'#f59e0b','#fde68a',2);
   // launch angle, between the ground and the launch direction
   ctx.save(); ctx.strokeStyle='#fbbf24'; ctx.lineWidth=1.8;
@@ -23827,7 +23989,8 @@ runAnim('anim-projectile-range',(canvas,ctx,W,H,t)=>{
   arrow(ctx,marginL,marginT+GH,marginL+GW+8,marginT+GH,'#2d5275',1.5,7);
   arrow(ctx,marginL,marginT+GH,marginL,marginT-8,'#2d5275',1.5,7);
   label(ctx,'θ (°)',marginL+GW+4,marginT+GH+3,'#7d8da6',9,'left');
-  label(ctx,'R (m)',marginL-4,marginT-2,'#7d8da6',9,'right');
+  // beside the axis' arrowhead: right-aligned left of it, "R (m)" sat on the top tick's number
+  label(ctx,'R (m)',marginL+8,marginT-3,'#7d8da6',9,'left');
 
   // Grid
   ctx.save();ctx.strokeStyle='rgba(30,64,96,.35)';ctx.lineWidth=0.6;ctx.setLineDash([3,5]);
@@ -23858,6 +24021,10 @@ runAnim('anim-projectile-range',(canvas,ctx,W,H,t)=>{
   const PERIOD=6;
   const th1_deg=10+35*((t%PERIOD)/PERIOD);
   const th2_deg=90-th1_deg;
+  // as the pair closes on 45° the two dots meet, and so did their angles:
+  // the two names now stand apart, each on its own dot's side
+  const lx=_spread2(marginL+th1_deg/90*GW,labelW(ctx,th1_deg.toFixed(0)+'°',8.5),
+                    marginL+th2_deg/90*GW,labelW(ctx,th2_deg.toFixed(0)+'°',8.5),4,W);
   [th1_deg,th2_deg].forEach((deg,idx)=>{
     const th=deg*Math.PI/180;
     const R=v0*v0*Math.sin(2*th)/g;
@@ -23868,15 +24035,16 @@ runAnim('anim-projectile-range',(canvas,ctx,W,H,t)=>{
     ctx.save();ctx.strokeStyle=col+'80';ctx.lineWidth=1;ctx.setLineDash([3,4]);
     ctx.beginPath();ctx.moveTo(px,py);ctx.lineTo(px,marginT+GH);ctx.stroke();
     ctx.setLineDash([]);ctx.restore();
-    label(ctx,deg.toFixed(0)+'°',px,py-10,col,8.5);
+    label(ctx,deg.toFixed(0)+'°',lx[idx],py-10,col,8.5);
   });
 
-  // 45° marker
+  // 45° marker -- named at its foot: at the top the angle of the green dot
+  // ran across the name on every phone while that dot passed 59°-64°
   const px45=marginL+45/90*GW;
   ctx.save();ctx.strokeStyle='rgba(167,139,250,.6)';ctx.lineWidth=1.5;ctx.setLineDash([4,5]);
   ctx.beginPath();ctx.moveTo(px45,marginT);ctx.lineTo(px45,marginT+GH);ctx.stroke();
   ctx.setLineDash([]);ctx.restore();
-  label(ctx,'Rmax @ 45°',px45+4,marginT+12,'#a78bfa',8);
+  label(ctx,'Rmax @ 45°',px45+4,marginT+GH-6,'#a78bfa',8);
 
   // Title
   label(ctx,'R = v₀²·sin2θ / g',W/2,marginT+GH+22,'#7d8da6',8.5);
@@ -27167,7 +27335,8 @@ MAG_SIMS['mag-wire']=function(canvas){
     ctx.save();ctx.strokeStyle='#1e3a52';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(gx,gy+8);ctx.lineTo(gx,gy+gh);ctx.lineTo(gx+gw,gy+gh);ctx.stroke();ctx.restore();
     [0,200,400,600].forEach(function(v){simText(ctx,String(v),gx-5,Y(v*1e-6)+3,'#64748b',8.5,'right');});
     [0,5,10,15].forEach(function(v){simText(ctx,String(v),X(v/100),gy+gh+13,'#64748b',8.5,'center');});
-    simText(ctx,'μT',gx-22,gy+14,'#64748b',8.5,'center');simText(ctx,'r (cm)',X(0.125),gy+gh+13,'#64748b',8.5,'center');
+    // the unit heads the column of tick numbers, a row above the top one (it was on the "600")
+    simText(ctx,'μT',gx-5,Y(600e-6)-9,'#64748b',8.5,'right');simText(ctx,'r (cm)',X(0.125),gy+gh+13,'#64748b',8.5,'center');
     ctx.save();ctx.strokeStyle='rgba(52,211,153,.5)';ctx.setLineDash([4,4]);ctx.beginPath();ctx.moveTo(gx,Y(30e-6));ctx.lineTo(gx+gw,Y(30e-6));ctx.stroke();ctx.restore();
     simText(ctx,'שדה כדור הארץ',gx+gw-4,Y(30e-6)-5,'#34d399',8.5,'right');
     var I1=Math.abs(Ls[0][2]),pts=[];for(var r=0.004;r<=rmax;r+=0.001){var B=2e-7*I1/r;if(B<=Bmax)pts.push([X(r),Y(B)]);}
@@ -29026,8 +29195,12 @@ function simElcField(canvas){
       // force on the test charge and the arrow was proportional to nothing.
       var FLraw=0.6*Math.sqrt(Et.m), FL=Math.min(84,FLraw);
       simArrow(ctx,tx,ty,tx+Et.x/Et.m*FL,ty+Et.y/Et.m*FL,'#34d399',3,11);
-      optLabel(ctx,'F=q₀E'+(FLraw>84?' (החץ מקוצר)':''),
-               tx+Et.x/Et.m*FL+16,ty+Et.y/Et.m*FL,'#34d399',9);
+      // named just past its head, along it (centred 16 px right of the head,
+      // "(arrow shortened)" lay back across the arrow whenever it pointed right)
+      var fT='F=q₀E'+(FLraw>84?' (החץ מקוצר)':'');
+      ctx.save();ctx.font='9px Heebo,sans-serif';var fW=ctx.measureText(_mathIso(fT)).width;ctx.restore();
+      var fS=_tipSpot(tx,ty,tx+Et.x/Et.m*FL,ty+Et.y/Et.m*FL,fW,11,W,H,7);
+      optLabel(ctx,fT,fS.x,fS.y,'#34d399',9);
     }
     optLabel(ctx,'מטען בוחן',tx,ty+24,'#fbbf24',8.5);
     if(!touched&&animT<8)optLabel(ctx,'✋ גררו את המטענים ואת מטען הבוחן',W/2,20,'#fbbf24',10);
@@ -31138,6 +31311,11 @@ function simElcConductor(canvas){
       var rhoTip=R*0.16, Vsurf=Math.abs(ELC_K*Q/R);
       var Etip=Vsurf/rhoTip;
       var tipX=cx+pear(0)*1.1, tipY=cy;
+      // the highest point of the charges and sparks in the σ bars' column (see below)
+      var tipHi=1e9, colX=W*0.58-24;
+      for(var a=0;a<=72;a++){var th=a/72*Math.PI*2;
+        if(cx+Math.cos(th)*pear(th)*1.07>colX)tipHi=Math.min(tipHi,cy+Math.sin(th)*pear(th)*0.88-7);}
+      if(Etip>3e6&&tipX+43>colX)tipHi=Math.min(tipHi,tipY-Math.sin(0.4)*38-3);
       optLabel(ctx,'E בחוד ≈ V/ρ = '+(Etip/1e6).toFixed(1)+'×10⁶ V/m',cx,cy-rr*1.35,'#fbbf24',9.5);
       if(Etip>3e6){
         ctx.save();ctx.strokeStyle='rgba(34,211,238,'+(0.45+0.55*Math.abs(Math.sin(animT*7))).toFixed(2)+')';ctx.lineWidth=1.6;
@@ -31156,11 +31334,16 @@ function simElcConductor(canvas){
     // ── probe (sphere mode only: kQ/r² does not describe the pear) ──
     if(sharpMode){
       var PX0=W*0.58, PW=W*0.38;
-      optLabel(ctx,'למה המטען נדחס בחוד?',PX0+PW/2,60,'#fbbf24',11);
+      // Where the pear, its charges or its sparks reach into the bars' column
+      // (a phone; at R = 70 the pear itself), the bars close up above them --
+      // first nearer each other, then higher: the sparks used to run onto the
+      // second σ bar. tipHi is the highest point drawn in that column.
+      var need=Math.max(0,100+74+22-(tipHi-8)),ySt=74-Math.min(24,need),yb0=Math.max(46,100-Math.max(0,need-24));
+      optLabel(ctx,'למה המטען נדחס בחוד?',PX0+PW/2,Math.max(14,yb0-40),'#fbbf24',11);
       var rows=[['רדיוס עקמומיות גדול (צד קהה)',0.34,'#38bdf8'],
                 ['רדיוס עקמומיות קטן (חוד)',1.0,'#f87171']];
       for(var ri=0;ri<2;ri++){
-        var yb=100+ri*74;
+        var yb=yb0+ri*ySt;
         optLabel(ctx,rows[ri][0],PX0+PW/2,yb-8,'#94a3b8',9);
         ctx.save();ctx.fillStyle='rgba(148,163,184,.12)';ctx.fillRect(PX0,yb,PW,22);
         ctx.fillStyle=rows[ri][2];ctx.fillRect(PX0,yb,PW*rows[ri][1],22);
@@ -33885,11 +34068,22 @@ var SL_IMPL={
     slTxt(ctx,'N = mg·cosθ = '+(st.N||0).toFixed(1)+' N',10,18,c2,11,'left',true);
     slTxt(ctx,'F∥ = mg·sinθ = '+(st.Fp||0).toFixed(1)+' N',10,35,c1,11,'left',true);
     slTxt(ctx,'mg = '+(st.W||0).toFixed(1)+' N',10,52,c3,11,'left',true);
-    if(st.moving)
-      simText(ctx,'⏸ מרימים — הזווית מוקפאת על הקריאה היציבה האחרונה. עצרו לרגע.',
-        W-10,18,gd,10.5,'right',true);
-    else if(Math.abs((st.N||0)-(st.Fp||0))<0.4*(st.m||2))
-      simText(ctx,'⇦ הכוחות שווים — זו הזווית 45°',W-10,18,gd,11,'right',true);}},
+    // The status stands to the right of the three readouts, on their rows --
+    // in two lines where one does not fit beside them. Right-aligned on the N
+    // row in one line, it ran across "N = mg·cosθ" on every phone.
+    var msg=st.moving?'⏸ מרימים — הזווית מוקפאת על הקריאה היציבה האחרונה. עצרו לרגע.'
+      :Math.abs((st.N||0)-(st.Fp||0))<0.4*(st.m||2)?'⇦ הכוחות שווים — זו הזווית 45°':'';
+    if(msg){
+      var ms=st.moving?10.5:11, rw=0;
+      ctx.save();ctx.font='bold 11px Heebo';
+      ['N = mg·cosθ = '+(st.N||0).toFixed(1)+' N','F∥ = mg·sinθ = '+(st.Fp||0).toFixed(1)+' N','mg = '+(st.W||0).toFixed(1)+' N']
+        .forEach(function(s){rw=Math.max(rw,ctx.measureText(s).width);});
+      var av=W-10-(10+rw+14);ctx.font='bold '+ms+'px Heebo';
+      var ln=ctx.measureText(_mathIso(msg)).width>av&&_splitBal(ctx,msg)||[msg];
+      var lw=Math.max.apply(null,ln.map(function(s){return ctx.measureText(_mathIso(s)).width;}));ctx.restore();
+      if(lw>av)ms=Math.max(9,ms*av/lw);
+      ln.forEach(function(s,i){simText(ctx,s,W-10,18+17*i,gd,ms,'right',true);});
+    }}},
 
 'measure-g':{
   init:function(st){st.tr=slTrace(200);st.h={v:.2};st.reset(st);},
