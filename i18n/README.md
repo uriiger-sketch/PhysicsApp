@@ -12,6 +12,9 @@ The app is one page per language, all generated from one master:
 | `tools/i18n.js` | extract · check · build · stats |
 | `tests/check_i18n.js` | the edition shows no Hebrew anywhere and no placeholder, with no page error |
 | `tests/check_i18n_badges.js` | the edition shows the same SI unit badges as the Hebrew (the build works them out from the Hebrew wording) |
+| `tests/check_i18n_progress.js` | progress, XP and every quiz answer are the same after switching language with the 🌐 menu |
+| `tests/check_i18n_labels.js` | no canvas label is lost in translation (a label that does not fit is not drawn), every slider at both ends |
+| `tests/_lang.js` | gives every subject test the words of the page's language, so the same test runs on any edition |
 
 The 🌐 menu in the header (`APP_LANGS` in the master) lists the languages; a
 choice opens the same topic and tab in the other page and is remembered by
@@ -69,10 +72,30 @@ A change to the master is a change to every edition: after it, run
 translation files and the rebuilt editions together. An untranslated unit
 falls back to Hebrew (and `check_i18n` fails), so nothing is ever blank.
 
+## How a language is made
+
+Every language goes through the same four stages, each by its own specialists,
+recorded per unit in `"reviewed"`:
+
+1. **Translation**, one translator per area, against the binding glossary.
+2. **Physics review**, one physicist per subject: every unit against the
+   Hebrew — meaning, terminology, quiz keys and distractors, problems, canvas
+   labels. Errors found in the Hebrew are fixed in the master, which fixes
+   them for every language.
+3. **Scientific-educational language review**, an editor per group of
+   subjects: idiom, one voice across the edition, the style guide, interface
+   microcopy, inclusive language.
+4. **QA**: the whole test suite on the built edition (`APP_FILE=…`), plus the
+   edition tests above.
+
+`node tools/i18n.js stats <lang>` shows, per area, how many units are
+translated and reviewed. The English edition: 8331 units, all translated and
+all reviewed for physics and for language.
+
 ## Adding a language
 
 1. `i18n/<lang>/config.json` — copy `en`'s; set `lang`, `name`, `file`, `dir`
    (`rtl` for Arabic, otherwise `ltr`) and the `htmlPatches`/`codePatches`.
 2. Add it to `APP_LANGS` in the master and to the map in `index.html`.
-3. `node tools/i18n.js extract <lang>`, a glossary, translate, review
-   (physics per subject, then scientific-educational language), `build`, test.
+3. `node tools/i18n.js extract <lang>`, a glossary, then the four stages above;
+   `build`, and the whole test suite on the edition.
