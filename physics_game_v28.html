@@ -1166,8 +1166,11 @@ var APP_LANGS=[
   {code:'he',name:'עברית',file:'physics_game_v28.html'},
   {code:'en',name:'English',file:'physics_game_en.html'}
 ];
-var APP_VERSION='28.32';
+var APP_VERSION='28.33';
 var APP_CHANGELOG=[
+  {v:'28.33',d:'2026-10-13',notes:[
+    'טלסקופ: שם הגודל והנוסחה בראש הסימולציה מסודרים לפי כיוון הקריאה של השפה — בגרסה האנגלית הם נדבקו זה לזה בטלפון'
+  ]},
   {v:'28.32',d:'2026-10-13',notes:[
     'חידונים: מסיחים חזקים יותר — ״תאוצה רגעית״ מול שיפוע המשיק, ״טמפרטורה״ כגודל סקלרי, ״מתיחות בחוט״ — כדי שהתשובה הנכונה לא תבלוט באורכה גם בתרגום',
     'שאלות שנוסחו כנוסחה בלבד (״m=10 kg, g=9.8. W=?״) הן עכשיו משפט, כך שאפשר לתרגם אותן',
@@ -19997,9 +20000,16 @@ function simOptTelescope(canvas){
     ctx.beginPath();ctx.roundRect(10,10,W-20,38,6);ctx.fill();ctx.stroke();
     ctx.restore();
     // two runs, each one direction, and shrunk to fit a phone (the joined
-    // Hebrew-and-maths line overflowed and reordered)
-    optLabel(ctx,'הגדלה זוויתית',W/2+(W<520?60:110),29,'#34d399',W<520?10:12);
-    optLabel(ctx,'\u200e|M| = fₒ/fₑ = '+fo+'/'+fe+' = '+M.toFixed(1),W/2-(W<520?40:60),29,'#34d399',W<520?10:12);
+    // Hebrew-and-maths line overflowed and reordered). They are measured and
+    // set side by side as one centred line, in the page's reading order: the
+    // name first in a left-to-right language, on the right in Hebrew
+    var _mNm='הגדלה זוויתית', _mFx='\u200e|M| = fₒ/fₑ = '+fo+'/'+fe+' = '+M.toFixed(1), _mSz=W<520?10:12;
+    ctx.save();ctx.font=_mSz+'px Heebo,sans-serif';
+    var _wNm=ctx.measureText(_mNm).width, _wFx=ctx.measureText(_mFx).width, _gap=_mSz*1.4;
+    ctx.restore();
+    var _x0=W/2-(_wNm+_gap+_wFx)/2, _ltr=document.documentElement.dir==='ltr';
+    optLabel(ctx,_mNm,_ltr?_x0:_x0+_wFx+_gap,29,'#34d399',_mSz,'left');
+    optLabel(ctx,_mFx,_ltr?_x0+_wNm+_gap:_x0,29,'#34d399',_mSz,'left');
     // Length scale bar
     ctx.save();ctx.strokeStyle='#334155';ctx.lineWidth=1;
     var scaleBarLen=fe*scale;
