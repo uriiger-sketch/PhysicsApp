@@ -1166,8 +1166,15 @@ var APP_LANGS=[
   {code:'he',name:'עברית',file:'physics_game_v28.html'},
   {code:'en',name:'English',file:'physics_game_en.html'}
 ];
-var APP_VERSION='28.33';
+var APP_VERSION='28.34';
 var APP_CHANGELOG=[
+  {v:'28.34',d:'2026-10-13',notes:[
+    'נפילה חופשית: באנימציה הכיתובים ״a = g לכל המסות״, h_max ו־״v=0 שיא!״ כבר לא עוברים על הכדורים בשיא; בסימולציה תג h_max כבר לא מוסתר מאחורי הכדור בטלפון',
+    'חשמל סטטי: ההנחיה ״גררו את מטען הבוחן״ עברה אל מתחת למטען, ולא על הלוח הימני; חלונות הנתונים של המוליך ברוחב השורות שלהם — בטלפון שורה ארוכה קטנה מעט או נשברת לשתיים במקום לחרוג מהמסגרת',
+    'תנועה מעגלית בשדה מגנטי: לוח הקריאה ״r = … · T/2 = …״ רחב כמו השורה שלו, והסרגל לאורך גבול השדה כבר לא נדחס לעמודת מספרים כשהרדיוס עשרות מטרים',
+    'אופטיקה: הכיתוב של מהירות האור בחומרים כבר לא נוגע בפס של היהלום; בלייזר שם המראה החלקית לא נוגע במד ההיפוך ולא בקצה המראה; בחוק סנל ״נורמל״ לא מוסתר מאחורי חלון הנתונים בטלפון; במראה קעורה, כשהעצם במוקד, ההודעה התחתונה בשורה משלה מתחת ל״מראה קעורה״, ושם העצם לא על ״F״',
+    'בסימולציות של אופטיקה ושל חשמל סטטי: שורה בחלון נתונים שרחבה מהחלון מוקטנת עד שהיא נכנסת בו, במקום לחרוג מהמסגרת'
+  ]},
   {v:'28.33',d:'2026-10-13',notes:[
     'טלסקופ: שם הגודל והנוסחה בראש הסימולציה מסודרים לפי כיוון הקריאה של השפה — בגרסה האנגלית הם נדבקו זה לזה בטלפון'
   ]},
@@ -10735,9 +10742,14 @@ function simFreefall(canvas){
       var hmPy=toY(hm);
       ctx.save(); ctx.strokeStyle='rgba(52,211,153,.45)'; ctx.lineWidth=1.5; ctx.setLineDash([5,5]);
       ctx.beginPath(); ctx.moveTo(WALLX+9,hmPy); ctx.lineTo(W-18,hmPy); ctx.stroke(); ctx.setLineDash([]); ctx.restore();
+      // the tag stays left of the ball's column: on a phone the 124 px tag ran
+      // under the ball, which hid it at the very moment the ball reached h_max
+      var hTx='h_max = '+hm.toFixed(1)+' m';
+      ctx.save(); ctx.font='bold 10px Heebo'; var hTw=ctx.measureText(_cvSub(hTx)).width; ctx.restore();
+      var hbW=Math.max(40,Math.min(124,Math.floor(W/2)-26-(WALLX+12)));
       ctx.save(); ctx.fillStyle='rgba(8,20,38,.82)'; ctx.strokeStyle='rgba(52,211,153,.55)'; ctx.lineWidth=1;
-      ctx.beginPath(); ctx.roundRect(WALLX+12,hmPy-18,124,16,4); ctx.fill(); ctx.stroke();
-      simText(ctx,'h_max = '+hm.toFixed(1)+' m',WALLX+74,hmPy-7,'#34d399',10,'center',true); ctx.restore();
+      ctx.beginPath(); ctx.roundRect(WALLX+12,hmPy-18,hbW,16,4); ctx.fill(); ctx.stroke();
+      simText(ctx,hTx,WALLX+12+hbW/2,hmPy-7,'#34d399',10*Math.min(1,(hbW-8)/hTw),'center',true); ctx.restore();
     }
     // Ball
     if(ball){
@@ -17160,12 +17172,46 @@ function optLabel(ctx,txt,x,y,col,sz,align){
   if(fx!==null)ctx.fillText(txt,fx,_fitY(ctx,y,sz));
   ctx.restore();
 }
-function optInfoBox(ctx,x,y,w,lines){
-  ctx.save();ctx.fillStyle='rgba(4,9,20,.88)';ctx.strokeStyle='rgba(59,130,246,.35)';ctx.lineWidth=1;
-  var lh=16,pad=10,h=lines.length*lh+pad;
-  ctx.beginPath();ctx.roundRect(x,y,w,h,6);ctx.fill();ctx.stroke();
-  lines.forEach(function(l,i){optLabel(ctx,l,x+w/2,y+pad/2+lh/2+i*lh,l[0]==='='?'#22d3ee':'#94a3b8',9);});
+// A text cut in two at the separator nearest its middle (a dash, a semicolon,
+// a comma, a colon, else a space); every character is kept. null: no separator.
+function _splitHalf(t){
+  var mid=t.length/2,c1=-1,c2=-1,bs=1e9;
+  [' — ','; ',', ',': ',' '].forEach(function(sep,pri){var i=-1;
+    while((i=t.indexOf(sep,i+1))>=0){var sc=Math.abs(i-mid)+pri*6;
+      if(sc<bs){bs=sc;c1=sep===' '?i:i+sep.length-1;c2=i+sep.length;}}});
+  return c1<0?null:[t.slice(0,c1).trim(),t.slice(c2).trim()];
+}
+// The width an info box needs for its lines at their own size.
+function optInfoBoxW(ctx,lines){
+  ctx.save();ctx.font='9px Heebo,sans-serif';var m=0;
+  lines.forEach(function(l){m=Math.max(m,ctx.measureText(_mathIso(_cvSub(String(l)))).width);});
+  ctx.restore();return Math.ceil(m)+12;
+}
+// A line wider than its box used to run out across the border (the
+// conductor's readout on a phone, a translation longer than the Hebrew).
+// Each line is measured: one that does not fit is set smaller, down to 8 px;
+// past that, with o.wrap, it is broken in two near its middle and the box
+// grows by a line -- upward when o.bottom says that y is its bottom edge.
+// Returns the box, so a caller can keep its neighbours clear of it.
+function optInfoBox(ctx,x,y,w,lines,o){
+  o=o||{};
+  var lh=16,pad=10,inner=w-12,rows=[];
+  ctx.save();ctx.font='9px Heebo,sans-serif';
+  var wid=function(s){return ctx.measureText(_mathIso(_cvSub(String(s)))).width;};
+  var fit=function(lw){return lw>inner?Math.max(6.5,9*inner/lw):9;};
+  lines.forEach(function(l){
+    var col=String(l)[0]==='='?'#22d3ee':'#94a3b8',lw=wid(l),two=null;
+    if(o.wrap&&fit(lw)<8)two=_splitHalf(String(l));
+    if(two)two.forEach(function(s){rows.push([s,col,fit(wid(s))]);});
+    else rows.push([l,col,fit(lw)]);
+  });
   ctx.restore();
+  var h=rows.length*lh+pad;if(o.bottom)y-=h;
+  ctx.save();ctx.fillStyle='rgba(4,9,20,.88)';ctx.strokeStyle='rgba(59,130,246,.35)';ctx.lineWidth=1;
+  ctx.beginPath();ctx.roundRect(x,y,w,h,6);ctx.fill();ctx.stroke();
+  rows.forEach(function(r,i){optLabel(ctx,r[0],x+w/2,y+pad/2+lh/2+i*lh,r[1],r[2]);});
+  ctx.restore();
+  return {x:x,y:y,w:w,h:h};
 }
 function optAngleArc(ctx,cx,cy,r,a1,a2,col){
   ctx.save();ctx.strokeStyle=col;ctx.lineWidth=1.5;ctx.globalAlpha=0.8;
@@ -17656,7 +17702,7 @@ function _optMirrorSim(canvas,P){
     optNoGlow(ctx);ctx.strokeStyle='rgba(96,165,250,.35)';ctx.lineWidth=1;
     for(var yh=-AP;yh<=AP;yh+=12){var xh=hitX(cy+yh,R);ctx.beginPath();ctx.moveTo(xh+2,cy+yh);ctx.lineTo(xh+10,cy+yh-6);ctx.stroke();}
     ctx.restore();
-    optLabel(ctx,concave?'מראה קעורה':'מראה קמורה',mx+8,cy+AP+12,'#93c5fd',10);
+    var mLbl=concave?'מראה קעורה':'מראה קמורה',mLy=cy+AP+12;   // drawn once the bottom rows are known
     // F and C: in front for concave (real), behind for convex (virtual)
     var sgn=concave?-1:1, Fx=mx+sgn*fpx, Cx=mx+sgn*R;
     [{x:Fx,l:concave?'F':'F (מדומה)'},{x:Cx,l:concave?'C':'C (מדומה)'}].forEach(function(q,qi){
@@ -17671,7 +17717,11 @@ function _optMirrorSim(canvas,P){
     ctx.beginPath();ctx.moveTo(ox,cy);ctx.lineTo(ox,ty);ctx.stroke();
     ctx.fillStyle='#93c5fd';ctx.beginPath();ctx.moveTo(ox,ty);ctx.lineTo(ox-8,ty+15);ctx.lineTo(ox+8,ty+15);ctx.closePath();ctx.fill();
     optNoGlow(ctx);ctx.restore();
-    optLabel(ctx,'עצם',ox,cy+14,'#60a5fa',10);
+    // At dₒ = f the object stands on F, and its name steps below F's; at 2f it
+    // stands on C, with the image right under it, so its name goes to its left.
+    var oTx='עצם';ctx.save();ctx.font='10px Heebo,sans-serif';var oW=ctx.measureText(oTx).width/2+10;ctx.restore();
+    if(concave&&Math.abs(ox-Cx)<oW)optLabel(ctx,oTx,ox-12,cy+14,'#60a5fa',10,'right');
+    else optLabel(ctx,oTx,ox,(concave&&Math.abs(ox-Fx)<oW)?cy+34:cy+14,'#60a5fa',10);
     if(!hasDragged&&animT<7)optLabel(ctx,'✋ גררו את העצם',ox,ty-22+Math.sin(animT*4)*3,'#fbbf24',10);
     // image
     var virt=isFinite(diV)&&diV<0, ix=mx-diV*k, iy=cy-mV*objH;
@@ -17720,11 +17770,16 @@ function _optMirrorSim(canvas,P){
       var dir=iy<cy?1:-1;ctx.fillStyle=col;ctx.beginPath();ctx.moveTo(ix,iy);ctx.lineTo(ix-7,iy+dir*14);ctx.lineTo(ix+7,iy+dir*14);ctx.closePath();ctx.fill();
       optNoGlow(ctx);ctx.restore();
       optLabel(ctx,virt?'תמונה מדומה':'תמונה ממשית',ix,iy<cy?iy-14:iy+14,col,10);
-    } else if(!isFinite(diV)){
-      optLabel(ctx,'העצם במוקד: הקרניים המוחזרות מקבילות — התמונה באינסוף',W/2,H-58,'#f59e0b',10);
     } else {
-      optLabel(ctx,'התמונה רחוקה מחוץ לתרשים — קרבו את העצם או הרחיקו אותו מ-F',W/2,H-58,'#f59e0b',10);
+      // The message spans the canvas, so it takes its own row just above the
+      // ray legend; it used to share H-58 with the mirror's name, which then
+      // moves to the mirror's top end if the rows below still reach it.
+      var msgY=H-12-(used.length-1)*15-16;
+      if(msgY-7<mLy+7)mLy=cy-AP-12;
+      optLabel(ctx,!isFinite(diV)?'העצם במוקד: הקרניים המוחזרות מקבילות — התמונה באינסוף'
+        :'התמונה רחוקה מחוץ לתרשים — קרבו את העצם או הרחיקו אותו מ-F',W/2,msgY,'#f59e0b',10);
     }
+    optLabel(ctx,mLbl,mx+8,mLy,'#93c5fd',10);
     // legend of the rays actually drawn
     if(!dragObj)used.forEach(function(u,i){optLabel(ctx,u[1],W-10,H-12-(used.length-1-i)*15,u[0],9,'right');});
     // numbers, in mm, with their signs
@@ -17738,9 +17793,11 @@ function _optMirrorSim(canvas,P){
     if(dragObj){
       var msg=concave?(atF?'dₒ = f — הקרניים יוצאות מקבילות: אין תמונה':Math.abs(doM-2)<0.06?'dₒ = 2f (במרכז העקמומיות) — תמונה ממשית, הפוכה, שווה גודל':doM<1?'dₒ < f — מראת איפור: מדומה, ישרה ומוגדלת':'')
                      :'בכל מרחק — מדומה, ישרה ומוקטנת';
-      if(msg){ctx.save();ctx.fillStyle='rgba(4,9,20,.9)';ctx.strokeStyle='#fbbf24';ctx.lineWidth=1;
-        ctx.beginPath();ctx.roundRect(W/2-170,H-30,340,22,6);ctx.fill();ctx.stroke();ctx.restore();
-        optLabel(ctx,msg,W/2,H-19,'#fbbf24',10);}
+      // the frame is as wide as the message (a fixed 340 px ran off a phone)
+      if(msg){ctx.save();ctx.font='10px Heebo,sans-serif';var mgW=ctx.measureText(_mathIso(msg)).width,mbW=Math.min(W-12,mgW+24);
+        ctx.fillStyle='rgba(4,9,20,.9)';ctx.strokeStyle='#fbbf24';ctx.lineWidth=1;
+        ctx.beginPath();ctx.roundRect(W/2-mbW/2,H-30,mbW,22,6);ctx.fill();ctx.stroke();ctx.restore();
+        optLabel(ctx,msg,W/2,H-19,'#fbbf24',10*Math.min(1,(mbW-16)/mgW));}
     }
     // a photon along the parallel ray, toward the mirror
     if(Math.abs(ty-cy)<=AP){var ph=(animT*0.35)%1;
@@ -17813,7 +17870,12 @@ function simOptSnell(canvas){
     optLabel(ctx,'\u200ev₂ = c/n₂ = '+(3e8/n2/1e8).toFixed(2)+'×10⁸ m/s',68,MY+34,'#7d8da6',8);
     // Normal
     optDash(ctx,cx,MY-170,cx,MY+130,'#334155',0.7);
-    optLabel(ctx,'נורמל',cx+22,MY-150,'#7d8da6',9);
+    // The normal is named by its top end -- unless the info box (top right,
+    // 150 px) reaches over that corner, as on a phone: then just under the box.
+    var IBX=W-160,IBB=8+3*16+10,nTx='נורמל',nY=MY-150;
+    ctx.save();ctx.font='9px Heebo,sans-serif';var nW=ctx.measureText(nTx).width;ctx.restore();
+    if(cx+22+nW/2>IBX-4&&nY-6<IBB+2)nY=IBB+10;
+    optLabel(ctx,nTx,cx+22,nY,'#7d8da6',9);
     var L=Math.min(175,W/2-14);
     // Incident beam (animated pulse)
     var ix=cx-L*Math.sin(th1),iy=MY-L*Math.cos(th1);
@@ -17862,7 +17924,7 @@ function simOptSnell(canvas){
       ctx.save();ctx.fillStyle='rgba(4,9,20,.8)';ctx.beginPath();ctx.roundRect(cx+34,MY+30,44,18,3);ctx.fill();ctx.restore();
       optLabel(ctx,'\u200eθ₂ = '+(th2*180/Math.PI).toFixed(1)+'°',cx+56,MY+39,wlHex,10);
     }
-    optInfoBox(ctx,W-160,8,150,['n₁·sinθ₁=n₂·sinθ₂',tir?'החזרה מלאה: θ₁ > θc':'\u200eθ₂ = '+(th2*180/Math.PI).toFixed(1)+'°','פיזור: n תלוי ב-λ']);
+    optInfoBox(ctx,IBX,8,150,['n₁·sinθ₁=n₂·sinθ₂',tir?'החזרה מלאה: θ₁ > θc':'\u200eθ₂ = '+(th2*180/Math.PI).toFixed(1)+'°','פיזור: n תלוי ב-λ']);
     requestAnimationFrame(draw);
   }
   function poll(){if(_simStop[id])return;requestAnimationFrame(draw);}poll();
@@ -19555,17 +19617,23 @@ function simOptLaser(canvas){
     ctx.beginPath();ctx.roundRect(cavL,cavY,cavR-cavL,cavH,4);ctx.fill();
     ctx.strokeStyle='rgba('+lRGB[0]+','+lRGB[1]+','+lRGB[2]+',.5)';ctx.lineWidth=1.5;
     ctx.beginPath();ctx.roundRect(cavL,cavY,cavR-cavL,cavH,4);ctx.stroke();
+    // The mirrors' two-line labels sit wholly above the mirror bars (their
+    // second line used to cross the bar's top end), and the partial mirror's
+    // is measured and kept left of the inversion meter beside it.
+    var meterX=W<520?W-20:W*0.87;
     // Mirror left (total reflector)
     ctx.save();ctx.fillStyle='#e2e8f0';ctx.fillRect(cavL-5,cavY-6,6,cavH+12);
     ctx.fillStyle='#64748b';ctx.font='8px sans-serif';ctx.textAlign='center';
-    ctx.fillText('מראה',cavL-2,cavY-12);ctx.fillText('100%',cavL-2,cavY-4);ctx.restore();
+    ctx.fillText('מראה',cavL-2,cavY-19);ctx.fillText('100%',cavL-2,cavY-10);ctx.restore();
     // Mirror right (partial reflector)
     ctx.save();
     var mrGrad=ctx.createLinearGradient(cavR-3,0,cavR+3,0);
     mrGrad.addColorStop(0,'rgba(226,232,240,0.9)');mrGrad.addColorStop(1,'rgba(226,232,240,0.3)');
     ctx.fillStyle=mrGrad;ctx.fillRect(cavR-1,cavY-6,5,cavH+12);
     ctx.fillStyle='#64748b';ctx.font='8px sans-serif';ctx.textAlign='center';
-    ctx.fillText('מראה חלקית',cavR+2,cavY-12);ctx.fillText('מעבירה מעט',cavR+2,cavY-4);ctx.restore();
+    var PM1='מראה חלקית',PM2='מעבירה מעט';
+    var pmX=Math.min(cavR+2,meterX-20-Math.max(ctx.measureText(PM1).width,ctx.measureText(PM2).width)/2);
+    ctx.fillText(PM1,pmX,cavY-19);ctx.fillText(PM2,pmX,cavY-10);ctx.restore();
     // Pump arrows (top)
     var nPump=Math.round(pump*8);
     for(var pi=0;pi<nPump;pi++){
@@ -19635,7 +19703,7 @@ function simOptLaser(canvas){
       ctx.fillText('מתחת לסף — פליטה ספונטנית',W/2,cavY+cavH+22);
     }
     // Population inversion meter
-    var meterX=W<520?W-20:W*0.87,meterY=cavY+cavH,meterH=cavH*1.2;
+    var meterY=cavY+cavH,meterH=cavH*1.2;
     ctx.fillStyle='rgba(30,41,59,.8)';ctx.beginPath();ctx.roundRect(meterX-14,meterY-meterH,28,meterH,4);ctx.fill();
     ctx.strokeStyle='#475569';ctx.lineWidth=1;ctx.beginPath();ctx.roundRect(meterX-14,meterY-meterH,28,meterH,4);ctx.stroke();
     var fillH=Math.max(4,inversion*meterH);
@@ -19648,8 +19716,9 @@ function simOptLaser(canvas){
     ctx.save();ctx.strokeStyle='#fbbf24';ctx.lineWidth=1;ctx.setLineDash([3,3]);
     ctx.beginPath();ctx.moveTo(meterX-14,meterY-threshold*meterH);ctx.lineTo(meterX+14,meterY-threshold*meterH);ctx.stroke();ctx.setLineDash([]);ctx.restore();
     // Info box
-    optInfoBox(ctx,W<520?10:20,H-86,W<520?W-20:W*0.82-20,['שאיבה: '+Math.round(pump*100)+'%   ·   '+wl+' nm','מצב: '+(aboveThresh?'★ לייזר פעיל — ההיפוך ננעל בערך הסף, ועודף השאיבה הופך לקרן':'מתחת לסף — ההגברה קטנה מההפסדים'),
-      'הספק יציאה: '+Math.round(outP*100)+'% מהמרבי','שלושתם לייזרי 4 רמות: הרמה התחתונה מתרוקנת מהר']);
+    // (bottom edge at H-12; on the narrowest phones the status line breaks in two)
+    optInfoBox(ctx,W<520?10:20,H-12,W<520?W-20:W*0.82-20,['שאיבה: '+Math.round(pump*100)+'%   ·   '+wl+' nm','מצב: '+(aboveThresh?'★ לייזר פעיל — ההיפוך ננעל בערך הסף, ועודף השאיבה הופך לקרן':'מתחת לסף — ההגברה קטנה מההפסדים'),
+      'הספק יציאה: '+Math.round(outP*100)+'% מהמרבי','שלושתם לייזרי 4 רמות: הרמה התחתונה מתרוקנת מהר'],{wrap:true,bottom:true});
     requestAnimationFrame(draw);
   }
   function poll(){if(_simStop[id])return;requestAnimationFrame(draw);}poll();
@@ -21839,25 +21908,33 @@ runAnim('anim-fall',(canvas,ctx,W,H,t)=>{
   const yM=Math.max(0,v0f*phase-0.5*g*phase*phase);
   const hMax=v0f*v0f/(2*g);
   const groundY=H-18, ceilY=24;
-  const toY=ym=>groundY-(ym/hMax)*(groundY-ceilY)*0.9;
+  // The balls top out under a row kept for the captions (baseline LBL): the
+  // apex used to be at y = 40, so "a = g …" and h_max ran across the balls and
+  // "v = 0 …" across the middle one. The largest ball (r = 14) clears the row.
+  const LBL=34, apexY=LBL+20;
+  const toY=ym=>groundY-(ym/hMax)*(groundY-apexY);
   // Ground
   ctx.save(); ctx.strokeStyle='#2d5275'; ctx.lineWidth=2;
   ctx.beginPath(); ctx.moveTo(12,groundY); ctx.lineTo(W-12,groundY); ctx.stroke();
   for(let i=0;i<W-16;i+=16){ctx.strokeStyle='#0d1e30';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(12+i,groundY);ctx.lineTo(12+i+10,groundY+7);ctx.stroke();}
   ctx.restore();
-  // h_max dashed
-  ctx.save(); ctx.strokeStyle='rgba(52,211,153,.4)'; ctx.lineWidth=1.2; ctx.setLineDash([4,4]);
-  ctx.beginPath(); ctx.moveTo(28,toY(hMax)); ctx.lineTo(W-28,toY(hMax)); ctx.stroke(); ctx.setLineDash([]); ctx.restore();
-  label(ctx,'h_max = '+hMax.toFixed(1)+' m',W-32,toY(hMax)-5,'#34d399',9,'right');
-  // y axis
-  ctx.save(); ctx.strokeStyle='#2d5275'; ctx.lineWidth=1.5;
-  ctx.beginPath(); ctx.moveTo(26,groundY+3); ctx.lineTo(26,ceilY-2); ctx.stroke(); ctx.restore();
-  arrow(ctx,26,ceilY,26,ceilY-2,'#2d5275',1.5,5); label(ctx,'y',26,ceilY-6,'#7d8da6',8);
   const balls=[
     {col:'#3b82f6',bx:Math.floor(W*0.28),r:8,lbl:'0.05kg'},
     {col:'#f59e0b',bx:Math.floor(W*0.52),r:11,lbl:'2kg'},
     {col:'#ef4444',bx:Math.floor(W*0.76),r:14,lbl:'20kg'},
   ];
+  // h_max dashed
+  ctx.save(); ctx.strokeStyle='rgba(52,211,153,.4)'; ctx.lineWidth=1.2; ctx.setLineDash([4,4]);
+  ctx.beginPath(); ctx.moveTo(28,toY(hMax)); ctx.lineTo(W-28,toY(hMax)); ctx.stroke(); ctx.setLineDash([]); ctx.restore();
+  // h_max is named just above its line, at the right end -- or, where the
+  // heaviest ball and its mass reach under that spot (a phone), in the caption row
+  const hTx='h_max = '+hMax.toFixed(1)+' m', bR=balls[2];
+  ctx.save();ctx.font='9px Heebo';const hW=ctx.measureText(_cvSub(hTx)).width,mW=ctx.measureText(bR.lbl).width;ctx.restore();
+  label(ctx,hTx,W-32,(W-32-hW<bR.bx+bR.r+6+mW+6)?LBL:toY(hMax)-5,'#34d399',9,'right');
+  // y axis
+  ctx.save(); ctx.strokeStyle='#2d5275'; ctx.lineWidth=1.5;
+  ctx.beginPath(); ctx.moveTo(26,groundY+3); ctx.lineTo(26,ceilY-2); ctx.stroke(); ctx.restore();
+  arrow(ctx,26,ceilY,26,ceilY-2,'#2d5275',1.5,5); label(ctx,'y',26,ceilY-6,'#7d8da6',8);
   const vy=v0f-g*phase;
   balls.forEach(b=>{
     const by=toY(yM);
@@ -21868,14 +21945,14 @@ runAnim('anim-fall',(canvas,ctx,W,H,t)=>{
     label(ctx,b.lbl,b.bx+b.r+6,by+4,'#e2e8f0',9,'left');
     if(Math.abs(vy)>0.8){const arLen=Math.min(Math.abs(vy)*2.5,28);const yd=vy>0?-arLen:arLen;arrow(ctx,b.bx,by+(vy>0?-b.r-1:b.r+1),b.bx,by+(vy>0?-b.r-1:b.r+1)+yd,vy>0?'#34d399':'#f87171',1.8,6);}
   });
-  if(Math.abs(vy)<1.6){label(ctx,'v=0 שיא! כל המסות יחד',W/2,toY(hMax)+14,'#fbbf24',10);}
+  if(Math.abs(vy)<1.6){label(ctx,'v=0 שיא! כל המסות יחד',W/2,apexY+28,'#fbbf24',10);}   // under the balls, not across the middle one
   // Info bar top
   ctx.save(); ctx.fillStyle='rgba(8,18,36,.82)'; ctx.fillRect(0,0,W,18); ctx.restore();
   const rising=phase<Tpeak;
   label(ctx,'t = '+phase.toFixed(2)+' s     y = '+yM.toFixed(1)+' m     v = '+vy.toFixed(1)+' m/s '+(rising?'↑':'↓'),W/2,12,'#cbd5e1',9);
   // Symmetry banner
   if(tt>Ttotal+0.3&&tt<Ttotal+1.6){ctx.save();ctx.fillStyle='rgba(8,18,36,.92)';ctx.strokeStyle='#fbbf24';ctx.lineWidth=1.2;ctx.beginPath();ctx.roundRect(W/2-110,H/2-12,220,22,6);ctx.fill();ctx.stroke();ctx.restore();label(ctx,'זמן עלייה = זמן ירידה = '+Tpeak.toFixed(2)+' s',W/2,H/2+2,'#fbbf24',10);}
-  label(ctx,'a = g = 9.8 m/s² לכל המסות',34,34,'#94a3b8',9,'left');
+  label(ctx,'a = g = 9.8 m/s² לכל המסות',34,LBL,'#94a3b8',9,'left');
 });
 
 runAnim('anim-inertia',(canvas,ctx,W,H,t)=>{
@@ -24749,7 +24826,10 @@ runAnim('anim-refr-speed',(canvas,ctx,W,H,t)=>{
     {name:'זכוכית',n:1.5,col:'#a78bfa'},
     {name:'יהלום',n:2.42,col:'#f472b6'},
   ];
-  var bx=44,bw=W-100,bH=16,gap=8,startY=18;
+  // the five bars end a clear line above the caption (the last bar used to
+  // run under it): the caption keeps the bottom 16 px, the bars start higher
+  var bx=44,bw=W-100,bH=16,gap=8,capY=H-8;
+  var startY=Math.max(6,Math.min(18,capY-10-(materials.length*(bH+gap)-gap)));
   materials.forEach(function(m,i){
     var y=startY+i*(bH+gap);
     var barLen=Math.round(bw/m.n);
@@ -24772,7 +24852,7 @@ runAnim('anim-refr-speed',(canvas,ctx,W,H,t)=>{
     oLbl(ctx,m.name,bx-22,y+bH/2,'#94a3b8',8);
     oLbl(ctx,'n = '+m.n,bx+bw+28,y+bH/2,m.col,8);
   });
-  oLbl(ctx,'מהירות אור יחסית בחומרים שונים',W/2,H-6,'#7d8da6',9);
+  oLbl(ctx,'מהירות אור יחסית בחומרים שונים',W/2,capY,'#7d8da6',9);
 });
 
 // ─── 3. Enhanced Reflection Law ──────────────────────────────────────────────
@@ -27343,10 +27423,14 @@ MAG_SIMS['mag-circle']=function(canvas){
     magFieldMarks(ctx,X0,0,W,H,bz>0,38);
     ctx.save();ctx.strokeStyle='#475569';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(X0,0);ctx.lineTo(X0,H);ctx.stroke();ctx.restore();
     // ruler along the boundary, in real centimetres
-    if(shots.length){var span=(H-50)/sc,st=[0.005,0.01,0.02,0.05,0.1,0.2,0.5,1];var tk=st.find(function(x){return span/x<=10;})||1;
+    // (steps up to 50 m: a slow-turning ion at the sliders' ends has r of tens
+    // of metres, and 1 m steps stacked ~50 numbers into one column; a number
+    // that would run into the "cm" at the ruler's end is left out)
+    if(shots.length){var span=(H-50)/sc,st=[0.005,0.01,0.02,0.05,0.1,0.2,0.5,1,2,5,10,20,50];var tk=st.find(function(x){return span/x<=10;})||50;
+      var yCm=up?14:H-8;
       for(var d=0;d*sc<H-30;d+=tk){var yy=up?yE-d*sc:yE+d*sc;ctx.save();ctx.strokeStyle='#64748b';ctx.beginPath();ctx.moveTo(X0-8,yy);ctx.lineTo(X0,yy);ctx.stroke();ctx.restore();
-        simText(ctx,(d*100).toFixed(tk<0.01?1:0),X0-11,yy+3,'#64748b',8.5,'right');}
-      simText(ctx,'cm',X0-11,up?14:H-8,'#64748b',8.5,'right');}
+        if(Math.abs(yy+3-yCm)>=11)simText(ctx,(d*100).toFixed(tk<0.01?1:0),X0-11,yy+3,'#64748b',8.5,'right');}
+      simText(ctx,'cm',X0-11,yCm,'#64748b',8.5,'right');}
     // the gun
     ctx.save();ctx.fillStyle='#334155';ctx.fillRect(8,yE-9,X0*0.55,18);ctx.restore();
     simText(ctx,PARTS[pi].n,8+X0*0.27,yE+(up?-18:22),'#94a3b8',9.5,'center',true);
@@ -27366,13 +27450,20 @@ MAG_SIMS['mag-circle']=function(canvas){
       q0=s;});
     marks.forEach(function(m){ctx.save();ctx.strokeStyle=m.s.col;ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(X0-14,m.y);ctx.lineTo(X0+6,m.y);ctx.stroke();ctx.restore();
       simText(ctx,'2r = '+(2*m.s.r*100).toFixed(1)+' cm',X0+12,m.y+(up?14:-8),m.s.col,10,'left',true);});
-    var y0=up?8:H-68;ctx.save();ctx.fillStyle='rgba(2,8,16,.85)';ctx.fillRect(W-Math.min(W*0.62,420)-8,y0,Math.min(W*0.62,420),60);ctx.restore();
-    var bx=W-Math.min(W*0.62,420)/2-8;
+    // The panel is as wide as its widest line (on a phone the first line was
+    // ~240 px in a 226 px panel), never reaching left of the field's edge X0;
+    // a line that still does not fit is set smaller to the panel's width.
+    var y0=up?8:H-68,rows;
     if(q0){var tin2=Math.max(0,(tv-q0.t0-0.35)/(Tvis/(q0.T/2)));
-      simText(ctx,'r = mv/qB = '+(q0.r*100).toFixed(q0.r<1?2:0)+' cm   ·   T/2 = πm/qB = '+(q0.T/2*1e9).toFixed(1)+' ns',bx,y0+18,'#e2e8f0',10.5,'center',true);
-      simText(ctx,'שעון (הילוך איטי): '+(Math.min(tin2,q0.T/2)*1e9).toFixed(1)+' ns',bx,y0+38,'#fbbf24',10.5,'center',true);
-      simText(ctx,shots.length>1?'המהיר עושה מעגל כפול — ויוצא באותו רגע בדיוק':'שנו את v ושגרו שוב: הרדיוס משתנה, הזמן לא',bx,y0+54,'#94a3b8',9.5,'center');}
-    else simText(ctx,'לחצו ״שגרו״ — או ״שגרו שניים״ להשוואת זמנים',bx,y0+30,'#94a3b8',10.5,'center');
+      rows=[['r = mv/qB = '+(q0.r*100).toFixed(q0.r<1?2:0)+' cm   ·   T/2 = πm/qB = '+(q0.T/2*1e9).toFixed(1)+' ns',18,'#e2e8f0',10.5,true],
+        ['שעון (הילוך איטי): '+(Math.min(tin2,q0.T/2)*1e9).toFixed(1)+' ns',38,'#fbbf24',10.5,true],
+        [shots.length>1?'המהיר עושה מעגל כפול — ויוצא באותו רגע בדיוק':'שנו את v ושגרו שוב: הרדיוס משתנה, הזמן לא',54,'#94a3b8',9.5,false]];}
+    else rows=[['לחצו ״שגרו״ — או ״שגרו שניים״ להשוואת זמנים',30,'#94a3b8',10.5,false]];
+    ctx.save();rows.forEach(function(r){ctx.font=(r[4]?'bold ':'')+r[3]+'px Heebo';r.push(ctx.measureText(_mathIso(r[0])).width);});ctx.restore();
+    var pw=Math.min(W-X0-12,Math.max(Math.min(W*0.62,420),Math.max.apply(null,rows.map(function(r){return r[5];}))+20));
+    ctx.save();ctx.fillStyle='rgba(2,8,16,.85)';ctx.fillRect(W-pw-8,y0,pw,60);ctx.restore();
+    var bx=W-pw/2-8;
+    rows.forEach(function(r){simText(ctx,r[0],bx,y0+r[1],r[2],r[3]*Math.min(1,(pw-12)/r[5]),'center',r[4]);});
     requestAnimationFrame(draw);
   }
   requestAnimationFrame(draw);
@@ -30895,7 +30986,11 @@ function simElcPlane(canvas){
       ctx.beginPath();ctx.roundRect(tx-lw/2,ty+16,lw,18,5);ctx.fill();ctx.restore();
       simText(ctx,'E = E₁ + E₂ = '+(Et/1e5).toFixed(2)+'×10⁵ V/m',tx,ty+26,'#fbbf24',10,'center',true);
     } else simText(ctx,'E₁ + E₂ = 0 — אין כוח',tx,ty+26,'#94a3b8',10,'center',true);
-    if(!touched)simText(ctx,'גררו את מטען הבוחן',W-16,H*0.62-8,'#7d8da6',9.5,'right');
+    // the hint used to sit in the bottom corner, across the right plate and a
+    // row of arrows; it goes under the charge's own readout instead, in the
+    // gap before the next row of arrows (the charge has not moved yet)
+    if(!touched){var rowB=yTop+18+38*Math.ceil((ty+34-(yTop+18))/38);
+      simText(ctx,'גררו את מטען הבוחן',tx,(ty+34+rowB-4)/2+3.5,'#7d8da6',9.5,'center');}
     // ── the three regions, each with its own arithmetic ──
     var lbl=[[ (x1)/2, Etot(x1*0.5)],[ two?(x1+x2)/2:(x1+W)/2, Etot(two?(x1+x2)/2:(x1+W)/2)]];
     if(two)lbl.push([(x2+W)/2,Etot((x2+W)/2)]);
@@ -31072,11 +31167,14 @@ function simElcConductor(canvas){
         ctx.strokeStyle='rgba(148,163,184,.35)';ctx.lineWidth=1;ctx.strokeRect(PX0,yb,PW,22);ctx.restore();
         optLabel(ctx,'σ',PX0-12,yb+11,rows[ri][2],10);
       }
-      optInfoBox(ctx,W*0.58,H-190,W*0.38,[
-        'כל פני השטח באותו פוטנציאל',
+      // as wide as its lines, kept flush with the bars' right edge; a box that
+      // has to reach left past the bars drops below the caption under the tip
+      var SL=['כל פני השטח באותו פוטנציאל',
         'V≈kq/r ⇒ ברדיוס קטן די בפחות מטען',
         'ולכן σ גדולה שם, ו-E=σ/ε₀ עצום',
-        'זהו העיקרון של כליא הברק']);
+        'זהו העיקרון של כליא הברק'];
+      var SW=Math.min(PX0+PW-8,Math.max(PW,optInfoBoxW(ctx,SL))),SX=PX0+PW-SW;
+      optInfoBox(ctx,SX,SX<PX0-1?Math.max(H-190,cy+rr*1.5+14):H-190,SW,SL,{wrap:true});
       requestAnimationFrame(draw);return;
     }
     var dxp=(pxp-cx)/PXM, dyp=(pyp-cy)/PXM;
@@ -31150,11 +31248,14 @@ function simElcConductor(canvas){
     ctx.beginPath();ctx.arc(xp,vY(Vp),4.5,0,Math.PI*2);ctx.fill();
     ctx.strokeStyle='rgba(251,191,36,.35)';ctx.lineWidth=1;ctx.setLineDash([2,3]);
     ctx.beginPath();ctx.moveTo(xp,gyE);ctx.lineTo(xp,gyV+GH);ctx.stroke();ctx.setLineDash([]);ctx.restore();
-    optInfoBox(ctx,8,H-92,Math.min(244,GX-16),[
+    // left of the graphs (and of the V graph's "0") there is no more width to
+    // give it: on a phone a long line is set smaller or broken in two, and the
+    // box grows upward
+    optInfoBox(ctx,8,H-18,Math.min(244,GX-22),[
       'בנקודת הגשוש (r='+(r_m*100).toFixed(0)+' cm):',
       '\u200eE = '+(Ep===0?'0 בדיוק':sciTxt(Ep)+' V/m'),
       '\u200eV = '+(Vp/1000).toFixed(1)+' kV'+(inside?'  (קבוע בכל הפנים)':''),
-      inside?(Vp===0?'בפנים: E=0 (וכאן גם V=0)':'בפנים: E=0 אבל V≠0'):(E0x?'בחוץ: חיצוני + מושרה; על פני הכדור — ניצב לו':'בחוץ: כמו מטען נקודתי במרכז')]);
+      inside?(Vp===0?'בפנים: E=0 (וכאן גם V=0)':'בפנים: E=0 אבל V≠0'):(E0x?'בחוץ: חיצוני + מושרה; על פני הכדור — ניצב לו':'בחוץ: כמו מטען נקודתי במרכז')],{wrap:true,bottom:true});
     requestAnimationFrame(draw);
   }requestAnimationFrame(draw);
 }
