@@ -59,7 +59,11 @@ async function drops(b, url, width) {
     const he = await drops(b, MASTER, w), ed = await drops(b, EDITION, w);
     for (const k of Object.keys(he.out)) {
       views++;
-      const A = he.out[k], B = ed.out[k] || [];
+      // only labels with words can be lost in translation: a readout of symbols
+      // and a number ("H = 12.3 m") is the same text in every edition, and
+      // whether it fits depends only on the animation frame that was sampled
+      const worded = (l) => l.filter(x => /[A-Za-zÀ-ɏ\u0590-\u05FF]{3,}/.test(x));
+      const A = worded(he.out[k]), B = worded(ed.out[k] || []);
       if (B.length > A.length) { bad++; console.log(`   FAIL ${w}px ${k}: ${B.length} label(s) dropped (Hebrew ${A.length}): ${B.map(s => '«' + s.slice(0, 70) + '»').join(' ')}`); }
     }
     for (const e of he.errs.concat(ed.errs)) { bad++; console.log(`   page error (${w}px): ${e}`); }
