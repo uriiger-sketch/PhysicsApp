@@ -375,9 +375,15 @@ const EXPECT = {
   const tlast = re => q.evaluate(r => { const R = new RegExp(r), a = window.__T.filter(s => R.test(s)); return a.length ? a[a.length - 1] : null; }, re);
   const swipe = async (r, pts, re) => { const P = z => ({ x: r.x + z[0], y: r.y + z[1] });
     await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [P(pts[0])] });
-    for (let i = 1; i < pts.length; i++) { await q.waitForTimeout(50); await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [P(pts[i])] }); }
-    await q.waitForTimeout(120); const held = await tlast(re);
-    await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] }); await q.waitForTimeout(150); return held; };
+    // read the readout while the finger moves, not only once it is still: a
+    // readout that depends on the motion itself (the induced current of
+    // mag-lenz) is back to zero a moment after the finger stops, and on a busy
+    // machine that moment came before the one reading
+    const seen = [];
+    for (let i = 1; i < pts.length; i++) { await q.waitForTimeout(50); await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [P(pts[i])] });
+      await q.waitForTimeout(40); seen.push(await tlast(re)); }
+    await q.waitForTimeout(120); seen.push(await tlast(re));
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] }); await q.waitForTimeout(150); return seen; };
   // where each sim's handle starts, from its own layout (W = canvas width)
   const TOUCH = [
     ['mag-field', 'mag-magnets', W => [[W / 2, 206.8 - 0.15 * W], [W / 2 + 40, 266.8 - 0.15 * W]], '^' + LR('|B| במצפן = ')],
@@ -393,8 +399,8 @@ const EXPECT = {
     ['mag-induction', 'mag-motional', W => [[174, 130], [200, 130], [230, 130]], '^ε = BLv'],
   ];
   const deaf = [];
-  for (const [c, s, pf, re] of TOUCH) { const r = await topen(c, s), before = await tlast(re), held = await swipe(r, pf(r.w), re);
-    if (!before || held === before) deaf.push(s + ': ' + before + ' → ' + held); }
+  for (const [c, s, pf, re] of TOUCH) { const r = await topen(c, s), before = await tlast(re), seen = await swipe(r, pf(r.w), re);
+    if (!before || !seen.some(h => h && h !== before)) deaf.push(s + ': ' + before + ' → ' + seen[seen.length - 1]); }
   t(TOUCH.length + ' simulations follow a finger (touch start, move, end)', deaf.length === 0, deaf.join(' | '));
   await tc.close();
 
