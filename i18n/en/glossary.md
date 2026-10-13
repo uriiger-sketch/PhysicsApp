@@ -223,6 +223,9 @@ These were decided while the first areas were translated; they bind every area.
 | מהירות התרחקות · חוק האבל · פעימות · קו הראייה | speed of recession · Hubble’s law · beats · line of sight |
 | פליטה ספונטנית · רמה יציבה-למחצה · חלל תהודה · תווך פעיל · מראה חלקית | spontaneous emission · metastable level · resonant cavity · active medium · partially reflecting mirror |
 | דואליות גל-חלקיק · אור עז / חלש | wave–particle duality · bright / dim light |
+| מבט ניצב (קרום דק) | normal incidence (“viewed straight on” in a question) |
+| סגול שאינו צבע ספקטרלי (פיגמנט, ציפוי) | purple — “violet” is kept for the spectral color only |
+| סדר נופל (סריג) | an order drops out / does not exist — not “missing order”, which has a technical meaning |
 | מטען בוחן · גשוש · מטען היסוד | test charge · probe · elementary charge |
 | הולכה (טעינה) · עקרון החוד | conduction (charging by contact) · the sharp-point effect |
 | שדה הפריצה · חוזק הפריצה | breakdown field · dielectric strength |
