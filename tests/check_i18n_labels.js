@@ -24,6 +24,9 @@ async function drops(b, url, width) {
   const errs = [];
   p.on('pageerror', e => errs.push(e.message));
   await p.route(/^https?:/, r => r.abort());
+  // the same random numbers in both pages (a projectile's target, a noise
+  // trace), so the two editions draw exactly the same scenes
+  await p.addInitScript(() => { let s = 20261013; Math.random = () => (s = (s * 16807) % 2147483647) / 2147483647; });
   await p.goto(url); await p.waitForTimeout(1200);
   const out = await p.evaluate(async () => {
     if (window.closeOnboarding) closeOnboarding();
