@@ -96,7 +96,7 @@ const t = (name, ok, info) => {
           }
           out.ranges++;
         }
-        const btns = roots.flatMap(r => [...r.querySelectorAll('button')]).filter(x => x.offsetParent && !/סיימתי/.test(x.textContent));
+        const btns = roots.flatMap(r => [...r.querySelectorAll('button')]).filter(x => x.offsetParent && !/finishSim/.test(x.getAttribute('onclick') || ''));   // not the “done” button
         for (const x of btns.slice(0, 12)) {
           try { x.click(); out.buttons++; } catch (e) { out.bad.push(x.textContent); }
           await wait(60);

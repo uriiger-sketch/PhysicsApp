@@ -9,6 +9,7 @@
 //                                 that ends at the same placeholder ('Leaf angle: ')
 //   LR('זווית עלים: ')           the same, escaped for a RegExp
 //   WORD                         a word of the page's language (3+ letters)
+//   WORDS                        every word of the page's language (a global RegExp)
 //   LANG                         'he' for the master, else the edition's code
 //
 // On the master every function returns its Hebrew unchanged.
@@ -70,5 +71,6 @@ function L(he) {
 const esc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const LR = (he) => esc(L(he));
 const WORD = LANG === 'he' ? /[א-ת]{3,}/ : /[A-Za-zÀ-ɏ]{3,}/;
+const WORDS = LANG === 'he' ? /[א-ת]+/g : /[A-Za-zÀ-ɏ]+/g;
 
-module.exports = { L, LR, WORD, LANG };
+module.exports = { L, LR, WORD, WORDS, LANG };
