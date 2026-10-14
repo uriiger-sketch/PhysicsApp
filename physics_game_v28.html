@@ -8166,7 +8166,7 @@ const DC_CONTENT={
       <p>אז כותבים את <b>חוקי קירכהוף</b> לכל צומת ולכל לולאה, ופותרים מערכת משוואות — בפרק ד. הצמצום מכסה כמעט כל מעגל בבית הספר, אבל לדעת מתי הוא <em>לא</em> עובד זה חלק מלהבין אותו.</p>
     </div>`,
   },
-  sim:{type:'dc-mixed',desc:'שנו את שלושת הנגדים ואת המתח. הסימולציה מצמצמת את המעגל לנגד אחד לנגד עיניכם, ואז מחזירה את הזרם והמתח אל כל רכיב — שלב אחר שלב.'},
+  sim:{type:'dc-mixed',desc:'לחצו על כפתור השלבים: הצמד המקבילי מצטמצם לנגד אחד, נפתר הטור שנשאר, ואז חוזרים אחורה אל הזרם בכל ענף — כל שלב עם המספרים שלו. מדדו בגשושים את המתח על R₁ ועל הצמד, ונסו לקצר את הצמד במפסק S. הסוללה אידיאלית.'},
   example:{title:'טור ומקביל יחד',text:`סוללה של ${M('12\\,\\text{V}')}; ${M('R_1=6\\,\\Omega')} בטור עם הצירוף המקבילי של ${M('R_2=6\\,\\Omega')} ו־${M('R_3=3\\,\\Omega')}.`,steps:[
     {q:'מה ההתנגדות השקולה?',a:`${M('R_{23}=2\\,\\Omega')}, ולכן ${M('R=6+2=8\\,\\Omega')}`},
     {q:'מה הזרם הראשי?',a:`${M('I=\\dfrac{12}{8}=1.5\\,\\text{A}')}`},
@@ -8272,7 +8272,7 @@ const DC_CONTENT={
       <p>אותו מחוג, שני חיווטים הפוכים — ולכן לאמפרמטר התנגדות קטנה ולוולטמטר התנגדות גדולה.</p>
     </div>`,
   },
-  sim:{type:'dc-meters',desc:'עברו בין ארבעת החיבורים. שניים נכונים ושניים שגויים — וכל שגוי מסביר בדיוק מה קרה: אמפרמטר במקביל מקצר את הנגד, וולטמטר בטור חונק את הזרם.'},
+  sim:{type:'dc-meters',desc:'הקישו על המכשיר כדי להחליף בין אמפרמטר לוולטמטר, ועל סימן השאלה כדי להעביר אותו — לתוך המסלול (בטור) או מעל R₂ (במקביל). שניים מארבעת החיבורים נכונים ושניים שגויים, והמעגל נפתר עם ההתנגדות האמיתית של המכשיר: כמעט 0 Ω לאמפרמטר ו־10 MΩ לוולטמטר.'},
   example:{title:'קריאות מכשירים',text:`סוללה של ${M('12\\,\\text{V}')}, ${M('R_1=4\\,\\Omega')} ו־${M('R_2=8\\,\\Omega')} בטור.`,steps:[
     {q:'מה יראה אמפרמטר אידיאלי?',a:`${M('1\\,\\text{A}')} — ואותו ערך בכל נקודה בלולאה.`},
     {q:'מה יראה וולטמטר שמחובר על R₂?',a:`${M('8\\,\\text{V}')}`},
@@ -30231,6 +30231,10 @@ function dcPotCol(f,al){
 // pieces between the subscripts lost the spaces at their ends ("V_A= V_B=").
 function dcM(t){var h=_skM(t),i=h.indexOf('>')+1,j=h.lastIndexOf('</span>');
   return h.slice(0,i)+'<span>'+h.slice(i,j).replace(/([A-Za-zεΔ])_([A-Za-z0-9]{1,4})/g,'$1<sub>$2</sub>')+'</span>'+h.slice(j);}
+// a current with sensible figures: "1.50 A", and below 0.1 A in milliamperes
+// ("4.55 mA", "83.3 mA") rather than a bare "0.00 A" for a current that flows
+function dcA(I){var a=Math.abs(I);
+  return a>=5e-5&&a<0.0995?dcNum(I*1000,a<0.00995?2:1)+' mA':dcNum(I,2)+' A';}
 // "+12.00 V", "−3.50 V", "0.00 V": a meter reading, its sign always shown
 function dcSigned(v,d,u){var t=dcNum(v,d);return (t.charAt(0)!=='−'&&+t!==0?'+':'')+t+(u||'');}
 
@@ -30252,14 +30256,14 @@ function dcBoard(canvas,ctx,W,H,dpr,spec){
   Object.keys(spec.P).forEach(function(k){if(!(k in idx))idx[k]=n++;});
   Object.keys(idx).forEach(function(k){pts[idx[k]]=spec.P[k];});
   spec.E.forEach(function(e){
-    if(e.k==='w'){for(var i=1;i<e.p.length;i++)els.push({k:'w',a:idx[e.p[i-1]],b:idx[e.p[i]]});return;}
+    if(e.k==='w'){for(var i=1;i<e.p.length;i++)els.push({k:'w',a:idx[e.p[i-1]],b:idx[e.p[i]],grp:e.grp,hidden:e.hidden});return;}
     var c={};for(var q in e)c[q]=e[q];c.a=idx[e.a];c.b=idx[e.b];
     if(c.k==='sw')c.ang=c.on?0:1;
     els.push(c);if(c.id)byId[c.id]=c;});
   // geometry: where each body sits on its segment, and how long it is
   var BODY={res:46,bulb:30,bat:14,sw:36,amm:30,vm:30,w:0};
   els.forEach(function(e){var A=pts[e.a],B=pts[e.b],dx=B[0]-A[0],dy=B[1]-A[1],L=Math.hypot(dx,dy)||1;
-    e.L=L;e.ux=dx/L;e.uy=dy/L;e.mx=(A[0]+B[0])/2;e.my=(A[1]+B[1])/2;e.bl=Math.min(BODY[e.k]||0,L-4);});
+    e.L=L;e.ux=dx/L;e.uy=dy/L;e.mx=(A[0]+B[0])/2;e.my=(A[1]+B[1])/2;e.bl=Math.min(e.body||BODY[e.k]||0,L-4);});
   // wires join points into nets: the points a probe can tell apart
   var par=pts.map(function(_,i){return i;});
   var find=function(i){while(par[i]!==i)i=par[i]=par[par[i]];return i;};
@@ -30286,6 +30290,7 @@ function dcBoard(canvas,ctx,W,H,dpr,spec){
   var B={els:els,pts:pts,idx:idx,n:n,V:new Float64Array(n),I:els.map(function(){return 0;}),
     k:spec.k||40,P0:spec.P0||6,short:false,touched:false,focus:-1,kbd:false};
   B.el=function(id){return byId[id];};
+  B.group=function(g){return els.filter(function(e){return e.grp===g;});};
   B.net=function(name){return find(typeof name==='string'?idx[name]:name);};
   B.vmax=function(){
     if(spec.vmax)return Math.max(1e-6,spec.vmax());
@@ -30393,8 +30398,17 @@ function dcBoard(canvas,ctx,W,H,dpr,spec){
   var sayReading=function(){var r=B.reading();
     if(r!==null)_say('המתח בין הגשושים: '+dcSigned(r,2,' V'));};
   // ── pointer ────────────────────────────────────────────────────────
+  // With probes the canvas is dragged (and tapped); without them it is only
+  // tapped, and listens for nothing a drag would -- so its badge says "tap".
   var drag=null,down=null;
-  simDrag(canvas,dpr,{
+  var hover=function(e){
+    if(drag)return;var q=simPointerXY(canvas,dpr,e),ii=hitItem(q.x,q.y);
+    canvas.style.cursor=ii<0?'default':items[ii].t==='pr'?'grab':'pointer';};
+  if(!M){
+    canvas.addEventListener('click',function(e){var q=simPointerXY(canvas,dpr,e),ii=hitItem(q.x,q.y);
+      B.kbd=false;if(ii>=0){B.focus=ii;activate(items[ii]);}});
+    canvas.addEventListener('pointermove',hover);
+  }else simDrag(canvas,dpr,{
     down:function(p){
       B.kbd=false;var ii=hitItem(p.x,p.y);down={x:p.x,y:p.y,ii:ii,moved:false};
       if(ii>=0&&items[ii].t==='pr'){var pr=items[ii].p;drag={p:pr,ox:pr.x-p.x,oy:pr.y-p.y};pr.at=null;pr.home=false;
@@ -30409,9 +30423,7 @@ function dcBoard(canvas,ctx,W,H,dpr,spec){
         drag=null;}
       else if(down&&!down.moved&&down.ii>=0){B.focus=down.ii;activate(items[down.ii]);}
       down=null;}});
-  canvas.addEventListener('mousemove',function(e){
-    if(drag)return;var q=simPointerXY(canvas,dpr,e),ii=hitItem(q.x,q.y);
-    canvas.style.cursor=ii<0?'default':items[ii].t==='pr'?'grab':'pointer';});
+  if(M)canvas.addEventListener('mousemove',hover);
   // ── keyboard: Tab walks the switches and probes, Enter/Space works the
   // one in focus, the arrows carry a probe from point to point ───────
   canvas.tabIndex=0;
@@ -30515,7 +30527,7 @@ function dcBoard(canvas,ctx,W,H,dpr,spec){
     if(e.k==='amm'||e.k==='vm'){
       simText(ctx,e.k==='amm'?'A':'V',e.mx,e.my+5,e.k==='amm'?'#fbbf24':'#34d399',14,'center',true);
       // a meter in the circuit says what it reads, beside itself (rx, ry)
-      if(e.read!==false){var rd=e.k==='amm'?dcNum(I,2)+' A':dcNum(va-vb,2)+' V';
+      if(e.read!==false){var rd=e.k==='amm'?dcA(I):dcNum(va-vb,2)+' V';
         var px=e.mx+(e.rx!==undefined?e.rx:(Math.abs(e.ux)>0.5?0:30)),py=e.my+(e.ry!==undefined?e.ry:(Math.abs(e.ux)>0.5?30:4));
         ctx.save();ctx.font='bold 10.5px Heebo';var tw=ctx.measureText(rd).width+10;ctx.restore();
         ctx.save();ctx.fillStyle='rgba(2,8,16,.88)';ctx.strokeStyle=e.k==='amm'?'rgba(251,191,36,.45)':'rgba(52,211,153,.45)';ctx.lineWidth=1;
@@ -30555,8 +30567,8 @@ function dcBoard(canvas,ctx,W,H,dpr,spec){
     for(var i=0;i<=4;i++)g.addColorStop(i/4,dcPotCol(i/4));
     simText(ctx,'פוטנציאל',x+w/2,y-5,'#94a3b8',9.5,'center');
     ctx.save();ctx.fillStyle=g;ctx.beginPath();ctx.roundRect(x,y,w,6,3);ctx.fill();ctx.restore();
-    simText(ctx,'0 V',x,y+18,'#94a3b8',9,'center');
-    simText(ctx,vm.toFixed(vm<10?1:0)+' V',x+w,y+18,'#cde2fb',9,'center');
+    simText(ctx,'0 V',x,y+17,'#94a3b8',9,'center');
+    simText(ctx,vm.toFixed(vm<10?1:0)+' V',x+w,y+17,'#cde2fb',9,'center');
   };
   B.dotKey=function(x,y,align){
     ctx.save();ctx.fillStyle='rgba(253,230,138,.92)';ctx.beginPath();
@@ -31117,7 +31129,7 @@ function simDcSeries(canvas){
     simText(ctx,'R₂ = '+r2.toFixed(0)+' Ω',x2,T-20,'#e2e8f0',10.5,'center',true);
     simText(ctx,has3?'R₃ = '+r3.toFixed(0)+' Ω':'R₃ ?',R-18,my+4,has3?'#e2e8f0':'#94a3b8',10.5,'right',has3);
     simText(ctx,'ε = '+e.toFixed(1)+' V',L+40,my+4,'#f87171',10.5,'left',true);
-    bd.legend(m+4,28,88);
+    bd.legend(m+4,22,88);
     bd.dotKey(m-8,H-9,'left');
     if(toast>0){toast-=dt;simText(ctx,'קודם נחשו — השאלה מתחת לתרשים ↓',W/2,Bt+22,'#fbbf24',10.5,'center',true);}
     else if(!bd.probeUsed)simText(ctx,'גררו את שני הגשושים אל נקודות במעגל',W/2,Bt+22,'#cbd5e1',10,'center');
@@ -31219,10 +31231,10 @@ function simDcParallel(canvas){
     bd.drawCircuit(dt);
     [1,2,3].forEach(function(k){var y=ys[k-1];
       simText(ctx,'R'+'₁₂₃'[k-1]+' = '+Rk(k).toFixed(0)+' Ω',xl,y-21,'#e2e8f0',10,'center',true);
-      simText(ctx,'I'+'₁₂₃'[k-1]+' = '+Ik[k-1].toFixed(2)+' A',xl,y+29,'#fcd34d',10,'center',true);});
+      simText(ctx,'I'+'₁₂₃'[k-1]+' = '+dcA(Ik[k-1]),xl,y+29,'#fcd34d',10,'center',true);});
     simText(ctx,'ε = '+e.toFixed(1)+' V',L-26,P.pc[1]-2,'#f87171',10.5,'right',true);
     if(r>0)simText(ctx,'r = '+r.toFixed(1)+' Ω',L-26,(P.pc[1]+P.ri[1])/2,'#fca5a5',10,'right',true);
-    bd.legend(m+4,28,88);
+    bd.legend(m+4,22,88);
     bd.dotKey(m-8,H-9,'left');
     if(toast>0){toast-=dt;simText(ctx,'קודם נחשו — השאלה מתחת לתרשים ↓',W/2,Bt+20,'#fbbf24',10.5,'center',true);}
     else if(!bd.probeUsed)simText(ctx,'גררו את שני הגשושים אל נקודות במעגל',W/2,Bt+20,'#cbd5e1',10,'center');
@@ -31241,88 +31253,107 @@ function simDcParallel(canvas){
 }
 
 // SECTION: dc-network.dc-mixed
+// PEDAGOGY: R₁ in series with the pair R₂∥R₃. The reduction method is the
+// lesson: the step button walks it -- collapse the pair (a dashed box becomes
+// one resistor R₂₃), solve the simple series loop, then go back out to the
+// branches -- with every step's numbers in the model line, and the branch
+// currents kept hidden until the method has earned them. The probes test the
+// classic slip: the pair does NOT have the battery's voltage, only what R₁
+// leaves. A switch S can short the pair (predicted first).
 function simDcMixed(canvas){
   var id=canvas.id, _g=_simGen[id];
-  const H=400; const {ctx,W,dpr}=setupCanvas(canvas,H);
-  var t=0, stage=0;
+  var wide=(canvas.offsetWidth||(canvas.parentElement&&canvas.parentElement.offsetWidth)||720)>=600;
+  const H=wide?404:374; const {ctx,W,dpr}=setupCanvas(canvas,H);
   function V(){var e=document.getElementById('inp-mix-V');return e?parseFloat(e.value):12;}
   function R1(){var e=document.getElementById('inp-mix-R1');return e?parseFloat(e.value):6;}
   function R2(){var e=document.getElementById('inp-mix-R2');return e?parseFloat(e.value):6;}
   function R3(){var e=document.getElementById('inp-mix-R3');return e?parseFloat(e.value):3;}
+  var m=Math.max(22,(W-640)/2),L=m+26,R=W-m-12,T=wide?84:78,dy=wide?70:64,Bt=T+2*dy+(wide?48:46),my=(T+Bt)/2;
+  var x1=L+(R-L)*0.22,xj=L+(R-L)*0.45,x2=(xj+R)/2+6;
+  var Mw=Math.min(170,W*0.42),M={x:W/2-Mw/2,y:Bt+32,w:Mw,h:54};
+  var stage=0,predicted=false,toast=0;
+  var bd=dcBoard(canvas,ctx,W,H,dpr,{
+    gnd:'n',k:50,P0:8,probes:M,
+    aria:'מעגל מעורב: סוללה, R₁ בטור עם הצמד המקבילי R₂ ו־R₃, ומפסק S שמקצר את הצמד. Tab עובר בין המפסק והגשושים, Enter מפעיל, החיצים מזיזים גשוש.',
+    P:{n:[L,my+16],p:[L,my-16],tl:[L,T],r1a:[x1-28,T],r1b:[x1+28,T],j1:[xj,T],r2a:[x2-28,T],r2b:[x2+28,T],tr:[R,T],
+       k1:[xj,T+dy],r3a:[x2-28,T+dy],r3b:[x2+28,T+dy],q1:[R,T+dy],k2:[xj,T+2*dy],sa:[x2-22,T+2*dy],sb:[x2+22,T+2*dy],q2:[R,T+2*dy],
+       br:[R,Bt],bl:[L,Bt]},
+    E:[{k:'bat',a:'n',b:'p',emf:V(),r:0,id:'bat'},
+       {k:'w',p:['p','tl','r1a']},{k:'res',a:'r1a',b:'r1b',R:R1(),id:'R1'},{k:'w',p:['r1b','j1','r2a']},
+       {k:'res',a:'r2a',b:'r2b',R:R2(),id:'R2'},{k:'w',p:['r2b','tr','q1']},
+       {k:'w',p:['j1','k1','r3a']},{k:'res',a:'r3a',b:'r3b',R:R3(),id:'R3'},{k:'w',p:['r3b','q1']},
+       {k:'w',p:['k1','k2','sa']},{k:'sw',a:'sa',b:'sb',on:false,id:'S',name:'S',flip:true,lx:-50,ly:22},{k:'w',p:['sb','q2']},
+       {k:'w',p:['q1','q2','br','bl','n']}],
+    onToggle:function(e){
+      if(e.id==='S'&&!e.on&&!predicted){toast=2.6;var q=kit.el&&kit.el.querySelector('.sk-predict');
+        if(q){q.style.transition='box-shadow .3s';q.style.boxShadow='0 0 0 3px var(--gold)';setTimeout(function(){q.style.boxShadow='';},1300);}
+        return false;}}
+  });
   var sb=document.getElementById('btn-mix-step');
-  function step(){stage=(stage+1)%3;
-    if(sb)sb.textContent=['① המעגל המלא','② מצמצמים את המקבילי','③ פותרים וחוזרים אחורה'][stage];}
-  if(sb)sb.addEventListener('click',step);
-  canvas.style.cursor='pointer';
-  canvas.addEventListener('click',step);
-  function draw(){
+  var LBL=['① המעגל המלא','② מצמצמים את המקבילי','③ פותרים וחוזרים אחורה'];
+  if(sb)sb.addEventListener('click',function(){stage=(stage+1)%3;sb.textContent=LBL[stage];});
+  var bat=bd.el('bat'),eR1=bd.el('R1'),eR2=bd.el('R2'),eR3=bd.el('R3'),S=bd.el('S');
+  var kit=simKit(canvas,{missions:[
+    {text:'מדדו את המתח על הצמד המקבילי. האם הוא מתח הסוללה?',
+     hint:'גשוש אחד בצומת שלפני הצמד, והשני בצומת שאחריו.',
+     why:'לא: '+dcM('V_23 = ε − I·R₁')+'. הנגד הטורי לוקח את חלקו קודם, ורק מה שנשאר נמצא על הצמד — הטעות הנפוצה היא להציב בענף מקבילי את מתח הסוללה.',
+     done:function(s){return !s.short&&s.acrossPair&&Math.abs(s.v)>0.01&&Math.abs(s.v)<s.eps-0.05;}},
+    {text:'הפכו את הזרמים בשני הענפים המקבילים לשווים.',
+     hint:'על שני הענפים אותו מתח. מה עוד צריך להיות שווה?',
+     why:'על שני הענפים אותו מתח, ולכן '+dcM('I = V_23/R')+': התנגדויות שוות — זרמים שווים, וכל ענף נושא מחצית מהזרם הראשי.',
+     done:function(s){return !s.short&&s.I2>0.01&&Math.abs(s.I2-s.I3)<0.005;}},
+    {text:'קבעו את R₁ כך שהמתח עליו יהיה שווה למתח על הצמד המקבילי.',
+     hint:'הצמד מתנהג כנגד אחד, R₂₃. איך מתחלק מתח בין שני נגדים בטור?',
+     why:'בטור המתח מתחלק ביחס ההתנגדויות, ולכן '+dcM('V₁ = V_23')+' בדיוק כש־'+dcM('R₁ = R₂∥R₃')+' — הצמד מתנהג כנגד אחד.',
+     done:function(s){return !s.short&&s.v23>0.01&&Math.abs(s.v1-s.v23)<0.006*s.eps;}},
+    {text:'קצרו את הצמד המקבילי במפסק S, ומדדו את המתח על R₁.',
+     hint:'מה ההתנגדות של צמד שחוט מחבר את שני קצותיו?',
+     why:'הקצר מוריד את ההתנגדות של הצמד לאפס: '+dcM('I = ε/R₁')+' גדל, וכל '+dcM('ε')+' נופל על R₁. בענפים המקוצרים אין עכשיו זרם — הקצר אינו „צורך” זרם, הוא רק מסלול בלי התנגדות.',
+     done:function(s){return s.short&&s.across1;}}]});
+  kit.predict({q:'לפני שתסגרו את S — חוט שמקצר את הצמד המקבילי: מה יקרה לזרם ב־R₁?',
+    opts:['יגדל','יקטן','לא ישתנה','יתאפס'],correct:0,
+    why:'הצמד יוצא מהחשבון, וההתנגדות הכוללת יורדת מ־'+dcM('R₁+R_23')+' ל־'+dcM('R₁')+' בלבד. לכן הזרם גדל — וכל הכא״מ נופל עכשיו על R₁.'},
+    function(){predicted=true;S.on=true;bd.touched=true;});
+  var last=0;
+  function draw(ts){
     if(_simGen[id]!==_g)return;if(_simStop[id])return;
-    t+=0.016;
-    var v=V(), r1=R1(), r2=R2(), r3=R3();
-    var r23=r2*r3/(r2+r3), Req=r1+r23, I=v/Req, v1=I*r1, v23=I*r23, i2=v23/r2, i3=v23/r3;
-    var bg=ctx.createLinearGradient(0,0,0,H);bg.addColorStop(0,'#020810');bg.addColorStop(1,'#04101e');
-    ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);
-    // The old drawing put R₃ on the RETURN rail and ran a wire from the split
-    // node straight back to the battery, which shorts R₁ across the source and
-    // leaves R₂ and R₃ hanging off a dead end — a different circuit from the one
-    // being solved. The parallel pair now sits on its own two rails between the
-    // split node and the merge node, and the return rail carries no components.
-    var L=W*0.12,Rt=W*0.84,T=H*0.17,MY=H*0.36,B=H*0.54,mx=W*0.50;
-    ctx.save();ctx.strokeStyle='#64748b';ctx.lineWidth=2.5;
-    ctx.beginPath();
-    ctx.moveTo(L,T);ctx.lineTo(L,B);                       // battery rail
-    ctx.moveTo(L,T);ctx.lineTo(mx,T);                      // supply, through R₁
-    ctx.moveTo(L,B);ctx.lineTo(Rt,B);                      // return rail, no components
-    ctx.moveTo(Rt,T);ctx.lineTo(Rt,B);                     // merge node down to the return
-    ctx.stroke();ctx.restore();
-    dcRes(ctx,L+(mx-L)*0.55,T,58,26,r1.toFixed(0)+' Ω','#38bdf8',I*I*r1/70);
-    var kF=Math.min(40,220/I);                    // one scale, below dcFlowI's speed cap
-    dcFlowI(ctx,[[Rt,B],[L,B],[L,T],[mx,T]],t,I,'#fbbf24',kF);
-    if(stage===1){
-      // the parallel pair, collapsed into one box on the same rail
-      ctx.save();ctx.strokeStyle='#64748b';ctx.lineWidth=2.5;
-      ctx.beginPath();ctx.moveTo(mx,T);ctx.lineTo(Rt,T);ctx.stroke();ctx.restore();
-      dcRes(ctx,(mx+Rt)/2,T,72,28,r23.toFixed(2)+' Ω','#f472b6',0);
-      simText(ctx,'R₂∥R₃',(mx+Rt)/2,T-22,'#f472b6',10,'center',true);
-      dcFlowI(ctx,[[mx,T],[Rt,T]],t,I,'#fbbf24',kF);
-      dcFlowI(ctx,[[Rt,T],[Rt,B]],t,I,'#fbbf24',kF);
-    } else {
-      ctx.save();ctx.strokeStyle='#64748b';ctx.lineWidth=2;
-      ctx.beginPath();
-      ctx.moveTo(mx,T);ctx.lineTo(Rt,T);                   // upper branch, R₂
-      ctx.moveTo(mx,T);ctx.lineTo(mx,MY);                  // split node down
-      ctx.moveTo(mx,MY);ctx.lineTo(Rt,MY);                 // lower branch, R₃
-      ctx.stroke();
-      ctx.fillStyle='#e2e8f0';[[mx,T],[Rt,MY]].forEach(function(q){     // the split and the merge; (Rt,T) is only a corner
-        ctx.beginPath();ctx.arc(q[0],q[1],3.4,0,6.2832);ctx.fill();});ctx.restore();
-      dcRes(ctx,(mx+Rt)/2,T,58,26,r2.toFixed(0)+' Ω','#a78bfa',i2*i2*r2/70);
-      dcRes(ctx,(mx+Rt)/2,MY,58,26,r3.toFixed(0)+' Ω','#34d399',i3*i3*r3/70);
-      dcFlowI(ctx,[[mx,T],[Rt,T],[Rt,MY]],t,i2,'#a78bfa',kF);
-      dcFlowI(ctx,[[mx,T],[mx,MY],[Rt,MY]],t,i3,'#34d399',kF);
-      // the right rail is where the two branch currents merge again
-      dcFlowI(ctx,[[Rt,MY],[Rt,B]],t,I,'#fbbf24',kF);
-      if(stage===2){
-        simText(ctx,'I₂ = '+i2.toFixed(2)+' A',(mx+Rt)/2,T-22,'#a78bfa',10,'center',true);
-        simText(ctx,'I₃ = '+i3.toFixed(2)+' A',(mx+Rt)/2,MY+26,'#34d399',10,'center',true);
-      }else{
-        simText(ctx,'?',(mx+Rt)/2,T-22,'#7d8da6',11,'center',true);
-        simText(ctx,'?',(mx+Rt)/2,MY+26,'#7d8da6',11,'center',true);
-      }
-    }
-    dcBatt(ctx,L,(T+B)/2,v.toFixed(1)+' V');
-    // every step line is kept free of Hebrew so nothing can reorder
-    var y=H*0.62, show=[1,3,5][stage];
-    var lines=[
-      ['① R₂∥R₃ = '+r2.toFixed(0)+'·'+r3.toFixed(0)+'/('+r2.toFixed(0)+'+'+r3.toFixed(0)+') = '+r23.toFixed(2)+' Ω','#f472b6'],
-      ['② R = '+r1.toFixed(0)+' + '+r23.toFixed(2)+' = '+Req.toFixed(2)+' Ω','#e2e8f0'],
-      ['③ I = '+v.toFixed(1)+' / '+Req.toFixed(2)+' = '+I.toFixed(2)+' A','#fbbf24'],
-      ['④ V₂₃ = '+I.toFixed(2)+' × '+r23.toFixed(2)+' = '+v23.toFixed(2)+' V','#38bdf8'],
-      ['⑤ I₂ = '+i2.toFixed(2)+' A,  I₃ = '+i3.toFixed(2)+' A,  I₂+I₃ = '+(i2+i3).toFixed(2)+' A ✓','#34d399']];
-    lines.forEach(function(s,i){
-      simText(ctx,s[0],W/2,y+i*21,i<show?s[1]:'#2a3c52',11.5,'center',i<show);
-    });
-    simText(ctx,['מזהים את הצמד המקבילי ומצמצמים אותו','פותרים את הטור הפשוט שנותר',
-      'חוזרים אחורה אל המתח והזרמים בכל ענף'][stage],W/2,y+5*21+14,'#7d8da6',10,'center');
+    var dt=last?Math.min(0.05,(ts-last)/1000):0;last=ts;
+    var e=V(),r1=R1(),r2=R2(),r3=R3();
+    bat.emf=e;eR1.R=r1;eR2.R=r2;eR3.R=r3;
+    bd.solve();
+    var I=bd.cur('R1'),I2=bd.cur('R2'),I3=bd.cur('R3'),v1=bd.dv('R1'),v23=bd.V[bd.idx.j1]-bd.V[bd.idx.q1],v=bd.reading();
+    var r23=r2*r3/(r2+r3),f=function(x){return x.toFixed(2);};
+    bd.bg();
+    // ② the pair seen as one resistor: a dashed box with its equivalent on it
+    if(stage===1&&!S.on){ctx.save();ctx.strokeStyle='rgba(244,114,182,.75)';ctx.setLineDash([5,4]);ctx.lineWidth=1.6;
+      ctx.beginPath();ctx.roundRect(xj+8,T-24,R-xj-2,dy+46,10);ctx.stroke();ctx.restore();}
+    bd.drawCircuit(dt);
+    simText(ctx,'R₁ = '+r1.toFixed(0)+' Ω',x1,T-20,'#e2e8f0',10.5,'center',true);
+    simText(ctx,'I = '+dcA(I),x1,T+26,'#fcd34d',10,'center',true);
+    if(stage===1&&!S.on)simText(ctx,'R₂∥R₃ = '+f(r23)+' Ω',x2,T+dy/2+4,'#f9a8d4',11,'center',true);
+    else{
+      simText(ctx,'R₂ = '+r2.toFixed(0)+' Ω',x2,T-20,'#e2e8f0',10.5,'center',true);
+      simText(ctx,'R₃ = '+r3.toFixed(0)+' Ω',x2,T+dy-20,'#e2e8f0',10.5,'center',true);
+      // the branch currents are what the method finds: hidden until ③
+      var shown=stage===2||S.on;
+      simText(ctx,shown?'I₂ = '+dcA(I2):'I₂ = ?',x2,T+22,shown?'#fcd34d':'#94a3b8',10,'center',true);
+      simText(ctx,shown?'I₃ = '+dcA(I3):'I₃ = ?',x2,T+dy+22,shown?'#fcd34d':'#94a3b8',10,'center',true);}
+    simText(ctx,'ε = '+e.toFixed(1)+' V',L+30,my+4,'#f87171',10.5,'left',true);
+    bd.legend(W-m-96,22,88);
+    bd.dotKey(m-8,H-9,'left');
+    if(toast>0){toast-=dt;simText(ctx,'קודם נחשו — השאלה מתחת לתרשים ↓',W/2,Bt+20,'#fbbf24',10.5,'center',true);}
+    else if(!bd.probeUsed)simText(ctx,'גררו את שני הגשושים אל נקודות במעגל',W/2,Bt+20,'#cbd5e1',10,'center');
+    bd.drawMeter();
+    bd.drawFocus();
+    kit.check({short:S.on,v:v===null?NaN:v,eps:e,I2:I2,I3:I3,v1:v1,v23:v23,
+      acrossPair:bd.across('j1','q1'),across1:bd.across('r1a','r1b')});
+    var R0=r1+r23;
+    if(S.on)kit.model('הצמד מקוצר: '+dcM('R_23 = 0')+', ולכן '+dcM('I = ε/R₁ = '+e.toFixed(1)+'/'+r1.toFixed(0)+' = '+f(I)+' A')+
+      '<br>וכל הכא״מ על R₁: '+dcM('V₁ = '+f(v1)+' V, V_23 = 0'));
+    else kit.model(['① מצמצמים את הצמד המקבילי: '+dcM('R_23 = R₂·R₃/(R₂+R₃) = '+r2.toFixed(0)+'·'+r3.toFixed(0)+'/('+r2.toFixed(0)+'+'+r3.toFixed(0)+') = '+f(r23)+' Ω'),
+      '② פותרים את הטור שנשאר: '+dcM('R = R₁+R_23 = '+r1.toFixed(0)+'+'+f(r23)+' = '+f(R0)+' Ω')+'<br>'+dcM('I = ε/R = '+e.toFixed(1)+'/'+f(R0)+' = '+f(I)+' A'),
+      '③ חוזרים אחורה: '+dcM('V_23 = I·R_23 = '+f(I)+'·'+f(r23)+' = '+f(v23)+' V')+'<br>'+dcM('I₂ = V_23/R₂ = '+f(I2)+' A, I₃ = V_23/R₃ = '+f(I3)+' A')+'<br>'+dcM('I₂+I₃ = '+f(I2+I3)+' A = I ✓')]
+      .slice(0,stage+1).join('<br>'));
     requestAnimationFrame(draw);
   }
   requestAnimationFrame(draw);
@@ -31416,7 +31447,7 @@ function simDcSwitch(canvas){
     simText(ctx,PB.toFixed(1)+' W',R-26,my+12,'#fcd34d',10,'right',true);
     simText(ctx,'ε = '+e.toFixed(1)+' V',L+40,my+(r>0?-2:4),'#f87171',10.5,'left',true);
     if(r>0)simText(ctx,'r = '+r.toFixed(1)+' Ω',L+40,my+13,'#fca5a5',9.5,'left');
-    bd.legend(W-m-96,28,88);
+    bd.legend(W-m-96,22,88);
     bd.dotKey(m-8,H-9,'left');
     if(!bd.probeUsed)simText(ctx,'גררו את שני הגשושים אל נקודות במעגל',W/2,Bt+22,'#cbd5e1',10,'center');
     if(toast>0){toast-=dt;
@@ -31439,76 +31470,114 @@ function simDcSwitch(canvas){
 }
 
 // SECTION: dc-real.dc-meters
-// PEDAGOGY: the four wiring choices, including the two wrong ones, each with
-// the consequence spelled out. Being told "an ammeter goes in series" is worth
-// far less than seeing what happens when it does not.
+// PEDAGOGY: one meter, two places, two kinds -- four wirings, two of them
+// wrong. The learner puts the meter in the path or across R₂ and switches it
+// between ammeter and voltmeter, and the circuit, solved with the meter's
+// real resistance in it (≈ 0 Ω, 10 MΩ), shows what each choice does: the
+// ammeter across R₂ is a short, the voltmeter in series stops the current
+// and reads nearly the whole emf -- predicted first, since it is the same
+// idea as the voltage across an open switch.
 function simDcMeters(canvas){
   var id=canvas.id, _g=_simGen[id];
-  const H=350; const {ctx,W,dpr}=setupCanvas(canvas,H);
-  var t=0, mode=0;   // 0 A-series 1 A-parallel 2 V-parallel 3 V-series
-  var MODES=['אמפרמטר בטור','אמפרמטר במקביל','וולטמטר במקביל','וולטמטר בטור'];
-  var mb=document.getElementById('btn-mtr-mode');
-  function setLbl(){if(mb)mb.textContent='🔀 '+MODES[mode];}
-  function next(){mode=(mode+1)%4;setLbl();}
-  if(mb)mb.addEventListener('click',next);
-  canvas.style.cursor='pointer';
-  canvas.addEventListener('click',next);
-  setLbl();
+  var wide=(canvas.offsetWidth||(canvas.parentElement&&canvas.parentElement.offsetWidth)||720)>=600;
+  const H=wide?330:310; const {ctx,W,dpr}=setupCanvas(canvas,H);
   function V(){var e=document.getElementById('inp-mtr-V');return e?parseFloat(e.value):12;}
   function R1(){var e=document.getElementById('inp-mtr-R1');return e?parseFloat(e.value):4;}
   function R2(){var e=document.getElementById('inp-mtr-R2');return e?parseFloat(e.value):8;}
-  function draw(){
+  var RV=1e7;
+  var m=Math.max(22,(W-640)/2),L=m+26,R=W-m-16,T=wide?110:104,Bt=wide?236:222,my=(T+Bt)/2,Tb=T-50;
+  var x1=L+(R-L)*0.25,xs=L+(R-L)*0.47,xj=L+(R-L)*0.62,x2=L+(R-L)*0.80;
+  var type='A',pos='s',predicted=false,toast=0,tried={};
+  var bd=dcBoard(canvas,ctx,W,H,dpr,{
+    gnd:'n',k:40,P0:8,
+    aria:'מעגל: סוללה, R₁ ו־R₂ בטור, ומכשיר מדידה אחד שאפשר לחבר בטור או על R₂, כאמפרמטר או כוולטמטר. Tab עובר בין שני המקומות, Enter מחליף.',
+    P:{n:[L,my+16],p:[L,my-16],tl:[L,T],r1a:[x1-28,T],r1b:[x1+28,T],s1:[xs-18,T],s2:[xs+18,T],j2:[xj,T],
+       r2a:[x2-28,T],r2b:[x2+28,T],tr:[R,T],u1:[xj,Tb],q1:[x2-18,Tb],q2:[x2+18,Tb],u2:[R,Tb],br:[R,Bt],bl:[L,Bt]},
+    E:[{k:'bat',a:'n',b:'p',emf:V(),r:0,id:'bat'},
+       {k:'w',p:['p','tl','r1a']},{k:'res',a:'r1a',b:'r1b',R:R1(),id:'R1'},{k:'w',p:['r1b','s1']},
+       {k:'amm',a:'s1',b:'s2',id:'ms'},{k:'w',p:['s2','j2','r2a']},{k:'res',a:'r2a',b:'r2b',R:R2(),id:'R2'},
+       {k:'w',p:['r2b','tr','br','bl','n']},
+       {k:'w',p:['j2','u1','q1'],grp:'br',hidden:true},
+       {k:'sw',a:'q1',b:'q2',on:false,id:'mp',fixed:true,hidden:true,body:30,ry:-28},
+       {k:'w',p:['q2','u2','tr'],grp:'br',hidden:true}],
+    taps:[{x:xs,y:T,r:24,fn:function(){pos==='s'?set(type==='A'?'V':'A','s'):set(type,'s');}},
+          {x:x2,y:Tb,r:24,fn:function(){pos==='p'?set(type==='A'?'V':'A','p'):set(type,'p');}}]
+  });
+  var MODES=['אמפרמטר בטור','אמפרמטר במקביל','וולטמטר במקביל','וולטמטר בטור'],ORDER=[['A','s'],['A','p'],['V','p'],['V','s']];
+  var mb=document.getElementById('btn-mtr-mode');
+  var mode=function(){for(var i=0;i<4;i++)if(ORDER[i][0]===type&&ORDER[i][1]===pos)return i;return 0;};
+  function set(t,p){
+    // the voltmeter in series is the prediction's subject: ask first
+    if(t==='V'&&p==='s'&&!predicted){toast=2.6;var q=kit.el&&kit.el.querySelector('.sk-predict');
+      if(q){q.style.transition='box-shadow .3s';q.style.boxShadow='0 0 0 3px var(--gold)';setTimeout(function(){q.style.boxShadow='';},1300);}
+      return;}
+    type=t;pos=p;tried[t+p]=1;bd.touched=true;
+    var ms=bd.el('ms'),mp=bd.el('mp'),k=t==='A'?'amm':'vm';
+    ms.k=k;ms.R=t==='A'?0:RV;ms.ghost=p!=='s';
+    mp.k=p==='p'?k:'sw';mp.on=false;mp.R=t==='A'?0:RV;mp.hidden=p!=='p';
+    bd.group('br').forEach(function(e){e.hidden=p!=='p';});
+    if(mb)mb.textContent='🔀 '+MODES[mode()];
+    _say(MODES[mode()]);}
+  if(mb){mb.textContent='🔀 '+MODES[0];mb.addEventListener('click',function(){var o=ORDER[(mode()+1)%4];set(o[0],o[1]);});}
+  var bat=bd.el('bat'),eR1=bd.el('R1'),eR2=bd.el('R2');
+  var kit=simKit(canvas,{missions:[
+    {text:'מדדו נכון את הזרם במעגל.',
+     hint:'איפה צריך להיות מכשיר כדי שהזרם יעבור דרכו?',
+     why:'אמפרמטר חייב לשאת את הזרם שהוא מודד, ולכן הוא נכנס לתוך המסלול — בטור. התנגדותו כמעט אפס, ולכן הוא אינו משנה את הזרם.',
+     done:function(s){return s.t==='A'&&s.p==='s';}},
+    {text:'מדדו נכון את המתח על R₂.',
+     hint:'מתח הוא הפרש בין שתי נקודות. איפה שתי הנקודות?',
+     why:'וולטמטר משווה שתי נקודות, ולכן הוא מגשר עליהן — במקביל. התנגדותו העצומה כמעט אינה לוקחת זרם, ולכן הקריאה היא '+dcM('V₂ = I·R₂')+'.',
+     done:function(s){return s.t==='V'&&s.p==='p';}},
+    {text:'חברו את האמפרמטר על R₂. מה קרה ל־R₂ ולזרם?',
+     hint:'מה ההתנגדות של אמפרמטר?',
+     why:'מכשיר של כמעט 0 Ω על R₂ הוא קצר: המתח והזרם ב־R₂ מתאפסים, והזרם קופץ ל־'+dcM('ε/R₁')+' — במכשיר אמיתי זה שורף את הנתיך שבתוכו.',
+     done:function(s){return s.t==='A'&&s.p==='p';}},
+    {text:'חברו את הוולטמטר בטור. מה הוא מראה, ומה קרה לזרם?',
+     hint:'התנגדות של 10 MΩ בתוך המסלול…',
+     why:'התנגדותו העצומה נמצאת במסלול: כמעט אין זרם, ולכן הירידות על R₁ ועל R₂ כמעט אפס — וכל הכא״מ מופיע על הוולטמטר, כמו על מפסק פתוח.',
+     done:function(s){return s.t==='V'&&s.p==='s';}}]});
+  kit.predict({q:'אם נחבר את הוולטמטר בטור, במקום האמפרמטר — מה הוא יראה?',
+    opts:['אפס, כי כמעט אין זרם','את המתח על R₂','כמעט את כל הכא״מ'],correct:2,
+    why:'בלי זרם אין ירידת מתח על הנגדים, ולכן כל הכא״מ נופל על הוולטמטר — הנגד הגדול במסלול. בדיוק כמו המתח על מפסק פתוח.'},
+    function(){predicted=true;set('V','s');});
+  var VERD=['✓ נכון — הזרם עובר דרכו, והתנגדותו האפסית אינה משנה דבר',
+    '✗ קצר! ההתנגדות האפסית עוקפת את R₂ — הזרם קפץ, והמכשיר בסכנה',
+    '✓ נכון — הוא מגשר על R₂, ואינו לוקח זרם',
+    '✗ בטור: התנגדותו העצומה חוסמת את הזרם — המעגל מת, והוא מראה כמעט את כל מתח המקור'];
+  var last=0;
+  function draw(ts){
     if(_simGen[id]!==_g)return;if(_simStop[id])return;
-    t+=0.016;
-    var v=V(), r1=R1(), r2=R2();
-    // an ideal ammeter is 0 ohm and an ideal voltmeter is infinite, so the two
-    // wrong connections are a short across R2 and an open circuit
-    var Req = mode===1 ? r1 : (mode===3 ? Infinity : r1+r2);
-    var I = isFinite(Req)&&Req>0 ? v/Req : 0;
-    var bg=ctx.createLinearGradient(0,0,0,H);bg.addColorStop(0,'#020810');bg.addColorStop(1,'#04101e');
-    ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);
-    var L=W*0.12,Rt=W*0.88,T=H*0.28,B=H*0.52;
-    ctx.save();ctx.strokeStyle='#64748b';ctx.lineWidth=2.5;
-    ctx.beginPath();ctx.rect(L,T,Rt-L,B-T);ctx.stroke();ctx.restore();
-    dcBatt(ctx,L,(T+B)/2,v.toFixed(1)+' V');
-    dcRes(ctx,W*0.40,T,56,26,r1.toFixed(0)+' Ω','#38bdf8',0);
-    dcRes(ctx,W*0.70,T,56,26,r2.toFixed(0)+' Ω','#a78bfa',0);
-    // with the ammeter across R₂ the charge goes round through the METER (it is
-    // a 0 Ω path) and none of it through R₂ -- it used to be drawn through R₂
-    if(I>0)dcFlow(ctx,mode===1?[[L,B],[L,T],[W*0.60,T],[W*0.60,T-46],[W*0.80,T-46],[W*0.80,T],[Rt,T],[Rt,B],[L,B]]
-                              :[[L,B],[L,T],[Rt,T],[Rt,B],[L,B]],t,Math.min(.6,I*0.06),'#fbbf24',mode===1?14:12);
-    // the meter, drawn where this mode puts it
-    function meter(x,y,kind,reading){
-      ctx.save();ctx.fillStyle='rgba(2,10,20,.95)';ctx.strokeStyle=kind==='A'?'#fbbf24':'#34d399';
-      ctx.lineWidth=2.5;ctx.beginPath();ctx.arc(x,y,24,0,6.2832);ctx.fill();ctx.stroke();ctx.restore();
-      simText(ctx,kind,x,y-6,kind==='A'?'#fbbf24':'#34d399',13,'center',true);
-      simText(ctx,reading,x,y+9,'#e2e8f0',9.5,'center',true);
-    }
-    var verdict,vcol;
-    if(mode===0){
-      meter(W*0.55,T,'A',I.toFixed(2)+' A');
-      verdict='✓ נכון — הזרם עובר דרכו, והתנגדותו האפסית אינה משנה דבר';vcol='#34d399';
-    } else if(mode===1){
-      ctx.save();ctx.strokeStyle='#ef4444';ctx.lineWidth=2.5;
-      ctx.beginPath();ctx.moveTo(W*0.60,T);ctx.lineTo(W*0.60,T-46);ctx.lineTo(W*0.80,T-46);
-      ctx.lineTo(W*0.80,T);ctx.stroke();ctx.restore();
-      meter(W*0.70,T-46,'A',I.toFixed(2)+' A');
-      verdict='✗ קצר! ההתנגדות האפסית עוקפת את R₂ — הזרם קפץ ל-'+I.toFixed(2)+' A והמכשיר בסכנה';vcol='#ef4444';
-    } else if(mode===2){
-      ctx.save();ctx.strokeStyle='#34d399';ctx.lineWidth=2;ctx.setLineDash([4,3]);
-      ctx.beginPath();ctx.moveTo(W*0.60,T);ctx.lineTo(W*0.60,T-46);ctx.lineTo(W*0.80,T-46);
-      ctx.lineTo(W*0.80,T);ctx.stroke();ctx.restore();
-      meter(W*0.70,T-46,'V',(I*r2).toFixed(2)+' V');
-      verdict='✓ נכון — הוא מגשר על R₂, ואינו לוקח זרם';vcol='#34d399';
-    } else {
-      meter(W*0.55,T,'V',v.toFixed(2)+' V');
-      verdict='✗ בטור: התנגדותו אינסופית חוסמת את הזרם לגמרי — המעגל מת, והוא מראה את כל מתח המקור';vcol='#ef4444';
-    }
-    var y=H*0.64;
-    simText(ctx,'I = '+(mode===3?'0':I.toFixed(2))+' A',W*0.30,y,'#fbbf24',14,'center',true);
-    simText(ctx,'V₂ = '+(mode===1||mode===3?'0':(I*r2).toFixed(2))+' V',W*0.70,y,'#a78bfa',14,'center',true);
-    dcCap(ctx,verdict,W/2,y+40,vcol,11,true);
-    simText(ctx,'הקישו על התרשים או על הכפתור כדי לעבור בין ארבעת החיבורים',W/2,y+66,'#7d8da6',9.5,'center');
+    var dt=last?Math.min(0.05,(ts-last)/1000):0;last=ts;
+    var e=V(),r1=R1(),r2=R2(),md=mode();
+    bat.emf=e;eR1.R=r1;eR2.R=r2;
+    bd.solve();
+    var I=bd.cur('R1'),v2=bd.dv('R2'),f=function(x){return x.toFixed(2);};
+    bd.bg();
+    // the empty place: dashed, and tappable
+    ctx.save();ctx.strokeStyle='rgba(251,191,36,.55)';ctx.lineWidth=1.4;ctx.setLineDash([4,4]);
+    if(pos!=='s'){ctx.beginPath();ctx.arc(xs,T,14,0,6.2832);ctx.stroke();}
+    else{ctx.beginPath();ctx.moveTo(xj,T);ctx.lineTo(xj,Tb);ctx.lineTo(R,Tb);ctx.lineTo(R,T);ctx.stroke();
+      ctx.setLineDash([]);ctx.fillStyle='#050d1a';ctx.beginPath();ctx.arc(x2,Tb,14,0,6.2832);ctx.fill();
+      ctx.setLineDash([4,4]);ctx.beginPath();ctx.arc(x2,Tb,14,0,6.2832);ctx.stroke();}
+    ctx.restore();
+    bd.drawCircuit(dt);
+    if(pos!=='s')simText(ctx,'?',xs,T+4,'rgba(251,191,36,.85)',11,'center',true);
+    else simText(ctx,'?',x2,Tb+4,'rgba(251,191,36,.85)',11,'center',true);
+    simText(ctx,'R₁ = '+r1.toFixed(0)+' Ω',x1,T-20,'#e2e8f0',10.5,'center',true);
+    simText(ctx,'R₂ = '+r2.toFixed(0)+' Ω',x2,T+28,'#e2e8f0',10.5,'center',true);
+    simText(ctx,'ε = '+e.toFixed(1)+' V',L+40,my+4,'#f87171',10.5,'left',true);
+    bd.legend(m+4,22,88);
+    dcCap(ctx,VERD[md],W/2,Bt+34,md===0||md===2?'#34d399':'#f87171',11,true);
+    if(toast>0){toast-=dt;simText(ctx,'קודם נחשו — השאלה מתחת לתרשים ↓',W/2,Bt+60,'#fbbf24',10.5,'center',true);}
+    else simText(ctx,'הקישו על המכשיר כדי להחליף אמפרמטר ↔ וולטמטר, ועל ? כדי להעביר אותו',W/2,Bt+60,'#94a3b8',9.5,'center');
+    bd.drawFocus();
+    kit.check({t:type,p:pos});
+    var uA=Math.abs(I)*1e6;
+    kit.model(md===0?'אמפרמטר אידיאלי בטור, '+dcM('R_A ≈ 0')+': '+dcM('I = ε/(R₁+R₂) = '+e.toFixed(1)+'/('+r1.toFixed(0)+'+'+r2.toFixed(0)+') = '+f(I)+' A')
+      :md===1?'האמפרמטר מקצר את R₂: '+dcM('I = ε/R₁ = '+e.toFixed(1)+'/'+r1.toFixed(0)+' = '+f(I)+' A')+', ו־'+dcM('V₂ = 0')
+      :md===2?'וולטמטר על R₂, '+dcM('R_V = 10 MΩ')+': '+dcM('V₂ = I·R₂ = '+f(I)+'·'+r2.toFixed(0)+' = '+f(v2)+' V')
+      :'הוולטמטר בטור: '+dcM('I = ε/(R₁+R₂+R_V) = '+uA.toFixed(1)+' μA')+', ולכן '+dcM('V = ε − I·(R₁+R₂) = '+f(e-Math.abs(I)*(r1+r2))+' V'));
     requestAnimationFrame(draw);
   }
   requestAnimationFrame(draw);
@@ -35536,7 +35605,7 @@ function buildSim(sim){
   else if(sim.type==='dc-cap')extra=C(rng('cap-V',2,24,12,0.5,'מתח המקור',' V')+rng('cap-R1',1,20,4,1,'R₁',' kΩ')+rng('cap-R2',1,20,8,1,'R₂',' kΩ')+rng('cap-C',50,2000,470,10,'קיבול C',' μF')+btn('cap-sw','⏻ סגרו את המפסק','btn-secondary'));
   else if(sim.type==='dc-series')extra=C(rng('ser-V',2,24,12,0.5,'כא״מ הסוללה ε',' V')+rng('ser-R1',1,20,4,1,'R₁',' Ω')+rng('ser-R2',1,20,8,1,'R₂',' Ω')+rng('ser-R3',1,20,6,1,'R₃',' Ω')+btn('ser-third','➕ הוסיפו את R₃','btn-secondary'));
   else if(sim.type==='dc-parallel')extra=C(rng('par-V',2,24,12,0.5,'כא״מ הסוללה ε',' V')+rng('par-R1',1,24,4,1,'R₁',' Ω')+rng('par-R2',1,24,12,1,'R₂',' Ω')+rng('par-R3',1,24,6,1,'R₃ (ענף שלישי)',' Ω')+rng('par-r',0,2,0,0.1,'התנגדות פנימית r',' Ω'));
-  else if(sim.type==='dc-mixed')extra=C(rng('mix-V',2,24,12,0.5,'מתח המקור',' V')+rng('mix-R1',1,20,6,1,'R₁ (בטור)',' Ω')+rng('mix-R2',1,20,6,1,'R₂',' Ω')+rng('mix-R3',1,20,3,1,'R₃',' Ω')+btn('mix-step','① המעגל המלא','btn-secondary'));
+  else if(sim.type==='dc-mixed')extra=C(rng('mix-V',2,24,12,0.5,'כא״מ הסוללה ε',' V')+rng('mix-R1',1,20,6,1,'R₁ (בטור)',' Ω')+rng('mix-R2',1,20,6,1,'R₂',' Ω')+rng('mix-R3',1,20,3,1,'R₃',' Ω')+btn('mix-step','① המעגל המלא','btn-secondary'));
   else if(sim.type==='dc-switch')extra=C(rng('sw-V',2,24,12,0.5,'כא״מ הסוללה ε',' V')+rng('sw-R1',1,20,4,1,'נורה A — התנגדות',' Ω')+rng('sw-R2',1,20,8,1,'נורה B — התנגדות',' Ω')+rng('sw-r',0,2,0,0.1,'התנגדות פנימית r',' Ω'));
   else if(sim.type==='dc-current')extra=C(rng('dcc-I',0.5,5,2,0.1,'זרם I',' A')+rng('dcc-A',0.5,4,1,0.1,'חתך החוט הימני',' mm²')+btn('dcc-run','⏸ עצרו','btn-secondary')+btn('dcc-reset','↺ איפוס מונים','btn-secondary'));
   else if(sim.type==='dc-ohm')extra=C(rng('ohm-V',0,12,6,0.1,'מתח V',' V')+rng('ohm-R',2,50,12,1,'התנגדות R',' Ω')+btn('ohm-mode','💡 נורת להט','btn-secondary'));

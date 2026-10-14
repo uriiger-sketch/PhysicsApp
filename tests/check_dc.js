@@ -26,10 +26,15 @@ const t=(name,cond,detail)=>(cond?ok:bad).push(name+(detail?' — '+detail:''));
       if(window._rec&&this.canvas&&this.canvas.closest&&this.canvas.closest('#app')&&!this.canvas.id.startsWith('anim'))
         window._txt.add(String(s2).replace(/[⁦-⁩‎‏]/g,''));
       return f.apply(this,arguments);};});
+  // (on a busy machine a frame can take longer than the window: keep
+  // listening until the canvas has drawn at least once)
   const grab=async()=>{await p.evaluate(()=>{window._txt=new Set();window._rec=true;});
-    await p.waitForTimeout(160);return p.evaluate(()=>{window._rec=false;return [...window._txt];});};
+    for(let k=0;k<12;k++){await p.waitForTimeout(160);if(await p.evaluate(()=>window._txt.size>0))break;}
+    return p.evaluate(()=>{window._rec=false;return [...window._txt];});};
   const setS=async(id2,v)=>p.evaluate(([i,x])=>{const el=document.getElementById(i);el.value=x;el.dispatchEvent(new Event('input',{bubbles:true}));},[id2,String(v)]);
   const num=x=>parseFloat(String(x).replace('−','-'));
+  const amp=x=>/mA$/.test(String(x))?num(x)/1000:num(x);     // "83.3 mA" is 0.0833 A
+  const tolOf=x=>/mA$/.test(String(x))?6e-5:0.0051;           // what the printed figures allow
   const near=(a,b2,eps)=>Math.abs(a-b2)<=(eps||0.011);
   // the circuit engine's board on the canvas: where its points are, on the page
   const ptXY=async name=>p.evaluate(n=>{const c=document.querySelector('#app canvas'),B=c._dc,r=c.getBoundingClientRect(),q=B.pts[B.idx[n]],k=r.width/(c.width/(window.devicePixelRatio||1));
@@ -177,9 +182,11 @@ const t=(name,cond,detail)=>(cond?ok:bad).push(name+(detail?' — '+detail:''));
   // total is the sum of the branches; the third branch is predicted first;
   // with an internal resistance a new branch dims the others
   await go('dc-network','dc-parallel');
-  const parRead=async()=>{const tx=await grab();
-    const br=[1,2,3].map(k=>{const s2=tx.find(x=>x.startsWith('I'+'₁₂₃'[k-1]+' = '));return s2?num(s2.slice(5)):NaN;});
-    const tot=tx.filter(x=>/^\d+\.\d\d A$/.test(x)).map(Number.parseFloat);return {br,tot:tot.length===1?tot[0]:NaN};};
+  // (read again if a frame was missed: a scroll can hold the drawing back)
+  const parRead=async()=>{let r;for(let k=0;k<4;k++){const tx=await grab();
+    const br=[1,2,3].map(k=>{const s2=tx.find(x=>x.startsWith('I'+'₁₂₃'[k-1]+' = '));return s2?amp(s2.slice(5)):NaN;});
+    const tot=tx.filter(x=>/^\d+\.\d+ m?A$/.test(x)).map(amp);r={br,tot:tot.length===1?tot[0]:NaN};
+    if(!br.some(isNaN)&&!isNaN(r.tot))break;}return r;};
   let pr=await parRead();
   t('parallel: branches 1 and 2 on, I₁ = ε/R₁ = 3.00 A, I₂ = 1.00 A, I₃ = 0',pr.br.join()==='3,1,0'&&pr.tot===4,JSON.stringify(pr));
   await tapEl('S1');pr=await parRead();
@@ -211,14 +218,29 @@ const t=(name,cond,detail)=>(cond?ok:bad).push(name+(detail?' — '+detail:''));
    t('parallel: the model line, with the numbers',ml.includes('I = I₁+I₂+I₃ = 3.00+6.00+2.00 = 11.00 A')&&ml.includes('R∥ = 1.09 Ω'),ml);}
   t('parallel: all four missions solved by doing them',(await kitCount())==='4/4',await kitCount());
 
-  // mixed + meters: a tap anywhere advances the same state as the button
-  for (const [ch,se,btn] of [['dc-network','dc-mixed','btn-mix-step'],['dc-real','dc-meters','btn-mtr-mode']]) {
-    await go(ch,se); bx=await box();
-    const l0=await p.evaluate(i=>document.getElementById(i).textContent,btn);
-    await p.mouse.click(bx.x+bx.w*0.5, bx.y+bx.h*0.5); await p.waitForTimeout(350);
-    const l1=await p.evaluate(i=>document.getElementById(i).textContent,btn);
-    t(se+': tapping the canvas advances the step', l0!==l1, `${l0.trim()} → ${l1.trim()}`);
-  }
+  // meters: the learner places one meter -- in the path or across R₂ -- and
+  // makes it an ammeter or a voltmeter; the circuit is solved with the
+  // meter's own resistance in it, so the two wrong wirings do what they do
+  await go('dc-real','dc-meters');
+  const pill=async()=>(await grab()).filter(s2=>/^−?\d+\.\d+ (m?A|V)$/.test(s2));
+  const mlab=async()=>p.evaluate(()=>document.getElementById('btn-mtr-mode').textContent);
+  t('meters: an ammeter in series reads I = ε/(R₁+R₂) = 1.00 A',(await pill()).join()==='1.00 A',(await pill()).join());
+  const ml0=await mlab();
+  const slotXY=async()=>p.evaluate(()=>{const c=document.querySelector('#app canvas'),B=c._dc,r=c.getBoundingClientRect(),q=B.items.filter(i=>i.t==='tap')[1].tp,k=r.width/(c.width/(window.devicePixelRatio||1));
+    return {x:r.x+q.x*k,y:r.y+q.y*k};});
+  {await inView();const q=await slotXY();await p.mouse.click(q.x,q.y);await p.waitForTimeout(200);}
+  t('meters: a tap on the empty place across R₂ moves the meter there, and relabels the button',ml0!==(await mlab()),ml0+' → '+(await mlab()));
+  t('meters: an ammeter across R₂ shorts it — 3.00 A, and R₂ has 0 V',(await pill()).join()==='3.00 A'&&(await p.evaluate(()=>Math.abs(document.querySelector('#app canvas')._dc.dv('R2'))<1e-4)),(await pill()).join());
+  await tapEl('mp');
+  t('meters: a tap on the meter makes it a voltmeter, reading V₂ = 8.00 V',(await pill()).join()==='8.00 V',(await pill()).join());
+  await p.click('#btn-mtr-mode');await p.waitForTimeout(200);
+  t('meters: the voltmeter in series waits for the prediction',(await pill()).join()==='8.00 V',(await pill()).join());
+  await p.click('#app .sk-predict .sk-opt >> nth=2');await p.waitForTimeout(250);
+  {const mm=await p.evaluate(()=>document.querySelector('#app .sk-model').textContent);
+   t('meters: the voltmeter in series reads nearly ε, and the current is 1.2 μA',(await pill()).join()==='12.00 V'&&mm.includes('= 1.2 μA'),(await pill()).join()+' | '+mm);}
+  await p.click('#btn-mtr-mode');await p.waitForTimeout(200);
+  t('meters: the button goes round all four wirings',(await mlab())===ml0&&(await pill()).join()==='1.00 A',await mlab());
+  t('meters: all four missions solved by doing them',(await kitCount())==='4/4',await kitCount());
 
   // current: dragging must move a counting plane but leave the counters equal
   await go('dc-basics','dc-current'); bx=await box();
@@ -409,25 +431,47 @@ const div=document.createElement('div');div.style.cssText='position:absolute;lef
     t(tag+': I = ε_net/ΣR',near(num(I.slice(4)),Iw),I+' want '+Iw.toFixed(2));
   }
 
-  // mixed: I₂ + I₃ = I and V₁ + V₂₃ = V
+  // mixed: the step button walks the reduction, the model line holds its
+  // numbers; I = V/(R₁+R₂∥R₃), I₂ + I₃ = I and V₁ + V₂₃ = V on the canvas
+  // and on the probes; the branch currents stay hidden until step ③; the
+  // short across the pair is predicted, then takes the whole ε onto R₁
   await go('dc-network','dc-mixed');
-  for(const [V,R1,R2,R3] of [[12,6,6,3],[24,1,1,20],[2,20,20,1]]){
+  const mixModel=async()=>p.evaluate(()=>document.querySelector('#app .sk-model').textContent);
+  const mixI=async()=>{const tx=await grab(),g=k=>{const s2=tx.find(x=>x.startsWith(k+' = '));return s2?s2.slice(k.length+3):'';};
+    return {I:g('I'),I2:g('I₂'),I3:g('I₃')};};
+  {const m0=await mixModel(),i0=await mixI();
+   t('mixed: step ① only reduces the pair, R₂₃ = 6·3/(6+3) = 2.00 Ω',m0.includes('= 6·3/(6+3) = 2.00 Ω')&&!m0.includes('I = ε/R'),m0);
+   t('mixed: before the method, the branch currents are not given away',i0.I2==='?'&&i0.I3==='?'&&i0.I==='1.50 A',JSON.stringify(i0));}
+  const sl0=await p.evaluate(()=>document.getElementById('btn-mix-step').textContent);
+  await p.click('#btn-mix-step');await p.waitForTimeout(200);
+  t('mixed: the step button advances and relabels itself',sl0!==(await p.evaluate(()=>document.getElementById('btn-mix-step').textContent)));
+  t('mixed: step ② solves the series loop, I = 12.0/8.00 = 1.50 A',(await mixModel()).includes('I = ε/R = 12.0/8.00 = 1.50 A'),await mixModel());
+  await p.click('#btn-mix-step');await p.waitForTimeout(200);
+  for(const [V,R1,R2,R3] of [[12,6,6,3],[24,1,1,20],[2,20,20,1],[12.5,6,6,3]]){
     await setS('inp-mix-V',V);await setS('inp-mix-R1',R1);await setS('inp-mix-R2',R2);await setS('inp-mix-R3',R3);
     await p.waitForTimeout(150);
-    const tx=await grab();
-    const l5=tx.find(s2=>/^⑤/.test(s2))||'', l3=tx.find(s2=>/^③/.test(s2))||'';
-    const n5=(l5.match(/\d+\.\d\d/g)||[]).map(Number), I=num((l3.match(/= (\d+\.\d\d) A/)||[])[1]);
-    const r23=R2*R3/(R2+R3), Iw=V/(R1+r23);
-    t(`mixed V=${V} R=${R1},${R2},${R3}: I = V/(R₁+R₂∥R₃) and I₂+I₃ = I`,near(I,Iw)&&n5.length===3&&near(n5[0]+n5[1],n5[2],0.011)&&near(n5[2],Iw,0.011),l3+' | '+l5);
+    const ii=await mixI(),ml=await mixModel();
+    const r23=R2*R3/(R2+R3), Iw=V/(R1+r23), V23=Iw*r23;
+    const tag=`mixed V=${V} R=${R1},${R2},${R3}`;
+    t(tag+': I = V/(R₁+R₂∥R₃)',near(amp(ii.I),Iw),ii.I+' want '+Iw.toFixed(2));
+    t(tag+': I₂ = V₂₃/R₂, I₃ = V₂₃/R₃ and I₂ + I₃ = I',near(amp(ii.I2),V23/R2,tolOf(ii.I2))&&near(amp(ii.I3),V23/R3,tolOf(ii.I3))&&near(amp(ii.I2)+amp(ii.I3),amp(ii.I),0.011),JSON.stringify(ii));
+    t(tag+': the model line divides the source as set',ml.includes('I = ε/R = '+V.toFixed(1)+'/'+(R1+r23).toFixed(2)+' = '+Iw.toFixed(2)+' A'),ml);
   }
-
-  // a source set in half volts is printed in half volts: at 12.5 V the mixed
-  // circuit's step ③ read '13 / 8.00 = 1.56 A', and the real-meter, capacitor
-  // and bridge batteries read 13 V
-  await setS('inp-mix-V',12.5);await setS('inp-mix-R1',6);await setS('inp-mix-R2',6);await setS('inp-mix-R3',3);
-  await p.waitForTimeout(150);
-  {const tx=await grab(), l3=tx.find(s2=>/^③/.test(s2))||'';
-   t('mixed V=12.5: step ③ divides the source as set',l3.includes('12.5 / 8.00 = 1.56 A'),l3);}
+  await setS('inp-mix-V',12);await setS('inp-mix-R1',6);await setS('inp-mix-R2',6);await setS('inp-mix-R3',3);
+  await dragProbe(0,'r1a');await dragProbe(1,'r1b');const mv1=await meter();
+  await dragProbe(0,'j1');await dragProbe(1,'q1');const mv23=await meter();
+  t('mixed: the probes give V₁ = 9.00 V and only V₂₃ = 3.00 V on the pair (not ε)',mv1==='+9.00 V'&&mv23==='+3.00 V',mv1+' '+mv23);
+  await setS('inp-mix-R3',6);await setS('inp-mix-R1',3);await p.waitForTimeout(150);
+  t('mixed: R₂ = R₃ splits the current evenly, R₁ = R₂∥R₃ halves the voltage',(await meter())==='+6.00 V'&&(await mixI()).I2===(await mixI()).I3,await meter());
+  await tapEl('S');
+  t('mixed: S waits for the prediction',!(await p.evaluate(()=>document.querySelector('#app canvas')._dc.el('S').on)));
+  await p.click('#app .sk-predict .sk-opt >> nth=0');await p.waitForTimeout(250);
+  t('mixed: shorted, the pair has 0 V and I = ε/R₁ = 4.00 A',(await meter())==='0.00 V'&&(await mixI()).I==='4.00 A',(await meter())+' '+JSON.stringify(await mixI()));
+  await dragProbe(0,'r1a');await dragProbe(1,'r1b');
+  t('mixed: and the whole ε is across R₁',(await meter())==='+12.00 V',await meter());
+  t('mixed: all four missions solved by doing them',(await kitCount())==='4/4',await kitCount());
+  // a source set in half volts is printed in half volts: the real-meter,
+  // capacitor and bridge batteries read 13 V at 12.5 V
   for(const [c,s,id] of [['dc-real','dc-realmeters','inp-rm-V'],['dc-real','dc-capacitor','inp-cap-V'],['dc-kirchhoff','dc-bridge','inp-br-V']]){
     await go(c,s);await setS(id,12.5);await p.waitForTimeout(150);
     t(s+': the battery reads 12.5 V, not 13',(await grab()).includes('12.5 V'),'');
