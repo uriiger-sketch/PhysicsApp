@@ -211,6 +211,69 @@ const sig2 = x => x === 0 ? 0 : Number(x.toPrecision(2));
   const df = await txt();
   t('deflection: a hit reports y = d/2 and where', /y = d\/2/.test(df) && /x = v₀t/.test(df), df.split('\n').filter(l => /y = /.test(l)).slice(-1)[0]);
 
+  // ── the field and potential explorer (elc-field, elc-potential) ──
+  // its model, as the sim publishes it: charges, probe readings, null point,
+  // and where every field line starts (from) and ends (end)
+  const elc = () => p.evaluate(() => document.querySelector('#app canvas').__elc());
+  const done = () => p.evaluate(() => [...document.querySelectorAll('.sk-m')].map(li => li.classList.contains('done')));
+  const cv = async () => p.evaluate(() => { const r = document.querySelector('#app canvas').getBoundingClientRect(); return { x: r.left, y: r.top }; });
+  const dragTo = async (x0, y0, x1, y1) => { const o = await cv(); await p.mouse.move(o.x + x0, o.y + y0); await p.mouse.down();
+    for (let i = 1; i <= 12; i++) await p.mouse.move(o.x + x0 + (x1 - x0) * i / 12, o.y + y0 + (y1 - y0) * i / 12);
+    await p.mouse.up(); await p.waitForTimeout(250); };
+  const perQ = (m, i) => m.lines.filter(l => l.from === i).length + m.lines.filter(l => l.end === i).length;
+  await open('elc-field');
+  let m = await elc();
+  t('field lines: a lone +4 μC charge sends out 2.5 lines per μC, all to far away',
+    m.lines.length === 10 && m.lines.every(l => l.from === 0 && l.dir === 1 && l.end === null), JSON.stringify(m.lines.map(l => [l.from, l.end])));
+  await click('btn-field-dipole');
+  await setR('inp-elc-Q2', -4); m = await elc();
+  t('field lines, ±4 μC: lines leave + and end on −, as many on each as its |Q| asks',
+    m.lines.filter(l => l.from === 0).every(l => l.dir === 1) && m.lines.filter(l => l.end === 1).length >= 8 && perQ(m, 1) === 10,
+    'ending on −: ' + m.lines.filter(l => l.end === 1).length + ', on −: ' + perQ(m, 1));
+  await setR('inp-elc-Q', 1); await setR('inp-elc-Q2', -6); m = await elc();
+  t('field lines, +1 and −6 μC: every line from the small + ends on the −; the − carries ≈ 15',
+    m.lines.filter(l => l.from === 0).length === 3 && m.lines.filter(l => l.from === 0).every(l => l.end === 1) && Math.abs(perQ(m, 1) - 15) <= 2,
+    'from +: ' + m.lines.filter(l => l.from === 0).map(l => l.end).join(',') + '; on −: ' + perQ(m, 1));
+  // like charges: drag the test charge to near the null point -- it settles there, E reads 0, the mission is solved
+  await setR('inp-elc-Q', 4); await setR('inp-elc-Q2', 2); m = await elc();
+  const nx = m.A[0].x + (m.A[1].x - m.A[0].x) * 2 / (2 + Math.SQRT2), ny = m.A[0].y;
+  t('null point of +4 and +2 μC: on the axis, √4/(√4+√2) of the way', m.nul && Math.hypot(m.nul.x - nx, m.nul.y - ny) < 0.5, JSON.stringify(m.nul));
+  await dragTo(m.probe.x, m.probe.y, nx + 6, ny - 5);
+  m = await elc(); let tx2 = await txt();
+  t('the test charge let go near the null point settles on it: E = 0 there', m.E < 1 && /\|E\| = 0 N\/C/.test(tx2), 'E = ' + m.E);
+  t('mission "find E = 0 between two positive charges" is solved by doing it', (await done())[0] === true);
+  // unlike, unequal: the null point is beyond the weaker charge, where kQ₁/r₁² = kQ₂/r₂²
+  await setR('inp-elc-Q2', -1); m = await elc();
+  const n1 = Math.hypot(m.nul.x - m.A[0].x, m.nul.y - m.A[0].y), n2 = Math.hypot(m.nul.x - m.A[1].x, m.nul.y - m.A[1].y);
+  t('null point of +4 and −1 μC: outside the segment, beyond the −1, with 4/r₁² = 1/r₂²',
+    n1 > n2 && n1 > Math.hypot(m.A[1].x - m.A[0].x, m.A[1].y - m.A[0].y) && Math.abs(4 / n1 ** 2 - 1 / n2 ** 2) < 1e-3 * 4 / n1 ** 2, n1.toFixed(1) + " " + n2.toFixed(1));
+  // a test charge released from rest: along a straight (radial) line it stays on it; in a dipole it leaves it
+  await click('btn-field-dipole'); m = await elc();
+  await click('btn-field-release'); await p.waitForTimeout(2500); m = await elc();
+  t('released from rest in a lone charge\'s radial field, the test charge moves along its field line', m.fly && m.fly.dev < 1.5, JSON.stringify(m.fly));
+  await click('btn-field-dipole'); await setR('inp-elc-Q2', -4); m = await elc();
+  const sep = m.A[1].x - m.A[0].x;
+  await dragTo(m.probe.x, m.probe.y, m.A[0].x + sep * 0.3, m.A[0].y - sep * 0.4);
+  await click('btn-field-release'); await p.waitForTimeout(3500); m = await elc();
+  t('released from rest where the line curves (a dipole), it leaves the field line: inertia', m.fly && m.fly.dev >= 12 && (await done())[2] === true, JSON.stringify(m.fly));
+  await click('btn-field-q0'); await p.waitForTimeout(300);
+  t('a negative test charge: F = q₀E reverses, E does not -- mission solved', (await done())[3] === true);
+
+  await open('elc-potential');
+  await click('btn-pot-two'); m = await elc();
+  // superposition of a scalar: V at the probe = kQ₁/r₁ + kQ₂/r₂, independently recomputed
+  const Vind = m.A.reduce((a, c) => a + k * c.q * 1e-6 / (Math.hypot(m.probe.x - c.x, m.probe.y - c.y) / m.PXM), 0);
+  t('potential: V = kQ₁/r₁ + kQ₂/r₂ at the probe', Math.abs(m.V - Vind) < 1e-6 * Math.abs(Vind) + 1e-6, m.V + ' vs ' + Vind);
+  // V = 0 line of +2 and −3 μC crosses the axis 2/5 of the way: let the probe go next to it
+  const vx = m.A[0].x + 0.4 * (m.A[1].x - m.A[0].x), vy = m.A[0].y;
+  await dragTo(m.probe.x, m.probe.y, vx + 5, vy - 30); m = await elc(); tx2 = await txt();
+  t('potential: let go by the white line, the probe reads V = 0 while |E| is far from 0', Math.abs(m.V) < 1 && m.E > 1e4 && /^V = 0 V$/m.test(tx2), 'V = ' + m.V + ', E = ' + m.E);
+  t('mission "V = 0 but E ≠ 0" is solved by doing it', (await done())[0] === true);
+  await setR('inp-elc-Vq2', 3); m = await elc();
+  await dragTo(m.probe.x, m.probe.y, m.nul.x + 5, m.nul.y + 4); m = await elc();
+  t('potential: at the null point of two like charges E = 0 but V = kQ₁/r₁ + kQ₂/r₂ > 0',
+    m.E < 1 && m.V > 1e4 && (await done())[1] === true, 'E = ' + m.E + ', V = ' + m.V);
+
   console.log('   every draggable simulation by touch, on a phone');
   const tc = await b.newContext({ viewport: { width: 390, height: 1300 }, hasTouch: true, isMobile: true, deviceScaleFactor: 2 });
   const q = await tc.newPage(); q.on('pageerror', x => errs.push(x.message));
@@ -242,7 +305,7 @@ const sig2 = x => x === 0 ? 0 : Number(x.toPrecision(2));
     ['electro', 'elc-charge', 'elc-field', (W, H) => [[W * 0.68, H * 0.3], [W * 0.62, H * 0.35], [W * 0.55, H * 0.4]], { text: '^\\|E\\| = ' }],
     ['electro', 'elc-charge', 'elc-plane', (W, H) => [[W * 0.5, H * 0.3], [W * 0.45, H * 0.3], [W * 0.1, H * 0.3]], { text: '^E = E₁ \\+ E₂|^E₁ \\+ E₂' }],
     ['electro', 'elc-charge', 'elc-conductor', (W, H) => [[W * 0.27 + 95, H * 0.42 - 40], [W * 0.27 + 60, H * 0.42 - 30], [W * 0.27 + 30, H * 0.42 - 10]], { text: '^' + LR('גשוש r=') }],
-    ['electro', 'elc-energy', 'elc-potential', (W, H) => [[W * 0.7, H * 0.26], [W * 0.65, H * 0.3], [W * 0.6, H * 0.34]], { text: '^V = kQ/r = ' }],
+    ['electro', 'elc-energy', 'elc-potential', (W, H) => [[W * 0.7, H * 0.26], [W * 0.65, H * 0.3], [W * 0.6, H * 0.34]], { text: '^V = ' }],
     ['electro', 'elc-energy', 'elc-upair', (W, H) => [[W * 0.66, H * 0.34], [W * 0.72, H * 0.34], [W * 0.8, H * 0.34]], { text: '^r = ' }],
     ['electro', 'elc-energy', 'elc-sphere', W => [[46 + 0.2 * (W - 60), 300], [46 + 0.4 * (W - 60), 300], [46 + 0.6 * (W - 60), 300]], { text: '^r = [0-9]' }],
     ['electro', 'elc-energy', 'elc-plates', (W, H) => [[W * 0.28 - 20, H / 2], [W * 0.28 - 40, H / 2], [W * 0.28 - 60, H / 2]], { slider: 'elc-v0' }],
