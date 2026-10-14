@@ -212,6 +212,68 @@ const EXPECT = {
   await drag(r, [[W * 0.6, 300], [W * 0.6, 250], [W * 0.6, 200]]);
   t('centre of mass: dragging tilts the ramp', num(await p.evaluate(() => document.getElementById('inp-cm-th').value)) > 25);
 
+  console.log('\n3b) circular motion: the string is the net force; cut it and the puck leaves along the tangent');
+  const probe = () => p.evaluate(() => document.querySelector('#app canvas')._probe());
+  const model = () => p.evaluate(() => { const e = document.querySelector('#app .sk-model'); return e ? e.textContent : ''; });
+  const missionsDone = () => p.evaluate(() => [...document.querySelectorAll('#app .sk-m')].map(li => li.classList.contains('done')));
+  await open('planar.circular');
+  for (const [R, v, m] of [[2, 4, 0.5], [0.8, 6, 1.5], [3, 1.5, 0.2]]) {
+    await set('circ-r', R); await set('circ-v', v); await set('circ-m', m); await p.waitForTimeout(350);
+    const ml = await model(), Fm = ml.match(/= ([\d.]+) N\s*$/), q = await probe();
+    t(`circular R = ${R} m, v = ${v} m/s, m = ${m} kg: the model line prints F = mv²/R`, !!Fm && Math.abs(num(Fm[1]) - m * v * v / R) < 0.006 && Math.abs(q.F - m * v * v / R) < 1e-9, ml.slice(-40));
+    const r2 = Math.hypot(q.x, q.y), dot = q.x * q.vx + q.y * q.vy;
+    t('... the puck is on the circle, its velocity tangent (v·r = 0) and of size v', Math.abs(r2 - R) < 1e-9 && Math.abs(dot) < 1e-9 && Math.abs(Math.hypot(q.vx, q.vy) - v) < 1e-9, `|r| ${r2.toFixed(3)}, v·r ${dot.toExponential(1)}`);
+  }
+  await set('circ-r', 2); await set('circ-v', 4); await set('circ-m', 0.5); await p.waitForTimeout(200);
+  t('circular: a prediction is asked before the first cut', await p.evaluate(() => { const q = document.querySelector('#app .sk-predict'); return !!q && !q.hidden && q.querySelectorAll('.sk-opt').length === 3; }));
+  await p.evaluate(() => document.getElementById('btn-circ-cut').click());
+  await p.waitForTimeout(150);
+  t('... and the string cannot be cut until it is answered', !(await probe()).cut);
+  await p.evaluate(() => document.querySelectorAll('#app .sk-opt')[1].click());
+  // two samples of the flight, timed inside the page
+  const fl = await p.evaluate(async () => {
+    const pr = () => document.querySelector('#app canvas')._probe();
+    await new Promise(r => setTimeout(r, 60));
+    const a = pr(), t0 = performance.now();
+    await new Promise(r => setTimeout(r, 400));
+    return { a, b: pr(), dt: (performance.now() - t0) / 1000 };
+  });
+  const th = fl.a.thCut, P0 = [2 * Math.cos(th), 2 * Math.sin(th)], U = [-Math.sin(th), Math.cos(th)];
+  const off = q => (q.x - P0[0]) * U[1] - (q.y - P0[1]) * U[0];         // distance from the tangent line
+  const along = q => (q.x - P0[0]) * U[0] + (q.y - P0[1]) * U[1];
+  const spd = (along(fl.b) - along(fl.a)) / fl.dt;
+  t('after the cut the puck moves on the tangent line at the cut point (not outward)', fl.a.cut && Math.abs(off(fl.a)) < 1e-6 && Math.abs(off(fl.b)) < 1e-6 && along(fl.b) > along(fl.a), `off-line ${off(fl.b).toExponential(1)} m`);
+  t('... at the speed it had (4 m/s), with the velocity unchanged', Math.abs(spd - 4) < 0.35 && Math.abs(fl.b.vx - 4 * U[0]) < 1e-9 && Math.abs(fl.b.vy - 4 * U[1]) < 1e-9, spd.toFixed(2) + ' m/s');
+  t('... and the model line says ΣF = 0', /ΣF = 0/.test(await model()));
+  // the target mission: cut where the tangent passes through the target
+  await p.evaluate(() => document.getElementById('btn-circ-cut').click());   // tie it again
+  await p.waitForTimeout(200);
+  const hit = await p.evaluate(async () => {
+    const cv = document.querySelector('#app canvas'), q = cv._probe(), T = q.target, d = Math.hypot(T.x, T.y);
+    const want = Math.atan2(T.y, T.x) - Math.acos(q.R / d);              // counter-clockwise: the tangent through T
+    const wrap = a => { a %= 2 * Math.PI; return a < 0 ? a + 2 * Math.PI : a; };
+    for (let i = 0; i < 400; i++) {
+      await new Promise(r => requestAnimationFrame(r));
+      const th = cv._probe().th;
+      if (Math.abs(wrap(th - want + Math.PI) - Math.PI) < 0.035) { document.getElementById('btn-circ-cut').click(); break; }
+    }
+    await new Promise(r => setTimeout(r, 2200));
+    return cv._probe().hits;
+  });
+  t('mission: cutting where the tangent meets the target hits it', hit >= 1, hit + ' hit(s)');
+  await set('circ-v', 2); await p.waitForTimeout(700); await set('circ-v', 4); await p.waitForTimeout(700);
+  await set('circ-r', 1.6); await set('circ-v', 5); await p.waitForTimeout(500);
+  const md = await missionsDone();
+  t('missions: the target, v doubled (F ×4) and T = 2πR/v = 2 s are each reachable', md.length === 3 && md.every(Boolean), JSON.stringify(md));
+  // dragging the puck outward sets the radius
+  await set('circ-r', 2); await set('circ-v', 1); await p.waitForTimeout(300);
+  r = await rect();
+  const q0 = await probe();
+  await drag(r, [[q0.px, q0.py], [q0.cx + (q0.px - q0.cx) * 1.15, q0.cy + (q0.py - q0.cy) * 1.15], [q0.cx + (q0.px - q0.cx) * 1.3, q0.cy + (q0.py - q0.cy) * 1.3]]);
+  await p.waitForTimeout(150);
+  const rr = num(await p.evaluate(() => document.getElementById('inp-circ-r').value));
+  t('circular: dragging the puck outward sets R (2 m → 2.6 m)', !(await probe()).cut && Math.abs(rr - 2.6) < 0.15, rr + ' m');
+
   console.log('\n4) misconception boxes, quiz keys, hints, units');
   await require('./mech_learning')(p, ['statics', 'planar', 'momentum', 'energy', 'shm'], t);
 

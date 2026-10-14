@@ -5448,7 +5448,7 @@ const CONTENT={
       <p>ובכיוון ההפוך: צנטריפוגה במעבדה מסובבת מבחנות כל כך מהר שהתאוצה הצנטריפטלית מגיעה לאלפי ${M('g')} — וכך מפרידה דם לרכיביו.</p>`
     }
   },
-  sim:{type:'circular',title:'תנועה מעגלית אינטראקטיבית',desc:'גררו את הגוף עצמו כדי לשנות את הרדיוס, או שנו מהירות בסליידר. ראו את v המשיקית ואת a הצנטריפטלית — תמיד אל המרכז.'},
+  sim:{type:'circular',title:'דיסקית על חוט',desc:'דיסקית על שולחן ללא חיכוך, קשורה בחוט אל מסמר. החוט מושך אותה אל המרכז — זה הכוח השקול, F = mv²/R — והמהירות משיקה למעגל. גזרו את החוט (הקישו עליו) וראו לאן הדיסקית באמת ממשיכה. גררו אותה כדי לשנות את הרדיוס.'},
   example:{title:'מכונית בפנייה',text:`מכונית שמסתה ${M('1000\\,\\text{kg}')} נוסעת במהירות ${M('20\\,\\text{m/s}')} בפנייה ברדיוס ${M('50\\,\\text{m}')}.`,steps:[
     {q:'מהי התאוצה הצנטריפטלית?',a:`${M('a_c=\\dfrac{v^2}{R}=\\dfrac{400}{50}=8\\,\\text{m/s}^2')}, לעבר מרכז הפנייה.`},
     {q:'איזה כוח נדרש, ומי מספק אותו?',a:`${M('F_c=ma_c=1000\\times8=8000\\,\\text{N}')} — החיכוך בין הצמיגים לכביש. על כביש רטוב, אם החיכוך המרבי קטן מזה, המכונית תחליק החוצה.`},
@@ -12521,6 +12521,52 @@ function simFBD(canvas){
   requestAnimationFrame(draw);
 }
 
+// ═══════════════════════════════════════════════════════════════
+// A few helpers shared by the mechanics simulations of circular motion,
+// friction, projectiles, collisions, SHM and energy (all of them use the
+// sim kit -- simKit -- for missions, predictions and the model line).
+// ═══════════════════════════════════════════════════════════════
+// The live model line, at most eight times a second: a number redrawn sixty
+// times a second cannot be read, and the panel need not be rebuilt each frame.
+function _mbModel(kit){
+  var t0=-1e9,last=null;
+  return function(html){
+    if(html===last)return;
+    var t=(window.performance&&performance.now)?performance.now():Date.now();
+    if(t-t0<125)return;
+    t0=t;last=html;kit.model(html);
+  };
+}
+// One look for every readout card on these canvases.
+function _mbCard(ctx,x,y,w,h,edge,fill){
+  ctx.save();ctx.fillStyle=fill||'rgba(6,14,28,.86)';ctx.strokeStyle=edge||'#1e4060';ctx.lineWidth=1.2;
+  ctx.beginPath();ctx.roundRect(x,y,w,h,8);ctx.fill();ctx.stroke();ctx.restore();
+}
+// A vector: its arrow, and its name just beyond the head -- never on the
+// shaft, and pulled inside the canvas. Returns the label's box.
+function _mbVec(ctx,x1,y1,x2,y2,col,txt,W,H,o){
+  o=o||{};var sz=o.sz||10;
+  simArrow(ctx,x1,y1,x2,y2,col,o.lw||3,o.hw||11);
+  if(!txt||Math.hypot(x2-x1,y2-y1)<4)return null;
+  var w=labelW(ctx,txt,sz)*1.08+4,h=sz+4;
+  var c=_tipSpot(x1,y1,x2,y2,w,h,W,H,o.gap||5);
+  simText(ctx,txt,c.x,c.y+sz*0.36,o.tcol||col,sz,'center',true);
+  return [c.x-w/2,c.y-h/2,c.x+w/2,c.y+h/2];
+}
+// Keyboard learners: the canvas takes the focus, and keys act on it.
+function _mbKeys(canvas,map){
+  canvas.setAttribute('tabindex','0');
+  canvas.addEventListener('keydown',function(e){
+    var f=map[e.key];
+    if(!f||e.altKey||e.ctrlKey||e.metaKey)return;
+    f(e);e.preventDefault();
+  });
+}
+// A slider's value, or a default when the slider is not on the page.
+function _mbV(id,d){var e=document.getElementById('inp-'+id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:d;}
+// A button's label, set in place (restartSim gives it back its first label).
+function _mbBtn(id,html){var b=document.getElementById('btn-'+id);if(b&&b.innerHTML!==html)b.innerHTML=html;return b;}
+
 // ─────────────────────────────────────────────────────────────
 // MOMENTUM DISPLAY: p = mv, drag slider
 // ─────────────────────────────────────────────────────────────
@@ -16111,210 +16157,228 @@ function simStaticsCom(canvas){
 // theme colour lookup for the sims above
 
 function simCircular(canvas){
-  // SECTION: planar.circular — תנועה מעגלית
-  // PEDAGOGY: Uniform circular motion. Shows centripetal acceleration a=v²/r pointing inward.
-  // Velocity tangential, acceleration centripetal. Period T=2πr/v. Student changes r and v.
-  var H=490; var _cv=setupCanvas(canvas,H), ctx=_cv.ctx; const W=_cv.W, dpr=_cv.dpr;
-  // On a phone the side panel took the right third, the circle was squeezed
-  // into what was left (36 px for R = 1.2 m) and the lower 40 % stayed empty.
-  // There the readouts go to a strip at the bottom and the circle gets the
-  // whole width.
-  var _bn=W<480;
-  if(_bn){ H=580; ctx=setupCanvas(canvas,H).ctx; }
+  // SECTION: planar.circular — uniform circular motion
+  // PEDAGOGY: a puck on a frictionless table, tied by a string to a pin, seen
+  // from above. The string's pull is the net force, F = mv²/R, toward the
+  // centre; v is along the tangent, at 90° to it. Cut the string (tap it):
+  // the net force is gone and the puck goes straight on along the tangent at
+  // the speed it had -- nothing throws it outward, there is no centrifugal
+  // force. The first cut waits for a prediction. Missions: hit a target by
+  // cutting at the right moment, see F grow as v², set the period.
+  var cv0=setupCanvas(canvas,480), W=cv0.W, dpr=cv0.dpr;
+  var PH=W<480, H=PH?500:480, ctx=PH?setupCanvas(canvas,H).ctx:cv0.ctx;
   const id=canvas.id;
-  let pT=null, t=0;
-  var r=2.0, v=4.0; // radius (m), speed (m/s)
-  var theta=0; // current angle
-  var trail=[];
-  var paused=false;
-
-  // Centre of the free area left of the panel and below the banner, scaled
-  // so the 3 m maximum radius fits it (it ran over both at r = 3 m).
-  var CX=W*0.35, CY=(56+H-8)/2;
-  var PX_PER_M=Math.min(CX-26,(H-64)/2-24)/3; // pixels per metre
-  // phone: free area between the banner (to y = 60) and the strip (from H-146);
-  // 44 px kept round the 3 m circle for the arrows that leave it
-  var STRIP=146;
-  if(_bn){ CX=W/2; CY=(64+H-STRIP)/2; PX_PER_M=Math.min(W/2-44,(H-STRIP-64)/2-44)/3; }
-
-  function getR(){var e=document.getElementById('inp-circ-r'); return e?parseFloat(e.value):r;}
-  function getV(){var e=document.getElementById('inp-circ-v'); return e?parseFloat(e.value):v;}
-
-  var pauseBtn=document.getElementById('btn-circ-pause');
-  if(pauseBtn)pauseBtn.addEventListener('click',function(){paused=!paused;pauseBtn.textContent=paused?'▶ המשיכו':'⏸ עצרו';});
-
-  // ── Direct manipulation: drag the bob to set the radius ──
-  var dragBob=false;
-  function _bPos(){return {x:CX+Math.cos(theta)*r*PX_PER_M,y:CY+Math.sin(theta)*r*PX_PER_M};}
-  function _cDn(e){var p=simPointerXY(canvas,dpr,e);var b=_bPos();
-    if(Math.hypot(p.x-b.x,p.y-b.y)<28){dragBob=true;canvas.style.cursor='grabbing';e.preventDefault();}}
-  function _cMv(e){var p=simPointerXY(canvas,dpr,e);
-    if(dragBob){
-      theta=Math.atan2(p.y-CY,p.x-CX);
-      simSyncSlider('circ-r',Math.hypot(p.x-CX,p.y-CY)/PX_PER_M,2);
-      trail=[];
-      e.preventDefault();
-    } else {
-      var b2=_bPos();
-      canvas.style.cursor=Math.hypot(p.x-b2.x,p.y-b2.y)<28?'grab':'';
+  var CX=W/2, CY=H/2+(PH?6:0);
+  var S=(Math.min(W/2,H/2)-34)/3.15;          // px per metre: the 3 m circle and its arrows fit
+  var PR=13;                                  // puck radius, px
+  var R=2, v=4, m=0.5;                        // m, m/s, kg
+  var th=Math.PI/2, thCut=0, cut=false, flying=false;
+  var fx=0, fy=0, fvx=0, fvy=0, tCut=0, tStop=-1, strobe=[];
+  var dragging=false, pT=null, t=0, hits=0, hitFx=-1, hitAt=null, toast='', toastT=-1;
+  var revealed=!!simCircular._seen, guess=-1;    // the first cut of a visit waits for a prediction
+  var target=null, vSeen={}, twoV=false, vNow=null, vSince=0;   // a speed counts once it has been held for a moment
+  // table bounds, metres from the pin (y up)
+  var XL=-(CX-20)/S, XR=(W-CX-20)/S, YB=-(H-CY-38)/S, YT=(CY-38)/S;   // clear of the caption rows
+  function sx(x){return CX+x*S;} function sy(y){return CY-y*S;}
+  function rd(){R=_mbV('circ-r',R);v=_mbV('circ-v',v);m=_mbV('circ-m',m);}
+  rd();
+  function newTarget(){
+    for(var k=0;k<60;k++){
+      var a=Math.random()*Math.PI*2, d=R+0.7+Math.random()*1.6;
+      var x=d*Math.cos(a), y=d*Math.sin(a);
+      // clear of the edges and of the captions in the top corners
+      if(x<XL+0.35||x>XR-0.35||y<YB+0.35||y>YT-0.35)continue;
+      if(y>YT-1.0&&Math.abs(x)>(XR-XL)*0.22)continue;
+      target={x:x,y:y};return;
     }
+    target={x:Math.min(XR-0.4,R+1),y:0};
   }
-  function _cUp(){dragBob=false;canvas.style.cursor='';}
-  canvas.addEventListener('mousedown',_cDn);canvas.addEventListener('touchstart',_cDn,{passive:false});
-  canvas.addEventListener('mousemove',_cMv);canvas.addEventListener('touchmove',_cMv,{passive:false});
-  canvas.addEventListener('mouseup',_cUp);canvas.addEventListener('touchend',_cUp);
+  newTarget();
+  var kit=simKit(canvas,{missions:[
+    {text:'גזרו את החוט ברגע הנכון, כך שהדיסקית תפגע במטרה 🎯',
+     hint:'הדיסקית יוצאת בכיוון חץ המהירות ברגע הגזירה, לא החוצה מהמרכז. גזרו כשהקו המקווקו שלפניה עובר דרך המטרה.',
+     why:'ברגע הגזירה השקול מתאפס, ולכן — לפי החוק הראשון — הדיסקית ממשיכה בקו ישר במהירות שהייתה לה, בכיוון המשיק. שום כוח לא ״זרק״ אותה החוצה; החוט רק הפסיק למשוך פנימה.',
+     done:function(s){return s.hits>0;}},
+    {text:'הכפילו את המהירות בלי לשנות את R ואת m, וראו פי כמה גדל כוח החוט',
+     hint:'קבעו מהירות כלשהי, למשל 2 m/s, ואז הזיזו רק את המחוון של v ל־4 m/s.',
+     why:'F = mv²/R: המהירות מופיעה בריבוע, ולכן מהירות כפולה דורשת כוח פי 4. לכן פנייה במהירות כפולה דורשת מהצמיגים חיכוך פי 4.',
+     done:function(s){return s.twoV;}},
+    {text:'כוונו את המעגל כך שהקפה אחת תימשך בדיוק 2 שניות',
+     hint:'בהקפה אחת הדיסקית עוברת את היקף המעגל: T = 2πR/v. למשל, ב־R = 1.6 m צריך v ≈ 5.0 m/s.',
+     why:'T = 2πR/v: באותו זמן מחזור, מעגל כפול ברדיוסו דורש מהירות כפולה — ואז גם התאוצה v²/R כפולה.',
+     done:function(s){return !s.cut&&Math.abs(s.T-2)<0.03;}}]});
+  var model=_mbModel(kit);
+  var PRED={q:'הדיסקית מסתובבת, והחוט נגזר ברגע זה. באיזה מסלול היא תנוע?',
+    opts:['ישר החוצה, הרחק מהמרכז','בקו ישר, בכיוון המהירות שהייתה לה','ממשיכה להתעקל ומתרחקת בספירלה'],
+    correct:1,
+    why:'בלי החוט אין שום כוח אופקי על הדיסקית, ולכן היא ממשיכה בקו ישר ובמהירות קבועה — בכיוון המשיק למעגל ברגע הגזירה. ״הכוח הצנטריפוגלי״ שמרגישים בסיבוב אינו כוח: זה הגוף שממשיך ישר, בזמן שהדבר שסביבו פונה.'};
+  if(!revealed)kit.predict(PRED,function(i){guess=i;revealed=true;simCircular._seen=true;doCut();});
+
+  function F(){return m*v*v/R;}
+  function doCut(){
+    if(cut)return;
+    cut=true;flying=true;thCut=th;tCut=t;tStop=-1;strobe=[];
+    fx=R*Math.cos(th);fy=R*Math.sin(th);
+    fvx=-v*Math.sin(th);fvy=v*Math.cos(th);          // counter-clockwise on the screen
+    _mbBtn('circ-cut','🔗 קשרו מחדש');
+  }
+  function retie(){
+    if(!cut)return;
+    cut=false;flying=false;th=thCut;strobe=[];
+    _mbBtn('circ-cut','✂️ גזרו את החוט');
+  }
+  function wantCut(){
+    if(cut){retie();return;}
+    if(!revealed){toast='נחשו קודם: מה יקרה כשהחוט ייגזר? 👇';toastT=t;
+      var q=kit.el&&kit.el.querySelector('.sk-predict');if(q&&q.scrollIntoView)q.scrollIntoView({block:'nearest',behavior:'smooth'});return;}
+    doCut();
+  }
+  var cb=document.getElementById('btn-circ-cut');
+  if(cb)cb.addEventListener('click',wantCut);
+  ['circ-r','circ-v','circ-m'].forEach(function(k){var e=document.getElementById('inp-'+k);
+    if(e)e.addEventListener('input',function(){rd();if(target&&Math.hypot(target.x,target.y)<R+0.5)newTarget();});});
+
+  function puckXY(){return cut?{x:sx(fx),y:sy(fy)}:{x:sx(R*Math.cos(th)),y:sy(R*Math.sin(th))};}
+  function segDist(px,py,ax,ay,bx,by){var dx=bx-ax,dy=by-ay,L=dx*dx+dy*dy||1,u=Math.max(0,Math.min(1,((px-ax)*dx+(py-ay)*dy)/L));
+    return Math.hypot(px-ax-u*dx,py-ay-u*dy);}
+  simDrag(canvas,dpr,{
+    down:function(p){
+      var q=puckXY();
+      if(Math.hypot(p.x-q.x,p.y-q.y)<PR+14){
+        if(cut){cut=false;flying=false;strobe=[];_mbBtn('circ-cut','✂️ גזרו את החוט');}
+        dragging=true;return;}
+      if(!cut&&segDist(p.x,p.y,CX,CY,q.x,q.y)<14&&Math.hypot(p.x-CX,p.y-CY)>10)wantCut();
+    },
+    move:function(p){
+      if(!dragging)return;
+      th=Math.atan2(CY-p.y,p.x-CX);
+      var r=Math.max(0.5,Math.min(3,Math.hypot(p.x-CX,p.y-CY)/S));
+      simSyncSlider('circ-r',r,1);rd();
+      if(target&&Math.hypot(target.x,target.y)<R+0.5)newTarget();
+    },
+    up:function(){dragging=false;}
+  });
+  _mbKeys(canvas,{
+    'ArrowUp':function(){simSyncSlider('circ-r',R+0.1,1);rd();},
+    'ArrowDown':function(){simSyncSlider('circ-r',R-0.1,1);rd();},
+    'ArrowRight':function(){simSyncSlider('circ-v',v+0.5,1);rd();},
+    'ArrowLeft':function(){simSyncSlider('circ-v',v-0.5,1);rd();},
+    'Enter':wantCut,' ':wantCut});
+  canvas._probe=function(){var q=puckXY();return {px:q.x,py:q.y,cx:CX,cy:CY,cut:cut,x:cut?fx:R*Math.cos(th),y:cut?fy:R*Math.sin(th),
+    vx:cut?fvx:-v*Math.sin(th),vy:cut?fvy:v*Math.cos(th),R:R,v:v,m:m,F:F(),th:th,thCut:thCut,hits:hits,target:target};};
 
   function draw(ts){
     if(_simStop[id])return;
-    if(!pT)pT=ts; var dt=Math.min((ts-pT)/1000,0.04); pT=ts;
-    t+=dt;
-    r=getR(); v=getV();
-    var omega=v/r; // angular velocity rad/s
-    var T=2*Math.PI*r/v; // period
-    var ac=v*v/r; // centripetal acceleration
-
-    if(!paused&&!dragBob) theta+=omega*dt;
-
-    var px=CX+Math.cos(theta)*r*PX_PER_M;
-    var py=CY+Math.sin(theta)*r*PX_PER_M;
-
-    // Velocity direction (tangential = perpendicular to radius, CCW)
-    var vx_dir=-Math.sin(theta), vy_dir=Math.cos(theta);
-    // Centripetal acceleration direction (toward center)
-    var ax_dir=Math.cos(theta+Math.PI), ay_dir=Math.sin(theta+Math.PI);
-
-    trail.push({x:px,y:py});
-    if(trail.length>Math.ceil(2*Math.PI/Math.max(omega*dt,0.001))+5) trail.shift();
+    if(!pT)pT=ts; var dt=Math.min((ts-pT)/1000,0.04); pT=ts; t+=dt;
+    rd();
+    var w=v/R, T=2*Math.PI*R/v, Fs=F();
+    if(!cut&&!dragging)th=(th+w*dt)%(Math.PI*2);
+    if(cut&&flying){
+      fx+=fvx*dt;fy+=fvy*dt;
+      if(!strobe.length||t-strobe[strobe.length-1].t>=0.12)strobe.push({x:fx,y:fy,t:t});
+      if(target){var dh=Math.hypot(fx-target.x,fy-target.y)*S;
+        if(dh<PR+15){hits++;hitFx=t;var old=target;target=null;
+          setTimeout(function(){if(!target)newTarget();},900);hitAt={x:old.x,y:old.y};}}
+      if(fx<XL||fx>XR||fy<YB||fy>YT){
+        fx=Math.max(XL,Math.min(XR,fx));fy=Math.max(YB,Math.min(YT,fy));flying=false;tStop=t;}
+    }
+    if(cut&&!flying&&tStop>0&&t-tStop>1.4)retie();
+    // v and 2v at the same R and m
+    var key=m.toFixed(1)+'|'+R.toFixed(1)+'|'+v.toFixed(1);
+    if(key!==vNow){vNow=key;vSince=t;}
+    else if(t-vSince>0.5){var k0=m.toFixed(1)+'|'+R.toFixed(1);(vSeen[k0]=vSeen[k0]||{})[v.toFixed(1)]=1;
+      for(var vk in vSeen[k0])if(vSeen[k0][(2*parseFloat(vk)).toFixed(1)])twoV=true;}
 
     simBg(ctx,W,H);
+    // the table: a frictionless surface with a cushion
+    ctx.save();ctx.strokeStyle='rgba(96,165,250,.28)';ctx.lineWidth=2;ctx.setLineDash([]);
+    ctx.beginPath();ctx.roundRect(6,6,W-12,H-12,14);ctx.stroke();ctx.restore();
+    simText(ctx,'מבט מלמעלה — שולחן ללא חיכוך',W/2,24,'#7d8da6',9.5,'center');
 
-    // ── Circle path ───────────────────────────────────
-    ctx.save(); ctx.strokeStyle='rgba(30,58,82,.5)'; ctx.lineWidth=1.5; ctx.setLineDash([4,6]);
-    ctx.beginPath(); ctx.arc(CX,CY,r*PX_PER_M,0,Math.PI*2); ctx.stroke(); ctx.setLineDash([]); ctx.restore();
-    // Center dot
-    ctx.save(); ctx.fillStyle='#1e3a52';
-    ctx.beginPath(); ctx.arc(CX,CY,5,0,Math.PI*2); ctx.fill(); ctx.restore();
-    // Radius line
-    ctx.save(); ctx.strokeStyle='rgba(100,116,139,.25)'; ctx.lineWidth=1;
-    ctx.beginPath(); ctx.moveTo(CX,CY); ctx.lineTo(px,py); ctx.stroke(); ctx.restore();
-    // under the circle, not on the radius: there it sat on the ball
-    simText(ctx,'R = '+r.toFixed(1)+' m',CX,CY+r*PX_PER_M+30,'#7d8da6',9,'center');
+    // the circle and the period
+    ctx.save();ctx.strokeStyle='rgba(148,163,184,.30)';ctx.lineWidth=1.4;ctx.setLineDash([4,6]);
+    ctx.beginPath();ctx.arc(CX,CY,R*S,0,Math.PI*2);ctx.stroke();ctx.restore();
+    // target
+    if(target){var tx=sx(target.x),ty=sy(target.y);
+      [[16,'rgba(239,68,68,.85)'],[11,'rgba(248,250,252,.9)'],[6,'rgba(239,68,68,.95)']].forEach(function(c){
+        ctx.fillStyle=c[1];ctx.beginPath();ctx.arc(tx,ty,c[0],0,6.2832);ctx.fill();});}
+    if(hitFx>0&&t-hitFx<1&&hitAt){var f2=(t-hitFx);
+      ctx.save();ctx.globalAlpha=1-f2;ctx.strokeStyle='#fbbf24';ctx.lineWidth=3;
+      ctx.beginPath();ctx.arc(sx(hitAt.x),sy(hitAt.y),16+f2*40,0,6.2832);ctx.stroke();ctx.restore();
+      simText(ctx,'פגיעה! 🎯',sx(hitAt.x),sy(hitAt.y)-26-f2*14,'#fbbf24',12,'center',true);}
+    simText(ctx,'🎯 '+hits,W-18,24,'#fbbf24',11,'right',true);
 
-    // ── Comet tail ────────────────────────────────────
-    for(var i=1;i<trail.length;i++){
-      var fr=i/trail.length;
-      ctx.save(); ctx.globalAlpha=fr*fr*0.55;
-      ctx.strokeStyle='#60a5fa'; ctx.lineWidth=1+fr*3.5; ctx.lineCap='round';
-      ctx.beginPath(); ctx.moveTo(trail[i-1].x,trail[i-1].y); ctx.lineTo(trail[i].x,trail[i].y); ctx.stroke();
-      ctx.restore();
+    var q=puckXY();
+    // the guess that was not right, drawn where it said the puck would go
+    if(cut&&guess>=0&&guess!==1&&t-tCut<6){
+      var gx0=sx(R*Math.cos(thCut)),gy0=sy(R*Math.sin(thCut));
+      ctx.save();ctx.strokeStyle='rgba(248,113,113,.55)';ctx.lineWidth=2;ctx.setLineDash([3,5]);ctx.beginPath();
+      if(guess===0){ctx.moveTo(gx0,gy0);ctx.lineTo(gx0+Math.cos(thCut)*170,gy0-Math.sin(thCut)*170);}
+      else{for(var k=0;k<=60;k++){var aa=thCut+k*0.06,rr=R*S*(1+k*0.012);var X=CX+rr*Math.cos(aa),Y=CY-rr*Math.sin(aa);k?ctx.lineTo(X,Y):ctx.moveTo(X,Y);}}
+      ctx.stroke();ctx.restore();
+      var gl=guess===0?{x:gx0+Math.cos(thCut)*120,y:gy0-Math.sin(thCut)*120}:{x:CX+R*S*1.5*Math.cos(thCut+2.6),y:CY-R*S*1.5*Math.sin(thCut+2.6)};
+      simText(ctx,'הניחוש שלכם',Math.max(50,Math.min(W-50,gl.x)),Math.max(40,Math.min(H-14,gl.y)),'#fca5a5',9.5,'center',true);
     }
-
-    // ── Object ────────────────────────────────────────
-    ctx.save(); ctx.shadowColor='#60a5fa'; ctx.shadowBlur=16;
-    ctx.fillStyle='#3b82f6'; ctx.strokeStyle='#93c5fd'; ctx.lineWidth=2.5;
-    ctx.beginPath(); ctx.arc(px,py,15,0,Math.PI*2); ctx.fill(); ctx.stroke();
-    ctx.shadowBlur=0; ctx.restore();
-
-    // ── Velocity vector (tangential) ──────────────────
-    // v runs to 15 m/s on the slider; at 12 px per m/s the arrow pinned at its
-    // 100 px cap from 8.3 m/s upward, so most of the slider changed nothing.
-    var vscale=100/15;
-    var ve=v*vscale;
-    simArrow(ctx,px,py,px+vx_dir*ve,py+vy_dir*ve,'#34d399',3,11);
-    // a label beyond the tip, growing away from it (centred on the tip it
-    // covered the arrowhead and, for short arrows, the ball)
-    function _tipLab(tx,ty,dx,dy,txt,col){
-      simText(ctx,txt,tx+dx*9,ty+dy*9+(dy>0.3?9:(dy<-0.3?-3:3)),col,9,dx>0.3?'left':(dx<-0.3?'right':'center'),true);
+    // the straight path after the cut: equal steps in equal times
+    if(cut){
+      var x0=sx(R*Math.cos(thCut)),y0=sy(R*Math.sin(thCut));
+      ctx.save();ctx.strokeStyle='rgba(52,211,153,.55)';ctx.lineWidth=2;ctx.setLineDash([2,5]);
+      ctx.beginPath();ctx.moveTo(x0,y0);ctx.lineTo(q.x,q.y);ctx.stroke();ctx.restore();
+      strobe.forEach(function(s2){ctx.save();ctx.globalAlpha=.45;ctx.fillStyle='#60a5fa';ctx.beginPath();ctx.arc(sx(s2.x),sy(s2.y),5,0,6.2832);ctx.fill();ctx.restore();});
+      if(Math.hypot(q.x-x0,q.y-y0)>90){var mx=(x0+q.x)/2,my=(y0+q.y)/2,ln=Math.hypot(q.x-x0,q.y-y0),nx=-(q.y-y0)/ln,ny=(q.x-x0)/ln;
+        if(ny>0){nx=-nx;ny=-ny;}
+        simText(ctx,'קו ישר, מהירות קבועה',mx+nx*16,my+ny*16,'#6ee7b7',9.5,'center',true);}
+    } else if(revealed){
+      // where it would go if cut now: the tangent
+      var ux=-Math.sin(th),uy=-Math.cos(th);
+      ctx.save();ctx.strokeStyle='rgba(52,211,153,.22)';ctx.lineWidth=1.4;ctx.setLineDash([3,6]);
+      ctx.beginPath();ctx.moveTo(q.x,q.y);ctx.lineTo(q.x+ux*900,q.y+uy*900);ctx.stroke();ctx.restore();
     }
-    _tipLab(px+vx_dir*ve,py+vy_dir*ve,vx_dir,vy_dir,'v = '+v.toFixed(1)+' m/s','#34d399');
-
-    // ── Centripetal acceleration (toward center) ──────
-    // a_c = v²/r spans 1.3 to 450 m/s² across the sliders. At 8 px per m/s² the
-    // arrow clipped above 10 m/s² — and the DEFAULT slider position gives 30, so
-    // it was pinned at full length before the learner touched anything, hiding
-    // the v²/r relationship the panel beside it is explaining. Drawn to scale to
-    // 60 m/s², and honestly marked past that instead of silently saturating.
-    var ascale=1.5, aeRaw=ac*ascale, ae=Math.min(90,aeRaw), acClip=aeRaw>90;
-    simArrow(ctx,px,py,px+ax_dir*ae,py+ay_dir*ae,'#f87171',3,11);
-    if(acClip){
-      // two slashes across the shaft: the standard "drawn shortened" mark
-      var _mx=px+ax_dir*ae*0.72, _my=py+ay_dir*ae*0.72;
-      ctx.save(); ctx.strokeStyle='#f87171'; ctx.lineWidth=2;
-      for(var _k=0;_k<2;_k++){
-        var _o=_k*6-3;
-        ctx.beginPath();
-        ctx.moveTo(_mx-ay_dir*6+ax_dir*_o-ax_dir*3,_my+ax_dir*6+ay_dir*_o-ay_dir*3);
-        ctx.lineTo(_mx+ay_dir*6+ax_dir*_o+ax_dir*3,_my-ax_dir*6+ay_dir*_o+ay_dir*3);
-        ctx.stroke();
-      }
-      ctx.restore();
-    }
-    _tipLab(px+ax_dir*ae,py+ay_dir*ae,ax_dir,ay_dir,'\u200eac = '+ac.toFixed(1)+' m/s²'+(acClip?'  (החץ מקוצר)':''),'#f87171');
-
-    // ── Readouts ──────────────────────────────────────
-    if(_bn){
-      var SY=H-STRIP+6;
-      ctx.save(); ctx.fillStyle='rgba(6,14,28,.92)'; ctx.strokeStyle='#1e4060'; ctx.lineWidth=1.5;
-      ctx.beginPath(); ctx.roundRect(8,SY,W-16,STRIP-14,6); ctx.fill(); ctx.stroke(); ctx.restore();
-      var CA=W*0.74, CB=W*0.27;
-      simText(ctx,'R = '+r.toFixed(1)+' m',CA,SY+16,'#60a5fa',9.5,undefined,true);
-      simText(ctx,'v = '+v.toFixed(1)+' m/s',CA,SY+32,'#34d399',9.5,undefined,true);
-      simText(ctx,'ω = v/R = '+omega.toFixed(2)+' rad/s',CA,SY+48,'#a78bfa',9,undefined,true);
-      simText(ctx,'T = 2πR/v = '+T.toFixed(2)+' s',CA,SY+64,'#fbbf24',9,undefined,true);
-      simText(ctx,'ירוק: מהירות (משיק)',CA,SY+86,'#34d399',8.5,undefined,true);
-      simText(ctx,'אדום: תאוצה (מרכז)',CA,SY+102,'#f87171',8.5,undefined,true);
-      simText(ctx,'תאוצה צנטריפטלית:',CB,SY+16,'#22d3ee',9,undefined,true);
-      simText(ctx,'ac = v²/R = '+v.toFixed(1)+'²/'+r.toFixed(1),CB,SY+32,'#94a3b8',9,undefined,true);
-      simText(ctx,'= '+ac.toFixed(2)+' m/s²',CB,SY+50,'#f87171',11,undefined,true);
-      simText(ctx,'Fc = m·ac, אל המרכז',CB,SY+70,'#a78bfa',9,undefined,true);
-      simText(ctx,'90° זה לזה תמיד!',CB,SY+102,'#fbbf24',8.5,undefined,true);
-      ctx.save(); ctx.strokeStyle='#1e4060'; ctx.lineWidth=1;
-      ctx.beginPath(); ctx.moveTo(W/2,SY+8); ctx.lineTo(W/2,SY+STRIP-22); ctx.stroke(); ctx.restore();
+    // the pin, and the string while it holds
+    if(!cut){
+      ctx.save();ctx.strokeStyle='#cbd5e1';ctx.lineWidth=1.8;ctx.beginPath();ctx.moveTo(CX,CY);ctx.lineTo(q.x,q.y);ctx.stroke();ctx.restore();
     } else {
-    var PX2=W*0.70, PW2=W-PX2-10, PY2=10;
-    ctx.save(); ctx.fillStyle='rgba(6,14,28,.92)'; ctx.strokeStyle='#1e4060'; ctx.lineWidth=1.5;
-    ctx.beginPath(); ctx.roundRect(PX2,PY2,PW2,H-PY2-10,6); ctx.fill(); ctx.stroke(); ctx.restore();
-    var PC=PX2+PW2/2;
-    simText(ctx,'תנועה מעגלית',PC,PY2+14,'#22d3ee',10.5,undefined,true);
-    ctx.save(); ctx.strokeStyle='#1e4060'; ctx.lineWidth=1;
-    ctx.beginPath(); ctx.moveTo(PX2+6,PY2+20); ctx.lineTo(PX2+PW2-6,PY2+20); ctx.stroke(); ctx.restore();
-    simText(ctx,'R = '+r.toFixed(1)+' m',PC,PY2+32,'#60a5fa',9.5,undefined,true);
-    simText(ctx,'v = '+v.toFixed(1)+' m/s',PC,PY2+46,'#34d399',9.5,undefined,true);
-    simText(ctx,'ω = '+omega.toFixed(2)+' rad/s',PC,PY2+60,'#a78bfa',9,undefined,true);
-    simText(ctx,'T = '+T.toFixed(2)+' s',PC,PY2+74,'#fbbf24',9,undefined,true);
-    ctx.save(); ctx.strokeStyle='#1e4060'; ctx.lineWidth=1;
-    ctx.beginPath(); ctx.moveTo(PX2+6,PY2+80); ctx.lineTo(PX2+PW2-6,PY2+80); ctx.stroke(); ctx.restore();
-    simText(ctx,'תאוצה צנטריפטלית:',PC,PY2+92,'#22d3ee',9,undefined,true);
-    simText(ctx,'ac = v²/R',PC,PY2+106,'#f87171',10,undefined,true);
-    simText(ctx,'= '+v.toFixed(1)+'²/'+r.toFixed(1),PC,PY2+120,'#94a3b8',8.5,undefined,true);
-    simText(ctx,'= '+ac.toFixed(2)+' m/s²',PC,PY2+134,'#f87171',11,undefined,true);
-    ctx.save(); ctx.strokeStyle='#1e4060'; ctx.lineWidth=1;
-    ctx.beginPath(); ctx.moveTo(PX2+6,PY2+142); ctx.lineTo(PX2+PW2-6,PY2+142); ctx.stroke(); ctx.restore();
-    simText(ctx,'כוח צנטריפטלי:',PC,PY2+154,'#22d3ee',9,undefined,true);
-    simText(ctx,'Fc = m·ac',PC,PY2+168,'#a78bfa',10,undefined,true);
-    simText(ctx,'כיוון: למרכז',PC,PY2+182,'#7d8da6',8.5,undefined,true);
-    ctx.save(); ctx.strokeStyle='#1e4060'; ctx.lineWidth=1;
-    ctx.beginPath(); ctx.moveTo(PX2+6,PY2+190); ctx.lineTo(PX2+PW2-6,PY2+190); ctx.stroke(); ctx.restore();
-    simText(ctx,'θ = '+(theta%(2*Math.PI)*180/Math.PI).toFixed(0)+'°',PC,PY2+202,'#7d8da6',8.5,undefined,true);
-    simText(ctx,'ω = v/R',PC,PY2+216,'#7d8da6',8,undefined,true);
-    simText(ctx,'T = 2πR/v',PC,PY2+230,'#7d8da6',8,undefined,true);
-
-    // Legend: v vs ac direction
-    simText(ctx,'ירוק: מהירות (משיק)',PC,PY2+248,'#34d399',8,undefined,true);
-    simText(ctx,'אדום: תאוצה (מרכז)',PC,PY2+260,'#f87171',8,undefined,true);
-    simText(ctx,'90° זה לזה תמיד!',PC,PY2+272,'#fbbf24',8.5,undefined,true);
+      ctx.save();ctx.strokeStyle='#cbd5e1';ctx.lineWidth=1.8;ctx.beginPath();ctx.moveTo(CX,CY);
+      ctx.lineTo(CX+Math.cos(thCut)*R*S*0.45,CY-Math.sin(thCut)*R*S*0.45+6);ctx.stroke();ctx.restore();
     }
+    ctx.save();ctx.fillStyle='#334155';ctx.strokeStyle='#94a3b8';ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(CX,CY,5,0,6.2832);ctx.fill();ctx.stroke();ctx.restore();
+    if(!revealed&&!cut)simText(ctx,'✂️ הקישו על החוט כדי לגזור אותו',W/2,44,'#fbbf24',10,'center',true);
+    // the puck
+    var pg=ctx.createRadialGradient(q.x-4,q.y-4,2,q.x,q.y,PR);
+    pg.addColorStop(0,'#bfdbfe');pg.addColorStop(1,dragging?'#7c3aed':'#2563eb');
+    ctx.save();ctx.shadowColor='#60a5fa';ctx.shadowBlur=dragging?16:8;
+    simCircle(ctx,q.x,q.y,PR,pg,'#93c5fd',2);ctx.restore();
+    simHandle(ctx,q.x,q.y,'#93c5fd',PR+9);
+    // v along the tangent, F toward the centre
+    var vx=cut?fvx:-v*Math.sin(th), vy=cut?fvy:v*Math.cos(th);
+    var VL=Math.min(80,v*10), vl=Math.hypot(vx,vy)||1;
+    var keep=[];
+    var b1=_mbVec(ctx,q.x,q.y,q.x+vx/vl*VL,q.y-vy/vl*VL,'#34d399','v = '+v.toFixed(1)+' m/s',W,H);
+    if(!cut){
+      var FL=Math.min(Math.max(R*S-14,34),Fs*12), ux2=(CX-q.x)/(R*S||1), uy2=(CY-q.y)/(R*S||1);
+      var clip=Fs*12>FL+0.5;
+      simArrow(ctx,q.x,q.y,q.x+ux2*FL,q.y+uy2*FL,'#f87171',3,11);
+      // its name beside the string, on the side away from v (on the string it was crossed out by it)
+      var nx2=-uy2,ny2=ux2; if(nx2*vx/vl-ny2*vy/vl>0){nx2=-nx2;ny2=-ny2;}
+      var fl='F = '+Fs.toFixed(2)+' N', fw=labelW(ctx,fl,10)*1.08;
+      var lx=q.x+ux2*FL*0.55+nx2*(10+fw/2*Math.abs(nx2)), ly=q.y+uy2*FL*0.55+ny2*(12+3*Math.abs(ny2));
+      simText(ctx,fl,Math.max(fw/2+6,Math.min(W-fw/2-6,lx)),ly+4,'#f87171',10,'center',true);
+      if(clip){var cxm=q.x+ux2*FL*0.6,cym=q.y+uy2*FL*0.6;ctx.save();ctx.strokeStyle='#f87171';ctx.lineWidth=2;
+        for(var k2=-1;k2<=1;k2+=2){ctx.beginPath();ctx.moveTo(cxm-uy2*6+ux2*k2*3,cym+ux2*6+uy2*k2*3);ctx.lineTo(cxm+uy2*6+ux2*k2*3,cym-ux2*6+uy2*k2*3);ctx.stroke();}
+        ctx.restore();}
+      // the right angle between them
+      var a1x=ux2*9,a1y=uy2*9,a2x=vx/vl*9,a2y=-vy/vl*9;
+      ctx.save();ctx.strokeStyle='rgba(251,191,36,.8)';ctx.lineWidth=1.3;ctx.beginPath();
+      ctx.moveTo(q.x+a1x,q.y+a1y);ctx.lineTo(q.x+a1x+a2x,q.y+a1y+a2y);ctx.lineTo(q.x+a2x,q.y+a2y);ctx.stroke();ctx.restore();
+    }
+    // numbers at the bottom
+    simText(ctx,'T = 2πR/v = '+T.toFixed(2)+' s',18,H-16,'#fbbf24',10,'left',true);
+    simText(ctx,'a = v²/R = '+(v*v/R).toFixed(2)+' m/s²',W-18,H-16,'#fca5a5',10,'right',true);
+    if(toast&&t-toastT<2.6)simText(ctx,toast,W/2,H/2+R*S+30>H-36?44:CY+R*S+28,'#fbbf24',11,'center',true);
 
-    // ── Top banner ────────────────────────────────────
-    ctx.save(); ctx.fillStyle='rgba(6,14,28,.92)'; ctx.strokeStyle='#1e4060'; ctx.lineWidth=1.5;
-    // on a phone the subtitle is two lines: as one it ran out of the banner
-    ctx.beginPath(); ctx.roundRect(8,6,_bn?W-16:W*0.62,_bn?54:44,6); ctx.fill(); ctx.stroke(); ctx.restore();
-    var BX=_bn?W/2:W*0.31;
-    simText(ctx,'תנועה מעגלית אחידה — ac = v²/R',BX,20,'#22d3ee',11,undefined,true);
-    if(_bn){simText(ctx,'המהירות תמיד משיקה למעגל,',BX,35,'#94a3b8',8.5,undefined,true);
-      simText(ctx,'והתאוצה תמיד מכוונת למרכז',BX,48,'#94a3b8',8.5,undefined,true);}
-    else simText(ctx,'המהירות תמיד משיקה למעגל, והתאוצה תמיד מכוונת למרכז',W*0.31,36,'#94a3b8',8.5,undefined,true);
-
+    if(cut)model('החוט נגזר: '+kit.m('ΣF = 0')+' — הדיסקית ממשיכה בקו ישר, במהירות קבועה '+kit.m('v = '+v.toFixed(1)+' m/s'));
+    else model('כוח החוט הוא הכוח השקול, והוא מכוון אל המרכז: '+kit.m('F = mv²/R = '+m.toFixed(1)+' × '+v.toFixed(1)+'² / '+R.toFixed(1)+' = '+Fs.toFixed(2)+' N'));
+    kit.check({hits:hits,twoV:twoV,T:T,cut:cut});
     requestAnimationFrame(draw);
   }
   requestAnimationFrame(draw);
@@ -34916,7 +34980,7 @@ function buildSim(sim){
   else if(sim.type==='statics-torque')extra=C(rng('tq-r',0.05,0.50,0.30,0.01,'מרחק r',' m')+rng('tq-F',5,60,30,1,'כוח F',' N')+rng('tq-th',0,180,60,5,'זווית θ',' °'));
   else if(sim.type==='statics-beam')extra=C(rng('bm-P',0,600,300,10,'עומס P',' N')+rng('bm-xp',0,4,3,0.1,'מיקום העומס',' m')+rng('bm-W',0,400,200,20,'משקל הקורה',' N')+rng('bm-xb',1.5,4,4,0.1,'מיקום משען B',' m'));
   else if(sim.type==='statics-com')extra=C(rng('cm-w',0.15,0.9,0.30,0.05,'רוחב w',' m')+rng('cm-h',0.2,1.2,0.50,0.05,'גובה h',' m')+rng('cm-mu',0.05,1.2,0.40,0.05,'חיכוך μs')+rng('cm-th',0,55,15,1,'זווית המדרון',' °'));
-  else if(sim.type==='circular')extra=C(rng('circ-r',0.5,3,2,0.1,'רדיוס R',' m')+rng('circ-v',2,15,6,0.5,'מהירות v',' m/s')+btn('circ-pause','⏸ עצרו','btn-secondary'));
+  else if(sim.type==='circular')extra=C(rng('circ-r',0.5,3,2,0.1,'רדיוס R',' m')+rng('circ-v',1,8,4,0.5,'מהירות v',' m/s')+rng('circ-m',0.1,2,0.5,0.1,'מסת הדיסקית m',' kg')+btn('circ-cut','✂️ גזרו את החוט','btn-primary'));
   else if(sim.type==='atwood')extra=C(rng('atw-m1',0.5,10,3,0.5,'m₁',' kg')+rng('atw-m2',0.5,10,5,0.5,'m₂',' kg')+btn('atw-launch','▶ שחררו!','btn-primary')+btn('atw-reset','↺ איפוס','btn-secondary'));
   // OPTICS CONTROLS
   else if(sim.type==='opt-em-wave')extra=C(rng('emw-wl',380,700,500,5,'אורך גל λ',' nm'));
