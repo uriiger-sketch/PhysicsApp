@@ -440,9 +440,9 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 .sk-missions{border:1px solid var(--border);border-radius:12px;overflow:hidden;background:var(--panel);transition:border-color .4s;}
 .sk-head{appearance:none;-webkit-appearance:none;display:flex;align-items:center;gap:10px;width:100%;min-height:44px;padding:7px 12px;border:0;margin:0;
   background:var(--panel2);font:inherit;font-weight:700;font-size:.88rem;color:var(--text);text-align:start;cursor:pointer;transition:background .4s;}
-.sk-title{flex:1 1 auto;min-width:0;}
+.sk-title{flex:1 1 auto;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .sk-pips{display:flex;gap:4px;flex:0 0 auto;}
-.sk-pips i{display:block;width:16px;height:6px;border-radius:3px;background:var(--border);transition:background .3s,transform .3s;}
+.sk-pips i{display:block;width:14px;height:6px;border-radius:3px;background:var(--border);transition:background .3s,transform .3s;}
 .sk-pips i.on{background:var(--green);}
 .sk-pips i.sk-just{animation:skpip .6s ease-out;}
 .sk-count{flex:0 0 auto;font-family:ui-monospace,Menlo,Consolas,'Courier New',monospace;color:var(--gold);font-size:.82rem;font-variant-numeric:tabular-nums;}
@@ -499,6 +499,8 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 .sim-canvas-wrap canvas.sk-keys:focus-visible{outline:2px solid var(--accent2);outline-offset:-3px;}
 @media (prefers-reduced-motion:reduce){.sk-m.sk-just,.sk-m.sk-just .sk-box,.sk-m.sk-just .sk-why,.sk-pa,.sk-pips i.sk-just{animation:none;}
   .sk-xp.sk-just{animation:none;opacity:1;}.sk-box,.sk-box svg,.sk-chev{transition:none!important;}}
+.sk-pips{flex-wrap:wrap;max-width:40%;}
+@media (max-width:360px){.sk-pips i{width:9px;}}
 @media (max-width:480px){.sk-panel{padding:10px 12px 2px;}.sk-tabs{padding:7px 8px;gap:5px;}.sk-tab{font-size:.8rem;padding:4px 4px;}
   /* a phone gives the mission its whole width; the hint goes under it */
   .sk-row{flex-wrap:wrap;row-gap:0;}.sk-tx{flex:1 1 calc(100% - 30px);}.sk-hint-b{margin-inline-start:24px;}}
@@ -20787,7 +20789,9 @@ function simOptColorMix(canvas){
     var cW=wide?0:Math.round(P.w*0.34),gx0,gx1,gy0=top+16,gy1,cx,cy0b,cy1b;
     if(wide){gx0=x0+4;gx1=x1-4;gy1=gy0+Math.min(200,P.h-(gy0-P.y)-150);cx=x0;cy0b=gy1+50;cy1b=P.y+P.h-28;}
     else{var a0=rtl?x0+cW:x0,a1=rtl?x1:x1-cW;gx0=a0+4;gx1=a1-4;gy1=P.y+P.h-40;cx=rtl?x0:x1-cW+8;cy0b=top+16;cy1b=P.y+P.h-28;}
-    simText(ctx,'הספקטרום (עוצמה לפי אורך גל)',rtl?gx1:gx0,gy0-6,'#94a3b8',10,rtl?'right':'left');
+    // the plot's title: in full where it fits over the plot, else one word
+    var stt='הספקטרום (עוצמה לפי אורך גל)';if(labelW(ctx,stt,10)>gx1-gx0)stt='הספקטרום';
+    simText(ctx,stt,rtl?gx1:gx0,gy0-6,'#94a3b8',10,rtl?'right':'left');
     var lx=function(l){return gx0+(l-380)/(700-380)*(gx1-gx0);},gh=gy1-gy0;
     ctx.save();ctx.strokeStyle='rgba(148,163,184,.14)';ctx.lineWidth=1;
     for(var t=400;t<=700;t+=100){ctx.beginPath();ctx.moveTo(lx(t),gy0);ctx.lineTo(lx(t),gy1);ctx.stroke();}ctx.restore();
@@ -20815,7 +20819,8 @@ function simOptColorMix(canvas){
     // the three cones: what the eye actually reports
     var bx0,bx1,bH;
     if(wide){bx0=x0+20;bx1=x1-20;}else{bx0=cx;bx1=cx+cW-12;}
-    simText(ctx,'מדוכים (% מהלבן)',(bx0+bx1)/2,cy0b-4,'#94a3b8',10);
+    var ctt='מדוכים (% מהלבן)';if(labelW(ctx,ctt,10)>bx1-bx0+16)ctt='מדוכים';
+    simText(ctx,ctt,(bx0+bx1)/2,cy0b-4,'#94a3b8',10);
     var tgt=mode==='add'&&yelOn?o.tc:null,colw=(bx1-bx0)/3,barW=Math.min(30,colw*0.5),bt=cy0b+14,bb=cy1b-16;bH=bb-bt;
     [[0,'S','#60a5fa'],[1,'M','#4ade80'],[2,'L','#f87171']].forEach(function(q,j){
       var bxc=bx0+colw*(j+0.5),v=Math.max(0,o.cones[q[0]]),h=Math.min(1.25,v)/1.25*bH;
