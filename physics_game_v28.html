@@ -5355,7 +5355,7 @@ const CONTENT={
       <p>במציאות, התנגדות האוויר משנה את התמונה. כוח הגרר גדל בערך כמו ריבוע המהירות, ולכן המסלול אינו סימטרי — הירידה תלולה יותר מהעלייה — והזווית שנותנת את הטווח הגדול ביותר קטנה מ־${M('45^\\circ')}. כדור בייסבול עף הכי רחוק בזווית של כ־${M('35^\\circ')}. בכדור גולף הסחרור האחורי יוצר גם <b>עילוי</b> (אפקט מגנוס), ולכן חובטים אותו בזווית שטוחה עוד יותר — כ־${M('10^\\circ')} עד ${M('15^\\circ')}.</p>`
     }
   },
-  sim:{type:'projectile',title:'מטווח קליעים',desc:'גררו מהתותח כמו רוגטקה — כיוון הגרירה קובע את הזווית, אורכה את v₀ — ושחררו לירי. פגעו במטרה! שימו לב: vₓ קבוע (חצים ירוקים), v_y משתנה (אדומים).'},
+  sim:{type:'projectile',title:'מטווח קליעים',desc:'משכו מהתותח כמו ברוגטקה — כיוון המשיכה קובע את הזווית ואורכה את v₀ — ושחררו לירי. הגביהו את המגדל כדי לירות מגובה, והפעילו כדור שמושמט באותו רגע: הכדור שנורה אופקית נוחת יחד איתו. הצל על הקרקע מתקדם בצעדים שווים — vₓ קבוע (חצים ירוקים), ורק v_y משתנה (אדומים).'},
   example:{title:'זריקה משופעת בזווית 45°',text:`כדור נזרק מהקרקע במהירות ${M('20\\,\\text{m/s}')} בזווית ${M('45^\\circ')} מעל האופק. (${M('g=9.8\\,\\text{m/s}^2')})`,steps:[
     {q:'מהם רכיבי המהירות ההתחלתית?',a:`${M('v_{0x}=v_{0y}=20\\cos45^\\circ\\approx14.1\\,\\text{m/s}')}`},
     {q:'מהו הטווח?',a:`${M('R=\\dfrac{v_0^2\\sin2\\theta}{g}=\\dfrac{400\\times1}{9.8}\\approx40.8\\,\\text{m}')}`},
@@ -12534,7 +12534,9 @@ function _mbModel(kit){
     if(html===last)return;
     var t=(window.performance&&performance.now)?performance.now():Date.now();
     if(t-t0<125)return;
-    t0=t;last=html;kit.model(html);
+    t0=t;last=html;
+    // v_y, a_c, F_net: a real subscript (canvas labels get theirs from the fillText hook)
+    kit.model(html.replace(/([A-Za-zΣΔμ\u0370-\u03FF])_\{?([A-Za-z0-9]{1,3})\}?/g,'$1<sub>$2</sub>'));
   };
 }
 // One look for every readout card on these canvases.
@@ -15293,294 +15295,198 @@ function simPendulum(canvas){
 
 
 function simProjectile(canvas){
-  // SECTION: planar.projectile — תנועה בליסטית
-  // PEDAGOGY: Projectile motion. v0 and angle controls. Shows x(t) and y(t) are independent.
-  // Live trajectory trace, range calculation, max height. Pause at peak.
-  const H=490; const {ctx,W,dpr}=setupCanvas(canvas,H);
-  const id=canvas.id;
-  const g=9.8;
-  let pT=null, t=0;
-  var v0=15, angle=45;
-  var x=0, y=0, vx=0, vy=0;
-  var running=false, launched=false;
-  var trail=[];
-  var landT=-1, aiming=false;
-  var targetX=-1,hits=0,feedbackMsg='',feedbackT=-1,hitFxT=-1,hitFxX=0;
-  function newTarget(){targetX=15+Math.random()*55;}
+  // SECTION: planar.projectile
+  // PEDAGOGY: two independent motions. A ball fired from the top of a tower
+  // (h from 0 to 30 m, the section's problem is a roof) moves at constant vₓ
+  // and falls with g at the same time: its ground shadow slides uniformly, its
+  // shadow on the tower rises and falls like a ball thrown straight up, and a
+  // twin ball dropped at the same instant keeps level with it when the shot is
+  // horizontal. Strobe images every equal time step: equal horizontal gaps.
+  // Aim by pulling from the cannon (or sliders, or keys). Exact parabola,
+  // landing at the root of y(t) = 0, so R and t are exact.
+  var cv0=setupCanvas(canvas,470), W=cv0.W, dpr=cv0.dpr, H=W<480?400:470, ctx=W<480?setupCanvas(canvas,H).ctx:cv0.ctx;
+  const id=canvas.id, g=9.8;
+  var LX=W<480?62:74, GY=H-40;               // the tower's foot on the screen, the ground line
+  var pT=null, t=0;
+  var fly=false, shot=null, trail=[], ghosts=[], twin=null, landT=-1, aim=false, aimed=false;
+  var target=0, hits=0, hitAngles={}, msg='', msgT=-1, msgOk=false, msgGood=false, fxT=-1, fxX=0, sameT=false, twoAng=false;
+  function V0(){return _mbV('proj-v0',20);} function TH(){return _mbV('proj-angle',45);} function HH(){return _mbV('proj-h',0);}
+  function twinOn(){var b=document.getElementById('btn-proj-twin');return !!(b&&b.dataset.on==='1');}
+  function newTarget(){target=Math.round(15+Math.random()*30);hitAngles={};}
   newTarget();
-  var peakH=0, range=0, tFlight=0;
+  // the scale is set by the target and the tower, not by the shot: a throw
+  // twice as fast must LOOK four times as long
+  var S=10;
+  function rescale(){var h=HH(), xr=Math.max(45,target*1.3), yr=Math.max(22,h+14);
+    S=Math.max(2.5,Math.min(26,(W-LX-16)/xr,(GY-72)/yr));}
+  rescale();
+  function X(x){return LX+x*S;} function Y(y){return GY-y*S;}
+  function flightOf(v0,thd,h){var r=thd*Math.PI/180, vx=v0*Math.cos(r), vy=v0*Math.sin(r);
+    var tf=(vy+Math.sqrt(vy*vy+2*g*h))/g; return {vx:vx,vy:vy,tf:tf,R:vx*tf,Hm:h+(vy>0?vy*vy/(2*g):0)};}
 
-  // Ground level
-  var GND_Y=H-52, LAUNCH_X=50;
+  var kit=simKit(canvas,{missions:[
+    {text:'פגעו במטרה 🎯',
+     hint:'משכו מהתותח הרחק ממנו: כיוון המשיכה הוא הזווית, האורך הוא המהירות. הקו המקווקו מראה לאן תנחת הירייה.',
+     why:'הטווח נקבע משתי תנועות נפרדות: זמן המעוף נקבע בתנועה האנכית בלבד (v₀sinθ, h ו־g), ובזמן הזה הכדור מתקדם במהירות אופקית קבועה v₀cosθ. R = v₀cosθ · t.',
+     done:function(s){return s.hits>0;}},
+    {text:'פגעו באותה מטרה פעמיים, בשתי זוויות שונות',
+     hint:'מהקרקע (h = 0), זוויות שסכומן 90° נותנות אותו טווח: למשל 30° ו־60°, באותה v₀.',
+     why:'מהקרקע R = v₀²sin2θ/g, ו־sin2θ = sin(180° − 2θ): הזוויות θ ו־90° − θ נותנות אותו טווח. הזווית הגבוהה עולה גבוה יותר ושוהה באוויר זמן רב יותר — אבל מתקדמת לאט יותר.',
+     done:function(s){return s.twoAng;}},
+    {text:'מראש המגדל, ירו אופקית לצד כדור שמשמיטים באותו רגע — ובדקו מי נוחת ראשון',
+     hint:'קבעו θ = 0° וגובה מגדל של 10 m או יותר, והפעילו את ״👥 כדור מושמט״.',
+     why:'שניהם נוחתים יחד: לשניהם אין מהירות אנכית התחלתית, ו־g מאיצה את שניהם כלפי מטה באותה מידה. המהירות האופקית אינה משנה את הנפילה — שתי התנועות בלתי תלויות.',
+     done:function(s){return s.sameT;}}]});
+  var model=_mbModel(kit);
+  kit.predict({q:'מראש מגדל יורים כדור אופקית, ובאותו רגע משמיטים כדור שני מאותו גובה. איזה כדור נוחת ראשון?',
+    opts:['הכדור המושמט','הכדור שנורה אופקית','שניהם יחד'],correct:2,
+    why:'הנפילה של כל אחד מהם נקבעת רק מהתנועה האנכית: שניהם מתחילים בלי מהירות אנכית ונופלים באותה תאוצה g. התנועה האופקית של הכדור שנורה מתרחשת ״לצד״ הנפילה ואינה משנה אותה.'},
+    function(){ if(HH()<10)simSyncSlider('proj-h',20,0); simSyncSlider('proj-angle',0,0);
+      var b=document.getElementById('btn-proj-twin'); if(b&&b.dataset.on!=='1')b.click(); setTimeout(fire,350);});
 
-  function getV0(){var e=document.getElementById('inp-proj-v0'); return e?parseFloat(e.value):v0;}
-  function getAngle(){var e=document.getElementById('inp-proj-angle'); return e?parseFloat(e.value):angle;}
-
-  var launchBtn=document.getElementById('btn-proj-launch');
-  var resetBtn=document.getElementById('btn-proj-reset');
-
-  var Lv0=v0, Lang=angle;           // the values the shot in the air was fired with
-  function launch(){
-    v0=getV0(); angle=getAngle(); Lv0=v0; Lang=angle;
-    var rad=angle*Math.PI/180;
-    vx=v0*Math.cos(rad); vy=v0*Math.sin(rad);
-    x=0; y=0; running=true; launched=true; trail=[]; landT=-1;
-    peakH=0; range=0; tFlight=0;
-    // Theoretical
-    tFlight=2*v0*Math.sin(rad)/g;
-    range=v0*v0*Math.sin(2*rad)/g;
-    peakH=v0*v0*Math.sin(rad)*Math.sin(rad)/(2*g);
+  function fire(){
+    if(fly)return;
+    var v0=V0(), thd=TH(), h=HH(), f=flightOf(v0,thd,h);
+    shot={v0:v0,th:thd,h:h,vx:f.vx,vy0:f.vy,tf:f.tf,R:f.R,Hm:f.Hm,t:0};
+    fly=true;trail=[];ghosts=[];landT=-1;aimed=true;
+    twin=twinOn()&&h>0?{t:0,land:Math.sqrt(2*h/g),done:false}:null;
+    if(f.tf<=1e-6){fly=false;landT=t;shot.t=0;}
   }
-  function resetSim(){x=0;y=0;vx=0;vy=0;running=false;launched=false;trail=[];peakH=0;range=0;landT=-1;}
-  if(launchBtn)launchBtn.addEventListener('click',launch);
-  if(resetBtn)resetBtn.addEventListener('click',resetSim);
-
-  // ── Drag-to-aim: pull from the cannon, release to fire ──
-  function _aDn(e){if(running)return;var p=simPointerXY(canvas,dpr,e);
-    if(Math.hypot(p.x-LAUNCH_X,p.y-GND_Y)<90){aiming=true;canvas.style.cursor='grabbing';e.preventDefault();}}
-  function _aMv(e){var p=simPointerXY(canvas,dpr,e);
-    if(aiming){
-      var dx2=p.x-LAUNCH_X,dy2=GND_Y-p.y;
-      if(dx2>4&&dy2>0){
-        simSyncSlider('proj-angle',Math.atan2(dy2,dx2)*180/Math.PI,0);
-        simSyncSlider('proj-v0',Math.hypot(dx2,dy2)/6,0);
-      }
-      e.preventDefault();
-    } else if(!running){
-      canvas.style.cursor=Math.hypot(p.x-LAUNCH_X,p.y-GND_Y)<90?'grab':'';
-    }
-  }
-  function _aUp(){if(aiming){aiming=false;canvas.style.cursor='';
-    var b=document.getElementById('btn-proj-launch');if(b)b.click();}}
-  canvas.addEventListener('mousedown',_aDn);canvas.addEventListener('touchstart',_aDn,{passive:false});
-  canvas.addEventListener('mousemove',_aMv);canvas.addEventListener('touchmove',_aMv,{passive:false});
-  canvas.addEventListener('mouseup',_aUp);canvas.addEventListener('touchend',_aUp);
-
-  // Scale: pixels per meter
-  var SCALE=Math.min(18, (W-80)/Math.max(1,v0*v0*Math.sin(2*45*Math.PI/180)/g));
+  var lb=document.getElementById('btn-proj-launch'); if(lb)lb.addEventListener('click',fire);
+  var tb=document.getElementById('btn-proj-twin');
+  if(tb){tb.dataset.on='0';tb.addEventListener('click',function(){var on=tb.dataset.on!=='1';tb.dataset.on=on?'1':'0';
+    tb.innerHTML=on?'👥 כדור מושמט: מופעל':'👥 כדור מושמט: כבוי';});}
+  var rb=document.getElementById('btn-proj-reset');
+  if(rb)rb.addEventListener('click',function(){fly=false;shot=null;trail=[];ghosts=[];twin=null;landT=-1;newTarget();rescale();});
+  var hi=document.getElementById('inp-proj-h'); if(hi)hi.addEventListener('input',function(){if(!fly)rescale();});
+  // the cannon sits on the tower top
+  function cannon(){return {x:X(0),y:Y(HH())};}
+  simDrag(canvas,dpr,{
+    down:function(p){if(fly)return;var c=cannon();if(Math.hypot(p.x-c.x,p.y-c.y)<80){aim=true;aimed=true;}},
+    move:function(p){if(!aim)return;var c=cannon(),dx=p.x-c.x,dy=c.y-p.y,L=Math.hypot(dx,dy);
+      if(L<14||dx<-4)return;
+      var a=Math.atan2(dy,Math.max(1e-6,dx))*180/Math.PI, amin=HH()>0?-30:0;
+      simSyncSlider('proj-angle',Math.max(amin,Math.min(80,a)),0);
+      simSyncSlider('proj-v0',Math.max(5,Math.min(35,L/4.5)),0);},
+    up:function(){if(aim){aim=false;fire();}}
+  });
+  _mbKeys(canvas,{
+    'ArrowUp':function(){simSyncSlider('proj-angle',TH()+1,0);},'ArrowDown':function(){simSyncSlider('proj-angle',TH()-1,0);},
+    'ArrowRight':function(){simSyncSlider('proj-v0',V0()+1,0);},'ArrowLeft':function(){simSyncSlider('proj-v0',V0()-1,0);},
+    'Enter':fire,' ':fire});
+  canvas._probe=function(){var c=cannon();return {fly:fly,shot:shot,landT:landT,target:target,hits:hits,cx:c.x,cy:c.y,S:S,
+    twin:twin,trail:trail.length?trail[trail.length-1]:null};};
 
   function draw(ts){
     if(_simStop[id])return;
-    if(!pT)pT=ts; var dt=Math.min((ts-pT)/1000,0.04); pT=ts;
-    t+=dt;
-    v0=getV0(); angle=getAngle();
-    // While a shot is in the air, everything drawn about it — the dashed
-    // parabola, R, H, the scale — belongs to that shot, not to the sliders.
-    if(running){v0=Lv0; angle=Lang;}
-
-    // Recompute scale based on current settings
-    var rad2=angle*Math.PI/180;
-    var maxRange=v0*v0*Math.sin(2*rad2)/g;
-    // Keyed to the TARGET, which only moves when it is hit — not to the current
-    // trajectory. Recomputing it from maxRange every frame made the arc fill the
-    // canvas at every setting, so a 2.55 m throw and a 125 m throw were drawn the
-    // same size and the v₀² dependence of the range — the content of the section
-    // — could not be seen; and it slid the target across the screen while the
-    // learner was aiming at it.
-    var maxH2=v0*v0*Math.sin(rad2)*Math.sin(rad2)/(2*g);
-    // at least 45 m in view, so the default shot (40.8 m) lands on the canvas
-    // even when the target is near; a 27 m target used to send it off the edge
-    var _tRef=targetX>0?Math.max(45,targetX*1.35):Math.max(6,maxRange);
-    SCALE=Math.max(3,Math.min(26,(W-80)/Math.max(1,_tRef)));
-    // Only concession: keep a very steep, very fast shot's apex on screen,
-    // otherwise the arc leaves the canvas entirely.
-    var scaleY=Math.max(3,(GND_Y-60)/Math.max(1,maxH2));
-    SCALE=Math.min(SCALE,scaleY);
-
-    if(running){
-      var _yP=y,_vyP=vy;
-      x+=vx*dt; y+=vy*dt-0.5*g*dt*dt;   // exact parabola step
-      vy-=g*dt;
-      trail.push({x:x,y:y,vx:vx,vy:vy});
-      if(trail.length>400)trail.shift();
-      var py=GND_Y-y*SCALE;
-      if(py>=GND_Y){
-        // Land at the exact root of y(τ)=0 inside this step. It used to back up
-        // a whole frame (x−vx·dt), so the reported range fell short of v₀²sin2θ/g
-        // by up to vx·40 ms — ~0.8 m at 20 m/s, enough to flip a "hit" verdict.
-        var _tau=(_vyP+Math.sqrt(Math.max(0,_vyP*_vyP+2*g*_yP)))/g;
-        running=false; x=Math.max(x-vx*dt+vx*Math.min(_tau,dt),0); y=0; vy=_vyP-g*Math.min(_tau,dt); landT=t;
-        if(trail.length){trail[trail.length-1]={x:x,y:0,vx:vx,vy:vy};}
-        if(targetX>0){
-          var miss=x-targetX;
-          if(Math.abs(miss)<3){
-            hits++;feedbackMsg='🎯 פגיעה מדויקת! נחיתה ב-'+x.toFixed(1)+' m';
-            hitFxT=t;hitFxX=targetX;newTarget();
-          } else {
-            feedbackMsg='החטאה ב-'+Math.abs(miss).toFixed(1)+' m — '+(miss<0?'הגדילו את הטווח: הגבירו את v₀ או קרבו את θ ל-45°':'הקטינו את הטווח: הנמיכו את v₀ או הרחיקו את θ מ-45°');
-          }
-          feedbackT=t;
-        }
+    if(!pT)pT=ts; var dt=Math.min((ts-pT)/1000,0.04); pT=ts; t+=dt;
+    var v0=V0(), thd=TH(), h=HH();
+    if(!fly&&!aim&&landT<0)rescale();
+    // the shot: exact, and landing exactly at the root of y(t) = 0
+    if(fly){
+      shot.t=Math.min(shot.tf,shot.t+dt);
+      var tt=shot.t, sx=shot.vx*tt, sy=shot.h+shot.vy0*tt-0.5*g*tt*tt;
+      trail.push({x:sx,y:Math.max(0,sy),t:tt});
+      var gs=Math.max(0.1,shot.tf/12);
+      if(!ghosts.length?tt>=gs:tt-ghosts[ghosts.length-1].t>=gs)ghosts.push({x:sx,y:Math.max(0,sy),t:tt,vy:shot.vy0-g*tt});
+      if(shot.t>=shot.tf){
+        fly=false;landT=t;
+        var miss=shot.R-target;
+        if(Math.abs(miss)<=2){hits++;msgGood=true;msg='🎯 פגיעה! הנחיתה ב־'+shot.R.toFixed(1)+' m';fxT=t;fxX=target;
+          var ak=Math.round(shot.th);(hitAngles[target]=hitAngles[target]||[]).push(ak);
+          var ha=hitAngles[target]; if(ha.some(function(a){return Math.abs(a-ak)>=8;})){twoAng=true;msgOk=true;}
+          else msg='🎯 פגיעה! נסו לפגוע בה שוב — בזווית אחרת';}
+        else{msgOk=false;msgGood=false;msg=miss<0?'הכדור נחת '+(-miss).toFixed(1)+' m לפני המטרה':'הכדור נחת '+miss.toFixed(1)+' m אחרי המטרה';}
+        msgT=t;
+        if(twin&&shot.th===0&&shot.h>=10&&Math.abs(twin.land-shot.tf)<1e-9)sameT=true;
       }
     }
+    // the twin falls on its own clock, started with the shot
+    if(twin&&!twin.done){twin.t+=dt;if(twin.t>=twin.land){twin.t=twin.land;twin.done=true;}}
+    if(msgOk&&landT>0&&t-landT>1.6&&!fly){msgOk=false;newTarget();rescale();shotFade();}
 
     simBg(ctx,W,H);
-
-    // ── Ground ────────────────────────────────────────
-    ctx.save(); ctx.fillStyle='#0f2035'; ctx.fillRect(0,GND_Y,W,H-GND_Y); ctx.restore();
-    ctx.save(); ctx.strokeStyle='#2d5275'; ctx.lineWidth=2;
-    ctx.beginPath(); ctx.moveTo(0,GND_Y); ctx.lineTo(W,GND_Y); ctx.stroke(); ctx.restore();
-    // Grid: ticks at round numbers of metres. A fixed 60 px pitch labelled
-    // with rounded values read "15 m, 17 m, 20 m" — uneven steps of 2.9 m.
-    var _stp=[1,2,5,10,20,50,100].find(function(q){return q*SCALE>=48;})||100;
-    // the range marker's label sits on this row: the tick beside it gives way
-    var _rxR=LAUNCH_X+v0*v0*Math.sin(2*angle*Math.PI/180)/g*SCALE; _rxR=_rxR<W-20?Math.min(_rxR,W-34):-1e3;
-    for(var xm=0;LAUNCH_X+xm*SCALE<W-14;xm+=_stp){
-      var xi=xm*SCALE;
-      ctx.save(); ctx.strokeStyle='rgba(30,58,82,.2)'; ctx.lineWidth=1;
-      ctx.beginPath(); ctx.moveTo(LAUNCH_X+xi,GND_Y-4); ctx.lineTo(LAUNCH_X+xi,GND_Y+4); ctx.stroke();
-      if(Math.abs(LAUNCH_X+xi-_rxR)>32)simText(ctx,xm+' m',LAUNCH_X+xi,GND_Y+14,'#7d8da6',7,undefined,true);
+    // ground and distance ticks
+    ctx.save();ctx.fillStyle='#0b1a2c';ctx.fillRect(0,GY,W,H-GY);ctx.strokeStyle='#3d6480';ctx.lineWidth=2;
+    ctx.beginPath();ctx.moveTo(0,GY);ctx.lineTo(W,GY);ctx.stroke();ctx.restore();
+    var st=[2,5,10,20,50].find(function(q){return q*S>=44;})||50;
+    for(var xm=0;X(xm)<W-12;xm+=st){ctx.save();ctx.strokeStyle='rgba(148,163,184,.4)';ctx.beginPath();ctx.moveTo(X(xm),GY);ctx.lineTo(X(xm),GY+5);ctx.stroke();ctx.restore();
+      simText(ctx,xm+' m',X(xm),GY+16,'#7d8da6',8.5,'center');}
+    for(var ym=st;Y(ym)>60;ym+=st){ctx.save();ctx.strokeStyle='rgba(30,58,82,.35)';ctx.setLineDash([2,6]);ctx.beginPath();ctx.moveTo(LX,Y(ym));ctx.lineTo(W-8,Y(ym));ctx.stroke();ctx.restore();
+      simText(ctx,ym+' m',LX-22,Y(ym)+3,'#7d8da6',8.5,'right');}
+    // the tower
+    if(h>0){ctx.save();var tg=ctx.createLinearGradient(X(0)-16,0,X(0)+2,0);tg.addColorStop(0,'#1e293b');tg.addColorStop(1,'#334155');
+      ctx.fillStyle=tg;ctx.fillRect(X(0)-16,Y(h),16,h*S);ctx.strokeStyle='#475569';ctx.strokeRect(X(0)-16,Y(h),16,h*S);ctx.restore();
+      simText(ctx,'h = '+h.toFixed(0)+' m',Math.max(28,X(0)),GY+30,'#94a3b8',9,'center',true);}
+    // the target
+    var tgx=X(target);
+    if(tgx<W-10){ctx.save();[[13,'#ef4444'],[8,'#f8fafc'],[3.5,'#ef4444']].forEach(function(c){ctx.fillStyle=c[1];ctx.beginPath();ctx.arc(tgx,GY,c[0],Math.PI,0);ctx.fill();});
+      ctx.strokeStyle='#94a3b8';ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(tgx,GY-13);ctx.lineTo(tgx,GY-32);ctx.stroke();
+      ctx.fillStyle='#ef4444';ctx.beginPath();ctx.moveTo(tgx,GY-32);ctx.lineTo(tgx+14,GY-28);ctx.lineTo(tgx,GY-24);ctx.closePath();ctx.fill();ctx.restore();
+      simText(ctx,'🎯 '+target+' m',tgx,GY+30,'#fca5a5',9.5,'center',true);}
+    if(fxT>0&&t-fxT<1){var fp=t-fxT;ctx.save();ctx.globalAlpha=1-fp;ctx.strokeStyle='#fbbf24';ctx.lineWidth=3;ctx.beginPath();ctx.arc(X(fxX),GY,14+fp*50,Math.PI,0);ctx.stroke();ctx.restore();}
+    // the predicted path while aiming (dashed), from the sliders
+    var c=cannon(), pf=flightOf(v0,thd,h);
+    if(!fly){
+      ctx.save();ctx.strokeStyle=aim?'rgba(251,191,36,.55)':'rgba(148,163,184,.28)';ctx.lineWidth=1.5;ctx.setLineDash([4,6]);ctx.beginPath();
+      for(var i=0;i<=60;i++){var tq=pf.tf*i/60,qx=pf.vx*tq,qy=h+pf.vy*tq-0.5*g*tq*tq;i?ctx.lineTo(X(qx),Y(Math.max(0,qy))):ctx.moveTo(X(qx),Y(qy));}
+      ctx.stroke();ctx.restore();
+      if(X(pf.R)<W-8&&aim)simText(ctx,'R = '+pf.R.toFixed(1)+' m',X(pf.R),GY-8,'#fbbf24',9.5,'center',true);
+    }
+    // the shot: strobe images at equal times, with vₓ (always the same) and v_y
+    ghosts.forEach(function(q,k){var gx=X(q.x),gy=Y(q.y);
+      ctx.save();ctx.globalAlpha=.35;ctx.fillStyle='#60a5fa';ctx.beginPath();ctx.arc(gx,gy,6,0,6.2832);ctx.fill();ctx.restore();
+      if(k%2===0){simArrow(ctx,gx,gy,gx+shot.vx*1.6,gy,'rgba(52,211,153,.75)',1.6,6);
+        if(Math.abs(q.vy)>0.6)simArrow(ctx,gx,gy,gx,gy-q.vy*1.6,'rgba(248,113,113,.75)',1.6,6);}
+      // the ground shadow at each tick: equal steps
+      ctx.save();ctx.fillStyle='rgba(52,211,153,.6)';ctx.beginPath();ctx.arc(gx,GY-2,2.4,0,6.2832);ctx.fill();ctx.restore();});
+    if(trail.length>1){ctx.save();ctx.strokeStyle='rgba(96,165,250,.7)';ctx.lineWidth=2;ctx.beginPath();
+      trail.forEach(function(q,i){i?ctx.lineTo(X(q.x),Y(q.y)):ctx.moveTo(X(q.x),Y(q.y));});ctx.stroke();ctx.restore();}
+    // the twin, dropped from the same height at the same instant
+    if(twin){var ty=shot.h-0.5*g*twin.t*twin.t;
+      ctx.save();ctx.fillStyle='#a78bfa';ctx.strokeStyle='#ddd6fe';ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(X(0)+8,Y(Math.max(0,ty)),8,0,6.2832);ctx.fill();ctx.stroke();ctx.restore();}
+    // the ball and its velocity components
+    var bx,by,vxN=0,vyN=0;
+    if(shot&&(fly||landT>0)){var tq2=shot.t;bx=X(shot.vx*tq2);by=Y(Math.max(0,shot.h+shot.vy0*tq2-0.5*g*tq2*tq2));vxN=shot.vx;vyN=shot.vy0-g*tq2;}
+    else{bx=c.x+8;by=c.y-8;}
+    if(shot&&fly){
+      // its shadows: on the ground (uniform) and on the tower's line (up and down like a vertical throw)
+      ctx.save();ctx.fillStyle='rgba(0,0,0,.45)';ctx.beginPath();ctx.ellipse(bx,GY+1,7,2.5,0,0,6.2832);ctx.fill();
+      if(!twin){ctx.fillStyle='rgba(248,113,113,.8)';ctx.beginPath();ctx.arc(X(0)-8,by,4,0,6.2832);ctx.fill();
+        ctx.strokeStyle='rgba(248,113,113,.25)';ctx.setLineDash([2,4]);ctx.beginPath();ctx.moveTo(X(0)-4,by);ctx.lineTo(bx-10,by);ctx.stroke();}
       ctx.restore();
     }
-    for(var ym=_stp;ym*SCALE<GND_Y-70;ym+=_stp){
-      var yi=ym*SCALE;
-      ctx.save(); ctx.strokeStyle='rgba(30,58,82,.15)'; ctx.lineWidth=1; ctx.setLineDash([2,6]);
-      ctx.beginPath(); ctx.moveTo(LAUNCH_X-10,GND_Y-yi); ctx.lineTo(W-10,GND_Y-yi); ctx.stroke(); ctx.setLineDash([]); ctx.restore();
-      simText(ctx,ym+' m',LAUNCH_X-12,GND_Y-yi+4,'#7d8da6',7,'right');
+    ctx.save();ctx.shadowColor='#60a5fa';ctx.shadowBlur=fly?14:4;ctx.fillStyle='#3b82f6';ctx.strokeStyle='#93c5fd';ctx.lineWidth=2;
+    ctx.beginPath();ctx.arc(bx,by,9,0,6.2832);ctx.fill();ctx.stroke();ctx.restore();
+    if(shot&&fly){
+      _mbVec(ctx,bx,by,bx+vxN*2.6,by,'#34d399','vₓ = '+vxN.toFixed(1),W,H,{sz:9.5,lw:2.5,hw:9});
+      if(Math.abs(vyN)>0.3)_mbVec(ctx,bx,by,bx,by-vyN*2.6,'#f87171','v_y = '+_mbS(vyN,1),W,H,{sz:9.5,lw:2.5,hw:9});
     }
+    // the cannon
+    var r4=thd*Math.PI/180;
+    ctx.save();ctx.translate(c.x,c.y);ctx.rotate(-r4);ctx.fillStyle='#475569';ctx.strokeStyle='#94a3b8';ctx.lineWidth=1.5;
+    ctx.beginPath();ctx.roundRect(-4,-6,30,12,4);ctx.fill();ctx.stroke();ctx.restore();
+    ctx.save();ctx.fillStyle='#334155';ctx.beginPath();ctx.arc(c.x,c.y,8,0,6.2832);ctx.fill();ctx.restore();
+    if(!fly){simHandle(ctx,c.x+Math.cos(r4)*36,c.y-Math.sin(r4)*36,'#fbbf24',16);
+      if(aim||!aimed){var al=Math.min(150,v0*4.5);simArrow(ctx,c.x,c.y,c.x+Math.cos(r4)*al,c.y-Math.sin(r4)*al,'#fbbf24',2.5,10);
+        simText(ctx,'v₀ = '+v0.toFixed(0)+' m/s, θ = '+thd.toFixed(0)+'°',c.x+Math.cos(r4)*al+8,c.y-Math.sin(r4)*al-8,'#fbbf24',9.5,'left',true);}}
+    if(!aimed&&!shot)simText(ctx,'✋ משכו מהתותח כדי לכוון — שחררו לירי',W/2,74,'#fbbf24',10,'center',true);
+    // the readout card
+    var tN=shot?shot.t:0, xN=shot?shot.vx*tN:0, yN=shot?Math.max(0,shot.h+shot.vy0*tN-0.5*g*tN*tN):h;
+    _mbCard(ctx,8,8,W-16,46);
+    simText(ctx,'t = '+tN.toFixed(2)+' s     x = '+xN.toFixed(1)+' m     y = '+yN.toFixed(1)+' m',W/2,26,'#e2e8f0',10.5,'center',true);
+    simText(ctx,shot&&!fly&&landT>0?'R = '+shot.R.toFixed(1)+' m   ·   tₜₒₜ = '+shot.tf.toFixed(2)+' s   ·   H = '+shot.Hm.toFixed(1)+' m':'vₓ = v₀cosθ = '+pf.vx.toFixed(1)+' m/s (קבוע)   ·   v_y0 = v₀sinθ = '+_mbS(pf.vy,1)+' m/s',W/2,44,'#94a3b8',9.5,'center');
+    if(msg&&t-msgT<2.6)simText(ctx,msg,W/2,74,msgGood?'#34d399':'#fbbf24',11,'center',true);
+    simText(ctx,'🎯 '+hits,W-14,74,'#fbbf24',10,'right',true);
+    if(X(pf.R)>W-10&&!fly)simText(ctx,'→ '+pf.R.toFixed(0)+' m',W-14,GY-10,'#fbbf24',9.5,'right',true);
 
-    // ── Theoretical parabola (dashed) ─────────────────
-    if(launched||true){
-      var rad3=angle*Math.PI/180;
-      var vx0=v0*Math.cos(rad3), vy0=v0*Math.sin(rad3);
-      var tf=2*vy0/g;
-      ctx.save(); ctx.strokeStyle='rgba(100,116,139,.25)'; ctx.lineWidth=1.5; ctx.setLineDash([4,6]);
-      ctx.beginPath();
-      for(var ti=0;ti<=tf;ti+=tf/60){
-        var px=LAUNCH_X+(vx0*ti)*SCALE;
-        var py=GND_Y-(vy0*ti-0.5*g*ti*ti)*SCALE;
-        ti===0?ctx.moveTo(px,py):ctx.lineTo(px,py);
-      }
-      ctx.stroke(); ctx.setLineDash([]); ctx.restore();
-      // Range marker
-      var rx=LAUNCH_X+(vx0*tf)*SCALE;
-      if(rx<W-20){
-        ctx.save(); ctx.strokeStyle='rgba(34,211,153,.4)'; ctx.lineWidth=1.5; ctx.setLineDash([3,4]);
-        ctx.beginPath(); ctx.moveTo(rx,GND_Y-4); ctx.lineTo(rx,GND_Y+4); ctx.stroke(); ctx.setLineDash([]); ctx.restore();
-        simText(ctx,'R='+(vx0*tf).toFixed(1)+' m',Math.min(rx,W-34),GND_Y+16,'#22d3ee',8,undefined,true);
-      }
-      // Peak marker
-      var tpk=vy0/g, pkX=LAUNCH_X+(vx0*tpk)*SCALE, pkY=GND_Y-(vy0*tpk-0.5*g*tpk*tpk)*SCALE;
-      ctx.save(); ctx.strokeStyle='rgba(167,139,250,.4)'; ctx.lineWidth=1; ctx.setLineDash([2,4]);
-      ctx.beginPath(); ctx.moveTo(pkX,GND_Y); ctx.lineTo(pkX,pkY); ctx.stroke(); ctx.setLineDash([]); ctx.restore();
-      simText(ctx,'H='+(vy0*tpk-0.5*g*tpk*tpk).toFixed(1)+' m',pkX+4,pkY-4,'#a78bfa',8,'left');
-    }
-
-    // ── Trail + strobe ghosts (vx constant, vy changing) ──
-    for(var i=1;i<trail.length;i++){
-      var alpha=(i/trail.length)*0.6;
-      ctx.save(); ctx.globalAlpha=alpha;
-      ctx.fillStyle='#60a5fa';
-      ctx.beginPath(); ctx.arc(LAUNCH_X+trail[i].x*SCALE,GND_Y-trail[i].y*SCALE,2,0,Math.PI*2); ctx.fill(); ctx.restore();
-    }
-    for(var i=12;i<trail.length-6;i+=12){
-      var tp=trail[i];
-      var gx2=LAUNCH_X+tp.x*SCALE,gy2=GND_Y-tp.y*SCALE;
-      ctx.save();ctx.globalAlpha=0.32;ctx.fillStyle='#60a5fa';
-      ctx.beginPath();ctx.arc(gx2,gy2,7,0,Math.PI*2);ctx.fill();ctx.restore();
-      var sc2=2.2;
-      simArrow(ctx,gx2,gy2,gx2+tp.vx*sc2,gy2,'rgba(52,211,153,.7)',1.6,7);
-      if(Math.abs(tp.vy)>0.8)simArrow(ctx,gx2,gy2,gx2,gy2-tp.vy*sc2,'rgba(248,113,113,.7)',1.6,7);
-    }
-    // Landing dust puff
-    if(launched&&!running&&landT>0&&t-landT<0.5){
-      var pu=(t-landT)/0.5,lx2=LAUNCH_X+x*SCALE;
-      ctx.save();ctx.globalAlpha=1-pu;ctx.fillStyle='#94a3b8';
-      for(var di=0;di<6;di++){
-        var da=Math.PI*(1+di/5),dr=8+pu*26;
-        ctx.beginPath();ctx.arc(lx2+Math.cos(da)*dr,GND_Y-4+Math.sin(da)*dr*0.6,2.6-pu*1.6,0,Math.PI*2);ctx.fill();
-      }
-      ctx.restore();
-    }
-    // Aim arrow while dragging / idle hint
-    if(aiming&&!running){
-      var ar3=angle*Math.PI/180,al3=Math.min(200,v0*6);
-      simArrow(ctx,LAUNCH_X,GND_Y,LAUNCH_X+Math.cos(ar3)*al3,GND_Y-Math.sin(ar3)*al3,'#fbbf24',3.5,14);
-      simText(ctx,'שחררו לשיגור!',LAUNCH_X+Math.cos(ar3)*al3+12,GND_Y-Math.sin(ar3)*al3-10,'#fbbf24',10,'left');
-    } else if(!launched){
-      simText(ctx,'✋ גררו מהתותח כדי לכוון — שחררו לירי',LAUNCH_X+6,GND_Y-104+Math.sin(t*3)*3,'#fbbf24',9,'left');
-    }
-    // ── Target challenge ──────────────────────────────
-    if(targetX>0){
-      var tgx=LAUNCH_X+targetX*SCALE;
-      if(tgx<W-16){
-        ctx.save();
-        [[14,'#ef4444'],[9,'#f8fafc'],[4,'#ef4444']].forEach(function(cc){
-          ctx.fillStyle=cc[1];ctx.beginPath();ctx.arc(tgx,GND_Y,cc[0],Math.PI,0);ctx.fill();
-        });
-        ctx.strokeStyle='#94a3b8';ctx.lineWidth=1.5;
-        ctx.beginPath();ctx.moveTo(tgx,GND_Y-14);ctx.lineTo(tgx,GND_Y-34);ctx.stroke();
-        ctx.fillStyle='#ef4444';
-        ctx.beginPath();ctx.moveTo(tgx,GND_Y-34);ctx.lineTo(tgx+16,GND_Y-29);ctx.lineTo(tgx,GND_Y-24);ctx.closePath();ctx.fill();
-        ctx.restore();
-        simText(ctx,'מטרה: '+targetX.toFixed(0)+' m',tgx,GND_Y+26,'#f87171',8.5,'center');
-      } else {
-        simText(ctx,'🎯 המטרה ב-'+targetX.toFixed(0)+' m — מחוץ למסך: הגדילו את הטווח!',W-16,68,'#f87171',8.5,'right');
-      }
-      simText(ctx,'🎯 פגיעות: '+hits,W-16,GND_Y+40,'#fbbf24',10,'right');
-      if(feedbackT>0&&t-feedbackT<2.8&&!running){
-        var goodHit=feedbackMsg.indexOf('🎯')===0;
-        ctx.save();ctx.fillStyle='rgba(4,9,20,.9)';ctx.strokeStyle=goodHit?'#34d399':'#f59e0b';ctx.lineWidth=1.5;
-        var _fbw=Math.min(400,W-16);
-        ctx.beginPath();ctx.roundRect(W/2-_fbw/2,62,_fbw,26,6);ctx.fill();ctx.stroke();ctx.restore();
-        simText(ctx,feedbackMsg,W/2,78,goodHit?'#34d399':'#fbbf24',9.5,'center');
-      }
-      if(hitFxT>0&&t-hitFxT<1){
-        var fxp=t-hitFxT;
-        var fxx=LAUNCH_X+hitFxX*SCALE;
-        ctx.save();ctx.globalAlpha=1-fxp;
-        var cols=['#f87171','#34d399','#fbbf24','#60a5fa'];
-        for(var ci=0;ci<12;ci++){
-          var ca=ci*Math.PI/6,cr=fxp*70;
-          ctx.fillStyle=cols[ci%4];
-          ctx.beginPath();ctx.arc(fxx+Math.cos(ca)*cr,GND_Y-14-Math.abs(Math.sin(ca))*cr+fxp*fxp*60,3,0,Math.PI*2);ctx.fill();
-        }
-        ctx.restore();
-      }
-    }
-
-    // ── Projectile ──────────────────────────────────────
-    var projX=LAUNCH_X+x*SCALE, projY=GND_Y-y*SCALE;
-    var spd=Math.sqrt(vx*vx+vy*vy);
-    ctx.save(); ctx.shadowColor='#60a5fa'; ctx.shadowBlur=running?14:4;
-    ctx.fillStyle=running?'#60a5fa':'#475569'; ctx.strokeStyle='#93c5fd'; ctx.lineWidth=2;
-    ctx.beginPath(); ctx.arc(projX,projY,12,0,Math.PI*2); ctx.fill(); ctx.stroke(); ctx.shadowBlur=0; ctx.restore();
-
-    // Velocity components
-    if(running&&spd>0.1){
-      var scV=2.5;
-      simArrow(ctx,projX,projY,projX+vx*scV,projY,'#34d399',2,8);
-      simText(ctx,'vx='+vx.toFixed(1),projX+vx*scV+4,projY,'#34d399',8,'left');
-      simArrow(ctx,projX,projY,projX,projY-vy*scV,'#f87171',2,8);
-      simText(ctx,'vy='+vy.toFixed(1),projX+4,projY-vy*scV,'#f87171',8,'left');
-    }
-
-    // Launch angle indicator
-    if(!launched){
-      var rad4=angle*Math.PI/180;
-      var arLen=50;
-      simArrow(ctx,LAUNCH_X,GND_Y,LAUNCH_X+Math.cos(rad4)*arLen,GND_Y-Math.sin(rad4)*arLen,'#fbbf24',2.5,10);
-      ctx.save(); ctx.strokeStyle='rgba(251,191,36,.4)'; ctx.lineWidth=1.5;
-      ctx.beginPath(); ctx.arc(LAUNCH_X,GND_Y,24,-rad4,0,false); ctx.stroke(); ctx.restore();   // between the ground and the barrel
-      simText(ctx,angle+'°',LAUNCH_X+28,GND_Y-12,'#fbbf24',9,'left');
-      simText(ctx,'v₀='+v0+' m/s',LAUNCH_X+Math.cos(rad4)*arLen+6,GND_Y-Math.sin(rad4)*arLen,'#fbbf24',8,'left');
-    }
-
-    // ── Top info panel ─────────────────────────────────
-    ctx.save(); ctx.fillStyle='rgba(6,14,28,.92)'; ctx.strokeStyle='#1e4060'; ctx.lineWidth=1.5;
-    ctx.beginPath(); ctx.roundRect(8,6,W-16,50,6); ctx.fill(); ctx.stroke(); ctx.restore();
-    simText(ctx,'תנועה בליסטית: x ו-y בלתי תלויים!',W/2,18,'#22d3ee',11,undefined,true);
-    simText(ctx,'x(t) = v₀·cosθ·t   |   y(t) = v₀·sinθ·t − ½gt²',W/2,32,'#94a3b8',9.5,undefined,true);
-    if(launched){
-      var _r=Lang*Math.PI/180;
-      var R=Lv0*Lv0*Math.sin(2*_r)/g, Hmax=Math.pow(Lv0*Math.sin(_r),2)/(2*g);
-      simText(ctx,'R = '+R.toFixed(1)+' m | H = '+Hmax.toFixed(1)+' m | t_tot = '+(2*Lv0*Math.sin(_r)/g).toFixed(2)+' s | v = '+spd.toFixed(1)+' m/s',W/2,46,'#fbbf24',8.5,undefined,true);
-    } else {
-      simText(ctx,'קבעו v₀ וזווית ולחצו ▶ שגר!',W/2,46,'#64748b',9,undefined,true);
-    }
-
+    if(fly)model('שתי תנועות נפרדות:<br>'+kit.m('x = v₀cosθ·t = '+shot.vx.toFixed(1)+' × '+tN.toFixed(2)+' = '+xN.toFixed(1)+' m')+'<br>'+kit.m('y = h + v₀sinθ·t − ½gt² = '+yN.toFixed(1)+' m'));
+    else if(shot&&landT>0)model('הנחיתה:<br>'+kit.m('y(t) = 0 ⇒ t = (v₀sinθ + √((v₀sinθ)² + 2gh))/g = '+shot.tf.toFixed(2)+' s')+'<br>ולכן '+kit.m('R = v₀cosθ·t = '+shot.vx.toFixed(1)+' × '+shot.tf.toFixed(2)+' = '+shot.R.toFixed(1)+' m'));
+    else model('לפני הירי: '+kit.m('vₓ = v₀cosθ = '+v0.toFixed(0)+' × cos'+thd.toFixed(0)+'° = '+pf.vx.toFixed(1)+' m/s')+' — קבוע לאורך כל המעוף; '+kit.m('v_y0 = v₀sinθ = '+_mbS(pf.vy,1)+' m/s')+' — משתנה ב־g בכל שנייה');
+    kit.check({hits:hits,twoAng:twoAng,sameT:sameT});
     requestAnimationFrame(draw);
   }
+  function shotFade(){shot=null;trail=[];ghosts=[];twin=null;landT=-1;}
   requestAnimationFrame(draw);
 }
 
@@ -16339,7 +16245,7 @@ function simCircular(canvas){
     'ArrowRight':function(){simSyncSlider('circ-v',v+0.5,1);rd();},
     'ArrowLeft':function(){simSyncSlider('circ-v',v-0.5,1);rd();},
     'Enter':wantCut,' ':wantCut});
-  canvas._probe=function(){var q=puckXY();return {px:q.x,py:q.y,cx:CX,cy:CY,cut:cut,x:cut?fx:R*Math.cos(th),y:cut?fy:R*Math.sin(th),
+  canvas._probe=function(){var q=puckXY();return {clock:t,px:q.x,py:q.y,cx:CX,cy:CY,cut:cut,x:cut?fx:R*Math.cos(th),y:cut?fy:R*Math.sin(th),
     vx:cut?fvx:-v*Math.sin(th),vy:cut?fvy:v*Math.cos(th),R:R,v:v,m:m,F:F(),th:th,thCut:thCut,hits:hits,target:target};};
 
   function draw(ts){
@@ -35048,7 +34954,7 @@ function buildSim(sim){
   else if(sim.type==='kinetic-friction')extra=C(rng('kf-v0',2,20,10,1,'מהירות v₀',' m/s')+rng('kf-mass',1,15,5,0.5,'מסה m',' kg')+rng('kf-mu',0.1,0.8,0.38,0.02,'μ_k')+btn('kf-launch','▶ שגרו!','btn-primary')+btn('kf-reset','↺ איפוס','btn-secondary'));
   else if(sim.type==='friction-combined')extra=C(rng('fc-theta',5,70,20,1,'זווית θ','°')+rng('fc-F',0,80,0,2,'כוח F',' N')+rng('fc-mu',0.05,0.8,0.45,0.05,'μ')+rng('fc-m',0.5,10,5,0.5,'מסה m',' kg')+btn('fc-reset','↺ איפוס','btn-secondary'));
   else if(sim.type==='pendulum')extra=C(rng('pend-L',0.3,3,1,0.1,'אורך L',' m')+rng('pend-g',1.6,25,9.8,0.2,'g',' m/s²')+rng('pend-damp',0,0.1,0,0.005,'ריסון b',' 1/s')+btn('pend-reset','↺ איפוס','btn-secondary'));
-  else if(sim.type==='projectile')extra=C(rng('proj-angle',10,80,45,1,'זווית θ','°')+rng('proj-v0',5,35,20,1,'מהירות v₀',' m/s')+btn('proj-launch','▶ שגרו!','btn-primary')+btn('proj-reset','↺ איפוס','btn-secondary'));
+  else if(sim.type==='projectile')extra=C(rng('proj-angle',-30,80,45,1,'זווית θ','°')+rng('proj-v0',5,35,20,1,'מהירות v₀',' m/s')+rng('proj-h',0,30,0,1,'גובה המגדל h',' m')+btn('proj-launch','▶ שגרו!','btn-primary')+btn('proj-twin','👥 כדור מושמט: כבוי','btn-secondary')+btn('proj-reset','↺ מטרה חדשה','btn-secondary'));
   else if(sim.type==='elc-dielectric')extra=C(rng('di-k',1,8,4,0.5,'קבוע דיאלקטרי κ')+rng('di-f',0,1,0,0.05,'הכנסת הלוח')+btn('di-mode','🔌 הסוללה מחוברת','btn-secondary'));
   else if(sim.type==='elc-deflect')extra=C(rng('df-V',0,300,100,10,'מתח V',' V')+rng('df-v0',1,5,2,0.25,'v₀',' ×10⁷ m/s')+rng('df-L',4,14,10,1,'אורך הלוחות',' cm')+btn('df-part','🔁 החליפו לפרוטון','btn-secondary'));
   else if(sim.type==='elc-millikan')extra=C(rng('mk-V',0,1000,300,1,'מתח V',' V')+btn('mk-new','🎲 טיפה חדשה','btn-primary'));

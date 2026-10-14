@@ -194,9 +194,11 @@ const EXPECT = {
   t('falling ball: lifted by touch to about 4.6 m', hp > 4.2, hp + ' m');
 
   await open('planar.projectile'); r = await rect();
-  await drag(r, [[50, 438], [90, 400], [130, 360]]);
-  await p.waitForTimeout(700);
-  t('projectile: a pull from the cannon fires a shot', !!(await last('tₜₒₜ')));
+  let pq = await p.evaluate(() => document.querySelector('#app canvas')._probe());
+  await drag(r, [[pq.cx + 30, pq.cy - 10], [pq.cx + 70, pq.cy - 70], [pq.cx + 100, pq.cy - 100]]);
+  await p.waitForTimeout(300);
+  pq = await p.evaluate(() => document.querySelector('#app canvas')._probe());
+  t('projectile: a pull from the cannon aims (45°, v₀ = |pull|/4.5) and fires on release', !!pq.shot && pq.shot.th === 45 && pq.shot.v0 === Math.round(Math.hypot(100, 100) / 4.5), pq.shot && pq.shot.th + '°, ' + pq.shot.v0 + ' m/s');
 
   await open('statics.torque'); r = await rect(); W = r.w;
   let PPM = W * 0.62 / 0.55;
@@ -234,16 +236,17 @@ const EXPECT = {
   const fl = await p.evaluate(async () => {
     const pr = () => document.querySelector('#app canvas')._probe();
     await new Promise(r => setTimeout(r, 60));
-    const a = pr(), t0 = performance.now();
+    const a = pr();
     await new Promise(r => setTimeout(r, 400));
-    return { a, b: pr(), dt: (performance.now() - t0) / 1000 };
+    const b = pr();
+    return { a, b, dt: b.clock - a.clock };          // the sim's own clock: a slow frame is capped, not skipped
   });
   const th = fl.a.thCut, P0 = [2 * Math.cos(th), 2 * Math.sin(th)], U = [-Math.sin(th), Math.cos(th)];
   const off = q => (q.x - P0[0]) * U[1] - (q.y - P0[1]) * U[0];         // distance from the tangent line
   const along = q => (q.x - P0[0]) * U[0] + (q.y - P0[1]) * U[1];
   const spd = (along(fl.b) - along(fl.a)) / fl.dt;
   t('after the cut the puck moves on the tangent line at the cut point (not outward)', fl.a.cut && Math.abs(off(fl.a)) < 1e-6 && Math.abs(off(fl.b)) < 1e-6 && along(fl.b) > along(fl.a), `off-line ${off(fl.b).toExponential(1)} m`);
-  t('... at the speed it had (4 m/s), with the velocity unchanged', Math.abs(spd - 4) < 0.35 && Math.abs(fl.b.vx - 4 * U[0]) < 1e-9 && Math.abs(fl.b.vy - 4 * U[1]) < 1e-9, spd.toFixed(2) + ' m/s');
+  t('... at the speed it had (4 m/s), with the velocity unchanged', Math.abs(spd - 4) < 1e-6 && Math.abs(fl.b.vx - 4 * U[0]) < 1e-9 && Math.abs(fl.b.vy - 4 * U[1]) < 1e-9, spd.toFixed(4) + ' m/s');
   t('... and the model line says ΣF = 0', /ΣF = 0/.test(await model()));
   // the target mission: cut where the tangent passes through the target
   await p.evaluate(() => document.getElementById('btn-circ-cut').click());   // tie it again
@@ -273,6 +276,42 @@ const EXPECT = {
   await p.waitForTimeout(150);
   const rr = num(await p.evaluate(() => document.getElementById('inp-circ-r').value));
   t('circular: dragging the puck outward sets R (2 m → 2.6 m)', !(await probe()).cut && Math.abs(rr - 2.6) < 0.15, rr + ' m');
+
+  console.log('\n3c) projectile: two independent motions, the exact landing, the missions');
+  await open('planar.projectile');
+  const pjProbe = () => p.evaluate(() => document.querySelector('#app canvas')._probe());
+  const landed = () => p.evaluate(async () => { const cv = document.querySelector('#app canvas'); for (let i = 0; i < 400 && cv._probe().fly; i++) await new Promise(r => setTimeout(r, 25)); return cv._probe(); });
+  // in flight: x = v₀cosθ·t exactly (vₓ never changes), y = h + v₀sinθ·t − ½gt²
+  await set('proj-v0', 25); await set('proj-angle', 37); await set('proj-h', 20); await p.waitForTimeout(200);
+  const ml0 = await model();
+  t('projectile: before the shot the model line gives vₓ = v₀cosθ', ml0.includes('vₓ = v₀cosθ = 25 × cos37° = ' + (25 * Math.cos(37 * D)).toFixed(1) + ' m/s'), ml0.slice(0, 80));
+  await p.evaluate(() => document.getElementById('btn-proj-launch').click());
+  const fs = await p.evaluate(async () => { const cv = document.querySelector('#app canvas'), o = [];
+    for (let i = 0; i < 12; i++) { await new Promise(r => setTimeout(r, 120)); const q = cv._probe(); if (q.trail && q.fly) o.push(q.trail); } return o; });
+  const sh = (await pjProbe()).shot, vx = 25 * Math.cos(37 * D), vy = 25 * Math.sin(37 * D);
+  t('in flight vₓ stays v₀cosθ: x = v₀cosθ·t at every sample', fs.length > 5 && fs.every(q => Math.abs(q.x - vx * q.t) < 1e-9), fs.length + ' samples');
+  t('... and y = h + v₀sinθ·t − ½gt² (vertical motion on its own)', fs.every(q => Math.abs(q.y - (20 + vy * q.t - 4.9 * q.t * q.t)) < 1e-9));
+  let lq = await landed();
+  const tfW = (vy + Math.sqrt(vy * vy + 2 * 9.8 * 20)) / 9.8;
+  t('the landing is the root of y(t) = 0 from the 20 m tower: t and R = v₀cosθ·t exact', Math.abs(lq.shot.tf - tfW) < 1e-9 && Math.abs(lq.shot.R - vx * tfW) < 1e-9 && lq.shot.t === lq.shot.tf, `t ${lq.shot.tf.toFixed(3)} s, R ${lq.shot.R.toFixed(2)} m`);
+  await p.waitForTimeout(250);                       // the model line is refreshed eight times a second
+  const mlL = await model(), mR = mlL.match(/R = v₀cosθ·t = [\d.]+ × [\d.]+ = ([\d.]+) m/);
+  t('... and the model line prints that R', !!mR && Math.abs(+mR[1] - vx * tfW) < 0.051, mR && mR[1]);
+  // missions: the target at two angles from the ground, then the horizontal shot beside the dropped ball
+  await set('proj-h', 0); await p.waitForTimeout(150);
+  const T0 = (await pjProbe()).target, v0m = Math.ceil(Math.sqrt(9.8 * T0 / 0.8)), th1 = Math.asin(9.8 * T0 / v0m ** 2) / 2 / D;
+  await set('proj-v0', v0m);
+  for (const th of [Math.round(th1), Math.round(90 - th1)]) {
+    await set('proj-angle', th); await p.waitForTimeout(80);
+    await p.evaluate(() => document.getElementById('btn-proj-launch').click()); lq = await landed();
+  }
+  t(`target ${T0} m hit at ${Math.round(th1)}° and ${Math.round(90 - th1)}° (v₀ = ${v0m} m/s): complementary angles, one range`, lq.hits >= 2 && lq.target === T0, lq.hits + ' hits');
+  await set('proj-h', 20); await set('proj-angle', 0); await p.waitForTimeout(150);
+  await p.evaluate(() => { const b = document.getElementById('btn-proj-twin'); if (b.dataset.on !== '1') b.click(); document.getElementById('btn-proj-launch').click(); });
+  lq = await landed();
+  t('θ = 0° from 20 m: the fired ball and the dropped one land at the same instant, √(2h/g)', lq.twin && Math.abs(lq.twin.land - lq.shot.tf) < 1e-12 && Math.abs(lq.shot.tf - Math.sqrt(40 / 9.8)) < 1e-12, lq.shot.tf.toFixed(4) + ' s');
+  const pjm = await missionsDone();
+  t('projectile missions: hit, two angles, the same landing time — all reachable', pjm.length === 3 && pjm.every(Boolean), JSON.stringify(pjm));
 
   console.log('\n4) misconception boxes, quiz keys, hints, units');
   await require('./mech_learning')(p, ['statics', 'planar', 'momentum', 'energy', 'shm'], t);
