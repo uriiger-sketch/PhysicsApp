@@ -224,6 +224,28 @@ const EXPECT = {
   await reach('opt-reflection', 'concave-mirror', [['cm-f', 85], ['cm-do', 170], ['cm-do', 60], ['cm-do', 300], ['cm-do', 85]], '1111');
   await reach('opt-reflection', 'convex-mirror', [['cvm-f', 85], ['cvm-do', 20], ['cvm-do', 85], ['cvm-f', 50], ['cvm-do', 210]], '111');
 
+  // ── Snell and TIR: θ₂ from n₁ sin θ₁ = n₂ sin θ₂, the reflected share from
+  // Fresnel's equations (unpolarized), total reflection exactly past θc ──
+  const fres = (n1, n2, th) => { const s2 = n1 / n2 * sind(th); if (s2 >= 1) return { R: 1, t2: 90, tir: true };
+    const t2 = Math.asin(s2), ci = cosd(th), ct = Math.cos(t2), rs = (n1 * ci - n2 * ct) / (n1 * ci + n2 * ct), rp = (n1 * ct - n2 * ci) / (n1 * ct + n2 * ci);
+    return { R: (rs * rs + rp * rp) / 2, t2: t2 / D, tir: false }; };
+  for (const [se, pre, cases] of [['snell-law', 'snell', [[1, 1.5, 35], [1, 1.5, 0], [1, 1.33, 60], [1.5, 1, 30], [1.5, 1, 45], [1, 2.42, 80]]],
+    ['tir', 'tir', [[1.5, 1, 41.7], [1.5, 1, 41.9], [1.33, 1, 48.7], [1.33, 1, 48.8], [2.42, 1, 24.3], [1.2, 1.5, 89]]]]) {
+    await open('opt-refraction', se);
+    for (const [n1, n2, th] of cases) {
+      await setv(pre + '-n1', n1); await setv(pre + '-n2', n2); await setv(pre + '-th', th); await p.waitForTimeout(140);
+      const tx = await modelTx(), F = fres(n1, n2, th);
+      if (F.tir) t(`${se} n₁=${n1} n₂=${n2} θ=${th}: total internal reflection`, /> 1/.test(tx) && !/θ₂ = \d/.test(tx), tx);
+      else {
+        const g = /θ₂ = (\d+\.\d)°/.exec(tx), r = /(\d+\.?\d*)%[^%]*?(\d+\.?\d*)%/.exec(tx);
+        t(`${se} n₁=${n1} n₂=${n2} θ=${th}: θ₂ by Snell`, g && Math.abs(+g[1] - F.t2) < 0.06, tx);
+        t(`${se} n₁=${n1} n₂=${n2} θ=${th}: Fresnel R and T`, r && Math.abs(+r[1] / 100 - F.R) < (F.R >= 0.1 ? 0.0051 : 0.0006) && Math.abs(+r[1] + +r[2] - 100) < 1.01, tx);
+      }
+    }
+  }
+  await reach('opt-refraction', 'snell-law', [['snell-n1', 1], ['snell-n2', 1.5], ['snell-th', 0], ['snell-th', 56], ['snell-n1', 1.5], ['snell-n2', 1], ['snell-th', 30]], '111');
+  await reach('opt-refraction', 'tir', [['tir-n1', 1.5], ['tir-n2', 1], ['tir-th', 41.8], ['tir-th', 41.6], ['tir-n1', 2.42], ['tir-th', 24.4], ['tir-n1', 1.2], ['tir-n2', 1.5], ['tir-th', 89]], '1111');
+
   // ── the eye: vergence model, glasses touching the eye. Sharp exactly when
   // 1/d − P lies in [D_far, D_far + A]; the glasses' image dᵢ = 1/(P − 1/d)
   // is in the equation line; the section's problem (+3.33 D) is a mission ──
