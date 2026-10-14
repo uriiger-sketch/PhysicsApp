@@ -133,7 +133,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 .lang-item:hover,.lang-item:focus-visible{background:var(--panel2);outline:2px solid var(--accent);outline-offset:-2px;}
 .lang-item.cur{color:var(--t-accent);font-weight:700;}
 /* the header fits 320 px: on a narrow phone the globe alone says it */
-@media (max-width:400px){.lang-btn .lang-code{display:none;}}
+@media (max-width:450px){.lang-btn .lang-code{display:none;}}
 @media (max-width:360px){.header-progress{gap:4px !important;}.header .xp-badge{padding:3px 7px;font-size:.74rem;}.header .ver-badge{margin-inline-start:4px;}}
 @media (max-width:340px){.header .ver-badge{padding:3px 4px;font-size:.62rem;margin-inline-start:2px;}.header .xp-badge{padding:3px 5px;}.header-progress{gap:3px !important;}}
 .cl-ver{padding:14px 20px 4px;display:flex;align-items:baseline;gap:10px}
@@ -224,6 +224,24 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
   border-radius:8px;padding:9px 14px;margin:8px 0 14px;font-size:.9rem;color:var(--t-sum);line-height:1.9;}
 .sum-open b{color:var(--t-sumb);}
 .tex-fb{font-family:'Cambria Math','Times New Roman',serif;font-size:1.05em;white-space:nowrap;}
+/* a long offline chain breaks only between its pieces (_texFbInline) */
+.tex-fb.tf-br{white-space:normal;}
+.tf-s{white-space:nowrap;}
+/* the offline renderer's vector arrow, drawn over the letter */
+.tf-vec{position:relative;}
+.tf-vec::after{content:'\2192';position:absolute;left:50%;top:-.5em;transform:translateX(-50%) scaleX(.85);
+  font-size:.7em;line-height:1;pointer-events:none;}
+/* a formula and the mark touching it ("N=mg cos θ." or "(g=9.8 m/s²")
+   are one word: the line cannot break between them (_gluePunct). Only the
+   box's edge is held: everything inside it wraps as before, and the box
+   gives up the width of its marks (--gw, measured by _fitMath) so the pair
+   fits the line. */
+.mglue{white-space:nowrap;}
+.mglue>*{white-space:normal;}
+.mglue .math-ltr:not(.param-val){max-width:calc(100% - var(--gw,1.2em));}
+/* ...and one longer than its line flows on in it, so the mark follows its
+   last piece (_fitMath) */
+.mglue>.math-ltr.ml-flow{display:inline;unicode-bidi:isolate;vertical-align:baseline;overflow:visible;padding:0;}
 .enrich-formula{direction:ltr;}
 /* Responsive equation sizing */
 @media(max-width:600px){
@@ -822,6 +840,15 @@ input[type=range]{accent-color:var(--accent);cursor:pointer;}
   width: 90px; height: 6px; background:var(--chip);
   border-radius: 3px; overflow: hidden;
 }
+/* 561-620 px (a small tablet, an unfolded phone): with the title and the
+   print button back, the header ran up to 55 px past the screen. It takes the
+   phone's padding, gap and 60 px course bar there (the 560 px block above
+   sets those two, but the later rules here always won). */
+@media (min-width:561px) and (max-width:620px){
+  .header{ padding: 0 10px; }
+  .header-progress{ gap: 5px; }
+  .header .progress-bar-wrap{ width: 60px; }
+}
 .progress-bar-fill {
   height: 100%; background: linear-gradient(90deg, #34d399, #22d3ee);
   border-radius: 3px; transition: width .5s ease;
@@ -1023,9 +1050,11 @@ html{scroll-padding-top:72px;}
   /* room to scroll the last card clear of the screen edge */
   .main{padding-bottom:40px;}
 }
-@media (max-width:400px){
+@media (max-width:450px){
   /* 320 px: hamburger, version, XP and two buttons are all the header holds;
-     the course-progress bar was what pushed the page 28 px sideways */
+     the course-progress bar was what pushed the page 28 px sideways. Up to
+     450 px: at 401-445 (the 414-430 px of the larger iPhones) the bar and the
+     language code came back and the header ran 31 px past the screen. */
   .progress-bar-wrap{display:none;}
 }
 /* A touch screen of any width -- a phone on its side, a tablet: the floating
@@ -1061,9 +1090,12 @@ html{scroll-padding-top:72px;}
   .header-progress .theme-btn,.drawer-close button,.formula-panel-close{
     min-width:44px;min-height:44px;align-items:center;justify-content:center;}
   .header-progress .theme-btn:not(.print-btn),.drawer-close button,.formula-panel-close{display:inline-flex;}
-  /* the version pill keeps its size; its hit area grows invisibly */
+  /* the version pill keeps its size; its hit area grows invisibly -- up and
+     down: the pill is already wider than 44 px, and an area that also stuck
+     out at its end made the pill measure as overflowing its own box (54/50 px
+     at 390). On the narrowest phones (42 px) it grows 2 px at its left. */
   .ver-badge{position:relative;}
-  .ver-badge::after{content:'';position:absolute;inset:-12px -4px;}
+  .ver-badge::after{content:'';position:absolute;inset:-12px 0;}
   .tab,.sec-btn,.subject-tab,.btn,.hint-btn,.quiz-hint-btn,.fold-btn,.next-section-btn,
   .anim-ctrl button,.sl-ctrl button,.quiz-reset-link{min-height:44px;}
   .anim-ctrl{padding:4px 12px;}
@@ -1072,6 +1104,7 @@ html{scroll-padding-top:72px;}
   /* below 16 px iOS zooms the whole page into the field and leaves it there */
   input[type=text],input[type=number],input:not([type]),select,textarea{font-size:16px!important;}
 }
+@media (pointer:coarse) and (max-width:340px){.ver-badge::after{left:-2px;}}
 /* Keyboard: one visible focus ring, in both themes */
 :focus-visible{outline:2px solid var(--accent2);outline-offset:2px;}
 .step-inp:focus-visible{outline:2px solid var(--accent2);outline-offset:1px;}
@@ -1117,6 +1150,9 @@ html{scroll-padding-top:72px;}
      separators: they may break there rather than scroll (the enrichment
      box clipped "...=500 s ≈ 8.3 min" after "500 s") */
   .formula-box .tex-fb,.enrich-formula .tex-fb,.math-ltr .tex-fb{white-space:normal;}
+  /* ...and a long one keeps every break it had: its pieces only add breaks
+     after a relation written without spaces ("r=mv/qB=...") */
+  .math-ltr .tf-s{white-space:normal;}
   /* a chain typed as plain text in a quiz explanation has no space to
      break at: sinθ=mλ/a=1×500×10⁻⁹/(0.5×10⁻³)=10⁻³ ran out of its card */
   #app .ltr-run{overflow-wrap:anywhere;}
@@ -1166,8 +1202,16 @@ var APP_LANGS=[
   {code:'he',name:'עברית',file:'physics_game_v28.html'},
   {code:'en',name:'English',file:'physics_game_en.html'}
 ];
-var APP_VERSION='28.35';
+var APP_VERSION='28.36';
 var APP_CHANGELOG=[
+  {v:'28.36',d:'2026-10-14',notes:[
+    'נוסחאות בתוך הטקסט: נקודה, פסיק, נקודתיים, סימן שאלה או סוגר שאחרי נוסחה — וסוגר פותח, מקף, מירכאות או ״ב־״ / ״ל־״ שלפניה — כבר לא נשארים לבד בסוף שורה או בתחילתה; נוסחה ארוכה משורה ממשיכה בשורה הבאה, והפיסוק נשאר אחרי חלקה האחרון',
+    'פתרונות והסברים בטלפון: שרשרת חישוב ארוכה (״r=mv/qB′=…=0.249 m״, ״290 - 100(t-0.5) = …״) נשברת אחרי סימן השוויון, ולא חורגת מהמסגרת או נחתכת באמצע מספר',
+    'בלי KaTeX (בלי חיבור לרשת): ↔ במקום המילה ״rightarrow״, B′ במקום ״Bprime״, חץ מעל אות וקטורית במקום רווח ריק, ובלי רווח מיותר בתוך סוגריים',
+    'טבלת הספקטרום האלקטרומגנטי: הכותרת ״שימוש״ מיושרת לתחילת השורה, כמו העמודה שלה; השוואת הגאומטריות (חשמל סטטי): בטלפון הטבלה מראה שהיא נגללת הצידה — דהייה בקצה והערת ״החליקו״, כמו שאר הטבלאות הרחבות',
+    'הכותרת העליונה: אזור הלחיצה של תג הגרסה לא בולט מצדי התג; ברוחב 401–450 ו־561–620 פיקסלים הכותרת כבר לא רחבה מהמסך',
+    'בעיות: אחרי כותרת שמסתיימת בסימן שאלה אין עוד נקודתיים (״…צריך?:״); זריקה משופעת: לצד sin2θ מופיע ״—״ (גודל חסר יחידות) במקום ״°״'
+  ]},
   {v:'28.35',d:'2026-10-13',notes:[
     'וקטורים: באנימציית סקלר מול וקטור, כשאין מקום בשורה הערך יורד אל מתחת לשם, והכיתובים של הווקטור המסתובב — |v|, הזווית, הרכיבים ו״ראשית״ — כבר לא עולים זה על זה ולא על החץ; בחיבור וקטורים לוח החישוב רחב כמו השורות שלו, ו״R = A + B״ כבר לא נכתב על החישובים בטלפון',
     'חוק שלישי: הקריאות של שני הגופים כבר לא נדבקות זו לזו מיד אחרי הדחיפה; תאוצה: השעון עבר לראש האנימציה ולא נוגע ב־״a = 4 m/s²״',
@@ -1511,6 +1555,7 @@ var _OPS={times:'×',cdot:'·',div:'÷',pm:'±',mp:'∓',approx:'≈',
   neq:'≠',ne:'≠',leq:'≤',le:'≤',geq:'≥',ge:'≥',ll:'≪',
   gg:'≫',propto:'∝',infty:'∞',partial:'∂',sum:'Σ',int:'∫',
   Rightarrow:'⇒',rightarrow:'→',to:'→',Leftarrow:'⇐',leftarrow:'←',
+  leftrightarrow:'↔',Leftrightarrow:'⇔',longrightarrow:'⟶',
   perp:'⊥',parallel:'∥',angle:'∠',circ:'°',degree:'°',
   ldots:'…',dots:'…',cong:'≅',equiv:'≡',in:'∈',
   implies:'⟹',Longrightarrow:'⟹',Longleftarrow:'⟸',sim:'~',
@@ -1564,6 +1609,11 @@ function _texFallback(s){
       return pr.length>1?(pr[0].trim()+' כאשר '+pr[1].trim()):row.trim();
     }).filter(function(x){return x;}).join('   ·   ');
   });
+  // a prime is a prime: B' and B^{\prime} are B′ -- the generic rule below
+  // printed the command's name, "Bprime" (an apostrophe in \text{} is text)
+  t=t.replace(/(\\(?:text|mathrm|textbf|mathbf|mathit|operatorname)\{[^{}]*\})|\^\{((?:\s*\\prime\s*)+)\}|\^\\prime|\\prime|''|'/g,function(m,txt,pp){
+    if(txt)return txt;
+    return (pp?pp.match(/\\prime/g).length>1:m==="''")?'″':'′';});
   // two commands back to back (\cdot\vec{d}) must stay two: converting the
   // second first left the first fused to a letter and printed as "cdotd"
   t=t.replace(/(\\[A-Za-z]+)(?=\\[A-Za-z])/g,'$1 ');
@@ -1571,7 +1621,12 @@ function _texFallback(s){
   // an explicit space (\, \; \quad) must survive: a Greek letter swallows an
   // ordinary space after it, which printed "4πrad/s"
   t=t.replace(/\\(,|;|:)/g,'\u2009').replace(/\\(quad|qquad)/g,'\u2003');
-  t=t.replace(/\\(left|right|!|\s|displaystyle|limits)/g,' ');
+  // \left and \right only size the bracket after them -- but as bare prefixes
+  // they were also cut off the front of \leftrightarrow ("1 kg rightarrow
+  // 9×10¹⁶ J") and \rightarrow ("arrow"), and each left a stray space
+  // inside its bracket: "arcsin (n₂/n₁ )". \left. is no bracket at all.
+  t=t.replace(/\\(left|right)\s*\.|\\(left|right)(?![A-Za-z])\s*|\\!/g,'');
+  t=t.replace(/\\(\s|displaystyle|limits)/g,' ');
   // font switches take no argument, so the generic rule below turned \rm into
   // the letters "rm" and glued them into the subscript that followed
   t=t.replace(/\\(rm|bf|it|sf|tt|scriptstyle|textstyle|boldsymbol)\b\s*/g,'');
@@ -1604,9 +1659,12 @@ function _texFallback(s){
   for(var q=t.indexOf('\\sqrt{');q>=0;q=t.indexOf('\\sqrt{',q)){var g=_texGrab(t,q+5);if(!g)break;
     t=t.slice(0,q)+'√('+g.body+')'+t.slice(g.end);}
   t=t.replace(/\\sqrt\s*(\w)/g,'√$1');           // \sqrt m, as \sqrt{m}
-  // a vector keeps its arrow: F⃗, not a bare F, and "\vec F" (with a space)
-  // used to fall through to the generic rule and print the word "vec"
-  t=t.replace(/\\vec\{([^{}]*)\}/g,'$1⃗').replace(/\\vec\s*(\w)/g,'$1⃗');
+  // a vector keeps its arrow, and "\vec F" (with a space) used to fall
+  // through to the generic rule and print the word "vec". The arrow is drawn
+  // by the stylesheet (.tf-vec) over the letter: the combining arrow U+20D7
+  // is missing from most text fonts, and printed "F  =q v  ×B" with gaps
+  // where the arrows should be.
+  t=t.replace(/\\vec\{([^{}]*)\}/g,'\u0006$1\u0007').replace(/\\vec\s*(\\[A-Za-z]+|\w)/g,'\u0006$1\u0007');
   t=t.replace(/\\hat\{([^{}]*)\}/g,'$1̂').replace(/\\hat\s*(\w)/g,'$1̂');
   t=t.replace(/\\bar\{([^{}]*)\}/g,'$1̄').replace(/\\bar\s*(\w)/g,'$1̄');
   t=t.replace(/\\overline\{([^{}]*)\}/g,'$1̄');
@@ -1617,7 +1675,7 @@ function _texFallback(s){
     // -> Delta-h), but a relation must keep it or it fuses with what follows
     if(_GREEK[w])return _GREEK[w];
     // ...on both sides: "500 s\approx 8.3 min" printed "500 s≈ 8.3 min"
-    if(_OPS[w]&&/[⟹⟸→←≈≠≤≥∝≡≅∈~]/.test(_OPS[w]))return (off&&!/[\s({\[]/.test(str.charAt(off-1))?' ':'')+_OPS[w]+' ';
+    if(_OPS[w]&&/[⟹⟸→←↔⇔⟶≈≠≤≥∝≡≅∈~]/.test(_OPS[w]))return (off&&!/[\s({\[]/.test(str.charAt(off-1))?' ':'')+_OPS[w]+' ';
     // a binary operator is spaced on both sides or on neither: the space that
     // only ended the command's name printed "g± a", "3× 10⁸", "a· b"
     if(_OPS[w]&&/[×·÷±∓]/.test(_OPS[w]))return _OPS[w]+(str.charAt(off-1)===' '?sp:'');
@@ -1644,12 +1702,45 @@ function _texFallback(s){
   t=t.replace(/[\u0001\u0003]([^\u0002\u0004]*)[\u0002\u0004]/g,function(m,x){
     var tag=m.charAt(0)==='\u0001'?'sub':'sup';
     return '<'+tag+'>'+x+'</'+tag+'>';});
+  t=t.replace(/\u0006([^\u0007]*)\u0007/g,'<span class="tf-vec">$1</span>');
   return t.replace(/\u0005/g,'_');
+}
+// The offline renderer's inline formula is one unbreakable run (the
+// stylesheet keeps "3 m" on one line), so a worked chain such as
+// "290 - 100(t-0.5) = 290 - 100t + 50 = 340 - 100t" ran up to 32 px out of a
+// phone's card. KaTeX breaks an inline formula after a relation or a binary
+// operator; so does this -- at the outer level only (never inside a bracket,
+// an index or a vector), and only in a chain long enough to need it. Each
+// piece stays whole; the line may break between pieces. Shorter formulas are
+// built exactly as before.
+function _texFbInline(h){
+  var plain='<span class="ltr-run tex-fb">'+h+'</span>';
+  if(h.replace(/<[^>]*>/g,'').replace(/&[a-z]+;/g,'x').length<28)return plain;
+  var tk=h.match(/<[^>]*>|&[a-z]+;|[\s\S]/g)||[],cuts=[],tag=0,par=0,i,j,k;
+  for(i=0;i<tk.length;i++){
+    k=tk[i];
+    if(k.length>1&&k.charAt(0)==='<'){tag+=k.charAt(1)==='/'?-1:1;continue;}
+    if(tag)continue;
+    if(k==='('||k==='[')par++;
+    else if(k===')'||k===']')par=Math.max(0,par-1);
+    if(par||!i)continue;
+    if(/^(=|≈|≠|≤|≥|⇒|⟹|→|←|↔|⇔|⟶|∝|≡|≅|&lt;|&gt;)$/.test(k)||
+       (/^[+\-−×·÷±]$/.test(k)&&tk[i-1]===' '&&tk[i+1]===' ')||(k===','&&tk[i+1]===' ')){
+      for(j=i+1;tk[j]===' ';j++);
+      if(j<tk.length)cuts.push([i+1,j]);
+    }
+  }
+  if(!cuts.length)return plain;
+  var out='',from=0;
+  cuts.forEach(function(c){
+    out+='<span class="tf-s">'+tk.slice(from,c[0]).join('')+'</span>'+(c[1]>c[0]?tk.slice(c[0],c[1]).join(''):'<wbr>');
+    from=c[1];});
+  return '<span class="ltr-run tex-fb tf-br">'+out+'<span class="tf-s">'+tk.slice(from).join('')+'</span></span>';
 }
 function tex(str, display){
   if(display===undefined)display=false;
   try{ return katex.renderToString(str,{throwOnError:false,displayMode:display,output:'html'}); }
-  catch(e){ return '<span class="ltr-run tex-fb">'+_texFallback(str)+'</span>'; }
+  catch(e){ var h=_texFallback(str); return display?'<span class="ltr-run tex-fb">'+h+'</span>':_texFbInline(h); }
 }
 // M() — inline math, always LTR, embeds correctly in RTL paragraphs
 function M(str){ return `<span class="math-ltr">${tex(str,false)}</span>`; }
@@ -1692,6 +1783,10 @@ function _siUnit(sym,nm,desc,unit){
   }
   // Greek and subscripted symbols, resolved from the RAW LaTeX before stripping
   var raw=(sym||'');
+  // a sine, cosine or tangent is a pure number whatever its argument: tested
+  // after the angle's own rule below, "\sin2\theta" took the angle's degree
+  // sign ("sin2θ — maximum at θ=45°" [°])
+  if(/\\sin|\\cos|\\tan/.test(raw))         return '—';
   if(/\\theta/.test(raw)||/^θ/.test(raw))   return '°';
   if(/\\omega/.test(raw)||/^ω/.test(raw))   return 'rad/s';
   if(/\\lambda/.test(raw)||/^λ/.test(raw))  return 'nm';
@@ -2104,7 +2199,131 @@ function fixInlineMath(root){
   });
   _mergeLtr(root);
   _subifyDom(root);
+  _chainBreaks(root);
+  _gluePunct(root);
   _fitMath(root);
+}
+// ── A worked chain typed as plain text ───────────────────────────────────
+// "r=mv/qB′=12·1.66×10⁻²⁷·4×10⁵/(1.6×10⁻¹⁹·0.2)=0.249 m=24.9 cm" offers the
+// line breaker nothing ("=" is a letter to it): on a left-to-right page it
+// ran up to 64 px past a phone's card, and in Hebrew overflow-wrap cut it
+// mid-number. A long chain -- 24 characters or more without a space -- may
+// break after "=", "≈" or "⇒" outside brackets, as a typeset formula would,
+// and a piece still that long after "·" as well. Shorter ones are untouched.
+var _CH_REL=/[=≈⇒]/,_CH_NEXT=/[^\s=≈⇒·.,;:!?)\]]/;
+function _chainCuts(word,at,re,out){
+  var par=0,i,c;
+  for(i=0;i<word.length-1;i++){c=word.charAt(i);
+    if(c==='('||c==='[')par++;
+    else if(c===')'||c===']')par=Math.max(0,par-1);
+    else if(!par&&re.test(c)&&_CH_NEXT.test(word.charAt(i+1)))out.push(at+i+1);}
+}
+function _chainBreaks(root){
+  if(!root||!document.createTreeWalker)return;
+  var w=document.createTreeWalker(root,NodeFilter.SHOW_TEXT,{acceptNode:function(n){
+    if(!/\S{24}/.test(n.nodeValue)||!_CH_REL.test(n.nodeValue))return NodeFilter.FILTER_REJECT;
+    var e=n.parentElement;
+    if(!e||e.closest('script,style,textarea,.katex,.tex-fb,.nb,.param-tip'))return NodeFilter.FILTER_REJECT;
+    return NodeFilter.FILTER_ACCEPT;}});
+  var ns=[],n;while((n=w.nextNode()))ns.push(n);
+  ns.forEach(function(node){
+    var s=node.nodeValue,cuts=[];
+    s.replace(/\S{24,}/g,function(word,at){
+      if(/[֐-׿]/.test(word)||!_CH_REL.test(word))return word;
+      var c=[];_chainCuts(word,at,_CH_REL,c);
+      var pts=[at].concat(c,[at+word.length]);
+      for(var k=0;k+1<pts.length;k++)if(pts[k+1]-pts[k]>=24)_chainCuts(s.slice(pts[k],pts[k+1]),pts[k],/·/,c);
+      c.sort(function(a,b){return a-b;});cuts=cuts.concat(c);
+      return word;});
+    if(!cuts.length)return;
+    var f=document.createDocumentFragment(),from=0;
+    cuts.forEach(function(c){f.appendChild(document.createTextNode(s.slice(from,c)));
+      f.appendChild(document.createElement('wbr'));from=c;});
+    f.appendChild(document.createTextNode(s.slice(from)));
+    node.parentNode.replaceChild(f,node);
+  });
+}
+// ── Punctuation stays with its formula ───────────────────────────────────
+// An inline formula is a box: M() an inline-flex, a bare KaTeX formula a
+// row of inline-blocks, a symbol chip an inline-block. A line may break
+// before and after any box, even where the characters around it forbid a
+// break (CSS Text 3, "for Web-compatibility"), so the full stop after
+// "N=mg cos θ" started the next line on its own, and an opening bracket, a
+// maqaf or a quotation mark hung at a line's end with its formula below it
+// (about 50 places in English and 100 in Hebrew at 390 px, more with
+// KaTeX). Whether a line may break at a box's edge follows the no-wrap
+// state around it, so the box and the marks touching it go into one
+// no-wrap span. A box inside another element (the last piece of a bare
+// KaTeX formula, an M() in <b>) cannot share a span with a mark outside
+// that element: there the box alone goes into one, which holds every mark
+// the line breaker would not break before anyway (. , ; : ? ! ) and the
+// rest). The box itself keeps white-space:normal, so a long formula still
+// wraps inside itself exactly where it did; only its edge is held.
+var _GLUE_R=/^[.,;:!?)\]}…%’”»״"'׳\-‐‑–]+/;
+var _GLUE_L=/[(\[{“‘«„"״'־\-‐‑–]+$/;
+// the formula box at el's last (or first) edge, or null when that edge is
+// text -- characters already keep their punctuation
+function _glueBox(el,last){
+  for(var g=0;g<40&&el&&el.nodeType===1;g++){
+    var cs=getComputedStyle(el);
+    if(/^inline-(block|flex|grid|table)$/.test(cs.display))
+      return (el.classList.contains('math-ltr')||el.classList.contains('param-wrap')||(el.closest&&el.closest('.katex')))?el:null;
+    if(cs.display!=='inline')return null;
+    var k=last?el.lastChild:el.firstChild;
+    // what takes no room in the line: empty text, KaTeX's hidden MathML, a tooltip
+    while(k&&(k.nodeType===8||(k.nodeType===3&&!k.nodeValue)||(k.nodeType===1&&(k.classList.contains('katex-mathml')||
+          getComputedStyle(k).display==='none'||/^(absolute|fixed)$/.test(getComputedStyle(k).position)))))
+      k=last?k.previousSibling:k.nextSibling;
+    el=k;
+  }
+  return null;
+}
+function _mglue(el){var g=document.createElement('span');g.className='mglue';el.parentNode.insertBefore(g,el);g.appendChild(el);return g;}
+function _gluePunct(root){
+  if(!root||!document.createTreeWalker)return;
+  var w=document.createTreeWalker(root,NodeFilter.SHOW_TEXT,{acceptNode:function(n){
+    var v=n.nodeValue;
+    if(!v||!((n.previousSibling&&_GLUE_R.test(v))||(n.nextSibling&&_GLUE_L.test(v))))return NodeFilter.FILTER_REJECT;
+    var e=n.parentElement;      // (a mark already glued sits in an .mglue)
+    if(!e||e.classList.contains('mglue')||e.closest('script,style,textarea,svg,.katex,.tex-fb,.param-tip'))return NodeFilter.FILTER_REJECT;
+    return NodeFilter.FILTER_ACCEPT;}});
+  var ns=[],n,todo=[];
+  while((n=w.nextNode()))ns.push(n);
+  // read everything first, then change the page once
+  var isG=function(x){return !!(x&&x.classList&&x.classList.contains('mglue'));};
+  ns.forEach(function(t){
+    if(getComputedStyle(t.parentElement).whiteSpace!=='normal')return;
+    var pv=t.previousSibling,nx=t.nextSibling,b,m,r=null;
+    if(pv&&pv.nodeType===1&&(m=_GLUE_R.exec(t.nodeValue))&&(b=_glueBox(pv,true))&&getComputedStyle(b.parentNode).whiteSpace==='normal'){
+      var top=b===pv||(isG(pv)&&pv.lastChild===b);
+      if(top||!isG(b.parentNode))todo.push(r={box:b,t:t,n:m[0].length,top:top});
+    }
+    if(nx&&nx.nodeType===1&&(m=_GLUE_L.exec(t.nodeValue))&&_glueBox(nx,false)){
+      // a dash between two formulas ("40–80 km") goes with the second
+      if(r)r.n=Math.min(r.n,m.index);
+      todo.push({t:t,k:m[0].length,el:nx});
+    }
+  });
+  todo.forEach(function(a){
+    if(a.box){
+      var bx=a.box,gb=isG(bx.parentNode)?bx.parentNode:_mglue(bx);
+      if(a.top&&a.n&&gb.lastChild===bx&&gb.nextSibling===a.t){
+        gb.appendChild(document.createTextNode(a.t.nodeValue.slice(0,a.n)));
+        a.t.nodeValue=a.t.nodeValue.slice(a.n);
+        if(!a.t.nodeValue)a.t.parentNode.removeChild(a.t);
+      }
+      return;
+    }
+    if(!a.t.parentNode)return;
+    var el=a.el,p=el.parentNode,g;
+    if(el.classList.contains('mglue'))g=el;
+    else if(p.classList&&p.classList.contains('mglue')&&p.firstChild===el)g=p;
+    else g=_mglue(el);
+    var v=a.t.nodeValue;
+    g.insertBefore(document.createTextNode(v.slice(v.length-a.k)),g.firstChild);
+    a.t.nodeValue=v.slice(0,v.length-a.k);
+    if(!a.t.nodeValue)a.t.parentNode.removeChild(a.t);
+  });
 }
 // A formula and its unit, or two halves of one chain, can arrive as separate
 // pieces -- a KaTeX span followed by " m/s", or "a = " then a bold result.
@@ -2202,6 +2421,26 @@ function _fitMath(root){
   if(!root||!root.querySelectorAll)return;
   var fitted=root.querySelectorAll('.katex[data-fit]');
   for(var i=0;i<fitted.length;i++){fitted[i].style.fontSize='';fitted[i].removeAttribute('data-fit');}
+  // every formula is measured as a box (see the end of this function)
+  var fl=root.querySelectorAll('.math-ltr.ml-flow');
+  for(i=0;i<fl.length;i++)fl[i].classList.remove('ml-flow');
+  // A formula glued to its marks (_gluePunct) leaves its line room for what
+  // can no longer be parted from it: the marks, the letters they touch
+  // outside the span (the ב of ב־, the s of 's) and its own margins.
+  var gl=root.querySelectorAll('.mglue'),gw=[];
+  var tw=function(n,a,b){var rg=document.createRange();rg.setStart(n,a);rg.setEnd(n,b);return rg.getBoundingClientRect().width;};
+  for(i=0;i<gl.length;i++){
+    var g=gl[i],bx=null,w=0,k,v,cs;
+    for(k=g.firstChild;k;k=k.nextSibling){
+      if(k.nodeType===3&&k.nodeValue)w+=tw(k,0,k.nodeValue.length);
+      else if(k.nodeType===1&&k.classList.contains('math-ltr'))bx=k;}
+    if(!bx)continue;
+    k=g.previousSibling;if(k&&k.nodeType===3){v=k.nodeValue;w+=tw(k,v.search(/\S*$/),v.length);}
+    k=g.nextSibling;if(k&&k.nodeType===3){v=k.nodeValue;w+=tw(k,0,v.search(/\s|$/));}
+    cs=getComputedStyle(bx);
+    gw.push([g,Math.ceil(w+parseFloat(cs.marginLeft)+parseFloat(cs.marginRight))+1]);
+  }
+  gw.forEach(function(x){x[0].style.setProperty('--gw',x[1]+'px');});
   // the boxes first, then a formula inside a line of text
   ['.formula-box,.enrich-formula','.math-ltr'].forEach(function(sel){
     root.querySelectorAll(sel).forEach(function(box){
@@ -2209,12 +2448,41 @@ function _fitMath(root){
       if(!kx||!box.clientWidth||box.scrollWidth<=box.clientWidth+1)return;
       var cs=getComputedStyle(box),pad=parseFloat(cs.paddingLeft)+parseFloat(cs.paddingRight);
       var r=(box.clientWidth-pad-2)/(box.scrollWidth-pad);
-      if(!(r>=0.74&&r<1))return;
+      // a glued one is judged by the width it would have had on its own
+      var gx=box.parentElement.classList.contains('mglue')?parseFloat(box.parentElement.style.getPropertyValue('--gw'))||0:0;
+      if(!((box.clientWidth+gx-pad-2)/(box.scrollWidth-pad)>=0.74&&r<1))return;
       kx.style.fontSize=(parseFloat(getComputedStyle(kx).fontSize)*r).toFixed(2)+'px';
       kx.setAttribute('data-fit','1');
     });
   });
+  // A formula with a mark glued to it (_gluePunct) that is wider than its
+  // line wraps inside its box, and the mark could only stand beside the box:
+  // halfway up its rows, or at the far end of a box as wide as the line.
+  // Such a formula flows on in the line instead, as KaTeX's own inline maths
+  // does, and its mark follows its last piece. One that scrolls stays a box.
+  var go=[];
+  root.querySelectorAll('.mglue>.math-ltr:not(.param-val)').forEach(function(b){
+    if(b.clientWidth&&b.scrollWidth<=b.clientWidth+1&&_mathRows(b)>1)go.push(b);});
+  go.forEach(function(b){
+    b.classList.add('ml-flow');
+    // its last piece now ends the box's edge: the mark after it needs that
+    // piece held, as a bare KaTeX formula's is
+    var kh=b.querySelector('.katex-html'),lb=kh&&kh.lastElementChild;
+    if(b.nextSibling&&lb&&!lb.classList.contains('mglue'))_mglue(lb);
+  });
   _markScroll(root);
+}
+// how many rows the content of a formula box takes
+function _mathRows(b){
+  var e=b.querySelector('.katex-html');
+  if(e)return [].filter.call(e.getClientRects(),function(q){return q.width>1;}).length;
+  e=b.querySelector('.tex-fb');if(!e)return 1;
+  var rg=document.createRange(),fs=parseFloat(getComputedStyle(e).fontSize)||16,ys=[],n=0,i;
+  rg.selectNodeContents(e);
+  [].forEach.call(rg.getClientRects(),function(q){if(q.width>1)ys.push(q.bottom);});
+  ys.sort(function(a,c){return a-c;});
+  for(i=0;i<ys.length;i++)if(!i||ys[i]-ys[i-1]>fs*0.8)n++;
+  return n||1;
 }
 // ── What is left to scroll ───────────────────────────────────────────────
 // A wide table or a long chain still scrolls inside its own box on a phone,
@@ -2237,21 +2505,29 @@ function _scrollEdges(el){
   el.classList.toggle('x-more-l',(rtl?atEnd:atStart)>6);
   el.classList.toggle('x-more-r',(rtl?atStart:atEnd)>6);
 }
+function _canScrollX(el){return el.clientWidth>0&&el.scrollWidth>el.clientWidth+1&&/auto|scroll/.test(getComputedStyle(el).overflowX);}
 function _markScroll(root){
   if(!root||!root.querySelectorAll)return;
   root.querySelectorAll('.theory-card table,.wx table,.formula-box,.enrich-formula,.math-ltr').forEach(function(el){
-    var can=el.clientWidth>0&&el.scrollWidth>el.clientWidth+1&&/auto|scroll/.test(getComputedStyle(el).overflowX);
-    el.classList.toggle('x-scroll',can);
-    if(!can){el.classList.remove('x-more-l','x-more-r');}
+    var box=el,can=_canScrollX(el),tbl=el.tagName==='TABLE',par=el.parentElement;
+    // a table with a minimum width of its own (elc-compare: 430 px) is not
+    // the box that scrolls on a phone -- the wrapper around it is, and that
+    // wrapper went without the fade and the swipe hint
+    if(tbl&&!can&&par&&par.children.length===1&&_canScrollX(par)){box=par;can=true;}
+    if(tbl)[el,par].forEach(function(x){if(x&&x!==box&&x.classList.contains('x-scroll'))x.classList.remove('x-scroll','x-more-l','x-more-r');});
+    box.classList.toggle('x-scroll',can);
+    if(!can){box.classList.remove('x-more-l','x-more-r');}
     else{
-      if(!el.dataset.xs){el.dataset.xs='1';el.addEventListener('scroll',function(){_scrollEdges(el);},{passive:true});}
-      _scrollEdges(el);
+      if(!box.dataset.xs){box.dataset.xs='1';box.addEventListener('scroll',function(){_scrollEdges(box);},{passive:true});}
+      _scrollEdges(box);
     }
-    if(el.tagName==='TABLE'){
-      var prev=el.previousElementSibling,has=prev&&prev.classList&&prev.classList.contains('x-scroll-hint');
-      if(can&&!has){var h=document.createElement('div');h.className='x-scroll-hint';h.setAttribute('aria-hidden','true');
-        h.textContent='⇆ הטבלה רחבה מהמסך — החליקו אותה הצידה כדי לראות את כולה';el.parentNode.insertBefore(h,el);}
-      else if(!can&&has)prev.remove();
+    if(tbl){
+      [el,par].forEach(function(x){
+        var prev=x&&x.previousElementSibling,has=prev&&prev.classList&&prev.classList.contains('x-scroll-hint');
+        if(x===box&&can&&!has){var h=document.createElement('div');h.className='x-scroll-hint';h.setAttribute('aria-hidden','true');
+          h.textContent='⇆ הטבלה רחבה מהמסך — החליקו אותה הצידה כדי לראות את כולה';x.parentNode.insertBefore(h,x);}
+        else if((x!==box||!can)&&has)prev.remove();
+      });
     }
   });
 }
@@ -6270,7 +6546,7 @@ const OPTICS_CONTENT={
       ${fBox('c = \\lambda f','קשר אורך גל-תדירות',[['c','מהירות האור','3×10⁸ m/s'],['\\lambda','אורך הגל','מטרים'],['f','תדירות','הרץ (Hz)'] ])}
       ${fBox('E = hf = \\dfrac{hc}{\\lambda}','אנרגיית פוטון',[['h','קבוע פלאנק','6.626×10⁻³⁴ J·s'],['f','תדירות','Hz'],['E','אנרגיית פוטון','ג\'ול'] ])}
       <div style="overflow-x:auto;margin:16px 0"><table style="width:100%;border-collapse:collapse;font-size:.82rem;margin:0">
-        <tr style="background:rgba(99,102,241,.18);color:#c7d2fe"><th style="padding:6px 8px;text-align:start">קטע</th><th dir="ltr" style="padding:6px 8px">λ</th><th dir="ltr" style="padding:6px 8px">f</th><th dir="ltr" style="padding:6px 8px">E (פוטון)</th><th style="padding:6px 8px;text-align:right">שימוש</th></tr>
+        <tr style="background:rgba(99,102,241,.18);color:#c7d2fe"><th style="padding:6px 8px;text-align:start">קטע</th><th dir="ltr" style="padding:6px 8px">λ</th><th dir="ltr" style="padding:6px 8px">f</th><th dir="ltr" style="padding:6px 8px">E (פוטון)</th><th style="padding:6px 8px;text-align:start">שימוש</th></tr>
         <tr style="border-bottom:1px solid rgba(99,102,241,.15)"><td style="padding:5px 8px;color:#e2e8f0">גלי רדיו</td><td dir="ltr" style="padding:5px 8px;color:#94a3b8">&gt;1 m</td><td dir="ltr" style="padding:5px 8px;color:#94a3b8">&lt;300 MHz</td><td dir="ltr" style="padding:5px 8px;color:#94a3b8">&lt;1.2 μeV</td><td style="padding:5px 8px;color:#94a3b8">שידורי רדיו וטלוויזיה</td></tr>
         <tr style="border-bottom:1px solid rgba(99,102,241,.15)"><td style="padding:5px 8px;color:#e2e8f0">מיקרוגל</td><td dir="ltr" style="padding:5px 8px;color:#94a3b8">1 mm–1 m</td><td dir="ltr" style="padding:5px 8px;color:#94a3b8">0.3–300 GHz</td><td dir="ltr" style="padding:5px 8px;color:#94a3b8">1.2 μeV–1.2 meV</td><td style="padding:5px 8px;color:#94a3b8">תנורי מיקרוגל, רדאר, סלולר, WiFi</td></tr>
         <tr style="border-bottom:1px solid rgba(99,102,241,.15)"><td style="padding:5px 8px;color:#fbbf24">אינפרא-אדום (IR)</td><td dir="ltr" style="padding:5px 8px;color:#94a3b8">700 nm–1 mm</td><td dir="ltr" style="padding:5px 8px;color:#94a3b8">0.3–430 THz</td><td dir="ltr" style="padding:5px 8px;color:#94a3b8">1.2 meV–1.8 eV</td><td style="padding:5px 8px;color:#94a3b8">חום, שלט רחוק, ראיית לילה</td></tr>
@@ -34674,7 +34950,10 @@ function buildProblem(prob){
       :`<div class="step-fb ok">✅ ${_ltSafe(st2.explain)}</div>`}
     </div>`;
   }).join('');
-  return`<div class="problem-card"><div class="problem-text"><b>${prob.title}:</b> ${prob.text}</div><div class="problem-steps">${steps}</div></div>`;
+  // a title that is already a question (or ends in its own mark) takes no
+  // colon: "…?:" read as a typo, in both languages
+  var _tEnd=/[?!:؟]\s*$/.test(String(prob.title||'').replace(/<[^>]*>/g,''))?'':':';
+  return`<div class="problem-card"><div class="problem-text"><b>${prob.title}${_tEnd}</b> ${prob.text}</div><div class="problem-steps">${steps}</div></div>`;
 }
 
 // ══════════════════════════════════════════════
