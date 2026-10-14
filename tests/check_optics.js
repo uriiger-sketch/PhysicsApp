@@ -246,6 +246,22 @@ const EXPECT = {
   await reach('opt-refraction', 'snell-law', [['snell-n1', 1], ['snell-n2', 1.5], ['snell-th', 0], ['snell-th', 56], ['snell-n1', 1.5], ['snell-n2', 1], ['snell-th', 30]], '111');
   await reach('opt-refraction', 'tir', [['tir-n1', 1.5], ['tir-n2', 1], ['tir-th', 41.8], ['tir-th', 41.6], ['tir-n1', 2.42], ['tir-th', 24.4], ['tir-n1', 1.2], ['tir-n2', 1.5], ['tir-th', 89]], '1111');
 
+  // ── polarization: I₁ = I₀/2, then cos² of each angle between axes ──
+  await open('opt-modern', 'polarization');
+  for (const [i0, th] of [[80, 45], [80, 60], [100, 30], [50, 90], [80, 0]]) {
+    await setv('pol-i0', i0); await setv('pol-angle', th); await p.waitForTimeout(140);
+    const g = /= (\d+\.?\d*)%;/.exec(await modelTx()), want = i0 / 2 * cosd(th) ** 2;
+    t(`Malus: I₀=${i0}% θ=${th}°`, g && Math.abs(+g[1] - want) <= (want < 10 ? 0.051 : 0.51), (g || [])[1] + ' vs ' + want.toFixed(2));
+  }
+  await reach('opt-modern', 'polarization', [['pol-i0', 80], ['pol-angle', 90], ['pol-angle', 60],
+    async () => { await p.evaluate(() => document.getElementById('btn-pol-mid').click()); await p.waitForTimeout(150);
+      await p.evaluate(() => document.querySelectorAll('.sk-opt')[1].click()); await p.waitForTimeout(250); }], '111');
+  for (const [m, a] of [[45, 90], [30, 90], [60, 120]]) {
+    await setv('pol-mid', m); await setv('pol-angle', a); await p.waitForTimeout(140);
+    const g = /= (\d+\.?\d*)%, /.exec(await modelTx()), want = 40 * cosd(m) ** 2 * cosd(a - m) ** 2;
+    t(`three polarizers: middle ${m}°, analyzer ${a}°`, g && Math.abs(+g[1] - want) <= (want < 10 ? 0.051 : 0.51), (g || [])[1] + ' vs ' + want.toFixed(2));
+  }
+
   // ── the eye: vergence model, glasses touching the eye. Sharp exactly when
   // 1/d − P lies in [D_far, D_far + A]; the glasses' image dᵢ = 1/(P − 1/d)
   // is in the equation line; the section's problem (+3.33 D) is a mission ──
@@ -317,7 +333,7 @@ const EXPECT = {
     ['optics', 'opt-waves', 'youngs-slits', W => { const x = 136 + 0.2 * (W - 180); return [[x, 300], [x + 20, 300], [x + 40, 300]]; }, { slider: 'ys-L' }],
     ['optics', 'opt-waves', 'diffraction', W => [[W - 52, 220], [W - 52, 260], [W - 52, 300]], { text: '^' + LR('גלאי: a·sinθ = ') }],
     ['optics', 'opt-waves', 'thin-film', W => [[W * 0.44, 150], [W * 0.44, 200], [W * 0.44, 260]], { slider: 'tf-thick' }],
-    ['optics', 'opt-modern', 'polarization', (W, H) => [[W * 0.62 + 20, H * 0.42], [W * 0.62 + 10, H * 0.42 + 20], [W * 0.62, H * 0.42 + 25]], { slider: 'pol-angle' }],
+    ['optics', 'opt-modern', 'polarization', (W, H) => { const y = Math.round(H * 0.31), x = W * 0.69; return [[x + 20, y], [x + 10, y + 20], [x, y + 25]]; }, { slider: 'pol-angle' }],
     // the star rests at the centre when v = 0; a quick flick sets its speed
     ['optics', 'opt-modern', 'doppler', (W, H) => [[W / 2, H / 2], [W / 2 + 40, H / 2], [W / 2 + 80, H / 2]], { slider: 'dop-v' }, ['dop-v', 0]],
     ['optics', 'opt-modern', 'lasers', W => [[W * 0.4, 200], [W * 0.5, 200], [W * 0.6, 200]], { slider: 'laser-pump' }],
