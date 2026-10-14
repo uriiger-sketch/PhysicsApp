@@ -329,6 +329,27 @@ const sig2 = x => x === 0 ? 0 : Number(x.toPrecision(2));
   await setR('inp-di-f', 0); await p.waitForTimeout(200);
   t('mission "pull the slab out: does U rise?" is solved by doing it', (await done())[2] === true);
 
+  // ── deflection: y = qVL²/(2mdv₀²), tan α = qVL/(mdv₀²), a straight line to the screen ──
+  await open('elc-deflection'); await p.waitForTimeout(400);
+  const dfm = () => p.evaluate(() => document.querySelector('#app canvas').__df);
+  await setR('inp-df-V', 100); await setR('inp-df-v0', 2); await setR('inp-df-L', 10); await p.waitForTimeout(200);
+  let df1 = await dfm(), dtx = await txt();
+  const yWant = e * 100 * 0.1 ** 2 / (2 * me * 0.04 * 2e7 ** 2), aWant = Math.atan(e * 100 * 0.1 / (me * 0.04 * 2e7 ** 2)) * 180 / Math.PI;
+  t('deflection at the exit: y = qVL²/(2mdv₀²)', Math.abs(df1.y - yWant) < 1e-9 && new RegExp('y = ½at² = ' + (yWant * 1000).toFixed(2) + ' mm').test(dtx), df1.y + ' vs ' + yWant);
+  t('exit angle: tan α = qVL/(mdv₀²), printed', Math.abs(df1.ang - aWant) < 1e-9 && new RegExp('α = ' + aWant.toFixed(1) + '°').test(dtx), df1.ang + ' vs ' + aWant);
+  t('on the screen: y + tan α · D (a straight line after the plates)', Math.abs(df1.Ys - (df1.y + Math.tan(aWant * Math.PI / 180) * df1.D)) < 1e-12, df1.Ys);
+  await setR('inp-df-v0', 4); await p.waitForTimeout(200);
+  const df2 = await dfm();
+  t('doubling v₀ divides the exit deflection by 4', Math.abs(df1.y / df2.y - 4) < 1e-9, (df1.y / df2.y).toFixed(4));
+  await setR('inp-df-v0', 2);
+  for (let v = 100; v <= 300; v += 10) { await setR('inp-df-V', v); await p.waitForTimeout(60); const d3 = await dfm(); if (Math.abs(d3.Ys - d3.YT) < 0.0015) break; }
+  await p.waitForTimeout(150);
+  t('mission "hit the target" is reachable with the sliders and solved', (await done())[0] === true, JSON.stringify(await dfm()));
+  await setR('inp-df-V', 300); await setR('inp-df-v0', 1.5); await p.waitForTimeout(200);
+  t('V = 300 V at v₀ = 1.5×10⁷ m/s: the electron hits the plate', (await dfm()).hit === true);
+  await setR('inp-df-v0', 3); await p.waitForTimeout(200);
+  t('a faster electron is rescued: mission solved', (await dfm()).hit === false && (await done())[1] === true);
+
   console.log('   every draggable simulation by touch, on a phone');
   const tc = await b.newContext({ viewport: { width: 390, height: 1300 }, hasTouch: true, isMobile: true, deviceScaleFactor: 2 });
   const q = await tc.newPage(); q.on('pageerror', x => errs.push(x.message));
@@ -368,6 +389,7 @@ const sig2 = x => x === 0 ? 0 : Number(x.toPrecision(2));
     ['electro', 'elc-energy', 'elc-dielectric', (W, H) => [[W * 0.5, H * 0.28], [W * 0.4, H * 0.28], [W * 0.3, H * 0.28]], { slider: 'di-f' }],
     ['electro', 'elc-energy', 'elc-compare', W => [[52 + 0.2 * (W - 68), 200], [52 + 0.4 * (W - 68), 200], [52 + 0.6 * (W - 68), 200]], { text: '^r = ' }],
     ['electro', 'elc-motion', 'elc-millikan', W => [[W * 0.44, 200], [W * 0.44, 180], [W * 0.44, 150]], { slider: 'mk-V' }],
+    ['electro', 'elc-motion', 'elc-deflection', (W, H) => [[W * 0.4514, H * 0.55 + 4], [W * 0.42, H * 0.55 + 4], [W * 0.38, H * 0.55 + 4]], { slider: 'df-L' }],
   ];
   const deaf = [], scrolled = [];
   for (const [s, c, se, pf, chk, pre] of TOUCH) {

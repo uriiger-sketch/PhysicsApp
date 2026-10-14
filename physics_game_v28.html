@@ -7922,7 +7922,7 @@ const ELECTRO_CONTENT={
     <div class="enrich-card"><div class="enrich-title">מהאוסצילוסקופ ועד המעבדה הביולוגית</div>
       <p>בשפופרת של אוסצילוסקופ ישן הסיטו לוחות כאלה בדיוק את קרן האלקטרונים, אנכית ואופקית, והיא ציירה על המסך את צורת האות. (בטלוויזיה הישנה, שמסכה גדול יותר, הוסטה הקרן בשדה מגנטי.) כוח חשמלי על חלקיקים טעונים פועל גם ב<b>אלקטרופורזה</b>: מולקולות DNA נודדות בשדה חשמלי בתוך ג׳ל, ומתמיינות לפי גודלן.</p></div>`,
   },
-  sim:{type:'elc-deflect',desc:'שגרו חלקיק ושנו מתח, מהירות ואורך לוחות. בין הלוחות המסלול פרבולי ומחוץ להם ישר — שימו לב לנקודת המעבר.'},
+  sim:{type:'elc-deflect',desc:'גררו את קצה הלוחות כדי לשנות את L, ושנו מתח ומהירות. בין הלוחות המסלול פרבולי ומחוץ להם ישר — והקו הישר, כשממשיכים אותו לאחור, חוצה את הציר באמצע הלוחות. פגעו במטרה שעל המסך.'},
   example:{title:'סטייה בין לוחות',text:`אלקטרון נכנס במהירות ${M('3\\times10^{7}\\,\\text{m/s}')} בין לוחות באורך ${M('5\\,\\text{cm}')}, שהמרווח ביניהם ${M('2\\,\\text{cm}')} והמתח ${M('120\\,\\text{V}')}.`,steps:[
     {q:'מה השדה בין הלוחות?',a:`${M('E=\\dfrac{V}{d}=\\dfrac{120}{0.02}=6000\\,\\text{V/m}')}`},
     {q:'מה התאוצה?',a:`${M('a=\\dfrac{eE}{m}=\\dfrac{1.6\\times10^{-19}\\times6000}{9.1\\times10^{-31}}\\approx1.05\\times10^{15}\\,\\text{m/s}^2')}, לעבר הלוח החיובי.`},
@@ -15665,19 +15665,50 @@ function simElcDeflect(canvas){
   // SECTION: elc-motion.elc-deflection
   // PEDAGOGY: parabola inside the plates, straight line outside. The transition
   // is where students go wrong, so the two segments are drawn in different
-  // colours and the exit point is marked.
+  // colours, the exit point is marked, and the straight part is extended back
+  // into the plates: it crosses the axis at L/2, as if the beam came from the
+  // middle of the plates. The gap is drawn stretched (the deflection is a few
+  // mm on a 4 cm gap) and says so; the exit angle is drawn in the stretched
+  // picture and printed from the physics. The plates' end is a handle: drag
+  // it to change L. A target on the screen makes the formula a tool.
+  var id=canvas.id,_g=_simGen[id];
   const H=490; const {ctx,W,dpr}=setupCanvas(canvas,H);
-  const id=canvas.id;
-  var isElectron=true, t0=0;
+  var LTR=document.documentElement.dir==='ltr';
+  var isElectron=true, t0=0, dragL=false, touched=false, hitAt=null, rescued=false;
   var pb=document.getElementById('btn-df-part');
-  if(pb)pb.addEventListener('click',function(){isElectron=!isElectron;t0=0;
+  if(pb)pb.addEventListener('click',function(){isElectron=!isElectron;t0=0;hitAt=null;
     pb.textContent=isElectron?'🔁 החליפו לפרוטון':'🔁 החליפו לאלקטרון';});
   function gV(){var e=document.getElementById('inp-df-V');return e?parseFloat(e.value):100;}
   function gv0(){var e=document.getElementById('inp-df-v0');return e?parseFloat(e.value)*1e7:2e7;}
   function gL(){var e=document.getElementById('inp-df-L');return e?parseFloat(e.value)/100:0.10;}
-  const d_m=0.04, e_c=1.6e-19, m_e=9.1e-31, m_p=1.673e-27;
+  const d_m=0.04, e_c=1.6e-19, m_e=9.1e-31, m_p=1.673e-27, YT=0.025;   // the target: 25 mm up the screen
+  var X0=W*0.08, PPMx=(W*0.52)/0.14, CY=H*0.40, PPMy=(H*0.30)/d_m, SX=W*0.90;
+  function plateEnd(){return X0+gL()*PPMx;}
+  simDrag(canvas,dpr,{
+    down:function(p){if(Math.abs(p.x-plateEnd())<22&&p.y>CY-(d_m/2)*PPMy-34&&p.y<CY+(d_m/2)*PPMy+34){dragL=true;touched=true;}},
+    move:function(p){if(dragL)simSyncSlider('df-L',(p.x-X0)/PPMx*100,0);},
+    up:function(){dragL=false;}});
+  var kb=elcKbd(canvas,{n:function(){return 1;},get:function(){return {x:plateEnd(),y:CY};},
+    set:function(i,x){simSyncSlider('df-L',(x-X0)/PPMx*100,0);}});
+  var kit=simKit(canvas,{missions:[
+    {text:'פגעו עם האלקטרון במטרה שעל המסך',
+     hint:'הנקודה על המסך היא הסטייה ביציאה ועוד '+_skM('tan α')+' כפול המרחק עד המסך. שנו את המתח או את '+_skM('v₀')+' — ושימו לב לאיזה כיוון כל אחד מזיז אותה.',
+     why:'שני חלקים: פרבולה בין הלוחות, '+_skM('y = qVL²/(2mdv₀²)')+', וקו ישר אחריהם בזווית '+_skM('tan α = qVL/(mdv₀²)')+'. הקו הישר, כשממשיכים אותו לאחור, חוצה את הציר בדיוק ב־'+_skM('L/2')+'.',
+     done:function(s){return s.el&&!s.hit&&Math.abs(s.Ys-YT)<0.0015;}},
+    {text:'גרמו לאלקטרון לפגוע בלוח — ואז הצילו אותו בשינוי המהירות בלבד',
+     hint:'העלו את המתח עד שהאלקטרון פוגע בלוח. עכשיו שנו רק את '+_skM('v₀')+': להאט או להאיץ?',
+     why:'אלקטרון מהיר שוהה פחות זמן בין הלוחות: '+_skM('y = ½a(L/v₀)² ∝ 1/v₀²')+'. הכוח לא השתנה — רק הזמן שבו הוא פועל.',
+     done:function(s){return s.rescued;}},
+    {text:'קבעו זווית יציאה של '+_skM('10°')+' בדיוק, ובדקו אותה מול '+_skM('tan α = qVL/(mdv₀²)'),
+     hint:'הזווית גדלה עם '+_skM('V')+' ועם '+_skM('L')+', וקטנה כמו '+_skM('1/v₀²')+'. גררו את קצה הלוחות כדי לשנות את '+_skM('L')+'.',
+     why:_skM('tan α = v_y/v₀')+': המהירות האנכית שנצברה, '+_skM('v_y = at = (qV/md)(L/v₀)')+', חלקי המהירות האופקית — בדיוק כמו בזריקה אופקית.',
+     done:function(s){return s.el&&!s.hit&&Math.abs(s.ang-10)<0.25;}}
+  ]});
+  kit.predict({q:'מכפילים את מהירות הכניסה '+_skM('v₀')+' (המתח והלוחות כמו קודם). הסטייה ביציאה מהלוחות:',
+    opts:['גדלה פי 2','קטנה פי 2','קטנה פי 4'],correct:2,
+    why:'הזמן בין הלוחות, '+_skM('t = L/v₀')+', נחצה, והסטייה '+_skM('y = ½at²')+' תלויה בריבוע הזמן: פי 4 פחות. נסו: העבירו את '+_skM('v₀')+' מ־2 ל־4.'});
   function draw(){
-    if(_simStop[id])return;
+    if(_simGen[id]!==_g||_simStop[id])return;
     t0+=0.016;
     var V=gV(), v0=gv0(), L=gL();
     var m=isElectron?m_e:m_p, sgn=isElectron?1:-1;   // electron pulled to + plate (up)
@@ -15685,19 +15716,34 @@ function simElcDeflect(canvas){
     var tf=L/v0, yEx=0.5*a*tf*tf, vy=a*tf, ang=Math.atan2(vy,v0);
     var hit=yEx>d_m/2;
     var tHit=Math.sqrt(d_m/a), xHit=v0*tHit;         // where y reaches d/2
+    var D=(SX-plateEnd())/PPMx, Ys=sgn*(yEx+Math.tan(ang)*D);   // on the screen, + up
+    if(hit&&isElectron)hitAt={V:V,L:L,v0:v0};
+    else if(hitAt&&isElectron&&V===hitAt.V&&L===hitAt.L&&v0!==hitAt.v0)rescued=true;
+    else if(hitAt&&(V!==hitAt.V||L!==hitAt.L))hitAt=null;
     ctx.clearRect(0,0,W,H);
     ctx.fillStyle='#0f1c2e';ctx.fillRect(0,0,W,H);
-    var X0=W*0.08, PPMx=(W*0.52)/0.14, CY=H*0.42, PPMy=(H*0.30)/d_m;
-    var pL=X0, pR=X0+L*PPMx, pTop=CY-(d_m/2)*PPMy, pBot=CY+(d_m/2)*PPMy;
+    var pL=X0, pR=plateEnd(), pTop=CY-(d_m/2)*PPMy, pBot=CY+(d_m/2)*PPMy;
     ctx.fillStyle='#ef4444';ctx.fillRect(pL,pTop-9,pR-pL,9);
     ctx.fillStyle='#3b82f6';ctx.fillRect(pL,pBot,pR-pL,9);
     slTxt(ctx,'+  '+V.toFixed(0)+' V',pL+6,pTop-14,'#ef4444',12,'left',true);
     slTxt(ctx,'−',pL+6,pBot+22,'#3b82f6',12,'left',true);
-    // screen
-    var sx=W*0.90;
+    // the plates' end is a handle: L is set by dragging it
+    simHandle(ctx,pR,pBot+4,'#e2e8f0',14);   // on the plate's end, clear of the beam
+    ctx.save();ctx.strokeStyle='rgba(226,232,240,.35)';ctx.setLineDash([3,4]);ctx.beginPath();ctx.moveTo(pR,pTop);ctx.lineTo(pR,pBot);ctx.stroke();ctx.restore();
+    elcFocus(ctx,kb,0,pR,pBot+4,19);
+    slTxt(ctx,'L = '+(L*100).toFixed(0)+' cm',(pL+pR)/2,pBot+22,'#94a3b8',11,'center');
+    if(!touched&&t0<9)simText(ctx,'↔ גררו את קצה הלוחות',pR,pBot+44,'#fbbf24',10,'center');
+    // the honest note: the gap is drawn stretched
+    var str=PPMy/PPMx;
+    if(str>1.1)simText(ctx,'הסולם האנכי מוגדל פי '+str.toFixed(1),LTR?W-8:8,16,'#7d8da6',9.5,LTR?'right':'left');
+    // screen and target
     ctx.strokeStyle='#475569';ctx.lineWidth=3;
-    ctx.beginPath();ctx.moveTo(sx,CY-H*0.30);ctx.lineTo(sx,CY+H*0.30);ctx.stroke();
-    simText(ctx,'מסך',sx+2,CY+H*0.30+16,'#7d8da6',11,'center');
+    ctx.beginPath();ctx.moveTo(SX,CY-H*0.30);ctx.lineTo(SX,CY+H*0.30);ctx.stroke();
+    simText(ctx,'מסך',SX+2,CY+H*0.30+16,'#7d8da6',11,'center');
+    var tyY=CY-YT*PPMy, onT=isElectron&&!hit&&Math.abs(Ys-YT)<0.0015;
+    ctx.save();ctx.strokeStyle=onT?'#34d399':'#f472b6';ctx.lineWidth=2;
+    [9,5].forEach(function(r){ctx.beginPath();ctx.arc(SX,tyY,r,0,6.2832);ctx.stroke();});ctx.restore();
+    simText(ctx,'מטרה',SX-14,tyY-12,onT?'#34d399':'#f472b6',10,'right');
     // trajectory: parabola between the plates, straight after them
     ctx.save();ctx.strokeStyle='#f59e0b';ctx.lineWidth=2.5;ctx.beginPath();
     for(var i=0;i<=80;i++){var xx=L*i/80, tt=xx/v0, yy=0.5*a*tt*tt;
@@ -15706,15 +15752,28 @@ function simElcDeflect(canvas){
       if(Math.abs(yy)>d_m/2)break;}
     ctx.stroke();ctx.restore();
     if(!hit){
-      var exX=X0+L*PPMx, exY=CY-sgn*yEx*PPMy;
-      var dx=(sx-exX)/PPMx, yS=yEx+Math.tan(ang)*dx;
+      var exX=pR, exY=CY-sgn*yEx*PPMy, sY=CY-Ys*PPMy;
       ctx.save();ctx.strokeStyle='#10b981';ctx.lineWidth=2.5;ctx.setLineDash([7,4]);
-      ctx.beginPath();ctx.moveTo(exX,exY);ctx.lineTo(sx,CY-sgn*yS*PPMy);ctx.stroke();ctx.restore();
-      ctx.fillStyle='#10b981';ctx.beginPath();ctx.arc(sx,CY-sgn*yS*PPMy,5,0,6.2832);ctx.fill();
-      simText(ctx,'ישר — אין שדה',(exX+sx)/2,CY-sgn*yS*PPMy-16,'#10b981',11,'center');
+      ctx.beginPath();ctx.moveTo(exX,exY);ctx.lineTo(SX,sY);ctx.stroke();ctx.restore();
+      ctx.fillStyle='#10b981';ctx.beginPath();ctx.arc(SX,sY,5,0,6.2832);ctx.fill();
+      // the straight part, extended back: it meets the axis at L/2
+      var mx=X0+L/2*PPMx;
+      if(yEx*PPMy>3){
+        ctx.save();ctx.strokeStyle='rgba(148,163,184,.6)';ctx.lineWidth=1.2;ctx.setLineDash([3,4]);
+        ctx.beginPath();ctx.moveTo(exX,exY);ctx.lineTo(mx,CY);ctx.stroke();ctx.restore();
+        ctx.save();ctx.fillStyle='#94a3b8';ctx.beginPath();ctx.arc(mx,CY,3,0,6.2832);ctx.fill();ctx.restore();
+        simText(ctx,'L/2',mx,CY+sgn*16+4,'#94a3b8',9.5,'center');
+        // the exit angle, as drawn (stretched), and its true value
+        var dA=Math.atan2(sgn*yEx*PPMy,(L/2)*PPMx),R=26;
+        ctx.save();ctx.strokeStyle='#e2e8f0';ctx.lineWidth=1.3;ctx.beginPath();
+        ctx.moveTo(exX,exY);ctx.lineTo(exX+R+14,exY);ctx.stroke();
+        ctx.beginPath();ctx.arc(exX,exY,R,sgn>0?-dA:0,sgn>0?0:dA);ctx.stroke();ctx.restore();
+        simText(ctx,'α = '+(ang*180/Math.PI).toFixed(1)+'°',exX+8,exY+sgn*17+4,'#e2e8f0',10.5,'left',true);   // under the level ray, clear of the beam
+      }
+      simText(ctx,'ישר — אין שדה',(exX+SX)/2,(exY+sY)/2-14,'#10b981',11,'center');
     }
     // the moving particle
-    var per=1.6, ph=(t0%per)/per, xN=ph*(L+(sx-X0-L*PPMx)/PPMx);
+    var per=1.6, ph=(t0%per)/per, xN=ph*(L+(SX-X0-L*PPMx)/PPMx);
     var yN, inside=xN<=L;
     if(inside)yN=0.5*a*(xN/v0)*(xN/v0);
     else yN=yEx+Math.tan(ang)*(xN-L);
@@ -15737,11 +15796,17 @@ function simElcDeflect(canvas){
       slTxt(ctx,'x = v₀t = '+(xHit*100).toFixed(1)+' cm  <  L = '+(L*100).toFixed(0)+' cm',W/2,by+44,'#94a3b8',12,'center');
     } else {
       slTxt(ctx,'t = L/v₀ = '+(tf*1e9).toFixed(2)+' ns      y = ½at² = '+(yEx*1000).toFixed(2)+' mm',W/2,by+22,'#dde6f0',13.5,'center',true);
-      slTxt(ctx,'α = '+(ang*180/Math.PI).toFixed(1)+'°',W/2,by+44,'#94a3b8',12,'center');
+      slTxt(ctx,'α = '+(ang*180/Math.PI).toFixed(1)+'°      על המסך: '+elcSg(Ys*1000,1)+' mm',W/2,by+44,'#94a3b8',12,'center');
     }
     simText(ctx,hit?'⚠ הסטייה עולה על חצי המרווח — החלקיק פוגע בלוח':
       'החלקיק יוצא מהלוחות וממשיך בקו ישר עד המסך',
       W/2,by+68,hit?'#ef4444':'#10b981',12,'center',true);
+    // ── the lesson's numbers ──
+    var mT=isElectron?'9.1×10⁻³¹':'1.67×10⁻²⁷';
+    kit.model(hit?'פוגע בלוח: '+_skM('½a t² = d/2 ⇒ t = √(d/a) = '+(tHit*1e9).toFixed(2)+' ns ⇒ x = v₀t = '+(xHit*100).toFixed(1)+' cm < L')
+      :'הסטייה ביציאה: '+_skM('y = qVL²/(2mdv₀²) = (1.6×10⁻¹⁹ × '+V.toFixed(0)+' × '+L.toFixed(2)+'²) / (2 × '+mT+' × 0.04 × ('+(v0/1e7).toFixed(2)+'×10⁷)²) = '+(yEx*1000).toFixed(2)+' mm'));
+    canvas.__df={y:yEx,Ys:Ys,YT:YT,ang:ang*180/Math.PI,hit:hit,D:D,L:L,v0:v0,V:V};   // for the tests
+    kit.check({el:isElectron,hit:hit,Ys:Ys,ang:ang*180/Math.PI,rescued:rescued});
     requestAnimationFrame(draw);
   }
   draw();
