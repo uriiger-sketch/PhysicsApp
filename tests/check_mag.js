@@ -111,7 +111,10 @@ const EXPECT = {
   t('dipole flux derivative is the slope of the flux', near(H.fd, H.an, Math.abs(H.an) * 1e-3), H.fd.toExponential(4) + ' vs ' + H.an.toExponential(4));
 
   // helpers to drive a simulation and read what it draws
-  const open = async (ch, se) => { await p.evaluate(([c, s]) => { state.subject = 'magnetism'; state.chapter = c; state.section = s; state.tab = 'sim'; render(); }, [ch, se]); await p.waitForTimeout(700); };
+  // open a section's simulation, and wait until it has drawn (its handlers are
+  // attached by then): on a loaded machine the boot can take longer than 0.7 s
+  const open = async (ch, se) => { await p.evaluate(([c, s]) => { state.subject = 'magnetism'; state.chapter = c; state.section = s; state.tab = 'sim'; render(); window.__txt = []; }, [ch, se]); await p.waitForTimeout(700);
+    for (let k = 0; k < 60 && !(await p.evaluate(() => window.__txt.length)); k++) await p.waitForTimeout(100); };
   // what the canvas drew in the next ms milliseconds — and, on a loaded machine
   // whose frames stall, until at least one whole frame has been drawn
   const read = async (ms = 120) => { await p.evaluate(() => { window.__txt = []; }); await p.waitForTimeout(ms);
@@ -202,8 +205,24 @@ const EXPECT = {
   t('  right-hand-rule challenge: the compass the sim expects is B ∝ I ẑ × r̂ (4 dealt), a wrong tap resets the streak', wOk && WH.done, WH.out.map(r => r.B + ':' + (r.fb || '').slice(0, 12)).join(' | '));
   await open('mag-field', 'mag-loop'); T = await read();
   t('loop: centre field = μ₀NI/2R (1.26 mT)', has(T, '1.26 mT'));
+  const md = () => p.evaluate(() => (document.querySelector('.sk-model-tx') || {}).textContent || ''); const mdone = i => p.evaluate(i => document.querySelectorAll('.sk-m')[i].classList.contains('done'), i);
+  let LM2 = await md();
+  t('  the model line: B = μ₀NI/2R = (4π×10⁻⁷ × 50 × 2.0)/(2 × 0.050) = 1.26 mT', LM2.includes('B = μ₀NI/2R = (4π×10⁻⁷ × 50 × 2.0)/(2 × 0.050) = 1.26 mT'), LM2.slice(0, 60));
+  // the probe at 0.766 R on the axis, where B = B(0)/2 (R²+x² = 2^(2/3)R²)
+  await p.evaluate(() => { const cv = document.getElementById('sim-canvas'), R = cv.getBoundingClientRect(), W = cv.offsetWidth, H = 500, TOP = H * 0.62, cy = TOP * 0.5;
+    const s = Math.min(W * 0.94 / 0.30, (cy - 16) / 0.105), x = W / 2 + 0.05 * Math.sqrt(Math.pow(2, 2 / 3) - 1) * s;
+    cv.dispatchEvent(new MouseEvent('mousedown', { clientX: R.left + x, clientY: R.top + cy, bubbles: true, cancelable: true }));
+    cv.dispatchEvent(new MouseEvent('mouseup', { bubbles: true })); });
+  await p.waitForTimeout(300); LM2 = await md();
+  const lPct = +((LM2.match(/= (\d+)%/) || [])[1]);
+  t('  at x = 0.77R on the axis the field is half the centre’s (B ∝ 1/(R²+x²)^3/2): 50 ± 1 % (a pixel of the probe), its mission', Math.abs(lPct - 50) <= 1 && await mdone(1), LM2.slice(-40));
   await open('mag-field', 'mag-solenoid'); await p.waitForTimeout(400); T = await read();
   t('solenoid: μ₀nI = 0.38 mT and the centre is 94% of it', has(T, '0.38 mT') && has(T, '94%'));
+  LM2 = await md();
+  t('  the model line: B = μ₀nI = 4π×10⁻⁷ × 75 × 4.0 = 0.38 mT, the exact sum at the centre 94 %', LM2.includes('B = μ₀nI = 4π×10⁻⁷ × 75 × 4.0 = 0.38 mT') && LM2.includes('= 94%'), LM2.slice(0, 70));
+  await slide('mgs-L', 30); await slide('mgs-N', 40); await p.waitForTimeout(600); LM2 = await md();
+  const sPct = +((LM2.match(/= (\d+)%/) || [])[1]);
+  t('  a long solenoid (L = 30 cm ≫ a = 3 cm): the centre is within 2 % of μ₀nI — the uniform-field mission', sPct >= 98 && await mdone(1), sPct + '%');
   await open('mag-force', 'mag-lorentz'); T = await read();
   const kmodel = () => p.evaluate(() => { const e = document.querySelector('.sk-model-tx'); return e ? e.textContent : ''; });
   let LM = await kmodel();
@@ -217,7 +236,10 @@ const EXPECT = {
     window.simText = function (c, s) { if (c.canvas === cv && /^\|v\| = /.test(s)) sp.add(s); return oT.apply(this, arguments); };
     document.getElementById('btn-mgz-go').click();
     const o = document.querySelectorAll('.sk-predict .sk-opt'); if (o.length && !o[0].disabled) o[2].click();
-    await new Promise(r => setTimeout(r, 2600)); window.simCircle = oC; window.simText = oT;
+    const turned = () => { const P = pts.slice(5); if (P.length < 8) return 0; const c = P[Math.floor(P.length / 2)]; let a = 0;
+      for (let i = 1; i < P.length; i++) { let d = Math.atan2(P[i][1] - c[1], P[i][0] - c[0]) - Math.atan2(P[i - 1][1] - c[1], P[i - 1][0] - c[0]); a += Math.abs((d + 3 * Math.PI) % (2 * Math.PI) - Math.PI); } return a; };
+    await new Promise(r => setTimeout(r, 2600)); for (let w = 0; w < 40 && pts.length < 400 && turned() < 3; w++) await new Promise(r => setTimeout(r, 200));
+    window.simCircle = oC; window.simText = oT;
     // the circle through three points far apart, then every point against it
     const P = pts.slice(5), a = P[0], b = P[Math.floor(P.length / 2)], c = P[P.length - 1];
     const d = 2 * (a[0] * (b[1] - c[1]) + b[0] * (c[1] - a[1]) + c[0] * (a[1] - b[1]));
@@ -284,7 +306,9 @@ const EXPECT = {
     window.simText = function (c, s) { if (c.canvas === cv) tx.add(s); return oT.apply(this, arguments); };
     const real = window.requestAnimationFrame; window.requestAnimationFrame = cb => real(t => { cur = []; cb(t); fr.push(cur); });
     document.getElementById(btn).click(); const op = document.querySelectorAll('.sk-predict .sk-opt'); if (ans !== undefined && op.length && !op[0].disabled) op[ans].click();
-    await new Promise(r => setTimeout(r, ms)); window.simCircle = o; window.simText = oT; window.requestAnimationFrame = real;
+    const X0 = cv.offsetWidth * 0.2, landed = () => btn === 'btn-mgr-pair' ? fr.some(f => f.length === 2 && f[0][0] < X0 - 1 && f[1][0] < X0 - 1 && f[0][1] < cv.offsetHeight - 40) : [...tx].some(t => /^2r = /.test(t));
+    await new Promise(r => setTimeout(r, ms)); for (let w = 0; w < 50 && !landed(); w++) await new Promise(r => setTimeout(r, 200));
+    await new Promise(r => setTimeout(r, 300)); window.simCircle = o; window.simText = oT; window.requestAnimationFrame = real;
     return { fr: fr.filter(f => f.length), tx: [...tx], H: cv.offsetHeight, W: cv.offsetWidth }; }, [btn, ms, ans]);
   let sh = await shoot('btn-mgr-fire', 3600);
   const sc0 = (sh.H - 64) / 0.42, yE0 = sh.H - 30, ys = sh.fr.map(f => f[0][1]);
@@ -305,17 +329,39 @@ const EXPECT = {
   const X0c = sh.W * 0.2, out1 = sh.fr.findIndex(f => f.length === 2 && f[0][0] < X0c - 1 && f[0][1] < yE0 - 5), out2 = sh.fr.findIndex(f => f.length === 2 && f[1][0] < X0c - 1 && f[1][1] < yE0 - 5);
   t('  v and 2v leave the field together (T = 2πm/qB), the faster on a circle twice as large', out1 > 0 && Math.abs(out1 - out2) <= 1 && await cDone(1), 'frames ' + out1 + ' / ' + out2);
   await open('mag-force', 'mag-spectro'); T = await read();
+  const spPaused = !has(T, '49.8 cm');
+  const spAsk = await p.evaluate(() => { document.getElementById('btn-mgp-run').click(); const o = document.querySelectorAll('.sk-predict .sk-opt'); if (o.length) o[1].click(); return o.length; });
+  T = await read();
+  t('spectrometer: the beam starts after a prediction (which isotope lands farthest?)', spPaused && spAsk === 3, spPaused + ' ' + spAsk);
   t('spectrometer: v = E/B = 4.00×10⁵ m/s; ¹²C and ¹⁴C land at 49.8 and 58.1 cm', has(T, '4.00×10⁵') && has(T, '49.8 cm') && has(T, '58.1 cm'));
-  await open('mag-force', 'mag-wireforce'); await p.waitForTimeout(2500); T = await read();
+  const SPM = await md();
+  t('  the model line: v = E/B = 4.0×10⁴/0.100 = 4.00×10⁵ m/s, 2r = 49.8 and 58.1 cm', SPM.includes('v = E/B = 4.0×10⁴/0.100 = 4.00×10⁵ m/s') && SPM.includes('49.8 cm') && SPM.includes('58.1 cm'), SPM.slice(0, 60));
+  await slide('mgp-E', 5); await p.waitForTimeout(400);
+  t('  E = 5×10⁴ V/m: only 5.00×10⁵ m/s passes, and ¹²C and ¹⁴C land 10.4 cm apart — both missions', await mdone(0) && await mdone(1) && (await md()).includes('5.00×10⁵'));
+  await open('mag-force', 'mag-wireforce'); T = await read();
+  const wfOpen = has(T, L('המעגל פתוח — אין זרם')) && (await md()).includes('= 0.000 N');
+  const wfAsk = await p.evaluate(() => { document.getElementById('btn-mgf-on').click(); const o = document.querySelectorAll('.sk-predict .sk-opt'); if (o.length) o[2].click(); return o.length; });
+  t('swing: no force until the circuit is closed — after a prediction of where the wire goes', wfOpen && wfAsk === 4, wfOpen + ' ' + wfAsk);
+  await p.waitForTimeout(2500); T = await read();
   const phi = num(T, /φ = ([\d.]+)°/);
   t('swing: F = BIL = 0.080 N, equilibrium tanφ = F/mg', has(T, '0.080 N') && near(phi, Math.atan(0.08 / 0.196) * 180 / Math.PI, 0.3), phi);
   t('  I out of the page, N above: pushed to the RIGHT', has(T, L('ימינה')));
   await click('btn-mgf-flip'); T = await read();
   t('  magnet flipped: pushed to the LEFT', has(T, L('שמאלה')));
+  await p.waitForTimeout(1500);
+  t('  …and the wire swings left: its mission', await mdone(0));
+  await slide('mgf-th', 0); await p.waitForTimeout(300);
+  t('  the wire along the field (θ = 0): F = BIL·sinθ = 0, though the current flows — its mission', (await md()).includes('sin 0° = 0.000 N') && await mdone(1));
+  await slide('mgf-th', 90); await slide('mgf-B', 0.55); await p.waitForTimeout(400);
+  const WFM = await md();
+  t('  B = 0.55 T: F = 0.110 N, tanφ = F/mg = 0.56 ⇒ φ = 29.3° — the 30° mission', WFM.includes('= 0.110 N') && WFM.includes('φ = 29.3°') && await mdone(2), WFM.slice(-30));
   await open('mag-force', 'mag-parallel'); T = await read();
   t('parallel: 10 A and 10 A at 5 cm, same way: 4.00×10⁻⁴ N/m, attraction', has(T, '4.00×10⁻⁴') && has(T, L('משיכה')));
   await slide('mgq-I2', -10); T = await read();
   t('  one current reversed: repulsion, same size', has(T, '4.00×10⁻⁴') && has(T, L('דחייה')));
+  t('  …the repulsion mission', await mdone(0));
+  await slide('mgq-I2', 30); T = await read(); const PM = await md();
+  t('  10 A and 30 A at 5 cm: F/L = 1.20×10⁻³ N/m on EACH wire (model line) — both missions', PM.includes('2×10⁻⁷ × 10 × 30/0.050 = 1.20×10⁻³ N/m') && has(T, '1.20×10⁻³') && await mdone(1) && await mdone(2), PM.slice(0, 70));
   await open('mag-force', 'mag-motor'); T = await read();
   const kmod = () => p.evaluate(() => (document.querySelector('.sk-model-tx') || {}).textContent || '');
   const MOV = L('ענו על השאלה שמתחת לסימולציה — והגרף יופיע כאן');
@@ -341,6 +387,9 @@ const EXPECT = {
   t('flux: BA at θ = 0 is 10.00 mWb', has(T, '10.00 mWb'));
   await slide('mgx-th', 60); T = await read();
   t('  and 5.00 mWb at 60°', has(T, '5.00 mWb'));
+  await slide('mgx-th', 90); await p.waitForTimeout(250); await slide('mgx-th', 180); await p.waitForTimeout(250);
+  const FXM = await md();
+  t('  90°: zero flux; 180°: Φ = BA·cos 180° = −10.00 mWb — all three flux missions', FXM.includes('cos 180° = −10.00 mWb') && await mdone(0) && await mdone(1) && await mdone(2), FXM);
   await open('mag-induction', 'mag-faraday'); T = await read();
   t('Faraday: a magnet at rest induces nothing', num(T, /ε = ([-−]?[\d.]+) mV/) === 0);
   // pair each readout with the caption drawn right after it, frame by frame
@@ -428,6 +477,13 @@ const EXPECT = {
   await p.waitForTimeout(1500); T = await read();
   const eps = num(T, /ε = BLv = ([\d.]+) V/), I = num(T, /I = ([\d.]+) A/), fb = num(T, /BIL = ([\d.]+) N/);
   t('  I = ε/R and BIL = B·I·L while it runs', near(I, eps / 2, 2e-3) && near(fb, 0.5 * I * 0.5, 2e-3), `ε=${eps} I=${I} F=${fb}`);
+  // B = 1 T: v_t = FR/B²L² = 0.40 m/s, reached in a few time constants M R/B²L² = 0.8 s
+  await slide('mgv-B', 1); await p.waitForTimeout(5000);
+  const MVM = await md(), mvv = +((MVM.match(/× ([\d.]+) = [\d.]+ V/) || [])[1]);
+  t('  at terminal speed (0.40 m/s at 1 T) Fv = I²R: the power mission', near(mvv, 0.4, 0.01) && await mdone(1), MVM.slice(0, 60));
+  const mvAsk = await p.evaluate(() => { document.getElementById('btn-mgv-go').click(); const o = document.querySelectorAll('.sk-predict .sk-opt'); if (o.length) o[1].click(); return o.length; });
+  await p.waitForTimeout(3000); const MV2 = await md(), mvv2 = +((MV2.match(/× ([\d.]+) = [\d.]+ V/) || [])[1]);
+  t('  the force removed (predicted first): magnetic braking slows the rod', mvAsk === 3 && mvv2 < 0.1, mvAsk + ' v=' + mvv2);
   await open('mag-induction', 'mag-generator'); T = await read();
   t('generator: ε_max = NBAω = 6.3 V, ε_rms = 4.4 V at 1 Hz', has(T, '6.3 V') && has(T, '4.4 V'));
   // turned by hand (an arrow key held: one turn a second): the model line is
@@ -541,6 +597,7 @@ const EXPECT = {
   await open('mag-force', 'mag-lorentz'); await click('btn-mgz-mode'); await click('btn-mgz-Bdir'); T = await read();
   t('Lorentz, B reversed to −x, v at 60°: θ from B is 240° and the force on + comes OUT of the page', has(T, 'θ = 240°') && has(T, L('F יוצא מהדף')));
   await open('mag-force', 'mag-wireforce');
+  await p.evaluate(() => { document.getElementById('btn-mgf-on').click(); const o = document.querySelectorAll('.sk-predict .sk-opt'); if (o.length) o[2].click(); });
   await slide('mgf-I', 10); await slide('mgf-B', 1); await slide('mgf-L', 0.3); await slide('mgf-m', 5); await p.waitForTimeout(2500);
   const WF = (await read(800)).filter(s => /^F = BIL/.test(s));
   t('current balance, F/mg ≈ 61: the wire rests on the pole face, F stays 3.000 N (no flicker)', WF.length > 10 && WF.every(s => s.includes('3.000 N')) && has(await read(), L('F גדול מדי: התיל נעצר על פני הקוטב העליון — לפני שהגיע לזווית שיווי המשקל')), WF.length + ' frames');
