@@ -366,6 +366,22 @@ const EXPECT = {
   }
   t('free fall: a 0.5 kg and a 5 kg ball thrown at 6 m/s land at the same t = 2v0/g', T6.every(x => close(x, 12 / 9.8, 0.006)) && await mission('kinematics.freefall', 2), T6.join(' s, ') + ' s');
 
+  // acceleration: negative a that speeds up, a turn-around, 10 m in 2 s
+  await open('kinematics.acceleration');
+  t('acceleration: a prediction is asked first — negative velocity and negative acceleration', (await predOpts()).length === 4, (await predOpts()).join(' | '));
+  await set('acc-v0', -4); await set('acc-a', -3);
+  await until(() => mission('kinematics.acceleration', 0), 4000);
+  t('acceleration: v₀ = −4 m/s, a = −3 m/s² — speeding up with a < 0, mission solved', await mission('kinematics.acceleration', 0));
+  await set('acc-v0', 6); await set('acc-a', -4);
+  await until(() => mission('kinematics.acceleration', 1), 5000);
+  t('... v₀ = +6 m/s, a = −4 m/s² turns round — mission solved', await mission('kinematics.acceleration', 1));
+  await set('acc-a', 5); await set('acc-v0', 0); await fresh(); await p.waitForTimeout(500);
+  const am = await modelTxt(), ar = await last('^' + LR('שטח = Δx = ') + '[−+]?[\\d.]+');
+  const axs = nums(await last('^t = .* · {3}x = '));
+  t('... the model line is v = v₀ + at, and the area under v(t) is the x travelled', /v = v₀ \+ at = 0 \+ 5\.0×/.test(am) && !!ar && Math.abs(nums(ar)[0] - axs[1]) <= 0.1, am + ' | ' + ar + ' | x ' + axs[1]);
+  await until(() => mission('kinematics.acceleration', 2), 4000);
+  t('... from rest with a = 5 m/s² it reaches x = 10 m at t = 2.00 s — mission solved', await mission('kinematics.acceleration', 2));
+
   // the incline: friction flips with the sliding, the section's problem, the angle of repose
   await open('newton2.n2-apps');
   t('incline: a prediction is asked first — which way friction points while the block slides up', (await predOpts()).length === 4, (await predOpts()).join(' | '));

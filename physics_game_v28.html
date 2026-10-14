@@ -3140,7 +3140,7 @@ const CONTENT={
       <p>מכוניות פורמולה 1 עוקפות את הגבול בעזרת כנפיים שמצמידות אותן לכביש, ומגיעות לכ־5g בבלימה.</p>`
     }
   },
-  sim:{type:'acceleration',title:'תאוצה אינטראקטיבית',desc:'גררו בפס העליון (או במחוון) כדי לשנות את a, ובחרו v₀. בגרף v(t) השיפוע הוא a והשטח שמתחת לקו הוא Δx; לידו x(t). ↺ איפוס מתחיל מחדש.'},
+  sim:{type:'acceleration',title:'תאוצה אינטראקטיבית',desc:'גררו בפס העליון (או במחוון) כדי לשנות את a, ובחרו v₀. בגרף v(t) השיפוע הוא a, והשטח שבין הקו לציר הוא Δx — שניהם כתובים עליו; לידו x(t). הריצה מתחילה מחדש כשהגוף מגיע ל־±10 m, או ב־״↺ איפוס״.'},
   example:{title:'תאוצה קבועה מהמנוחה',text:`גוף יוצא ממנוחה ומגיע למהירות ${M('20\\,\\text{m/s}')} תוך ${M('4\\,\\text{s}')}.`,steps:[
     {q:'מה התאוצה?',a:`${M('a=\\dfrac{\\Delta v}{\\Delta t}=\\dfrac{20-0}{4}=5\\,\\text{m/s}^2')}`},
     {q:'איזה מרחק עבר בזמן הזה?',a:`${M('x=\\tfrac12at^2=\\tfrac12\\times5\\times4^2=40\\,\\text{m}')}`},
@@ -10995,6 +10995,9 @@ function simAcceleration(canvas){
   const AXISY=108, GL=56, GR=W-34, GT=184, GB=H-42;
   const AMAX=10; const id=canvas.id;
   var acc=3, vel=0, xm=0, ballX=W/2, t=0, pT=null, dragging=false, hist=[];
+  // what the missions read: the last run's end, speeding up with v and a both
+  // negative, a turn-around with a ≠ 0
+  var runV0=0, lastEnd=null, negUp=0, turned=false, kitStep=null;
   function getAcc(){var el=document.getElementById('inp-acc-a');return el?parseFloat(el.value)||0:acc;}
   function getV0() {var el=document.getElementById('inp-acc-v0');return el?parseFloat(el.value)||0:0;}
   function runSpan(){
@@ -11019,7 +11022,14 @@ function simAcceleration(canvas){
     // Exact for piecewise-constant a: x += v·dt + ½a·dt². The old update
     // (v first, then x with the NEW v) put x(t) ahead of ½at² by ½a·t·dt and
     // made the x(t) curve disagree with the area under the v(t) line.
+    var x0s=xm, v0s=vel;
     xm+=vel*dt+0.5*acc*dt*dt; vel+=acc*dt;
+    if(v0s*vel<0&&Math.abs(acc)>=0.5)turned=true;
+    negUp=vel<-0.5&&acc<-0.4?negUp+dt:0;
+    // the instant |x| reaches 10 m, read off this step, before the run restarts
+    if(xm>10||xm<-10){var X=xm>10?10:-10,lo=0,hi=dt;
+      for(var it=0;it<40;it++){var tm=(lo+hi)/2;if(Math.abs(x0s+v0s*tm+0.5*acc*tm*tm)<10)lo=tm;else hi=tm;}
+      lastEnd={t:t-dt+hi,v0:runV0,a:acc,x:X};runV0=getV0();}
     // Reaching the edge used to reverse the velocity and destroy 75% of it
     // (vel=-vel*0.25), which turned v(t) into a sawtooth in the one section
     // whose caption reads "slope = a". A constant-acceleration run should show a
@@ -11027,7 +11037,7 @@ function simAcceleration(canvas){
     if(xm>10||xm<-10){ xm=0; vel=getV0(); t=0; hist=[]; }
     ballX=GL+(xm+10)/20*(GR-GL);
     // (xm is integrated above; no reverse conversion needed)
-    hist.push({t:t,v:vel,x:xm}); if(hist.length>400)hist.shift();
+    hist.push({t:t,v:vel,x:xm}); if(hist.length>1000)hist.shift();   // a whole run (≤ 12 s): the shaded area stays Δx
     simBg(ctx,W,H);
     // Accel control zone
     // The theory carries a misconception box about negative acceleration not
@@ -11097,7 +11107,10 @@ function simAcceleration(canvas){
     }
     [-20,-10,10,20].forEach(function(q){var yy=midV-(q/vMax)*(GB-GT)/2;simText(ctx,(q>0?'+':'')+q,gl-3,yy+3,'#5b7089',7,'right');ctx.save();ctx.strokeStyle='rgba(30,58,82,.5)';ctx.setLineDash([2,5]);ctx.beginPath();ctx.moveTo(gl,yy);ctx.lineTo(gr,yy);ctx.stroke();ctx.restore();});
         simText(ctx,'v (m/s) ↑',gl+3,GT+8,'#34d399',7,'left');
-    simText(ctx,'v(t)',gl+12,GT+20,'#34d399',9,'left'); simText(ctx,'שיפוע=a',gl+(gr-gl)/2,GB-3,'#7d8da6',8,'center'); simText(ctx,'שטח = Δx',gl+(gr-gl)*0.75,GT+13,'#a7f3d0',8,'center');
+    simText(ctx,'v(t)',gl+12,GT+20,'#34d399',9,'left');
+    // the slope is a, and the area between v(t) and the axis is Δx (signed)
+    simText(ctx,'שיפוע = a = '+_mkS(acc,1)+' m/s²',gl+(gr-gl)/2,GB-4,'#cbd5e1',9,'center',true);
+    simText(ctx,'שטח = Δx = '+_mkS(xm,1)+' m',gl+(gr-gl)*0.62,GT+14,'#a7f3d0',9,'center',true);
     simText(ctx,'t (s)',gr-4,GB-5,'#94a3b8',9,'right');
     // x(t)
     var gl2=GL+gW2+16, gr2=GR;
@@ -11117,7 +11130,9 @@ function simAcceleration(canvas){
     }
     [-10,-5,5,10].forEach(function(q){var yy=midX-(q/xMax)*(GB-GT)/2;simText(ctx,(q>0?'+':'')+q,gr2-3,yy-2,'#5b7089',7,'right');ctx.save();ctx.strokeStyle='rgba(30,58,82,.5)';ctx.setLineDash([2,5]);ctx.beginPath();ctx.moveTo(gl2,yy);ctx.lineTo(gr2,yy);ctx.stroke();ctx.restore();});
         simText(ctx,'x (m) ↑',gl2+3,GT+8,'#818cf8',7,'left');
-    simText(ctx,'x(t)',gl2+12,GT+20,'#818cf8',9,'left'); simText(ctx,'פרבולה',gl2+(gr2-gl2)/2,GB-3,'#7d8da6',8,'center');
+    simText(ctx,'x(t)',gl2+12,GT+20,'#818cf8',9,'left');
+    // a parabola only when a ≠ 0; with a = 0 x(t) is a straight line
+    simText(ctx,Math.abs(acc)<0.05?'קו ישר: a = 0':'פרבולה',gl2+(gr2-gl2)/2,GB-4,'#94a3b8',9,'center');
     simText(ctx,'t (s)',gr2-4,GB-5,'#94a3b8',9,'right');
     // time ticks under both plots, in seconds of this run
     var _ts=runSpan(), _dk=_kinTick(_ts,W<480?3:5);
@@ -11127,6 +11142,7 @@ function simAcceleration(canvas){
     }
     // Status bar
     simText(ctx,'t = '+t.toFixed(1)+' s   ·   x = '+(xm>=0?'+':'')+xm.toFixed(1)+' m   ·   v = '+(vel>=0?'+':'')+vel.toFixed(1)+' m/s   ·   a = '+(acc>=0?'+':'')+acc.toFixed(1)+' m/s²',W/2,GB+32,'#cbd5e1',10,'center');
+    if(kitStep)kitStep();
     requestAnimationFrame(draw);
   }
   function _acDn(e){
@@ -11144,9 +11160,33 @@ function simAcceleration(canvas){
   canvas.addEventListener('mousedown',_acDn);canvas.addEventListener('touchstart',_acDn,{passive:false});
   canvas.addEventListener('mousemove',_acMv);canvas.addEventListener('touchmove',_acMv,{passive:false});
   canvas.addEventListener('mouseup',_acUp);canvas.addEventListener('touchend',_acUp);
-  canvas.addEventListener('dblclick',function(){vel=getV0();xm=0;ballX=W/2;hist=[];t=0;});
-  var rb=document.getElementById('btn-acc-reset'); if(rb)rb.addEventListener('click',function(){vel=getV0();xm=0;ballX=W/2;hist=[];t=0;});
-  var v0e=document.getElementById('inp-acc-v0'); if(v0e)v0e.addEventListener('input',function(){vel=getV0();xm=0;ballX=W/2;hist=[];t=0;});
+  canvas.addEventListener('dblclick',function(){vel=getV0();xm=0;ballX=W/2;hist=[];t=0;runV0=getV0();});
+  var rb=document.getElementById('btn-acc-reset'); if(rb)rb.addEventListener('click',function(){vel=getV0();xm=0;ballX=W/2;hist=[];t=0;runV0=getV0();});
+  var v0e=document.getElementById('inp-acc-v0'); if(v0e)v0e.addEventListener('input',function(){vel=getV0();xm=0;ballX=W/2;hist=[];t=0;runV0=getV0();});
+  _mkKeys(canvas,{'ArrowRight':function(){simSyncSlider('acc-a',getAcc()+0.5,1);},'ArrowLeft':function(){simSyncSlider('acc-a',getAcc()-0.5,1);}});
+  var kit=simKit(canvas,{missions:[
+    {text:'גרמו לגוף להגביר מהירות בזמן שהתאוצה שלו שלילית.',
+     hint:'מה קורה כשגם '+_skM('v')+' שלילית? בחרו '+_skM('v₀')+' שלילית ו־'+_skM('a')+' שלילית.',
+     why:'כש־'+_skM('v')+' ו־'+_skM('a')+' באותו סימן, הגוף מגביר מהירות — גם כששניהם שליליים: הוא נע בכיוון השלילי ומהר יותר ויותר. ״תאוצה שלילית״ אינה ״האטה״; הסימן מציין כיוון.',
+     done:function(s){return s.negUp>=1;}},
+    {text:'גרמו לגוף להסתובב לאחור: '+_skM('v')+' עוברת דרך אפס בזמן ש־'+_skM('a ≠ 0')+'.',
+     hint:'תנו לו '+_skM('v₀')+' חיובית ותאוצה שלילית (או להפך), וצפו בגרף v(t) חוצה את ציר הזמן.',
+     why:'ברגע ההיפוך '+_skM('v = 0')+', אבל המהירות ממשיכה להשתנות באותו קצב: השיפוע של v(t) — התאוצה — אינו משתנה כשהקו חוצה את האפס. כך גם בשיא של זריקה.',
+     done:function(s){return s.turned;}},
+    {text:'ממנוחה, הגיעו ל־'+_skM('x = +10 m')+' בתוך '+_skM('2 s')+' בדיוק (עד '+_skM('0.05 s')+').',
+     hint:'ממנוחה '+_skM('x = ½at²')+'. איזו '+_skM('a')+' נותנת '+_skM('10 m')+' ב־'+_skM('2 s')+'?',
+     why:'מ־'+_skM('10 = ½·a·2²')+' יוצא '+_skM('a = 5 m/s²')+'. וזה גם השטח שמתחת לגרף v(t): משולש שבסיסו '+_skM('2 s')+' וגובהו '+_skM('10 m/s')+' — '+_skM('½·2·10 = 10 m')+'.',
+     done:function(s){return s.end&&s.end.v0===0&&s.end.x>0&&Math.abs(s.end.t-2)<=0.05;}}
+  ]});
+  var model=_mkModel(kit);
+  kit.predict({q:'מכונית נעה בכיוון השלילי של הציר, ותאוצתה שלילית. מה קורה לגודל מהירותה?',
+    opts:['גדל — היא מאיצה','קטן — היא מאטה','נשאר קבוע','אי אפשר לדעת בלי מספרים'],correct:0,
+    why:'הסימן של '+_skM('a')+' הוא כיוון, לא ״האטה״. כש־'+_skM('v')+' ו־'+_skM('a')+' באותו סימן — כאן שניהם שליליים — גודל המהירות גדל. בחרו '+_skM('v₀ < 0')+' ו־'+_skM('a < 0')+' וראו.'});
+  kitStep=function(){
+    model(_skM('v = v₀ + at = '+_mkS(runV0,0)+' '+(acc<0?'− ':'+ ')+Math.abs(acc).toFixed(1)+'×'+t.toFixed(2)+' = '+_mkS(vel,2)+' m/s')+' · '+
+      _skM('x = v₀t + ½at² = '+_mkS(xm,2)+' m'));
+    kit.check({negUp:negUp,turned:turned,end:lastEnd});
+  };
   requestAnimationFrame(draw);
 }
 
