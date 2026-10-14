@@ -3856,7 +3856,7 @@ const CONTENT={
       <p>זו גם שיטה פשוטה למדוד מקדם חיכוך: מטים משטח לאט ומודדים את הזווית שבה הגוף מתחיל לזוז.</p>`
     }
   },
-  sim:{type:'normal-force',title:'כוח נורמלי על מדרון',desc:'שנו את זווית המדרון — ראו כיצד N ורכיב המשקל לאורך המדרון משתנים. FBD בזמן אמת.'},
+  sim:{type:'normal-force',title:'כוח נורמלי על מדרון',desc:'הטו את המדרון (גררו אותו או השתמשו במחוון), ולחצו על הגוש ביד — או משכו אותו מעלה. ראו ש־N אינו תמיד mg: הוא מאזן את כל מה שלוחץ על המשטח בניצב לו.'},
   example:{title:'הכוח הנורמלי על מדרון',text:`גוש שמסתו ${M('4\\,\\text{kg}')} מונח על מדרון בזווית ${M('30^\\circ')}. (${M('g=9.8\\,\\text{m/s}^2')})`,steps:[
     {q:'מה הכוח הנורמלי?',a:`${M('N=mg\\cos30^\\circ=4\\times9.8\\times0.866\\approx33.9\\,\\text{N}')}`},
     {q:'למה הוא קטן מהמשקל (39.2 N)?',a:'הכוח הנורמלי מאזן רק את רכיב המשקל הניצב למשטח. הרכיב האחר, לאורך המדרון, אינו לוחץ על המשטח כלל.'},
@@ -13748,6 +13748,9 @@ function simNormalForce(canvas){
   function getTheta(){var e=document.getElementById('inp-nf-theta'); return e?parseFloat(e.value):0;}
   function getMass(){var e=document.getElementById('inp-nf-mass'); return e?parseFloat(e.value):4;}
   function getMu(){var e=document.getElementById('inp-nf-mu'); return e?parseFloat(e.value):0;}
+  // a hand on the block, vertical: + presses down, − pulls up (at most the
+  // whole weight: then the hand carries the block and N = 0)
+  function getF(){var e=document.getElementById('inp-nf-F'); return e?parseFloat(e.value):0;}
 
   var resetBtn=document.getElementById('btn-nf-reset');
   if(resetBtn)resetBtn.addEventListener('click',function(){sPos=0;sVel=0;});
@@ -13780,17 +13783,20 @@ function simNormalForce(canvas){
     if(Math.abs(theta-theta_prev)>0.5){sPos=0;sVel=0;theta_prev=theta;}
     var th=theta*Math.PI/180, cosT=Math.cos(th), sinT=Math.sin(th);
 
-    var N=m*g*cosT;
-    var W_par=m*g*sinT;
-    var W_grav=m*g;
+    // N is a constraint force: whatever keeps the block from sinking into the
+    // surface. It balances everything pressing on the surface -- the weight
+    // and the hand -- in the direction perpendicular to it.
+    var W_grav=m*g, Fh=Math.max(getF(),-W_grav), L=W_grav+Fh;
+    var N=L*cosT, Wperp=W_grav*cosT;
+    var W_par=W_grav*sinT, D_par=L*sinT;          // mg sinθ, and the whole push down the slope
     var fk=mu*N;
     // Static friction is now modelled, not just reported. While the block is at
     // rest and mg·sinθ does not exceed μN, friction exactly balances W∥ and the
     // block stays put — previously the panel printed f=μN regardless and the
     // arrow was hidden at rest, so the FBD visibly violated ΣF=0.
-    var isStatic=(Math.abs(sVel)<0.02 && W_par<=fk+1e-9);
-    var f_show=isStatic?W_par:fk;
-    var a_net=isStatic?0:(W_par/m-mu*g*cosT);
+    var isStatic=(Math.abs(sVel)<0.02 && D_par<=fk+1e-9);
+    var f_show=isStatic?D_par:fk;
+    var a_net=isStatic?0:(D_par-fk)/m;
     var PPM_N=60;                       // px per metre — sPos is in METRES
     var sMaxN=(INCL*0.88-34)/PPM_N;
     if(theta>0.5&&!isStatic){
@@ -13837,12 +13843,12 @@ function simNormalForce(canvas){
     simText(ctx,m+' kg',bCX,bCY+4,'#e0e7ff',9,undefined,true);
 
     // ── FORCE VECTORS, all from the block's centre, one scale ──
-    var arSc=Math.min(2.2,64/W_grav);
+    var arSc=Math.min(2.2,64/Math.max(W_grav,L));
     var wLen=W_grav*arSc;
     // components of W: along the slope (down-slope) and into the surface
     var dpx=-cosT, dpy=sinT;          // down-slope unit vector (canvas)
     var inx=sinT, iny=cosT;           // into-the-surface unit vector (canvas)
-    var wpL=W_par*arSc, wnL=N*arSc;
+    var wpL=W_par*arSc, wnL=Wperp*arSc;
     ctx.save(); ctx.strokeStyle='rgba(251,191,36,.35)'; ctx.lineWidth=1; ctx.setLineDash([2,4]);
     ctx.beginPath(); ctx.moveTo(bCX,bCY+wLen); ctx.lineTo(bCX+dpx*wpL,bCY+dpy*wpL);
     ctx.moveTo(bCX,bCY+wLen); ctx.lineTo(bCX+inx*wnL,bCY+iny*wnL); ctx.stroke(); ctx.setLineDash([]); ctx.restore();
@@ -13860,6 +13866,11 @@ function simNormalForce(canvas){
     var nLen=N*arSc;
     simArrow(ctx,bCX,bCY,bCX-inx*nLen,bCY-iny*nLen,'#a78bfa',2.5,10);
     simText(ctx,'N = '+N.toFixed(1)+' N',bCX-inx*(nLen+8),bCY-iny*(nLen+8)-4,'#c4b5fd',10,'center',true);
+    // the hand: pressing down onto the block's top, or pulling it up
+    // (on the block's down-slope side: the friction arrow goes up the slope)
+    if(Math.abs(Fh)>0.05){var hL=Math.abs(Fh)*arSc, tY=bCY-bS/2-4, hx=bCX-12;
+      if(Fh>0)simArrow(ctx,hx,tY-hL,hx,tY,'#34d399',2.6,10);else simArrow(ctx,hx,tY,hx,tY-hL,'#34d399',2.6,10);
+      simText(ctx,'F = '+Math.abs(Fh).toFixed(0)+' N',hx-6,tY-hL/2,'#86efac',10,'right',true);}
 
     // Friction (up the slope): static while held, kinetic while sliding
     if(mu>0.01&&f_show>0.3&&theta>0.5){
@@ -13890,16 +13901,16 @@ function simNormalForce(canvas){
     ctx.beginPath(); ctx.roundRect(PX,PY,PW,PHH,6); ctx.fill(); ctx.stroke(); ctx.restore();
     // on a phone: readouts in the right half, the N(θ) graph in the left half
     var PC=PHN?PX+PW*0.74:PX+PW/2;
-    simText(ctx,'N = mg·cosθ',PC,PY+18,'#c4b5fd',11,undefined,true);
+    simText(ctx,Math.abs(Fh)>0.05?'N = (mg + F)·cosθ':'N = mg·cosθ',PC,PY+18,'#c4b5fd',11,undefined,true);
     ctx.save(); ctx.strokeStyle='#1e4060'; ctx.lineWidth=1;
     ctx.beginPath(); ctx.moveTo(PX+5,PY+28); ctx.lineTo(PX+PW-5,PY+28); ctx.stroke(); ctx.restore();
-    [['θ = '+theta.toFixed(0)+'°','#fbbf24'],['m = '+m+' kg','#93c5fd'],['cosθ = '+cosT.toFixed(3),'#cbd5e1'],
+    [['θ = '+theta.toFixed(0)+'°','#fbbf24'],[Math.abs(Fh)>0.05?'m = '+m+' kg   F = '+_mkS(Fh,0)+' N':'m = '+m+' kg','#93c5fd'],['cosθ = '+cosT.toFixed(3),'#cbd5e1'],
      ['N = '+N.toFixed(1)+' N','#c4b5fd'],['W = mg = '+W_grav.toFixed(1)+' N','#fbbf24'],['W∥ = mg·sinθ = '+W_par.toFixed(1)+' N','#fde68a']]
     .forEach(function(r,k){ simText(ctx,r[0],PC,PY+46+k*(PHN?22:18),r[1],k===3?12:10,undefined,true); });
     if(!PHN){
     ctx.save(); ctx.strokeStyle='#1e4060'; ctx.lineWidth=1;
     ctx.beginPath(); ctx.moveTo(PX+5,PY+152); ctx.lineTo(PX+PW-5,PY+152); ctx.stroke(); ctx.restore();
-    simText(ctx,'θ = 0°:  N = mg',PC,PY+170,'#94a3b8',10,undefined,true);
+    simText(ctx,Math.abs(Fh)>0.05?'θ = 0°:  N = mg + F':'θ = 0°:  N = mg',PC,PY+170,'#94a3b8',10,undefined,true);
     simText(ctx,'θ = 90°:  N = 0',PC,PY+188,'#94a3b8',10,undefined,true);
     simText(ctx,'מדרון תלול יותר — N קטן יותר',PC,PY+206,'#fca5a5',10,undefined,true);
     }
@@ -13924,18 +13935,41 @@ function simNormalForce(canvas){
     ctx.beginPath(); ctx.arc(cpx,cpy,5,0,Math.PI*2); ctx.fill(); ctx.stroke(); ctx.restore();
     simText(ctx,'0°',PX+8,GY+GH+12,'#94a3b8',9,'left');
     simText(ctx,'90°',PX+PW-8,GY+GH+12,'#94a3b8',9,'right');
-    simText(ctx,'mg',PX+PW-10,GY+22,'#94a3b8',9,'right');
+    // N(0°) is the whole load, mg (+ the hand): at the curve's θ = 0 end
+    simText(ctx,Math.abs(Fh)>0.05?'mg + F':'mg',PX+14,GY+30,'#94a3b8',9,'left');
     PW=PW0;
 
     // Top banner
     var BW=PHN?W-16:PX-16;
     ctx.save(); ctx.fillStyle='rgba(6,14,28,.92)'; ctx.strokeStyle='#1e4060'; ctx.lineWidth=1.5;
     ctx.beginPath(); ctx.roundRect(8,6,BW,38,6); ctx.fill(); ctx.stroke(); ctx.restore();
-    simText(ctx,'N = mg·cosθ = '+N.toFixed(1)+' N',8+BW/2,21,'#c4b5fd',11,undefined,true);
-    simText(ctx,'N מאזן את רכיב המשקל הניצב למשטח',8+BW/2,37,'#94a3b8',9,undefined,true);
+    simText(ctx,Math.abs(Fh)>0.05?'N = (mg + F)·cosθ = '+N.toFixed(1)+' N':'N = mg·cosθ = '+N.toFixed(1)+' N',8+BW/2,21,'#c4b5fd',11,undefined,true);
+    simText(ctx,Math.abs(Fh)>0.05?'N מאזן את כל מה שלוחץ על המשטח — המשקל והיד':'N מאזן את רכיב המשקל הניצב למשטח',8+BW/2,37,'#94a3b8',9,undefined,true);
 
+    if(Math.abs(Fh)>0.05)model(_skM('N = (mg + F)·cosθ = ('+m.toFixed(1)+'×9.8 '+(Fh<0?'− ':'+ ')+Math.abs(Fh).toFixed(0)+')×cos'+theta.toFixed(0)+'° = '+N.toFixed(1)+' N')+(Fh<=-W_grav+1e-9?' — היד נושאת את כל המשקל':''));
+    else model(_skM('N = mg·cosθ = '+m.toFixed(1)+'×9.8×cos'+theta.toFixed(0)+'° = '+N.toFixed(1)+' N')+' · '+_skM('mg = '+W_grav.toFixed(1)+' N'));
+    kit.check({theta:theta,F:Fh,N:N,W:W_grav});
     requestAnimationFrame(draw);
   }
+  _mkKeys(canvas,{'ArrowUp':function(){simSyncSlider('nf-theta',getTheta()+1,0);},'ArrowDown':function(){simSyncSlider('nf-theta',getTheta()-1,0);}});
+  var kit=simKit(canvas,{missions:[
+    {text:'על משטח אופקי, לחצו על הגוש מלמעלה בכוח של '+_skM('20 N')+'. בכמה גדל N?',
+     hint:'השאירו '+_skM('θ = 0°')+' והזיזו את מחוון כוח היד ל־'+_skM('20 N')+'.',
+     why:'N הוא כוח אילוץ: הוא גדל ככל שצריך כדי שהגוש לא ישקע במשטח. עם היד '+_skM('N = mg + F')+' — הוא גדל ב־'+_skM('20 N')+' בדיוק, והמשקל לא השתנה.',
+     done:function(s){return s.theta<0.5&&Math.abs(s.F-20)<0.01;}},
+    {text:'בלי להטות את המשטח, גרמו לכך ש־'+_skM('N')+' יהיה קטן מהמשקל.',
+     hint:'מה יקרה אם היד תמשוך את הגוש מעלה, במקום ללחוץ?',
+     why:'כשהיד מושכת מעלה, היא נושאת חלק מהמשקל, והמשטח צריך לדחוף פחות: '+_skM('N = mg − F')+'. כש־F מגיע ל־mg, היד נושאת הכול ו־'+_skM('N = 0')+'.',
+     done:function(s){return s.theta<0.5&&s.N<s.W-0.5;}},
+    {text:'בלי היד, מצאו את הזווית שבה '+_skM('N')+' שווה בדיוק למחצית המשקל.',
+     hint:'על מדרון '+_skM('N = mg·cosθ')+'. מתי '+_skM('cosθ = ½')+'?',
+     why:_skM('cos60° = ½')+', ולכן ב־'+_skM('60°')+' המשטח דוחף רק חצי מהמשקל. השאר, '+_skM('mg·sin60°')+', הוא רכיב לאורך המדרון — הוא אינו לוחץ על המשטח כלל.',
+     done:function(s){return Math.abs(s.F)<0.01&&Math.abs(s.N-s.W/2)<=0.01*s.W;}}
+  ]});
+  var model=_mkModel(kit);
+  kit.predict({q:'גוש מונח במנוחה על מדרון של '+_skM('30°')+'. הכוח הנורמלי עליו:',
+    opts:['שווה למשקלו, '+_skM('mg'),'קטן מ־'+_skM('mg'),'גדול מ־'+_skM('mg'),'אפס — המדרון משופע'],correct:1,
+    why:'המשטח דוחף רק נגד מה שלוחץ עליו בניצב: רכיב המשקל הניצב, '+_skM('mg·cos30° ≈ 0.87 mg')+'. ״'+_skM('N = mg')+' תמיד״ נכון רק על משטח אופקי בלי כוחות נוספים. הטו את המדרון וראו.'});
   requestAnimationFrame(draw);
 }
 
@@ -34859,7 +34893,7 @@ function buildSim(sim){
   else if(sim.type==='inertia')extra=C(rng('friction',0,0.5,0.2,0.05,'חיכוך μ')+rng('in-F',0,40,15,0.5,'כוח הדחיפה F',' N')+rng('mass-in',1,15,5,0.5,'מסה m',' kg')+btn('in-hold','✋ דחיפה רציפה: כבויה','btn-secondary')+btn('in-reset','↺ איפוס','btn-secondary'));
   else if(sim.type==='newton2')extra=C(rng('mass',1,20,5,0.5,'מסה m',' kg')+rng('n2-F',-60,60,20,1,'כוח F',' N')+rng('n2-mu',0,0.8,0,0.05,'חיכוך μ')+btn('n2-reset','↺ איפוס','btn-secondary'));
   else if(sim.type==='newton3')extra=C(rng('n3-mA',20,90,60,5,'מסת A',' kg')+rng('n3-mB',20,90,30,5,'מסת B',' kg')+rng('n3-F',50,600,300,10,'כוח דחיפה',' N')+btn('n3-push','💥 דחפו!')+btn('n3-who','🔁 הדוחף: A','btn-secondary')+btn('n3-reset','↺ איפוס','btn-secondary'));
-  else if(sim.type==='normal-force')extra=C(rng('nf-theta',0,70,0,1,'זווית θ','°')+rng('nf-mass',1,12,4,0.5,'מסה m',' kg')+rng('nf-mu',0,0.7,0,0.05,'חיכוך μ')+btn('nf-reset','↺ איפוס','btn-secondary'));
+  else if(sim.type==='normal-force')extra=C(rng('nf-theta',0,70,0,1,'זווית θ','°')+rng('nf-mass',1,12,4,0.5,'מסה m',' kg')+rng('nf-F',-20,40,0,1,'כוח היד F (+ לוחץ מטה)',' N')+rng('nf-mu',0,0.7,0,0.05,'חיכוך μ')+btn('nf-reset','↺ איפוס','btn-secondary'));
   else if(sim.type==='incline')extra=C(rng('inc-theta',5,60,30,1,'זווית θ','°')+rng('inc-mu',0,0.8,0.3,0.05,'חיכוך μ (μₛ = μₖ)')+rng('inc-m',0.5,10,3,0.5,'מסה m',' kg')+rng('inc-v0',0.5,10,5,0.1,'מהירות הדחיפה v₀',' m/s')+btn('inc-push','⬆ דחפו במעלה','btn-primary')+btn('inc-drop','⬇ שחררו מלמעלה','btn-secondary')+btn('inc-reset','↺ איפוס','btn-secondary'));
   else if(sim.type==='tension')extra=C(rng('ten-m1',0.5,12,3,0.5,'m₁ אטווד',' kg')+rng('ten-m2',0.5,12,5,0.5,'m₂ אטווד',' kg')+rng('ten-el',0.5,5,3,0.5,'מסת הגוף במעלית',' kg')+rng('ten-ea',-5,5,0,0.5,'תאוצת המעלית',' m/s²')+btn('ten-launch','▶ שחררו!')+btn('ten-reset','↺ איפוס','btn-secondary'));
   else if(sim.type==='fbd')extra=C(rng('fbd-F',-10,25,0,0.5,'כוח נוסף על הגוף (+ מעלה)',' N')+btn('fbd-reset','↺ נקו הכול','btn-secondary'));

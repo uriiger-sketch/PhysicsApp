@@ -376,11 +376,28 @@ const EXPECT = {
   await until(() => mission('kinematics.acceleration', 1), 5000);
   t('... v₀ = +6 m/s, a = −4 m/s² turns round — mission solved', await mission('kinematics.acceleration', 1));
   await set('acc-a', 5); await set('acc-v0', 0); await fresh(); await p.waitForTimeout(500);
-  const am = await modelTxt(), ar = await last('^' + LR('שטח = Δx = ') + '[−+]?[\\d.]+');
-  const axs = nums(await last('^t = .* · {3}x = '));
+  // the area label and the status line of ONE frame (the area is drawn first)
+  const am = await modelTxt(), [ar, axl] = await p.evaluate(re => { const T = window.__T, R = new RegExp(re);
+    let i = T.length - 1; while (i >= 0 && !/^t = .* · {3}x = /.test(T[i])) i--;
+    let j = i; while (j >= 0 && !R.test(T[j])) j--; return [T[j], T[i]]; }, '^' + LR('שטח = Δx = '));
+  const axs = nums(axl);
   t('... the model line is v = v₀ + at, and the area under v(t) is the x travelled', /v = v₀ \+ at = 0 \+ 5\.0×/.test(am) && !!ar && Math.abs(nums(ar)[0] - axs[1]) <= 0.1, am + ' | ' + ar + ' | x ' + axs[1]);
   await until(() => mission('kinematics.acceleration', 2), 4000);
   t('... from rest with a = 5 m/s² it reaches x = 10 m at t = 2.00 s — mission solved', await mission('kinematics.acceleration', 2));
+
+  // the normal force: a constraint, not mg
+  await open('forces.normal-force');
+  t('normal force: a prediction is asked first — N on a 30° slope', (await predOpts()).length === 4, (await predOpts()).join(' | '));
+  await set('nf-F', 20); await fresh(); await p.waitForTimeout(300);
+  const nf20 = nums(await last('^N = \\(mg \\+ F\\)·cosθ = '))[0];
+  t('normal force: pressing 20 N on a flat surface gives N = mg + F = 59.2 N — mission solved', close(nf20, 4 * 9.8 + 20, 0.051) && await mission('forces.normal-force', 0), nf20);
+  await set('nf-F', -15); await fresh(); await p.waitForTimeout(300);
+  const nfm = nums(await last('^N = \\(mg \\+ F\\)·cosθ = '))[0];
+  t('... pulling up 15 N: N = mg − F = 24.2 N < mg — mission solved', close(nfm, 4 * 9.8 - 15, 0.051) && await mission('forces.normal-force', 1), nfm);
+  await set('nf-mass', 1); await fresh(); await p.waitForTimeout(300);
+  t('... a 1 kg block pulled up with 15 N > mg: N cannot go negative — the hand carries the weight, N = 0', nums(await last('^N = \\(mg \\+ F\\)·cosθ = '))[0] === 0);
+  await set('nf-mass', 4); await set('nf-F', 0); await set('nf-theta', 60); await fresh(); await p.waitForTimeout(300);
+  t('... no hand, 60°: N = mg cos60° = ½mg — mission solved', close(nums(await last('^N = mg·cosθ = '))[0], 19.6, 0.051) && await mission('forces.normal-force', 2));
 
   // the incline: friction flips with the sliding, the section's problem, the angle of repose
   await open('newton2.n2-apps');
