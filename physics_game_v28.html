@@ -6484,7 +6484,7 @@ const OPTICS_CONTENT={
       <div class="mis-block"><b>⚠️ טעות נפוצה:</b> ״הפסים הבהירים הם הצללים — או התמונות — של שני הסדקים״. שני סדקים נותנים <b>פסים רבים</b>, והמרווח ביניהם, ${M('\\Delta y=\\lambda L/d')}, תלוי באורך הגל ו<b>גדל</b> כשמקרבים את הסדקים זה לזה — ההפך ממה שצללים היו עושים. גררו בסימולציה את הסדקים זה אל זה וצפו בפסים מתרחקים.</div>
       <div class="theory-anim">${animCanvas('anim-youngs-t',152,'ניסוי יאנג — פסי הבהירות')}</div>`,
   },
-  sim:{type:'opt-youngs',desc:'גררו את הגלאי לאורך המסך — ראו את הפרש הדרכים Δ=r₂−r₁ ביחידות λ ואת סוג ההתאבכות. גררו גם את הסדקים (d) ואת המסך (L)!'},
+  sim:{type:'opt-youngs',desc:'על המסך — הדפוס האמיתי של שני סדקים ברוחב a: פסי ההתאבכות cos²(πd sinθ/λ) בתוך מעטפת העקיפה של כל סדק (הקו המקווקו). גררו את הסמנים A ו־B לאורך המסך — כל אחד מראה את הפרש הדרכים r₂−r₁ — ומדדו ביניהם את מרווח הפסים. גררו גם סדק (d) ואת המסך (L).'},
   example:{title:'מרווח הפסים בניסוי יאנג',text:`אור באורך גל ${M('\\lambda=600\\,\\text{nm}')} עובר דרך שני סדקים שהמרחק ביניהם ${M('d=0.2\\,\\text{mm}')}, והמסך נמצא במרחק ${M('L=1\\,\\text{m}')}.`,
     steps:[
       {q:'מהו המרווח בין פסים בהירים סמוכים?',a:`${M('\\Delta y=\\dfrac{\\lambda L}{d}=\\dfrac{600\\times10^{-9}\\times1}{0.2\\times10^{-3}}=3\\times10^{-3}\\,\\text{m}=3\\,\\text{mm}')}`},
@@ -18970,184 +18970,116 @@ function simOptInterference(canvas){
   }requestAnimationFrame(draw);
 }
 
-// ─── YOUNG'S DOUBLE SLIT — Enhanced ──────────────────────────────
+// ─── YOUNG'S DOUBLE SLIT — the true two-slit pattern, measured ─────────
+// Two slits of width a, centres d apart, a screen at L. The intensity on the
+// screen is the two-slit interference times each slit's own diffraction,
+//   I(θ) = cos²(π d sinθ / λ) · [sin(π a sinθ/λ) / (π a sinθ/λ)]²,
+// drawn on ONE fixed scale (mm on the screen), so a change of d, L or λ is
+// seen as a change of the picture. Two markers on the screen are a ruler:
+// each reports its path difference r₂ − r₁ from the exact geometry, and the
+// distance between them is what the learner measures Δy = λL/d with. Where
+// d/a is a whole number an order falls exactly on a diffraction minimum and
+// is missing -- the envelope is not decoration.
+function _optSinc2(x){return Math.abs(x)<1e-9?1:Math.pow(Math.sin(x)/x,2);}
 function simOptYoungs(canvas){
   const H=460;const{ctx,W,dpr}=setupCanvas(canvas,H);
-  const id=canvas.id;var animT=0;
-  var slitX=W<520?56:90,cy=H/2,_LG=W<520?80:150,_RG=W<520?44:70;   // margins that leave a phone a usable range of L
-  function getVals(){
-    var lE=document.getElementById('inp-ys-lambda'),dE=document.getElementById('inp-ys-d'),LE=document.getElementById('inp-ys-L');
-    return{lambda:lE?parseFloat(lE.value):500,d:dE?parseFloat(dE.value):0.3,L:LE?parseFloat(LE.value):1};
-  }
+  const id=canvas.id;var animT=0,reduce=_reducedMotion(),touched=false,drag=null;
+  var narrow=W<520,slitX=narrow?50:84,cy=Math.round(H*0.47),PXMM=(H*0.44)/16;   // 16 mm of screen above and below the centre
+  var _LG=narrow?70:140,_RG=narrow?54:80;
+  function g(k,d){var e=document.getElementById('inp-'+k);return e?parseFloat(e.value):d;}
   function LtoX(L){return slitX+_LG+(L-0.5)/2.5*(W-_RG-(slitX+_LG));}
   function XtoL(x){return 0.5+2.5*(x-(slitX+_LG))/(W-_RG-(slitX+_LG));}
-  function calc(){
-    var v=getVals();
-    var lam_m=v.lambda*1e-9,d_m=v.d*1e-3,L_m=v.L;
-    var Dy_m=lam_m*L_m/d_m;
-    var SCALE_PX=(H*0.17)/(500e-9*1.0/0.3e-3);
-    // No upper cap. DyPx used to be clamped at 0.38·H while the measuring bar
-    // beside it was labelled with the UNCLAMPED Δy in mm — so wherever the cap
-    // bound (λ=500 nm, L=1 m, d=0.1 mm already exceeds it) the learner measured
-    // fringes that disagreed with the formula printed next to them, in the
-    // simulation built to verify Δy = λL/d. On a fixed scale a wide separation
-    // just gives wide fringes, which is the right answer.
-    // dScale likewise: clamp(d·88,14,88) pinned the drawn separation at 14 px
-    // for every d below 0.159 mm — a sixth of the slider — while the drag
-    // handler inverted the unclamped map, so grabbing a slit there jumped it.
-    return{v:v,lam_m:lam_m,d_m:d_m,L_m:L_m,Dy_m:Dy_m,S:SCALE_PX,
-      DyPx:Math.max(4,Dy_m*SCALE_PX),
-      scrX:LtoX(v.L),dScale:14+(v.d-0.1)/0.9*74};
-  }
-  // ── Direct manipulation: detector probe, screen distance, slit separation ──
-  var detY=null,dragWhat=null,hasDragged=false;
-  function _dn(e){
-    var p=simPointerXY(canvas,dpr,e),c=calc();
-    var dy0=detY===null?cy-c.DyPx:detY;
-    if(Math.abs(p.x-(c.scrX+16))<22&&Math.abs(p.y-dy0)<20)dragWhat='det';
-    else if(Math.abs(p.x-c.scrX)<14)dragWhat='screen';
-    else if(Math.abs(p.x-slitX)<18&&Math.abs(Math.abs(p.y-cy)-c.dScale)<18)dragWhat='slit';
-    if(dragWhat){hasDragged=true;canvas.style.cursor='grabbing';e.preventDefault();}
-  }
-  function _mv(e){
-    var p=simPointerXY(canvas,dpr,e);
-    if(dragWhat==='det'){detY=Math.max(12,Math.min(H-12,p.y));e.preventDefault();}
-    else if(dragWhat==='screen'){simSyncSlider('ys-L',XtoL(p.x),2);e.preventDefault();}
-    else if(dragWhat==='slit'){simSyncSlider('ys-d',0.1+(Math.abs(p.y-cy)-14)/74*0.9,2);e.preventDefault();}
-    else{
-      var c=calc();var dy0=detY===null?cy-c.DyPx:detY;
-      canvas.style.cursor=((Math.abs(p.x-(c.scrX+16))<22&&Math.abs(p.y-dy0)<20)||Math.abs(p.x-c.scrX)<14||(Math.abs(p.x-slitX)<18&&Math.abs(Math.abs(p.y-cy)-c.dScale)<18))?'grab':'';
-    }
-  }
-  function _up(){dragWhat=null;canvas.style.cursor='';}
-  canvas.addEventListener('mousedown',_dn);canvas.addEventListener('touchstart',_dn,{passive:false});
-  canvas.addEventListener('mousemove',_mv);canvas.addEventListener('touchmove',_mv,{passive:false});
-  canvas.addEventListener('mouseup',_up);canvas.addEventListener('touchend',_up);
+  var yA=null,yB=null;                           // the two markers, mm on the screen
+  function vals(){var lam=g('ys-lambda',500)*1e-9,d=g('ys-d',0.3)*1e-3,L=g('ys-L',1),a=Math.min(g('ys-a',0.04),0.9*g('ys-d',0.3))*1e-3;
+    return {lam:lam,d:d,L:L,a:a,dy:lam*L/d,scr:LtoX(L),ds:12+(g('ys-d',0.3)-0.1)/0.9*70};}
+  function I(v,ymm){var y=ymm*1e-3,s=y/Math.sqrt(y*y+v.L*v.L);
+    return Math.pow(Math.cos(Math.PI*v.d*s/v.lam),2)*_optSinc2(Math.PI*v.a*s/v.lam);}
+  function pathM(v,ymm){var y=ymm*1e-3,r1=Math.hypot(v.L,y-v.d/2),r2=Math.hypot(v.L,y+v.d/2);return (r2-r1)/v.lam;}
+  function yPx(ymm){return cy-ymm*PXMM;}
+  function hit(p){var v=vals(),mx=v.scr+20;
+    if(Math.abs(p.x-mx)<24){var dA=Math.abs(p.y-yPx(yA)),dB=Math.abs(p.y-yPx(yB));if(Math.min(dA,dB)<26)return dA<=dB?'A':'B';}
+    if(Math.abs(p.x-v.scr)<14)return 'scr';
+    if(Math.abs(p.x-slitX)<20&&Math.abs(Math.abs(p.y-cy)-v.ds)<22)return 'slit';
+    return null;}
+  simDrag(canvas,dpr,{down:function(p){drag=hit(p);if(drag)touched=true;},
+    move:function(p){var ym=Math.max(-15.5,Math.min(15.5,(cy-p.y)/PXMM));
+      if(drag==='A')yA=ym;if(drag==='B')yB=ym;
+      if(drag==='scr')simSyncSlider('ys-L',XtoL(p.x),2);
+      if(drag==='slit')simSyncSlider('ys-d',0.1+(Math.abs(p.y-cy)-12)/70*0.9,2);},
+    up:function(){drag=null;}});
+  canvas.addEventListener('mousemove',function(e){if(!drag)canvas.style.cursor=hit(simPointerXY(canvas,dpr,e))?'grab':'default';});
+  canvas.tabIndex=0;
+  canvas.addEventListener('keydown',function(e){if(e.key!=='ArrowUp'&&e.key!=='ArrowDown')return;e.preventDefault();touched=true;
+    yA=Math.max(-15.5,Math.min(15.5,yA+(e.key==='ArrowUp'?0.05:-0.05)));});
+  var kit=simKit(canvas,{missions:[
+    {text:'קרבו את הסדקים זה לזה. האם הפסים מתקרבים או מתרחקים?',
+     hint:'גררו סדק אל הציר (או הקטינו את d) עד '+_skM('d ≤ 0.15 mm')+'.',
+     why:_skM('Δy = λL/d')+': ככל שהסדקים קרובים יותר הפסים <b>מתרחקים</b> — ההפך ממה שצללים של שני הסדקים היו עושים. הפסים אינם תמונות של הסדקים, אלא מקומות שבהם הפרש הדרכים הוא מספר שלם של אורכי גל.',
+     done:function(s){return s.d<=0.15e-3+1e-9;}},
+    {text:'מדדו את מרווח הפסים: הציבו את שני הסמנים על פסים בהירים שביניהם 5 מרווחים',
+     hint:'כל סמן מראה את הפרש הדרכים שלו; פס בהיר כש־'+_skM('Δ = mλ')+'. הציבו סמן אחד על '+_skM('m = 0')+' ואת השני על '+_skM('m = 5')+'.',
+     why:'המרחק בין הסמנים חלקי 5 הוא '+_skM('Δy')+', והוא שווה ל־'+_skM('λL/d')+'. כך יאנג מדד ב־1801 את אורך הגל של האור — לראשונה.',
+     done:function(s){return s.onA&&s.onB&&s.IA>0.02&&s.IB>0.02&&Math.abs(Math.round(s.mA)-Math.round(s.mB))===5;}},
+    {text:'סדר שנעלם: גרמו לפס בהיר שבו '+_skM('Δ = mλ')+' להיות חשוך',
+     hint:'קבעו '+_skM('d')+' שהוא כפולה שלמה של רוחב הסדק '+_skM('a')+' (למשל '+_skM('d = 3a')+'), והציבו סמן על הפס המתאים.',
+     why:'שם '+_skM('d sinθ = mλ')+' — אבל גם '+_skM('a sinθ = λ')+': כל סדק לבדו שולח לשם אפס אור (מינימום עקיפה), ולהתאבכות אין מה לחבר.',
+     done:function(s){return s.onA&&Math.round(s.mA)>=2&&s.IA<0.03;}}]});
   function draw(){
     if(_simStop[id])return;
-    animT+=0.04;
-    var c=calc(),v=c.v;
-    var scrX=c.scrX,DyPx=c.DyPx,dScale=c.dScale;
-    if(detY===null)detY=cy-DyPx;
-    var col=wavelengthToHex(v.lambda);
-    var bgG=ctx.createLinearGradient(0,0,0,H);bgG.addColorStop(0,'#020810');bgG.addColorStop(1,'#030d1a');
-    ctx.fillStyle=bgG;ctx.fillRect(0,0,W,H);
-    var s1y=cy-dScale,s2y=cy+dScale;
-    // Source
-    ctx.save();ctx.fillStyle=col;optGlow(ctx,col,20);
-    ctx.beginPath();ctx.arc(24,cy,8,0,Math.PI*2);ctx.fill();optNoGlow(ctx);ctx.restore();
-    optLabel(ctx,'מקור',24,cy+22,'#7d8da6',9);
-    // Source→slit rays + photons
-    var sp=(animT*0.45)%1;
-    [s1y,s2y].forEach(function(sy){
-      ctx.save();ctx.strokeStyle=col;ctx.lineWidth=1;ctx.globalAlpha=0.35;
-      ctx.beginPath();ctx.moveTo(24,cy);ctx.lineTo(slitX-4,sy);ctx.stroke();
-      ctx.globalAlpha=1;ctx.fillStyle=col;optGlow(ctx,col,8);
-      ctx.beginPath();ctx.arc(24+(slitX-28)*sp,cy+(sy-cy)*sp,2.5,0,Math.PI*2);ctx.fill();
-      optNoGlow(ctx);ctx.restore();
-    });
-    // Barrier with two slits (draggable separation)
-    var slitH=8;
-    ctx.save();ctx.fillStyle='rgba(15,28,46,.95)';ctx.strokeStyle='rgba(71,85,105,.4)';ctx.lineWidth=1;
-    ctx.beginPath();ctx.roundRect(slitX-4,10,8,s1y-slitH-10,2);ctx.fill();ctx.stroke();
-    ctx.beginPath();ctx.roundRect(slitX-4,s1y+slitH,8,s2y-s1y-slitH*2,2);ctx.fill();ctx.stroke();
-    ctx.beginPath();ctx.roundRect(slitX-4,s2y+slitH,8,H-s2y-slitH-10,2);ctx.fill();ctx.stroke();
-    ctx.restore();
-    optLabel(ctx,'d='+v.d.toFixed(2)+'mm ↕',slitX+26,cy,col,9);
-    optLabel(ctx,'S₁',slitX-14,s1y,'#94a3b8',8);
-    optLabel(ctx,'S₂',slitX-14,s2y,'#94a3b8',8);
-    // Huygens wavelets from both slits
-    for(var w=1;w<=4;w++){
-      var rr=(w*24+(animT*30)%24);
-      [s1y,s2y].forEach(function(sy){
-        ctx.save();ctx.strokeStyle=col;ctx.globalAlpha=0.10*(5-w)/4;ctx.lineWidth=1;
-        ctx.beginPath();ctx.arc(slitX,sy,rr,-Math.PI/2,Math.PI/2);ctx.stroke();ctx.restore();
-      });
-    }
-    // Screen: BRIGHT wide fringes (cos² profile)
-    var fadeIn=Math.min(1,animT*0.25);
-    ctx.save();
-    for(var yy=6;yy<H-6;yy++){
-      var I=Math.pow(Math.cos(Math.PI*(yy-cy)/DyPx),2);
-      if(I<0.02)continue;
-      ctx.fillStyle=col;ctx.globalAlpha=I*fadeIn;
-      ctx.fillRect(scrX-8,yy,16,1);
-    }
-    ctx.restore();
-    // Intensity curve I(y) beside the screen
-    ctx.save();ctx.strokeStyle=col;ctx.lineWidth=1.6;ctx.globalAlpha=0.8;
-    ctx.beginPath();
-    for(var yy2=6;yy2<H-6;yy2+=2){
-      var I2=Math.pow(Math.cos(Math.PI*(yy2-cy)/DyPx),2);
-      var xx=scrX-12-I2*52;
-      yy2===6?ctx.moveTo(xx,yy2):ctx.lineTo(xx,yy2);
-    }
-    ctx.stroke();ctx.restore();
-    // Screen frame (draggable → L)
-    ctx.save();ctx.strokeStyle='rgba(148,163,184,.5)';ctx.lineWidth=1.5;
-    ctx.strokeRect(scrX-8,6,16,H-12);ctx.restore();
-    // The screen's name goes beside the verdict panel where the panel (drawn
-    // later) would cover it -- the screen near the slits, on a phone -- or,
-    // with no room there either, just above the panel.
-    var scT='מסך ↔ L='+v.L.toFixed(2)+'m';ctx.save();ctx.font='9px Heebo,sans-serif';var scW=ctx.measureText(_mathIso(scT)).width;ctx.restore();
-    var scX=scrX,scY=H-10;
-    if(scX-scW/2<246+4){scX=Math.min(Math.max(scX,252+scW/2),W-4-scW/2);if(scX-scW/2<250){scX=scrX;scY=H-88;}}
-    optLabel(ctx,scT,scX,scY,'#94a3b8',9);
-    // Δy bracket
-    if(DyPx>H*0.44){
-      optLabel(ctx,'\u200eΔy = '+(c.Dy_m*1000).toFixed(2)+' mm — רחב מהמסך',scrX-92,cy-H*0.30,'#fbbf24',8.5);
-    }
-    if(DyPx>12&&DyPx<=H*0.44){
-      ctx.save();ctx.strokeStyle='#fbbf24';ctx.lineWidth=1;ctx.setLineDash([3,4]);
-      ctx.beginPath();ctx.moveTo(scrX-64,cy);ctx.lineTo(scrX-64,cy-DyPx);ctx.stroke();
-      ctx.setLineDash([]);ctx.restore();
-      optLabel(ctx,'Δy='+(c.Dy_m*1000).toFixed(2)+'mm',scrX-64,cy-DyPx-10,'#fbbf24',8.5);
-    }
-    // ── DETECTOR: the path-difference probe (exact geometry) ──
-    var y_m=(cy-detY)/c.S;           // y upward, S₁ at +d/2
-    var r1=Math.sqrt(c.L_m*c.L_m+(y_m-c.d_m/2)*(y_m-c.d_m/2));
-    var r2=Math.sqrt(c.L_m*c.L_m+(y_m+c.d_m/2)*(y_m+c.d_m/2));
-    var dPath=Math.abs(r2-r1);
-    var mVal=dPath/c.lam_m;
-    var mR=Math.round(mVal);
-    var toInt=Math.abs(mVal-mR);
-    var toHalf=Math.abs(mVal-(Math.floor(mVal)+0.5));
-    var kind=toInt<0.08?'max':toHalf<0.08?'min':'mid';
-    var kCol=kind==='max'?'#34d399':kind==='min'?'#f87171':'#e2e8f0';
-    // r1, r2 rays from the slits to the detector
-    ctx.save();ctx.setLineDash([5,5]);ctx.lineWidth=1.4;
-    ctx.strokeStyle='rgba(251,191,36,.75)';
-    ctx.beginPath();ctx.moveTo(slitX,s1y);ctx.lineTo(scrX-8,detY);ctx.stroke();
-    ctx.strokeStyle='rgba(34,211,238,.75)';
-    ctx.beginPath();ctx.moveTo(slitX,s2y);ctx.lineTo(scrX-8,detY);ctx.stroke();
-    ctx.setLineDash([]);ctx.restore();
-    // r₁ and r₂ are named a little way along their rays -- far enough to clear
-    // "d=…mm ↕" beside the slits, which r₂ ran into with the screen near them
-    ctx.save();ctx.font='9px Heebo,sans-serif';var dEnd=slitX+26+ctx.measureText(_mathIso('d='+v.d.toFixed(2)+'mm ↕')).width/2;ctx.restore();
-    var rf=Math.min(0.75,Math.max(0.45,(dEnd+10-slitX)/Math.max(1,scrX-slitX)));
-    optLabel(ctx,'r₁',slitX+(scrX-slitX)*rf,s1y+(detY-s1y)*rf-10,'#fbbf24',9);
-    optLabel(ctx,'r₂',slitX+(scrX-slitX)*rf,s2y+(detY-s2y)*rf+12,'#22d3ee',9);
-    // detector marker
-    ctx.save();ctx.fillStyle=kCol;optGlow(ctx,kCol,14);
-    ctx.beginPath();ctx.arc(scrX+16,detY,8,0,Math.PI*2);ctx.fill();optNoGlow(ctx);
-    ctx.fillStyle='#0b1220';ctx.beginPath();ctx.arc(scrX+16,detY,3.5,0,Math.PI*2);ctx.fill();ctx.restore();
-    if(!hasDragged&&animT<9){
-      optLabel(ctx,'✋ גררו את הגלאי',scrX-40,detY-22+Math.sin(animT*4)*3,'#fbbf24',10);
-    }
-    // verdict panel
-    ctx.save();ctx.fillStyle='rgba(4,9,20,.9)';ctx.strokeStyle=kCol;ctx.lineWidth=1.5;
-    ctx.beginPath();ctx.roundRect(8,H-78,238,70,7);ctx.fill();ctx.stroke();ctx.restore();
-    optLabel(ctx,'גלאי: y = '+(y_m*1000).toFixed(2)+' mm',127,H-62,'#e2e8f0',10);
-    optLabel(ctx,'Δ = r₂−r₁ = '+mVal.toFixed(2)+'λ',127,H-45,kCol,11);
-    optLabel(ctx,kind==='max'?'התאבכות בונה — פס בהיר (m='+mR+')':kind==='min'?'התאבכות הורסת — פס כהה':'בין מקסימום למינימום',127,H-26,kCol,9.5);
-    var ib=optInfoBox(ctx,8,8,176,['λ='+v.lambda+'nm','d='+v.d.toFixed(2)+'mm  (גררו סדק)','L='+v.L.toFixed(2)+'m  (גררו מסך)','Δy=λL/d='+(c.Dy_m*1000).toFixed(2)+'mm']);
-    // I(y) names its curve at the top -- or just under the info box, which
-    // covered that spot (and "λ=500nm") whenever the screen stood near the slits
-    ctx.save();ctx.font='8px Heebo,sans-serif';var iyW=ctx.measureText('I(y)').width;ctx.restore();
-    optLabel(ctx,'I(y)',scrX-56,scrX-56-iyW/2<ib.x+ib.w+3?ib.y+ib.h+10:16,'#7d8da6',8);
+    animT+=reduce?0:0.016;
+    var v=vals(),col=wavelengthToHex(g('ys-lambda',500)),rgb=wavelengthToRGB(g('ys-lambda',500)).match(/\d+/g),scrX=v.scr;
+    if(yA===null){yA=0;yB=5*v.dy*1000*0.97;}
+    var bg=ctx.createLinearGradient(0,0,0,H);bg.addColorStop(0,'#020810');bg.addColorStop(1,'#030d1a');ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);
+    var s1y=cy-v.ds,s2y=cy+v.ds,sw=Math.max(2,Math.min(9,v.a*1e3*40));
+    // source and the light reaching the slits
+    ctx.save();ctx.fillStyle=col;optGlow(ctx,col,18);ctx.beginPath();ctx.arc(20,cy,7,0,Math.PI*2);ctx.fill();optNoGlow(ctx);ctx.restore();
+    [s1y,s2y].forEach(function(sy){ctx.save();ctx.strokeStyle=col;ctx.globalAlpha=0.35;ctx.beginPath();ctx.moveTo(20,cy);ctx.lineTo(slitX-4,sy);ctx.stroke();ctx.restore();});
+    // the barrier: two slits of width a (drawn wider than to scale)
+    ctx.save();ctx.fillStyle='rgba(15,28,46,.96)';ctx.strokeStyle='rgba(71,85,105,.5)';
+    ctx.fillRect(slitX-4,8,8,s1y-sw-8);ctx.fillRect(slitX-4,s1y+sw,8,s2y-s1y-2*sw);ctx.fillRect(slitX-4,s2y+sw,8,H-8-s2y-sw);ctx.restore();
+    simHandle(ctx,slitX,s1y,'#cbd5e1',11);
+    optLabel(ctx,'d = '+g('ys-d',0.3).toFixed(2)+' mm',slitX+10,cy,col,9.5,'left');
+    // wavelets from both slits
+    for(var w=1;w<=4;w++){var rr=w*24+(animT*30)%24;
+      [s1y,s2y].forEach(function(sy){ctx.save();ctx.strokeStyle=col;ctx.globalAlpha=0.09*(5-w)/4;ctx.beginPath();ctx.arc(slitX,sy,rr,-Math.PI/2,Math.PI/2);ctx.stroke();ctx.restore();});}
+    // the screen: the pattern itself, and I(y) beside it
+    var top=8,bot=H-8;
+    for(var py=top;py<bot;py++){var Iy=I(v,(cy-py)/PXMM);if(Iy<0.01)continue;
+      ctx.fillStyle='rgba('+rgb[0]+','+rgb[1]+','+rgb[2]+','+Iy.toFixed(3)+')';ctx.fillRect(scrX-7,py,14,1);}
+    ctx.save();ctx.strokeStyle='rgba(148,163,184,.55)';ctx.lineWidth=1.2;ctx.strokeRect(scrX-7,top,14,bot-top);ctx.restore();
+    var amp=narrow?40:56;
+    ctx.save();ctx.strokeStyle=col;ctx.lineWidth=1.5;ctx.globalAlpha=0.85;ctx.beginPath();
+    for(var y2=top;y2<=bot;y2++){var x2=scrX-10-I(v,(cy-y2)/PXMM)*amp;y2===top?ctx.moveTo(x2,y2):ctx.lineTo(x2,y2);}ctx.stroke();
+    // the single-slit envelope, dashed
+    ctx.setLineDash([3,4]);ctx.globalAlpha=0.5;ctx.beginPath();
+    for(var y3=top;y3<=bot;y3+=2){var ym=(cy-y3)/PXMM*1e-3,s=ym/Math.sqrt(ym*ym+v.L*v.L),x3=scrX-10-_optSinc2(Math.PI*v.a*s/v.lam)*amp;y3===top?ctx.moveTo(x3,y3):ctx.lineTo(x3,y3);}ctx.stroke();ctx.restore();
+    simHandle(ctx,scrX,bot-14,'#94a3b8',11);
+    optLabel(ctx,'L = '+v.L.toFixed(2)+' m',scrX+12,H-14,'#cbd5e1',9.5,'left');
+    // the ruler: two markers, each with its path difference
+    var mk=function(ym,name,c){var py=yPx(ym),m=pathM(v,ym);
+      ctx.save();ctx.strokeStyle='rgba(255,255,255,.35)';ctx.setLineDash([4,5]);
+      ctx.beginPath();ctx.moveTo(slitX,s1y);ctx.lineTo(scrX-7,py);ctx.moveTo(slitX,s2y);ctx.lineTo(scrX-7,py);ctx.stroke();ctx.restore();
+      ctx.save();ctx.fillStyle=c;optGlow(ctx,c,10);ctx.beginPath();ctx.arc(scrX+20,py,7,0,Math.PI*2);ctx.fill();optNoGlow(ctx);
+      ctx.fillStyle='#0b1220';ctx.beginPath();ctx.arc(scrX+20,py,3,0,Math.PI*2);ctx.fill();ctx.restore();
+      optLabel(ctx,name,scrX+32,py,c,10,'left');return m;};
+    var mA=mk(yA,'A','#34d399'),mB=mk(yB,'B','#fbbf24');
+    ctx.save();ctx.strokeStyle='rgba(203,213,225,.7)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(scrX+44,yPx(yA));ctx.lineTo(scrX+44,yPx(yB));ctx.stroke();ctx.restore();
+    var IA=I(v,yA),onA=Math.abs(mA-Math.round(mA))<0.08,onB=Math.abs(mB-Math.round(mB))<0.08;
+    if(!touched&&animT<10)optLabel(ctx,'✋ גררו את הסמנים A ו־B',(slitX+scrX)/2,18+(reduce?0:Math.sin(animT*4)*3),'#fbbf24',10);
+    // the reading
+    var kind=function(m,Iv){var r=Math.round(m),fr=Math.abs(m-r);return fr<0.08?(Iv<0.03?'מקסימום שנעלם':'פס בהיר, m = '+Math.abs(r)):Math.abs(fr-0.5)<0.08?'פס כהה':'בין פסים';};
+    var px0=8,pw=Math.min(250,scrX-30),pyB=H-70;
+    ctx.save();ctx.fillStyle='rgba(4,9,20,.9)';ctx.strokeStyle='rgba(148,163,184,.5)';ctx.lineWidth=1;ctx.beginPath();ctx.roundRect(px0,pyB,pw,62,7);ctx.fill();ctx.stroke();ctx.restore();
+    var ltr=document.documentElement.dir==='ltr',tx0=ltr?px0+8:px0+pw-8,al=ltr?'left':'right';
+    optLabel(ctx,'A: Δ = '+Math.abs(mA).toFixed(2)+'λ — '+kind(mA,IA),tx0,pyB+13,'#34d399',9.5,al);
+    optLabel(ctx,'B: Δ = '+Math.abs(mB).toFixed(2)+'λ — '+kind(mB,I(v,yB)),tx0,pyB+31,'#fbbf24',9.5,al);
+    optLabel(ctx,'AB = '+Math.abs(yA-yB).toFixed(2)+' mm',tx0,pyB+49,'#e2e8f0',10,al);
+    // the law, in numbers
+    kit.model(_skM('Δy = λL/d = '+(v.lam*1e9).toFixed(0)+'×10⁻⁹ · '+v.L.toFixed(2)+' / '+(v.d*1e3).toFixed(2)+'×10⁻³ = '+(v.dy*1e3).toFixed(2)+' mm')+'; מעטפת הסדק הבודד מתאפסת ב־'+_skM('y = λL/a = '+(v.lam*v.L/v.a*1e3).toFixed(1)+' mm')+'.');
+    kit.check({d:v.d,a:v.a,mA:mA,mB:mB,onA:onA,onB:onB,IA:IA,IB:I(v,yB)});
     requestAnimationFrame(draw);
   }
-  function poll(){if(_simStop[id])return;requestAnimationFrame(draw);}poll();
+  requestAnimationFrame(draw);
 }
 
 // ─── DIFFRACTION — Enhanced ───────────────────────────────────────
@@ -34574,7 +34506,7 @@ function buildSim(sim){
   else if(sim.type==='opt-concave-lens')extra=C(rng('dcl-do',15,400,209,1,'מרחק העצם dₒ',' mm')+rng('dcl-f',50,160,95,1,'אורך מוקד |f|',' mm')+rng('dcl-wl',380,700,550,5,'צבע אור λ',' nm'));
   else if(sim.type==='opt-eye')extra=C(rng('eye-dist',-1,1.1,0.301,0.005,'מרחק העצם','','_fmtEyeD')+rng('eye-P',-6,6,0,0.05,'עוצמת המשקפיים P','','_fmtEyeP')+btn('eye-normal','😊 עין תקינה','btn-primary')+btn('eye-myopia','👓 קוצר ראייה','btn-secondary')+btn('eye-hyper','🔭 רוחק ראייה','btn-secondary')+btn('eye-presby','📖 פרסביופיה','btn-secondary'));
   else if(sim.type==='opt-interference')extra=C(rng('int-lambda',380,700,500,10,'אורך גל λ',' nm')+rng('int-d',1,4,2,0.1,'מרחק מקורות d',' μm'));
-  else if(sim.type==='opt-youngs')extra=C(rng('ys-lambda',400,700,500,10,'אורך גל λ',' nm')+rng('ys-d',0.1,1,0.3,0.05,'מרחק סדקים d',' mm')+rng('ys-L',0.5,3,1,0.1,'מרחק מסך L',' m'));
+  else if(sim.type==='opt-youngs')extra=C(rng('ys-lambda',400,700,500,10,'אורך גל λ',' nm')+rng('ys-d',0.1,1,0.3,0.05,'מרחק סדקים d',' mm')+rng('ys-a',0.02,0.2,0.04,0.01,'רוחב כל סדק a',' mm')+rng('ys-L',0.5,3,1.5,0.1,'מרחק מסך L',' m'));
   else if(sim.type==='opt-diffraction')extra=C(rng('diff-a',0.05,1,0.1,0.01,'רוחב סדק a',' mm')+rng('diff-lambda',380,700,500,10,'אורך גל λ',' nm'));
   else if(sim.type==='opt-em-spectrum')extra=C(rng('ems-pos',0,100,45,1,'מיקום בספקטרום','%'));
   else if(sim.type==='opt-polarization')extra=C(rng('pol-angle',0,180,45,1,'זווית המנתח','°')+rng('pol-mid',0,180,45,1,'זווית המקטב האמצעי','°')+rng('pol-i0',20,100,80,5,'עוצמה ראשונית I₀','%')+btn('pol-mid','➕ הכניסו מקטב באמצע','btn-secondary'));

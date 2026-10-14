@@ -283,6 +283,38 @@ const EXPECT = {
   await reach('opt-waves', 'thin-film', [async () => p.evaluate(() => document.getElementById('btn-tf-soap').click()), ['tf-thick', 10], ['tf-thick', 100],
     async () => p.evaluate(() => document.getElementById('btn-tf-ar').click()), ['tf-thick', 100]], '111');
 
+  // ── Young: Δy = λL/d in the equation line; the markers read the exact path
+  // difference; the missions (fringes spread as d shrinks, a measured Δy, a
+  // missing order where d = 3a) are reachable by dragging the markers ──
+  const capT = () => p.evaluate(() => { if (window.__PT) return; window.__PT = []; const o = CanvasRenderingContext2D.prototype.fillText;
+    CanvasRenderingContext2D.prototype.fillText = function (s) { if (typeof s === 'string' && this.canvas.id === 'sim-canvas') { window.__PT.push(s.replace(/[⁦-⁩‎]/g, '')); if (window.__PT.length > 3000) window.__PT.splice(0, 1500); } return o.apply(this, arguments); }; });
+  const lastT = re => p.evaluate(src => { const R = new RegExp(src), a = (window.__PT || []).filter(s => R.test(s)); return a.length ? a[a.length - 1] : null; }, re);
+  await capT();
+  await open('opt-waves', 'youngs-slits');
+  const ygeo = () => p.evaluate(() => { const cv = document.getElementById('sim-canvas'), b = cv.getBoundingClientRect(), W = cv.offsetWidth, H = cv.offsetHeight, nw = W < 520,
+    sx = nw ? 50 : 84, a = sx + (nw ? 70 : 140), L = +document.getElementById('inp-ys-L').value, scr = a + (L - 0.5) / 2.5 * (W - (nw ? 54 : 80) - a);
+    return { x: b.left, y: b.top, scr, cy: Math.round(H * 0.47), k: H * 0.44 / 16 }; });
+  const yOf = (m, lam, d, L) => { const s = m * lam / d; return L * s / Math.sqrt(1 - s * s) * 1e3; };   // mm, where r₂ − r₁ = mλ
+  const dragMk = async (fromMm, toMm) => { await p.evaluate(() => document.getElementById('sim-canvas').scrollIntoView({ block: 'center' })); await p.waitForTimeout(120);
+    const g = await ygeo(), X = g.x + g.scr + 20, Y = mm => g.y + g.cy - mm * g.k;
+    await p.mouse.move(X, Y(fromMm)); await p.mouse.down(); await p.mouse.move(X, (Y(fromMm) + Y(toMm)) / 2); await p.mouse.move(X, Y(toMm)); await p.mouse.up(); await p.waitForTimeout(160); };
+  for (const [lam, d, L] of [[500, 0.3, 1.5], [650, 0.5, 2], [400, 0.1, 1]]) {
+    await setv('ys-lambda', lam); await setv('ys-d', d); await setv('ys-L', L); await p.waitForTimeout(140);
+    const g = /= (\d+\.\d\d) mm;/.exec(await modelTx()), want = lam * 1e-9 * L / (d * 1e-3) * 1e3;
+    t(`Young λ=${lam} d=${d} L=${L}: Δy = λL/d`, g && Math.abs(+g[1] - want) < 0.006, (g || [])[1] + ' vs ' + want.toFixed(3));
+  }
+  await p.evaluate(() => { state.missions = {}; render(); }); await p.waitForTimeout(1100);
+  await p.evaluate(() => document.querySelector('#app .sim-container').dispatchEvent(new Event('click')));
+  await setv('ys-lambda', 500); await setv('ys-L', 1.5); await setv('ys-a', 0.04); await setv('ys-d', 0.15); await p.waitForTimeout(160);
+  await setv('ys-d', 0.3); await p.waitForTimeout(160);
+  const yB0 = 5 * 500e-9 * 1.5 / 0.3e-3 * 1e3 * 0.97, yB5 = yOf(5, 500e-9, 0.3e-3, 1.5);
+  await dragMk(yB0, yB5);
+  const rb = await lastT('^B: Δ = ');
+  t('Young: marker B on m = 5 reads Δ = 5.00λ (exact geometry)', rb && /Δ = 5\.0\dλ|Δ = 4\.9\dλ/.test(rb), String(rb));
+  await setv('ys-a', 0.1); await p.waitForTimeout(140);
+  await dragMk(0, yOf(3, 500e-9, 0.3e-3, 1.5));
+  t('Young: every mission is reachable', await missions() === '111', await missions());
+
   // ── the eye: vergence model, glasses touching the eye. Sharp exactly when
   // 1/d − P lies in [D_far, D_far + A]; the glasses' image dᵢ = 1/(P − 1/d)
   // is in the equation line; the section's problem (+3.33 D) is a mission ──
@@ -351,7 +383,7 @@ const EXPECT = {
       return [[ox, y], [ox + 15, y], [ox + 30, y]]; }, { slider: 'eye-dist' }],
     ['optics', 'opt-lenses', 'telescope', (W, H) => { const m = W * 0.05, sc = (W - m * 2 - 70) / (150 * 1.3 + 25), L1 = m + 150 * sc * 0.3; return [[L1, H / 2], [L1 + 10, H / 2], [L1 + 20, H / 2]]; }, { slider: 'tel-fo' }],
     ['optics', 'opt-waves', 'interference', W => [[W * 0.7, 120], [W * 0.75, 160]], { text: '^Δ = \\|r₂' }],
-    ['optics', 'opt-waves', 'youngs-slits', W => { const x = 136 + 0.2 * (W - 180); return [[x, 300], [x + 20, 300], [x + 40, 300]]; }, { slider: 'ys-L' }],
+    ['optics', 'opt-waves', 'youngs-slits', W => { const nw = W < 520, a = (nw ? 50 : 84) + (nw ? 70 : 140), x = a + 0.4 * (W - (nw ? 54 : 80) - a); return [[x, 300], [x + 20, 300], [x + 40, 300]]; }, { slider: 'ys-L' }],
     ['optics', 'opt-waves', 'diffraction', W => [[W - 52, 220], [W - 52, 260], [W - 52, 300]], { text: '^' + LR('גלאי: a·sinθ = ') }],
     ['optics', 'opt-waves', 'thin-film', W => { const x = Math.max(10, W * 0.04) + Math.min(110, W * 0.24) / 2; return [[x, 150], [x, 200], [x, 260]]; }, { slider: 'tf-thick' }],
     ['optics', 'opt-modern', 'polarization', (W, H) => { const y = Math.round(H * 0.31), x = W * 0.69; return [[x + 20, y], [x + 10, y + 20], [x, y + 25]]; }, { slider: 'pol-angle' }],
