@@ -4378,7 +4378,7 @@ const CONTENT={
       <p>היום מודדים את ${M('g')} בנפילה חופשית בתוך ריק, בעזרת לייזרים ושעונים אטומיים, בדיוק של חלק למיליארד.</p>`
     }
   },
-  sim:{type:'atwood',title:'מכונת אטווד',desc:'שנו m₁ ו־m₂ — ראו תאוצה, מתיחות T, וכיוון תנועה בזמן אמת.'},
+  sim:{type:'atwood',title:'מכונת אטווד',desc:'הגלגלת בלומה, וכל מד-כוח בחוט מראה את משקל המסה שלו. הקישו על הגלגלת (או לחצו ״▶ שחררו!״) ועקבו אחרי שני המדים: לאן תגיע המתיחות? שנו את המסות, ומדדו בסרגל את הירידה של m₂.'},
   example:{title:'מכונת אטווד',text:`שתי מסות, ${M('m_1=3\\,\\text{kg}')} ו־${M('m_2=5\\,\\text{kg}')}, תלויות משני צדי גלגלת חסרת חיכוך. (${M('g=9.8\\,\\text{m/s}^2')})`,steps:[
     {q:'מה התאוצה?',a:`${M('a=\\dfrac{m_2-m_1}{m_1+m_2}\\,g=\\dfrac{2}{8}\\times9.8=2.45\\,\\text{m/s}^2')} — ${M('m_2')} יורדת ו־${M('m_1')} עולה.`},
     {q:'מה המתיחות בחוט?',a:`מהמשוואה של ${M('m_1')}: ${M('T=m_1(g+a)=3\\times12.25=36.75\\,\\text{N}')}`},
@@ -11905,10 +11905,17 @@ function simIncline(canvas){
       if(v>1e-9&&v+a*dt<0){var ts=-v/a;s+=v*ts+0.5*a*ts*ts;v=0;dt-=ts;
         if(run&&run.stopUp===null){run.stopUp=s-sMin();run.tStop=tRun;}continue;}
       if(v<-1e-9&&a>0&&v+a*dt>0){var ts2=-v/a;s+=v*ts2+0.5*a*ts2*ts2;v=0;dt-=ts2;continue;}
+      // an end of the ramp reached inside this step: stop the step at the
+      // exact instant, so the speed at the foot is the true one, not the
+      // speed one frame later (a frame is up to 40 ms)
+      var sN=s+v*dt+0.5*a*dt*dt, end=v<0&&sN<=sMin()?sMin():v>0&&sN>=sMax()?sMax():null;
+      if(end!==null){var lo=0,hi=dt;
+        for(var it=0;it<40;it++){var tm=(lo+hi)/2,sm=s+v*tm+0.5*a*tm*tm;if(v<0?sm>end:sm<end)lo=tm;else hi=tm;}
+        v+=a*hi;s=end;dt=0;break;}
       s+=v*dt+0.5*a*dt*dt;v+=a*dt;dt=0;
     }
-    if(s>=sMax()&&v>0){s=sMax();v=0;bumped=true;if(run){run.bump=true;if(run.stopUp===null)run.stopUp=s-sMin();}}
-    if(s<=sMin()&&v<0){vFoot=v;toFloor();}
+    if(s>=sMax()-1e-9&&v>0){s=sMax();v=0;bumped=true;if(run){run.bump=true;if(run.stopUp===null)run.stopUp=s-sMin();}}
+    if(s<=sMin()+1e-9&&v<0){vFoot=v;toFloor();}
     if(run){if(v>0.02)run.up=true;if(v<-0.02&&run.up)run.down=true;
       run.held=!onFloor&&Math.abs(v)<1e-9&&holds()&&run.up&&!run.bump;}
   }
@@ -16263,177 +16270,162 @@ function simCircular(canvas){
 // m1 on left, m2 on right. If m2>m1: m2 goes down, m1 goes up.
 // Physics: a=(m2-m1)g/(m1+m2), T=2m1m2g/(m1+m2)
 // ─────────────────────────────────────────────────────────────
+// CH3: THE ATWOOD MACHINE — the tension, discovered between the two weights
+// The learning goal (the section's misconception box): the string does not
+// "hold the heavy mass", T ≠ m₂g. Released, the heavy mass accelerates down,
+// so T < m₂g; the light one accelerates up, so T > m₁g: the tension lies
+// between the two weights, T = 2m₁m₂g/(m₁+m₂), and a = (m₂−m₁)g/(m₁+m₂).
+// A spring scale in each side of the string reads its tension. Before the
+// release the pulley is braked: each mass hangs at rest, so each side reads
+// its own weight (T₁ = m₁g, T₂ = m₂g -- the brake takes the difference).
+// Released (tap the pulley or press ▶), the brake lets go and both scales
+// fall to the same T, between the weights. The pulley and the string are
+// massless and the pulley turns freely; a ruler beside m₂ measures the drop.
 function simAtwood(canvas){
-  const H=540; const {ctx,W,dpr}=setupCanvas(canvas,H);
-  const id=canvas.id;
-  const g=9.8;
-  // A pulley wide enough that the two hanging masses never overlap (with an
-  // 18 px pulley the ropes were 28 px apart and the 46-100 px blocks covered
-  // each other).
-  const PX=W*0.50, CEIL_Y=32, PR=42, PY0=CEIL_Y+PR+6, PPM=50;
-  var d=0, tRun=0;
-  var maxY=H-128;          // the masses stop above the readout panel, not under it
-  var y1=CEIL_Y+PR+8, y2=CEIL_Y+PR+8;  // TOP of each mass box
-  var vel=0, pT=null;
-  var running=false, started=false;
+  const _c0=setupCanvas(canvas,520), W=_c0.W, dpr=_c0.dpr, PH=W<600;
+  const H=PH?600:520; const ctx=PH?setupCanvas(canvas,H).ctx:_c0.ctx;
+  const id=canvas.id, g=9.8;
+  const PX=PH?W*0.42:W*0.36, CEIL=28, PR=PH?36:44, PY0=CEIL+PR+8, PPM=PH?46:56;
+  const TOPY=PY0+PR*0.4+60;                       // the highest a mass's top may rise
+  const BOT=PH?H-166:H-40;                       // the lowest a mass may reach
+  var d=0, v=0, run=false, ended=false, pT=null, tRun=0, rec=null, vAt2=null;
+  function getM1(){var e=document.getElementById('inp-atw-m1');return e?parseFloat(e.value):3;}
+  function getM2(){var e=document.getElementById('inp-atw-m2');return e?parseFloat(e.value):5;}
+  function bh(m){return Math.max(30,Math.min(70,22+m*5));}
+  function bw(m){return Math.max(36,Math.min(66,30+m*3.6));}
+  // both masses start level, with as much room to rise as to fall; d is how
+  // far m₂ has gone DOWN (m)
+  function y0(){return (TOPY+BOT-Math.max(bh(getM1()),bh(getM2())))/2;}
+  var launchB=document.getElementById('btn-atw-launch');
+  function lbl(){if(launchB)launchB.textContent=run?'🔒 בלמו':'▶ שחררו!';}
+  function reset(){d=0;v=0;run=false;ended=false;tRun=0;rec=null;vAt2=null;lbl();}
+  // ▶ lets the brake go; 🔒 brakes again, which stops the masses where they are
+  function release(){if(ended)reset();run=!run;
+    if(run){var m1=getM1(),m2=getM2();rec={m1:m1,m2:m2,a:(m2-m1)*g/(m1+m2),T:2*m1*m2*g/(m1+m2),t:0};}
+    else v=0;
+    lbl();}
+  if(launchB)launchB.addEventListener('click',release);
+  var rb=document.getElementById('btn-atw-reset');if(rb)rb.addEventListener('click',reset);
+  ['inp-atw-m1','inp-atw-m2'].forEach(function(q){var e=document.getElementById(q);if(e)e.addEventListener('input',function(){if(!run)reset();});});
+  simDrag(canvas,dpr,{down:function(p){if(Math.hypot(p.x-PX,p.y-PY0)<PR+18)release();}});
+  _mkKeys(canvas,{' ':release,'Enter':release});
 
-  function getM1(){var e=document.getElementById('inp-atw-m1'); return e?parseFloat(e.value):3;}
-  function getM2(){var e=document.getElementById('inp-atw-m2'); return e?parseFloat(e.value):5;}
+  var kit=simKit(canvas,{missions:[
+    {text:'שחררו את הבלם, והשוו את המתיחות בחוט לשני המשקלים.',
+     hint:'לחצו על הגלגלת, וקראו את שני מדי-הכוח שבחוט לפני השחרור ואחריו.',
+     why:'הכבדה מאיצה מטה, ולכן '+M('T<m_2g')+'; הקלה מאיצה מעלה, ולכן '+M('T>m_1g')+'. המתיחות, '+M('T=\\frac{2m_1m_2g}{m_1+m_2}')+', נמצאת תמיד בין שני המשקלים — החוט אינו ״מחזיק״ את הכבדה.',
+     done:function(s){return s.rec&&Math.abs(s.rec.m1-s.rec.m2)>0.01&&s.rec.t>0.3;}},
+    {text:'בחרו מסות שנותנות למערכת תאוצה של '+_skM('g/2 = 4.9 m/s²')+'.',
+     hint:'פתרו '+M('\\frac{m_2-m_1}{m_1+m_2}=\\frac12')+': מה היחס בין המסות?',
+     why:'מ־'+M('a=\\frac{m_2-m_1}{m_1+m_2}g=\\frac g2')+' יוצא '+M('m_2=3m_1')+'. כך ״מדללים״ את g — אטווד בנה את המכונה כדי למדוד את g בתנועה איטית מספיק לשעון.',
+     done:function(s){return s.rec&&s.rec.t>0.2&&Math.abs(Math.abs(s.rec.a)-g/2)<0.05;}},
+    {text:'שחזרו את בעיית הסעיף: '+_skM('m₁ = 4 kg, m₂ = 6 kg')+'. מה מהירות '+_skM('m₂')+' אחרי שירדה '+_skM('2 m')+'?',
+     hint:'שחררו ממנוחה וקראו את v ליד הסימון '+_skM('2 m')+' שבסרגל.',
+     why:'מ־'+M('v^2=2ad')+' עם '+_skM('a = 2×9.8/10 = 1.96 m/s²')+': '+_skM('v = √(2×1.96×2) ≈ 2.80 m/s')+'. בבעיה, עם '+_skM('g = 10 m/s²')+', יוצא '+_skM('2.83 m/s')+'.',
+     done:function(s){return s.rec&&s.rec.m1===4&&s.rec.m2===6&&s.v2!==null;}}
+  ]});
+  var model=_mkModel(kit);
+  kit.predict({q:'במכונת אטווד, '+_skM('m₁ = 3 kg')+' ו־'+_skM('m₂ = 5 kg')+'. אחרי השחרור, המתיחות בחוט:',
+    opts:['שווה ל־'+_skM('m₂g = 49 N')+' — החוט מחזיק את הכבדה','שווה ל־'+_skM('m₁g = 29.4 N'),'בין '+_skM('29.4 N')+' ל־'+_skM('49 N'),'שווה לסכום המשקלים, '+_skM('78.4 N')],correct:2,
+    why:'אילו '+M('T=m_2g')+', השקול על הכבדה היה אפס והיא לא הייתה מאיצה. היא יורדת בתאוצה, ולכן '+M('T<m_2g')+'; הקלה עולה בתאוצה, ולכן '+M('T>m_1g')+'. כאן '+_skM('T = 2·3·5·9.8/8 = 36.75 N')+'. שחררו וקראו את מדי-הכוח.'});
 
-  function reset(){
-    // Both masses used to start at CEIL_Y+PR+6 = 56 while topLimit is 54, so the
-    // rising mass had TWO pixels of headroom: at a=2.45 m/s² it hit the limit in
-    // 0.18 s and the sim halted before anything could be observed. Start
-    // mid-shaft instead, giving each side ~190 px ≈ 3.8 m of travel.
-    var bH1=Math.max(36,getM1()*6), bH2=Math.max(36,getM2()*6);
-    var mid=(CEIL_Y+PR+60+(maxY-Math.max(bH1,bH2)))/2;
-    y1=mid; y2=mid;
-    vel=0; pT=null; running=false; started=false; d=0; tRun=0;
+  function scale(x,y,T,col){
+    // a spring scale spliced into the string: its body and its reading
+    ctx.save();ctx.fillStyle='rgba(15,32,53,.95)';ctx.strokeStyle=col;ctx.lineWidth=1.5;
+    ctx.beginPath();ctx.roundRect(x-9,y-22,18,44,5);ctx.fill();ctx.stroke();
+    var k=Math.min(1,T/120);ctx.fillStyle=col;ctx.fillRect(x-5,y-18,10,4+k*28);ctx.restore();
   }
-
-  var resetBtn=document.getElementById('btn-atw-reset');
-  if(resetBtn)resetBtn.addEventListener('click',function(){reset();});
-  var launchBtn=document.getElementById('btn-atw-launch');
-  if(launchBtn)launchBtn.addEventListener('click',function(){running=true;started=true;pT=null;});
-
-  reset();
-
   function draw(ts){
     if(_simStop[id])return;
-    var m1=getM1(), m2=getM2();
-    var a=(m2-m1)*g/(m1+m2);   // positive → m2 goes down, m1 goes up
-    var T=2*m1*m2*g/(m1+m2);
-
-    // Box sizes proportional to mass
-    var bW1=Math.min(66,Math.max(40,m1*7)), bH1=Math.max(36,m1*7);
-    var bW2=Math.min(66,Math.max(40,m2*7)), bH2=Math.max(36,m2*7);
-
-    if(running && pT!==null){
-      var dt=Math.min((ts-pT)/1000,0.04);
-      var _v0a=vel;
-      vel+=a*dt;
-      var _vMid=0.5*(_v0a+vel);                   // trapezoid: exact for constant a
-      // a>0: m2 heavier → y2 increases (down), y1 decreases (up)
-      // a<0: m1 heavier → y1 increases (down), y2 decreases (up)
-      y2+=_vMid*dt*PPM;
-      y1-=_vMid*dt*PPM;
-      d+=Math.abs(_vMid)*dt; tRun+=dt;
-
-      // Clamp and bounce/reset at limits
-      var topLimit=PY0+16;
-      // the weight arrow under a descending mass must stay clear of the panel
-      var _sc=Math.min(0.75,70/(Math.max(m1,m2)*g));
-      var botLimit1=maxY-bH1-m1*g*_sc, botLimit2=maxY-bH2-m2*g*_sc;
-      if(y2>=botLimit2 || y1>=botLimit1 || y1<=topLimit || y2<=topLimit){
-        running=false;
-      }
+    if(pT===null)pT=ts; var dt=Math.min((ts-pT)/1000,.04); pT=ts;
+    var m1=rec&&run?rec.m1:getM1(), m2=rec&&run?rec.m2:getM2();
+    var a=(m2-m1)*g/(m1+m2), Tf=2*m1*m2*g/(m1+m2);
+    var h1=bh(m1),h2=bh(m2),w1=bw(m1),w2=bw(m2);
+    if(run&&!ended){
+      var v0=v,d0=d;v+=a*dt;d+=0.5*(v0+v)*dt;tRun+=dt;rec.t=tRun;
+      // the speed as the drop passes 2 m, read off this step (linear in t for constant a)
+      if(vAt2===null&&Math.abs(d)>=2&&Math.abs(d)>Math.abs(d0)){var tt=dt*0.5,lo=0,hi=dt;
+        for(var it=0;it<40;it++){tt=(lo+hi)/2;if(Math.abs(d0+v0*tt+0.5*a*tt*tt)<2)lo=tt;else hi=tt;}
+        vAt2=Math.abs(v0+a*tt);}
+      // a mass reaching the pulley or the floor ends the run
+      var y1=y0()-d*PPM, y2=y0()+d*PPM;
+      // (a rising mass stops with its scale still clear of the pulley)
+      if(y1+h1>BOT||y2+h2>BOT||y1<TOPY||y2<TOPY){run=false;ended=true;v=0;lbl();}
     }
-    if(pT===null && running) pT=ts; else if(running) pT=ts;
-
+    var Y1=y0()-d*PPM, Y2=y0()+d*PPM, x1=PX-PR, x2=PX+PR;
+    var held=!run, T1=held?m1*g:Tf, T2=held?m2*g:Tf;
     simBg(ctx,W,H);
-
-    // Ceiling fixture
-    ctx.save(); ctx.fillStyle='rgba(14,30,55,.95)'; ctx.strokeStyle='#3d6480'; ctx.lineWidth=1.5;
-    ctx.fillRect(PX-62,0,124,CEIL_Y);
-    for(var xi=PX-58;xi<PX+58;xi+=12){
-      ctx.beginPath(); ctx.moveTo(xi,0); ctx.lineTo(xi-8,CEIL_Y); ctx.stroke();
-    }
+    // ceiling, hanger, pulley, brake
+    ctx.save();ctx.fillStyle='rgba(14,30,55,.95)';ctx.strokeStyle='#3d6480';ctx.lineWidth=1.5;ctx.fillRect(PX-66,0,132,CEIL);
+    for(var xi=PX-62;xi<PX+62;xi+=12){ctx.beginPath();ctx.moveTo(xi,0);ctx.lineTo(xi-8,CEIL);ctx.stroke();}ctx.restore();
+    ctx.save();ctx.strokeStyle='#64748b';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(PX,CEIL);ctx.lineTo(PX,PY0);ctx.stroke();ctx.restore();
+    ctx.save();ctx.translate(PX,PY0);ctx.rotate(d*PPM/PR);
+    ctx.strokeStyle='#60a5fa';ctx.lineWidth=3.5;ctx.beginPath();ctx.arc(0,0,PR,0,6.2832);ctx.stroke();
+    ctx.strokeStyle='rgba(96,165,250,.5)';ctx.lineWidth=2;for(var sp=0;sp<6;sp++){ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(PR*Math.cos(sp*1.047),PR*Math.sin(sp*1.047));ctx.stroke();}
     ctx.restore();
-
-    // Pulley
-    ctx.save();
-    ctx.strokeStyle='#60a5fa'; ctx.lineWidth=3.5;
-    ctx.beginPath(); ctx.arc(PX,PY0,PR,0,Math.PI*2); ctx.stroke();
-    ctx.strokeStyle='#3b82f6'; ctx.lineWidth=2;
-    ctx.beginPath(); ctx.arc(PX,PY0,PR*0.35,0,Math.PI*2); ctx.stroke();
-    ctx.fillStyle='#1e3a52';
-    ctx.beginPath(); ctx.arc(PX,PY0,5,0,Math.PI*2); ctx.fill();
+    simCircle(ctx,PX,PY0,5,'#1e3a52','#60a5fa',1.5);
+    if(held){ctx.save();ctx.fillStyle='#f87171';ctx.beginPath();ctx.roundRect(PX-8,PY0-PR-11,16,10,3);ctx.fill();ctx.restore();
+      simText(ctx,'בלם',PX+14,PY0-PR-2,'#fca5a5',10,'left',true);}
+    simHandle(ctx,PX,PY0,'#93c5fd',PR+10);
+    // the string, over the pulley and down to each mass, a scale in each side
+    ctx.save();ctx.strokeStyle='#cbd5e1';ctx.lineWidth=2.4;ctx.lineCap='round';
+    ctx.beginPath();ctx.arc(PX,PY0,PR,Math.PI,0);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(x1,PY0);ctx.lineTo(x1,Y1);ctx.moveTo(x2,PY0);ctx.lineTo(x2,Y2);ctx.stroke();ctx.restore();
+    var sy1=Math.max(PY0+36,Y1-34), sy2=Math.max(PY0+36,Y2-34);
+    scale(x1,sy1,T1,'#34d399');scale(x2,sy2,T2,'#34d399');
+    // each scale's reading, above it on the outer side (clear of the FBD arrows below)
+    simText(ctx,'T₁ = '+T1.toFixed(1)+' N',x1-12,sy1-24,'#86efac',10.5,'right',true);
+    simText(ctx,'T₂ = '+T2.toFixed(1)+' N',x2+12,sy2-24,'#86efac',10.5,'left',true);
+    // the masses
+    var g1=ctx.createLinearGradient(0,Y1,0,Y1+h1);g1.addColorStop(0,'rgba(37,99,235,.92)');g1.addColorStop(1,'rgba(29,78,216,.65)');
+    drawBox(ctx,x1-w1/2,Y1,w1,h1,g1,'#60a5fa',2.4,6);
+    simText(ctx,'m₁',x1,Y1+h1/2-2,'#dbeafe',12,'center',true);simText(ctx,m1.toFixed(1)+' kg',x1,Y1+h1/2+12,'#bfdbfe',9.5,'center',true);
+    var g2=ctx.createLinearGradient(0,Y2,0,Y2+h2);g2.addColorStop(0,'rgba(185,28,28,.92)');g2.addColorStop(1,'rgba(153,27,27,.65)');
+    drawBox(ctx,x2-w2/2,Y2,w2,h2,g2,'#f87171',2.4,6);
+    simText(ctx,'m₂',x2,Y2+h2/2-2,'#fee2e2',12,'center',true);simText(ctx,m2.toFixed(1)+' kg',x2,Y2+h2/2+12,'#fecaca',9.5,'center',true);
+    // each mass's free-body diagram, one scale: T up, W down; a beside it
+    var sc=Math.min(0.9,64/(Math.max(m1,m2)*g));
+    _mkVec(ctx,x1-w1/2-10,Y1+h1/2,x1-w1/2-10,Y1+h1/2-T1*sc,'#34d399','T',W,H,2.4);
+    _mkVec(ctx,x1-w1/2-10,Y1+h1/2,x1-w1/2-10,Y1+h1/2+m1*g*sc,'#fbbf24','W₁',W,H,2.4);
+    _mkVec(ctx,x2+w2/2+10,Y2+h2/2,x2+w2/2+10,Y2+h2/2-T2*sc,'#34d399','T',W,H,2.4);
+    _mkVec(ctx,x2+w2/2+10,Y2+h2/2,x2+w2/2+10,Y2+h2/2+m2*g*sc,'#fbbf24','W₂',W,H,2.4);
+    if(run&&Math.abs(a)>0.02){var al=Math.min(46,Math.abs(a)*8);
+      // on the inner side of each mass, between the two strings
+      var ax1=x1+w1/2+9, ax2=x2-w2/2-9;
+      _mkVec(ctx,ax1,Y1+h1/2+Math.sign(a)*al/2,ax1,Y1+h1/2-Math.sign(a)*al/2,'#22d3ee','a',W,H,2.2);
+      _mkVec(ctx,ax2,Y2+h2/2-Math.sign(a)*al/2,ax2,Y2+h2/2+Math.sign(a)*al/2,'#22d3ee','a',W,H,2.2);}
+    // the ruler: how far m₂ has dropped, marked every half metre
+    var rx=x2+w2/2+52, r0=y0()+h2;
+    ctx.save();ctx.strokeStyle='rgba(148,163,184,.5)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(rx,r0);ctx.lineTo(rx,Math.min(BOT,r0+3*PPM));ctx.stroke();
+    for(var q=0;q<=3;q+=0.5){var ry=r0+q*PPM;if(ry>BOT)break;ctx.beginPath();ctx.moveTo(rx,ry);ctx.lineTo(rx+(q%1===0?10:6),ry);ctx.stroke();
+      if(q%1===0)simText(ctx,q+' m',rx+13,ry+3,q===2?'#fbbf24':'#94a3b8',9,'left',q===2);}
     ctx.restore();
-    // hanger from the ceiling to the axle
-    ctx.save(); ctx.strokeStyle='#64748b'; ctx.lineWidth=3; ctx.beginPath(); ctx.moveTo(PX,CEIL_Y); ctx.lineTo(PX,PY0); ctx.stroke(); ctx.restore();
+    if(d>0){ctx.save();ctx.strokeStyle='#fbbf24';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(rx-6,Y2+h2);ctx.lineTo(rx+6,Y2+h2);ctx.stroke();ctx.restore();}
 
-    var rope1X=PX-PR, rope2X=PX+PR;
+    // readings
+    // readings: a column on the right, or two columns under the machine on a phone
+    var cx=PH?8:Math.round(W*0.64), cy=PH?H-136:16, cw=PH?W-16:W-cx-10, ch=PH?128:170;
+    _mkCard(ctx,cx,cy,cw,ch);
+    var rW1=['W₁ = m₁g = '+(m1*g).toFixed(1)+' N','#fde68a'], rW2=['W₂ = m₂g = '+(m2*g).toFixed(1)+' N','#fde68a'],
+      rT=held?['T₁ = W₁,  T₂ = W₂ — הגלגלת בלומה','#86efac']:['T = '+Tf.toFixed(2)+' N — בין שני המשקלים','#86efac'],
+      rA=['a = '+(held?'0':_mkN(a,3))+' m/s²','#67e8f9'], rD=['d = '+Math.abs(d).toFixed(2)+' m   ·   v = '+Math.abs(v).toFixed(2)+' m/s','#cbd5e1'],
+      rV=vAt2!==null?['בירידה של 2 m:  v = '+vAt2.toFixed(2)+' m/s','#fbbf24']:null;
+    var put=function(r,X,Y){if(r)simText(ctx,r[0],X,Y,r[1],PH?10:10.5,'center',true);};
+    if(PH){var L=cx+cw*0.27,R=cx+cw*0.73,C=cx+cw/2,ly=(ch-16)/4;
+      put(rW1,L,cy+20);put(rW2,R,cy+20);put(rT,C,cy+20+ly);put(rA,L,cy+20+2*ly);put(rD,R,cy+20+2*ly);put(rV,C,cy+20+3*ly);}
+    else [rW1,rW2,rT,rA,rD,rV].forEach(function(r,i){put(r,cx+cw/2,cy+24+i*((ch-22)/6));});
+    var st=ended?'מסה הגיעה לקצה — ↺ איפוס':held&&!rec?'לחצו על הגלגלת כדי לשחרר את הבלם':held?'הבלם עוצר את הגלגלת':
+      a>0.02?'m₂ יורדת ו־m₁ עולה':a<-0.02?'m₁ יורדת ו־m₂ עולה':'m₁ = m₂: a = 0, ו־T שווה לשני המשקלים';
+    simText(ctx,st,PH?W/2:PX,PH?H-148:H-12,'#cbd5e1',10.5,'center',true);
 
-    // Rope: over the top of the pulley and down to each mass
-    ctx.save(); ctx.strokeStyle='#94a3b8'; ctx.lineWidth=3; ctx.lineCap='round';
-    ctx.beginPath(); ctx.arc(PX,PY0,PR,Math.PI,0); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(rope1X,PY0); ctx.lineTo(rope1X,y1); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(rope2X,PY0); ctx.lineTo(rope2X,y2); ctx.stroke();
-    ctx.restore();
-
-    // Mass 1 (left)
-    var x1L=rope1X-bW1/2;
-    var grd1=ctx.createLinearGradient(x1L,y1,x1L,y1+bH1);
-    grd1.addColorStop(0,'rgba(37,99,235,.92)'); grd1.addColorStop(1,'rgba(29,78,216,.65)');
-    ctx.save(); ctx.shadowColor='rgba(59,130,246,.5)'; ctx.shadowBlur=14;
-    drawBox(ctx,x1L,y1,bW1,bH1,grd1,'#60a5fa',2.5,6); ctx.restore();
-    simText(ctx,'m\u2081',rope1X,y1+bH1/2-4,'#bfdbfe',13,undefined,true);
-    simText(ctx,m1.toFixed(1)+' kg',rope1X,y1+bH1/2+13,'#93c5fd',10,undefined,true);
-
-    // Mass 2 (right)
-    var x2L=rope2X-bW2/2;
-    var grd2=ctx.createLinearGradient(x2L,y2,x2L,y2+bH2);
-    grd2.addColorStop(0,'rgba(185,28,28,.92)'); grd2.addColorStop(1,'rgba(153,27,27,.65)');
-    ctx.save(); ctx.shadowColor='rgba(239,68,68,.5)'; ctx.shadowBlur=14;
-    drawBox(ctx,x2L,y2,bW2,bH2,grd2,'#ef4444',2.5,6); ctx.restore();
-    simText(ctx,'m\u2082',rope2X,y2+bH2/2-4,'#fecaca',13,undefined,true);
-    simText(ctx,m2.toFixed(1)+' kg',rope2X,y2+bH2/2+13,'#fca5a5',10,undefined,true);
-
-    // Force arrows: T (up) and W (down) on each mass
-    // one scale for T, W1 and W2, so W1 < T < W2 shows
-    var sc=Math.min(0.75,70/(Math.max(m1,m2)*g));
-    var T_len=T*sc;
-    var W1_len=m1*g*sc;
-    var W2_len=m2*g*sc;
-
-    // T arrows (up from top of each mass)
-    simArrow(ctx,rope1X,y1,rope1X,y1-T_len,'#34d399',2.5,11);
-    simText(ctx,'T = '+T.toFixed(1)+' N',x1L-6,y1-T_len*0.5,'#34d399',10,'right');
-    simArrow(ctx,rope2X,y2,rope2X,y2-T_len,'#34d399',2.5,11);
-    simText(ctx,'T = '+T.toFixed(1)+' N',x2L+bW2+6,y2-T_len*0.5,'#34d399',10,'left');
-
-    // W arrows (down from bottom of each mass)
-    var w1bot=Math.min(y1+bH1+W1_len, H-6);
-    var w2bot=Math.min(y2+bH2+W2_len, H-6);
-    simArrow(ctx,rope1X,y1+bH1,rope1X,w1bot,'#ef4444',2.5,10);
-    simText(ctx,'W\u2081 = '+(m1*g).toFixed(1)+' N',x1L-6,w1bot-4,'#fca5a5',10,'right');
-    simArrow(ctx,rope2X,y2+bH2,rope2X,w2bot,'#ef4444',2.5,10);
-    simText(ctx,'W\u2082 = '+(m2*g).toFixed(1)+' N',x2L+bW2+6,w2bot-4,'#fca5a5',10,'left');
-
-    // Acceleration arrows on the sides
-    if(Math.abs(a)>0.05 && running){
-      var aLen=Math.min(Math.abs(a)*18,50);
-      // m1 side: if a>0 (m2 heavier) m1 goes UP → arrow up (negative y dir)
-      var dir1=a>0?-1:1;
-      var dir2=-dir1;
-      simArrow(ctx,x1L-22,y1+bH1/2,x1L-22,y1+bH1/2+dir1*aLen,'#22d3ee',2.5,10);
-      simText(ctx,'a='+Math.abs(a).toFixed(2)+' m/s\u00b2',x1L-24,y1+bH1/2+dir1*(aLen+14),'#22d3ee',8.5,'right');
-      simArrow(ctx,x2L+bW2+22,y2+bH2/2,x2L+bW2+22,y2+bH2/2+dir2*aLen,'#22d3ee',2.5,10);
-      simText(ctx,'a='+Math.abs(a).toFixed(2)+' m/s\u00b2',x2L+bW2+24,y2+bH2/2+dir2*(aLen+14),'#22d3ee',8.5,'left');
-    }
-
-    // Info panel at bottom
-    ctx.save(); ctx.fillStyle='rgba(6,14,28,.93)'; ctx.strokeStyle='#1e4060'; ctx.lineWidth=1.5;
-    var _pw=Math.min(336,W-16);
-    ctx.beginPath(); ctx.roundRect(W/2-_pw/2,H-118,_pw,108,8); ctx.fill(); ctx.stroke(); ctx.restore();
-
-    simText(ctx,'a = (m\u2082\u2212m\u2081)g / (m\u2081+m\u2082)',W/2,H-104,'#94a3b8',9.5,undefined,true);
-    var a_sign=a>=0?'+':'';
-    simText(ctx,'= ('+m2.toFixed(1)+'\u2212'+m1.toFixed(1)+')\u00d79.8 / ('+m1.toFixed(1)+'+'+m2.toFixed(1)+') = '+a_sign+a.toFixed(3)+' m/s\u00b2',W/2,H-86,'#fbbf24',10.5,undefined,true);
-    simText(ctx,'T = 2m\u2081m\u2082g/(m\u2081+m\u2082) = '+T.toFixed(2)+' N',W/2,H-64,'#34d399',11.5,undefined,true);
-    var dir_str=a>0.02?'m₂ יורדת ו-m₁ עולה':a<-0.02?'m₁ יורדת ו-m₂ עולה':'m₁ = m₂:  a = 0 — המערכת אינה מאיצה';
-    simText(ctx,dir_str,W/2,H-42,Math.abs(a)>0.02?'#fbbf24':'#34d399',11,undefined,true);
-    var status=!started?'לחצו ״▶ שחררו!״ כדי להתחיל':running?'t = '+tRun.toFixed(2)+' s     d = '+d.toFixed(2)+' m     v = '+Math.abs(vel).toFixed(2)+' m/s':'מסה הגיעה לקצה:  d = '+d.toFixed(2)+' m,  v = '+Math.abs(vel).toFixed(2)+' m/s  — ↺ אפס';
-    simText(ctx,status,W/2,H-22,!started?'#fbbf24':running?'#e2e8f0':'#fca5a5',10,undefined,false);
-
+    if(held)model('הגלגלת בלומה וכל מסה במנוחה, ולכן '+_skM('T₁ = m₁g = '+(m1*g).toFixed(1)+' N')+' ו־'+_skM('T₂ = m₂g = '+(m2*g).toFixed(1)+' N')+'; בשחרור: '+_skM('T = 2m₁m₂g/(m₁+m₂) = '+Tf.toFixed(2)+' N'));
+    else model(_skM('a = (m₂−m₁)g/(m₁+m₂) = ('+m2.toFixed(1)+'−'+m1.toFixed(1)+')×9.8/'+(m1+m2).toFixed(1)+' = '+_mkN(a,3)+' m/s²')+' · '+_skM('T = m₁(g + a) = '+m1.toFixed(1)+'×(9.8 '+(a<0?'− ':'+ ')+Math.abs(a).toFixed(2)+') = '+Tf.toFixed(2)+' N'));
+    kit.check({rec:rec,v2:vAt2});
     requestAnimationFrame(draw);
   }
-
+  lbl();
   requestAnimationFrame(draw);
 }
-
-
-
 
 function simEnergyKinetic(canvas){
   // PEDAGOGY: Work-Energy Theorem — W = F·d = ΔKE

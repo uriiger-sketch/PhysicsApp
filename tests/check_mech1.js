@@ -214,8 +214,13 @@ const EXPECT = {
 
   await open('newton2.n2-atwood');
   await set('atw-m1', 2); await set('atw-m2', 7); await fresh(); await p.waitForTimeout(300);
-  const aw = nums(await last('^= \\(')).pop(), tw = nums(await last('^T = 2m₁m₂g')).pop();
-  t('Atwood 2 kg and 7 kg: a = (m2−m1)g/(m1+m2), T = 2m1m2g/(m1+m2)', close(aw, 5 * 9.8 / 9, 0.0006) && close(tw, 2 * 2 * 7 * 9.8 / 9, 0.006), aw + ', ' + tw);
+  const h1 = nums(await last('^T₁ = [\\d.]+ N$'))[0], h2 = nums(await last('^T₂ = [\\d.]+ N$'))[0];
+  t('Atwood 2 kg and 7 kg, braked: each side of the string reads its own weight, T₁ = m₁g, T₂ = m₂g', close(h1, 19.6, 0.051) && close(h2, 68.6, 0.051), h1 + ' N, ' + h2 + ' N');
+  await click('btn-atw-launch'); await fresh(); await p.waitForTimeout(300);
+  const aw = nums(await last('^a = [\\d.]+ m/s²$'))[0], tw = nums(await last('^T = [\\d.]+ N'))[0];
+  const s1 = nums(await last('^T₁ = [\\d.]+ N$'))[0], s2 = nums(await last('^T₂ = [\\d.]+ N$'))[0];
+  t('... released: a = (m2−m1)g/(m1+m2), T = 2m1m2g/(m1+m2) on both scales, between m₁g and m₂g', close(aw, 5 * 9.8 / 9, 0.0006) && close(tw, 2 * 2 * 7 * 9.8 / 9, 0.006) && s1 === s2 && close(s1, tw, 0.051) && 19.6 < tw && tw < 68.6, aw + ', ' + tw + ' (' + s1 + ', ' + s2 + ')');
+  t('... and the model line substitutes the numbers', /\(7\.0−2\.0\)×9\.8\/9\.0 = 5\.444 m\/s²/.test(await modelTxt()), await modelTxt());
 
   await open('forces2.gravity-force');
   await set('gf-m', 55); await fresh(); await p.waitForTimeout(300);
@@ -259,7 +264,7 @@ const EXPECT = {
     await click('btn-n3-push'); await p.waitForTimeout(300);
     const fa = (await all('^' + LR('על A: ') + '\\d')).map(s => nums(s)[0]), fb = (await all('^' + LR('על B: ') + '\\d')).map(s => nums(s)[0]);
     const pa = await last('^' + LR('F על A = ') + '\\d'), pb = await last('^' + LR('F על B = ') + '\\d');
-    await fresh(); await until(async () => (await all('^v = [−+][\\d.]+ m/s$')).length >= 4, 4000);
+    await fresh(); await until(async () => (await all('^v = [−+][\\d.]+ m/s$')).length >= 4 && (await all('^Σp = ')).length >= 6, 4000);
     const vs = (await all('^v = [−+][\\d.]+ m/s$')).map(s => nums(s)[0]);
     const sp = (await all('^Σp = ')).slice(-20).map(s => nums(s).pop());
     return { fa, fb, pa: pa && nums(pa)[0], pb: pb && nums(pb)[0], vA: Math.min(...vs), vB: Math.max(...vs), sp };
@@ -416,8 +421,9 @@ const EXPECT = {
   await until(() => mission('forces.inertia', 0), 4000);
   t('... which is the mission "one push on a smooth floor"', await mission('forces.inertia', 0));
   await click('btn-in-reset'); await set('friction', 0.2); await set('in-F', 5); await fresh();
-  await press(400); await p.waitForTimeout(0);
-  t('first law, μ = 0.2, 5 kg, F = 5 N < μmg: the block stays, static friction fₛ = −F', /fₛ = −5\.0 N/.test(((await all('^fₛ = ')).pop() || '')), (await all('^fₛ = ')).pop());
+  await press(400);
+  const fsAll = await all('^fₛ = '), vAll = (await all('^v = ')).map(s => nums(s)[0]);
+  t('first law, μ = 0.2, 5 kg, F = 5 N < μmg: the block stays, static friction fₛ = −F', fsAll.some(s => /fₛ = −5\.0 N/.test(s)) && vAll.length > 5 && vAll.every(x => x === 0), [...new Set(fsAll)].join(' | '));
   // get it going with 15 N, then balance friction with 10 N on the slider while the push stays on
   await set('in-F', 15); await click('btn-in-hold'); await p.waitForTimeout(700); await set('in-F', 10); await fresh();
   await until(() => mission('forces.inertia', 1), 5000);
@@ -426,6 +432,22 @@ const EXPECT = {
   await click('btn-in-hold'); await fresh(); await p.waitForTimeout(250);
   const ad = await card('^a = ΣF/m = ');
   t('... let go: ΣF = −μmg, so a = −μg = −1.96 m/s² — moving right, pushed left: mission solved', ad === -1.96 && await mission('forces.inertia', 2), ad);
+
+  // Atwood: the tension between the weights, g/2, and the section's problem
+  await open('newton2.n2-atwood');
+  t('Atwood: a prediction is asked first — where the tension lies', (await predOpts()).length === 4, (await predOpts()).join(' | '));
+  rr = await rect(); W = rr.w;
+  const atPX = W < 600 ? W * 0.42 : W * 0.36, atPY = 28 + (W < 600 ? 36 : 44) + 8;
+  await tap(rr, atPX, atPY);    // tap the pulley: the brake lets go
+  await until(() => mission('newton2.n2-atwood', 0), 3000);
+  t('Atwood: tapping the pulley releases it — mission "compare T with both weights" solved', await mission('newton2.n2-atwood', 0));
+  await click('btn-atw-reset'); await set('atw-m1', 1); await set('atw-m2', 3); await click('btn-atw-launch');
+  await until(() => mission('newton2.n2-atwood', 1), 3000);
+  t('Atwood: m₂ = 3m₁ gives a = g/2 — mission solved', await mission('newton2.n2-atwood', 1) && nums(await last('^a = [\\d.]+ m/s²$'))[0] === 4.9);
+  await click('btn-atw-reset'); await set('atw-m1', 4); await set('atw-m2', 6); await click('btn-atw-launch'); await fresh();
+  await until(() => mission('newton2.n2-atwood', 2), 5000);
+  const v2m = await last('^' + LR('בירידה של 2 m:  v = ') + '[\\d.]+');
+  t('Atwood 4 kg and 6 kg: after a 2 m drop v = √(2ad) = 2.80 m/s — the section\'s problem, mission solved', !!v2m && close(nums(v2m)[1], Math.sqrt(2 * (2 * 9.8 / 10) * 2), 0.006) && await mission('newton2.n2-atwood', 2), v2m);
 
   // ── 4. the learning experience ──────────────────────────────────────
   console.log('\n4) misconception boxes, quiz keys, hints, units');
