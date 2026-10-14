@@ -7110,7 +7110,7 @@ const OPTICS_CONTENT={
       <div class="mis-block"><b>⚠️ טעות נפוצה:</b> ״כמו בפריזמה, הסגול סוטה הכי הרבה״. בסריג ההפך: ${M('\\sin\\theta=m\\lambda/d')}, ולכן ה<b>אדום</b>, בעל אורך הגל הגדול, סוטה יותר: בבעיה הקו האדום, ${M('656\\,\\text{nm}')}, סוטה ${M('31.6^\\circ')}, והכחול, ${M('486\\,\\text{nm}')}, רק ${M('22.9^\\circ')}. הפריזמה מפרידה בגלל ${M('n(\\lambda)')} והסריג בגלל הפרש דרכים: שני מנגנונים שונים.</div>
       <div class="theory-anim">${animCanvas('anim-grating-t',148,'סריג עקיפה — סדרי עקיפה')}</div>`,
   },
-  sim:{type:'opt-grating',desc:'שנו מרווח הסריג d ואורך הגל λ. ראו קרניים בסדרים m=0,±1,±2 עם זוויות מחושבות. שימו לב: אדום נסטה יותר מכחול (הפוך מפריזמה!).'},
+  sim:{type:'opt-grating',desc:'סריג של N חריצים צרים במרווח d. המסך הוא קשת סביב הסריג, ולכן כל סדר קיים נופל עליו — עד ±90°; העקומה שבתוכה היא העוצמה I(θ). שנו את d, את λ ואת N, הדליקו אור לבן, וגררו את הגלאי על הקשת כדי למדוד זוויות. שימו לב: אדום נסטה יותר מכחול — הפוך מפריזמה.'},
   example:{title:'סריג של 600 קווים למילימטר',text:`אור צהוב של נתרן (${M('\\lambda=589\\,\\text{nm}')}) פוגע בסריג שיש בו 600 קווים בכל מילימטר.`,
     steps:[
       {q:'מהו המרחק בין קווים סמוכים?',a:`${M('d=\\dfrac{1\\,\\text{mm}}{600}\\approx1.667\\,\\mu\\text{m}=1667\\,\\text{nm}')}`},
@@ -20352,146 +20352,117 @@ function simOptThinFilm(canvas){
   requestAnimationFrame(draw);
 }
 
-// ─────────────────────────────────────────────────────────────
-// DIFFRACTION GRATING sim
-// ─────────────────────────────────────────────────────────────
+// ─── DIFFRACTION GRATING — N slits, every order on an angular screen ──
+// N narrow slits d apart: I(θ) = [sin(Nφ/2) / (N sin(φ/2))]², φ = 2π d sinθ / λ.
+// The principal maxima stand where d sinθ = mλ whatever N is; N only makes
+// them sharper (width ∝ 1/N) -- from two slits (Young) to a real grating.
+// The screen is an arc around the grating, so every order that exists
+// (|mλ/d| ≤ 1) lands on it, out to ±90°: the old flat screen missed every
+// order but m = 0 at the default spacing. In white light each order spreads
+// into a spectrum, red outside -- the opposite of a prism. A detector
+// dragged along the arc reads θ and d sinθ in wavelengths.
 function simOptGrating(canvas){
-  // initSim calls every simulation as (canvas, TYPE), so a parameter named
-  // `id` here held the type string while _simStop/_simGen are keyed by the
-  // canvas id -- the stop flag could never reach this loop.
-  var id=canvas.id, _g=_simGen[id];
-  var R=setupCanvas(canvas,540);var ctx=R.ctx,W=R.W,H=R.H;
-  var animT=0,last=null;
-  function getD(){var e=document.getElementById('inp-gr-d');return e?parseFloat(e.value)*1000:1500;}// μm→nm
+  var id=canvas.id,_g=_simGen[id];
+  var R=setupCanvas(canvas,480);var ctx=R.ctx,W=R.W,H=R.H;
+  var animT=0,last=null,reduce=_reducedMotion(),touched=false,drag=false,white=false,detA=20;
+  var narrow=W<520,gX=Math.round(W*(narrow?0.10:0.16)),cy=Math.round(H*0.47),RA=Math.min(W-gX-(narrow?34:70),H*0.43);
+  if(!narrow)gX=Math.round(Math.max(gX,W/2-RA*0.45));   // a wide canvas: the bench in the middle
+  function getD(){var e=document.getElementById('inp-gr-d');return e?parseFloat(e.value)*1000:1500;}   // μm → nm
   function getLam(){var e=document.getElementById('inp-gr-lambda');return e?parseFloat(e.value):550;}
-  var whiteMode=false;
+  function getN(){var e=document.getElementById('inp-gr-N');return e?parseFloat(e.value):6;}
   var wBtn=document.getElementById('btn-gr-white');
-  if(wBtn)wBtn.addEventListener('click',function(){whiteMode=!whiteMode;wBtn.textContent=whiteMode?'🔦 אור חד-גוני':'🌈 אור לבן';});
+  if(wBtn)wBtn.addEventListener('click',function(){white=!white;wBtn.textContent=white?'🔦 אור חד-גוני':'🌈 אור לבן';});
+  function Inslit(N,d,lam,s){var ph=Math.PI*d*s/lam,sn=Math.sin(ph);
+    if(Math.abs(sn)<1e-6)return 1;var v=Math.sin(N*ph)/(N*sn);return v*v;}
+  function aPt(th,r){return {x:gX+r*Math.cos(th),y:cy+r*Math.sin(th)};}       // θ from the axis, + downward
+  function hit(p){var dx=p.x-gX,dy=p.y-cy,r=Math.hypot(dx,dy);if(dx<0||Math.abs(r-RA)>26)return false;
+    var th=Math.atan2(dy,dx);return Math.abs(th-detA*Math.PI/180)<0.2;}
+  simDrag(canvas,R.dpr,{down:function(p){drag=hit(p);if(drag)touched=true;},
+    move:function(p){if(drag){var th=Math.atan2(p.y-cy,Math.max(1,p.x-gX))*180/Math.PI;detA=Math.max(-89,Math.min(89,th));}},
+    up:function(){drag=false;}});
+  canvas.addEventListener('mousemove',function(e){if(!drag)canvas.style.cursor=hit(simPointerXY(canvas,R.dpr,e))?'grab':'default';});
+  canvas.tabIndex=0;
+  canvas.addEventListener('keydown',function(e){if(e.key!=='ArrowUp'&&e.key!=='ArrowDown')return;e.preventDefault();touched=true;
+    detA=Math.max(-89,Math.min(89,detA+(e.key==='ArrowDown'?0.1:-0.1)));});
+  var kit=simKit(canvas,{missions:[
+    {text:'״כמו בפריזמה, הסגול סוטה הכי הרבה״? הדליקו אור לבן והשוו',
+     hint:'לחצו ״🌈 אור לבן״ והביטו בסדר הראשון: איזה קצה של הספקטרום רחוק יותר מהמרכז?',
+     why:'בסריג '+_skM('sin θ = mλ/d')+': האדום, בעל אורך הגל הגדול, סוטה <b>יותר</b>. הפריזמה מפרידה בגלל n(λ), הסריג — בגלל הפרש הדרכים: שני מנגנונים הפוכים.',
+     done:function(s){return s.white;}},
+    {text:'מצאו את מרווח הסריג הגדול ביותר שבו לאור של 700 nm אין סדר שני',
+     hint:'סדר m קיים רק כש־'+_skM('mλ/d ≤ 1')+'. מתי '+_skM('2 · 700 nm > d')+'?',
+     why:_skM('d < 2λ = 1.40 μm')+': הסדר השני היה צריך '+_skM('sin θ > 1')+' — זווית שאינה קיימת. נראים רק הסדרים שבהם '+_skM('m ≤ d/λ')+'.',
+     done:function(s){return !s.white&&Math.abs(s.lam-700)<3&&s.d<1400&&s.d>=1350;}},
+    {text:'מזוג סדקים לסריג: הגדילו את N עד 30 ועקבו אחרי רוחב הקווים',
+     hint:'ב־N = 2 זה ניסוי יאנג. האם מקומות המקסימומים זזים כש־N גדל?',
+     why:'המקסימומים נשארים ב־'+_skM('d sin θ = mλ')+', אבל רוחבם קטן כ־'+_skM('1/N')+': אלפי חריצים נותנים קווים חדים, וכך מפרידים אורכי גל קרובים.',
+     done:function(s){return s.N>=30;}},
+    {text:'קווי המימן (הבעיה של הסעיף): בסריג של 800 קווים למ״מ, מדדו בגלאי את זווית הקו 656 nm בסדר הראשון',
+     hint:_skM('d = 1/800 mm = 1.25 μm')+'. קבעו d ו־λ, וגררו את הגלאי על הקשת אל הקו.',
+     why:_skM('sin θ₁ = 656/1250 = 0.525')+' ⇒ '+_skM('θ₁ ≈ 31.6°')+'. הקו הכחול, 486 nm, נמצא ב־22.9° — הפרש של '+_skM('8.8°')+'.',
+     done:function(s){return !s.white&&Math.abs(s.d-1250)<6&&Math.abs(s.lam-656)<3&&Math.abs(s.mDet-1)<0.02;}}]});
+  var cache={k:null,c:null};
+  function arcColours(N,d,lam){          // the screen, sample by sample: monochrome or white light
+    var k=N+'|'+d+'|'+lam+'|'+white;if(cache.k===k)return cache.c;
+    var out=[],S=240;
+    for(var i=0;i<=S;i++){var th=-Math.PI/2+Math.PI*i/S,s=Math.sin(th),r=0,g=0,b=0;
+      if(!white){var I=Inslit(N,d,lam,s),c=wavelengthToRGB(lam).match(/\d+/g);r=c[0]*I;g=c[1]*I;b=c[2]*I;}
+      else{for(var l=400;l<=700;l+=10){var Il=Inslit(N,d,l,s),cc=wavelengthToRGB(l).match(/\d+/g);r+=cc[0]*Il/9;g+=cc[1]*Il/9;b+=cc[2]*Il/9;}}
+      out.push([th,Math.min(255,r),Math.min(255,g),Math.min(255,b)]);}
+    cache={k:k,c:out};return out;
+  }
   function draw(ts){
     if(_simGen[id]!==_g)return;if(_simStop[id])return;
-    var dt=last?Math.min((ts-last)/1000,0.05):0.016;last=ts;animT+=dt;
-    var dNm=getD(),lambda=getLam();
+    var dt=last?Math.min((ts-last)/1000,0.05):0.016;last=ts;if(!reduce)animT+=dt;
+    var d=getD(),lam=getLam(),N=Math.round(getN()),hex=wavelengthToHex(lam);
     ctx.fillStyle='#080e1a';ctx.fillRect(0,0,W,H);
-    // the drawing lives between the formula strip (top) and the read-out (bottom)
-    var T=50,B=H-84,ax=(T+B)/2;
-    var grX=W*0.28,scrX=W<520?W*0.76:W*0.85;
-    var scrH=(B-T)*0.94,scrTop=ax-scrH/2;
-    // === GRATING (vertical lines) ===
-    // The rulings used to sit at a fixed 3 px pitch no matter what d was, so the
-    // one control the grating equation depends on changed nothing in the picture.
-    ctx.save();ctx.strokeStyle='#475569';ctx.lineWidth=1;
-    var _pitch=Math.max(2,Math.min(9,dNm/1000*2.6));
-    for(var i=-7;i<=7;i++){
-      var lx=grX+i*_pitch;
-      ctx.beginPath();ctx.moveTo(lx,T+14);ctx.lineTo(lx,B-14);ctx.stroke();
-    }
-    ctx.strokeStyle='#64748b';ctx.lineWidth=2;
-    ctx.beginPath();ctx.moveTo(grX,T+8);ctx.lineTo(grX,B-8);ctx.stroke();
-    ctx.restore();
-    optLabel(ctx,'סריג',grX,T,'#94a3b8',9);
-    optLabel(ctx,'d = '+( dNm/1000).toFixed(2)+' μm',grX,B+4,'#7d8da6',8);
-    // === INCIDENT BEAM ===
-    ctx.save();var lHex=wavelengthToHex(lambda);
-    optGlow(ctx,lHex,8);ctx.strokeStyle=lHex;ctx.lineWidth=4;ctx.lineCap='round';
-    ctx.beginPath();ctx.moveTo(W*0.05,ax);ctx.lineTo(grX,ax);ctx.stroke();
-    optNoGlow(ctx);ctx.restore();
-    optLabel(ctx,'λ='+lambda+'nm',W*0.15,ax-12,lHex,9);
-    // === SCREEN ===
-    ctx.save();ctx.fillStyle='rgba(30,41,59,0.8)';ctx.fillRect(scrX,scrTop,10,scrH);
-    ctx.strokeStyle='#334155';ctx.lineWidth=1;ctx.strokeRect(scrX,scrTop,10,scrH);ctx.restore();
-    optLabel(ctx,'מסך',scrX+5,scrTop-8,'#7d8da6',8);
-    // === DIFFRACTED ORDERS ===
-    var orders=[-2,-1,0,1,2];
-    var lRGB=wavelengthToRGB(lambda).match(/\d+/g);
-    if(whiteMode){
-      // Spectroscopy: white light — every order m≠0 disperses into a full spectrum
-      orders.forEach(function(m){
-        if(m===0)return;
-        for(var wl2=410;wl2<=690;wl2+=20){
-          var sinT2=m*wl2/dNm;
-          if(Math.abs(sinT2)>0.96)continue;
-          var th2b=Math.asin(sinT2);
-          var hitY2=ax+(scrX-grX)*Math.tan(th2b);
-          if(hitY2<scrTop||hitY2>scrTop+scrH)continue;
-          ctx.save();ctx.strokeStyle=wavelengthToHex(wl2);ctx.globalAlpha=0.5;ctx.lineWidth=1.6;
-          ctx.beginPath();ctx.moveTo(grX,ax);ctx.lineTo(scrX,hitY2);ctx.stroke();
-          ctx.globalAlpha=0.95;ctx.fillStyle=wavelengthToHex(wl2);
-          ctx.fillRect(scrX,hitY2-2,9,4);
-          ctx.restore();
-        }
-        var sinL=m*545/dNm;
-        if(Math.abs(sinL)<=0.95){
-          optLabel(ctx,'m='+m,scrX+24,ax+(scrX-grX)*Math.tan(Math.asin(sinL)),'#e2e8f0',8);
-        }
-      });
-      // central order stays white — all wavelengths overlap at θ=0
-      ctx.save();ctx.strokeStyle='rgba(255,255,255,0.85)';ctx.lineWidth=3;ctx.lineCap='round';
-      ctx.beginPath();ctx.moveTo(grX,ax);ctx.lineTo(scrX,ax);ctx.stroke();
-      ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(scrX+2,ax,5,0,Math.PI*2);ctx.fill();ctx.restore();
-      optLabel(ctx,'m=0 (לבן)',scrX+32,ax,'#e2e8f0',8);
-    } else
-    orders.forEach(function(m){
-      var sinTh=m*lambda/dNm;
-      if(Math.abs(sinTh)>0.96)return;// beyond 90°, not observable
-      var th=Math.asin(sinTh);
-      // Direction from grating center
-      var dx=scrX-grX,dy=dx*Math.tan(th);
-      var hitY=ax+dy;
-      if(hitY<scrTop||hitY>scrTop+scrH){
-        // an order that exists but misses the screen is still there: draw it to
-        // the edge (it used to vanish while the read-out said it exists)
-        var eY=th>0?B:T,eX=grX+(eY-ax)/Math.tan(th);
-        ctx.save();ctx.strokeStyle='rgba('+lRGB[0]+','+lRGB[1]+','+lRGB[2]+',0.55)';ctx.lineWidth=2;ctx.setLineDash([6,4]);
-        ctx.beginPath();ctx.moveTo(grX,ax);ctx.lineTo(eX,eY);ctx.stroke();ctx.restore();
-        var yL=th>0?B-12:T+12,xL=grX+(yL-ax)/Math.tan(th);
-        optLabel(ctx,'m='+m+': θ='+(th*180/Math.PI).toFixed(1)+'° (מחוץ למסך)',Math.min(W-90,xL+70),yL,'rgb('+lRGB[0]+','+lRGB[1]+','+lRGB[2]+')',8);
-        return;
-      }
-      // Draw the beam
-      var alpha=m===0?0.9:0.8;
-      ctx.save();
-      if(m!==0){optGlow(ctx,'rgb('+lRGB[0]+','+lRGB[1]+','+lRGB[2]+')',m===0?4:8);}
-      // In MONOCHROMATIC mode there is only one wavelength present, so m=0 is
-      // the colour of the source. It used to be drawn white — the signature the
-      // white-light mode next door uses for every wavelength overlapping, so the
-      // two modes contradicted each other.
-      ctx.strokeStyle='rgba('+lRGB[0]+','+lRGB[1]+','+lRGB[2]+','+alpha+')';
-      ctx.lineWidth=m===0?3:2.5;ctx.lineCap='round';
-      ctx.beginPath();ctx.moveTo(grX,ax);ctx.lineTo(scrX,hitY);ctx.stroke();
-      if(m!==0)optNoGlow(ctx);
-      ctx.restore();
-      // Angle label near grating
-      var labelX=grX+110*Math.cos(th),labelY=ax+110*Math.sin(th);
-      optLabel(ctx,'m='+m,(m===0?grX+150:labelX),labelY+(m===0?-10:m>0?12:-12),(m===0?'#e2e8f0':'rgb('+lRGB[0]+','+lRGB[1]+','+lRGB[2]+')'),8);
-      // Bright dot on screen + intensity bar
-      var intensity=m===0?0.9:0.7;
-      ctx.save();optGlow(ctx,m===0?'#fff':'rgb('+lRGB[0]+','+lRGB[1]+','+lRGB[2]+')',10*intensity);
-      ctx.fillStyle=m===0?'rgba(255,255,255,0.95)':'rgba('+lRGB[0]+','+lRGB[1]+','+lRGB[2]+',0.95)';
-      ctx.beginPath();ctx.arc(scrX+2,hitY,5,0,Math.PI*2);ctx.fill();
-      optNoGlow(ctx);ctx.restore();
-      // Angle readout on right side of screen
-      if(m!==0){
-        ctx.fillStyle='rgba('+lRGB[0]+','+lRGB[1]+','+lRGB[2]+',0.8)';
-        ctx.font='8px Heebo';ctx.textAlign='left';
-        ctx.fillText('m='+m+': θ='+(th*180/Math.PI).toFixed(1)+'°',scrX+16,hitY+3);
-      }
-    });
-    // === ANGLE ARC at grating ===
-    var sinTh1=lambda/dNm;
-    if(Math.abs(sinTh1)<=1){
-      var th1=Math.asin(sinTh1);
-      optAngleArc(ctx,grX,ax,40,-th1,0,'#fbbf24');
-      optLabel(ctx,'θ₁='+(th1*180/Math.PI).toFixed(1)+'°',grX+55,ax-th1/2*100,'#fbbf24',8);
-    }
-    // === d·sinθ=mλ formula display ===
-    ctx.save();ctx.fillStyle='rgba(10,18,32,0.9)';ctx.strokeStyle='#1e293b';ctx.lineWidth=1;
-    ctx.beginPath();ctx.roundRect(10,10,W-20,32,6);ctx.fill();ctx.stroke();
-    ctx.restore();
-    optLabel(ctx,'d·sinθ = mλ   →   sinθ₁ = λ/d = '+lambda+'/'+dNm.toFixed(0)+' nm = '+(lambda/dNm).toFixed(3),W/2,26,'#94a3b8',11);
-    optInfoBox(ctx,10,H-76,W-20,['\u200ed = '+( dNm/1000).toFixed(2)+' μm,  λ = '+lambda+' nm','m=±1: θ='+(Math.abs(sinTh1)<=1?(Math.asin(sinTh1)*180/Math.PI).toFixed(1)+'°':'לא קיים'),'m=±2: sinθ='+(2*lambda/dNm).toFixed(3)+(2*lambda/dNm<=1?' (קיים)':' (מעל 90° — לא קיים)'),'אדום נסטה יותר מכחול — הפוך מפריזמה']);
+    // the incident beam and the grating, its rulings at a pitch that follows d
+    ctx.save();optGlow(ctx,white?'#ffffff':hex,8);ctx.strokeStyle=white?'rgba(255,255,255,.9)':hex;ctx.lineWidth=4;ctx.lineCap='round';
+    ctx.beginPath();ctx.moveTo(6,cy);ctx.lineTo(gX,cy);ctx.stroke();optNoGlow(ctx);ctx.restore();
+    var pitch=Math.max(2,Math.min(9,d/1000*2.6)),nShow=Math.min(N,15);
+    ctx.save();ctx.strokeStyle='#64748b';ctx.lineWidth=1;
+    for(var i=0;i<nShow;i++){var yy=cy+(i-(nShow-1)/2)*pitch;ctx.beginPath();ctx.moveTo(gX-6,yy);ctx.lineTo(gX+6,yy);ctx.stroke();}
+    ctx.strokeStyle='#94a3b8';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(gX,cy-RA*0.5);ctx.lineTo(gX,cy+RA*0.5);ctx.stroke();ctx.restore();
+    optLabel(ctx,'N = '+N,gX,cy-RA*0.5-12,'#94a3b8',9.5);
+    // the orders: beams from the grating to the arc
+    var orders=[];
+    for(var m=-6;m<=6;m++){var s=m*lam/d;if(Math.abs(s)<=1)orders.push([m,Math.asin(s)]);}
+    if(!white)orders.forEach(function(o){var e=aPt(o[1],RA-12);
+      ctx.save();ctx.strokeStyle=hex;ctx.globalAlpha=0.55;ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(gX,cy);ctx.lineTo(e.x,e.y);ctx.stroke();ctx.restore();});
+    else[-2,-1,1,2].forEach(function(m){for(var l=400;l<=700;l+=50){var s=m*l/d;if(Math.abs(s)>1)continue;var e=aPt(Math.asin(s),RA-12);
+      ctx.save();ctx.strokeStyle=wavelengthToHex(l);ctx.globalAlpha=0.35;ctx.lineWidth=1.4;ctx.beginPath();ctx.moveTo(gX,cy);ctx.lineTo(e.x,e.y);ctx.stroke();ctx.restore();}});
+    // the arc screen: the pattern itself, and I(θ) as a polar curve inside it
+    var col=arcColours(N,d,lam);
+    for(var j=0;j<col.length-1;j++){var c=col[j],p1=aPt(c[0],RA),p2=aPt(col[j+1][0],RA);
+      ctx.save();ctx.strokeStyle='rgb('+Math.round(c[1])+','+Math.round(c[2])+','+Math.round(c[3])+')';ctx.lineWidth=12;ctx.beginPath();ctx.moveTo(p1.x,p1.y);ctx.lineTo(p2.x,p2.y);ctx.stroke();ctx.restore();}
+    ctx.save();ctx.strokeStyle='rgba(148,163,184,.4)';ctx.lineWidth=1;ctx.beginPath();ctx.arc(gX,cy,RA+7,-Math.PI/2,Math.PI/2);ctx.stroke();ctx.beginPath();ctx.arc(gX,cy,RA-7,-Math.PI/2,Math.PI/2);ctx.stroke();ctx.restore();
+    if(!white){ctx.save();ctx.strokeStyle=hex;ctx.globalAlpha=0.8;ctx.lineWidth=1.4;ctx.beginPath();
+      for(var q=0;q<=360;q++){var th=-Math.PI/2+Math.PI*q/360,I=Inslit(N,d,lam,Math.sin(th)),pt=aPt(th,RA-14-I*Math.min(46,RA*0.22));q?ctx.lineTo(pt.x,pt.y):ctx.moveTo(pt.x,pt.y);}
+      ctx.stroke();ctx.restore();}
+    // order names beyond the arc
+    var mm=white?[-2,-1,0,1,2]:orders.map(function(o){return o[0];});
+    mm.forEach(function(m){var s=m*(white?550:lam)/d;if(Math.abs(s)>0.985)return;var th=Math.asin(s),pt=aPt(th,RA+20);
+      optLabel(ctx,'m='+m,pt.x,pt.y,m===0&&white?'#ffffff':'#cbd5e1',9,pt.x>W-24?'right':'center');});
+    // the detector on the arc
+    var th=detA*Math.PI/180,dp=aPt(th,RA),mDet=d*Math.sin(th)/(white?550:lam);
+    ctx.save();ctx.strokeStyle='rgba(255,255,255,.35)';ctx.setLineDash([4,5]);ctx.beginPath();ctx.moveTo(gX,cy);ctx.lineTo(dp.x,dp.y);ctx.stroke();ctx.restore();
+    simHandle(ctx,dp.x,dp.y,'#fbbf24',14);
+    ctx.save();ctx.strokeStyle='#fbbf24';ctx.lineWidth=1.2;ctx.beginPath();ctx.arc(gX,cy,46,0,th,th<0);ctx.stroke();ctx.restore();
+    if(!touched&&animT<10)optLabel(ctx,'✋ גררו את הגלאי לאורך הקשת',Math.min(W-8,dp.x),dp.y-22+(reduce?0:Math.sin(animT*4)*3),'#fbbf24',10,'right');
+    var bx=8,by=H-58,bw=Math.min(W-16,narrow?W-16:300);
+    ctx.save();ctx.fillStyle='rgba(4,9,20,.9)';ctx.strokeStyle='rgba(251,191,36,.6)';ctx.lineWidth=1;ctx.beginPath();ctx.roundRect(bx,by,bw,50,7);ctx.fill();ctx.stroke();ctx.restore();
+    var ltr=document.documentElement.dir==='ltr',tx=ltr?bx+8:bx+bw-8,al=ltr?'left':'right';
+    optLabel(ctx,'גלאי: θ = '+detA.toFixed(1)+'°,  d sinθ = '+mDet.toFixed(2)+'λ'+(white?' (λ = 550 nm)':''),tx,by+15,'#fde68a',10,al);
+    var on=Math.abs(mDet-Math.round(mDet))<0.03;
+    optLabel(ctx,on?'מקסימום ראשי, m = '+Math.round(mDet):'בין המקסימומים',tx,by+35,on?'#34d399':'#94a3b8',9.5,al);
+    // the law, in numbers
+    var s1=lam/d,mMax=Math.floor(d/lam+1e-9);
+    if(s1<=1)kit.model(_skM('d sin θ = mλ')+' ⇒ '+_skM('sin θ₁ = λ/d = '+lam+'/'+Math.round(d)+' = '+s1.toFixed(3))+' ⇒ '+_skM('θ₁ = '+(Math.asin(s1)*180/Math.PI).toFixed(1)+'°')+'; הסדר הגבוה ביותר: '+_skM('m = ⌊d/λ⌋ = '+mMax)+'.');
+    else kit.model(_skM('λ/d = '+s1.toFixed(2)+' > 1')+' — אפילו הסדר הראשון אינו קיים: רק '+_skM('m = 0')+' עובר.');
+    kit.check({white:white,lam:lam,d:d,N:N,mDet:mDet});
     requestAnimationFrame(draw);
   }
-  function poll(){if(_simStop[id])return;requestAnimationFrame(draw);}poll();
+  requestAnimationFrame(draw);
 }
 
 // THEORY MINI-ANIMATIONS  (all fn(canvas,ctx,t) — t in seconds)
@@ -34538,7 +34509,7 @@ function buildSim(sim){
   else if(sim.type==='opt-fiber')extra=C(rng('fib-n1',1.30,1.80,1.50,0.01,'מדד שבירה ליבה n₁','')+rng('fib-n2',1.20,1.70,1.46,0.01,'מדד שבירה מעטה n₂','')+rng('fib-ang',2,40,20,1,'זווית כניסה','°'));
   else if(sim.type==='opt-telescope')extra=C(rng('tel-fo',30,300,150,5,'מוקד אובייקטיב fₒ',' mm')+rng('tel-fe',5,60,25,5,'מוקד עדשת עין fₑ',' mm'));
   else if(sim.type==='opt-thin-film')extra=C(rng('tf-thick',0,1000,300,1,'עובי קרום t',' nm')+rng('tf-n',1.10,2.00,1.33,0.01,'מדד השבירה של הקרום n','')+btn('tf-soap','🫧 קרום סבון','btn-primary')+btn('tf-oil','🛢 שמן על מים','btn-secondary')+btn('tf-ar','👓 MgF₂ על זכוכית','btn-secondary'));
-  else if(sim.type==='opt-grating')extra=C(rng('gr-d',0.5,5.0,1.5,0.1,'מרווח סריג d',' μm')+rng('gr-lambda',380,700,550,5,'אורך גל λ',' nm')+btn('gr-white','🌈 אור לבן','btn-secondary'));
+  else if(sim.type==='opt-grating')extra=C(rng('gr-d',0.5,5.0,1.5,0.01,'מרווח סריג d',' μm')+rng('gr-lambda',380,700,550,1,'אורך גל λ',' nm')+rng('gr-N',2,50,6,1,'מספר החריצים N','')+btn('gr-white','🌈 אור לבן','btn-secondary'));
   else if(sim.type==='elc-scope')extra=C(rng('scope-q',1,10,5,1,'עוצמת מטען המוט',' nC')+btn('scope-flip','↔ החליפו סימן','btn-secondary')+btn('scope-touch','👆 געו — הולכה','btn-secondary')+btn('scope-ground','⏚ חברו הארקה','btn-secondary'));
   else if(sim.type==='elc-coulomb')extra=C(rng('elc-q1',-5,5,2,0.5,'q₁',' μC')+rng('elc-q2',-5,5,-3,0.5,'q₂',' μC')+btn('clb-three','⊕ הוסיפו מטען q₃ (סופרפוזיציה)','btn-secondary'));
   else if(sim.type==='elc-field')extra=C(rng('elc-Q',-6,6,4,0.5,'מטען Q₁',' μC')+rng('elc-Q2',-6,6,-4,0.5,'מטען Q₂',' μC')+btn('field-dipole','⇄ שני מטענים','btn-secondary')+btn('field-lines','✒️ קווי שדה רציפים','btn-secondary'));

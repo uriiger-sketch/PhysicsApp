@@ -156,8 +156,12 @@ const EXPECT = {
   // must carry the thin-lens / mirror equation's own dᵢ and m, the image must
   // be drawn where that dᵢ puts it, the lens's f must follow n(λ), and every
   // mission must be reachable ──
-  const setv = (id, v) => p.evaluate(([id, v]) => { const e = document.getElementById('inp-' + id); e.value = v; e.dispatchEvent(new Event('input', { bubbles: true })); }, [id, v]);
+  // set a slider, then wait two frames: the sim has drawn (and checked its missions) with the new value
+  const setv = (id, v) => p.evaluate(([id, v]) => { const e = document.getElementById('inp-' + id); e.value = v; e.dispatchEvent(new Event('input', { bubbles: true }));
+    return new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))); }, [id, v]);
   const modelTx = () => p.evaluate(() => (document.querySelector('.sk-model-tx') || {}).textContent || '');
+  // the live line once it shows what was just set (a frame can be late on a busy machine)
+  const modelFor = async (needle, ms = 2500) => { let tx = ''; for (let w = 0; w < ms; w += 50) { tx = await modelTx(); if (tx.includes(needle)) return tx; await p.waitForTimeout(50); } return tx; };
   const missions = () => p.evaluate(() => [...document.querySelectorAll('.sk-m')].map(li => li.classList.contains('done') ? 1 : 0).join(''));
   const num = s => parseFloat(String(s).replace('−', '-').replace('+', ''));
   const BENCH = [
@@ -171,7 +175,7 @@ const EXPECT = {
     await p.evaluate(() => { localStorage.removeItem('phys_game_state_v2'); state.missions = {}; });
     for (const [dO, f0] of cases) {
       await setv(pre + '-do', dO); await setv(pre + '-f', f0); await p.waitForTimeout(140);
-      const tx = await modelTx(), f = sg * f0, di = f * dO / (dO - f), m = -di / dO;
+      const tx = await modelFor('− 1/' + dO + ' '), f = sg * f0, di = f * dO / (dO - f), m = -di / dO;
       const gdi = /dᵢ = ([+−-]?\d+) mm/.exec(tx), gm = /m = −dᵢ\/dₒ = ([+−-]?\d+\.\d\d)/.exec(tx);
       t(se + ` dₒ=${dO} f=${f}: dᵢ in the equation line`, gdi && Math.abs(num(gdi[1]) - di) <= 0.6, tx);
       t(se + ` dₒ=${dO} f=${f}: m in the equation line`, gm && Math.abs(num(gm[1]) - m) <= 0.006, tx);
@@ -333,6 +337,30 @@ const EXPECT = {
   await probeTo(1); await probeTo(2);
   t('single slit: every mission is reachable', await missions() === '111', await missions());
 
+  // ── grating: θ₁ = asin(λ/d), the highest order ⌊d/λ⌋, and every mission
+  // (white light, no second order of 700 nm, N = 30, the hydrogen line by the
+  // detector on the arc) ──
+  await open('opt-waves', 'grating');
+  for (const [d, lam] of [[1.5, 550], [1.25, 656], [1.25, 486], [3.0, 400], [0.9, 700]]) {
+    await setv('gr-d', d); await setv('gr-lambda', lam); await p.waitForTimeout(140);
+    const tx = await modelTx(), g = /θ₁ = (\d+\.\d)°/.exec(tx), mm = /= (\d+)\.$/.exec(tx), want = Math.asin(lam / (d * 1000)) / D;
+    t(`grating d=${d} λ=${lam}: θ₁`, g && Math.abs(+g[1] - want) < 0.051, tx);
+    t(`grating d=${d} λ=${lam}: highest order`, mm && +mm[1] === Math.floor(d * 1000 / lam), tx);
+  }
+  await p.evaluate(() => { state.missions = {}; render(); }); await p.waitForTimeout(1100);
+  await p.evaluate(() => document.querySelector('#app .sim-container').dispatchEvent(new Event('click')));
+  await p.evaluate(() => document.getElementById('btn-gr-white').click()); await p.waitForTimeout(250);
+  await p.evaluate(() => document.getElementById('btn-gr-white').click()); await p.waitForTimeout(150);
+  await setv('gr-lambda', 700); await setv('gr-d', 1.39); await p.waitForTimeout(150); await setv('gr-N', 30); await p.waitForTimeout(150);
+  await setv('gr-d', 1.25); await setv('gr-lambda', 656); await p.waitForTimeout(150);
+  await p.evaluate(() => document.getElementById('sim-canvas').scrollIntoView({ block: 'center' })); await p.waitForTimeout(150);
+  const gg = await p.evaluate(() => { const cv = document.getElementById('sim-canvas'), b = cv.getBoundingClientRect(), W = cv.offsetWidth, H = cv.offsetHeight, nw = W < 520;
+    let gX = Math.round(W * (nw ? 0.10 : 0.16)); const RA = Math.min(W - gX - (nw ? 34 : 70), H * 0.43); if (!nw) gX = Math.round(Math.max(gX, W / 2 - RA * 0.45));
+    return { x: b.left + gX, y: b.top + Math.round(H * 0.47), RA }; });
+  const arcPt = deg => ({ x: gg.x + gg.RA * cosd(deg), y: gg.y + gg.RA * sind(deg) });
+  { const a = arcPt(20), m1 = arcPt(26), bb = arcPt(asind(656 / 1250)); await p.mouse.move(a.x, a.y); await p.mouse.down(); await p.mouse.move(m1.x, m1.y); await p.mouse.move(bb.x, bb.y); await p.mouse.up(); await p.waitForTimeout(200); }
+  t('grating: every mission is reachable', await missions() === '1111', await missions());
+
   // ── the eye: vergence model, glasses touching the eye. Sharp exactly when
   // 1/d − P lies in [D_far, D_far + A]; the glasses' image dᵢ = 1/(P − 1/d)
   // is in the equation line; the section's problem (+3.33 D) is a mission ──
@@ -404,6 +432,8 @@ const EXPECT = {
     ['optics', 'opt-waves', 'youngs-slits', W => { const nw = W < 520, a = (nw ? 50 : 84) + (nw ? 70 : 140), x = a + 0.4 * (W - (nw ? 54 : 80) - a); return [[x, 300], [x + 20, 300], [x + 40, 300]]; }, { slider: 'ys-L' }],
     ['optics', 'opt-waves', 'diffraction', W => [[W - 52, 220], [W - 52, 260], [W - 52, 300]], { text: '^' + LR('גלאי: a·sinθ = ') }],
     ['optics', 'opt-waves', 'thin-film', W => { const x = Math.max(10, W * 0.04) + Math.min(110, W * 0.24) / 2; return [[x, 150], [x, 200], [x, 260]]; }, { slider: 'tf-thick' }],
+    ['optics', 'opt-waves', 'grating', (W, H) => { const gX = Math.round(W * 0.10), RA = Math.min(W - gX - 34, H * 0.43), cy = Math.round(H * 0.47), p0 = [gX + RA * Math.cos(20 * Math.PI / 180), cy + RA * Math.sin(20 * Math.PI / 180)];
+      return [p0, [p0[0] - 4, p0[1] + 20], [p0[0] - 10, p0[1] + 40]]; }, { text: '^' + LR('גלאי: θ = ') }],
     ['optics', 'opt-modern', 'polarization', (W, H) => { const y = Math.round(H * 0.31), x = W * 0.69; return [[x + 20, y], [x + 10, y + 20], [x, y + 25]]; }, { slider: 'pol-angle' }],
     // the star rests at the centre when v = 0; a quick flick sets its speed
     ['optics', 'opt-modern', 'doppler', (W, H) => [[W / 2, H / 2], [W / 2 + 40, H / 2], [W / 2 + 80, H / 2]], { slider: 'dop-v' }, ['dop-v', 0]],
