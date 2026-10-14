@@ -144,6 +144,8 @@ const sig2 = x => x === 0 ? 0 : Number(x.toPrecision(2));
   // the missions' check boxes, and a drag in canvas pixels (the sims publish
   // their model in those units)
   const done = () => p.evaluate(() => [...document.querySelectorAll('.sk-m')].map(li => li.classList.contains('done')));
+  // a mission is checked on the next frame, and frames come late on a busy machine: wait for it (2 s at most)
+  const solved = async (i) => { for (let j = 0; j < 20; j++) { if ((await done())[i] === true) return true; await p.waitForTimeout(100); } return false; };
   const cv = async () => p.evaluate(() => { const r = document.querySelector('#app canvas').getBoundingClientRect(); return { x: r.left, y: r.top }; });
   const dragTo = async (x0, y0, x1, y1) => { const o = await cv(); await p.mouse.move(o.x + x0, o.y + y0); await p.mouse.down();
     for (let i = 1; i <= 12; i++) await p.mouse.move(o.x + x0 + (x1 - x0) * i / 12, o.y + y0 + (y1 - y0) * i / 12);
@@ -177,11 +179,11 @@ const sig2 = x => x === 0 ? 0 : Number(x.toPrecision(2));
   const qX = q => mkm.qX0 + (mkm.qX1 - mkm.qX0) * q / mkm.QMAX;
   t('Millikan: three drops in the log, with no common factor in their electron counts',
     mkm.log.length === 3 && mkm.log.reduce((a, x) => { let b = x.n; while (b) [a, b] = [b, a % b]; return a; }, 0) === 1, mkm.log.map(x => x.n).join(','));
-  t('missions "measure a charge" solved, "four drops" not yet', (await done())[0] === true && (await done())[1] === false);
+  t('missions "measure a charge" solved, "four drops" not yet', (await solved(0)) && (await done())[1] === false);
   await dragTo(qX(mkm.comb), mkm.NLy - 16, qX(0.81e-19), mkm.NLy - 16); mkm = await mk();
   t('Millikan comb at e/2: every dot is on a tooth, yet the mission is not solved', Math.abs(mkm.comb / 0.8e-19 - 1) < 0.02 && (await done())[2] === false, mkm.comb);
   await dragTo(qX(mkm.comb), mkm.NLy - 16, qX(1.52e-19), mkm.NLy - 16); mkm = await mk();
-  t('Millikan comb: the largest spacing that fits every drop is e, to 2 %', Math.abs(mkm.comb / e - 1) < 0.02 && (await done())[2] === true, mkm.comb);
+  t('Millikan comb: the largest spacing that fits every drop is e, to 2 %', Math.abs(mkm.comb / e - 1) < 0.02 && (await solved(2)), mkm.comb);
 
   // pair energy: released from rest, two like charges fly apart
   await open('elc-upair');
@@ -201,11 +203,11 @@ const sig2 = x => x === 0 ? 0 : Number(x.toPrecision(2));
   await dragTo(u1.x2, u1.cy, u1.x1 + 30 * u1.PXC, u1.cy);
   await click('btn-up-release'); await landed(); await p.waitForTimeout(150); const u2 = await up();
   t('pair, unlike charges let go: they approach, U falls below U₀ < 0 and E_k = U₀ − U > 0', u2.U0 < 0 && u2.r < 0.3 - 0.02 && u2.U < u2.U0 && Math.abs(u2.K - (u2.U0 - u2.U)) < 1e-12, JSON.stringify(u2));
-  t('pair missions: U < 0, a like pair and an unlike pair released', (await done())[0] && (await done())[2] && (await done())[3]);
+  t('pair missions: U < 0, a like pair and an unlike pair released', (await solved(0)) && (await solved(2)) && (await solved(3)));
   u1 = await up(); await dragTo(u1.x2, u1.cy, u1.x1 + 40 * u1.PXC, u1.cy); u1 = await up();
   const U40 = u1.U, r40 = u1.r; await dragTo(u1.x2, u1.cy, u1.x1 + 20 * u1.PXC, u1.cy); u1 = await up();
   t('pair: U ∝ 1/r -- about half the distance, about twice the energy; mission solved',
-    Math.abs(u1.U / U40 - r40 / u1.r) < 1e-9 && Math.abs(r40 / u1.r - 2) < 0.02 && (await done())[1] === true, (u1.U / U40).toFixed(4) + ' vs ' + (r40 / u1.r).toFixed(4));
+    Math.abs(u1.U / U40 - r40 / u1.r) < 1e-9 && Math.abs(r40 / u1.r - 2) < 0.02 && (await solved(1)), (u1.U / U40).toFixed(4) + ' vs ' + (r40 / u1.r).toFixed(4));
 
   // electroscope: charge it by contact, then an opposite rod closes the leaves
   await open('elc-basics');
@@ -274,7 +276,7 @@ const sig2 = x => x === 0 ? 0 : Number(x.toPrecision(2));
   await dragTo(m.probe.x, m.probe.y, nx + 6, ny - 5);
   m = await elc(); let tx2 = await txt();
   t('the test charge let go near the null point settles on it: E = 0 there', m.E < 1 && /\|E\| = 0 N\/C/.test(tx2), 'E = ' + m.E);
-  t('mission "find E = 0 between two positive charges" is solved by doing it', (await done())[0] === true);
+  t('mission "find E = 0 between two positive charges" is solved by doing it', (await solved(0)));
   // unlike, unequal: the null point is beyond the weaker charge, where kQ₁/r₁² = kQ₂/r₂²
   await setR('inp-elc-Q2', -1); m = await elc();
   const n1 = Math.hypot(m.nul.x - m.A[0].x, m.nul.y - m.A[0].y), n2 = Math.hypot(m.nul.x - m.A[1].x, m.nul.y - m.A[1].y);
@@ -290,9 +292,9 @@ const sig2 = x => x === 0 ? 0 : Number(x.toPrecision(2));
   await click('btn-field-release');
   for (let i = 0; i < 80; i++) { m = await elc(); if (m.fly && (m.fly.done || m.fly.dev >= 12)) break; await p.waitForTimeout(100); }
   await p.waitForTimeout(150); m = await elc();
-  t('released from rest where the line curves (a dipole), it leaves the field line: inertia', m.fly && m.fly.dev >= 12 && (await done())[2] === true, JSON.stringify(m.fly));
+  t('released from rest where the line curves (a dipole), it leaves the field line: inertia', m.fly && m.fly.dev >= 12 && (await solved(2)), JSON.stringify(m.fly));
   await click('btn-field-q0'); await p.waitForTimeout(300);
-  t('a negative test charge: F = q₀E reverses, E does not -- mission solved', (await done())[3] === true);
+  t('a negative test charge: F = q₀E reverses, E does not -- mission solved', (await solved(3)));
 
   await open('elc-potential');
   await click('btn-pot-two'); m = await elc();
@@ -303,11 +305,11 @@ const sig2 = x => x === 0 ? 0 : Number(x.toPrecision(2));
   const vx = m.A[0].x + 0.4 * (m.A[1].x - m.A[0].x), vy = m.A[0].y;
   await dragTo(m.probe.x, m.probe.y, vx + 5, vy - 30); m = await elc(); tx2 = await txt();
   t('potential: let go by the white line, the probe reads V = 0 while |E| is far from 0', Math.abs(m.V) < 1 && m.E > 1e4 && /^V = 0 V$/m.test(tx2), 'V = ' + m.V + ', E = ' + m.E);
-  t('mission "V = 0 but E ≠ 0" is solved by doing it', (await done())[0] === true);
+  t('mission "V = 0 but E ≠ 0" is solved by doing it', (await solved(0)));
   await setR('inp-elc-Vq2', 3); m = await elc();
   await dragTo(m.probe.x, m.probe.y, m.nul.x + 5, m.nul.y + 4); m = await elc();
   t('potential: at the null point of two like charges E = 0 but V = kQ₁/r₁ + kQ₂/r₂ > 0',
-    m.E < 1 && m.V > 1e4 && (await done())[1] === true, 'E = ' + m.E + ', V = ' + m.V);
+    m.E < 1 && m.V > 1e4 && (await solved(1)), 'E = ' + m.E + ', V = ' + m.V);
 
   // ── Coulomb: equal arrows (Newton 3) on one linear scale, and the inverse square measured ──
   await open('elc-coulomb');
@@ -316,19 +318,31 @@ const sig2 = x => x === 0 ? 0 : Number(x.toPrecision(2));
   t('Coulomb at the start: r = 20 cm, F = k|q₁q₂|/r² = 1.35 N', Math.abs(cb.r - 20) < 0.01 && Math.abs(cb.F - k * 6e-12 / 0.04) < 1e-9, cb.r + ' cm, ' + cb.F + ' N');
   await setR('inp-elc-q1', 5); await setR('inp-elc-q2', 1); await p.waitForTimeout(250); cb = await clb();
   t('Coulomb, q₁ = 5 μC and q₂ = 1 μC: the two force arrows are equal in length (Newton 3)', cb.L1 > 0 && cb.L1 === cb.L2 && Math.abs(cb.F - k * 5e-12 / (cb.r / 100) ** 2) < 1e-9, cb.L1 + ' / ' + cb.L2);
-  t('mission "one charge 4 times the other" is solved by doing it', (await done())[0] === true);
+  t('mission "one charge 4 times the other" is solved by doing it', (await solved(0)));
   for (const rc of [10, 20, 30]) { cb = await clb(); await dragTo(cb.x2, cb.cy, cb.x1 + rc * cb.PXC, cb.cy); }
   cb = await clb();
   const fr2 = cb.tab.map(m2 => m2.F * (m2.r / 100) ** 2);
   t('Coulomb: three measurements, F·r² the same at each = k|q₁q₂|', cb.tab.length === 3 && fr2.every(v => Math.abs(v - k * 5e-12) < 1e-9 * k * 5e-12),
     JSON.stringify(cb.tab));
   t('Coulomb: doubling r from 10 to 20 cm divides F by 4', Math.abs(cb.tab[0].F / cb.tab[1].F - 4) < 1e-6, (cb.tab[0].F / cb.tab[1].F).toFixed(4));
-  t('mission "measure at three distances" is solved by doing it', (await done())[1] === true);
+  t('mission "measure at three distances" is solved by doing it', (await solved(1)));
   await setR('inp-elc-q1', 2); await setR('inp-elc-q2', -3); cb = await clb();
   await dragTo(cb.x2, cb.cy, cb.x1 + 12 * cb.PXC, cb.cy);
   await click('btn-clb-three'); await p.waitForTimeout(200); cb = await clb();
   await dragTo(cb.x3, cb.cy, cb.x2 + (cb.x2 - cb.x1) + 6, cb.cy); await p.waitForTimeout(200); cb = await clb();
-  t('superposition: with q₃ = q₁ the net force on q₂ vanishes where r₃ = r₁', Math.abs(cb.Fn) < 1e-9 && Math.abs((cb.x3 - cb.x2) - (cb.x2 - cb.x1)) < 1e-6 && (await done())[2] === true, 'ΣF = ' + cb.Fn);
+  t('superposition: with q₃ = q₁ the net force on q₂ vanishes where r₃ = r₁', Math.abs(cb.Fn) < 1e-9 && Math.abs((cb.x3 - cb.x2) - (cb.x2 - cb.x1)) < 1e-6 && (await solved(2)), 'ΣF = ' + cb.Fn);
+
+  // ── capacitor: C from the geometry alone; connected (V fixed) vs disconnected (Q fixed) ──
+  await open('elc-capacitor'); await p.waitForTimeout(400);
+  const cap = async () => { await p.waitForTimeout(250); return p.evaluate(() => document.querySelector('#app canvas').__cap); };
+  let c1 = await cap();
+  t('capacitor: C = ε₀A/d = 44.3 pF for 200 cm² at 4 mm', Math.abs(c1.C - eps0 * 0.02 / 0.004) < 1e-15, c1.C);
+  await setR('inp-elc-cV', 6); const c6 = await cap(); await setR('inp-elc-cV', 24); const c24 = await cap();
+  t('capacitor: 6 V → 24 V, C unchanged and Q ×4 (C = Q/V measures, does not set)', c6.C === c24.C && Math.abs(c24.Q / c6.Q - 4) < 1e-9 && (await solved(0)));
+  await click('btn-cap-disc'); const cd0 = await cap(); await setR('inp-elc-cd', 8); const cd1 = await cap();
+  t('capacitor disconnected, gap doubled: V ×2, E unchanged, U ×2, Q fixed', Math.abs(cd1.V / cd0.V - 2) < 1e-9 && Math.abs(cd1.E - cd0.E) < 1e-6 * cd0.E && Math.abs(cd1.U / cd0.U - 2) < 1e-9 && cd1.Q === cd0.Q && (await solved(1)), JSON.stringify([cd0, cd1, await done()]));
+  await click('btn-cap-disc'); const cc0 = await cap(); await setR('inp-elc-cd', 4); const cc1 = await cap();
+  t('capacitor connected, gap halved: C, Q, U ×2 and E ×2, V fixed', Math.abs(cc1.C / cc0.C - 2) < 1e-9 && Math.abs(cc1.U / cc0.U - 2) < 1e-9 && Math.abs(cc1.E / cc0.E - 2) < 1e-9 && cc1.V === cc0.V && (await solved(2)));
 
   // ── dielectric: what is held fixed. Bars read C, Q, V, E, U against the empty capacitor ──
   await open('elc-dielectric'); await p.waitForTimeout(400);
@@ -336,7 +350,7 @@ const sig2 = x => x === 0 ? 0 : Number(x.toPrecision(2));
   await setR('inp-di-k', 4); await setR('inp-di-f', 1);
   let rt = await ratios();
   t('dielectric, battery connected, slab in: C, Q, U ×κ; V, E ×1', JSON.stringify(rt) === JSON.stringify([4, 4, 1, 1, 4]), rt.join(' '));
-  t('mission "connected: slide it in" is solved by doing it', (await done())[0] === true);
+  t('mission "connected: slide it in" is solved by doing it', (await solved(0)));
   await click('btn-di-mode'); rt = await ratios();
   t('dielectric: opening the switch with the slab in moves no charge (Q stays ×4, V stays 12 V)', JSON.stringify(rt) === JSON.stringify([4, 4, 1, 1, 4]), rt.join(' '));
   await setR('inp-di-f', 0); rt = await ratios();
@@ -344,9 +358,9 @@ const sig2 = x => x === 0 ? 0 : Number(x.toPrecision(2));
   await click('btn-di-mode'); await click('btn-di-mode');      // reconnect (charge back to Q0), disconnect empty
   await setR('inp-di-f', 1); rt = await ratios();
   t('dielectric, disconnected empty, slab in: V, E and U fall by κ (×0.25)', JSON.stringify(rt) === JSON.stringify([4, 1, 0.25, 0.25, 0.25]), rt.join(' '));
-  t('mission "disconnect, then insert: V to a quarter" is solved by doing it', (await done())[1] === true);
+  t('mission "disconnect, then insert: V to a quarter" is solved by doing it', (await solved(1)));
   await setR('inp-di-f', 0); await p.waitForTimeout(200);
-  t('mission "pull the slab out: does U rise?" is solved by doing it', (await done())[2] === true);
+  t('mission "pull the slab out: does U rise?" is solved by doing it', (await solved(2)));
 
   // ── deflection: y = qVL²/(2mdv₀²), tan α = qVL/(mdv₀²), a straight line to the screen ──
   await open('elc-deflection'); await p.waitForTimeout(400);
@@ -363,11 +377,11 @@ const sig2 = x => x === 0 ? 0 : Number(x.toPrecision(2));
   await setR('inp-df-v0', 2);
   for (let v = 100; v <= 300; v += 10) { await setR('inp-df-V', v); await p.waitForTimeout(60); const d3 = await dfm(); if (Math.abs(d3.Ys - d3.YT) < 0.0015) break; }
   await p.waitForTimeout(150);
-  t('mission "hit the target" is reachable with the sliders and solved', (await done())[0] === true, JSON.stringify(await dfm()));
+  t('mission "hit the target" is reachable with the sliders and solved', (await solved(0)), JSON.stringify(await dfm()));
   await setR('inp-df-V', 300); await setR('inp-df-v0', 1.5); await p.waitForTimeout(200);
   t('V = 300 V at v₀ = 1.5×10⁷ m/s: the electron hits the plate', (await dfm()).hit === true);
   await setR('inp-df-v0', 3); await p.waitForTimeout(200);
-  t('a faster electron is rescued: mission solved', (await dfm()).hit === false && (await done())[1] === true);
+  t('a faster electron is rescued: mission solved', (await dfm()).hit === false && (await solved(1)));
 
   console.log('   every draggable simulation by touch, on a phone');
   const tc = await b.newContext({ viewport: { width: 390, height: 1300 }, hasTouch: true, isMobile: true, deviceScaleFactor: 2 });

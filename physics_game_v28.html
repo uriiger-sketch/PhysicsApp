@@ -7738,7 +7738,7 @@ const ELECTRO_CONTENT={
       </ul></div>
     <p><b>וכיצד הוא נטען?</b> כאן דיברנו על הקבל כעל <b>אובייקט</b>: שני מישורים, שדה ביניהם, מטען ואנרגיה. מה קורה כשמחברים אותו לסוללה דרך נגד — הזרם שדועך, קבוע הזמן ${M('\\tau=RC')} — הוא שאלה של <b>מעגל</b>, ומקומה בפרק מעגלי זרם ישר.</p>`,
   },
-  sim:{type:'elc-cap',desc:'גררו את הלוח לשינוי d, שנו שטח ומתח והכניסו חומר דיאלקטרי. נתקו מהסוללה: Q ננעל, גרירה מעלה את V ואת U — ו־E נשאר קבוע.'},
+  sim:{type:'elc-cap',desc:'גררו את הלוח הכחול כדי לשנות את d, שנו שטח ומתח והכניסו חומר דיאלקטרי. הקישו על הסוללה כדי לנתק אותה: Q ננעל, הרחקת הלוחות מעלה את V ואת U — ו־E נשאר קבוע.'},
   example:{title:'קבל לוחות',text:`לקבל לוחות שטח ${M('A=0.02\\,\\text{m}^2')} ומרווח ${M('d=1\\,\\text{mm}')}. מחברים אותו לסוללה של ${M('9\\,\\text{V}')}.`,steps:[
     {q:'מה הקיבול?',a:`${M('C=\\dfrac{\\varepsilon_0A}{d}=\\dfrac{8.85\\times10^{-12}\\times0.02}{0.001}\\approx1.77\\times10^{-10}\\,\\text{F}=177\\,\\text{pF}')}`},
     {q:'כמה מטען נאגר עליו?',a:`${M('Q=CV=1.77\\times10^{-10}\\times9\\approx1.6\\times10^{-9}\\,\\text{C}=1.6\\,\\text{nC}')}`}]},
@@ -32595,15 +32595,41 @@ function simElcCap(canvas){
     if(disc)Qfroz=kappa*ELC_EPS0*(Acm()*1e-4)/(dmm()*1e-3)*Vv();
     xb.textContent=disc?'🔌 חברו חזרה לסוללה':'✂️ נתקו מהסוללה (Q קבוע)';});
   function rx(){return LX+dmm()*18;}
+  // the battery is on the canvas too: a tap there disconnects or reconnects it
+  function onBat(p){return Math.abs(p.x-(LX+rx())/2)<30&&Math.abs(p.y-(H0-52))<26;}
   function _dn(e){var p=simPointerXY(canvas,dpr,e);
+    if(onBat(p)){if(xb)xb.click();e.preventDefault();return;}
     if(Math.abs(p.x-rx())<18&&Math.abs(p.y-cy)<120){dragPlate=true;touched=true;canvas.style.cursor='grabbing';e.preventDefault();}}
   function _mv(e){var p=simPointerXY(canvas,dpr,e);
     if(dragPlate){simSyncSlider('elc-cd',(p.x-LX)/18,1);e.preventDefault();}
-    else canvas.style.cursor=(Math.abs(p.x-rx())<18&&Math.abs(p.y-cy)<120)?'ew-resize':'';}
+    else canvas.style.cursor=(Math.abs(p.x-rx())<18&&Math.abs(p.y-cy)<120)?'ew-resize':onBat(p)?'pointer':'';}
   function _up(){dragPlate=false;canvas.style.cursor='';}
   canvas.addEventListener('mousedown',_dn);canvas.addEventListener('touchstart',_dn,{passive:false});
   canvas.addEventListener('mousemove',_mv);canvas.addEventListener('touchmove',_mv,{passive:false});
   canvas.addEventListener('mouseup',_up);canvas.addEventListener('touchend',_up);
+  var kb=elcKbd(canvas,{n:function(){return 1;},get:function(){return {x:rx(),y:cy};},
+    set:function(i,x){touched=true;simSyncSlider('elc-cd',(x-LX)/18,1);}});
+  // what the missions remember: the voltages tried on one capacitor, the gap
+  // at the moment of disconnection, the widest gap while connected
+  var vLo=1e9,vHi=0,gKey='',dDisc=0,dMaxCon=0,cKey='';
+  if(xb)xb.addEventListener('click',function(){dDisc=dmm();dMaxCon=dmm();});
+  var kit=simKit(canvas,{missions:[
+    {text:'שנו את המתח מ־6 V ל־24 V ועקבו אחר '+_skM('C')+'. האם הקיבול תלוי במתח?',
+     hint:'השאירו את השטח, את המרווח ואת החומר כמו שהם, והזיזו רק את מחוון המתח — מקצה לקצה.',
+     why:_skM('C = κε₀A/d')+': כשהמתח גדל, המטען גדל באותו יחס, והמנה '+_skM('Q/V')+' נשארת קבועה. '+_skM('C = Q/V')+' מלמדת איך מודדים את הקיבול — לא ממה הוא נקבע.',
+     done:function(s){return s.vSpan>=3;}},
+    {text:'נתקו את הסוללה, ואז הכפילו את המרווח בין הלוחות. מה קורה ל־'+_skM('V')+', ל־'+_skM('E')+' ול־'+_skM('U')+'?',
+     hint:'הקישו על הסוללה (או לחצו ״✂️ נתקו מהסוללה (Q קבוע)״) וגררו את הלוח הכחול למרחק כפול.',
+     why:'המטען כלוא: '+_skM('E = σ/ε₀')+' אינו משתנה, '+_skM('V = Ed')+' מוכפל, וגם '+_skM('U = ½QV')+' מוכפלת — האנרגיה הנוספת היא העבודה שהידיים עשו כשהרחיקו לוחות שנמשכים זה לזה.',
+     done:function(s){return s.disc&&s.d>=1.95*s.dDisc;}},
+    {text:'כשהסוללה מחוברת, קרבו את הלוחות למחצית המרווח',
+     hint:'ודאו שהסוללה מחוברת וגררו את הלוח הכחול לעבר האדום עד חצי מהמרחק.',
+     why:'המתח קבוע: '+_skM('C')+' מוכפל, ולכן גם '+_skM('Q = CV')+' ו־'+_skM('U = ½CV²')+' מוכפלים, ו־'+_skM('E = V/d')+' מוכפל — את המטען הנוסף מספקת הסוללה.',
+     done:function(s){return !s.disc&&s.d<=0.51*s.dMax;}}
+  ]});
+  kit.predict({q:'הקבל מחובר לסוללה, ומכפילים את המתח. הקיבול '+_skM('C')+':',
+    opts:['גדל פי 2','קטן פי 2','אינו משתנה'],correct:2,
+    why:'הכפלת המתח מכפילה את המטען, והיחס '+_skM('Q/V')+' — שנקבע מהשטח, מהמרווח ומהחומר — נשאר. נסו בעצמכם בעזרת מחוון המתח.'});
   function draw(){
     if(_simStop[id])return;animT+=0.03;
     var Vx=Vv(),A=Acm()*1e-4,d=dmm()*1e-3;
@@ -32679,7 +32705,18 @@ function simElcCap(canvas){
       ctx.fillRect(bx,by,bw*Math.max(0.02,Math.min(1,b[1])),20);ctx.restore();
       optLabel(ctx,b[2],bx+bw/2,by+34,b[3],9);
     });
-    optInfoBox(ctx,8,8,208,['C=κε₀A/d='+(C*1e12).toFixed(1)+' pF',(disc?'Q קבוע = ':'Q=CV=')+(Qc*1e9).toFixed(2)+' nC',(disc?'V=Q/C=':'V=')+Vdisp.toFixed(1)+' V,  E='+(E/1000).toFixed(1)+' kV/m','U=½QV='+(U*1e9).toFixed(1)+' nJ'+(disc?' — גדל בהרחקה!':'')]);
+    // (the readout box that sat here repeated the bars and the equation line under the canvas)
+    elcFocus(ctx,kb,0,RX+4,cy,20);
+    // ── the lesson's numbers ──
+    var cT='C = κε₀A/d = '+(kappa>1?kappa+' × ':'')+'8.85×10⁻¹² × '+A.toFixed(4)+' / '+d.toFixed(4)+' = '+(C*1e12).toFixed(1)+' pF';
+    kit.model(disc?'מנותק מהסוללה, Q קבוע: '+_skM(cT+' ⇒ V = Q/C = '+Vdisp.toFixed(1)+' V, E = V/d = '+(E/1000).toFixed(1)+' kV/m, U = Q²/2C = '+(U*1e9).toFixed(1)+' nJ')
+      :'מחובר לסוללה, V קבוע: '+_skM(cT+' ⇒ Q = CV = '+(Qc*1e9).toFixed(2)+' nC, E = V/d = '+(E/1000).toFixed(1)+' kV/m, U = ½CV² = '+(U*1e9).toFixed(1)+' nJ'));
+    var gk2=A+'|'+d+'|'+kappa+'|'+disc;if(gk2!==gKey){gKey=gk2;vLo=vHi=Vx;}
+    if(!disc){vLo=Math.min(vLo,Vx);vHi=Math.max(vHi,Vx);}
+    var ck=A+'|'+kappa+'|'+Vx+'|'+disc;if(ck!==cKey){cKey=ck;dMaxCon=dmm();}
+    if(!disc)dMaxCon=Math.max(dMaxCon,dmm());
+    canvas.__cap={C:C,Q:Qc,V:Vdisp,E:E,U:U,disc:disc};   // for the tests
+    kit.check({vSpan:vHi/Math.max(vLo,1e-9),disc:disc,d:dmm(),dDisc:dDisc,dMax:dMaxCon});
     requestAnimationFrame(draw);
   }requestAnimationFrame(draw);
 }
