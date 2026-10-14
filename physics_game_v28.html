@@ -8062,7 +8062,7 @@ const DC_CONTENT={
       <p>בשרשראות מודרניות הנורות מחוברות במקביל, או שבכל נורה יש ״מעקף״ שממשיך להעביר את הזרם כשהחוט שלה נשרף.</p>
     </div>`,
   },
-  sim:{type:'dc-series',desc:'שנו את שני הנגדים ואת מתח הסוללה. הזרם המשותף מוצג פעם אחת, והמתחים מתחלקים לנגד עיניכם — בדקו תמיד שסכומם שווה למתח המקור.'},
+  sim:{type:'dc-series',desc:'הקישו על עיגול מקווקו כדי להעביר את האמפרמטר למקום אחר במעגל, וגררו את גשושי הוולטמטר כדי למדוד מתח על כל נגד. צבע החוט הוא הפוטנציאל שלו: ראו איפה הוא יורד, ובדקו שסכום הירידות שווה לכא״מ. הסוללה כאן אידיאלית — בלי התנגדות פנימית.'},
   example:{title:'שני נגדים בטור',text:`סוללה של ${M('12\\,\\text{V}')}, ${M('R_1=4\\,\\Omega')} ו־${M('R_2=8\\,\\Omega')} בטור.`,steps:[
     {q:'מה ההתנגדות השקולה?',a:`${M('R=4+8=12\\,\\Omega')}`},
     {q:'מה הזרם?',a:`${M('I=\\dfrac{12}{12}=1\\,\\text{A}')} — אותו זרם בשני הנגדים.`},
@@ -8113,7 +8113,7 @@ const DC_CONTENT={
       <p>המחיר: כל מכשיר שמדליקים מוסיף ענף, ולכן מגדיל את הזרם בקו הראשי. כשהזרם עובר את המותר, המאמ״ת (מפסק הזרם האוטומטי) בלוח החשמל מנתק את המעגל — לפני שהחוטים בקירות יתחממו.</p>
     </div>`,
   },
-  sim:{type:'dc-parallel',desc:'הוסיפו והסירו ענפים וצפו ב־R השקולה יורדת עם כל ענף. הזרמים בענפים מסתכמים תמיד לזרם הראשי — בדקו זאת בכל שינוי.'},
+  sim:{type:'dc-parallel',desc:'הקישו על המפסקים כדי לחבר ולנתק ענפים, וצפו באמפרמטר הראשי: הזרמים בענפים מסתכמים תמיד לזרם הראשי, וההתנגדות השקולה יורדת עם כל ענף. מדדו בגשושים את המתח על כל נורה. בהתחלה הסוללה אידיאלית; תנו לה התנגדות פנימית r וראו מה משתנה.'},
   example:{title:'שני נגדים במקביל',text:`סוללה של ${M('12\\,\\text{V}')}, ${M('R_1=4\\,\\Omega')} ו־${M('R_2=12\\,\\Omega')} במקביל.`,steps:[
     {q:'מה ההתנגדות השקולה?',a:`${M('R=\\dfrac{4\\times12}{16}=3\\,\\Omega')} — קטנה מ־${M('4\\,\\Omega')}.`},
     {q:'מה הזרמים בענפים?',a:`${M('I_1=3\\,\\text{A}')}, ${M('I_2=1\\,\\text{A}')}`},
@@ -30183,9 +30183,11 @@ function _dcGauss(A,b,N){
 // n points (0 is the reference), els with integer a, b. Returns the potential
 // of every point and the current in every element, from a to b through it.
 function dcSolve(n,els){
+  // an element marked ghost is, for now, a plain wire (an empty meter slot,
+  // a resistor not yet added)
   var srcIx=[],slot=new Array(els.length),i;
   els.forEach(function(e,ix){
-    if(e.k==='w'||e.k==='amm'||e.k==='bat'||(e.k==='sw'&&e.on)){slot[ix]=srcIx.length;srcIx.push(ix);}});
+    if(e.ghost||e.k==='w'||e.k==='amm'||e.k==='bat'||(e.k==='sw'&&e.on)){slot[ix]=srcIx.length;srcIx.push(ix);}});
   var N=n-1+srcIx.length,A=[],z=new Float64Array(N);
   for(i=0;i<N;i++)A.push(new Float64Array(N));
   var g=function(a,b,G){
@@ -30193,19 +30195,21 @@ function dcSolve(n,els){
     if(a&&b){A[a-1][b-1]-=G;A[b-1][a-1]-=G;}};
   for(i=1;i<n;i++)A[i-1][i-1]+=DC_GMIN;
   els.forEach(function(e){
+    if(e.ghost)return;
     if(e.k==='res'||e.k==='bulb'||e.k==='vm')g(e.a,e.b,1/Math.max(1e-9,e.R));
     else if(e.k==='sw'&&!e.on)g(e.a,e.b,DC_GMIN);});
   // a source-like element k: V_a − V_b − rs·I = −ε (a cell: V_b − V_a = ε − r·I)
   srcIx.forEach(function(ix,s){
-    var e=els[ix],r=n-1+s;
-    var rs=e.k==='bat'?Math.max(0,e.r||0):e.k==='amm'?Math.max(DC_RW,e.R||0):DC_RW;
+    var e=els[ix],r=n-1+s,cell=e.k==='bat'&&!e.ghost;
+    var rs=cell?Math.max(0,e.r||0):e.k==='amm'&&!e.ghost?Math.max(DC_RW,e.R||0):DC_RW;
     if(e.a){A[e.a-1][r]+=1;A[r][e.a-1]+=1;}
     if(e.b){A[e.b-1][r]-=1;A[r][e.b-1]-=1;}
-    A[r][r]-=rs;z[r]=e.k==='bat'?-(e.emf||0):0;});
+    A[r][r]-=rs;z[r]=cell?-(e.emf||0):0;});
   var x=_dcGauss(A,z,N),V=new Float64Array(n);
   for(i=1;i<n;i++)V[i]=x[i-1];
   var I=els.map(function(e,ix){
     if(slot[ix]!==undefined)return x[n-1+slot[ix]];
+    if(e.ghost)return 0;
     if(e.k==='res'||e.k==='bulb'||e.k==='vm')return (V[e.a]-V[e.b])/Math.max(1e-9,e.R);
     if(e.k==='sw')return (V[e.a]-V[e.b])*DC_GMIN;
     return 0;});
@@ -30297,22 +30301,25 @@ function dcBoard(canvas,ctx,W,H,dpr,spec){
     return (B.V[e.a]-B.V[e.b])*i;};
   // ── probes ─────────────────────────────────────────────────────────
   // a probe snaps to any wire or lead; the reading is V(red) − V(black)
-  var segs=[];
-  els.forEach(function(e){var A=pts[e.a],Bp=pts[e.b];
-    if(e.k==='w'){segs.push([A[0],A[1],Bp[0],Bp[1],e.a]);return;}
-    var h=e.bl/2;
-    if(e.L/2-h>3){segs.push([A[0],A[1],e.mx-e.ux*h,e.my-e.uy*h,e.a]);
-      segs.push([e.mx+e.ux*h,e.my+e.uy*h,Bp[0],Bp[1],e.b]);}});
+  // (built afresh each time: a meter slot or a resistor can turn into wire)
+  var segsNow=function(){var segs=[];
+    els.forEach(function(e){var A=pts[e.a],Bp=pts[e.b];
+      if(e.hidden)return;
+      if(e.k==='w'||e.ghost){segs.push([A[0],A[1],e.mx,e.my,e.a]);segs.push([e.mx,e.my,Bp[0],Bp[1],e.b]);return;}
+      var h=e.bl/2;
+      if(e.L/2-h>3){segs.push([A[0],A[1],e.mx-e.ux*h,e.my-e.uy*h,e.a]);
+        segs.push([e.mx+e.ux*h,e.my+e.uy*h,Bp[0],Bp[1],e.b]);}});
+    return segs;};
   var snapAt=function(x,y,lim){
     var best=null,bd=lim||26;
-    segs.forEach(function(s,si){var dx=s[2]-s[0],dy=s[3]-s[1],l2=dx*dx+dy*dy;
+    segsNow().forEach(function(s,si){var dx=s[2]-s[0],dy=s[3]-s[1],l2=dx*dx+dy*dy;
       var t=l2?Math.max(0,Math.min(1,((x-s[0])*dx+(y-s[1])*dy)/l2)):0;
       var px=s[0]+dx*t,py=s[1]+dy*t,d=Math.hypot(x-px,y-py);
       if(d<bd){bd=d;best={s:si,x:px,y:py,node:s[4]};}});
     return best;};
   // keyboard stops for a probe: every point a wire touches
   var anchors=[];
-  pts.forEach(function(p,i){if(els.some(function(e){return e.k==='w'&&(e.a===i||e.b===i);}))anchors.push(i);});
+  pts.forEach(function(p,i){if(els.some(function(e){return (e.k==='w'||e.ghost)&&!e.hidden&&(e.a===i||e.b===i);}))anchors.push(i);});
   var M=spec.probes,probes=[];
   if(M){
     probes=[{c:'#ef4444',rim:'#fecaca',lead:'#ef4444',dock:[M.x+M.w+26,M.y+M.h-4],jack:[M.x+M.w,M.y+M.h-14],sgn:1,tag:'+'},
@@ -30444,13 +30451,13 @@ function dcBoard(canvas,ctx,W,H,dpr,spec){
       if(!RM)phase[c]=(phase[c]||0)+dt*k*B.I[ix]*sig[ix]/SP;});
     ctx.save();ctx.fillStyle='rgba(253,230,138,.92)';
     els.forEach(function(e,ix){
-      if(e.k==='sw'&&!e.on)return;
+      if((e.k==='sw'&&!e.on&&!e.ghost)||e.hidden)return;
       var nD=Math.max(1,Math.round(e.L/SP)),ph=(phase[cf(ix)]||0)*sig[ix],A=pts[e.a];
       for(var j=0;j<nD;j++){var u=((j+ph)%nD+nD)%nD/nD;
         ctx.beginPath();ctx.arc(A[0]+e.ux*e.L*u,A[1]+e.uy*e.L*u,2.4,0,6.2832);ctx.fill();}});
     ctx.restore();
     if(RM)els.forEach(function(e,ix){       // still charges: a chevron says which way
-      var i=B.I[ix];if(e.k!=='w'||Math.abs(i)<1e-4||e.L<34)return;
+      var i=B.I[ix];if((e.k!=='w'&&!e.ghost)||e.hidden||Math.abs(i)<1e-4||e.L<34)return;
       var d=i>0?1:-1,cx=e.mx,cy=e.my,ux=e.ux*d,uy=e.uy*d;
       ctx.save();ctx.strokeStyle='rgba(253,230,138,.95)';ctx.lineWidth=2;ctx.beginPath();
       ctx.moveTo(cx-ux*5-uy*5,cy-uy*5+ux*5);ctx.lineTo(cx+ux*3,cy+uy*3);ctx.lineTo(cx-ux*5+uy*5,cy-uy*5-ux*5);
@@ -30505,25 +30512,36 @@ function dcBoard(canvas,ctx,W,H,dpr,spec){
     if(e.k==='bat'){var sd=e.signs||1,nx=-e.uy*sd,ny=e.ux*sd;
       simText(ctx,'+',e.mx+e.ux*(h+5)+nx*22,e.my+e.uy*(h+5)+ny*22+4,'#f87171',13,'center',true);
       simText(ctx,'−',e.mx-e.ux*(h+5)+nx*22,e.my-e.uy*(h+5)+ny*22+4,'#60a5fa',13,'center',true);}
-    if(e.k==='amm'||e.k==='vm')simText(ctx,e.k==='amm'?'A':'V',e.mx,e.my+5,e.k==='amm'?'#fbbf24':'#34d399',14,'center',true);
+    if(e.k==='amm'||e.k==='vm'){
+      simText(ctx,e.k==='amm'?'A':'V',e.mx,e.my+5,e.k==='amm'?'#fbbf24':'#34d399',14,'center',true);
+      // a meter in the circuit says what it reads, beside itself (rx, ry)
+      if(e.read!==false){var rd=e.k==='amm'?dcNum(I,2)+' A':dcNum(va-vb,2)+' V';
+        var px=e.mx+(e.rx!==undefined?e.rx:(Math.abs(e.ux)>0.5?0:30)),py=e.my+(e.ry!==undefined?e.ry:(Math.abs(e.ux)>0.5?30:4));
+        ctx.save();ctx.font='bold 10.5px Heebo';var tw=ctx.measureText(rd).width+10;ctx.restore();
+        ctx.save();ctx.fillStyle='rgba(2,8,16,.88)';ctx.strokeStyle=e.k==='amm'?'rgba(251,191,36,.45)':'rgba(52,211,153,.45)';ctx.lineWidth=1;
+        ctx.beginPath();ctx.roundRect(px-tw/2,py-11,tw,16,5);ctx.fill();ctx.stroke();ctx.restore();
+        simText(ctx,rd,px,py+1,e.k==='amm'?'#fde68a':'#a7f3d0',10.5,'center',true);}}
   };
   B.drawCircuit=function(dt){
     var vm=B.vmax();
     ctx.save();ctx.lineCap='round';ctx.lineWidth=4;
     els.forEach(function(e){var A=pts[e.a],Bp=pts[e.b];
-      if(e.k==='w'){wireTo(A[0],A[1],Bp[0],Bp[1],B.V[e.a]);return;}
+      if(e.hidden)return;
+      if(e.k==='w'||e.ghost){wireTo(A[0],A[1],Bp[0],Bp[1],B.V[e.a]);return;}
       var h=e.bl/2;
       wireTo(A[0],A[1],e.mx-e.ux*h,e.my-e.uy*h,B.V[e.a]);
       wireTo(e.mx+e.ux*h,e.my+e.uy*h,Bp[0],Bp[1],B.V[e.b]);});
     ctx.restore();
     dots(dt);
-    els.forEach(function(e){if(e.k!=='w')body(e);});
+    els.forEach(function(e){if(e.k!=='w'&&!e.ghost&&!e.hidden)body(e);});
     // junctions: where a current divides or meets again
-    pts.forEach(function(p,i){if(deg[i]>=3){ctx.save();ctx.fillStyle=dcPotCol(B.V[i]/vm);ctx.strokeStyle='#0b1526';ctx.lineWidth=1.5;
+    var dv=pts.map(function(){return 0;});
+    els.forEach(function(e){if(!e.hidden){dv[e.a]++;dv[e.b]++;}});
+    pts.forEach(function(p,i){if(dv[i]>=3){ctx.save();ctx.fillStyle=dcPotCol(B.V[i]/vm);ctx.strokeStyle='#0b1526';ctx.lineWidth=1.5;
       ctx.beginPath();ctx.arc(p[0],p[1],4.6,0,6.2832);ctx.fill();ctx.stroke();ctx.restore();}});
     // the switches say what they are and how they stand: by default on the
     // side the blade lifts to; lx, ly put the words anywhere else
-    els.forEach(function(e){if(e.k!=='sw')return;
+    els.forEach(function(e){if(e.k!=='sw'||e.ghost||e.hidden)return;
       var f=e.flip?-1:1,lx=e.mx+e.uy*f*36,ly=e.my-e.ux*f*36;
       if(e.lx!==undefined){lx=e.mx+e.lx;ly=e.my+e.ly;}
       if(!e.fixed){ctx.save();ctx.strokeStyle=e.on?'rgba(148,163,184,.35)':'rgba(251,191,36,.6)';ctx.lineWidth=1.3;ctx.setLineDash([3,4]);
@@ -31011,148 +31029,212 @@ function simDcBridge(canvas){
   requestAnimationFrame(draw);
 }
 // SECTION: dc-network.dc-series
+// PEDAGOGY: two ideas the learner tests with real instruments. The current
+// is the same everywhere in a series loop -- the ammeter is moved, the reading
+// is not -- and the voltage divides in proportion to the resistances, the
+// drops adding up to ε. A third resistor added AFTER R₁ still lowers R₁'s
+// voltage: the current is set by the whole loop at once, not passed along
+// from one resistor to the next (the "sequential" misconception).
 function simDcSeries(canvas){
   var id=canvas.id, _g=_simGen[id];
-  const H=420; const {ctx,W,dpr}=setupCanvas(canvas,H);
-  var t=0;
+  var wide=(canvas.offsetWidth||(canvas.parentElement&&canvas.parentElement.offsetWidth)||720)>=600;
+  const H=wide?396:356; const {ctx,W,dpr}=setupCanvas(canvas,H);
   function V(){var e=document.getElementById('inp-ser-V');return e?parseFloat(e.value):12;}
   function R1(){var e=document.getElementById('inp-ser-R1');return e?parseFloat(e.value):4;}
   function R2(){var e=document.getElementById('inp-ser-R2');return e?parseFloat(e.value):8;}
-  var BX=0,BW=0,BY=0;
-  function set(p){
-    if(BW<=0||p.y<BY-26||p.y>BY+46)return;
-    var S=R1()+R2();                       // keep the total, move the split
-    var f=Math.max(0,Math.min(1,(p.x-BX)/BW));
-    var a=Math.round(Math.max(Math.max(1,S-20),Math.min(Math.min(20,S-1),S*f)));
-    simSyncSlider('ser-R1',a,0);simSyncSlider('ser-R2',S-a,0);
-  }
-  simDrag(canvas,dpr,{down:set,move:set});
-  function draw(){
+  function R3(){var e=document.getElementById('inp-ser-R3');return e?parseFloat(e.value):6;}
+  var m=Math.max(22,(W-640)/2),L=m+26,R=W-m-34,T=wide?84:78,Bt=wide?272:232,my=(T+Bt)/2;
+  var X=function(f){return L+(R-L)*f;},xA=X(0.15),x1=X(0.38),xB=X(0.615),x2=X(0.84),xC=(L+R)/2;
+  var Mw=Math.min(170,W*0.42),M={x:W/2-Mw/2,y:Bt+34,w:Mw,h:54};
+  var slots=['mA','mB','mC'],at='mA',seen={mA:1},has3=false,predicted=false,toast=0;
+  var bd=dcBoard(canvas,ctx,W,H,dpr,{
+    gnd:'n',k:60,P0:8,probes:M,
+    aria:'מעגל טורי: סוללה ונגדים R₁ ו־R₂, ואמפרמטר שאפשר להעביר בין שלושה מקומות. Tab עובר בין המקומות והגשושים, Enter מפעיל, החיצים מזיזים גשוש.',
+    P:{n:[L,my+16],p:[L,my-16],tl:[L,T],a1:[xA-18,T],a2:[xA+18,T],r1a:[x1-28,T],r1b:[x1+28,T],
+       b1:[xB-18,T],b2:[xB+18,T],r2a:[x2-28,T],r2b:[x2+28,T],tr:[R,T],r3a:[R,my-28],r3b:[R,my+28],
+       br:[R,Bt],c2:[xC+18,Bt],c1:[xC-18,Bt],bl:[L,Bt]},
+    E:[{k:'bat',a:'n',b:'p',emf:V(),r:0,id:'bat'},
+       {k:'w',p:['p','tl','a1']},{k:'amm',a:'a1',b:'a2',id:'mA'},{k:'w',p:['a2','r1a']},
+       {k:'res',a:'r1a',b:'r1b',R:R1(),id:'R1'},{k:'w',p:['r1b','b1']},
+       {k:'amm',a:'b1',b:'b2',id:'mB',ghost:true},{k:'w',p:['b2','r2a']},
+       {k:'res',a:'r2a',b:'r2b',R:R2(),id:'R2'},{k:'w',p:['r2b','tr','r3a']},
+       {k:'res',a:'r3a',b:'r3b',R:R3(),id:'R3',ghost:true},{k:'w',p:['r3b','br','c2']},
+       {k:'amm',a:'c2',b:'c1',id:'mC',ghost:true,ry:-26},{k:'w',p:['c1','bl','n']}],
+    // the empty places a tap moves the ammeter to, and the place R₃ goes
+    taps:[{x:xA,y:T,r:22,fn:function(){move('mA');}},{x:xB,y:T,r:22,fn:function(){move('mB');}},
+          {x:xC,y:Bt,r:22,fn:function(){move('mC');}},{x:R,y:my,w:44,h:62,fn:function(){third(!has3);}}]
+  });
+  function move(s){if(s===at)return;bd.el(at).ghost=true;bd.el(s).ghost=false;at=s;seen[s]=1;}
+  var tb=document.getElementById('btn-ser-third');
+  function third(on){
+    if(on&&!predicted){toast=2.6;var q=kit.el&&kit.el.querySelector('.sk-predict');
+      if(q){q.style.transition='box-shadow .3s';q.style.boxShadow='0 0 0 3px var(--gold)';setTimeout(function(){q.style.boxShadow='';},1300);}
+      return;}
+    has3=on;bd.el('R3').ghost=!on;bd.touched=true;
+    if(tb)tb.textContent=on?'➖ הסירו את R₃':'➕ הוסיפו את R₃';}
+  if(tb)tb.addEventListener('click',function(){third(!has3);});
+  var bat=bd.el('bat'),eR1=bd.el('R1'),eR2=bd.el('R2'),eR3=bd.el('R3');
+  var kit=simKit(canvas,{missions:[
+    {text:'העבירו את האמפרמטר למקום אחר במעגל — לפני R₁, בין הנגדים או אחריהם — והשוו את הקריאות.',
+     hint:'הקישו על אחד העיגולים המקווקווים שעל החוטים.',
+     why:'אותה קריאה בכל מקום: הזרם אינו „נצרך” בנגד — כל מטען שנכנס לנגד יוצא ממנו, אחרת היה מצטבר שם. מה שהנגד לוקח מכל קולון הוא אנרגיה, כלומר מתח.',
+     done:function(s){return s.nSeen>=2;}},
+    {text:'מדדו בוולטמטר את המתח על R₂.',
+     hint:'גשוש אחד מכל צד של הנגד.',
+     why:dcM('V₂ = I·R₂')+': אותו זרם של כל הלולאה, כפול ההתנגדות של הנגד הזה בלבד.',
+     done:function(s){return s.across2&&Math.abs(s.v)>0.01;}},
+    {text:'קבעו את הנגדים כך שהמתח על R₁ יהיה בדיוק פי שניים מהמתח על R₂.',
+     hint:'בטור הזרם משותף. מה קובע כמה מתח מקבל כל נגד?',
+     why:'אותו זרם בשניהם, ולכן '+dcM('V₁/V₂ = R₁/R₂')+': המתח מתחלק ביחס ההתנגדויות, והנגד הגדול מקבל יותר.',
+     done:function(s){return s.v2>0.01&&Math.abs(s.v1-2*s.v2)<0.005*s.eps;}},
+    {text:'הוסיפו את R₃ ומדדו שוב את המתח על R₁.',
+     hint:'R₃ נמצא „אחרי” R₁. האם זה משנה משהו ל־R₁?',
+     why:'V₁ קטן — אף ש־R₃ נמצא אחרי R₁. הזרם נקבע מכל הלולאה בבת אחת: '+dcM('I = ε/(R₁+R₂+R₃)')+' קטן, ולכן גם '+dcM('V₁ = I·R₁')+'. אין „לפני” ו„אחרי” בזרם של מעגל טורי.',
+     done:function(s){return s.has3&&s.across1;}}]});
+  kit.predict({q:'מוסיפים נגד שלישי, R₃, בטור — אחרי R₁ ו־R₂. מה יקרה למתח על R₁?',
+    opts:['יגדל','יקטן','לא ישתנה — R₃ נמצא אחריו'],correct:1,
+    why:'R₃ מגדיל את ההתנגדות של כל הלולאה, ולכן הזרם קטן בכל מקום בה — גם ב־R₁. וכיוון ש־'+dcM('V₁ = I·R₁')+', גם V₁ קטן.'},
+    function(){predicted=true;third(true);});
+  var last=0;
+  function draw(ts){
     if(_simGen[id]!==_g)return;if(_simStop[id])return;
-    t+=0.016;
-    var v=V(), r1=R1(), r2=R2(), Req=r1+r2, I=v/Req, v1=I*r1, v2=I*r2;
-    var bg=ctx.createLinearGradient(0,0,0,H);bg.addColorStop(0,'#020810');bg.addColorStop(1,'#04101e');
-    ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);
-    var L=W*0.12,Rt=W*0.88,T=H*0.18,B=H*0.50;
-    ctx.save();ctx.strokeStyle='#64748b';ctx.lineWidth=2.5;
-    ctx.beginPath();ctx.rect(L,T,Rt-L,B-T);ctx.stroke();ctx.restore();
-    dcFlow(ctx,[[L,B],[L,T],[Rt,T],[Rt,B],[L,B]],t,Math.min(0.5,I*0.09),'#fbbf24',14);
-    dcBatt(ctx,L,(T+B)/2,v.toFixed(1)+' V');
-    dcRes(ctx,L+(Rt-L)*0.34,T,64,28,r1.toFixed(0)+' Ω','#38bdf8',I*I*r1/60);
-    dcRes(ctx,L+(Rt-L)*0.70,T,64,28,r2.toFixed(0)+' Ω','#a78bfa',I*I*r2/60);
-    simText(ctx,'אותו זרם בשני הנגדים',(L+Rt)/2,B+22,'#7d8da6',9.5,'center');
-    simText(ctx,'I = '+I.toFixed(2)+' A',(L+Rt)/2,B+40,'#fbbf24',13,'center',true);
-    // the voltage split, as two bars that always add to the source
-    var by=H*0.68, bw=W*0.74, bx=W/2-bw/2;
-    BX=bx;BW=bw;BY=by;
-    simText(ctx,'גררו את הגבול — הסכום נשמר, והיחס משתנה',W/2,by-10,'#64748b',9.5,'center');
-    ctx.save();ctx.fillStyle='rgba(56,189,248,.85)';ctx.fillRect(bx,by,bw*(v1/v),22);
-    ctx.fillStyle='rgba(167,139,250,.85)';ctx.fillRect(bx+bw*(v1/v),by,bw*(v2/v),22);
-    ctx.strokeStyle='#1e3a52';ctx.lineWidth=1;ctx.strokeRect(bx+.5,by+.5,bw,22);ctx.restore();
-    simHandle(ctx,bx+bw*(v1/v),by+11,'#e2e8f0',13);
-    [['V₁ = '+v1.toFixed(2)+' V',bx+bw*(v1/v)/2,bw*(v1/v),'#38bdf8'],
-     ['V₂ = '+v2.toFixed(2)+' V',bx+bw*(v1/v)+bw*(v2/v)/2,bw*(v2/v),'#a78bfa']].forEach(function(s2){
-      if(s2[2]>=92)simText(ctx,s2[0],s2[1],by+11,'#04101e',10.5,'center',true);
-      else simText(ctx,s2[0],Math.max(bx+40,Math.min(bx+bw-40,s2[1])),by+38,s2[3],10.5,'center',true);});
-    var ry=H*0.87;
-    simText(ctx,'הנגד השקול',W*0.28,ry-17,'#7d8da6',9.5,'center');
-    simText(ctx,'סכום המתחים',W*0.72,ry-17,'#7d8da6',9.5,'center');
-    simText(ctx,r1.toFixed(0)+' + '+r2.toFixed(0)+' = '+Req.toFixed(0)+' Ω',W*0.28,ry,'#e2e8f0',12.5,'center',true);
-    simText(ctx,v1.toFixed(2)+' + '+v2.toFixed(2)+' = '+(v1+v2).toFixed(2)+' V',W*0.72,ry,'#34d399',12.5,'center',true);
-    // the power each one dissipates, and that together they take exactly what the source gives
-    var p1=I*I*r1,p2=I*I*r2;
-    simText(ctx,'P₁ = '+p1.toFixed(2)+' W  ·  P₂ = '+p2.toFixed(2)+' W  ·  P₁+P₂ = VI = '+(+p1.toFixed(2)+ +p2.toFixed(2)).toFixed(2)+' W',
-      W/2,H-10,'#fb923c',10.5,'center',true);
+    var dt=last?Math.min(0.05,(ts-last)/1000):0;last=ts;
+    var e=V(),r1=R1(),r2=R2(),r3=R3();
+    bat.emf=e;eR1.R=r1;eR2.R=r2;eR3.R=r3;
+    bd.solve();
+    var I=bd.cur('R1'),v1=bd.dv('R1'),v2=bd.dv('R2'),v3=has3?bd.dv('R3'):0,v=bd.reading();
+    bd.bg();
+    // the empty places for the ammeter, and for R₃
+    slots.forEach(function(s){if(s===at)return;var q=s==='mA'?[xA,T]:s==='mB'?[xB,T]:[xC,Bt];
+      ctx.save();ctx.strokeStyle='rgba(251,191,36,.55)';ctx.lineWidth=1.4;ctx.setLineDash([3,3]);
+      ctx.beginPath();ctx.arc(q[0],q[1],13,0,6.2832);ctx.stroke();ctx.restore();});
+    if(!has3){ctx.save();ctx.strokeStyle='rgba(148,163,184,.55)';ctx.lineWidth=1.3;ctx.setLineDash([4,3]);
+      ctx.strokeRect(R-10,my-24,20,48);ctx.restore();}
+    bd.drawCircuit(dt);
+    slots.forEach(function(s){if(s===at)return;var q=s==='mA'?[xA,T]:s==='mB'?[xB,T]:[xC,Bt];
+      simText(ctx,'A',q[0],q[1]+(s==='mC'?-17:20),'rgba(251,191,36,.8)',9.5,'center',true);});
+    simText(ctx,'R₁ = '+r1.toFixed(0)+' Ω',x1,T-20,'#e2e8f0',10.5,'center',true);
+    simText(ctx,'R₂ = '+r2.toFixed(0)+' Ω',x2,T-20,'#e2e8f0',10.5,'center',true);
+    simText(ctx,has3?'R₃ = '+r3.toFixed(0)+' Ω':'R₃ ?',R-18,my+4,has3?'#e2e8f0':'#94a3b8',10.5,'right',has3);
+    simText(ctx,'ε = '+e.toFixed(1)+' V',L+40,my+4,'#f87171',10.5,'left',true);
+    bd.legend(m+4,28,88);
+    bd.dotKey(m-8,H-9,'left');
+    if(toast>0){toast-=dt;simText(ctx,'קודם נחשו — השאלה מתחת לתרשים ↓',W/2,Bt+22,'#fbbf24',10.5,'center',true);}
+    else if(!bd.probeUsed)simText(ctx,'גררו את שני הגשושים אל נקודות במעגל',W/2,Bt+22,'#cbd5e1',10,'center');
+    bd.drawMeter();
+    bd.drawFocus();
+    kit.check({nSeen:Object.keys(seen).length,v:v===null?NaN:v,v1:v1,v2:v2,eps:e,has3:has3,
+      across1:bd.across('r1a','r1b'),across2:bd.across('r2a','r2b')});
+    var f=function(x){return x.toFixed(2);};
+    kit.model(has3
+      ?'אותו זרם בכל הלולאה: '+dcM('I = ε/(R₁+R₂+R₃) = '+e.toFixed(1)+'/('+r1.toFixed(0)+'+'+r2.toFixed(0)+'+'+r3.toFixed(0)+') = '+f(I)+' A')+
+       '<br>סכום הירידות: '+dcM('V₁+V₂+V₃ = '+f(v1)+'+'+f(v2)+'+'+f(v3)+' = '+f(v1+v2+v3)+' V = ε')
+      :'אותו זרם בכל הלולאה: '+dcM('I = ε/(R₁+R₂) = '+e.toFixed(1)+'/('+r1.toFixed(0)+'+'+r2.toFixed(0)+') = '+f(I)+' A')+
+       '<br>סכום הירידות: '+dcM('V₁+V₂ = '+f(v1)+'+'+f(v2)+' = '+f(v1+v2)+' V = ε'));
     requestAnimationFrame(draw);
   }
   requestAnimationFrame(draw);
 }
 
 // SECTION: dc-network.dc-parallel
+// PEDAGOGY: three branches, each with its own switch, on the same two rails.
+// Closing a branch adds a path: the total current grows by exactly that
+// branch's current, and -- with an ideal cell -- nothing else changes, which
+// is the answer to "the battery gives a fixed current that the bulbs share".
+// Give the cell an internal resistance and the honest second-order effect
+// appears: more total current, more drop inside the cell, every bulb a little
+// dimmer. The probes show the voltage is the same across every branch.
 function simDcParallel(canvas){
   var id=canvas.id, _g=_simGen[id];
-  const H=420; const {ctx,W,dpr}=setupCanvas(canvas,H);
-  var t=0, three=false;
+  var wide=(canvas.offsetWidth||(canvas.parentElement&&canvas.parentElement.offsetWidth)||720)>=600;
+  const H=wide?418:392; const {ctx,W,dpr}=setupCanvas(canvas,H);
   function V(){var e=document.getElementById('inp-par-V');return e?parseFloat(e.value):12;}
-  function R1(){var e=document.getElementById('inp-par-R1');return e?parseFloat(e.value):4;}
-  function R2(){var e=document.getElementById('inp-par-R2');return e?parseFloat(e.value):12;}
-  function R3(){var e=document.getElementById('inp-par-R3');return e?parseFloat(e.value):6;}
-  var ab=document.getElementById('btn-par-third');
-  if(ab)ab.addEventListener('click',function(){three=!three;
-    ab.textContent=three?'➖ הסירו ענף':'➕ הוסיפו ענף';});
-  var off=[false,false,false], BX=[], BT=0, BB=0;
-  canvas.style.cursor='pointer';
-  canvas.addEventListener('click',function(e){
-    var q=simPointerXY(canvas,dpr,e);
-    if(q.y<BT-14||q.y>BB+14)return;
-    for(var i=0;i<BX.length;i++)if(Math.abs(q.x-BX[i])<32){off[i]=!off[i];return;}
+  function Rk(k){var e=document.getElementById('inp-par-R'+k);return e?parseFloat(e.value):[4,12,6][k-1];}
+  function rr(){var e=document.getElementById('inp-par-r');return e?parseFloat(e.value):0;}
+  // a ladder: the branches are rows between two node rails, so each has room
+  // for its name above and its current below at any width
+  var m=Math.max(22,(W-640)/2),L=m+58,T=wide?76:70,dy=wide?80:74,ys=[T,T+dy,T+2*dy],Bt=ys[2]+(wide?54:50),my=(T+Bt)/2;
+  var xa=L+56,xb=W-m-10,xsw=xa+Math.min(90,0.21*(xb-xa)),xl=xb-Math.min(120,0.28*(xb-xa)),xm=(L+xa)/2;
+  var Mw=Math.min(170,W*0.42),M={x:W/2-Mw/2,y:Bt+32,w:Mw,h:54};
+  var P={n:[L,my+30],pc:[L,my+6],ri:[L,my-48],tl:[L,T],bl:[L,Bt],br:[xb,Bt],m2:[xm+18,Bt],m1:[xm-18,Bt]};
+  var E=[{k:'bat',a:'n',b:'pc',emf:V(),r:0,id:'bat'},
+         {k:'res',a:'pc',b:'ri',R:1,id:'r',ghost:true,col:'#fca5a5'},
+         {k:'w',p:['ri','tl','ja1']},{k:'w',p:['ja1','ja2','ja3']},{k:'w',p:['jb1','jb2','jb3','br','m2']},
+         {k:'amm',a:'m2',b:'m1',id:'mT',ry:-26},{k:'w',p:['m1','bl','n']}];
+  [1,2,3].forEach(function(k){var y=ys[k-1];
+    P['ja'+k]=[xa,y];P['sa'+k]=[xsw-22,y];P['sb'+k]=[xsw+22,y];P['la'+k]=[xl-26,y];P['lb'+k]=[xl+26,y];P['jb'+k]=[xb,y];
+    E.push({k:'w',p:['ja'+k,'sa'+k]},{k:'sw',a:'sa'+k,b:'sb'+k,on:k<3,id:'S'+k,name:'S'+'₁₂₃'[k-1]},
+           {k:'w',p:['sb'+k,'la'+k]},{k:'bulb',a:'la'+k,b:'lb'+k,R:Rk(k),id:'L'+k},{k:'w',p:['lb'+k,'jb'+k]});});
+  var predicted=false,toast=0,pend=null,dimmed=false,meas={};
+  var bd=dcBoard(canvas,ctx,W,H,dpr,{
+    gnd:'n',k:34,P0:8,probes:M,P:P,E:E,
+    aria:'מעגל מקבילי: סוללה ושלושה ענפים, בכל אחד מפסק ונורה, ואמפרמטר בקו הראשי. Tab עובר בין המפסקים והגשושים, Enter מפעיל, החיצים מזיזים גשוש.',
+    onToggle:function(e){
+      if(e.id==='S3'&&!e.on&&!predicted){toast=2.6;var q=kit.el&&kit.el.querySelector('.sk-predict');
+        if(q){q.style.transition='box-shadow .3s';q.style.boxShadow='0 0 0 3px var(--gold)';setTimeout(function(){q.style.boxShadow='';},1300);}
+        return false;}
+      // a branch about to close: remember how bright the others are now
+      if(!e.on)pend={k:+e.id.slice(1),P:[1,2,3].map(function(k){return bd.el('S'+k).on?bd.pow('L'+k):null;})};}
   });
-  function draw(){
+  var bat=bd.el('bat'),eR=bd.el('r');
+  var kit=simKit(canvas,{missions:[
+    {text:'סגרו את הענף השלישי, והשוו את קריאת האמפרמטר הראשי לזרמים בענפים.',
+     hint:'סכמו את זרמי הענפים הסגורים.',
+     why:'כל ענף הוא מסלול נוסף: '+dcM('I = I₁+I₂+I₃')+'. עם סוללה אידיאלית הענפים הקיימים ממשיכים למשוך בדיוק אותו זרם, ולכן הזרם הכולל גדל — הסוללה אינה מספקת „כמות קבועה” של זרם שמתחלקת בין הנורות.',
+     done:function(s){return s.on3&&s.on1&&s.on2;}},
+    {text:'הראו בגשושים שעל שתי נורות בענפים סגורים יש אותו מתח.',
+     hint:'מדדו על נורה אחת, ואז העבירו את הגשושים לנורה אחרת.',
+     why:'כל הענפים מחוברים לאותם שני חוטים, ולכן לכולם אותו הפרש פוטנציאלים — מתח ההדקים של הסוללה. במקביל המתח אינו מתחלק; הזרם מתחלק.',
+     done:function(s){return s.sameV;}},
+    {text:'תנו לסוללה התנגדות פנימית, ואז סגרו ענף נוסף. מה קורה לנורות שכבר דלקו?',
+     hint:'הזיזו את המחוון של r, פתחו ענף וסגרו אותו שוב, והסתכלו על הנורות האחרות.',
+     why:'כל ענף מושך את זרמו דרך '+dcM('r')+'. יותר ענפים — יותר זרם כולל, ירידה גדולה יותר '+dcM('I·r')+' בתוך הסוללה, ופחות מתח לכל נורה: '+dcM('V = ε − I·r')+'. עם '+dcM('r = 0')+' הן לא היו משתנות כלל.',
+     done:function(s){return s.dimmed;}},
+    {text:'הפכו את הנורה בענף 2 לבהירה מכולן, כששלושת הענפים סגורים.',
+     hint:'המתח על כל הנורות שווה. איזו נורה מקבלת יותר זרם?',
+     why:'במקביל המתח משותף, ולכן '+dcM('P = V²/R')+': ההתנגדות הקטנה מושכת את הזרם הגדול ומאירה הכי חזק — ההפך מטור.',
+     done:function(s){return s.on1&&s.on2&&s.on3&&s.P2>1.05*Math.max(s.P1,s.P3);}}]});
+  kit.predict({q:'לפני שתסגרו את S₃ — הענף השלישי: מה יקרה לזרם שמראה האמפרמטר הראשי?',
+    opts:['יגדל','יקטן','לא ישתנה — הסוללה נותנת זרם קבוע'],correct:0,
+    why:'הענף החדש הוא מסלול נוסף: הזרם הכולל גדל בדיוק בזרם של הענף הזה, '+dcM('I₃ = V/R₃')+'. הענפים האחרים אינם „מוותרים” על זרמם.'},
+    function(){predicted=true;var s3=bd.el('S3');if(!s3.on){pend={k:3,P:[1,2,3].map(function(k){return bd.el('S'+k).on?bd.pow('L'+k):null;})};s3.on=true;}bd.touched=true;});
+  var last=0;
+  function draw(ts){
     if(_simGen[id]!==_g)return;if(_simStop[id])return;
-    t+=0.016;
-    var v=V(), rs=[R1(),R2()].concat(three?[R3()]:[]);
-    if(!three)off[2]=false;
-    var live=rs.filter(function(r,i){return !off[i];});
-    var g=live.reduce(function(a,r){return a+1/r;},0);
-    var Req=g>0?1/g:Infinity, Itot=g>0?v*g:0;
-    // one speed scale for every wire, chosen so the biggest current stays under
-    // dcFlowI's speed cap -- a capped wire would no longer balance its junction
-    var kF=Math.min(18,220/Math.max(1e-9,Itot));
-    var bg=ctx.createLinearGradient(0,0,0,H);bg.addColorStop(0,'#020810');bg.addColorStop(1,'#04101e');
-    ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);
-    var L=W*0.14,Rt=W*0.86,T=H*0.17,B=H*0.55;
-    var SP=0.32+0.26*(rs.length-1), Xb=function(i){return L+(Rt-L)*(0.32+0.26*i);};
-    var Re=Xb(rs.length-1);                    // the rails end AT the last branch, not in a stub past it
-    ctx.save();ctx.strokeStyle='#64748b';ctx.lineWidth=2.5;
-    ctx.beginPath();ctx.moveTo(L,T);ctx.lineTo(Re,T);ctx.moveTo(L,B);ctx.lineTo(Re,B);
-    ctx.moveTo(L,T);ctx.lineTo(L,B);ctx.stroke();ctx.restore();
-    var cols=['#38bdf8','#a78bfa','#34d399'];
-    BX=[];BT=T;BB=B;
-    rs.forEach(function(r,i){
-      var x=Xb(i), on=!off[i], Ii=on?v/r:0;
-      BX.push(x);
-      ctx.save();ctx.strokeStyle=on?'#64748b':'#475569';ctx.lineWidth=2;
-      ctx.beginPath();
-      if(on){ctx.moveTo(x,T);ctx.lineTo(x,B);}
-      else{                                    // a visible break in the branch
-        ctx.moveTo(x,T);ctx.lineTo(x,T+16);ctx.moveTo(x,T+30);ctx.lineTo(x,B);}
-      ctx.stroke();
-      ctx.fillStyle=on?'#e2e8f0':'#64748b';
-      ctx.beginPath();ctx.arc(x,T,3.4,0,6.2832);ctx.fill();
-      ctx.beginPath();ctx.arc(x,B,3.4,0,6.2832);ctx.fill();ctx.restore();
-      if(!on){ctx.save();ctx.strokeStyle='#ef4444';ctx.lineWidth=3;
-        ctx.beginPath();ctx.moveTo(x,T+16);ctx.lineTo(x+13,T+28);ctx.stroke();ctx.restore();}
-      dcRes(ctx,x,(T+B)/2,54,26,r.toFixed(0)+' Ω',on?cols[i]:'#475569',on?v*v/r/80:0);
-      if(on)dcFlowI(ctx,[[x,T],[x,B]],t,Ii,cols[i],kF);
-      simText(ctx,on?('I'+'₁₂₃'[i]+' = '+Ii.toFixed(2)+' A'):'מנותק',
-        x,B+20,on?cols[i]:'#ef4444',10.5,'center',true);
-      if(on)simText(ctx,'P = '+(v*Ii).toFixed(1)+' W',x,B+35,'#fb923c',9.5,'center',true);   // V²/R: the small one runs hot
-    });
-    // The rails carry charge too: along the top, whatever still has to reach the
-    // branches further on; along the bottom, the same amount coming back. (Only
-    // the battery rail and the branches used to move, so charge appeared at one
-    // junction and vanished at the other.)
-    if(Itot>0)dcFlowI(ctx,[[Xb(0),B],[L,B],[L,T],[Xb(0),T]],t,Itot,'#fbbf24',kF);
-    for(var j=0;j<rs.length-1;j++){
-      var Dn=0;for(var j2=j+1;j2<rs.length;j2++)if(!off[j2])Dn+=v/rs[j2];
-      if(Dn>0){dcFlowI(ctx,[[Xb(j),T],[Xb(j+1),T]],t,Dn,'#fbbf24',kF);
-        dcFlowI(ctx,[[Xb(j+1),B],[Xb(j),B]],t,Dn,'#fbbf24',kF);}
-    }
-    dcBatt(ctx,L,(T+B)/2,v.toFixed(1)+' V');     // over the charges, not under them
-    simText(ctx,'הקישו על ענף כדי לנתקו — ושוב כדי להחזירו',W/2,B+53,'#7d8da6',9,'center');
-    simText(ctx,'הזרם הכולל',(L+Re)/2,T-30,'#7d8da6',9.5,'center');
-    simText(ctx,Itot.toFixed(2)+' A',(L+Re)/2,T-14,'#fbbf24',12.5,'center',true);
-    var y=H*0.73;
-    simText(ctx,live.length?('1/R = '+live.map(function(r){return '1/'+r.toFixed(0);}).join(' + ')+
-      '   ⇒   R = '+Req.toFixed(2)+' Ω'):'כל הענפים מנותקים — אין מסלול, ואין זרם',
-      W/2,y,live.length?'#e2e8f0':'#ef4444',12,'center',true);
-    simText(ctx,live.length<rs.length?'ענף מנותק פשוט יוצא מהחשבון — והשאר אינם מרגישים דבר'
-      :'הנגד השקול קטן מכל אחד מהענפים — כל ענף נוסף פותח עוד מסלול',
-      W/2,y+20,'#7d8da6',9.5,'center');
-    simText(ctx,'סכום זרמי הענפים',W*0.5,y+46,'#7d8da6',9.5,'center');
-    simText(ctx,live.length?(live.map(function(r){return (v/r).toFixed(2);}).join(' + ')+' = '+
-      live.reduce(function(a,r){return a+v/r;},0).toFixed(2)+' A'):'0.00 A',
-      W*0.5,y+64,'#34d399',12,'center',true);
+    var dt=last?Math.min(0.05,(ts-last)/1000):0;last=ts;
+    var e=V(),r=rr();
+    bat.emf=e;eR.R=Math.max(r,1e-6);eR.ghost=!(r>0);
+    [1,2,3].forEach(function(k){bd.el('L'+k).R=Rk(k);});
+    bd.solve();
+    var on=[1,2,3].map(function(k){return bd.el('S'+k).on;}),I=bd.cur('mT');
+    var Ik=[1,2,3].map(function(k){return bd.cur('L'+k);}),Pk=[1,2,3].map(function(k){return bd.pow('L'+k);});
+    var Vt=bd.V[bd.idx.ri],v=bd.reading();
+    if(pend){if(r>=0.2&&pend.P.some(function(p0,i){return p0!==null&&i!==pend.k-1&&p0>0&&Pk[i]<0.98*p0;}))dimmed=true;pend=null;}
+    // the voltage across a lit bulb, per branch, for "the same on every branch"
+    [1,2,3].forEach(function(k){if(on[k-1]&&bd.across('la'+k,'lb'+k)&&v!==null)meas[k]=v;else if(!on[k-1])delete meas[k];});
+    var mk=Object.keys(meas),sameV=mk.length>=2&&mk.every(function(k){return Math.abs(Math.abs(meas[k])-Math.abs(meas[mk[0]]))<0.01;});
+    bd.bg();
+    if(r>0){ctx.save();ctx.strokeStyle='rgba(248,113,113,.5)';ctx.setLineDash([5,4]);ctx.lineWidth=1.3;
+      ctx.strokeRect(L-22,P.ri[1]-6,44,P.n[1]-P.ri[1]+12);ctx.restore();}
+    bd.drawCircuit(dt);
+    [1,2,3].forEach(function(k){var y=ys[k-1];
+      simText(ctx,'R'+'₁₂₃'[k-1]+' = '+Rk(k).toFixed(0)+' Ω',xl,y-21,'#e2e8f0',10,'center',true);
+      simText(ctx,'I'+'₁₂₃'[k-1]+' = '+Ik[k-1].toFixed(2)+' A',xl,y+29,'#fcd34d',10,'center',true);});
+    simText(ctx,'ε = '+e.toFixed(1)+' V',L-26,P.pc[1]-2,'#f87171',10.5,'right',true);
+    if(r>0)simText(ctx,'r = '+r.toFixed(1)+' Ω',L-26,(P.pc[1]+P.ri[1])/2,'#fca5a5',10,'right',true);
+    bd.legend(m+4,28,88);
+    bd.dotKey(m-8,H-9,'left');
+    if(toast>0){toast-=dt;simText(ctx,'קודם נחשו — השאלה מתחת לתרשים ↓',W/2,Bt+20,'#fbbf24',10.5,'center',true);}
+    else if(!bd.probeUsed)simText(ctx,'גררו את שני הגשושים אל נקודות במעגל',W/2,Bt+20,'#cbd5e1',10,'center');
+    bd.drawMeter();
+    bd.drawFocus();
+    kit.check({on1:on[0],on2:on[1],on3:on[2],sameV:sameV,dimmed:dimmed,P1:Pk[0],P2:Pk[1],P3:Pk[2]});
+    var cl=[1,2,3].filter(function(k){return on[k-1];}),f=function(x){return x.toFixed(2);},sub='₁₂₃';
+    if(!cl.length)kit.model('כל הענפים פתוחים: אין מסלול סגור, ולכן '+dcM('I = 0')+'.');
+    else{var Rp=1/cl.reduce(function(a,k){return a+1/Rk(k);},0);
+      kit.model('הזרם הראשי הוא סכום זרמי הענפים: '+dcM('I = '+cl.map(function(k){return 'I'+sub[k-1];}).join('+')+' = '+cl.map(function(k){return f(Ik[k-1]);}).join('+')+' = '+f(I)+' A')+
+        '<br>ההתנגדות השקולה: '+dcM('1/R∥ = '+cl.map(function(k){return '1/'+Rk(k).toFixed(0);}).join('+')+' ⇒ R∥ = '+f(Rp)+' Ω')+
+        '<br>על כל ענף מתח ההדקים: '+dcM('V = ε − I·r = '+e.toFixed(1)+' − '+f(I)+'·'+(r===0?'0':r.toFixed(1))+' = '+f(Vt)+' V'));}
     requestAnimationFrame(draw);
   }
   requestAnimationFrame(draw);
@@ -35452,8 +35534,8 @@ function buildSim(sim){
   else if(sim.type==='dc-realmeter')extra=C(rng('rm-V',2,24,12,0.5,'מתח המקור',' V')+rng('rm-R',1,50,10,1,'כל נגד',' kΩ')+rng('rm-RV',-1,4,1,0.05,'התנגדות הוולטמטר','','_fmtOhm'));
   else if(sim.type==='dc-emf')extra=C(rng('emf-E',1.5,24,12,0.5,'כא״מ ε',' V')+rng('emf-r',0.1,4,1,0.1,'התנגדות פנימית r',' Ω')+rng('emf-R',0.2,24,3,0.1,'עומס R',' Ω'));
   else if(sim.type==='dc-cap')extra=C(rng('cap-V',2,24,12,0.5,'מתח המקור',' V')+rng('cap-R1',1,20,4,1,'R₁',' kΩ')+rng('cap-R2',1,20,8,1,'R₂',' kΩ')+rng('cap-C',50,2000,470,10,'קיבול C',' μF')+btn('cap-sw','⏻ סגרו את המפסק','btn-secondary'));
-  else if(sim.type==='dc-series')extra=C(rng('ser-V',2,24,12,0.5,'מתח המקור',' V')+rng('ser-R1',1,20,4,1,'R₁',' Ω')+rng('ser-R2',1,20,8,1,'R₂',' Ω'));
-  else if(sim.type==='dc-parallel')extra=C(rng('par-V',2,24,12,0.5,'מתח המקור',' V')+rng('par-R1',1,24,4,1,'R₁',' Ω')+rng('par-R2',1,24,12,1,'R₂',' Ω')+rng('par-R3',1,24,6,1,'R₃ (ענף שלישי)',' Ω')+btn('par-third','➕ הוסיפו ענף','btn-secondary'));
+  else if(sim.type==='dc-series')extra=C(rng('ser-V',2,24,12,0.5,'כא״מ הסוללה ε',' V')+rng('ser-R1',1,20,4,1,'R₁',' Ω')+rng('ser-R2',1,20,8,1,'R₂',' Ω')+rng('ser-R3',1,20,6,1,'R₃',' Ω')+btn('ser-third','➕ הוסיפו את R₃','btn-secondary'));
+  else if(sim.type==='dc-parallel')extra=C(rng('par-V',2,24,12,0.5,'כא״מ הסוללה ε',' V')+rng('par-R1',1,24,4,1,'R₁',' Ω')+rng('par-R2',1,24,12,1,'R₂',' Ω')+rng('par-R3',1,24,6,1,'R₃ (ענף שלישי)',' Ω')+rng('par-r',0,2,0,0.1,'התנגדות פנימית r',' Ω'));
   else if(sim.type==='dc-mixed')extra=C(rng('mix-V',2,24,12,0.5,'מתח המקור',' V')+rng('mix-R1',1,20,6,1,'R₁ (בטור)',' Ω')+rng('mix-R2',1,20,6,1,'R₂',' Ω')+rng('mix-R3',1,20,3,1,'R₃',' Ω')+btn('mix-step','① המעגל המלא','btn-secondary'));
   else if(sim.type==='dc-switch')extra=C(rng('sw-V',2,24,12,0.5,'כא״מ הסוללה ε',' V')+rng('sw-R1',1,20,4,1,'נורה A — התנגדות',' Ω')+rng('sw-R2',1,20,8,1,'נורה B — התנגדות',' Ω')+rng('sw-r',0,2,0,0.1,'התנגדות פנימית r',' Ω'));
   else if(sim.type==='dc-current')extra=C(rng('dcc-I',0.5,5,2,0.1,'זרם I',' A')+rng('dcc-A',0.5,4,1,0.1,'חתך החוט הימני',' mm²')+btn('dcc-run','⏸ עצרו','btn-secondary')+btn('dcc-reset','↺ איפוס מונים','btn-secondary'));

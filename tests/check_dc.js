@@ -39,11 +39,14 @@ const t=(name,cond,detail)=>(cond?ok:bad).push(name+(detail?' — '+detail:''));
   const probeXY=async i=>p.evaluate(j=>{const c=document.querySelector('#app canvas'),B=c._dc,r=c.getBoundingClientRect(),q=B.probes[j],k=r.width/(c.width/(window.devicePixelRatio||1));
     return {x:r.x+q.x*k,y:r.y+q.y*k};},i);
   // a probe carried by the mouse from where it is to a point of the circuit
-  const dragProbe=async(i,name,off)=>{const a=await probeXY(i),b2=await ptXY(name);off=off||[0,0];
+  // (a click on a card below can scroll the canvas out of view: bring it back)
+  const inView=async()=>p.evaluate(()=>{const c=document.querySelector('#app canvas'),r=c.getBoundingClientRect();
+    if(r.top<0||r.bottom>innerHeight)c.scrollIntoView({block:'center'});});
+  const dragProbe=async(i,name,off)=>{await inView();const a=await probeXY(i),b2=await ptXY(name);off=off||[0,0];
     await p.mouse.move(a.x,a.y);await p.mouse.down();
     for(let k=1;k<=6;k++)await p.mouse.move(a.x+(b2.x+off[0]-a.x)*k/6,a.y+(b2.y+off[1]-a.y)*k/6);
     await p.mouse.up();await p.waitForTimeout(120);};
-  const tapEl=async id2=>{const q=await elXY(id2);await p.mouse.click(q.x,q.y);await p.waitForTimeout(180);};
+  const tapEl=async id2=>{await inView();const q=await elXY(id2);await p.mouse.click(q.x,q.y);await p.waitForTimeout(180);};
   const meter=async()=>{const tx=await grab();return tx.find(s2=>/^([+−]?\d+\.\d\d|— )\s?V$/.test(s2))||'';};
   const kitCount=async()=>p.evaluate(()=>{const c=document.querySelector('#app .sk-count');return c?c.textContent:'';});
 
@@ -139,28 +142,74 @@ const t=(name,cond,detail)=>(cond?ok:bad).push(name+(detail?' — '+detail:''));
   t('switch: an arrow key does not change the section',await p.evaluate(()=>state.section==='dc-switch'));
   await p.evaluate(()=>{document.activeElement.blur();});
 
-  // series: dragging the divider must move BOTH resistances and keep their sum
+  // series: the ammeter reads the same wherever it is put; the probes find
+  // V = IR on each resistor and the drops add up to ε; a third resistor added
+  // after R₁ (predicted first) still lowers R₁'s voltage
   await go('dc-network','dc-series');
   let bx=await box();
-  const s0=[await val('inp-ser-R1'),await val('inp-ser-R2')];
-  await p.mouse.move(bx.x+bx.w*0.70, bx.y+bx.h*0.69); await p.mouse.down(); await p.mouse.move(bx.x+bx.w*0.72, bx.y+bx.h*0.69); await p.mouse.up();
-  await p.waitForTimeout(250);
-  const s1=[await val('inp-ser-R1'),await val('inp-ser-R2')];
-  t('series divider moves R₁', s1[0]!==s0[0], `${s0[0]}→${s1[0]}`);
-  t('series divider keeps the sum', s0[0]+s0[1]===s1[0]+s1[1], `${s0[0]+s0[1]} vs ${s1[0]+s1[1]}`);
+  const amps=async()=>(await grab()).filter(s2=>/^\d+\.\d\d A$/.test(s2));
+  {const a=await amps();t('series: one ammeter, reading I = ε/(R₁+R₂) = 1.00 A',a.length===1&&a[0]==='1.00 A',a.join(' '));}
+  for(const slot of ['mB','mC','mA']){
+    await tapEl(slot);
+    const a=await amps(),on=await p.evaluate(s=>!document.querySelector('#app canvas')._dc.el(s).ghost,slot);
+    t('series: a tap moves the ammeter ('+slot+'), and it reads the same 1.00 A',on&&a.length===1&&a[0]==='1.00 A',on+' '+a.join(' '));
+  }
+  await dragProbe(0,'r1a');await dragProbe(1,'r1b');
+  t('series: V₁ = I·R₁ = 4.00 V on the probes',(await meter())==='+4.00 V',await meter());
+  await dragProbe(0,'r2a');await dragProbe(1,'r2b');
+  t('series: V₂ = I·R₂ = 8.00 V',(await meter())==='+8.00 V',await meter());
+  await dragProbe(0,'r1a');
+  t('series: across both, V₁ + V₂ = ε = 12.00 V',(await meter())==='+12.00 V',await meter());
+  await setS('inp-ser-R1',8);await setS('inp-ser-R2',4);await p.waitForTimeout(150);
+  t('series: R₁ = 2R₂ gives V₁ = 2V₂ (8 V and 4 V), still ε in all',(await meter())==='+12.00 V'&&(await p.evaluate(()=>{const B=document.querySelector('#app canvas')._dc;return Math.abs(B.dv('R1')-8)<1e-4&&Math.abs(B.dv('R2')-4)<1e-4;})),await meter());
+  await p.click('#btn-ser-third');await p.waitForTimeout(150);
+  t('series: R₃ waits for the prediction',await p.evaluate(()=>document.querySelector('#app canvas')._dc.el('R3').ghost));
+  await p.click('#app .sk-predict .sk-opt >> nth=1');await p.waitForTimeout(250);
+  t('series: answering adds R₃',!(await p.evaluate(()=>document.querySelector('#app canvas')._dc.el('R3').ghost)));
+  {const a=await amps();t('series: with R₃ the current is ε/(R₁+R₂+R₃) = 0.67 A',a.length===1&&a[0]==='0.67 A',a.join(' '));}
+  await dragProbe(1,'r1b');
+  t('series: and V₁ fell to 5.33 V, though R₃ is after it',(await meter())==='+5.33 V',await meter());
+  {const ml=await p.evaluate(()=>document.querySelector('#app .sk-model').textContent);
+   t('series: the model line, with the numbers',ml.includes('= 12.0/(8+4+6) = 0.67 A')&&ml.includes('= 12.00 V = ε'),ml);}
+  t('series: all four missions solved by doing them',(await kitCount())==='4/4',await kitCount());
 
-  // parallel: tapping a branch must drop it out of the equivalent resistance
+  // parallel: a branch switch takes its branch out, and only its current; the
+  // total is the sum of the branches; the third branch is predicted first;
+  // with an internal resistance a new branch dims the others
   await go('dc-network','dc-parallel');
-  bx=await box();
-  const lit=async()=>p.evaluate(()=>{const c=document.querySelector('#app canvas');const d=c.getContext('2d').getImageData(0,0,c.width,c.height).data;let n=0;for(let i=0;i<d.length;i+=4)if(d[i]>180&&d[i+1]<110&&d[i+2]<110)n++;return n;});
-  const before=await lit();                       // red pixels: none yet
-  await p.mouse.click(bx.x+bx.w*0.40, bx.y+bx.h*0.36);
-  await p.waitForTimeout(400);
-  const after=await lit();
-  t('parallel branch disconnects on a tap', after>before*1.5+40, `red px ${before}→${after}`);
-  await p.mouse.click(bx.x+bx.w*0.40, bx.y+bx.h*0.36);
-  await p.waitForTimeout(400);
-  t('and reconnects on a second tap', (await lit())<before*1.5+40);
+  const parRead=async()=>{const tx=await grab();
+    const br=[1,2,3].map(k=>{const s2=tx.find(x=>x.startsWith('I'+'₁₂₃'[k-1]+' = '));return s2?num(s2.slice(5)):NaN;});
+    const tot=tx.filter(x=>/^\d+\.\d\d A$/.test(x)).map(Number.parseFloat);return {br,tot:tot.length===1?tot[0]:NaN};};
+  let pr=await parRead();
+  t('parallel: branches 1 and 2 on, I₁ = ε/R₁ = 3.00 A, I₂ = 1.00 A, I₃ = 0',pr.br.join()==='3,1,0'&&pr.tot===4,JSON.stringify(pr));
+  await tapEl('S1');pr=await parRead();
+  t('parallel: a tap opens S₁ — I₁ = 0, and the rest is untouched',pr.br.join()==='0,1,0'&&pr.tot===1,JSON.stringify(pr));
+  await tapEl('S1');
+  await tapEl('S3');
+  t('parallel: S₃ waits for the prediction',!(await p.evaluate(()=>document.querySelector('#app canvas')._dc.el('S3').on)));
+  await p.click('#app .sk-predict .sk-opt >> nth=0');await p.waitForTimeout(250);
+  pr=await parRead();
+  t('parallel: answering closes S₃; the total grows by exactly I₃',pr.br.join()==='3,1,2'&&pr.tot===6,JSON.stringify(pr));
+  for(const [E,R1,R2,R3,r] of [[12,4,12,6,0],[24,1,1,1,0],[2,24,24,24,0],[12,4,12,6,0.5],[24,1,2,3,2]]){
+    await setS('inp-par-V',E);await setS('inp-par-R1',R1);await setS('inp-par-R2',R2);await setS('inp-par-R3',R3);await setS('inp-par-r',r);
+    await p.waitForTimeout(120);pr=await parRead();
+    const Rp=1/(1/R1+1/R2+1/R3),I=E/(Rp+r),Vt=E-I*r,want=[Vt/R1,Vt/R2,Vt/R3];
+    const tag=`parallel ε=${E} R=${R1},${R2},${R3} r=${r}`;
+    t(tag+': each branch I = V/R with V = ε − I·r',pr.br.every((x,i)=>near(x,want[i])),JSON.stringify(pr)+' want '+want.map(x=>x.toFixed(2)));
+    t(tag+': the ammeter reads I = I₁+I₂+I₃',near(pr.tot,I)&&near(pr.tot,pr.br[0]+pr.br[1]+pr.br[2],0.021),pr.tot+' vs '+pr.br.join('+'));
+  }
+  await setS('inp-par-V',12);await setS('inp-par-R1',4);await setS('inp-par-R2',12);await setS('inp-par-R3',6);await setS('inp-par-r',0);
+  await dragProbe(0,'la1');await dragProbe(1,'lb1');const pv1=await meter();
+  await dragProbe(0,'la2');await dragProbe(1,'lb2');const pv2=await meter();
+  t('parallel: the same voltage across two branches, the whole ε',pv1==='+12.00 V'&&pv2==='+12.00 V',pv1+' '+pv2);
+  // an internal resistance: closing a branch dims the bulbs already lit
+  await setS('inp-par-r',1);await tapEl('S3');pr=await parRead();const I1a=pr.br[0];
+  await tapEl('S3');pr=await parRead();
+  t('parallel: with r = 1 Ω, closing S₃ lowers I₁ (the terminal voltage fell)',pr.br[0]<I1a-0.05&&near(pr.br[0],(12*2/(2+1))/4),I1a+' → '+pr.br[0]);
+  await setS('inp-par-r',0);await setS('inp-par-R2',2);await p.waitForTimeout(150);
+  {const ml=await p.evaluate(()=>document.querySelector('#app .sk-model').textContent);
+   t('parallel: the model line, with the numbers',ml.includes('I = I₁+I₂+I₃ = 3.00+6.00+2.00 = 11.00 A')&&ml.includes('R∥ = 1.09 Ω'),ml);}
+  t('parallel: all four missions solved by doing them',(await kitCount())==='4/4',await kitCount());
 
   // mixed + meters: a tap anywhere advances the same state as the button
   for (const [ch,se,btn] of [['dc-network','dc-mixed','btn-mix-step'],['dc-real','dc-meters','btn-mtr-mode']]) {
@@ -358,20 +407,6 @@ const div=document.createElement('div');div.style.cssText='position:absolute;lef
     t(tag+': four legs that sum to zero',legs.length===4&&Math.abs(legs.reduce((a,b2)=>a+b2,0))<0.15,JSON.stringify(legs));
     t(tag+': ΣΔV printed is 0.00 and computed',/ΣΔV = -?0\.00 V/.test(sv),sv);
     t(tag+': I = ε_net/ΣR',near(num(I.slice(4)),Iw),I+' want '+Iw.toFixed(2));
-  }
-
-  // parallel: branch currents add to the total, including with a branch cut and the third added
-  await go('dc-network','dc-parallel');
-  for(const [V,R1,R2,R3,third] of [[12,4,12,6,0],[24,1,1,1,1],[2,24,24,24,1]]){
-    await setS('inp-par-V',V);await setS('inp-par-R1',R1);await setS('inp-par-R2',R2);await setS('inp-par-R3',R3);
-    const has=/➖/.test(await p.evaluate(()=>document.getElementById('btn-par-third').textContent));
-    if(has!==!!third)await p.click('#btn-par-third');
-    await p.waitForTimeout(150);
-    const tx=await grab();
-    const sum=tx.find(s2=>/^\d+\.\d\d( \+ \d+\.\d\d)+ = \d+\.\d\d A$/.test(s2))||'';
-    const parts=(sum.match(/\d+\.\d\d/g)||[]).map(Number), tot=parts.pop();
-    const want=V/R1+V/R2+(third?V/R3:0);
-    t(`parallel V=${V} R=${R1},${R2}${third?','+R3:''}: branches add to the total`,parts.length&&near(parts.reduce((a,b2)=>a+b2,0),tot,0.011*parts.length)&&near(tot,want,0.011),sum+' want '+want.toFixed(2));
   }
 
   // mixed: I₂ + I₃ = I and V₁ + V₂₃ = V
