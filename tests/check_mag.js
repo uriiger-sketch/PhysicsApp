@@ -317,6 +317,13 @@ const EXPECT = {
   await slide('mgq-I2', -10); T = await read();
   t('  one current reversed: repulsion, same size', has(T, '4.00×10⁻⁴') && has(T, L('דחייה')));
   await open('mag-force', 'mag-motor'); T = await read();
+  const kmod = () => p.evaluate(() => (document.querySelector('.sk-model-tx') || {}).textContent || '');
+  const MOV = L('ענו על השאלה שמתחת לסימולציה — והגרף יופיע כאן');
+  const mHid = has(T, MOV), mQ = await p.evaluate(() => document.querySelectorAll('.sk-predict .sk-opt').length);
+  await p.evaluate(() => document.querySelectorAll('.sk-predict .sk-opt')[1].click()); T = await read();
+  t('motor: the torque graph waits for a prediction (asked on opening), then appears', mHid && mQ === 3 && !has(T, MOV), mHid + ' ' + mQ);
+  const MM = await kmod();
+  t('  spinning, the model line gives τₘₐₓ = NBIA = 100 × 0.30 × 0.5 × 0.0020 = 0.0300 N·m', MM.includes('τₘₐₓ = NBIA = 100 × 0.30 × 0.5 × 0.0020 = 0.0300 N·m'), MM);
   t('motor: τmax = NBIA = 0.0300 N·m', has(T, '0.0300 N·m'));
   // a 90 ms window with no frame in it (a loaded machine) reads nothing: such
   // windows are left out, and at least 3/4 of them must have read a torque
@@ -326,6 +333,10 @@ const EXPECT = {
   t('  with the commutator the torque never reverses', tv.every(x => x >= -1e-4), Math.min(...tv).toFixed(4));
   await click('btn-mgo-comm'); await p.waitForTimeout(300); tv = await taus(40);
   t('  without it the torque takes both signs (it rocks)', Math.min(...tv) < -1e-3 && Math.max(...tv) > 1e-3, Math.min(...tv).toFixed(4) + '…' + Math.max(...tv).toFixed(4));
+  // left without the commutator, the coil rocks to rest with n̂ along B
+  await p.waitForTimeout(9000); T = await read();
+  const mRest = num(T, /^θ = (\d+)°/), mDone = await p.evaluate(() => document.querySelectorAll('.sk-m')[1].classList.contains('done'));
+  t('  …and comes to rest at θ = 0 (n̂ along B), the stable equilibrium — its mission done', mRest <= 3 && mDone, mRest + '° ' + mDone);
   await open('mag-induction', 'mag-flux'); T = await read();
   t('flux: BA at θ = 0 is 10.00 mWb', has(T, '10.00 mWb'));
   await slide('mgx-th', 60); T = await read();
@@ -419,9 +430,35 @@ const EXPECT = {
   t('  I = ε/R and BIL = B·I·L while it runs', near(I, eps / 2, 2e-3) && near(fb, 0.5 * I * 0.5, 2e-3), `ε=${eps} I=${I} F=${fb}`);
   await open('mag-induction', 'mag-generator'); T = await read();
   t('generator: ε_max = NBAω = 6.3 V, ε_rms = 4.4 V at 1 Hz', has(T, '6.3 V') && has(T, '4.4 V'));
+  // turned by hand (an arrow key held: one turn a second): the model line is
+  // ε = NBAω·sinθ with the hand's own ω and θ, every reading
+  await p.focus('#sim-canvas'); await p.keyboard.down('ArrowLeft'); await p.waitForTimeout(900);
+  let gm = { n: 0, bad: [], w: [] };
+  for (let i = 0; i < 16; i++) { await p.waitForTimeout(130); const m = await kmod();
+    const a = m.match(/ε = NBAω·sinθ = 100 × 0\.20 × 0\.050 × ([−\d.]+) × sin (\d+)° = ([−\d.]+) V/);
+    if (!a) { gm.bad.push(m.slice(0, 50)); continue; } gm.n++; const w = +a[1].replace('−', '-'), e = +a[3].replace('−', '-'); gm.w.push(w);
+    if (Math.abs(e - 100 * 0.2 * 0.05 * w * Math.sin(+a[2] * Math.PI / 180)) > 0.2) gm.bad.push(m); }
+  await p.keyboard.up('ArrowLeft');
+  t('  turned by hand at one turn a second: ω = 6.3 rad/s and ε = NBAω·sinθ in every reading', gm.n > 12 && gm.bad.length === 0 && gm.w.every(w => near(w, 6.3, 0.25)), gm.n + ' read; ω ' + gm.w.slice(0, 3).join(',') + '; ' + gm.bad.slice(0, 2).join(' | '));
   await open('mag-induction', 'mag-transformer'); T = await read();
   t('transformer: V₂ = 12.0 V, I₂ = 2.00 A, I₁ = 0.104 A, P₁ = P₂ = 24.0 W', has(T, '12.0 V') && has(T, '2.00 A') && has(T, '0.104 A') && has(T, '24.0 W'));
   t('  and 10 MW at 20 kV loses 2.50 MW in a 10 Ω line', has(T, '2.50 MW'));
+  let TM = await kmod();
+  t('  the model line: V₂ = V₁·N₂/N₁ = 230 × 60/1150 = 12.0 V and I₁ = I₂·N₂/N₁ = 0.104 A', TM.includes('V₂ = V₁·N₂/N₁ = 230 × 60/1150 = 12.0 V') && TM.includes('= 0.104 A'), TM.slice(0, 60));
+  // drag the secondary up 40 px: 20 steps of 5 turns, 60 → 160, and V₂ = 230 × 160/1150 = 32.0 V
+  await p.evaluate(() => { const cv = document.getElementById('sim-canvas'), R = cv.getBoundingClientRect(), W = cv.offsetWidth, H = cv.offsetHeight, x = W * 0.70 - 13, y = H * 0.25;
+    const ev = (t, yy) => cv.dispatchEvent(new MouseEvent(t, { clientX: R.left + x, clientY: R.top + yy, bubbles: true, cancelable: true }));
+    ev('mousedown', y); for (let k = 1; k <= 20; k++) ev('mousemove', y - 2 * k); ev('mouseup', y - 40); });
+  await p.waitForTimeout(300); TM = await kmod();
+  const n2 = await p.evaluate(() => +document.getElementById('inp-mgt-N2').value);
+  t('  dragging the secondary coil up winds turns: N₂ = 160, V₂ = 32.0 V', n2 === 160 && TM.includes('= 32.0 V'), n2 + ' ' + TM.slice(0, 50));
+  await slide('mgt-N2', 60);
+  const tAsk = await p.evaluate(() => { document.getElementById('btn-mgt-dc').click(); const o = document.querySelectorAll('.sk-predict .sk-opt'); if (o.length) o[2].click(); return o.length; });
+  // the sim's clock runs at most 50 ms a frame: on a loaded machine it can lag, so wait for it (up to 8 s)
+  for (let w = 0; w < 40; w++) { await p.waitForTimeout(200); TM = await kmod(); if (w >= 10 && /V₂ = 0\.0 V/.test(TM)) break; }
+  const tDone = await p.evaluate(() => document.querySelectorAll('.sk-m')[2].classList.contains('done'));
+  t('  on DC (predicted first) the secondary falls to V₂ = 0.0 V once the flux stops changing — and the mission says why', tAsk === 3 && /V₂ = 0\.0 V/.test(TM) && tDone, tAsk + ' ' + TM.slice(0, 50));
+  await click('btn-mgt-dc');
 
   console.log('\n4) the bar magnet behind the coil and the ring');
   // a bar magnet is a line of dipoles: its flux through a loop is the sum of

@@ -9351,7 +9351,7 @@ const MAG_CONTENT={
       <p>ברגע ההפעלה המנוע עומד, אין כא״מ נגדי, והזרם גדול מאוד. לכן האור בבית מהבהב לרגע כשמזגן או מקרר מתניעים. ככל שהמנוע מאיץ, הכא״מ הנגדי גדל והזרם יורד.</p>
     </div>`,
   },
-  sim:{type:'mag-motor',desc:'מנוע זרם ישר במבט מקצה הציר. הכוחות על שתי הצלעות תמיד אנכיים ומנוגדים, והמומנט τ=NBIA·sinθ משורטט בגרף. נתקו את מחליף הכיוון — והכריכה רק מתנדנדת סביב שיווי המשקל; חברו אותו — והיא מסתובבת ברציפות.'},
+  sim:{type:'mag-motor',desc:'מנוע זרם ישר במבט מקצה הציר. הכוחות על שתי הצלעות תמיד אנכיים ומנוגדים, והמומנט τ=NBIA·sinθ משורטט בגרף — שמופיע אחרי שתנבאו היכן המומנט מרבי. גררו את הכריכה (או סובבו אותה במקשי החצים) וחפשו את המומנט המרבי. נתקו את מחליף הכיוון — והכריכה רק מתנדנדת סביב שיווי המשקל ונעצרת בו; חברו אותו — והיא מסתובבת ברציפות.'},
   example:{title:'מומנט על כריכה',text:`${M('N=100')}, ${M('A=2\\times10^{-3}\\,\\text{m}^2')}, ${M('I=0.5\\,\\text{A}')}, ${M('B=0.3\\,\\text{T}')}.`,steps:[
     {q:'מה המומנט המרבי?',a:`${M('\\tau=NBIA=0.03\\,\\text{N}\\cdot \\text{m}')}, כשמישור הכריכה מקביל לשדה.`},
     {q:'ומה המומנט בזווית 30°?',a:`${M('\\tau=0.03\\times\\sin30^\\circ=0.015\\,\\text{N}\\cdot \\text{m}')}`},
@@ -9606,7 +9606,7 @@ const MAG_CONTENT={
       <p>רכב חשמלי מנצל זאת בכל בלימה: המנוע הופך לגנרטור, ממיר את האנרגיה הקינטית של הרכב בחזרה לחשמל וטוען את הסוללה. לכך קוראים <b>בלימה רגנרטיבית</b>.</p>
     </div>`,
   },
-  sim:{type:'mag-generator',desc:'גנרטור במבט מקצה הציר, עם גרפים של Φ(t) ושל ε(t). שנו את התדירות, השדה ומספר הליפופים, וראו את ε_max=NBAω. החליפו בין טבעות החלקה (AC) למחליף כיוון (DC פועם). עצרו (⏸) בכל רגע: הסליל שעל המסך נמצא במצב של הקצה הימני של הגרפים.'},
+  sim:{type:'mag-generator',desc:'גנרטור במבט מקצה הציר, עם גרפים של Φ(t) ושל ε(t). שנו את התדירות, השדה ומספר הליפופים, וראו את ε_max=NBAω. עצרו (⏸) וגררו את הכריכה כדי לסובב אותה ביד (או החזיקו את מקשי החצים): הכא״מ נקבע לפי המהירות שלכם. החליפו בין טבעות החלקה (AC) למחליף כיוון (DC פועם). הסליל שעל המסך נמצא תמיד במצב של הקצה הימני של הגרפים.'},
   example:{title:'גנרטור',text:`${M('N=100')}, ${M('A=0.05\\,\\text{m}^2')}, ${M('B=0.2\\,\\text{T}')}, ${M('f=50\\,\\text{Hz}')}.`,steps:[
     {q:'מה המהירות הזוויתית?',a:`${M('\\omega=2\\pi f\\approx314\\,\\text{rad/s}')}`},
     {q:'מה הכא״מ המרבי?',a:`${M('\\varepsilon_{\\max}=NBA\\omega\\approx314\\,\\text{V}')}`},
@@ -9658,7 +9658,7 @@ const MAG_CONTENT={
       <p>השנאי הכריע: זרם חילופין אפשר להעלות למתח גבוה, להוליך למרחקים עצומים, ולהוריד שוב לפני הבית. (היום, בעזרת אלקטרוניקה, חוזרים קווי זרם ישר במתח גבוה — דווקא במרחקים הארוכים ביותר.)</p>
     </div>`,
   },
-  sim:{type:'mag-transformer',desc:'שנאי עם ליבת ברזל. שנו את מספרי הליפופים, את המתח בכניסה ואת העומס: המתח במוצא עוקב אחרי N₂/N₁, והזרם בראשוני עוקב אחרי ההספק שצורך העומס. החליפו לזרם ישר — והמוצא מתאפס אחרי רגע ההדלקה. בלוח התחתון: אותו הספק מועבר בקו במתחים שונים, וההפסד I²R.'},
+  sim:{type:'mag-transformer',desc:'שנאי אידיאלי עם ליבת ברזל. שנו את מספרי הליפופים (מחוונים, או גררו סליל למעלה או למטה), את המתח בכניסה ואת העומס: המתח במוצא עוקב אחרי N₂/N₁, והזרם בראשוני עוקב אחרי ההספק שצורך העומס. החליפו לזרם ישר — והמוצא מתאפס אחרי רגע ההדלקה (כמו בשנאי אמיתי, שלראשוני שלו יש התנגדות). בלוח התחתון: אותו הספק מועבר בקו במתחים שונים, וההפסד I²R.'},
   example:{title:'שנאי מוריד מתח',text:`${M('V_1=230\\,\\text{V}')}, ${M('N_1=1150')}, ${M('N_2=60')}, ועומס של ${M('24\\,\\text{W}')}.`,steps:[
     {q:'מה המתח במשני?',a:`${M('V_2=230\\times\\dfrac{60}{1150}=12\\,\\text{V}')}`},
     {q:'מה הזרם במשני?',a:`${M('I_2=\\dfrac{24}{12}=2\\,\\text{A}')}`},
@@ -28592,8 +28592,28 @@ MAG_SIMS['mag-motor']=function(canvas){
   // the coil visibly rocks about equilibrium; with it, it settles near 3 rev/s
   var phi=0, om=0, pT=null, comm=true, drag=false, AW=0.04, AL=0.05, J=2e-4, BF=3e-4, CQ=4e-5;
   var CX=W*0.36, CY=H*0.34, RP=Math.min(84,W*0.13), PE=W<600?40:70;   // pole extension
+  var restT=0, predicted=false;
+  var kit=simKit(canvas,{missions:[
+    {text:'גררו את הכריכה למצב שבו המומנט עליה מרבי.',
+     hint:'גררו את הכריכה וצפו בערך של τ ובנקודה על הגרף.',
+     why:'τ = NBIA·sinθ מרבי ב־θ = 90°: מישור הכריכה מקביל לקווי השדה, והכוחות האנכיים על הצלעות פועלים בזרוע הארוכה ביותר.',
+     done:function(s){return s.drag&&s.tq>0.98;}},
+    {text:'נתקו את מחליף הכיוון וחכו שהכריכה תיעצר. לאן מצביע n̂ כשהיא נחה?',
+     hint:'לחצו על ״מחליף כיוון: מחובר״ כדי לנתק אותו, וחכו כמה שניות.',
+     why:'בלי מחליף הזרם בכריכה קבוע, והמומנט מסובב את n̂ אל כיוון B: הכריכה מתנדנדת סביב θ = 0 ונעצרת שם — במקום שבו המומנט אפס. רק המחליף, שהופך את הזרם בכל חצי סיבוב, שומר על המומנט באותו כיוון.',
+     done:function(s){return !s.comm&&s.rest>1.2&&s.th<8;}},
+    {text:'האיצו את המנוע ל־300 סל״ד לפחות.',
+     hint:'הגדילו את הזרם, את השדה או את מספר הליפופים: '+_skM('τ = NBIA·sinθ'),
+     why:'מומנט גדול יותר מאיץ את הכריכה עד שהחיכוך, שגדל עם המהירות, משתווה לו בממוצע: τ ∝ NBIA, ולכן כל אחד מהגורמים מעלה את המהירות הסופית.',
+     done:function(s){return s.comm&&s.rpm>=300;}}]});
+  var model=magModeler(kit);
+  kit.predict({q:'באיזה מצב של הכריכה המומנט עליה הכי גדול? (הגרף יופיע אחרי שתענו.)',
+    opts:['כשמישור הכריכה ניצב לשדה — היא ״פונה״ אליו','כשמישור הכריכה מקביל לשדה','המומנט שווה בכל המצבים'],correct:1,
+    why:'כשמישור הכריכה ניצב לשדה, הכוחות על הצלעות רק מותחים אותה — המומנט אפס. הוא מרבי כשהמישור מקביל לשדה (θ = 90° בין n̂ ל־B): τ = NBIA·sinθ.'},function(){predicted=true;});
   magBtn('mgo-comm',function(b){comm=!comm;b.textContent=comm?'🔁 מחליף כיוון: מחובר':'🔁 מחליף כיוון: מנותק';});
   simDrag(canvas,dpr,{down:function(p){drag=Math.hypot(p.x-CX,p.y-CY)<RP+30;},move:function(p){if(drag){phi=Math.atan2(CY-p.y,p.x-CX);om=0;}},up:function(){drag=false;}});
+  // ← → turn the coil by 5° (and stop it)
+  magKeys(canvas,{key:function(k,d){if(!d)return;if(k==='left'||k==='right'){phi+=(k==='left'?5:-5)*Math.PI/180;om=0;}else if(k==='enter')magBtnPress('mgo-comm');}});
   function draw(ts){
     if(!magAlive(id,_g))return;
     var dt=pT?Math.min(0.04,(ts-pT)/1000):0;pT=ts;
@@ -28637,8 +28657,9 @@ MAG_SIMS['mag-motor']=function(canvas){
     var gx=40,gy=H*0.66,gw=W-60,gh=H*0.26,X=function(p){return gx+(p+Math.PI)/(2*Math.PI)*gw;},Y=function(t){return gy+gh/2-t*(gh/2-12);};
     magPlotBox(ctx,gx-30,gy-18,gw+42,gh+36,'τ = NBIA·sinθ לאורך סיבוב — '+(comm?'המחליף שומר על τ ≥ 0':'τ מחליף סימן: הכריכה רק מתנדנדת'),null);
     ctx.save();ctx.strokeStyle='#1e3a52';ctx.beginPath();ctx.moveTo(gx,Y(0));ctx.lineTo(gx+gw,Y(0));ctx.stroke();ctx.restore();
-    var c=[];for(var p=-Math.PI;p<=Math.PI+1e-9;p+=0.03)c.push([X(p),Y(sgn(p)*Math.cos(p))]);magPoly(ctx,c,'#fb923c',2);
-    simCircle(ctx,X(phi),Y(tmax?tau/tmax:0),5,'#fbbf24','#fff',1.5);
+    if(predicted){var c=[];for(var p=-Math.PI;p<=Math.PI+1e-9;p+=0.03)c.push([X(p),Y(sgn(p)*Math.cos(p))]);magPoly(ctx,c,'#fb923c',2);}
+    else dcCap(ctx,'ענו על השאלה שמתחת לסימולציה — והגרף יופיע כאן',W/2,gy+gh/2-16,'#94a3b8',W<600?10:11);
+    if(predicted)simCircle(ctx,X(phi),Y(tmax?tau/tmax:0),5,'#fbbf24','#fff',1.5);
     simText(ctx,'τmax',gx-4,Y(1)+3,'#64748b',8.5,'right');simText(ctx,'0',gx-4,Y(0)+3,'#64748b',8.5,'right');
     var th=Math.acos(Math.max(-1,Math.min(1,nx)))*180/Math.PI;
     // on a phone the box sits under the coil, clear of the commutator panel
@@ -28646,6 +28667,11 @@ MAG_SIMS['mag-motor']=function(canvas){
     ctx.save();ctx.fillStyle='rgba(2,8,16,.85)';ctx.fillRect(8,rbY,rbW,46);ctx.restore();
     simText(ctx,'τmax = NBIA = '+tmax.toFixed(4)+' N·m',8+rbW/2,rbY+16,'#e2e8f0',11.5,'center',true);
     simText(ctx,'θ = '+th.toFixed(0)+'°   ·   τ = '+magFx(tau,4)+' N·m',8+rbW/2,rbY+35,'#fbbf24',10.5,'center',true);
+    // while it spins, θ changes too fast to read: then the peak torque
+    if(drag||Math.abs(om)<0.5)model(kit.m('τ = NBIA·sinθ = '+N.toFixed(0)+' × '+B.toFixed(2)+' × '+I.toFixed(1)+' × 0.0020 × sin '+th.toFixed(0)+'° = '+magNum(Math.abs(tau),4)+' N·m'));
+    else model(kit.m('τ = NBIA·sinθ')+', ובשיאו '+kit.m('τₘₐₓ = NBIA = '+N.toFixed(0)+' × '+B.toFixed(2)+' × '+I.toFixed(1)+' × 0.0020 = '+tmax.toFixed(4)+' N·m'));
+    restT=Math.abs(om)<0.05&&!drag?restT+dt:0;
+    kit.check({drag:drag,tq:tmax?Math.abs(tau)/tmax:0,comm:comm,rest:restT,th:th,rpm:Math.abs(om*60/6.2832)});
     requestAnimationFrame(draw);
   }
   requestAnimationFrame(draw);
@@ -29057,23 +29083,57 @@ MAG_SIMS['mag-motional']=function(canvas){
 MAG_CTRL['mag-motional']=function(){return rng('mgv-B',0.1,1,0.5,0.05,'שדה B',' T')+rng('mgv-R',0.5,10,2,0.5,'נגד R',' Ω')+rng('mgv-F',0,0.2,0.05,0.01,'כוח חיצוני F',' N')+btn('mgv-go','▶ הפעילו כוח קבוע','btn-primary')+btn('mgv-reset','↺ איפוס','btn-secondary');};
 
 // ── mag-induction.mag-generator ───────────────────────────────────────────
-// Normal n = (cosθ, sinθ), θ = ωt, B along +x: Φ = NBA·cosθ and
-// ε = NBAω·sinθ. Positive ε drives current whose field points along n, so the
-// side at n rotated by +90° carries it out of the page.
+// Normal n = (cosθ, sinθ), B along +x: Φ = NBA·cosθ and ε = −dΦ/dt =
+// NBA·sinθ·dθ/dt — NBAω·sinωt when the motor turns it at ω. Positive ε drives
+// current whose field points along n, so the side at n rotated by +90°
+// carries it out of the page. The coil can be turned by hand too (drag it, or
+// hold an arrow key): then ω is your own, and so is the emf.
 MAG_SIMS['mag-generator']=function(canvas){
   var id=canvas.id,_g=_simGen[id];
   const H=500; const {ctx,W,dpr}=setupCanvas(canvas,H);
-  var AR=0.05, th=0, run=true, rings=true, pT=null, hist=[], ph=0;
+  var AR=0.05, th=0, run=true, rings=true, pT=null, hist=[], ph=0, hand=false, wHand=0, lastA=null, hold=0, ranSeen=false;
   var RP=Math.min(70,W*0.11), CX=Math.max(W*0.26,RP+70), CY=H*0.22;   // the N pole whole on a phone
-  magBtn('mgg-ring',function(b){rings=!rings;b.textContent=rings?'🔘 טבעות החלקה (AC)':'🔁 מחליף כיוון (DC פועם)';});
-  magBtn('mgg-go',function(b){run=!run;b.textContent=run?'⏸ עצרו':'▶ הפעילו';});
+  var kit=simKit(canvas,{missions:[
+    {text:'עצרו (⏸) ברגע שבו הכא״מ מרבי. מה מצב הכריכה ומה השטף ברגע הזה?',
+     hint:'הפעילו בתדירות נמוכה ולחצו ״עצרו״ כשהגרף של ε בשיאו.',
+     why:'הכא״מ הוא קצב השינוי של השטף: הוא מרבי כשהשטף עובר דרך אפס — מישור הכריכה מקביל לקווי השדה, והצלעות חותכות אותם הכי מהר.',
+     done:function(s){return s.paused&&s.ran&&Math.abs(Math.sin(s.th))>0.97;}},
+    {text:'סובבו את הכריכה ביד — גררו אותה — מהר מספיק כדי שהכא״מ יעלה על 5 V.',
+     hint:'גררו את הכריכה במעגל סביב הציר. '+_skM('ε = NBAω·sinθ'),
+     why:'ε ∝ ω: סיבוב מהיר פי 2 נותן כא״מ גדול פי 2 (ותדירות כפולה). הגנרטור ממיר את העבודה שאתם עושים בסיבוב לאנרגיה חשמלית.',
+     done:function(s){return s.hand&&Math.abs(s.e)>5;}},
+    {text:'כווננו את הגנרטור כך שהכא״מ המרבי יהיה 10 V.',
+     hint:_skM('εₘₐₓ = NBAω = NBA·2πf')+' — שנו את f, את B או את N.',
+     why:'εₘₐₓ = NBAω: כל אחד מהגורמים מגדיל את המתח באותו יחס. בתחנת כוח f קבוע (50 Hz), ולכן משנים את השדה — את זרם העירור של האלקטרומגנט.',
+     done:function(s){return Math.abs(s.Em-10)<0.3;}}]});
+  var model=magModeler(kit), gate=magPredictor(kit,canvas);
+  var askRing=gate({q:'מחליפים את טבעות ההחלקה במחליף כיוון. איך ייראה גרף המתח במוצא?',
+    opts:['אותו גל סינוס','רק ״גבעות״ חיוביות — החצי השלילי מתהפך','קו ישר וקבוע'],correct:1,
+    why:'מחליף הכיוון הופך את חיבורי הכריכה בכל חצי סיבוב, בדיוק כשהכא״מ מחליף סימן: המתח במוצא הוא |ε| — פועם, אבל תמיד באותו כיוון.'});
+  var setGo=function(){var b=document.getElementById('btn-mgg-go');if(b)b.textContent=run?'⏸ עצרו':'▶ הפעילו';};
+  magBtn('mgg-ring',function(b){var go=function(){rings=!rings;b.textContent=rings?'🔘 טבעות החלקה (AC)':'🔁 מחליף כיוון (DC פועם)';};if(rings)askRing(go);else go();});
+  magBtn('mgg-go',function(){run=!run;hand=false;hist=[];setGo();});
+  // by hand: the angle of the pointer about the axis turns the coil
+  var angAt=function(p){return Math.atan2(CY-p.y,p.x-CX);};
+  simDrag(canvas,dpr,{down:function(p){if(Math.hypot(p.x-CX,p.y-CY)>RP+40)return;if(!hand){hand=true;run=false;hist=[];setGo();}lastA=angAt(p);},
+    move:function(p){if(lastA===null)return;var a=angAt(p),d=a-lastA;d=(d+3*Math.PI)%(2*Math.PI)-Math.PI;th+=d;lastA=a;},
+    up:function(){lastA=null;}});
+  magKeys(canvas,{key:function(k,d){if(k==='left'||k==='right'){var v=k==='left'?1:-1;if(d){hold=v;if(!hand){hand=true;run=false;hist=[];setGo();}}else if(hold===v)hold=0;}
+    else if(k==='blur')hold=0;else if(k==='enter'&&d)magBtnPress('mgg-go');}});
+  var thPrev=0;
   function draw(ts){
     if(!magAlive(id,_g))return;
     var dt=pT?Math.min(0.05,(ts-pT)/1000):0;pT=ts;
     var f=magV('mgg-f',1),B=magV('mgg-B',0.2),N=magV('mgg-N',100),w=2*Math.PI*f,Em=N*B*AR*w,Pm=N*B*AR;
-    var fv=Math.min(f,1),slow=f/fv;
-    if(run){th+=2*Math.PI*fv*dt;ph+=fv*dt;hist.push([ph,Math.cos(th),Math.sin(th)]);while(hist.length&&ph-hist[0][0]>2)hist.shift();}
-    var e=Em*Math.sin(th),out=rings?e:Math.abs(e);
+    var fv=Math.min(f,1),slow=f/fv,e,wNow;
+    if(run){th+=2*Math.PI*fv*dt;ph+=fv*dt;ranSeen=true;wNow=w;e=Em*Math.sin(th);}
+    else if(hand){if(hold)th+=hold*2*Math.PI*dt;
+      // the hand's ω, smoothed over ~0.1 s of real time (not of frames)
+      var wi=dt>0?(th-thPrev)/dt:0,ka=dt>0?Math.exp(-dt/0.1):1;wHand=wHand*ka+wi*(1-ka);wNow=wHand;e=N*B*AR*wHand*Math.sin(th);ph+=dt;}
+    else{wNow=0;e=0;}
+    thPrev=th;
+    if(dt>0&&(run||hand)){hist.push([ph,Math.cos(th),e]);while(hist.length&&ph-hist[0][0]>2)hist.shift();}
+    var out=rings?e:Math.abs(e),Esc=Em;hist.forEach(function(h){Esc=Math.max(Esc,Math.abs(h[2]));});
     simBg(ctx,W,H);
     ctx.save();ctx.fillStyle='#dc2626';ctx.fillRect(CX-RP-64,CY-RP,40,2*RP);ctx.fillStyle='#2563eb';ctx.fillRect(CX+RP+24,CY-RP,40,2*RP);ctx.restore();
     simText(ctx,'N',CX-RP-44,CY,'#fff',14,'center',true);simText(ctx,'S',CX+RP+44,CY,'#fff',14,'center',true);
@@ -29081,8 +29141,9 @@ MAG_SIMS['mag-generator']=function(canvas){
     var nx=Math.cos(th),ny=Math.sin(th),sx=-ny,sy=nx;          // side direction = n turned +90°
     var ax=CX+RP*sx,ay=CY-RP*sy,bx=CX-RP*sx,by=CY+RP*sy;
     ctx.save();ctx.strokeStyle='rgba(251,191,36,.55)';ctx.lineWidth=5;ctx.beginPath();ctx.moveTo(ax,ay);ctx.lineTo(bx,by);ctx.stroke();ctx.restore();
-    if(Math.abs(e)>Em*0.03){magDot(ctx,ax,ay,10,e>0,'#fbbf24','#1e293b');magDot(ctx,bx,by,10,e<0,'#fbbf24','#1e293b');}
+    if(Math.abs(e)>Math.max(Em,1e-9)*0.03){magDot(ctx,ax,ay,10,e>0,'#fbbf24','#1e293b');magDot(ctx,bx,by,10,e<0,'#fbbf24','#1e293b');}
     else{simCircle(ctx,ax,ay,9,'#1e293b','#fbbf24',2);simCircle(ctx,bx,by,9,'#1e293b','#fbbf24',2);}
+    simHandle(ctx,ax,ay,'#fbbf24',16);
     ctx.save();ctx.setLineDash([4,4]);simArrow(ctx,CX,CY,CX+nx*RP*0.7,CY-ny*RP*0.7,'rgba(52,211,153,.85)',1.6,8);ctx.restore();
     simText(ctx,'n̂',CX+nx*(RP*0.7+12),CY-ny*(RP*0.7+12),'#34d399',11,'center',true);
     // the lamp
@@ -29093,18 +29154,22 @@ MAG_SIMS['mag-generator']=function(canvas){
     simText(ctx,rings?'מתח חילופין':'מתח פועם בכיוון אחד',lx,ly+34,'#94a3b8',9.5,'center');
     var ry=CY+RP+18;ctx.save();ctx.fillStyle='rgba(2,8,16,.85)';ctx.fillRect(8,ry,W-16,58);ctx.restore();
     simText(ctx,'ε_max = NBAω = '+Em.toFixed(1)+' V   ·   ε_rms = '+(Em/Math.SQRT2).toFixed(1)+' V',W/2,ry+15,'#e2e8f0',10.5,'center',true);
-    simText(ctx,'ε(t) = '+magFx(out,1)+' V   ·   ω = '+w.toFixed(1)+' rad/s',W/2,ry+33,'#fbbf24',10,'center',true);
-    simText(ctx,slow>1.01?'הדמיה בהילוך איטי ×'+slow.toFixed(0):'מהירות אמיתית',W/2,ry+50,'#64748b',9,'center');
-    // Φ(t) and ε(t): two periods, time in real milliseconds
+    simText(ctx,'ε(t) = '+magFx(out,1)+' V   ·   ω = '+magFx(wNow,1)+' rad/s',W/2,ry+33,'#fbbf24',10,'center',true);
+    simText(ctx,hand?'אתם מסובבים: ω שלכם':run?(slow>1.01?'הדמיה בהילוך איטי ×'+slow.toFixed(0):'מהירות אמיתית'):'עצור — גררו את הכריכה כדי לסובב אותה ביד',W/2,ry+50,'#64748b',9,'center');
+    // Φ(t) and ε(t): two periods in real milliseconds — or, by hand, the last 2 s
     var gx=44,gw=W-60,g1=H*0.56,g2=H*0.78,gh=H*0.17,Tp=1/f;
-    [[g1,'NΦ(t) = NBA·cosωt',1,'#818cf8',Pm,'Wb'],[g2,rings?'ε(t) = NBAω·sinωt':'המוצא אחרי מחליף הכיוון: |ε(t)|',2,'#f87171',Em,'V']].forEach(function(G){
+    [[g1,'NΦ(t) = NBA·cosθ',1,'#818cf8',Pm,'Wb',1],[g2,rings?'ε(t) = NBAω·sinθ':'המוצא אחרי מחליף הכיוון: |ε(t)|',2,'#f87171',Esc,'V',Esc]].forEach(function(G){
       magPlotBox(ctx,gx-36,G[0]-14,gw+46,gh+10,G[1],G[3]);
       var Y=function(q){return G[0]+gh/2-q*(gh/2-8);};
       ctx.save();ctx.strokeStyle='#1e3a52';ctx.beginPath();ctx.moveTo(gx,Y(0));ctx.lineTo(gx+gw,Y(0));ctx.stroke();ctx.restore();
-      var c=hist.map(function(h){var v=h[G[2]];if(G[2]===2&&!rings)v=Math.abs(v);return [gx+gw-(ph-h[0])/2*gw,Y(v)];});magPoly(ctx,c,G[3],2);
-      simText(ctx,(G[2]===1?G[4].toFixed(2):G[4].toFixed(0))+' '+G[5],gx-4,Y(1)+3,'#64748b',8.5,'right');});
-    for(var k=0;k<=4;k++)simText(ctx,k===4?'0':'−'+(Tp*1000*(2-k/2)).toFixed(Tp<0.02?1:0)+' ms',gx+k/4*gw,H-4,'#64748b',8.5,'center');
+      var c=hist.map(function(h){var v=h[G[2]]/G[6];if(G[2]===2&&!rings)v=Math.abs(v);return [gx+gw-(ph-h[0])/2*gw,Y(v)];});magPoly(ctx,c,G[3],2);
+      simText(ctx,(G[2]===1?G[4].toFixed(2):G[4].toFixed(G[4]<10?1:0))+' '+G[5],gx-4,Y(1)+3,'#64748b',8.5,'right');});
+    for(var k=0;k<=4;k++)simText(ctx,k===4?'0':hand?'−'+(2-k/2).toFixed(1)+' s':'−'+(Tp*1000*(2-k/2)).toFixed(Tp<0.02?1:0)+' ms',gx+k/4*gw,H-4,'#64748b',8.5,'center');
     simText(ctx,'ε מקסימלי כשהשטף עובר דרך אפס, ואפס כשהשטף בשיאו',W/2,g2-20,'#64748b',9,'center');
+    var deg=((th*180/Math.PI)%360+360)%360;
+    if(hand)model(kit.m('ε = NBAω·sinθ = '+N.toFixed(0)+' × '+B.toFixed(2)+' × 0.050 × '+magNum(wHand,1)+' × sin '+deg.toFixed(0)+'° = '+magNum(e,1)+' V')+' — ω שלכם: סובבו מהר יותר, והכא״מ גדל');
+    else model(kit.m('εₘₐₓ = NBAω = '+N.toFixed(0)+' × '+B.toFixed(2)+' × 0.050 × '+w.toFixed(1)+' = '+Em.toFixed(1)+' V')+' · '+kit.m('εᵣₘₛ = εₘₐₓ/√2 = '+(Em/Math.SQRT2).toFixed(1)+' V'));
+    kit.check({paused:!run&&!hand,ran:ranSeen,th:th,hand:hand,e:e,Em:Em});
     requestAnimationFrame(draw);
   }
   requestAnimationFrame(draw);
@@ -29112,13 +29177,45 @@ MAG_SIMS['mag-generator']=function(canvas){
 MAG_CTRL['mag-generator']=function(){return rng('mgg-f',0.2,50,1,0.1,'תדירות f',' Hz')+rng('mgg-B',0.05,0.5,0.2,0.05,'שדה B',' T')+rng('mgg-N',10,200,100,10,'ליפופים N')+btn('mgg-ring','🔘 טבעות החלקה (AC)','btn-secondary')+btn('mgg-go','⏸ עצרו','btn-secondary');};
 
 // ── mag-induction.mag-transformer ─────────────────────────────────────────
+// An ideal transformer on AC: V₂/V₁ = N₂/N₁ and, losses and the magnetising
+// current neglected, V₁I₁ = V₂I₂. On DC the primary is what a real one is, a
+// coil with resistance: its current — and the flux — rise once with τ = L/R
+// and stay, so the secondary sees V₂ = (N₂/N₁)V₁·e^(−t/τ): a flash, then 0.
 MAG_SIMS['mag-transformer']=function(canvas){
   var id=canvas.id,_g=_simGen[id];
   // a phone gets a taller canvas: the scope and the transmission line stack
   var ph=(canvas.offsetWidth||(canvas.parentElement&&canvas.parentElement.offsetWidth)||720)<600;
   const H=ph?600:520; const {ctx,W,dpr}=setupCanvas(canvas,H);
-  var ac=true, t=0, tsw=0, pT=null, hist=[];
-  magBtn('mgt-dc',function(b){ac=!ac;tsw=t;b.textContent=ac?'〰 זרם חילופין':'▬ זרם ישר (סוללה)';});
+  var ac=true, t=0, tsw=0, pT=null, hist=[], drag=null;
+  var kit=simKit(canvas,{missions:[
+    {text:'בנו מטען לטלפון: שנאי שמוריד את 230 V של רשת החשמל ל־5 V בדיוק.',
+     hint:_skM('V₂/V₁ = N₂/N₁')+' — שנו את מספרי הליפופים (גררו סליל למעלה או למטה), כך ש־N₂/N₁ = 5/230.',
+     why:'המתח בכל ליפוף הוא אותו ΔΦ/Δt, כי אותו שטף עובר בליבה דרך שני הסלילים — ולכן המתח על כל סליל יחסי למספר הליפופים שלו.',
+     done:function(s){return s.ac&&Math.abs(s.V1-230)<0.5&&Math.abs(s.V2-5)<0.1;}},
+    {text:'בנו שנאי מעלה מתח שמכפיל את המתח — ובדקו מה קרה לזרם בראשוני לעומת הזרם במשני.',
+     hint:'בחרו '+_skM('N₂ = 2N₁')+' והשוו את I₁ ל־I₂.',
+     why:'בשנאי אידיאלי ההספק נשמר: V₁I₁ = V₂I₂. מתח כפול במשני — ובראשוני זורם זרם כפול מזה שבמשני. שנאי אינו ״מגביר חשמל״.',
+     done:function(s){return s.ac&&Math.abs(s.r-2)<0.02;}},
+    {text:'חברו זרם ישר וחכו: מה המתח במשני אחרי רגע החיבור?',
+     hint:'לחצו על הכפתור ״זרם חילופין״ כדי לעבור לסוללה, וצפו בנורה ובגרף.',
+     why:'זרם קבוע יוצר שטף קבוע: ΔΦ/Δt = 0, ולכן במשני אין מתח — רק ההבהוב ברגע החיבור, כשהשטף עולה. שנאי עובד רק בזרם חילופין.',
+     done:function(s){return !s.ac&&s.tdc>1.5;}},
+    {text:'הורידו את הפסדי ההולכה אל מתחת ל־1% מההספק.',
+     hint:'העלו את מתח קו ההולכה: '+_skM('I = P/V')+', וההפסד '+_skM('I²R')+'.',
+     why:'P = VI: במתח גבוה פי 10 הזרם קטן פי 10, וההפסד I²R קטן פי 100. לכן מעלים את המתח לפני ההולכה — ומורידים אותו לפני הבית.',
+     done:function(s){return s.loss<0.01;}}]});
+  var model=magModeler(kit), gate=magPredictor(kit,canvas);
+  var askDC=gate({q:'במקום מתח חילופין מחברים לראשוני סוללה באותו מתח. מה תעשה הנורה במשני?',
+    opts:['תאיר כמו קודם','תאיר חזק יותר — זרם ישר יציב יותר','תהבהב לרגע ותכבה'],correct:2,
+    why:'רק שינוי בשטף משרה מתח. ברגע החיבור הזרם בראשוני — והשטף — עולים, ובמשני מופיע מתח לרגע; ואז השטף קבוע, ΔΦ/Δt = 0, והנורה כבית.'});
+  magBtn('mgt-dc',function(b){var go=function(){ac=!ac;tsw=t;b.textContent=ac?'〰 זרם חילופין':'▬ זרם ישר (סוללה)';};if(ac)askDC(go);else go();});
+  // drag a coil up or down to wind or unwind turns
+  var gx0=W*0.30,gx1=W*0.70,gy0=ph?31:H*0.06,gy1=ph?229:H*0.44,GT=26,lastY=0;
+  simDrag(canvas,dpr,{down:function(p){if(p.y<gy0||p.y>gy1+24){drag=null;return;}
+      drag=Math.abs(p.x-(gx0+GT/2))<46?'mgt-N1':Math.abs(p.x-(gx1-GT/2))<46?'mgt-N2':null;lastY=p.y;},
+    move:function(p){if(!drag)return;var k=drag==='mgt-N1'?10:5,n=magV(drag,100)+Math.round((lastY-p.y)/2)*k;
+      if(Math.abs(lastY-p.y)>=2){simSyncSlider(drag,n,0);lastY=p.y;}},
+    up:function(){drag=null;}});
   function draw(ts){
     if(!magAlive(id,_g))return;
     var dt=pT?Math.min(0.05,(ts-pT)/1000):0;pT=ts;t+=dt;
@@ -29145,7 +29242,7 @@ MAG_SIMS['mag-transformer']=function(canvas){
     var coil=function(x,n,col,lab){var nv=Math.max(3,Math.min(18,Math.round(n/60)+2)),y0=cy0+T+12,y1=cy1-T-12;
       for(var i=0;i<nv;i++){var y=y0+(i+0.5)*(y1-y0)/nv;ctx.save();ctx.strokeStyle=col;ctx.lineWidth=2.4;ctx.beginPath();ctx.ellipse(x,y,T/2+10,4,0,0,6.2832);ctx.stroke();ctx.restore();}
       simText(ctx,lab,x,cy1+16,col,10,'center',true);};
-    coil(cx0+T/2,N1,'#fb923c','N₁ = '+N1.toFixed(0));coil(cx1-T/2,N2,'#22d3ee','N₂ = '+N2.toFixed(0));
+    coil(cx0+T/2,N1,'#fb923c','N₁ = '+N1.toFixed(0)+' ↕');coil(cx1-T/2,N2,'#22d3ee','N₂ = '+N2.toFixed(0)+' ↕');
     // source and load
     ctx.save();ctx.strokeStyle='#64748b';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(cx0-T/2-10,cy0+T+14);ctx.lineTo(cx0-60,cy0+T+14);ctx.lineTo(cx0-60,cy1-T-14);ctx.lineTo(cx0-T/2-10,cy1-T-14);
     ctx.moveTo(cx1+T/2+10,cy0+T+14);ctx.lineTo(cx1+60,cy0+T+14);ctx.lineTo(cx1+60,cy1-T-14);ctx.lineTo(cx1+T/2+10,cy1-T-14);ctx.stroke();ctx.restore();
@@ -29200,6 +29297,9 @@ MAG_SIMS['mag-transformer']=function(canvas){
     ctx.save();ctx.fillStyle='rgba(248,113,113,.25)';ctx.fillRect(tx+12,gy+80,tw-24,14);ctx.fillStyle='#f87171';ctx.fillRect(tx+12,gy+80,(tw-24)*fr,14);ctx.restore();
     simText(ctx,(fr*100).toFixed(fr<0.01?2:1)+'% מההספק הולך לאיבוד',tx+tw/2,gy+110,'#94a3b8',9.5,'center');
     simText(ctx,cmpTxt,tx+tw/2,gy+gh-8,'#64748b',9,'center');}
+    if(ac)model(kit.m('V₂ = V₁·N₂/N₁ = '+V1.toFixed(0)+' × '+N2.toFixed(0)+'/'+N1.toFixed(0)+' = '+V2.toFixed(1)+' V')+' · '+kit.m('I₁ = I₂·N₂/N₁ = '+I2.toFixed(2)+' × '+r.toFixed(3)+' = '+I1.toFixed(3)+' A')+' — ההספק נשמר');
+    else model('זרם ישר: השטף קבוע, '+kit.m('ΔΦ/Δt → 0 ⇒ V₂ = '+v2.toFixed(1)+' V'));
+    kit.check({ac:ac,V1:V1,V2:V2,r:r,tdc:ac?0:t-tsw,loss:fr});
     requestAnimationFrame(draw);
   }
   requestAnimationFrame(draw);
