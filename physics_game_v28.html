@@ -5196,7 +5196,7 @@ const CONTENT={
       <p>לכן הכלים של הפרק הזה — זמן מחזור, תדירות, משרעת — משמשים בכל תחומי הפיזיקה.</p>`
     }
   },
-  sim:{type:'shm-def',title:'תנועה מחזורית',desc:'שנו A ו־T — ראו x(t)=A·sin(ωt). מהירות ותאוצה בזמן אמת.'},
+  sim:{type:'shm-def',title:'תנועה מחזורית',desc:'נקודה P נעה במעגל שרדיוסו A, והמסה שלמטה היא הצל שלה: x = A·cos(ωt + φ). גררו את P כדי לשנות את המשרעת ואת המופע, ועצרו כדי לקרוא רגע אחד בשלושת הגרפים: היכן המהירות מרבית — והיכן התאוצה?'},
   example:{title:'זמן מחזור ותדירות',text:`גוף מתנודד בתדירות ${M('3\\,\\text{Hz}')} ובמשרעת ${M('0.1\\,\\text{m}')}.`,steps:[
     {q:'מהו זמן המחזור?',a:`${M('T=\\dfrac1f=\\dfrac13\\approx0.33\\,\\text{s}')}`},
     {q:'מהי התדירות הזוויתית?',a:`${M('\\omega=2\\pi f=2\\pi\\times3\\approx18.85\\,\\text{rad/s}')}`},
@@ -16933,155 +16933,140 @@ function simEnergyPotential(canvas){
 }
 
 function simSHMDef(canvas){
-  // SECTION: shm.shm-def — תנודות ומחזוריות
-  // A mass on a spring, x measured UPWARD from equilibrium, beside its x(t).
-  // The same sign everywhere: up on the spring is up on the graph. (The info
-  // panel used to be painted over the oscillator, the scene took x downward
-  // while the graph took it upward, and A was set in pixels.)
-  const H=490; const {ctx,W,dpr}=setupCanvas(canvas,H);
+  // SECTION: shm.shm-def
+  // PEDAGOGY: simple harmonic motion is the shadow of uniform circular motion.
+  // A point P goes round a circle of radius A at ω = 2π/T; the mass below it
+  // is P's projection, x = A·cos(ωt + φ). P's velocity (Aω, tangent) and its
+  // centripetal acceleration (Aω², inward) project to the mass's v and a, so
+  // a = −ω²x drops out of the picture. x(t), v(t), a(t) are drawn for two
+  // periods with one cursor through all three: the speed is greatest at the
+  // centre and zero at the ends, where the acceleration is greatest.
+  // Drag P to set the phase and the amplitude; pause to read a moment.
+  var cv0=setupCanvas(canvas,470), W=cv0.W, dpr=cv0.dpr, PH=W<560, H=PH?600:440, ctx=setupCanvas(canvas,H).ctx;
   const id=canvas.id;
-  let pT=null, t=0;
-  var A=0.08, T=2.0;                   // m, s
-  var PXM=1000;                        // 10 px per cm: the 13 cm maximum is 130 px
-  var phase=0;
-  var xHist=[], tHist=[];
-
-  function getA(){var e=document.getElementById('inp-shm-A'); return e?parseFloat(e.value)/100:A;}
-  function getT(){var e=document.getElementById('inp-shm-T'); return e?parseFloat(e.value):T;}
-
-  var resetBtn=document.getElementById('btn-shm-reset');
-  if(resetBtn)resetBtn.addEventListener('click',function(){phase=0;xHist=[];tHist=[];t=0;});
-
-  var LW=W*0.46;                       // left column
-  var CY=290;                          // equilibrium on screen
-  var DOT_X=LW*0.52;
+  var t=0, phi=0, run=true, pT=null, drag=false;
+  // layout: the circle and the track on the left (or on top), the graphs beside (or under)
+  var LW=PH?W:Math.round(W*0.46);
+  var RM=PH?Math.min(78,W*0.22):Math.min(122,LW*0.3);      // px for 13 cm
+  var PXM=RM/0.13, CX=PH?W*0.5:LW*0.52, CY=PH?24+RM+10:30+RM+14, TRY=CY+RM+52;
+  var GX=PH?10:LW+6, GY=PH?TRY+62:10, GW=PH?W-20:W-LW-14, GH=PH?H-GY-8:H-20;
+  function A(){return _mbV('shm-A',8)/100;} function T(){return _mbV('shm-T',2);}
+  var pb=document.getElementById('btn-shm-pause');
+  function setRun(r){run=r;_mbBtn('shm-pause',run?'⏸ עצרו':'▶ המשיכו');}
+  if(pb)pb.addEventListener('click',function(){setRun(!run);});
+  var rb=document.getElementById('btn-shm-reset');
+  if(rb)rb.addEventListener('click',function(){t=0;phi=0;setRun(true);});
+  var kit=simKit(canvas,{missions:[
+    {text:'עצרו את התנועה ברגע שבו המהירות היא הגדולה ביותר',
+     hint:'עקבו אחרי הגרף של v, או אחרי חץ המהירות של המסה. היכן הוא הארוך ביותר?',
+     why:'ב־'+_skM('x = 0')+' הצל נע במלוא מהירותה של הנקודה על המעגל, '+_skM('Aω')+': שם הנקודה נעה במקביל לציר. בקצוות היא נעה בניצב לציר, והצל עוצר לרגע.',
+     done:function(s){return s.paused&&Math.abs(s.x)<0.06*s.A;}},
+    {text:'עצרו את התנועה ברגע שבו התאוצה היא הגדולה ביותר — ושימו לב לאן היא מכוונת',
+     hint:'התאוצה יחסית להסטה: '+_skM('a = −ω²x')+'. היכן ההסטה הגדולה ביותר?',
+     why:_skM('a = −ω²x')+': היא מרבית בקצוות, '+_skM('Aω²')+', ומכוונת אל המרכז — דווקא שם, היכן שהמהירות אפס. שם התאוצה הצנטריפטלית של הנקודה על המעגל מקבילה לציר כולה.',
+     done:function(s){return s.paused&&Math.abs(s.x)>0.97*s.A;}},
+    {text:'כוונו את A ואת T כך שהמהירות המרבית תהיה '+_skM('0.50 m/s'),
+     hint:_skM('vₘₐₓ = Aω = 2πA/T')+'. למשל, ב־'+_skM('A = 8 cm')+' צריך '+_skM('T ≈ 1.0 s')+'.',
+     why:'הנקודה על המעגל עוברת את ההיקף '+_skM('2πA')+' בזמן מחזור אחד, ולכן מהירותה '+_skM('2πA/T = Aω')+' — וזו המהירות של הצל כשהוא עובר במרכז.',
+     done:function(s){return Math.abs(s.vmax-0.5)<0.01;}}]});
+  var model=_mbModel(kit);
+  kit.predict({q:'המסה מתנודדת בין '+_skM('x = −A')+' ל־'+_skM('x = +A')+'. היכן מהירותה הגדולה ביותר?',
+    opts:['בקצוות, '+_skM('x = ±A'),'במרכז, '+_skM('x = 0'),'בכל מקום אותה מהירות'],correct:1,
+    why:'בקצוות המסה נעצרת ומחליפה כיוון, ולכן מהירותה שם אפס; היא מאיצה כל הדרך אל המרכז ומאטה ממנו. בקצוות דווקא התאוצה מרבית — '+_skM('a = −ω²x')+'.'},
+    function(){});
+  // drag the point P on the circle: its angle is the phase, its distance the amplitude
+  function Pxy(){var a=A(),th=2*Math.PI/T()*t+phi;return {x:CX+a*PXM*Math.cos(th),y:CY-a*PXM*Math.sin(th),th:th};}
+  simDrag(canvas,dpr,{
+    down:function(p){var q=Pxy();if(Math.hypot(p.x-q.x,p.y-q.y)<28){drag=true;setRun(false);}
+      else{var mx=CX+A()*PXM*Math.cos(q.th);if(Math.abs(p.x-mx)<26&&Math.abs(p.y-TRY)<26){drag=true;setRun(false);}}},
+    move:function(p){if(!drag)return;
+      var dx=p.x-CX,dy=CY-p.y,r=Math.hypot(dx,dy);
+      if(p.y>CY+RM+8){                 // on the track: the mass itself, x only (P keeps its half of the circle)
+        var q=Pxy(),xa=Math.max(-0.999,Math.min(0.999,(p.x-CX)/(A()*PXM))),up=Math.sin(q.th)>=0;
+        var th=up?Math.acos(xa):-Math.acos(xa);phi=th-2*Math.PI/T()*t;return;}
+      var a=Math.max(0.02,Math.min(0.13,r/PXM));simSyncSlider('shm-A',a*100,1);
+      phi=Math.atan2(dy,dx)-2*Math.PI/T()*t;},
+    up:function(){drag=false;}
+  });
+  _mbKeys(canvas,{' ':function(){setRun(!run);},'Enter':function(){setRun(!run);},
+    'ArrowRight':function(){if(!run)phi+=0.05;},'ArrowLeft':function(){if(!run)phi-=0.05;}});
+  canvas._probe=function(){var a=A(),w=2*Math.PI/T(),th=w*t+phi;return {A:a,T:T(),w:w,th:th,x:a*Math.cos(th),v:-a*w*Math.sin(th),acc:-w*w*a*Math.cos(th),run:run,clock:t};};
 
   function draw(ts){
     if(_simStop[id])return;
     if(!pT)pT=ts; var dt=Math.min((ts-pT)/1000,0.04); pT=ts;
-    t+=dt; A=getA(); T=getT();
-    var omega=2*Math.PI/T;
-    // phase is accumulated, so moving the T slider does not make the mass jump
-    phase+=omega*dt;
-    var x=A*Math.sin(phase), v=A*omega*Math.cos(phase), a=-omega*omega*x;
-    xHist.push(x); tHist.push(t);
-    while(tHist.length&&t-tHist[0]>2.5*T+0.5){xHist.shift();tHist.shift();}
-    var Apx=A*PXM, xpx=x*PXM;
-
+    var a=A(),TT=T(),w=2*Math.PI/TT;
+    var tPrev=t; if(run&&!drag)t+=dt;
+    // keep the phase where it was when T changes: θ is what is continuous
+    if(draw._T!==undefined&&draw._T!==TT){phi+=(2*Math.PI/draw._T-w)*tPrev;}
+    draw._T=TT;
+    var th=w*t+phi, x=a*Math.cos(th), v=-a*w*Math.sin(th), ac=-w*w*x;
     simBg(ctx,W,H);
-    // ── left column: readouts on top, the oscillator below them
-    ctx.save(); ctx.fillStyle='rgba(6,14,28,.6)'; ctx.strokeStyle='#1e4060'; ctx.lineWidth=1.5;
-    ctx.beginPath(); ctx.roundRect(8,6,LW-8,H-14,6); ctx.fill(); ctx.stroke(); ctx.restore();
-    var cx=LW/2+4;
-    simText(ctx,'x(t) = A·sin(ωt)',cx,22,'#fbbf24',10.5,'center',true);
-    simText(ctx,'x = '+(x>=0?'+':'−')+Math.abs(x).toFixed(3)+' m',cx,40,'#60a5fa',9.5,'center',true);
-    simText(ctx,'v = '+(v>=0?'+':'−')+Math.abs(v).toFixed(3)+' m/s',cx,55,'#22d3ee',9.5,'center',true);
-    simText(ctx,'a = '+(a>=0?'+':'−')+Math.abs(a).toFixed(3)+' m/s²',cx,70,'#f87171',9.5,'center',true);
-    var st=Math.abs(x)>0.96*A?'בקצה: המהירות אפס והתאוצה מרבית':(Math.abs(x)<0.12*A?'במרכז: התאוצה אפס והמהירות מרבית':'');
-    if(st)simText(ctx,st,cx,88,'#fbbf24',9,'center',true);
-    simText(ctx,'הכיוון החיובי של x: כלפי מעלה',cx,H-16,'#7d8da6',8.5,'center');
-
-    // equilibrium and ±A
-    ctx.save(); ctx.strokeStyle='rgba(34,211,153,.35)'; ctx.lineWidth=1; ctx.setLineDash([4,6]);
-    ctx.beginPath(); ctx.moveTo(30,CY); ctx.lineTo(LW-6,CY); ctx.stroke();
-    ctx.strokeStyle='rgba(251,191,36,.3)'; ctx.setLineDash([2,5]);
-    ctx.beginPath(); ctx.moveTo(30,CY-Apx); ctx.lineTo(LW-6,CY-Apx); ctx.moveTo(30,CY+Apx); ctx.lineTo(LW-6,CY+Apx); ctx.stroke();
-    ctx.setLineDash([]); ctx.restore();
-    simText(ctx,'x=0',LW-8,CY-4,'#34d399',8,'right');
-    simArrow(ctx,22,CY,22,CY-Apx,'#fbbf24',2,7);
-    simArrow(ctx,22,CY,22,CY+Apx,'#fbbf24',2,7);
-    simText(ctx,'A',14,CY-Apx/2,'#fbbf24',9,'center');
-
-    // ceiling mount and the spring down to the mass
-    var mountY=CY-130-46, dotY=CY-xpx;
-    ctx.save(); ctx.fillStyle='#1e3a52'; ctx.fillRect(DOT_X-26,mountY-10,52,10);
-    ctx.strokeStyle='#0f2035';ctx.lineWidth=1.5;
-    for(var hi=DOT_X-24;hi<DOT_X+24;hi+=8){ctx.beginPath();ctx.moveTo(hi,mountY-10);ctx.lineTo(hi+6,mountY-16);ctx.stroke();}
-    ctx.restore();
-    var sprEnd=dotY-20;
-    var sprCol=x<-0.004?'#f87171':x>0.004?'#60a5fa':'#a78bfa';   // stretched below, compressed above
-    ctx.save(); ctx.strokeStyle=sprCol; ctx.lineWidth=2; ctx.lineJoin='round';
-    ctx.beginPath(); ctx.moveTo(DOT_X,mountY);
-    var coils=12,sLen=Math.max(10,sprEnd-mountY);
-    for(var ci=0;ci<coils;ci++) ctx.lineTo(DOT_X+(ci%2?11:-11),mountY+sLen*(ci+0.5)/coils);
-    ctx.lineTo(DOT_X,sprEnd); ctx.stroke(); ctx.restore();
-
-    // ghost outlines at the turning points
-    [CY-Apx,CY+Apx].forEach(function(ey){
-      ctx.save();ctx.globalAlpha=0.25;ctx.strokeStyle='#fbbf24';ctx.lineWidth=1.5;ctx.setLineDash([3,4]);
-      ctx.beginPath();ctx.arc(DOT_X,ey,20,0,Math.PI*2);ctx.stroke();ctx.setLineDash([]);ctx.restore();
+    // the reference circle and P
+    var R=a*PXM, px=CX+R*Math.cos(th), py=CY-R*Math.sin(th);
+    ctx.save();ctx.strokeStyle='rgba(148,163,184,.35)';ctx.lineWidth=1.4;ctx.setLineDash([4,5]);
+    ctx.beginPath();ctx.arc(CX,CY,R,0,6.2832);ctx.stroke();ctx.setLineDash([]);
+    ctx.strokeStyle='rgba(148,163,184,.25)';ctx.beginPath();ctx.moveTo(CX-RM-14,CY);ctx.lineTo(CX+RM+14,CY);ctx.stroke();
+    ctx.strokeStyle='rgba(167,139,250,.5)';ctx.beginPath();ctx.moveTo(CX,CY);ctx.lineTo(px,py);ctx.stroke();ctx.restore();
+    var thm=((th%(2*Math.PI))+2*Math.PI)%(2*Math.PI);
+    ctx.save();ctx.strokeStyle='rgba(251,191,36,.55)';ctx.lineWidth=1.3;ctx.beginPath();ctx.arc(CX,CY,16,0,-thm,true);ctx.stroke();ctx.restore();
+    simText(ctx,'θ',CX+27*Math.cos(thm/2),CY-27*Math.sin(thm/2)+4,'#fbbf24',10,'center',true);
+    // P's velocity and acceleration, and their shadows on the axis
+    var vs=26/Math.max(0.05,a*w), as=26/Math.max(0.05,a*w*w);          // P's own vectors drawn 26 px long
+    var tvx=-Math.sin(th),tvy=-Math.cos(th);
+    simArrow(ctx,px,py,px+tvx*26,py+tvy*26,'rgba(34,211,238,.6)',2,8);
+    simArrow(ctx,px,py,px+(CX-px)/Math.max(R,1)*26,py+(CY-py)/Math.max(R,1)*26,'rgba(248,113,113,.6)',2,8);
+    ctx.save();ctx.fillStyle='#a78bfa';ctx.beginPath();ctx.arc(px,py,7,0,6.2832);ctx.fill();ctx.restore();
+    simHandle(ctx,px,py,'#c4b5fd',15);
+    simText(ctx,'P',px+(Math.cos(th)>=0?12:-12),py-(Math.sin(th)>=0?10:-16),'#c4b5fd',10,'center',true);
+    // the track, the spring and the mass: x = A·cos θ
+    var mx=CX+x*PXM, wall=CX-RM-30;
+    ctx.save();ctx.strokeStyle='rgba(251,191,36,.35)';ctx.setLineDash([3,4]);ctx.beginPath();ctx.moveTo(px,py);ctx.lineTo(mx,TRY-14);ctx.stroke();ctx.restore();
+    ctx.save();ctx.fillStyle='#1e3a52';ctx.fillRect(wall-8,TRY-24,8,40);ctx.strokeStyle='#334155';ctx.lineWidth=2;
+    ctx.beginPath();ctx.moveTo(wall-14,TRY+14);ctx.lineTo(CX+RM+30,TRY+14);ctx.stroke();ctx.restore();
+    ctx.save();ctx.strokeStyle='#94a3b8';ctx.lineWidth=1.8;ctx.beginPath();ctx.moveTo(wall,TRY);
+    var nC=12;for(var i=1;i<nC;i++)ctx.lineTo(wall+(mx-13-wall)*i/nC,TRY+(i%2?6:-6));ctx.lineTo(mx-13,TRY);ctx.stroke();ctx.restore();
+    [[-RM,'−A'],[0,'0'],[RM,'+A']].forEach(function(q){simText(ctx,q[1],CX+q[0]*(a/0.13),TRY+28,'#7d8da6',9,'center');
+      ctx.save();ctx.strokeStyle='rgba(148,163,184,.4)';ctx.beginPath();ctx.moveTo(CX+q[0]*(a/0.13),TRY+12);ctx.lineTo(CX+q[0]*(a/0.13),TRY+18);ctx.stroke();ctx.restore();});
+    var mg=ctx.createRadialGradient(mx-4,TRY-4,2,mx,TRY,13);mg.addColorStop(0,'#fde68a');mg.addColorStop(1,'#d97706');
+    simCircle(ctx,mx,TRY,13,mg,'#fbbf24',2);
+    // the mass's v and a: the x-components of P's (green-blue and red), each to its own maximum
+    var vF=v/Math.max(1e-9,a*w), aF=ac/Math.max(1e-9,a*w*w);
+    if(Math.abs(vF)>0.03)_mbVec(ctx,mx,TRY-22,mx+vF*44,TRY-22,'#22d3ee','v',W,H,{sz:10,lw:2.6,hw:9});
+    if(Math.abs(aF)>0.03)_mbVec(ctx,mx,TRY-36,mx+aF*44,TRY-36,'#f87171','a',W,H,{sz:10,lw:2.6,hw:9});
+    // x(t), v(t), a(t): two periods, one cursor
+    var rows=[['x(t)',a*100,'cm','#fbbf24',function(q){return Math.cos(q);}],
+              ['v(t)',a*w,'m/s','#22d3ee',function(q){return -Math.sin(q);}],
+              ['a(t)',a*w*w,'m/s²','#f87171',function(q){return -Math.cos(q);}]];
+    var rh=(GH-8)/3, gl=GX+56, gr=GX+GW-10, span=2*TT, tc=((t%span)+span)%span;
+    rows.forEach(function(r,k){
+      var y0=GY+k*(rh+4), ym=y0+rh/2, amp=rh/2-12;
+      _mbCard(ctx,GX,y0,GW,rh);
+      simText(ctx,r[0],GX+8,y0+16,r[3],10,'left',true);
+      simText(ctx,'±'+(k===0?r[1].toFixed(1):r[1].toFixed(k===1?3:2))+' '+r[2],GX+8,y0+30,'#7d8da6',8.5,'left');
+      ctx.save();ctx.strokeStyle='rgba(148,163,184,.3)';ctx.beginPath();ctx.moveTo(gl,ym);ctx.lineTo(gr,ym);ctx.stroke();
+      for(var qq=1;qq<8;qq++){var gx=gl+(gr-gl)*qq/8;ctx.strokeStyle=qq%4===0?'rgba(167,139,250,.45)':'rgba(148,163,184,.12)';
+        ctx.beginPath();ctx.moveTo(gx,y0+6);ctx.lineTo(gx,y0+rh-6);ctx.stroke();}
+      ctx.strokeStyle=r[3];ctx.lineWidth=2;ctx.beginPath();
+      for(var i=0;i<=120;i++){var tq=span*i/120,X=gl+(gr-gl)*i/120,Y=ym-r[4](w*tq+phi)*amp;i?ctx.lineTo(X,Y):ctx.moveTo(X,Y);}
+      ctx.stroke();ctx.restore();
+      var cx2=gl+(gr-gl)*tc/span, cy2=ym-r[4](w*t+phi)*amp;
+      ctx.save();ctx.fillStyle=r[3];ctx.strokeStyle='#030c15';ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(cx2,cy2,5,0,6.2832);ctx.fill();ctx.stroke();ctx.restore();
+      if(k===2){simText(ctx,'T',gl+(gr-gl)/2,y0+rh-2,'#a78bfa',9,'center',true);simText(ctx,'2T',gr,y0+rh-2,'#a78bfa',9,'center',true);}
     });
-    var vFrac=Math.abs(v)/Math.max(1e-9,A*omega);
-    var dotCol='rgba('+Math.round(59+196*vFrac)+','+Math.round(130-30*vFrac)+','+Math.round(246-150*vFrac)+',0.95)';
-    ctx.save(); ctx.shadowColor=dotCol; ctx.shadowBlur=14;
-    ctx.fillStyle=dotCol; ctx.strokeStyle='#93c5fd'; ctx.lineWidth=2.5;
-    ctx.beginPath(); ctx.arc(DOT_X,dotY,20,0,Math.PI*2); ctx.fill(); ctx.stroke(); ctx.shadowBlur=0; ctx.restore();
-    simText(ctx,'m',DOT_X,dotY+4,'#fff',9,undefined,true);
-    // v and a, each scaled to its own maximum (the section is about phase)
-    if(vFrac>0.03){
-      var vLen=55*vFrac;
-      simArrow(ctx,DOT_X+28,dotY,DOT_X+28,dotY-Math.sign(v)*vLen,'#22d3ee',2.5,9);
-      simText(ctx,'v',DOT_X+40,dotY-Math.sign(v)*vLen/2,'#22d3ee',9,'left');
-    }
-    var aFrac=Math.abs(x)/Math.max(1e-9,A);
-    if(aFrac>0.03){
-      var aLen=45*aFrac;
-      simArrow(ctx,DOT_X-28,dotY,DOT_X-28,dotY-Math.sign(a)*aLen,'#f87171',2.5,9);
-      simText(ctx,'a',DOT_X-40,dotY-Math.sign(a)*aLen/2,'#f87171',9,'right');
-    }
-
-    // ── x(t) graph, same sign convention, fixed scale (13 cm full height)
-    var GX=W*0.50, GY=8, GW=W-GX-8, GH=H*0.58;
-    ctx.save(); ctx.fillStyle='rgba(6,14,28,.9)'; ctx.strokeStyle='#1e4060'; ctx.lineWidth=1.5;
-    ctx.beginPath(); ctx.roundRect(GX,GY,GW,GH,6); ctx.fill(); ctx.stroke(); ctx.restore();
-    simText(ctx,'x(t) — אותו x של המסה',GX+GW/2,GY+13,'#22d3ee',9.5,undefined,true);
-    var gCY=GY+GH/2+6, gAX=GX+34, gAW=GW-42, gAmp=GH/2-22;
-    function gy(xx){return gCY-xx/0.13*gAmp;}
-    ctx.save(); ctx.strokeStyle='#1e3a52'; ctx.lineWidth=1;
-    ctx.beginPath(); ctx.moveTo(gAX,gCY); ctx.lineTo(gAX+gAW,gCY); ctx.moveTo(gAX,GY+22); ctx.lineTo(gAX,GY+GH-8); ctx.stroke(); ctx.restore();
-    [-10,-5,5,10].forEach(function(c){
-      simText(ctx,(c>0?'+':'−')+Math.abs(c),gAX-4,gy(c/100)+3,'#7d8da6',8,'right');
-      ctx.save();ctx.strokeStyle='rgba(30,58,82,.5)';ctx.beginPath();ctx.moveTo(gAX-2,gy(c/100));ctx.lineTo(gAX+3,gy(c/100));ctx.stroke();ctx.restore();});
-    simText(ctx,'x (cm)',gAX-4,GY+26,'#a78bfa',8,'right');
-    ctx.save();ctx.strokeStyle='rgba(251,191,36,.25)';ctx.setLineDash([2,5]);
-    ctx.beginPath();ctx.moveTo(gAX,gy(A));ctx.lineTo(gAX+gAW,gy(A));ctx.moveTo(gAX,gy(-A));ctx.lineTo(gAX+gAW,gy(-A));ctx.stroke();ctx.restore();
-    var tSpan=T*2.5, tStart=Math.max(0,t-tSpan);
-    if(tHist.length>2){
-      ctx.save(); ctx.strokeStyle='#60a5fa'; ctx.lineWidth=2; ctx.beginPath();
-      var first=true;
-      for(var i=0;i<xHist.length;i++){
-        var tAge=tHist[i]-tStart; if(tAge<0)continue;
-        var px=gAX+gAW*(tAge/tSpan), py=gy(xHist[i]);
-        if(first){ctx.moveTo(px,py);first=false;}else ctx.lineTo(px,py);
-      }
-      ctx.stroke(); ctx.restore();
-      var cpx=gAX+gAW*(Math.min(t-tStart,tSpan)/tSpan);
-      ctx.save(); ctx.fillStyle='#fbbf24'; ctx.strokeStyle='#030c15'; ctx.lineWidth=1.5;
-      ctx.beginPath(); ctx.arc(cpx,gy(x),5,0,Math.PI*2); ctx.fill(); ctx.stroke(); ctx.restore();
-    }
-    for(var ti=1;ti*T<=tSpan;ti++){
-      var tp=gAX+(ti*T/tSpan)*gAW;
-      ctx.save(); ctx.strokeStyle='rgba(167,139,250,.45)'; ctx.lineWidth=1;
-      ctx.beginPath(); ctx.moveTo(tp,gCY-4); ctx.lineTo(tp,gCY+4); ctx.stroke(); ctx.restore();
-      simText(ctx,ti+'T',tp,gCY+15,'#a78bfa',8,undefined,true);
-    }
-    simText(ctx,'t →',gAX+gAW,GY+GH-6,'#7d8da6',8,'right');
-
-    // ── numbers
-    var PY=GY+GH+8, PH=H-PY-8, PC=GX+GW/2;
-    ctx.save(); ctx.fillStyle='rgba(6,14,28,.92)'; ctx.strokeStyle='#1e4060'; ctx.lineWidth=1.5;
-    ctx.beginPath(); ctx.roundRect(GX,PY,GW,PH,6); ctx.fill(); ctx.stroke(); ctx.restore();
-    var rows=[['A = '+(A*100).toFixed(1)+' cm','#fbbf24'],['T = '+T.toFixed(2)+' s ,  f = 1/T = '+(1/T).toFixed(2)+' Hz','#a78bfa'],
-      ['ω = 2π/T = '+omega.toFixed(2)+' rad/s','#34d399'],['v_max = Aω = '+(A*omega).toFixed(3)+' m/s','#22d3ee'],
-      ['a_max = Aω² = '+(A*omega*omega).toFixed(3)+' m/s²','#f87171']];
-    var rh=Math.min(22,(PH-10)/rows.length);
-    rows.forEach(function(r,k){simText(ctx,r[0],PC,PY+14+k*rh,r[1],9,'center',true);});
-
+    var cxl=gl+(gr-gl)*tc/span;
+    ctx.save();ctx.strokeStyle='rgba(226,232,240,.35)';ctx.setLineDash([3,3]);ctx.beginPath();ctx.moveTo(cxl,GY+2);ctx.lineTo(cxl,GY+GH-2);ctx.stroke();ctx.restore();
+    var st=Math.abs(x)>0.96*a?'בקצה: המהירות אפס, והתאוצה מרבית — אל המרכז':Math.abs(x)<0.06*a?'במרכז: התאוצה אפס, והמהירות מרבית':'';
+    if(st)simText(ctx,st,PH?W/2:LW/2,PH?TRY+50:H-14,'#fbbf24',10,'center',true);
+    var vmax=a*w;
+    model(kit.m('x = A·cos(ωt + φ) = '+(a*100).toFixed(1)+' cm × cos('+thm.toFixed(2)+') = '+_mbS(x*100,2)+' cm')+'<br>'+
+      kit.m('v = −Aω·sin(ωt + φ) = '+_mbS(v,3)+' m/s,   vₘₐₓ = Aω = '+vmax.toFixed(3)+' m/s')+'<br>'+
+      kit.m('a = −ω²x = −'+(w*w).toFixed(2)+' × '+_mbP(x,4)+' = '+_mbS(ac,3)+' m/s²'));
+    kit.check({paused:!run,x:x,A:a,vmax:vmax});
     requestAnimationFrame(draw);
   }
   requestAnimationFrame(draw);
 }
-
 
 function simVecOps(canvas){
   // SECTION: vectors.vec-ops — פעולות על וקטורים
@@ -34889,7 +34874,7 @@ function buildSim(sim){
   else if(sim.type==='energy-kinetic')extra=C(rng('ek-F',2,50,10,1,'כוח F',' N')+rng('ek-m',0.5,10,2,0.5,'מסה m',' kg')+btn('ek-launch','▶ הפעילו!','btn-primary')+btn('ek-reset','↺ איפוס','btn-secondary'));
   else if(sim.type==='energy-potential')extra=C(rng('ep-m',0.5,8,2,0.5,'מסה m',' kg')+rng('ep-g',1.6,25,9.8,0.2,'g',' m/s²')+btn('ep-elastic','⚡ אנרגיה אלסטית','btn-secondary')+btn('ep-reset','↺ איפוס','btn-secondary'));
   else if(sim.type==='energy')extra=C(rng('energy-m',0.5,4,1,0.5,'מסה m',' kg')+rng('energy-mu',0,0.1,0,0.005,'מקדם חיכוך μ','')+btn('energy-reset','↺ איפוס','btn-secondary'));
-  else if(sim.type==='shm-def')extra=C(rng('shm-A',2,13,8,0.5,'אמפליטודה A',' cm')+rng('shm-T',0.5,5,2,0.1,'מחזור T',' s')+btn('shm-reset','↺ איפוס','btn-secondary'));
+  else if(sim.type==='shm-def')extra=C(rng('shm-A',2,13,8,0.5,'אמפליטודה A',' cm')+rng('shm-T',0.5,5,2,0.1,'מחזור T',' s')+btn('shm-pause','⏸ עצרו','btn-primary')+btn('shm-reset','↺ איפוס','btn-secondary'));
   else if(sim.type==='vec-ops')extra=C(rng('vo-scalar',-3,3,2,0.1,'מכפיל c')+btn('vo-add','A+B')+btn('vo-sub','A−B','btn-secondary')+btn('vo-scalar','c·A','btn-secondary')+btn('vo-dot','A·B','btn-secondary')+btn('vo-reset','↺ איפוס','btn-secondary'));
   else if(sim.type==='vec-components')extra=C(rng('vc-mag',0.5,4,2.8,0.1,'גודל |A|')+rng('vc-ang',0,360,32,1,'זווית θ','°')+btn('vc-reset','↺ איפוס','btn-secondary'));
   else if(sim.type==='spring')extra=C(rng('spring-k',0.1,25,2,0.1,'k (N/m)')+rng('spring-m',0.1,2,0.5,0.1,'מסה',' kg'));

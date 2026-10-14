@@ -376,6 +376,37 @@ const EXPECT = {
   const mcm = await missionsDone();
   t('momentum missions: 3× the speed, the problem, Σp changed by friction — all reachable', mcm.length === 3 && mcm.every(Boolean), JSON.stringify(mcm));
 
+  console.log('\n3f) SHM as the shadow of circular motion: x, v, a and their phases');
+  await open('shm.shm-def');
+  const shp = () => p.evaluate(() => document.querySelector('#app canvas')._probe());
+  const pauseWhen = f => p.evaluate(async src => { const cv = document.querySelector('#app canvas'), ok = new Function('q', 'return ' + src);
+    for (let i = 0; i < 600; i++) { await new Promise(r => requestAnimationFrame(r)); if (ok(cv._probe())) { document.getElementById('btn-shm-pause').click(); break; } }
+    await new Promise(r => setTimeout(r, 300)); return cv._probe(); }, f);
+  let sq = await pauseWhen('Math.abs(q.x) < 0.03 * q.A');
+  let mls = await model(), nm = (mls.match(/[−-]?\d+\.\d+/g) || []).map(num);
+  // model: x = A·cos(...) = 8.0 cm × cos(θ) = x cm / v = … m/s, vmax = … / a = −ω²x = −w² × x = a
+  const xs = nm[2] / 100, vs = nm[3], vmx = nm[4], as2 = nm[nm.length - 1], xa = nm[nm.length - 2], mw2 = nm[nm.length - 3];   // mw2 = −ω²
+  t('paused at the centre: the model line gives x ≈ 0, |v| = vₘₐₓ = Aω, a = −ω²x', !sq.run && Math.abs(xs) < 0.003 && Math.abs(Math.abs(vs) - 0.08 * Math.PI) < 0.004 && Math.abs(vmx - 0.08 * Math.PI) < 0.0006 && Math.abs(mw2 + Math.PI ** 2) < 0.006 && Math.abs(as2 - mw2 * xa) < 0.002 && Math.abs(xa - xs) < 0.0001, mls.slice(0, 120));
+  t('... and v² + ω²x² = (Aω)² at that moment (the shadow of a uniform circle)', Math.abs(sq.v ** 2 + sq.w ** 2 * sq.x ** 2 - (sq.A * sq.w) ** 2) < 1e-12 && Math.abs(sq.acc + sq.w ** 2 * sq.x) < 1e-12);
+  await p.evaluate(() => document.getElementById('btn-shm-pause').click());
+  sq = await pauseWhen('Math.abs(q.x) > 0.985 * q.A');
+  t('paused at an end: v ≈ 0 and |a| = Aω², pointing to the centre (a·x < 0)', Math.abs(sq.v) < 0.18 * sq.A * sq.w && Math.abs(Math.abs(sq.acc) - sq.A * sq.w * sq.w) < 0.02 * sq.A * sq.w * sq.w && sq.acc * sq.x < 0, `v ${sq.v.toFixed(3)}, a ${sq.acc.toFixed(3)}`);
+  const ph0 = (await shp()).th;
+  await set('shm-T', 3.3); await p.waitForTimeout(200);
+  const ph1 = (await shp()).th;
+  t('changing T (paused) does not make the mass jump: θ = ωt + φ is continuous', Math.abs(ph1 - ph0) < 1e-9, ph0.toFixed(4) + ' → ' + ph1.toFixed(4));
+  await set('shm-A', 8); await set('shm-T', 1); await p.waitForTimeout(200);
+  const shm = await missionsDone();
+  t('SHM missions: paused at the fastest point, at the greatest acceleration, vₘₐₓ = 0.50 m/s', shm.length === 3 && shm.every(Boolean), JSON.stringify(shm));
+  // drag P outward: the amplitude follows
+  r = await rect();
+  const pp = await p.evaluate(() => { const cv = document.querySelector('#app canvas'), q = cv._probe(); return q; });
+  const geo = await p.evaluate(() => { const W = document.querySelector('#app canvas').getBoundingClientRect().width, PH = W < 560, LW = PH ? W : Math.round(W * 0.46), RM = PH ? Math.min(78, W * 0.22) : Math.min(122, LW * 0.3), CX = PH ? W * 0.5 : LW * 0.52, CY = PH ? 24 + RM + 10 : 30 + RM + 14; return { RM, CX, CY }; });
+  const PXM = geo.RM / 0.13, Px = geo.CX + pp.A * PXM * Math.cos(pp.th), Py = geo.CY - pp.A * PXM * Math.sin(pp.th);
+  await drag(r, [[Px, Py], [geo.CX + 0.10 * PXM * Math.cos(pp.th), geo.CY - 0.10 * PXM * Math.sin(pp.th)], [geo.CX + 0.11 * PXM * Math.cos(pp.th), geo.CY - 0.11 * PXM * Math.sin(pp.th)]]);
+  const Ad = num(await p.evaluate(() => document.getElementById('inp-shm-A').value));
+  t('SHM: dragging P outward sets the amplitude (8 → 11 cm)', Math.abs(Ad - 11) < 0.6, Ad + ' cm');
+
   console.log('\n4) misconception boxes, quiz keys, hints, units');
   await require('./mech_learning')(p, ['statics', 'planar', 'momentum', 'energy', 'shm'], t);
 
