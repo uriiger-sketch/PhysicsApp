@@ -183,7 +183,8 @@ const EXPECT = {
     ['optics', 'opt-light', 'light-nature', W => [[W / 2, 200], [W / 2 + 40, 200], [W / 2 + 80, 200]], { slider: 'emw-wl' }],
     ['optics', 'opt-light', 'light-speed', () => [[44, 120], [44, 121]], { slider: 'ri-n' }],
     ['optics', 'opt-light', 'em-spectrum', W => [[W * 0.3, 50], [W * 0.5, 50], [W * 0.7, 50]], { slider: 'ems-pos' }],
-    ['optics', 'opt-light', 'color-mixing', (W, H) => { const cr = Math.min(W * 0.2, H * 0.27), y = H * 0.42 - cr * 0.62; return [[W / 2, y], [W / 2, y - 20], [W / 2, y - 40]]; }, { gone: '^' + LR('✋ גררו את העיגולים — צרו חפיפות חדשות!') }],
+    // the blue lamp's handle, at the top of the three spots (a phone: the stage above the eye's panel)
+    ['optics', 'opt-light', 'color-mixing', (W, H) => { const sw = W - 16, sh = H - 248, cr = Math.min(sw * 0.24, sh * 0.27), y = 8 + sh * 0.53 - cr * 0.62; return [[W / 2, y], [W / 2, y - 20], [W / 2, y - 40]]; }, { gone: '^' + LR('גררו את הפנסים · הקישו כדי להזיז את הגשוש') }],
     ['optics', 'opt-reflection', 'refl-laws', W => [[W * 0.3, 120], [W * 0.2, 200], [W * 0.15, 260]], { slider: 'ref-angle' }],
     ['optics', 'opt-reflection', 'plane-mirror', W => [[W * 0.3, 210], [W * 0.25, 210], [W * 0.2, 210]], { slider: 'pm-dist' }],
     ['optics', 'opt-reflection', 'concave-mirror', W => mirrorObj(W, true), { slider: 'cm-do' }],
