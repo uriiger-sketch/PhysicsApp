@@ -129,7 +129,7 @@ const t=(name,cond,detail)=>(cond?ok:bad).push(name+(detail?' — '+detail:''));
   await p.click('#app .sk-predict .sk-opt');await p.waitForTimeout(300);
   t('switch: answering the prediction shorts B',await p.evaluate(()=>{const B=document.querySelector('#app canvas')._dc;return B.el('S2').on&&B.el('S1').on;}));
   {const tx=await grab();t('switch: shorted, A dissipates ε²/R_A = 36 W and B nothing',tx.includes('36.0 W')&&tx.includes('0.0 W'),tx.filter(s2=>/W$/.test(s2)).join(' '));}
-  const ml=await p.evaluate(()=>document.querySelector('#app .sk-model').textContent);
+  const ml=await p.evaluate(()=>document.querySelector('#app .sk-model').textContent.replace(/\u00a0/g,' '));
   t('switch: the model line gives I = ε/(R_A+r) with the numbers',ml.includes('= 12.0/(4+0) = 3.00 A'),ml);
   await dragProbe(0,'b1',[0,-6]);await dragProbe(1,'b2',[0,6]);
   t('switch: across the shorted bulb, 0 V while the current flows',(await meter())==='0.00 V',await meter());
@@ -174,7 +174,7 @@ const t=(name,cond,detail)=>(cond?ok:bad).push(name+(detail?' — '+detail:''));
   {const a=await amps();t('series: with R₃ the current is ε/(R₁+R₂+R₃) = 0.67 A',a.length===1&&a[0]==='0.67 A',a.join(' '));}
   await dragProbe(1,'r1b');
   t('series: and V₁ fell to 5.33 V, though R₃ is after it',(await meter())==='+5.33 V',await meter());
-  {const ml=await p.evaluate(()=>document.querySelector('#app .sk-model').textContent);
+  {const ml=await p.evaluate(()=>document.querySelector('#app .sk-model').textContent.replace(/\u00a0/g,' '));
    t('series: the model line, with the numbers',ml.includes('= 12.0/(8+4+6) = 0.67 A')&&ml.includes('= 12.00 V = ε'),ml);}
   t('series: all four missions solved by doing them',(await kitCount())==='4/4',await kitCount());
 
@@ -214,7 +214,7 @@ const t=(name,cond,detail)=>(cond?ok:bad).push(name+(detail?' — '+detail:''));
   await tapEl('S3');pr=await parRead();
   t('parallel: with r = 1 Ω, closing S₃ lowers I₁ (the terminal voltage fell)',pr.br[0]<I1a-0.05&&near(pr.br[0],(12*2/(2+1))/4),I1a+' → '+pr.br[0]);
   await setS('inp-par-r',0);await setS('inp-par-R2',2);await p.waitForTimeout(150);
-  {const ml=await p.evaluate(()=>document.querySelector('#app .sk-model').textContent);
+  {const ml=await p.evaluate(()=>document.querySelector('#app .sk-model').textContent.replace(/\u00a0/g,' '));
    t('parallel: the model line, with the numbers',ml.includes('I = I₁+I₂+I₃ = 3.00+6.00+2.00 = 11.00 A')&&ml.includes('R∥ = 1.09 Ω'),ml);}
   t('parallel: all four missions solved by doing them',(await kitCount())==='4/4',await kitCount());
 
@@ -236,7 +236,7 @@ const t=(name,cond,detail)=>(cond?ok:bad).push(name+(detail?' — '+detail:''));
   await p.click('#btn-mtr-mode');await p.waitForTimeout(200);
   t('meters: the voltmeter in series waits for the prediction',(await pill()).join()==='8.00 V',(await pill()).join());
   await p.click('#app .sk-predict .sk-opt >> nth=2');await p.waitForTimeout(250);
-  {const mm=await p.evaluate(()=>document.querySelector('#app .sk-model').textContent);
+  {const mm=await p.evaluate(()=>document.querySelector('#app .sk-model').textContent.replace(/\u00a0/g,' '));
    t('meters: the voltmeter in series reads nearly ε, and the current is 1.2 μA',(await pill()).join()==='12.00 V'&&mm.includes('= 1.2 μA'),(await pill()).join()+' | '+mm);}
   await p.click('#btn-mtr-mode');await p.waitForTimeout(200);
   t('meters: the button goes round all four wirings',(await mlab())===ml0&&(await pill()).join()==='1.00 A',await mlab());
@@ -311,10 +311,16 @@ const t=(name,cond,detail)=>(cond?ok:bad).push(name+(detail?' — '+detail:''));
   // bridge: dragging the calibrated resistor must move R₃ and can null the bridge
   await go('dc-kirchhoff','dc-bridge'); bx=await box();
   v0=await val('inp-br-R3');
-  await p.mouse.move(bx.x+bx.w*0.20, bx.y+bx.h*0.88); await p.mouse.down();
-  await p.mouse.move(bx.x+bx.w*0.70, bx.y+bx.h*0.88); await p.mouse.up();
-  await p.waitForTimeout(300);
-  t('bridge: dragging the dial sets R₃', (await val('inp-br-R3'))!==v0, `${v0} → ${await val('inp-br-R3')}`);
+  {await inView();bx=await box();const dl=await p.evaluate(()=>document.querySelector('#app canvas')._dcDial),k=bx.w/(await p.evaluate(()=>{const c=document.querySelector('#app canvas');return c.width/(window.devicePixelRatio||1);}));
+   await p.mouse.move(bx.x+(dl[0]+dl[2]*0.1)*k, bx.y+dl[1]*k); await p.mouse.down();
+   await p.mouse.move(bx.x+(dl[0]+dl[2]*0.6)*k, bx.y+dl[1]*k); await p.mouse.up();
+   await p.waitForTimeout(300);
+   t('bridge: dragging the dial sets R₃', (await val('inp-br-R3'))!==v0&&Math.abs((await val('inp-br-R3'))-(5+295*0.6))<2, `${v0} → ${await val('inp-br-R3')}`);
+   // a drag elsewhere (on the meter, below the dial) leaves R₃ alone
+   const v1=await val('inp-br-R3');
+   await p.mouse.move(bx.x+bx.w*0.2, bx.y+bx.h*0.97); await p.mouse.down();
+   await p.mouse.move(bx.x+bx.w*0.7, bx.y+bx.h*0.97); await p.mouse.up();
+   t('bridge: only the dial sets R₃', (await val('inp-br-R3'))===v1, `${v1} → ${await val('inp-br-R3')}`);}
   await p.evaluate(()=>{const s=document.getElementById('inp-br-R3');s.value='80';
     s.dispatchEvent(new Event('input',{bubbles:true}));});
   await p.waitForTimeout(500);
@@ -323,6 +329,12 @@ const t=(name,cond,detail)=>(cond?ok:bad).push(name+(detail?' — '+detail:''));
       const d=c.getContext('2d').getImageData(0,0,c.width,c.height).data;let n=0;
       for(let i=0;i<d.length;i+=4)if(d[i]<90&&d[i+1]>190&&d[i+2]>130&&d[i+2]<190)n++;return n>200;}),
     'green null readout present');
+  // the balance IS equal potentials: the probes across the galvanometer read 0
+  await dragProbe(0,'A');await dragProbe(1,'Bn');
+  t('bridge: at the null the two ends of the galvanometer are at one potential (0.00 V)',(await meter())==='0.00 V',await meter());
+  await setS('inp-br-R3',40);await p.waitForTimeout(150);
+  t('bridge: off balance they are not: V_A − V_B = ε·(R₃/(R₁+R₃) − Rₓ/(R₂+Rₓ)) less the G drop',/^−\d+\.\d\d V$/.test(await meter()),await meter());
+  await setS('inp-br-R3',80);await p.waitForTimeout(150);
 
   // ── every guided problem, recomputed from first principles ──────────────
   // (to the step's own tolerance or 1.5 %, whichever is looser -- stricter than
@@ -436,7 +448,7 @@ const div=document.createElement('div');div.style.cssText='position:absolute;lef
   // and on the probes; the branch currents stay hidden until step ③; the
   // short across the pair is predicted, then takes the whole ε onto R₁
   await go('dc-network','dc-mixed');
-  const mixModel=async()=>p.evaluate(()=>document.querySelector('#app .sk-model').textContent);
+  const mixModel=async()=>p.evaluate(()=>document.querySelector('#app .sk-model').textContent.replace(/\u00a0/g,' '));
   const mixI=async()=>{const tx=await grab(),g=k=>{const s2=tx.find(x=>x.startsWith(k+' = '));return s2?s2.slice(k.length+3):'';};
     return {I:g('I'),I2:g('I₂'),I3:g('I₃')};};
   {const m0=await mixModel(),i0=await mixI();
@@ -488,6 +500,21 @@ const div=document.createElement('div');div.style.cssText='position:absolute;lef
     const Iw=E/(R+r);
     t(`emf ε=${E} r=${r} R=${R}: I = ε/(R+r), V = ε − Ir`,near(I,Iw)&&near(Vt,E-Iw*r),I+' A, '+Vt+' V; want '+Iw.toFixed(2)+', '+(E-Iw*r).toFixed(2));
   }
+  // the open circuit (V = ε), the short (predicted first: I = ε/r, V = 0),
+  // the matched load (R = r) and V = 0.9 ε (R = 9r)
+  {const emfRead=async()=>{const tx=await grab();return {I:num((tx.find(s2=>/^\d+\.\d\d A$/.test(s2))||'NaN')),V:num((tx.filter(s2=>/^\d+\.\d\d V$/.test(s2))[0])||'NaN')};};
+   await setS('inp-emf-E',12);await setS('inp-emf-r',1);await setS('inp-emf-R',3);
+   await tapEl('S');let q=await emfRead();
+   t('emf: with the load switched off, I = 0 and the terminals show the emf itself',q.I===0&&q.V===12,JSON.stringify(q));
+   await tapEl('S');await tapEl('K');
+   t('emf: the short waits for the prediction',!(await p.evaluate(()=>document.querySelector('#app canvas')._dc.el('K').on)));
+   await p.click('#app .sk-predict .sk-opt >> nth=1');await p.waitForTimeout(250);q=await emfRead();
+   t('emf: shorted, I = ε/r = 12.00 A and V = 0',q.I===12&&Math.abs(q.V)<0.006,JSON.stringify(q));
+   await tapEl('K');await setS('inp-emf-R',1);await p.waitForTimeout(120);q=await emfRead();
+   t('emf: R = r, half the emf on the terminals',q.I===6&&q.V===6,JSON.stringify(q));
+   await setS('inp-emf-R',9);await p.waitForTimeout(120);q=await emfRead();
+   t('emf: R = 9r gives V = 0.9 ε',q.V===10.8,JSON.stringify(q));
+   t('emf: all four missions solved by doing them',(await kitCount())==='4/4',await kitCount());}
 
   // bridge: the null reads the right resistance, also when the balance falls between dial steps
   await go('dc-kirchhoff','dc-bridge');
@@ -508,14 +535,30 @@ const div=document.createElement('div');div.style.cssText='position:absolute;lef
   let vc=num((tx.find(s2=>/^\d+\.\d\d V$/.test(s2))||'NaN')), ic=num((tx.find(s2=>/mA$/.test(s2))||'NaN'));
   t('capacitor: steady state V_C = V·R₂/(R₁+R₂), no branch current',near(vc,6)&&near(ic,0),vc+' V, '+ic+' mA');
   t('capacitor: τ = (R₁∥R₂)C while charging',tx.includes('0.025 s'),tx.filter(s2=>/ s$/.test(s2)).join(' '));
-  await p.click('#btn-cap-sw'); await p.waitForTimeout(40);
+  // a big C before opening (V_C cannot jump): the discharge is slow enough
+  // to watch, on any machine -- τ = R₂C = 2 s
+  await setS('inp-cap-C',2000);await p.waitForTimeout(100);
+  await p.click('#btn-cap-sw'); await p.waitForTimeout(100);
   tx=await grab();
   ic=num((tx.find(s2=>/mA$/.test(s2))||'NaN'));
-  t('capacitor: on opening, the current turns round',ic<-0.5,ic+' mA');
+  t('capacitor: on opening, the current turns round (−V_C/R₂)',ic<-4&&ic>-6.01,ic+' mA');
+  // one frame: the clock and V_C drawn together obey V_C = V₀·e^(−t/R₂C)
+  const frame1=async()=>p.evaluate(()=>new Promise(r=>{window._txt=new Set();requestAnimationFrame(()=>{window._rec=true;
+    requestAnimationFrame(()=>{window._rec=false;r([...window._txt]);});});}));
+  await p.waitForTimeout(600);
+  {const f1=await frame1(),tt=num((f1.find(s2=>/^t = \d+\.\d\d s$/.test(s2))||'t = NaN').slice(4)),v1=num(f1.find(s2=>/^\d+\.\d\d V$/.test(s2))||'NaN');
+   // (t and V_C are printed to 0.005: 0.005 s of t is 0.013 V here)
+   t('capacitor: the discharge is the exponential V₀·e^(−t/τ), τ = R₂C = 2 s',tt>0.3&&near(v1,6*Math.exp(-tt/2),0.02),`t = ${tt} s, V_C = ${v1} V, want ${(6*Math.exp(-tt/2)).toFixed(3)}`);}
+  await setS('inp-cap-C',50);
   await p.waitForTimeout(1500);
   tx=await grab();
   vc=num((tx.find(s2=>/^\d+\.\d\d V$/.test(s2))||'NaN'));
   t('capacitor: discharged through R₂',near(vc,0),vc+' V');
+  await setS('inp-cap-R1',4);await setS('inp-cap-R2',4);await setS('inp-cap-C',500);await p.waitForTimeout(150);
+  await p.click('#btn-cap-sw');await p.waitForTimeout(150);
+  {const mm=await p.evaluate(()=>document.querySelector('#app .sk-model').textContent.replace(/\u00a0/g,' '));
+   t('capacitor: charging, the model line has τ = (R₁∥R₂)·C = 2 kΩ · 500 μF = 1.00 s',mm.includes('τ = (R₁∥R₂)·C = 1.00 s'),mm);}
+  t('capacitor: all three missions solved by doing them',(await kitCount())==='3/3',await kitCount());
 
   // real voltmeter: 10 kΩ across 10 kΩ of a 12 V divider reads 4 V, 33.3 %
   await go('dc-real','dc-realmeters');
@@ -523,6 +566,55 @@ const div=document.createElement('div');div.style.cssText='position:absolute;lef
   await p.waitForTimeout(150);
   tx=await grab();
   t('real voltmeter: loading reading and error',tx.includes('4.00 V')&&tx.includes('33.3 %'),tx.filter(s2=>/V$|%$/.test(s2)).join(' | '));
+  // δ = 1/(1+2R_V/R) for two equal resistors: under 1 % past R_V = 50R, 50 % at R_V = R/2
+  for(const [ex,R,want] of [[2.75,10,100/(1+2*Math.pow(10,2.75)/10)],[0.70,10,100/(1+2*Math.pow(10,0.70)/10)],[1,1,100/(1+2*10/1)]]){
+    await setS('inp-rm-RV',ex);await setS('inp-rm-R',R);await p.waitForTimeout(120);
+    const e1=(await grab()).find(s2=>/^\d+\.\d %$/.test(s2))||'';
+    t(`real voltmeter R_V = 10^${ex} kΩ, R = ${R} kΩ: error ${want.toFixed(1)} %`,num(e1)===+want.toFixed(1),e1);
+  }
+  t('real voltmeter: all three missions solved by doing them',(await kitCount())==='3/3',await kitCount());
+
+  // ── every mission can be solved, and only by the physics it names ──────
+  const model=async()=>p.evaluate(()=>{const m=document.querySelector('#app .sk-model');return m?m.textContent.replace(/\u00a0/g,' '):'';});
+  const sets=async(o)=>{for(const k in o)await setS(k,o[k]);await p.waitForTimeout(150);};
+  await go('dc-kirchhoff','dc-junction');
+  await sets({'inp-jn-I1':3,'inp-jn-I2':2,'inp-jn-I3':6});
+  t('junction: I₄ = I₁ + I₂ − I₃ in the model line',(await model()).includes('I₄ = I₁ + I₂ − I₃ = 3.0 + 2.0 − 6.0 = −1.0 A'),await model());
+  await sets({'inp-jn-I3':5});await sets({'inp-jn-I2':3,'inp-jn-I3':4});
+  t('junction: all three missions solved (I₄ < 0, I₄ = 0, I₄ = 2 A from 3 + 3)',(await kitCount())==='3/3',await kitCount());
+  await go('dc-kirchhoff','dc-loop');
+  await sets({'inp-lp-E1':12,'inp-lp-E2':12,'inp-lp-R1':4,'inp-lp-R2':8});await p.click('#btn-lp-aid');await p.waitForTimeout(150);
+  await sets({'inp-lp-E1':6});
+  t('loop: the model line gives I = (ε₁ − ε₂)/(R₁+R₂) with the numbers',(await model()).includes('I = (ε₁ − ε₂)/(R₁+R₂) = (6.0 − 12.0)/(4+8) = −0.50 A'),await model());
+  await p.click('#btn-lp-dir');await p.waitForTimeout(150);
+  t('loop: all three missions solved (I = 0 opposed, I reversed, the other way round)',(await kitCount())==='3/3',await kitCount());
+  await go('dc-kirchhoff','dc-twoloop');
+  await sets({'inp-tl-E1':12,'inp-tl-E2':12,'inp-tl-R1':2,'inp-tl-R2':2,'inp-tl-R3':4});
+  t('two-loop: the model line has both loop equations and the solution',(await model()).includes('(2.0+4.0)·I₁ + 4.0·I₂ = 12.0')&&(await model()).includes('I₁ = 1.20 A, I₂ = 1.20 A, I₃ = I₁+I₂ = 2.40 A'),await model());
+  await sets({'inp-tl-E2':24});await p.click('#btn-tl-flip');await sets({'inp-tl-E2':12});
+  t('two-loop: all three missions solved (both supply, battery 1 charged, I₃ = 0)',(await kitCount())==='3/3',await kitCount());
+  await go('dc-kirchhoff','dc-bridge');
+  await sets({'inp-br-V':9,'inp-br-R1':150,'inp-br-R2':450,'inp-br-Rx':240,'inp-br-R3':80});
+  await dragProbe(0,'A');await dragProbe(1,'Bn');
+  await sets({'inp-br-V':15});await sets({'inp-br-Rx':600,'inp-br-R3':200});
+  t('bridge: all four missions solved (balanced, 0 V across G at the null, the balance survives a new voltage, Rₓ = 600 Ω)',(await kitCount())==='4/4',await kitCount());
+  await go('dc-basics','dc-current');
+  await sets({'inp-dcc-A':2,'inp-dcc-I':4});await p.waitForTimeout(3200);
+  t('current: the model line gives v_d = I/(nAe)',(await model()).includes('vd = I/(nAe) = 4.0/(8.5×10²⁸·2.0×10⁻⁶·1.6×10⁻¹⁹) = 0.147 mm/s'),await model());
+  t('current: all three missions solved (4× the area, 10 C counted, the current doubled)',(await kitCount())==='3/3',await kitCount());
+  await go('dc-basics','dc-resistance');
+  await sets({'inp-ohm-R':12,'inp-ohm-V':3});
+  t('ohm: I = V/R = 0.250 A in the model line',(await model()).includes('I = V/R = 3.0/12 = 0.250 A'),await model());
+  await sets({'inp-ohm-V':0});await sets({'inp-ohm-V':7});await p.click('#btn-ohm-mode');await sets({'inp-ohm-V':9});
+  t('ohm: all three missions solved (0.25 A, R constant over 7 V, the bulb 25 % hotter)',(await kitCount())==='3/3',await kitCount());
+  await go('dc-basics','dc-power');
+  await sets({'inp-pw-R':6,'inp-pw-V':24});await sets({'inp-pw-V':12,'inp-pw-R':4});
+  t('power: P = V·I = V²/R = 36 W in the model line',(await model()).includes('P = V·I = 12.0·3.00 = 36.00 W'),await model());
+  // 288 W fills a watt-hour in 12.5 s of the sim's clock (a busy machine's
+  // clock runs slower: frames are capped at 50 ms)
+  await sets({'inp-pw-V':24,'inp-pw-R':2});
+  for(let k=0;k<45&&(await kitCount())!=='3/3';k++)await p.waitForTimeout(1000);
+  t('power: all three missions solved (×4 for ×2 the voltage, 36 W, one watt-hour)',(await kitCount())==='3/3',await kitCount());
 
   // nothing on any DC simulation prints NaN or Infinity, at either end of every slider
   for(const ch of await p.evaluate(()=>DC_CHAPTERS.map(c=>[c.id,c.sections.map(s2=>s2.id)])))
