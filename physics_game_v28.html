@@ -8917,7 +8917,7 @@ const MAG_CONTENT={
       <p>חימום מעל <b>טמפרטורת קירי</b> (כ־${M('770^\\circ\\text{C}')} לברזל) מפרק את הסדר, והמגנטיות נעלמת.</p>
     </div>`,
   },
-  sim:{type:'mag-magnets',desc:'גררו את המצפן — המחט מסתדרת לפי השדה הכולל בנקודה. הוסיפו את שדה כדור הארץ ומגנט שני, וחפשו נקודה ניטרלית שבה השדות מבטלים זה את זה והמחט ״מבולבלת״.'},
+  sim:{type:'mag-magnets',desc:'גררו את המצפן (או הזיזו אותו במקשי החצים) — המחט מסתדרת לפי השדה הכולל בנקודה, והקצה האדום שלה מצביע בכיוון השדה. חתכו את המגנט וחפשו קוטב בודד; הוסיפו את שדה כדור הארץ ומגנט שני, וחפשו נקודה ניטרלית שבה השדות מבטלים זה את זה והמחט ״מבולבלת״.'},
   example:{title:'מצפן ליד מגנט',text:`הרכיב האופקי של שדה כדור הארץ ${M('30\\,\\mu\\text{T}')} צפונה; מגנט יוצר ${M('20\\,\\mu\\text{T}')} מזרחה.`,steps:[
     {q:'איך מחברים את שני השדות?',a:`כווקטורים. הם ניצבים, ולכן ${M('B=\\sqrt{30^2+20^2}\\approx36.1\\,\\mu\\text{T}')}`},
     {q:'לאן תצביע המחט?',a:`לכיוון השדה הכולל: ${M('\\tan\\alpha=\\dfrac{20}{30}\\Rightarrow\\alpha\\approx33.7^\\circ')} מזרחית לצפון.`},
@@ -27660,18 +27660,22 @@ function magTrend(ctx,x,y,w,h,title,col,hist,k,tNow,T,vmax,top,unit){
 // Two-pole model of a bar magnet: poles ±q_m = m/ℓ at its ends, each with a
 // 1/r² field of strength (μ₀/4π)q_m. Real SI numbers: m = 1 A·m² is an ordinary
 // bar magnet, and 30 μT is the horizontal Earth field, so the neutral points
-// land where they would on a real bench.
+// land where they would on a real bench (~17 cm from the magnet). The poles
+// are only a way to compute the field OUTSIDE: the magnetisation runs through
+// the whole bar, so a magnet cut in two is two magnets — the halves keep the
+// pole strength, and the cut faces become a new N and a new S.
 MAG_SIMS['mag-magnets']=function(canvas){
   var id=canvas.id,_g=_simGen[id];
   const H=470; const {ctx,W,dpr}=setupCanvas(canvas,H);
-  var s=W/0.5, Hc=H*0.44, LEN=0.08;
-  var earth=false, mode=0, m2x=0.17, comp=[0.0,0.075], drag=null, cache=null, cacheKey='';
+  var s=W/0.6, Hc=H*0.44, LEN=0.08, GAP=0.03;
+  var earth=false, mode=0, cut=false, m2x=0.18, comp=[0.0,0.075], drag=null, cache=null, cacheKey='';
   var toS=function(x,y){return [W/2+x*s,Hc-y*s];}, toW=function(px,py){return [(px-W/2)/s,(Hc-py)/s];};
-  var yMin=-(H*0.80-Hc)/s, yMax=Hc/s, xMax=0.25;
-  function poles(){var m=magV('mgm-m',1),q=m/LEN,P=[[LEN/2,0,q],[-LEN/2,0,-q]];
-    if(mode===1)P.push([m2x+LEN/2,0,q],[m2x-LEN/2,0,-q]);          // S faces the first N
-    if(mode===2)P.push([m2x-LEN/2,0,q],[m2x+LEN/2,0,-q]);          // N faces N
-    return P;}
+  var yMin=-(H*0.80-Hc)/s, yMax=Hc/s, xMax=0.3;
+  // the bars: [centre, length, +1 when N is on the right]
+  function bars(){var B=cut?[[-(LEN+GAP)/4,LEN/2,1],[(LEN+GAP)/4,LEN/2,1]]:[[0,LEN,1]];
+    if(mode)B.push([m2x,LEN,mode===1?1:-1]);return B;}
+  function poles(){var m=magV('mgm-m',1),q=m/LEN,P=[];
+    bars().forEach(function(b){P.push([b[0]+b[2]*b[1]/2,0,q],[b[0]-b[2]*b[1]/2,0,-q]);});return P;}
   function Bf(x,y,P){var bx=0,by=earth?30e-6:0;
     for(var i=0;i<P.length;i++){var dx=x-P[i][0],dy=y-P[i][1],r2=dx*dx+dy*dy;if(r2<9e-6)r2=9e-6;
       var k=1e-7*P[i][2]/(r2*Math.sqrt(r2));bx+=k*dx;by+=k*dy;}
@@ -27694,20 +27698,42 @@ MAG_SIMS['mag-magnets']=function(canvas){
       if(e[0]<=box[0]||e[0]>=box[1]||e[1]<=box[2]||e[1]>=box[3])L.push(l.reverse());}});
     if(earth)for(var x=-xMax+0.02;x<xMax;x+=0.05)L.push(magTrace(F,x,yMin+0.001,1,0.002,900,box,stop));
     cacheKey=key;cache=L;return L;}
-  var eb=magBtn('mgm-earth',function(b){earth=!earth;b.textContent=earth?'🌍 הסירו את שדה כדור הארץ':'🌍 הוסיפו את שדה כדור הארץ';});
-  var tb=magBtn('mgm-two',function(b){mode=(mode+1)%3;
+  var kit=simKit(canvas,{missions:[
+    {text:'חתכו את המגנט באמצע. האם קיבלתם קוטב N לבד?',
+     hint:'לחצו ״חתכו את המגנט״ והסתכלו על שני החצאים ועל קווי השדה סביבם.',
+     why:'אין קוטב מגנטי בודד: כל חצי הוא מגנט שלם, עם N ועם S, ובמקום החיתוך נוצרים שני קטבים חדשים. הקווים ממשיכים בתוך כל חצי — כל קו הוא לולאה סגורה.',
+     done:function(s){return s.cut;}},
+    {text:'מקמו את המצפן מול הקוטב S של המגנט, כך שהקצה האדום (N) של המחט יצביע אל המגנט.',
+     hint:'גררו את המצפן אל הציר, משמאל לקוטב S. לאן מצביעים שם קווי השדה?',
+     why:'מחוץ למגנט השדה נכנס לקוטב S, והקצה הצפוני של המחט מצביע בכיוון השדה — אל S. לכן הקוטב המגנטי שליד הקוטב הצפוני הגאוגרפי של כדור הארץ, שאליו פונה המחט, הוא בעצם קוטב דרומי.',
+     done:function(s){return s.atS&&Math.cos(s.dir)>0.95;}},
+    {text:'הוסיפו את שדה כדור הארץ ומצאו נקודה ניטרלית — מקום שבו המחט אינה מתכוונת.',
+     hint:'חפשו כ־17 cm ממרכז המגנט, באלכסון, היכן ששדה המגנט מצביע דרומה — נגד שדה כדור הארץ. מגנט חלש יותר מקרב את הנקודה.',
+     why:'השדות מתחברים כווקטורים: בנקודה הזאת שדה המגנט שווה בגודלו לשדה כדור הארץ והפוך לו בכיוון — והשדה הכולל אפס.',
+     done:function(s){return s.earth&&s.B<2e-6;}}]});
+  var model=magModeler(kit), gate=magPredictor(kit,canvas);
+  var askCut=gate({q:'אתם עומדים לחתוך את המגנט באמצע. מה תקבלו?',
+    opts:['חתיכה שהיא N בלבד וחתיכה שהיא S בלבד','שני מגנטים שלמים — לכל אחד N ו־S','שתי חתיכות שאינן מגנטיות'],correct:1,
+    why:'הקטבים אינם ״מטענים מגנטיים״ שיושבים בקצוות: המגנוט עובר לאורך כל המוט. לכן כל חצי הוא מגנט שלם, ובמקום החיתוך נוצרים קוטב N וקוטב S חדשים.'});
+  magBtn('mgm-earth',function(b){earth=!earth;b.textContent=earth?'🌍 הסירו את שדה כדור הארץ':'🌍 הוסיפו את שדה כדור הארץ';});
+  magBtn('mgm-two',function(b){mode=(mode+1)%3;
     b.textContent=['➕ מגנט שני','🧲 מגנט שני: קטבים שונים זה מול זה','🧲 מגנט שני: קטבים זהים זה מול זה'][mode];});
+  magBtn('mgm-cut',function(b){var go=function(){cut=!cut;b.textContent=cut?'🧲 חברו את שני החצאים':'✂️ חתכו את המגנט';};if(cut)go();else askCut(go);});
+  // a compass cannot sit inside a magnet: keep it on the bars' surface
+  var clampC=function(){comp=[Math.max(-xMax+0.01,Math.min(xMax-0.01,comp[0])),Math.max(yMin+0.01,Math.min(yMax-0.01,comp[1]))];
+    bars().forEach(function(b){if(Math.abs(comp[0]-b[0])<b[1]/2+0.012&&Math.abs(comp[1])<0.022)comp[1]=comp[1]<0?-0.022:0.022;});};
   simDrag(canvas,dpr,{
     down:function(p){var c=toS(comp[0],comp[1]);
       if(Math.hypot(p.x-c[0],p.y-c[1])<26)drag='c';
       else if(mode&&Math.abs(p.x-toS(m2x,0)[0])<LEN*s/2+6&&Math.abs(p.y-Hc)<14)drag='m';
-      else{drag='c';var w=toW(p.x,p.y);comp=[w[0],w[1]];}},
+      else{drag='c';var w=toW(p.x,p.y);comp=[w[0],w[1]];}clampC();},
     move:function(p){var w=toW(p.x,p.y);
-      if(drag==='c')comp=[Math.max(-xMax+0.01,Math.min(xMax-0.01,w[0])),Math.max(yMin+0.01,Math.min(yMax-0.01,w[1]))];
-      if(drag==='m')m2x=Math.max(LEN+0.03,Math.min(xMax-LEN/2-0.01,w[0]));
-      // a compass cannot sit inside a magnet: keep it on the bar's surface
-      var bars=mode?[0,m2x]:[0];bars.forEach(function(xc){if(Math.abs(comp[0]-xc)<LEN/2+0.012&&Math.abs(comp[1])<0.022)comp[1]=comp[1]<0?-0.022:0.022;});},
+      if(drag==='c')comp=[w[0],w[1]];
+      if(drag==='m')m2x=Math.max(LEN+0.04,Math.min(xMax-LEN/2-0.01,w[0]));
+      clampC();},
     up:function(){drag=null;}});
+  magKeys(canvas,{key:function(k,d){if(!d)return;var st=0.003,dd={left:[-st,0],right:[st,0],up:[0,st],down:[0,-st]}[k];
+    if(dd){comp=[comp[0]+dd[0],comp[1]+dd[1]];clampC();}}});
   function draw(){
     if(!magAlive(id,_g))return;
     var P=poles(),F=function(x,y){return Bf(x,y,P);};
@@ -27722,33 +27748,38 @@ MAG_SIMS['mag-magnets']=function(canvas){
       magPoly(ctx,q,'rgba(96,165,250,.75)',1.3);magMidArrow(ctx,q,'#93c5fd',0.35,5);});
     // the bars, and the field lines carried on inside them from S to N: the
     // lines outside end on S and start on N, inside they close the loop
-    var barIn=function(xc,dirn){var th=Math.max(14,0.018*s);
+    var th=Math.max(14,0.018*s);
+    bars().forEach(function(b,i){var c=toS(b[0],0),L=b[1]*s;
+      magBar(ctx,c[0],c[1],L,th,b[2]>0?0:Math.PI);
       [-0.28,0,0.28].forEach(function(f){var y=Hc+f*th;ctx.save();ctx.strokeStyle='rgba(255,255,255,.5)';ctx.lineWidth=1.1;ctx.setLineDash([3,3]);
-        ctx.beginPath();ctx.moveTo(xc-LEN*s/2+4,y);ctx.lineTo(xc+LEN*s/2-4,y);ctx.stroke();ctx.restore();});
-      simArrow(ctx,xc-dirn*9,Hc,xc+dirn*9,Hc,'#fff',1.5,6);};
-    magBar(ctx,W/2,Hc,LEN*s,Math.max(14,0.018*s),0);barIn(W/2,1);
-    if(mode){var c2=toS(m2x,0);magBar(ctx,c2[0],c2[1],LEN*s,Math.max(14,0.018*s),mode===2?Math.PI:0);barIn(c2[0],mode===2?-1:1);
-      simText(ctx,'⇆ גררו',c2[0],c2[1]+22,'#64748b',9,'center');}
+        ctx.beginPath();ctx.moveTo(c[0]-L/2+4,y);ctx.lineTo(c[0]+L/2-4,y);ctx.stroke();ctx.restore();});
+      simArrow(ctx,c[0]-b[2]*Math.min(9,L/4),Hc,c[0]+b[2]*Math.min(9,L/4),Hc,'#fff',1.5,6);
+      if(mode&&i===bars().length-1)simText(ctx,'⇆ גררו',c[0],c[1]+22,'#64748b',9,'center');});
+    if(cut){var g=toS(0,0);simText(ctx,'✂',g[0],Hc-th/2-10,'#fbbf24',13,'center',true);}
     if(earth){simArrow(ctx,W-26,H*0.78,W-26,H*0.78-44,'#34d399',2.2,9);simText(ctx,'צפון',W-26,H*0.78-54,'#34d399',9.5,'center',true);}
     // compass and readout
     var c=toS(comp[0],comp[1]),b=F(comp[0],comp[1]),Bm=Math.hypot(b[0],b[1]);
-    var neutral=Bm<2e-6;
-    magNeedle(ctx,c[0],c[1],neutral?(Date.now()/700)%6.2832:Math.atan2(b[1],b[0]),16,true);
+    var neutral=Bm<2e-6,dir=Math.atan2(b[1],b[0]);
+    magNeedle(ctx,c[0],c[1],neutral?(Date.now()/700)%6.2832:dir,16,true);
     simHandle(ctx,c[0],c[1],'#fbbf24',24);
-    var y0=H*0.83,ph=W<600;                       // on a phone: one column, four lines
+    var y0=H*0.83,ph=W<600;
     magPlotBox(ctx,10,y0,W-20,H-y0-8,'',null);
-    var cA=ph?W/2:W*0.27,cB=ph?W/2:W*0.70,yA=ph?[16,31,47,62]:[22,44,22,44];
+    var cA=ph?W/2:W*0.27,cB=ph?W/2:W*0.70,yA=ph?[18,36,54]:[30,22,44];
     simText(ctx,'|B| במצפן = '+(Bm*1e6).toFixed(1)+' μT',cA,y0+yA[0],'#e2e8f0',ph?12:13,'center',true);
-    simText(ctx,'כיוון השדה: '+(((Math.atan2(b[1],b[0])*180/Math.PI)+360)%360).toFixed(0)+'° נגד השעון מהכיוון ימינה',cA,y0+yA[1],'#94a3b8',ph?9.5:10.5,'center');
     simText(ctx,neutral?'⚠ נקודה ניטרלית — השדות מבטלים זה את זה, והמחט אינה מתכוונת':
       earth?'המחט מראה את השדה הכולל: מגנט + כדור הארץ':'המחט האדומה (N) מצביעה בכיוון השדה',
-      cB,y0+yA[2],neutral?'#fbbf24':'#94a3b8',ph?9.5:10.5,'center',neutral);
-    simText(ctx,'בחוץ הקווים יוצאים מ-N ונכנסים ל-S; בתוך המגנט הם חוזרים מ-S ל-N',cB,y0+yA[3],'#64748b',9.5,'center');
+      cB,y0+yA[1],neutral?'#fbbf24':'#94a3b8',ph?9.5:10.5,'center',neutral);
+    simText(ctx,'בחוץ הקווים יוצאים מ-N ונכנסים ל-S; בתוך המגנט הם חוזרים מ-S ל-N',cB,y0+yA[2],'#64748b',9.5,'center');
+    var bE=earth?[b[0],b[1]-30e-6]:b,Bmag=Math.hypot(bE[0],bE[1]);
+    if(earth)model('במצפן, כחיבור וקטורי: שדה המגנט '+kit.m((Bmag*1e6).toFixed(1)+' μT')+' ועוד שדה כדור הארץ '+kit.m('30.0 μT')+' צפונה ⇒ '+kit.m('|B| = '+(Bm*1e6).toFixed(1)+' μT'));
+    else model('במצפן: '+kit.m('|B| = '+(Bm*1e6).toFixed(1)+' μT')+', בכיוון '+kit.m(((dir*180/Math.PI+360)%360).toFixed(0)+'°')+' נגד כיוון השעון מהכיוון ימינה — ולשם מצביע הקצה הצפוני של המחט');
+    var bs=bars(),left=bs[0],xS=left[0]-left[1]/2;
+    kit.check({cut:cut,earth:earth,B:Bm,dir:dir,atS:comp[0]<xS-0.004&&Math.abs(comp[1])<0.02&&comp[0]>xS-0.08});
     requestAnimationFrame(draw);
   }
   requestAnimationFrame(draw);
 };
-MAG_CTRL['mag-magnets']=function(){return rng('mgm-m',0.2,3,1,0.1,'מומנט המגנט m',' A·m²')+btn('mgm-earth','🌍 הוסיפו את שדה כדור הארץ','btn-secondary')+btn('mgm-two','➕ מגנט שני','btn-secondary');};
+MAG_CTRL['mag-magnets']=function(){return rng('mgm-m',0.2,3,1,0.1,'מומנט המגנט m',' A·m²')+btn('mgm-cut','✂️ חתכו את המגנט','btn-secondary')+btn('mgm-earth','🌍 הוסיפו את שדה כדור הארץ','btn-secondary')+btn('mgm-two','➕ מגנט שני','btn-secondary');};
 
 // ── mag-field.mag-wire ────────────────────────────────────────────────────
 // B = μ₀I/2πr, circulating counter-clockwise about a current out of the page.

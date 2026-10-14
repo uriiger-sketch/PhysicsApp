@@ -123,7 +123,35 @@ const EXPECT = {
   const slide = (id, v) => p.evaluate(([i, x]) => simSyncSlider(i, x, 3), [id, v]);
 
   console.log('\n3) simulation readouts and directions');
-  await open('mag-field', 'mag-wire'); let T = await read();
+  // the bar magnet: the field the compass reads is the field of the bar's two
+  // poles (m = 1 A·m², 8 cm), worked out here; then the magnet is cut in two
+  const MGQ = 1 / 0.08, mgB = (x, y, poles, earth) => { let bx = 0, by = earth ? 30e-6 : 0;
+    for (const [px, q] of poles) { const dx = x - px, dy = y, r3 = Math.pow(dx * dx + dy * dy, 1.5); bx += 1e-7 * q * dx / r3; by += 1e-7 * q * dy / r3; }
+    return [bx, by]; };
+  const BAR = [[0.04, MGQ], [-0.04, -MGQ]];
+  await open('mag-field', 'mag-magnets');
+  const mgPut = (x, y) => p.evaluate(([x, y]) => { const cv = document.getElementById('sim-canvas'), R = cv.getBoundingClientRect(), W = cv.offsetWidth, s = W / 0.6, Hc = 470 * 0.44;
+    const ev = (t) => cv.dispatchEvent(new MouseEvent(t, { clientX: R.left + W / 2 + x * s, clientY: R.top + Hc - y * s, bubbles: true, cancelable: true }));
+    ev('mousedown'); ev('mouseup'); }, [x, y]);
+  const mgRead = async () => { const T2 = await read(); const m = await p.evaluate(() => (document.querySelector('.sk-model-tx') || {}).textContent || '');
+    const d = m.match(/(\d+)°/); return { B: num(T2, /B\| [^=]*= ([\d.]+) μT/), dir: d ? +d[1] : NaN, T: T2, m }; };
+  await mgPut(0, 0.10); let mr = await mgRead(), mB = mgB(0, 0.10, BAR);
+  t('magnets: on the perpendicular bisector the field points back along the bar (180°), |B| from its two poles', mr.dir === 180 && near(mr.B, Math.hypot(...mB) * 1e6, 0.03 * Math.hypot(...mB) * 1e6), mr.B + ' μT at ' + mr.dir + '° vs ' + (Math.hypot(...mB) * 1e6).toFixed(1));
+  await mgPut(-0.07, 0); mr = await mgRead();
+  const mgDone = i => p.evaluate(i => document.querySelectorAll('.sk-m')[i].classList.contains('done'), i);
+  t('  on the axis beyond S the field points INTO S (0° ± 3°, toward the magnet): the needle\'s N end points at the S pole', (mr.dir <= 3 || mr.dir >= 357) && await mgDone(1), mr.dir + '°');
+  const mgBars = () => p.evaluate(async () => { const cv = document.getElementById('sim-canvas'), o = window.magBar, b = [];
+    window.magBar = function (c, x, y, len, th, ang) { if (c.canvas === cv) b.push([Math.round(len), ang || 0]); return o.apply(this, arguments); };
+    await new Promise(r => setTimeout(r, 150)); window.magBar = o; return b.slice(-4); });
+  const mb0 = await mgBars();
+  const mAsk = await p.evaluate(() => { document.getElementById('btn-mgm-cut').click(); const o = document.querySelectorAll('.sk-predict .sk-opt'); if (o.length) o[1].click(); return o.length; });
+  const mb1 = await mgBars();
+  t('  cut (predicted first): two magnets of half the length, each with its N to the right — no lone pole', mAsk === 3 && mb1.length >= 2 && mb1.slice(-2).every(b => b[1] === 0 && Math.abs(b[0] - mb0[mb0.length - 1][0] / 2) <= 1) && await mgDone(0), JSON.stringify([mb0.slice(-1), mb1.slice(-2)]));
+  await click('btn-mgm-cut'); await click('btn-mgm-earth');
+  // the neutral point with Earth's 30 μT (north = up): searched here on a grid, then the compass put there
+  let nb = [1, 0, 0]; for (let x = -0.2; x <= 0.2; x += 0.002) for (let y = 0.03; y <= 0.14; y += 0.002) { const b = mgB(x, y, BAR, true), n = Math.hypot(...b); if (n < nb[0]) nb = [n, x, y]; }
+  await mgPut(nb[1], nb[2]); mr = await mgRead();
+  t('  with Earth\'s field: a neutral point at (' + (nb[1] * 100).toFixed(1) + ', ' + (nb[2] * 100).toFixed(1) + ') cm — |B| < 2 μT, the warning, the mission', mr.B < 2 && mr.T.some(x => x.includes(L('⚠ נקודה ניטרלית — השדות מבטלים זה את זה, והמחט אינה מתכוונת'))) && await mgDone(2), mr.B + ' μT');
   t('wire: B at the probe = μ₀I/2πr (20 A, 4.5 cm)', near(num(T, /B = ([\d.]+) μT/), 2e-7 * 20 / 0.045 * 1e6, 0.2), num(T, /B = ([\d.]+) μT/));
   const wmodel = () => p.evaluate(() => { const e = document.querySelector('.sk-model-tx'); return e ? e.textContent : ''; });
   let WM = await wmodel();
@@ -538,7 +566,7 @@ const EXPECT = {
     await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] }); await q.waitForTimeout(150); return seen; };
   // where each sim's handle starts, from its own layout (W = canvas width)
   const TOUCH = [
-    ['mag-field', 'mag-magnets', W => [[W / 2, 206.8 - 0.15 * W], [W / 2 + 40, 266.8 - 0.15 * W]], '^' + LR('|B| במצפן = ')],
+    ['mag-field', 'mag-magnets', W => [[W / 2, 206.8 - 0.125 * W], [W / 2 + 40, 266.8 - 0.125 * W]], '^' + LR('|B| במצפן = ')],
     ['mag-field', 'mag-wire', W => [[W * 0.65, 144], [W * 0.65 + 30, 154], [W * 0.65 + 50, 124]], '^' + LR('בגשש: B = ')],
     ['mag-field', 'mag-loop', W => [[W / 2 + 20, 155], [W / 2 + 50, 155], [W / 2 + 80, 155]], '^' + LR('בגשש (x = ')],
     ['mag-field', 'mag-solenoid', W => [[W * 0.6, 140], [W * 0.7, 150]], '^' + LR('בגשש: ')],
