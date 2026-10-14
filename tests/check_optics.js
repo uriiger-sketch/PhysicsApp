@@ -361,6 +361,20 @@ const EXPECT = {
   { const a = arcPt(20), m1 = arcPt(26), bb = arcPt(asind(656 / 1250)); await p.mouse.move(a.x, a.y); await p.mouse.down(); await p.mouse.move(m1.x, m1.y); await p.mouse.move(bb.x, bb.y); await p.mouse.up(); await p.waitForTimeout(200); }
   t('grating: every mission is reachable', await missions() === '1111', await missions());
 
+  // ── the speed of light in matter: v = c/n, λ = λ₀/n, f the same; missions ──
+  await open('opt-light', 'light-speed');
+  for (const [nn, l0] of [[1.5, 500], [1.33, 600], [2.42, 400]]) {
+    await setv('ri-n', nn); await setv('ri-wl', l0);
+    const tx = await modelTx(), v = /v = c\/n = [^=]+= (\d\.\d\d)×10⁸/.exec(tx), l = /= (\d+) nm/.exec(tx), f = /f = c\/λ₀ = (\d\.\d\d)×10¹⁴/.exec(tx);
+    t(`light in n=${nn}: v = c/n`, v && Math.abs(+v[1] - 3 / nn) < 0.006, tx);
+    t(`light in n=${nn}: λ = λ₀/n`, l && Math.abs(+l[1] - l0 / nn) < 0.51, tx);
+    t(`light in n=${nn}: f = c/λ₀, unchanged`, f && Math.abs(+f[1] - 3e8 / (l0 * 1e-9) / 1e14) < 0.006, tx);
+  }
+  await p.evaluate(() => { state.missions = {}; render(); }); await p.waitForTimeout(1100);
+  await p.evaluate(() => document.querySelectorAll('.sk-opt')[1].click()); await p.waitForTimeout(150);
+  await setv('ri-n', 1.5); await setv('ri-wl', 600); await setv('ri-n', 2.42);
+  t('light speed: every mission is reachable', await missions() === '1111', await missions());
+
   // ── the eye: vergence model, glasses touching the eye. Sharp exactly when
   // 1/d − P lies in [D_far, D_far + A]; the glasses' image dᵢ = 1/(P − 1/d)
   // is in the equation line; the section's problem (+3.33 D) is a mission ──
@@ -410,7 +424,8 @@ const EXPECT = {
   const lensObj = (W) => benchObj(W, false, 209);
   const TOUCH = [
     ['optics', 'opt-light', 'light-nature', W => [[W / 2, 200], [W / 2 + 40, 200], [W / 2 + 80, 200]], { slider: 'emw-wl' }],
-    ['optics', 'opt-light', 'light-speed', () => [[44, 120], [44, 121]], { slider: 'ri-n' }],
+    // a tap on the first material chip (vacuum) sets n = 1
+    ['optics', 'opt-light', 'light-speed', W => { const cw = Math.min(84, (W - 28 - 24) / 5), x = (W - (5 * cw + 24)) / 2 + cw / 2; return [[x, 30], [x, 31]]; }, { slider: 'ri-n' }],
     ['optics', 'opt-light', 'em-spectrum', W => [[W * 0.3, 50], [W * 0.5, 50], [W * 0.7, 50]], { slider: 'ems-pos' }],
     ['optics', 'opt-light', 'color-mixing', (W, H) => { const cr = Math.min(W * 0.2, H * 0.27), y = H * 0.42 - cr * 0.62; return [[W / 2, y], [W / 2, y - 20], [W / 2, y - 40]]; }, { gone: '^' + LR('✋ גררו את העיגולים — צרו חפיפות חדשות!') }],
     ['optics', 'opt-reflection', 'refl-laws', W => [[W * 0.3, 120], [W * 0.2, 200], [W * 0.15, 260]], { slider: 'ref-angle' }],

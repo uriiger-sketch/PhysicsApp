@@ -5803,7 +5803,7 @@ const OPTICS_CONTENT={
       <div class="mis-block"><b>⚠️ טעות נפוצה:</b> ״במים האור מאט — ולכן גם צבעו משתנה״. במעבר בין חומרים <b>התדירות אינה משתנה</b>: כל פסגה שמגיעה לגבול ממשיכה הלאה, ולכן הגל יוצא ממנו באותו קצב שבו נכנס. מה שמתקצר הוא אורך הגל, ${M('\\lambda=\\lambda_0/n')}. הצבע שהעין רואה נקבע לפי התדירות, ולכן אור אדום נשאר אדום גם בתוך המים.</div>
       <div class="theory-anim">${animCanvas('anim-refr-speed',138,'האור מאט בחומר — n=c/v')}</div>`,
   },
-  sim:{type:'opt-refr-index',desc:'השוו מהירות אור בחומרים שונים. שנו את מדד השבירה וצפו כיצד משתנה מהירות האור.'},
+  sim:{type:'opt-refr-index',desc:'שני גלים יוצאים יחד: העליון בריק כל הדרך, והתחתון נכנס לבלוק שמדד השבירה שלו n. בבלוק החזית מתקדמת ב־v = c/n והפסגות מצטופפות ל־λ₀/n — ושני המונים מהבהבים יחד, כי התדירות אינה משתנה. הקישו על חומר או שנו את n ואת אורך הגל; הקשה על המסלולים מתחילה את המרוץ מחדש.'},
   example:{title:'מהירות האור בזכוכית',text:`מדד השבירה של זכוכית ${M('n=1.5')}. מהי מהירות האור בתוכה?`,
     steps:[
       {q:'מה מהירות האור בזכוכית?',a:`${M('v=\\dfrac{c}{n}=\\dfrac{3\\times10^{8}}{1.5}=2\\times10^{8}\\,\\text{m/s}')}`},
@@ -17858,77 +17858,104 @@ function simOptEmWave(canvas){
   }requestAnimationFrame(draw);
 }
 
-// ─── REFRACTION INDEX — Enhanced ──────────────────────────────────
+// ─── THE SPEED OF LIGHT IN MATTER — v = c/n, and what stays the same ──
+// Two lanes start a wave together: the upper one in vacuum all the way, the
+// lower one into a block of index n. In the block the front advances at c/n,
+// the crests crowd to λ₀/n -- and the two counters, one before the block and
+// one inside it, flash on every crest together: the frequency, and with it
+// the colour, does not change at the boundary (the section's misconception).
+// The phase is continuous across the boundary: φ = ωt − kx₀ − nk(x − x₀).
+// Tapping a material chip sets n. Picture scale: λ₀ is drawn 0.12 px/nm,
+// and the wave runs at a visible pace -- the numbers are the real ones.
 function simOptRefrIndex(canvas){
-  const H=360;const{ctx,W,dpr}=setupCanvas(canvas,H);
-  const id=canvas.id;
-  var media=[{name:'חלל',n:1.0,col:'#60a5fa'},{name:'אוויר',n:1.0003,col:'#7dd3fc'},{name:'מים',n:1.33,col:'#22d3ee'},{name:'זכוכית',n:1.50,col:'#a78bfa'},{name:'יהלום',n:2.42,col:'#f9a8d4'}];
-  var animT=0,blocks=[];
-  function getN(){var e=document.getElementById('inp-ri-n');return e?parseFloat(e.value):1.5;}
-  // the blocks are already on screen and already labelled -- tapping one is a
-  // more direct way to pick a material than hunting for its n on a slider
+  const H=380;const{ctx,W,dpr}=setupCanvas(canvas,H);
+  const id=canvas.id;var t0=null,tNow=0,reduce=_reducedMotion(),predicted=false,touched=false,chips=[];
+  var media=[{name:'ריק',n:1.0,col:'#60a5fa'},{name:'אוויר',n:1.0003,col:'#7dd3fc'},{name:'מים',n:1.33,col:'#22d3ee'},{name:'זכוכית',n:1.50,col:'#a78bfa'},{name:'יהלום',n:2.42,col:'#f9a8d4'}];
+  function gv(k,d){var e=document.getElementById('inp-'+k);return e?parseFloat(e.value):d;}
+  var x0=Math.round(W*0.40),xs=14,xe=W-14,yA=118,yB=246,CPX=110;   // CPX: c on screen, px/s
   simDrag(canvas,dpr,{down:function(p){
-    for(var i=0;i<blocks.length;i++){var b=blocks[i];
-      if(p.x>=b.x&&p.x<=b.x+b.w&&p.y>=b.y&&p.y<=b.y+b.h){simSyncSlider('ri-n',b.n,2);return;}}
-  }});
-  function draw(){
+    for(var i=0;i<chips.length;i++){var c=chips[i];if(p.x>=c.x&&p.x<=c.x+c.w&&p.y>=c.y&&p.y<=c.y+c.h){simSyncSlider('ri-n',c.n,2);touched=true;t0=null;return;}}
+    if(p.y>yA+40&&p.y<yB+50){touched=true;t0=null;}}});           // a tap on the lanes restarts the race
+  canvas.tabIndex=0;
+  canvas.addEventListener('keydown',function(e){if(e.key!=='ArrowUp'&&e.key!=='ArrowDown')return;e.preventDefault();touched=true;
+    simSyncSlider('ri-n',gv('ri-n',1.5)+(e.key==='ArrowUp'?0.01:-0.01),2);});
+  var kit=simKit(canvas,{missions:[
+    {text:'אור עובר מאוויר לזכוכית. מה קורה לתדירות שלו — ולצבע?',
+     hint:'ענו על השאלה שמתחת לתרשים, ואז הביטו בשני המונים: אחד לפני הבלוק ואחד בתוכו.',
+     why:'כל פסגה שמגיעה לגבול ממשיכה הלאה, ולכן בכל שנייה נכנסות ויוצאות אותן פסגות: '+_skM('f')+' נשמרת, ואיתה הצבע. מה שמשתנה הוא '+_skM('v = c/n')+' ו־'+_skM('λ = λ₀/n')+'.',
+     done:function(s){return s.predicted;}},
+    {text:'האטו את האור בבלוק לשני שלישים ממהירותו בריק',
+     hint:_skM('v = c/n')+'. איזה n נותן '+_skM('v = (2/3)c')+'?',
+     why:_skM('n = c/v = 1.5')+' — זכוכית: '+_skM('v = 3.00×10⁸ / 1.5 = 2.00×10⁸ m/s')+'.',
+     done:function(s){return Math.abs(s.n-1.5)<0.006;}},
+    {text:'אור באורך גל 600 nm בריק: צרו בבלוק אורך גל של 400 nm',
+     hint:'התדירות נשמרת, ולכן '+_skM('λ = λ₀/n')+'. קבעו גם את אורך הגל בריק.',
+     why:_skM('λ = λ₀/n = 600/1.5 = 400 nm')+' — כמו בחידון. אור אדום־כתום בריק אינו נעשה כחול בזכוכית: העין מגיבה לתדירות.',
+     done:function(s){return Math.abs(s.l0-600)<3&&Math.abs(s.l0/s.n-400)<2;}},
+    {text:'יהלום: בכמה מתאחרת חזית האור אחרי מטר אחד של יהלום?',
+     hint:'הקישו על ״יהלום״ ועקבו אחרי ההפרש בין החזיתות.',
+     why:_skM('Δt = (n − 1)L/c = 1.42 · 1 / 3×10⁸ ≈ 4.7 ns')+': זמן קצרצר — ובכל זאת, ההאטה הזאת היא הסיבה לשבירה כולה.',
+     done:function(s){return s.n>=2.4;}}]});
+  // ask before the counters are read out
+  kit.predict({q:'אור עובר מאוויר לזכוכית: מהירותו קטנה ואורך הגל מתקצר. ומה קורה לתדירות?',
+    opts:['קטנה — האור נעשה אדום יותר','אינה משתנה — הצבע נשמר','גדלה — האור נעשה כחול יותר'],correct:1,
+    why:'מספר הפסגות שנכנסות לגבול בשנייה שווה למספר שיוצאות ממנו: אין להן איפה להיערם. לכן '+_skM('f')+' נשמרת, ו־'+_skM('λ = v/f')+' מתקצר יחד עם '+_skM('v')+'. ראו בתרשים: שני המונים מהבהבים יחד.'},
+    function(){predicted=true;});
+  function draw(ts){
     if(_simStop[id])return;
-    animT+=0.04;
-    var bg=ctx.createLinearGradient(0,0,0,H);bg.addColorStop(0,'#020810');bg.addColorStop(1,'#030d1a');
-    ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);
-    var bw=48,bh=160,by=55,gap=(W-40-media.length*(bw+8))/4+2,bx=20;
-    var n=getN();
-    var ci=0;media.forEach(function(m,i){if(Math.abs(m.n-n)<Math.abs(media[ci].n-n))ci=i;});
-    blocks=[];
-    media.forEach(function(m,i){
-      var x=bx+i*(bw+gap);
-      blocks.push({x:x,y:by,w:bw,h:bh,n:m.n});
-      // Medium block with gradient
-      var mg=ctx.createLinearGradient(x,by,x+bw,by);
-      var hr=parseInt(m.col.slice(1,3),16),hg=parseInt(m.col.slice(3,5),16),hb=parseInt(m.col.slice(5,7),16);
-      mg.addColorStop(0,'rgba('+hr+','+hg+','+hb+',0.12)');
-      mg.addColorStop(1,'rgba('+hr+','+hg+','+hb+',0.06)');
-      ctx.save();ctx.fillStyle=mg;ctx.strokeStyle=m.col;ctx.lineWidth=1;ctx.globalAlpha=0.7;
-      ctx.beginPath();ctx.roundRect(x,by,bw,bh,6);ctx.fill();ctx.stroke();ctx.restore();
-      if(i===ci){
-        ctx.save();ctx.strokeStyle='#fbbf24';ctx.lineWidth=2;optGlow(ctx,'#fbbf24',10);
-        ctx.beginPath();ctx.roundRect(x-3,by-3,bw+6,bh+6,8);ctx.stroke();optNoGlow(ctx);ctx.restore();
-      }
-      // Speed bar (proportional to v=c/n)
-      var spd=1/m.n;var barH=Math.round(bh*0.95*spd);   // exactly ∝ v = c/n
-      var barG=ctx.createLinearGradient(0,by+bh-barH,0,by+bh);
-      barG.addColorStop(0,m.col);barG.addColorStop(1,m.col+'88');
-      ctx.save();ctx.fillStyle=barG;optGlow(ctx,m.col,8);
-      ctx.beginPath();ctx.roundRect(x+8,by+bh-barH,bw-16,barH,4);ctx.fill();
-      optNoGlow(ctx);ctx.restore();
-      // Animated photon inside bar
-      var ph=animT*1.5/m.n;
-      var py2=by+bh-((ph%1)*barH);
-      ctx.save();ctx.fillStyle='#ffffff';optGlow(ctx,'#ffffff',10);
-      ctx.beginPath();ctx.arc(x+bw/2,py2,3,0,Math.PI*2);ctx.fill();optNoGlow(ctx);ctx.restore();
-      optLabel(ctx,m.name,x+bw/2,by+bh+15,m.col,10);
-      optLabel(ctx,'n='+m.n,x+bw/2,by+bh+30,'#7d8da6',9);
-      optLabel(ctx,'v='+(3e8/m.n/1e8).toFixed(2),x+bw/2,by+bh+45,'#7d8da6',8);
-    });
-    optLabel(ctx,'גובה העמודה ∝ מהירות האור v (ביחידות של 10⁸ m/s)',W/2,by-14,'#7d8da6',9);
-    // Your slider n highlight
-    var slidN=n,bary=H-24,bx1=20,bx2=W-20;
-    var frac=Math.min(1,(slidN-1)/1.5);
-    ctx.save();ctx.lineCap='round';
-    ctx.strokeStyle='#1e3a5f';ctx.lineWidth=6;ctx.beginPath();ctx.moveTo(bx1,bary);ctx.lineTo(bx2,bary);ctx.stroke();
-    var barCol=frac<0.25?'#60a5fa':frac<0.6?'#a78bfa':'#f9a8d4';
-    ctx.strokeStyle=barCol;optGlow(ctx,barCol,8);
-    ctx.beginPath();ctx.moveTo(bx1,bary);ctx.lineTo(bx1+(bx2-bx1)*frac,bary);ctx.stroke();
-    ctx.fillStyle=barCol;ctx.beginPath();ctx.arc(bx1+(bx2-bx1)*frac,bary,7,0,Math.PI*2);ctx.fill();
-    // Photon racing along the bar at v = c/n — slower for higher n
-    var rpx=bx1+((animT*95/slidN)%(bx2-bx1));
-    ctx.fillStyle='#ffffff';optGlow(ctx,'#ffffff',10);
-    ctx.beginPath();ctx.arc(rpx,bary,3,0,Math.PI*2);ctx.fill();
-    optNoGlow(ctx);ctx.restore();
-    optLabel(ctx,'n='+slidN.toFixed(2)+'  →  v='+(3e8/slidN/1e8).toFixed(3)+'×10⁸ m/s',W/2,bary-14,'#e2e8f0',11);
+    if(t0===null)t0=ts||0;var T=reduce?6:((ts||0)-t0)/1000;tNow=T;
+    var n=gv('ri-n',1.5),l0=gv('ri-wl',500),hex=wavelengthToHex(l0),rgb=wavelengthToRGB(l0).match(/\d+/g);
+    var lpx=l0*0.12,k=2*Math.PI/lpx,om=k*CPX;
+    ctx.fillStyle='#030a16';ctx.fillRect(0,0,W,H);
+    // the material chips: tap one
+    chips=[];var cw=Math.min(84,(W-28-4*6)/5),cx0=(W-(5*cw+4*6))/2,ci=0;
+    media.forEach(function(m,i){if(Math.abs(m.n-n)<Math.abs(media[ci].n-n))ci=i;});
+    media.forEach(function(m,i){var x=cx0+i*(cw+6),sel=i===ci&&Math.abs(m.n-n)<0.006;chips.push({x:x,y:10,w:cw,h:40,n:m.n});
+      ctx.save();ctx.fillStyle=sel?'rgba(251,191,36,.16)':'rgba(30,41,59,.7)';ctx.strokeStyle=sel?'#fbbf24':m.col;ctx.lineWidth=sel?2:1;
+      ctx.beginPath();ctx.roundRect(x,10,cw,40,7);ctx.fill();ctx.stroke();ctx.restore();
+      optLabel(ctx,m.name,x+cw/2,23,m.col,10);optLabel(ctx,'n = '+(m.n===1.0003?'1.0003':m.n.toFixed(2)),x+cw/2,39,'#cbd5e1',9);});
+    // the block
+    var alpha=Math.min(0.35,0.06+(n-1)*0.2);
+    ctx.save();ctx.fillStyle='rgba(167,139,250,'+alpha.toFixed(3)+')';ctx.fillRect(x0,yB-46,xe-x0,92);
+    ctx.strokeStyle='rgba(167,139,250,.6)';ctx.strokeRect(x0,yB-46,xe-x0,92);ctx.restore();
+    optLabel(ctx,'n = '+n.toFixed(2),xe-6,yB-36,'#c4b5fd',10,'right');
+    optLabel(ctx,'ריק',xs+4,yA-36,'#94a3b8',10,'left');optLabel(ctx,'ריק',xs+4,yB-36,'#94a3b8',10,'left');
+    // the two fronts
+    var fA=xs+CPX*T,fB=fA<=x0?fA:x0+(fA-x0)/n;
+    var lane=function(y,front,inBlock){
+      ctx.save();ctx.strokeStyle=hex;ctx.lineWidth=2.4;optGlow(ctx,hex,8);ctx.beginPath();var first=true;
+      for(var x=xs;x<=Math.min(front,xe);x+=2){var ph=inBlock&&x>x0?om*T-k*(x0-xs)-n*k*(x-x0):om*T-k*(x-xs),yy=y-26*Math.sin(ph);
+        if(first){ctx.moveTo(x,yy);first=false;}else ctx.lineTo(x,yy);}
+      ctx.stroke();optNoGlow(ctx);ctx.restore();
+      if(front<xe){ctx.save();ctx.strokeStyle='rgba(255,255,255,.5)';ctx.setLineDash([3,3]);ctx.beginPath();ctx.moveTo(front,y-34);ctx.lineTo(front,y+34);ctx.stroke();ctx.restore();}
+    };
+    lane(yA,fA,false);lane(yB,fB,true);
+    // wavelength brackets, measured on the drawn waves
+    var br=function(xa,len,y,txt,c){if(xa+len>xe)return;ctx.save();ctx.strokeStyle=c;ctx.lineWidth=1;
+      ctx.beginPath();ctx.moveTo(xa,y);ctx.lineTo(xa+len,y);ctx.moveTo(xa,y-4);ctx.lineTo(xa,y+4);ctx.moveTo(xa+len,y-4);ctx.lineTo(xa+len,y+4);ctx.stroke();ctx.restore();
+      optLabel(ctx,txt,xa+len/2,y+12,c,9.5);};
+    br(xs+8,lpx,yA+40,'λ₀ = '+Math.round(l0)+' nm','#fde68a');
+    br(x0+12,lpx/n,yB+56,'λ = λ₀/n = '+Math.round(l0/n)+' nm','#fde68a');
+    // two counters: before the block and inside it -- one flash per crest
+    var cnt=function(x,y,lbl){var ph=x>x0?om*T-k*(x0-xs)-n*k*(x-x0):om*T-k*(x-xs),on=(x<=fB)&&Math.cos(ph)>0.92;
+      ctx.save();ctx.fillStyle=on?'#fde68a':'rgba(100,116,139,.5)';if(on)optGlow(ctx,'#fde68a',14);ctx.beginPath();ctx.arc(x,y,7,0,Math.PI*2);ctx.fill();optNoGlow(ctx);ctx.restore();
+      optLabel(ctx,lbl,x,y+16,'#cbd5e1',9);};
+    // counter 2 stands where the wave is in step with counter 1, so the two
+    // flash together exactly when the frequencies agree -- which they do
+    var xc1=Math.round((xs+x0)/2),lb=lpx/n,want=(x0+xe)/2,base=x0+((xc1-x0)%lpx+lpx)%lpx/n;
+    var xc2=base+Math.round((want-base)/lb)*lb;
+    cnt(xc1,yB+38,'מונה 1');cnt(xc2,yB+38,'מונה 2');
+    if(predicted){var f14=3e8/(l0*1e-9)/1e14;optLabel(ctx,'f = '+f14.toFixed(2)+'×10¹⁴ Hz',xc1,yB+66,'#34d399',9.5);optLabel(ctx,'f = '+f14.toFixed(2)+'×10¹⁴ Hz',xc2,yB+76,'#34d399',9.5);}
+    // the delay for a real metre of the material
+    var dtns=(n-1)/3e8*1e9;
+    optLabel(ctx,'הפרש הזמנים אחרי 1 m: Δt = '+(dtns<0.01?dtns.toFixed(4):dtns.toFixed(2))+' ns',W/2,H-14,'#94a3b8',9.5);
+    if(fA>xe+CPX*3){t0=null;}
+    if(!touched&&T<8)optLabel(ctx,'👆 הקישו על חומר',W/2,62,'#fbbf24',10);
+    kit.model(_skM('v = c/n = 3.00×10⁸ / '+n.toFixed(2)+' = '+(3/n).toFixed(2)+'×10⁸ m/s')+'; '+_skM('λ = λ₀/n = '+Math.round(l0)+'/'+n.toFixed(2)+' = '+Math.round(l0/n)+' nm')+'; '+_skM('f = c/λ₀ = '+(3e8/(l0*1e-9)/1e14).toFixed(2)+'×10¹⁴ Hz')+' — בשני התווכים.');
+    kit.check({n:n,l0:l0,predicted:predicted});
     requestAnimationFrame(draw);
   }
-  function poll(){if(_simStop[id])return;requestAnimationFrame(draw);}poll();
+  requestAnimationFrame(draw);
 }
 
 // ─── REFLECTION LAW — Enhanced ────────────────────────────────────
@@ -34487,7 +34514,7 @@ function buildSim(sim){
   else if(sim.type==='atwood')extra=C(rng('atw-m1',0.5,10,3,0.5,'m₁',' kg')+rng('atw-m2',0.5,10,5,0.5,'m₂',' kg')+btn('atw-launch','▶ שחררו!','btn-primary')+btn('atw-reset','↺ איפוס','btn-secondary'));
   // OPTICS CONTROLS
   else if(sim.type==='opt-em-wave')extra=C(rng('emw-wl',380,700,500,5,'אורך גל λ',' nm'));
-  else if(sim.type==='opt-refr-index')extra=C(rng('ri-n',1,2.5,1.5,0.01,'מדד שבירה n'));
+  else if(sim.type==='opt-refr-index')extra=C(rng('ri-n',1,2.5,1.5,0.01,'מדד שבירה n')+rng('ri-wl',380,700,500,5,'אורך גל בריק λ₀',' nm'));
   else if(sim.type==='opt-reflection')extra=C(rng('ref-angle',5,85,40,1,'זווית פגיעה θᵢ','°')+rng('ref-wl',380,700,550,5,'צבע אור λ',' nm'));
   else if(sim.type==='opt-plane-mirror')extra=C(rng('pm-dist',1,8,3,0.5,'מרחק עצם dₒ',' m')+rng('pm-wl',380,700,550,5,'צבע אור λ',' nm'));
   else if(sim.type==='opt-concave-mirror')extra=C(rng('cm-do',15,400,213,1,'מרחק העצם dₒ',' mm')+rng('cm-f',45,140,85,1,'אורך מוקד f',' mm')+rng('cm-wl',380,700,550,5,'צבע אור λ',' nm'));
