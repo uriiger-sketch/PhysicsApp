@@ -20,6 +20,124 @@ const t=(name,cond,detail)=>(cond?ok:bad).push(name+(detail?' — '+detail:''));
   const go = async (ch,se)=>{ await p.evaluate(([c,x])=>{state.subject='circuits';state.chapter=c;state.section=x;state.tab='sim';render();},[ch,se]); await p.waitForTimeout(950); };
   const box = async ()=>p.evaluate(()=>{const c=document.querySelector('#app canvas');const r=c.getBoundingClientRect();return{x:r.x,y:r.y,w:r.width,h:r.height};});
   const val = async id=>p.evaluate(i=>parseFloat(document.getElementById(i).value),id);
+  // every label on the simulation canvas, captured for a few frames
+  await p.evaluate(()=>{const f=CanvasRenderingContext2D.prototype.fillText;
+    CanvasRenderingContext2D.prototype.fillText=function(s2){
+      if(window._rec&&this.canvas&&this.canvas.closest&&this.canvas.closest('#app')&&!this.canvas.id.startsWith('anim'))
+        window._txt.add(String(s2).replace(/[⁦-⁩‎‏]/g,''));
+      return f.apply(this,arguments);};});
+  const grab=async()=>{await p.evaluate(()=>{window._txt=new Set();window._rec=true;});
+    await p.waitForTimeout(160);return p.evaluate(()=>{window._rec=false;return [...window._txt];});};
+  const setS=async(id2,v)=>p.evaluate(([i,x])=>{const el=document.getElementById(i);el.value=x;el.dispatchEvent(new Event('input',{bubbles:true}));},[id2,String(v)]);
+  const num=x=>parseFloat(String(x).replace('−','-'));
+  const near=(a,b2,eps)=>Math.abs(a-b2)<=(eps||0.011);
+  // the circuit engine's board on the canvas: where its points are, on the page
+  const ptXY=async name=>p.evaluate(n=>{const c=document.querySelector('#app canvas'),B=c._dc,r=c.getBoundingClientRect(),q=B.pts[B.idx[n]],k=r.width/(c.width/(window.devicePixelRatio||1));
+    return {x:r.x+q[0]*k,y:r.y+q[1]*k};},name);
+  const elXY=async id2=>p.evaluate(i=>{const c=document.querySelector('#app canvas'),B=c._dc,r=c.getBoundingClientRect(),e=B.el(i),k=r.width/(c.width/(window.devicePixelRatio||1));
+    return {x:r.x+e.mx*k,y:r.y+e.my*k};},id2);
+  const probeXY=async i=>p.evaluate(j=>{const c=document.querySelector('#app canvas'),B=c._dc,r=c.getBoundingClientRect(),q=B.probes[j],k=r.width/(c.width/(window.devicePixelRatio||1));
+    return {x:r.x+q.x*k,y:r.y+q.y*k};},i);
+  // a probe carried by the mouse from where it is to a point of the circuit
+  const dragProbe=async(i,name,off)=>{const a=await probeXY(i),b2=await ptXY(name);off=off||[0,0];
+    await p.mouse.move(a.x,a.y);await p.mouse.down();
+    for(let k=1;k<=6;k++)await p.mouse.move(a.x+(b2.x+off[0]-a.x)*k/6,a.y+(b2.y+off[1]-a.y)*k/6);
+    await p.mouse.up();await p.waitForTimeout(120);};
+  const tapEl=async id2=>{const q=await elXY(id2);await p.mouse.click(q.x,q.y);await p.waitForTimeout(180);};
+  const meter=async()=>{const tx=await grab();return tx.find(s2=>/^([+−]?\d+\.\d\d|— )\s?V$/.test(s2))||'';};
+  const kitCount=async()=>p.evaluate(()=>{const c=document.querySelector('#app .sk-count');return c?c.textContent:'';});
+
+  // ── the circuit engine: Kirchhoff's laws hold on random circuits ────────
+  // The solver's currents are checked against laws it was not written in:
+  // KCL at every node, and KVL round every fundamental loop of a spanning
+  // tree, summing each element's own law (I·R, ε − I·r) -- not the potentials.
+  const eng=await p.evaluate(()=>{
+    let seed=7;const rnd=()=>(seed=(seed*16807)%2147483647)/2147483647;
+    let kcl=0,kvl=0,law=0,n0=0;
+    for(let t=0;t<400;t++){
+      const n=3+Math.floor(rnd()*9),els=[];
+      for(let i=1;i<n;i++)els.push({k:['res','bulb','w','res'][Math.floor(rnd()*4)],a:Math.floor(rnd()*i),b:i,R:0.5+rnd()*60});
+      const x=Math.floor(rnd()*n);
+      for(let i=0;i<x;i++){const a=Math.floor(rnd()*n),b=Math.floor(rnd()*n);
+        if(a!==b)els.push({k:['res','sw','bulb','amm','vm'][Math.floor(rnd()*5)],a,b,R:0.5+rnd()*60,on:rnd()<0.5});}
+      els.forEach(e=>{if(e.k==='vm')e.R=1e7;if(e.k==='amm')e.R=rnd()<0.5?0:0.01;});
+      els.push({k:'bat',a:0,b:1+Math.floor(rnd()*(n-1)),emf:1+rnd()*23,r:rnd()<0.4?0:rnd()*3});
+      if(rnd()<0.5){const a=Math.floor(rnd()*n),b=Math.floor(rnd()*n);if(a!==b)els.push({k:'bat',a,b,emf:rnd()*12,r:0.1+rnd()*2});}
+      const s=dcSolve(n,els);
+      if(s.I.some(i=>!(Math.abs(i)<1e3)))continue;       // an ideal cell shorted by wire: not a circuit
+      n0++;
+      const sc=Math.max(1e-3,...s.I.map(Math.abs));
+      const sum=new Array(n).fill(0);els.forEach((e,i)=>{sum[e.a]+=s.I[i];sum[e.b]-=s.I[i];});
+      sum.forEach((q,i)=>{kcl=Math.max(kcl,Math.abs(q+(i?s.V[i]*1e-12:0))/sc);});
+      // each element's voltage V_a − V_b from its own law and its current
+      const u=els.map((e,i)=>e.k==='bat'?-(e.emf-(e.r||0)*s.I[i]):e.k==='amm'?Math.max(1e-6,e.R)*s.I[i]:(e.k==='w'||(e.k==='sw'&&e.on))?1e-6*s.I[i]:(e.k==='sw')?s.I[i]/1e-12:s.I[i]*e.R);
+      els.forEach((e,i)=>{law=Math.max(law,Math.abs((s.V[e.a]-s.V[e.b])-u[i])/Math.max(1,Math.abs(u[i])));});
+      // a spanning tree over the closed elements, then every other element closes one loop
+      const live=els.map((e,i)=>i).filter(i=>!(els[i].k==='sw'&&!els[i].on));
+      const par=new Array(n).fill(-1),via=new Array(n).fill(-1),seen=new Array(n).fill(false),tree=new Set();seen[0]=true;
+      let q=[0];while(q.length){const v=q.shift();live.forEach(i=>{const e=els[i];let w=-1;
+        if(e.a===v&&!seen[e.b])w=e.b;else if(e.b===v&&!seen[e.a])w=e.a;
+        if(w>=0){seen[w]=true;par[w]=v;via[w]=i;tree.add(i);q.push(w);}});}
+      const up=v=>{let d=0;while(v>0&&par[v]>=0){const e=els[via[v]];d+=e.a===v?u[via[v]]:-u[via[v]];v=par[v];}return d;};  // V(v) − V(root)
+      live.forEach(i=>{if(tree.has(i))return;const e=els[i];if(!seen[e.a]||!seen[e.b])return;
+        kvl=Math.max(kvl,Math.abs(u[i]-(up(e.a)-up(e.b)))/Math.max(1,Math.abs(u[i])));});
+    }
+    return {n:n0,kcl,kvl,law};});
+  t(`engine: KCL at every node of ${eng.n} random circuits`,eng.kcl<1e-7,'worst '+eng.kcl.toExponential(2));
+  t('engine: KVL round every loop, from the elements’ own laws',eng.kvl<1e-6,'worst '+eng.kvl.toExponential(2));
+  t('engine: every element obeys its law (V = IR, V = ε − Ir)',eng.law<1e-6,'worst '+eng.law.toExponential(2));
+  const eng2=await p.evaluate(()=>{
+    // battery 12 V, A 4 Ω and B 8 Ω in series with a switch; S₂ across B
+    const els=[{k:'bat',a:0,b:1,emf:12,r:0},{k:'sw',a:1,b:2,on:false},{k:'bulb',a:2,b:3,R:4},{k:'bulb',a:3,b:4,R:8},{k:'w',a:4,b:0},{k:'sw',a:3,b:4,on:false}];
+    const o=dcSolve(5,els);els[1].on=true;const c=dcSolve(5,els);els[5].on=true;const sh=dcSolve(5,els);
+    return {gap:o.V[1]-o.V[2],I0:o.I[2],Ic:c.I[2],VBc:c.V[3]-c.V[4],Ish:sh.I[2],VBsh:sh.V[3]-sh.V[4],IBsh:sh.I[3]};});
+  t('engine: an open series switch has the whole ε across it',Math.abs(eng2.gap-12)<1e-6,eng2.gap+' V');
+  t('engine: and no current flows anywhere',Math.abs(eng2.I0)<1e-9,eng2.I0+' A');
+  t('engine: closed, I = ε/(R_A+R_B)',Math.abs(eng2.Ic-1)<1e-5&&Math.abs(eng2.VBc-8)<1e-4,eng2.Ic+' A, V_B '+eng2.VBc);
+  t('engine: a shorted bulb has 0 V and 0 A, and the total current rises',Math.abs(eng2.VBsh)<1e-4&&Math.abs(eng2.IBsh)<1e-4&&Math.abs(eng2.Ish-3)<1e-4,`V_B ${eng2.VBsh}, I_B ${eng2.IBsh}, I ${eng2.Ish}`);
+
+  // ── switches: the voltmeter finds the voltage between two points ──────
+  await go('dc-network','dc-switch');
+  t('switch: the canvas is a circuit board',await p.evaluate(()=>!!document.querySelector('#app canvas')._dc));
+  t('switch: the canvas takes the keyboard',await p.evaluate(()=>document.querySelector('#app canvas').tabIndex===0));
+  t('switch: no reading before the probes touch the circuit',(await meter())==='— V',await meter());
+  // shorting B is predicted first: a tap on S₂ does nothing until then
+  await tapEl('S2');
+  t('switch: S₂ waits for the prediction',!(await p.evaluate(()=>document.querySelector('#app canvas')._dc.el('S2').on)));
+  await tapEl('S1');
+  t('switch: a tap opens S₁',!(await p.evaluate(()=>document.querySelector('#app canvas')._dc.el('S1').on)));
+  await dragProbe(0,'s1a',[-6,0]);await dragProbe(1,'s1b',[6,0]);
+  t('switch: across the open switch the meter reads the whole ε',(await meter())==='+12.00 V',await meter());
+  // the same two points, the other way round: the sign turns, the size does not
+  await dragProbe(0,'s1b',[10,0]);await dragProbe(1,'s1a',[-10,0]);
+  t('switch: swapping the probes flips the sign',(await meter())==='−12.00 V',await meter());
+  t('switch: mission 1 (the open switch) is solved by doing it',(await kitCount()).startsWith('1/'),await kitCount());
+  await dragProbe(0,'a1',[-4,0]);await dragProbe(1,'a2',[4,0]);
+  t('switch: across bulb A in the open circuit, 0 V',(await meter())==='0.00 V',await meter());
+  t('switch: mission 2 (the bulb in an open circuit)',(await kitCount()).startsWith('2/'),await kitCount());
+  await tapEl('S1');
+  {const tx=await grab();t('switch: closed, A takes I·R_A = 4 V',(await meter())==='+4.00 V'&&tx.includes('4.0 W')&&tx.includes('8.0 W'),(await meter())+' | '+tx.filter(s2=>/W$/.test(s2)).join(' '));}
+  // the prediction, then the short: A brighter, B at 0 V, the current tripled
+  await p.click('#app .sk-predict .sk-opt');await p.waitForTimeout(300);
+  t('switch: answering the prediction shorts B',await p.evaluate(()=>{const B=document.querySelector('#app canvas')._dc;return B.el('S2').on&&B.el('S1').on;}));
+  {const tx=await grab();t('switch: shorted, A dissipates ε²/R_A = 36 W and B nothing',tx.includes('36.0 W')&&tx.includes('0.0 W'),tx.filter(s2=>/W$/.test(s2)).join(' '));}
+  const ml=await p.evaluate(()=>document.querySelector('#app .sk-model').textContent);
+  t('switch: the model line gives I = ε/(R_A+r) with the numbers',ml.includes('= 12.0/(4+0) = 3.00 A'),ml);
+  await dragProbe(0,'b1',[0,-6]);await dragProbe(1,'b2',[0,6]);
+  t('switch: across the shorted bulb, 0 V while the current flows',(await meter())==='0.00 V',await meter());
+  t('switch: all four missions solved by doing them',(await kitCount())==='4/4',await kitCount());
+  // the keyboard: Tab to a switch, Enter toggles it, the arrows carry a probe
+  await p.focus('#app canvas');
+  const k0=await p.evaluate(()=>document.querySelector('#app canvas')._dc.el('S1').on);
+  await p.keyboard.press('Enter');await p.waitForTimeout(120);
+  t('switch: Enter on the focused switch toggles it',k0!==(await p.evaluate(()=>document.querySelector('#app canvas')._dc.el('S1').on)));
+  await p.keyboard.press('Tab');await p.keyboard.press('Tab');
+  const pk0=await p.evaluate(()=>{const B=document.querySelector('#app canvas')._dc;return B.items[B.focus].t+':'+B.probes[0].x.toFixed(0)+','+B.probes[0].y.toFixed(0);});
+  await p.keyboard.press('ArrowLeft');await p.waitForTimeout(80);
+  const pk1=await p.evaluate(()=>{const B=document.querySelector('#app canvas')._dc;return B.items[B.focus].t+':'+B.probes[0].x.toFixed(0)+','+B.probes[0].y.toFixed(0);});
+  t('switch: an arrow key moves the focused probe to the next point',pk0.startsWith('pr:')&&pk0!==pk1,pk0+' → '+pk1);
+  t('switch: an arrow key does not change the section',await p.evaluate(()=>state.section==='dc-switch'));
+  await p.evaluate(()=>{document.activeElement.blur();});
 
   // series: dragging the divider must move BOTH resistances and keep their sum
   await go('dc-network','dc-series');
@@ -203,17 +321,6 @@ const div=document.createElement('div');div.style.cssText='position:absolute;lef
   t('and never conspicuously (more than 1.3× and 3+ characters longer than the next option)',lx.consp.length===0,lx.consp.join(' '));
 
   // ── what the simulations print obeys Kirchhoff ─────────────────────────
-  // every label on the simulation canvas, captured for a few frames
-  await p.evaluate(()=>{const f=CanvasRenderingContext2D.prototype.fillText;
-    CanvasRenderingContext2D.prototype.fillText=function(s2){
-      if(window._rec&&this.canvas&&this.canvas.closest&&this.canvas.closest('#app')&&!this.canvas.id.startsWith('anim'))
-        window._txt.add(String(s2).replace(/[⁦-⁩‎‏]/g,''));
-      return f.apply(this,arguments);};});
-  const grab=async()=>{await p.evaluate(()=>{window._txt=new Set();window._rec=true;});
-    await p.waitForTimeout(160);return p.evaluate(()=>{window._rec=false;return [...window._txt];});};
-  const setS=async(id2,v)=>p.evaluate(([i,x])=>{const el=document.getElementById(i);el.value=x;el.dispatchEvent(new Event('input',{bubbles:true}));},[id2,String(v)]);
-  const num=x=>parseFloat(String(x).replace('−','-'));
-  const near=(a,b2,eps)=>Math.abs(a-b2)<=(eps||0.011);
 
   // two loops: I₃ = I₁ + I₂, the solution of the 3×3 system, and the ledger balances
   await go('dc-kirchhoff','dc-twoloop');
