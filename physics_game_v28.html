@@ -10236,7 +10236,9 @@ function simKit(canvas,spec){
   };
   api.keys=function(fn){
     canvas.tabIndex=0;canvas.classList.add('sk-keys');
-    canvas.addEventListener('keydown',function(e){if(e.altKey||e.ctrlKey||e.metaKey)return;if(fn(e))e.preventDefault();});
+    // a key the sim used is the sim's: the page's own arrows (the previous and
+    // next section) must not also act on it
+    canvas.addEventListener('keydown',function(e){if(e.altKey||e.ctrlKey||e.metaKey)return;if(fn(e)){e.preventDefault();e.stopPropagation();}});
   };
   api.label=function(t){if(t&&canvas.getAttribute('aria-label')!==t)canvas.setAttribute('aria-label',t);};
   return api;
@@ -20506,7 +20508,7 @@ var _cmx=(function(){
     WLC.push('rgb('+r6.map(function(v){return LUT[Math.round(v/m6*f6*4096)];}).join(',')+')');}
   CONE.forEach(function(c){c[0]/=cm[0];c[1]/=cm[1];c[2]/=cm[2];});
   return {N:N,L0:L0,LAM:LAM,CX:CX,CY:CY,CZ:CZ,SP:SP,LED:LED,LX:LX,YEL:YEL,YX:xyz(YEL),FLAT:FLAT,FIL:FIL,REF:REF,
-    xyz:xyz,mulS:mulS,addS:addS,cones:cones,adaptXYZ:adaptXYZ,lin:lin,disp:disp,knee:knee,hex:hex,lab:lab,de00:de00,hue:hue,
+    xyz:xyz,band:band,mulS:mulS,addS:addS,cones:cones,adaptXYZ:adaptXYZ,lin:lin,disp:disp,knee:knee,hex:hex,lab:lab,de00:de00,hue:hue,
     nameKey:nameKey,name:name,NM:NM,LUT:LUT,M709:M709,WLC:WLC,CONE:CONE,CW:CW,enc:enc};
 })();
 
@@ -20697,9 +20699,10 @@ function simOptColorMix(canvas){
     for(var k=0;k<3;k++){var sp=spots[k],v=vals.add[k],ux=sp.x-gcx,uy=sp.y-gcy,ul=Math.hypot(ux,uy);
       if(ul<8){ux=0;uy=1;ul=1;}
       var tx=sp.x+ux/ul*cr*0.5,ty=sp.y+uy/ul*cr*0.5+(uy>0?14:-2);
-      ty=Math.max(S.y+34,Math.min(S.y+S.h-34,ty));
+      var lt=LN[k]+' '+Math.round(v*100)+'%',hw=labelW(ctx,lt,11)/2+6;
+      ty=Math.max(S.y+34,Math.min(S.y+S.h-34,ty));tx=Math.max(S.x+hw,Math.min(S.x+S.w-hw,tx));
       simHandle(ctx,sp.x,sp.y,v>0.02?'#fff':'#64748b',13);
-      ctx.save();halo(true);simText(ctx,LN[k]+' '+Math.round(v*100)+'%',tx,ty,v>0.02?'#fff':'#94a3b8',11,'center',true);ctx.restore();
+      ctx.save();halo(true);simText(ctx,lt,tx,ty,v>0.02?'#fff':'#94a3b8',11,'center',true);ctx.restore();
       if(hasFocus()&&sel===k+1)focusRing(sp.x,sp.y,20);}
     if(yelOn){simHandle(ctx,ysp.x,ysp.y,'#fff',11);ctx.save();halo(true);simText(ctx,'580 nm',ysp.x,ysp.y+ys+14,'#fde68a',10,'center',true);ctx.restore();
       if(hasFocus()&&sel===4)focusRing(ysp.x,ysp.y,18);}
@@ -20720,6 +20723,7 @@ function simOptColorMix(canvas){
       // the filter's name on the filter, where only it lies
       var dx=f.x-cx0,dy=f.y-(BOX.y+BOX.h*0.52),dl=Math.hypot(dx,dy)||1,lx=f.x+dx/dl*fr*0.45,ly=f.y+dy/dl*fr*0.45;
       simHandle(ctx,f.x,f.y,lum(tc)>0.5?'#0f172a':'#fff',13);
+      var fw=labelW(ctx,FN[k],11)/2+6;lx=Math.max(BOX.x+fw,Math.min(BOX.x+BOX.w-fw,lx));ly=Math.max(BOX.y+16,Math.min(BOX.y+BOX.h-10,ly));
       patchLabel(FN[k],lx,ly+4,tc,11);
       if(hasFocus()&&sel===k+1)focusRing(f.x,f.y,20);}
   }
@@ -26973,26 +26977,24 @@ runAnim('anim-laser-t',function(canvas,ctx,W,H,t){
 
 // ─── Color Mix theory anim ───────────────────────────────────
 runAnim('anim-color-mix-t',function(canvas,ctx,W,H,t){
+  // Three spotlights breathing together. Every region is painted in the
+  // colour its lights make in linear light (the simulation's own model,
+  // _cmx): adding screen RGB values instead is right only at full power.
   oBg(ctx,W,H);
-  var cy=H*0.48,r=Math.min(W,H)*0.22;
-  var rX=W*0.35,rY=cy+r*0.38,gX=W*0.65,gY=cy+r*0.38,bX=W*0.5,bY=cy-r*0.5;
-  var cr=r*0.85;
-  var pulse=0.6+0.35*Math.sin(t*1.2);
-  ctx.save();ctx.globalCompositeOperation='lighter';
-  function spot(x,y,ri,gi,bi,a){
-    var g=ctx.createRadialGradient(x,y,0,x,y,cr);
-    g.addColorStop(0,'rgba('+ri+','+gi+','+bi+','+a.toFixed(2)+')');
-    g.addColorStop(0.6,'rgba('+ri+','+gi+','+bi+','+(a*0.2).toFixed(2)+')');
-    g.addColorStop(1,'rgba('+ri+','+gi+','+bi+',0)');
-    ctx.beginPath();ctx.arc(x,y,cr,0,Math.PI*2);ctx.fillStyle=g;ctx.fill();
-  }
-  spot(rX,rY,255,0,0,pulse);
-  spot(gX,gY,0,220,0,pulse);
-  spot(bX,bY,0,60,255,pulse);
+  var cy=H*0.48,r=Math.min(W,H)*0.22,cr=r*0.85;
+  var P=[[W*0.35,cy+r*0.38],[W*0.65,cy+r*0.38],[W*0.5,cy-r*0.5]];
+  var pulse=0.6+0.35*Math.sin(t*1.2),C=_cmx;
+  var col=function(m){var X=[0,0,0];for(var k=0;k<3;k++)if(m&1<<k)for(var j=0;j<3;j++)X[j]+=pulse*C.LX[k][j];
+    var d=C.disp(X);return 'rgb('+d[0]+','+d[1]+','+d[2]+')';};
+  var disc=function(k){ctx.beginPath();ctx.arc(P[k][0],P[k][1],cr,0,Math.PI*2);};
+  ctx.save();
+  for(var k=0;k<3;k++){disc(k);ctx.fillStyle=col(1<<k);ctx.fill();}
+  [[0,1],[0,2],[1,2]].forEach(function(q){ctx.save();disc(q[0]);ctx.clip();disc(q[1]);ctx.fillStyle=col((1<<q[0])|(1<<q[1]));ctx.fill();ctx.restore();});
+  ctx.save();disc(0);ctx.clip();disc(1);ctx.clip();disc(2);ctx.fillStyle=col(7);ctx.fill();ctx.restore();
   ctx.restore();
-  oLbl(ctx,'R',rX,rY+cr+12,'#ff6464',9);
-  oLbl(ctx,'G',gX,gY+cr+12,'#44ff44',9);
-  oLbl(ctx,'B',bX,bY-cr-6,'#6496ff',9);
+  oLbl(ctx,'R',P[0][0]-cr*0.55,P[0][1]+cr+11,'#ff6464',9);
+  oLbl(ctx,'G',P[1][0]+cr*0.55,P[1][1]+cr+11,'#44ff44',9);
+  oLbl(ctx,'B',P[2][0],P[2][1]-cr-6,'#6496ff',9);
   oLbl(ctx,'R+G+B=לבן',W/2,H-6,'#94a3b8',8);
 });
 

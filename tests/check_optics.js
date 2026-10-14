@@ -16,7 +16,7 @@
 // and no number glued to its unit.
 const { chromium } = require('playwright');
 const path = require('path');
-const { LR, WORD } = require('./_lang.js');   // the words of the page's language
+const { L, LR, WORD } = require('./_lang.js');   // the words of the page's language
 const F = 'file://' + (process.env.APP_FILE ? path.resolve(process.env.APP_FILE) : path.resolve(__dirname, '..', 'physics_game_v28.html'));   // APP_FILE: test a language build
 
 let fail = 0, n = 0;
@@ -151,6 +151,121 @@ const EXPECT = {
     return { left, right };
   });
   t('convex mirror: the virtual image is drawn behind the mirror', behind.right > 40, JSON.stringify(behind));
+
+  // ── colour mixing: the colour science first (the model the simulation
+  // draws with, _cmx), then the simulation itself ──
+  const cm = await p.evaluate(() => {
+    const C = _cmx, add = (...a) => [0, 1, 2].map(k => a.reduce((s, v) => s + v[k], 0)), sc = (x, k) => x.map(v => v * k);
+    const [R, G, B] = C.LX, nm = (X, s) => C.nameKey(X, !!s), o = {};
+    // lights add in linear light: the cone signals of a mixture are the sums
+    // of its parts' at any power (gamma-encoded RGB values do not add)
+    const a = 0.37, b = 0.81, mix = C.cones(add(sc(R, a), sc(G, b))), sum = add(sc(C.cones(R), a), sc(C.cones(G), b));
+    o.additive = Math.max(...mix.map((v, i) => Math.abs(v - sum[i])));
+    // and so do their spectra: the light of the mixture IS the sum of the lamps' light
+    const sp = C.addS(C.LED, [a, b, 0]); let e1 = 0;
+    for (let i = 0; i < C.N; i++) e1 = Math.max(e1, Math.abs(sp[i] - a * C.LED[0][i] - b * C.LED[1][i]));
+    o.specAdd = e1;
+    // the three lamps at full power make daylight white (D65) of luminance 1
+    o.white = add(R, G, B).map(v => +v.toFixed(3)).join(',');
+    o.lamps = [R, G, B].map(X => Math.round(C.hue(X).wl)).join(',');
+    o.names = ['RG', 'GB', 'RB', 'RGB', 'R', 'G', 'B'].map(k => nm(add(...k.split('').map(c => C.LX['RGB'.indexOf(c)])))).join(',');
+    o.dim = nm(sc(add(R, G, B), 0.2)) + ',' + nm([0, 0, 0]) + ',' + nm(add(R, sc(G, 0.2))) + ',' + nm(add(sc(R, 0.7), sc(G, 0.8))) + ',' + nm(C.YX);
+    // filters on a white box: transmissions multiply, wavelength by wavelength
+    const F = (...k) => C.adaptXYZ(C.xyz(C.mulS(C.FLAT, ...k.map(i => C.FIL[i]))));
+    const cmT = C.mulS(C.FIL[0], C.FIL[1]); let e2 = 0;
+    for (let i = 0; i < C.N; i++) e2 = Math.max(e2, Math.abs(cmT[i] - C.FIL[0][i] * C.FIL[1][i]));
+    o.mult = e2;
+    o.filters = [F(), F(0), F(1), F(2), F(0, 1), F(1, 2), F(0, 2), F(0, 1, 2)].map(X => nm(X, 1)).join(',');
+    // objects under a lamp: what comes back is lamp × reflectance
+    const S = (v, k) => C.xyz(C.mulS(C.addS(C.LED, v), C.REF[k]));
+    o.objects = [S([1, 1, 1], 0), S([1, 0, 0], 0), S([0, 1, 0], 0), S([0, 0, 1], 0), S([1, 1, 1], 1), S([1, 0, 0], 1), S([0, 0, 1], 1), S([1, 1, 1], 2), S([0, 1, 0], 2)].map(X => nm(X, 1)).join(',');
+    // metamerism: red + green can match the single 580 nm line to CIEDE2000 < 3
+    // on 1 % slider steps -- although that mixture has no 580 nm light in it
+    const Lt = C.lab(C.YX); let best = [1e9];
+    for (let i = 0; i <= 100; i++) for (let j = 0; j <= 100; j++) { const d = C.de00(C.lab(add(sc(R, i / 100), sc(G, j / 100))), Lt); if (d < best[0]) best = [d, i, j]; }
+    o.match = best;
+    const ms = C.addS(C.LED, [best[1] / 100, best[2] / 100, 0]); let mx = 0; for (let i = 0; i < C.N; i++) mx = Math.max(mx, ms[i]);
+    o.at580 = ms[200] / mx;
+    // CIEDE2000: the reference pairs of Sharma, Wu & Dalal (2005)
+    o.sharma = [[[50, 2.6772, -79.7751], [50, 0, -82.7485], 2.0425], [[50, 0, 0], [50, -1, 2], 2.3669], [[50, 2.5, 0], [73, 25, -18], 27.1492],
+      [[60.2574, -34.0099, 36.2677], [60.4626, -34.1751, 39.4387], 1.2644], [[22.7233, 20.0904, -46.6940], [23.0331, 14.9730, -42.5619], 2.0373],
+      [[2.0776, 0.0795, -1.1350], [0.9033, -0.0636, -0.5514], 0.9082]].map(([A, B2, w]) => Math.abs(C.de00(A, B2) - w));
+    // a single wavelength's dominant wavelength is itself; the cones peak where they should
+    o.dom = [460, 500, 530, 580, 610].map(w => Math.round(C.hue(C.xyz(C.band(w, 0.5))).wl)).join(',');
+    o.peaks = [0, 1, 2].map(k => { let bi = 0; for (let i = 0; i < C.N; i++) if (C.CONE[i][k] > C.CONE[bi][k]) bi = i; return C.LAM[bi]; }).join(',');
+    return o;
+  });
+  t('colour model: lights add in linear light (cone signals and spectra of a mixture are the sums)', cm.additive < 1e-9 && cm.specAdd < 1e-9, cm.additive + ' ' + cm.specAdd);
+  t('colour model: the three LED lamps at full power make D65 white of luminance 1', cm.white === '0.95,1,1.089', cm.white);
+  t('colour model: the lamps are seen at their own wavelengths (red ≈ 626, green ≈ 537, blue ≈ 460 nm)', cm.lamps === '626,537,460', cm.lamps);
+  t('colour model: R+G yellow, G+B cyan, R+B magenta, R+G+B white; each lamp its colour', cm.names === 'yellow,cyan,magenta,white,red,green,blue', cm.names);
+  t('colour model: dim white is dim white, no light is black, red + a fifth of green is orange, 0.7 R + 0.8 G only yellow-green, 580 nm yellow',
+    cm.dim === 'dimwhite,black,orange,ygreen,yellow', cm.dim);
+  t('colour model: filters multiply, wavelength by wavelength', cm.mult < 1e-6, cm.mult);
+  t('colour model: white box, C, M, Y alone; C·M blue, M·Y red, C·Y green, C·M·Y black', cm.filters === 'white,cyan,magenta,yellow,blue,red,green,black', cm.filters);
+  t('colour model: red shirt red in white and red light, black in green and blue; green leaf green, black in red and blue; paper white, green in green',
+    cm.objects === 'red,red,black,black,green,black,black,white,green', cm.objects);
+  t('colour model: red + green matches the 580 nm line (CIEDE2000 < 3 at some 1 % slider pair)', cm.match[0] < 3 && cm.match[0] > 0.5, JSON.stringify(cm.match));
+  t('colour model: … with no 580 nm light in that mixture (< 2 % of its peak)', cm.at580 < 0.02, cm.at580);
+  t('colour model: CIEDE2000 reproduces the Sharma reference pairs to 1e-4', cm.sharma.every(d => d < 1e-4), cm.sharma.join(','));
+  t('colour model: a single wavelength has itself as dominant wavelength', cm.dom === '460,500,530,580,610', cm.dom);
+  t('colour model: cone sensitivities peak at S ≈ 448, M ≈ 543, L ≈ 567 nm (Smith–Pokorny)', cm.peaks === '567,543,448', cm.peaks);
+
+  // the simulation: what is on the screen and in the model line, and every mission reachable by the hand
+  await p.evaluate(() => { window.__CT = []; const o = CanvasRenderingContext2D.prototype.fillText;
+    CanvasRenderingContext2D.prototype.fillText = function (s) { if (typeof s === 'string' && this.canvas.id === 'sim-canvas') window.__CT.push(s.replace(/[⁦-⁩‎]/g, '')); if (window.__CT.length > 3000) window.__CT.splice(0, 1500); return o.apply(this, arguments); }; });
+  await open('opt-light', 'color-mixing');
+  const cmModel = () => p.evaluate(() => (document.querySelector('.sk-model-tx') || {}).textContent || '');
+  const cmDone = () => p.evaluate(() => [...document.querySelectorAll('#app .sk-m')].map(li => li.classList.contains('done') ? 1 : 0).join(''));
+  const cmTap = async (src) => {
+    const at = await p.evaluate((src) => {
+      const f = new Function('r', 'g', 'b', 'return ' + src), cv = document.getElementById('sim-canvas'), g = cv.getContext('2d');
+      const d = g.getImageData(0, 0, cv.width, cv.height).data, R = cv.getBoundingClientRect(), k = cv.width / R.width;
+      let sx = 0, sy = 0, m = 0;
+      for (let y = 0; y < cv.height; y += 3) for (let x = 0; x < cv.width; x += 3) { const i = (y * cv.width + x) * 4; if (f(d[i], d[i + 1], d[i + 2])) { sx += x; sy += y; m++; } }
+      return m ? { x: R.left + sx / m / k, y: R.top + sy / m / k } : null;
+    }, src);
+    if (at) { await p.mouse.click(at.x, at.y); await p.waitForTimeout(250); }
+    return at;
+  };
+  const slide = (k, v) => p.evaluate(([k, v]) => { const e = document.getElementById('inp-' + k); e.value = v; e.dispatchEvent(new Event('input', { bubbles: true })); }, [k, v]);
+  await (await p.$('#sim-canvas')).scrollIntoViewIfNeeded();
+  const m0 = await cmModel(), xp0 = await p.evaluate(() => state.xp);
+  t('colour mixing: the model line starts with the three lamps at the probe, seen white', m0.includes('I = 0.80·R + 0.80·G + 0.80·B') && m0.includes(L('לבן')), m0);
+  const drawn = await p.evaluate(() => [...new Set(window.__CT)]);
+  t('colour mixing: the overlaps are named by what they are (yellow, cyan, magenta)', ['צהוב', 'ציאן', 'מגנטה'].every(h => drawn.includes(L(h))), drawn.join(' | '));
+  // half a red lamp on the screen is the model's colour (linear light), not the 128 that adding gamma-encoded values gave
+  await slide('cm-green', 0); await slide('cm-blue', 0); await slide('cm-red', 50); await p.waitForTimeout(250);
+  const half = await p.evaluate(() => {
+    // the red of the red-only part of the screen: the commonest pure red on the canvas
+    const cv = document.getElementById('sim-canvas'), d = cv.getContext('2d').getImageData(0, 0, cv.width, cv.height).data, h = {};
+    for (let i = 0; i < d.length; i += 8) if (d[i] > 60 && d[i + 1] < 12 && d[i + 2] < 12) h[d[i]] = (h[d[i]] || 0) + 1;
+    const top = Object.keys(h).sort((x, y) => h[y] - h[x])[0];
+    return { screen: +top, model: _cmx.disp(_cmx.LX[0].map(v => v * 0.5))[0] };
+  });
+  t('colour mixing: half a red lamp is drawn as the model computes it in linear light (not gamma-added)', Math.abs(half.screen - half.model) <= 2 && half.screen > 200, JSON.stringify(half));
+  await slide('cm-red', 80); await slide('cm-green', 80); await slide('cm-blue', 80); await p.waitForTimeout(250);
+  // mission 1: yellow from two lamps
+  await cmTap('r>200&&g>200&&b<80');
+  const m1 = await cmModel();
+  t('colour mixing: the probe on red + green reads 0.80·R + 0.80·G, seen yellow; the first mission solved', m1.includes('I = 0.80·R + 0.80·G ') && !m1.includes('·B') && m1.includes(L('צהוב')) && (await cmDone()) === '1000', m1);
+  // mission 2: match the 580 nm line
+  await p.click('#btn-cm-yel'); await slide('cm-red', cm.match[1]); await slide('cm-green', cm.match[2]); await p.waitForTimeout(300);
+  const m2 = await cmModel(), de = parseFloat((m2.match(/ΔE00 = ([\d.]+)/) || [])[1]);
+  t('colour mixing: the 580 nm lamp matched by red + green (ΔE00 < 3 in the model line); the second mission solved', de < 3 && (await cmDone()) === '1100', m2);
+  // mission 3: two filters make blue
+  await p.click('#btn-sk-cm-sub'); await p.waitForTimeout(400);
+  await cmTap('b>180&&r<110&&g<40');
+  const m3 = await cmModel();
+  t('colour mixing: under cyan and magenta the probe reads I₀·T_C·T_M, seen blue; the third mission solved', /I = I₀·TC·TM /.test(m3) && m3.includes(L('כחול')) && (await cmDone()) === '1110', m3);
+  // the prediction, then mission 4
+  await p.click('#btn-sk-cm-obj'); await p.waitForTimeout(400);
+  const pq = await p.evaluate(() => !document.querySelector('.sk-predict').hidden && document.querySelectorAll('.sk-opt').length);
+  await p.click('.sk-opt >> nth=2'); await p.waitForTimeout(1400);
+  const m4a = await cmModel(), right = await p.evaluate(() => document.querySelectorAll('.sk-opt')[2].classList.contains('right'));
+  t('colour mixing: the prediction (red shirt under green light) is asked, marked, and the lamp turns green: the shirt is seen black', pq === 4 && right && m4a.includes('(1.00·G)·ρ') && m4a.includes(L('שחור')), m4a);
+  await p.click('#btn-cm-lr'); await p.waitForTimeout(1300);
+  t('colour mixing: in red light the green leaf is black -- the fourth mission solved, 40 XP in all', (await cmDone()) === '1111' && (await p.evaluate(() => state.xp)) - xp0 === 40, await cmDone());
 
   console.log('   every draggable simulation by touch, on a phone');
   const tc = await b.newContext({ viewport: { width: 390, height: 1300 }, hasTouch: true, isMobile: true, deviceScaleFactor: 2 });
