@@ -5920,7 +5920,7 @@ const OPTICS_CONTENT={
         <li>מראות מקבילות: ${M('\\theta\\to0')}, ומספר התמונות אינסופי — כמו במעלית עם מראות בשני הצדדים.</li>
       </ul>`}
   },
-  sim:{type:'opt-plane-mirror',desc:'גררו את העצם (החץ הכחול) לאורך ציר ה־x. ראו כיצד התמונה (החץ המקווקו) נוצרת מאחורי המראה במרחק שווה.'},
+  sim:{type:'opt-plane-mirror',desc:'אדם בגובה 1.80 m (עיניו בגובה 1.68 m) עומד מול מראה על הקיר. גררו אותו קרוב ורחוק, וגררו את הקצה העליון והתחתון של המראה. תמונתו, בקו מקווקו, נמצאת מאחורי המראה, והחלק הבהיר שלה הוא מה שהוא רואה; שתי הקרניים הן הקרניים הקיצוניות שמגיעות לעין.'},
   example:{title:'תמונה במראה מישורית',text:`עצם נמצא ${M('30\\,\\text{cm}')} לפני מראה מישורית.`,
     steps:[
       {q:'היכן נוצרת התמונה?',a:`${M('30\\,\\text{cm}')} <b>מאחורי</b> המראה — באותו מרחק כמו העצם. זו תמונה מדומה: האור אינו מגיע באמת לשם.`},
@@ -18057,88 +18057,106 @@ function simOptReflection(canvas){
   function poll(){if(_simStop[id])return;requestAnimationFrame(draw);}poll();
 }
 
-// ─── PLANE MIRROR — Enhanced ──────────────────────────────────────
+// ─── PLANE MIRROR — where the image is, and how much of you a mirror shows ──
+// A person (1.80 m, eyes at 1.68 m) stands dₒ in front of a vertical mirror
+// whose top and bottom edges are dragged. The image stands dᵢ = −dₒ behind it
+// (m = +1). A point of the body at height h is seen where the ray from it to
+// the eye meets the mirror -- halfway up, at (h + h_eye)/2 -- so the part
+// seen is 2·bottom − h_eye … 2·top − h_eye, whatever the distance: a mirror
+// half your height shows all of you, and stepping back shows no more. (The
+// drawing's horizontal and vertical scales differ; a vertical mirror's
+// reflection is symmetric about its horizontal normal under any such scaling,
+// so the image, the hit points and the equal angles are all still right.)
 function simOptPlaneMirror(canvas){
   const H=420;const{ctx,W,dpr}=setupCanvas(canvas,H);
-  const id=canvas.id;var animT=0;
-  function getDist(){var e=document.getElementById('inp-pm-dist');return e?parseFloat(e.value):3;}
-  function getWl(){var e=document.getElementById('inp-pm-wl');return e?parseFloat(e.value):550;}
-  // one unit of distance in px, chosen so the farthest object (8 u) and its
-  // image both stay on the canvas at any width
-  var U=Math.min(52,(W/2-30)/8);
-  // drag the object along the axis, as the lesson invites
-  simDrag(canvas,dpr,{down:function(p){if(p.x<W/2)simSyncSlider('pm-dist',(W/2-p.x)/U,1);},
-    move:function(p){simSyncSlider('pm-dist',(W/2-p.x)/U,1);}});
+  const id=canvas.id;var animT=0,reduce=_reducedMotion(),touched=false,drag=null,predicted=false;
+  var HP=1.80,HE=1.68,floorY=H-46,kv=Math.min(150,(floorY-56)/2.0),MX=Math.round(W*0.55),kx=(MX-34)/4.2;
+  var dMin=Infinity,dMax=-Infinity,mirKey='';
+  function gv(k,d){var e=document.getElementById('inp-'+k);return e?parseFloat(e.value):d;}
+  function Y(h){return floorY-h*kv;}
+  function px(){return MX-gv('pm-dist',2)*kx;}
+  function hit(p){var x=px(),top=gv('pm-top',1.4),bot=gv('pm-bot',0.6);
+    if(Math.abs(p.x-MX)<22&&Math.abs(p.y-Y(top))<22)return 'top';
+    if(Math.abs(p.x-MX)<22&&Math.abs(p.y-Y(bot))<22)return 'bot';
+    if(Math.abs(p.x-x)<28&&p.y>Y(HP)-10&&p.y<floorY+6)return 'man';return null;}
+  simDrag(canvas,dpr,{down:function(p){drag=hit(p);if(drag)touched=true;},
+    move:function(p){if(drag==='man')simSyncSlider('pm-dist',(MX-p.x)/kx,1);
+      if(drag==='top')simSyncSlider('pm-top',Math.max(gv('pm-bot',0.6)+0.1,(floorY-p.y)/kv),2);
+      if(drag==='bot')simSyncSlider('pm-bot',Math.min(gv('pm-top',1.4)-0.1,(floorY-p.y)/kv),2);},
+    up:function(){drag=null;}});
+  canvas.addEventListener('mousemove',function(e){if(!drag){var h=hit(simPointerXY(canvas,dpr,e));canvas.style.cursor=h==='man'?'ew-resize':h?'ns-resize':'default';}});
+  canvas.tabIndex=0;
+  canvas.addEventListener('keydown',function(e){if(e.key!=='ArrowLeft'&&e.key!=='ArrowRight')return;e.preventDefault();touched=true;
+    simSyncSlider('pm-dist',gv('pm-dist',2)+(e.key==='ArrowLeft'?0.1:-0.1),1);});
+  var kit=simKit(canvas,{missions:[
+    {text:'איפה התמונה? ענו על השאלה שמתחת לתרשים',
+     hint:'מה המרחק בין האדם לתמונה שלו בתרשים?',
+     why:'התמונה מאחורי המראה, באותו מרחק שבו האדם לפניה: '+_skM('dᵢ = −dₒ')+'. מצלמה שמכוונים אל הדמות במראה שרחוקה 1.5 m צריכה להתמקד ל־3 m — לא למראה.',
+     done:function(s){return s.predicted;}},
+    {text:'ראו את כל הגוף במראה הקצרה ביותר האפשרית',
+     hint:'גררו את הקצוות של המראה. הקרן מכפות הרגליים אל העין פוגעת במראה באמצע הדרך בגובה — וכך גם הקרן מקודקוד הראש.',
+     why:'הקצה העליון צריך להיות ב־'+_skM('(1.80 + 1.68)/2 = 1.74 m')+' והתחתון ב־'+_skM('1.68/2 = 0.84 m')+': מראה בגובה '+_skM('0.90 m')+' — חצי מגובה האדם — בכל מרחק.',
+     done:function(s){return s.frac>0.995&&s.mh<=0.92;}},
+    {text:'״כדי לראות יותר מהגוף, מתרחקים מהמראה״? בדקו: התרחקו והתקרבו לפחות 1.5 m',
+     hint:'אל תשנו את המראה; גררו את האדם הרחק ממנה ובחזרה, ועקבו אחרי החלק הנראה.',
+     why:'החלק הנראה תלוי רק בגבהים: נקודות הפגיעה הן בחצי הדרך בגובה בין כל נקודה בגוף לעין. כשמתרחקים — גם התמונה מתרחקת באותה מידה, והזווית שהמראה ״מכסה״ קטנה בדיוק כמו גודלה הזוויתי של התמונה.',
+     done:function(s){return s.span>=1.5&&s.frac<0.99;}}]});
+  kit.predict({q:'אתם עומדים 1.5 m לפני מראה מישורית. היכן נמצאת התמונה שלכם?',
+    opts:['על פני המראה','1.5 m מאחורי המראה — 3 m מכם','3 m מאחורי המראה'],correct:1,
+    why:'הקרניים המוחזרות נראות כאילו יצאו מנקודה שמאחורי המראה, סימטרית לעצם: '+_skM('dᵢ = −dₒ = −1.5 m')+'. העין (או המצלמה) צריכה להתמקד למרחק '+_skM('1.5 + 1.5 = 3 m')+'.'},
+    function(){predicted=true;});
+  function person(x,alpha,dashed,col){         // a stick figure 1.80 m tall standing at x
+    var seg=function(h1,h2,x1,x2,lw){ctx.beginPath();ctx.lineWidth=lw;ctx.moveTo(x+x1,Y(h1));ctx.lineTo(x+x2,Y(h2));ctx.stroke();};
+    ctx.save();ctx.globalAlpha=alpha;ctx.strokeStyle=col;if(dashed)ctx.setLineDash([5,4]);
+    seg(0,0.85,-10,0,3.5);seg(0,0.85,10,0,3.5);seg(0.85,1.58,0,0,4);seg(1.45,1.0,0,-14,3);seg(1.45,1.0,0,14,3);
+    ctx.lineWidth=3;ctx.beginPath();ctx.arc(x,Y(1.69),0.11*kv,0,Math.PI*2);ctx.stroke();ctx.restore();
+  }
   function draw(){
     if(_simStop[id])return;
-    animT+=0.025;
-    var dist=getDist(),MX=W/2,cy=H/2;
-    var wl=getWl(),wlHex=wavelengthToHex(wl);
-    var _pr=wavelengthToRGB(wl).match(/\d+/g);
-    function wlA(a){return 'rgba('+_pr[0]+','+_pr[1]+','+_pr[2]+','+a+')';}
-    var bgG=ctx.createLinearGradient(0,0,0,H);bgG.addColorStop(0,'#020810');bgG.addColorStop(1,'#030d1a');
-    ctx.fillStyle=bgG;ctx.fillRect(0,0,W,H);
-    var objX=MX-dist*U;
-    var imgX=2*MX-objX; // image is at mirror-image position
-    // Mirror
-    ctx.save();
-    var mg=ctx.createLinearGradient(MX-4,0,MX+4,0);
-    mg.addColorStop(0,'rgba(96,165,250,.04)');mg.addColorStop(0.5,'rgba(147,197,253,.22)');mg.addColorStop(1,'rgba(96,165,250,.04)');
-    ctx.fillStyle=mg;ctx.fillRect(MX-3,28,6,H-56);ctx.restore();
-    optMirrorSurface(ctx,MX,28,MX,H-28);
-    optLabel(ctx,'מראה',MX+16,H/2,'#60a5fa',10);
-    // Axis
-    optDash(ctx,18,cy,W-18,cy,'#1e3a5f',0.4);
-    // Object arrow (animated glow pulse)
-    var glowP=Math.sin(animT*2)*0.3+0.7;
-    var arrowH=72;
-    ctx.save();ctx.strokeStyle='#60a5fa';ctx.lineWidth=3;
-    optGlow(ctx,'#60a5fa',12*glowP);
-    ctx.beginPath();ctx.moveTo(objX,cy+arrowH/2);ctx.lineTo(objX,cy-arrowH/2);ctx.stroke();
-    ctx.fillStyle='#93c5fd';
-    ctx.beginPath();ctx.moveTo(objX,cy-arrowH/2);ctx.lineTo(objX-9,cy-arrowH/2+17);ctx.lineTo(objX+9,cy-arrowH/2+17);ctx.closePath();ctx.fill();
-    optNoGlow(ctx);ctx.restore();
-    optLabel(ctx,'עצם',objX,cy+arrowH/2+16,'#60a5fa',11);
-    var doPx=MX-objX;
-    optLabel(ctx,'dₒ = '+dist.toFixed(1)+' m',objX+doPx/2,cy-arrowH/2-20,'#fbbf24',10);
-    // Virtual image (dashed, behind mirror)
-    ctx.save();ctx.strokeStyle='rgba(52,211,153,.7)';ctx.lineWidth=2.5;ctx.setLineDash([6,4]);
-    optGlow(ctx,'#34d399',8);
-    ctx.beginPath();ctx.moveTo(imgX,cy+arrowH/2);ctx.lineTo(imgX,cy-arrowH/2);ctx.stroke();
-    ctx.fillStyle='rgba(52,211,153,.4)';
-    ctx.beginPath();ctx.moveTo(imgX,cy-arrowH/2);ctx.lineTo(imgX-9,cy-arrowH/2+17);ctx.lineTo(imgX+9,cy-arrowH/2+17);ctx.closePath();ctx.fill();
-    ctx.setLineDash([]);optNoGlow(ctx);ctx.restore();
-    optLabel(ctx,'תמונה',imgX,cy+arrowH/2+16,'#34d399',11);
-    optLabel(ctx,'|dᵢ| = '+dist.toFixed(1)+' m',imgX-doPx/2,cy-arrowH/2-(doPx<70?36:20),'#fbbf24',10);
-    // Reflection rays. The eye looks INTO the mirror, so it sits on the object's
-    // side (it used to sit behind the mirror, and the rays went straight through
-    // the glass to reach it). Each ray leaves the object, reflects where the line
-    // from the virtual image to the eye crosses the mirror, and reaches the eye.
-    var eyeX=Math.max(24,objX-36),eyeY=cy-92;
-    var rayYs=[cy-arrowH/2,cy-arrowH/4,cy+2];
-    rayYs.forEach(function(ry,ri){
-      // Correct mirror hit point: intersection of line(virtualImage→eye) with mirror x=MX
-      // Virtual image of (objX, ry) is at (imgX, ry)
-      var mirrorY=ry+(eyeY-ry)*(MX-imgX)/(eyeX-imgX);
-      var alpha=0.15+ri*0.12;
-      // Object → mirror
-      ctx.save();ctx.strokeStyle=wlA(alpha);ctx.lineWidth=1.2;
-      ctx.beginPath();ctx.moveTo(objX,ry);ctx.lineTo(MX,mirrorY);ctx.stroke();ctx.restore();
-      // Mirror → eye
-      ctx.save();ctx.strokeStyle=wlA(alpha);ctx.lineWidth=1.2;
-      ctx.beginPath();ctx.moveTo(MX,mirrorY);ctx.lineTo(eyeX,eyeY);ctx.stroke();ctx.restore();
-      // Dashed extension behind mirror to virtual image
-      optDash(ctx,MX,mirrorY,imgX,ry,'rgba(52,211,153,.14)');
-    });
-    // Eye symbol
-    ctx.save();ctx.strokeStyle='#e2e8f0';ctx.lineWidth=1.5;
-    ctx.beginPath();ctx.ellipse(eyeX,eyeY,14,9,0,0,Math.PI*2);ctx.stroke();
-    ctx.fillStyle='#1e3a5f';ctx.beginPath();ctx.arc(eyeX,eyeY,4,0,Math.PI*2);ctx.fill();
-    ctx.restore();
-    optInfoBox(ctx,8,8,155,['dₒ = '+dist.toFixed(1)+' m','dᵢ = −'+dist.toFixed(1)+' m','(מדומה)','m = +1']);
+    animT+=reduce?0:0.016;
+    var d=gv('pm-dist',2),top=gv('pm-top',1.4),bot=gv('pm-bot',0.6),x=px(),xi=MX+d*kx;
+    var lo=Math.max(0,2*bot-HE),hi=Math.min(HP,2*top-HE),frac=Math.max(0,hi-lo)/HP;
+    var key=top.toFixed(2)+'|'+bot.toFixed(2);if(key!==mirKey){mirKey=key;dMin=d;dMax=d;}dMin=Math.min(dMin,d);dMax=Math.max(dMax,d);
+    ctx.fillStyle='#050c18';ctx.fillRect(0,0,W,H);
+    // the floor, in front and (as seen) behind the mirror
+    ctx.save();ctx.strokeStyle='rgba(100,116,139,.6)';ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(8,floorY);ctx.lineTo(MX,floorY);ctx.stroke();
+    ctx.setLineDash([5,5]);ctx.strokeStyle='rgba(100,116,139,.35)';ctx.beginPath();ctx.moveTo(MX,floorY);ctx.lineTo(W-8,floorY);ctx.stroke();ctx.restore();
+    // the wall and the mirror on it
+    ctx.save();ctx.strokeStyle='rgba(71,85,105,.5)';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(MX,30);ctx.lineTo(MX,floorY);ctx.stroke();ctx.restore();
+    optMirrorSurface(ctx,MX,Y(top),MX,Y(bot));
+    simHandle(ctx,MX,Y(top),'#93c5fd',12);simHandle(ctx,MX,Y(bot),'#93c5fd',12);
+    // the person, and the image: the parts seen in the mirror bright
+    person(x,1,false,'#60a5fa');
+    person(xi,0.2,true,'#34d399');
+    if(hi>lo){ctx.save();ctx.beginPath();ctx.rect(MX+1,Y(hi),W-MX,(hi-lo)*kv);ctx.clip();person(xi,1,true,'#34d399');ctx.restore();}
+    simHandle(ctx,x,Y(1.0),'#93c5fd',14);
+    // the rays that bound what is seen: from the lowest and the highest
+    // visible points, off the mirror's edges, into the eye
+    var eyeX=x+4,eyeY=Y(HE);
+    [[lo,(lo+HE)/2],[hi,(hi+HE)/2]].forEach(function(r,i){if(hi<=lo)return;var col=i?'#fbbf24':'#f472b6',hy=Y(r[1]);
+      ctx.save();ctx.strokeStyle=col;ctx.lineWidth=1.6;ctx.beginPath();ctx.moveTo(x,Y(r[0]));ctx.lineTo(MX,hy);ctx.lineTo(eyeX,eyeY);ctx.stroke();
+      ctx.setLineDash([4,4]);ctx.globalAlpha=0.55;ctx.beginPath();ctx.moveTo(MX,hy);ctx.lineTo(xi,Y(r[0]));ctx.stroke();ctx.restore();
+      ctx.save();ctx.fillStyle=col;ctx.beginPath();ctx.arc(MX,hy,3.5,0,Math.PI*2);ctx.fill();ctx.restore();});
+    ctx.save();ctx.fillStyle='#e2e8f0';ctx.beginPath();ctx.arc(eyeX,eyeY,2.6,0,Math.PI*2);ctx.fill();ctx.restore();
+    // distances on the floor
+    var dim=function(x1,x2,y,t,c,dash){ctx.save();ctx.strokeStyle=c;ctx.lineWidth=1;if(dash)ctx.setLineDash([4,3]);ctx.beginPath();ctx.moveTo(x1,y);ctx.lineTo(x2,y);
+      ctx.moveTo(x1,y-4);ctx.lineTo(x1,y+4);ctx.moveTo(x2,y-4);ctx.lineTo(x2,y+4);ctx.stroke();ctx.restore();optLabel(ctx,t,(x1+x2)/2,y+12,c,9.5);};
+    dim(x,MX,floorY+14,'dₒ = '+d.toFixed(1)+' m','#93c5fd',false);
+    dim(MX,xi,floorY+14,'|dᵢ| = '+d.toFixed(1)+' m','#34d399',true);
+    // the mirror's edges and the seen part
+    optLabel(ctx,top.toFixed(2)+' m',MX+16,Y(top),'#93c5fd',9,'left');optLabel(ctx,bot.toFixed(2)+' m',MX+16,Y(bot),'#93c5fd',9,'left');
+    var pct=Math.round(frac*100);
+    var cw=Math.min(W-16,labelW(ctx,'רואים '+pct+'% מהגוף · גובה המראה '+(top-bot).toFixed(2)+' m',11)+24);
+    ctx.save();ctx.fillStyle='rgba(4,9,20,.9)';ctx.strokeStyle=frac>0.995?'#34d399':'rgba(148,163,184,.6)';ctx.lineWidth=1.2;ctx.beginPath();ctx.roundRect(W/2-cw/2,8,cw,24,7);ctx.fill();ctx.stroke();ctx.restore();
+    optLabel(ctx,'רואים '+pct+'% מהגוף · גובה המראה '+(top-bot).toFixed(2)+' m',W/2,20,frac>0.995?'#34d399':'#e2e8f0',11);
+    if(!touched&&animT<10)optLabel(ctx,'✋ גררו את האדם ואת קצות המראה',W/2,46,'#fbbf24',10);
+    // the law, in numbers
+    if(hi>lo)kit.model('מראה מישורית: '+_skM('dᵢ = −dₒ = −'+d.toFixed(1)+' m, m = +1')+'; נקודה בגובה h נראית בגובה '+_skM('(h + 1.68)/2')+' על המראה: רואים מ־'+_skM(lo.toFixed(2)+' m')+' עד '+_skM(hi.toFixed(2)+' m')+'.');
+    else kit.model('מראה מישורית: '+_skM('dᵢ = −dₒ = −'+d.toFixed(1)+' m, m = +1')+'; נקודה בגובה h נראית בגובה '+_skM('(h + 1.68)/2')+' על המראה — ובמראה הזאת אף נקודה בגוף אינה נראית.');
+    kit.check({predicted:predicted,frac:frac,mh:top-bot,span:dMax-dMin});
     requestAnimationFrame(draw);
   }
-  function poll(){if(_simStop[id])return;requestAnimationFrame(draw);}poll();
+  requestAnimationFrame(draw);
 }
 
 // ─── THE IMAGING BENCH — lenses and spherical mirrors, one model ─────
@@ -34516,7 +34534,7 @@ function buildSim(sim){
   else if(sim.type==='opt-em-wave')extra=C(rng('emw-wl',380,700,500,5,'אורך גל λ',' nm'));
   else if(sim.type==='opt-refr-index')extra=C(rng('ri-n',1,2.5,1.5,0.01,'מדד שבירה n')+rng('ri-wl',380,700,500,5,'אורך גל בריק λ₀',' nm'));
   else if(sim.type==='opt-reflection')extra=C(rng('ref-angle',5,85,40,1,'זווית פגיעה θᵢ','°')+rng('ref-wl',380,700,550,5,'צבע אור λ',' nm'));
-  else if(sim.type==='opt-plane-mirror')extra=C(rng('pm-dist',1,8,3,0.5,'מרחק עצם dₒ',' m')+rng('pm-wl',380,700,550,5,'צבע אור λ',' nm'));
+  else if(sim.type==='opt-plane-mirror')extra=C(rng('pm-dist',0.5,4,2,0.1,'מרחק מהמראה dₒ',' m')+rng('pm-top',0.5,2.2,1.4,0.01,'הקצה העליון של המראה',' m')+rng('pm-bot',0,1.6,0.6,0.01,'הקצה התחתון של המראה',' m'));
   else if(sim.type==='opt-concave-mirror')extra=C(rng('cm-do',15,400,213,1,'מרחק העצם dₒ',' mm')+rng('cm-f',45,140,85,1,'אורך מוקד f',' mm')+rng('cm-wl',380,700,550,5,'צבע אור λ',' nm'));
   else if(sim.type==='opt-convex-mirror')extra=C(rng('cvm-do',15,400,213,1,'מרחק העצם dₒ',' mm')+rng('cvm-f',45,140,85,1,'אורך מוקד |f|',' mm')+rng('cvm-wl',380,700,550,5,'צבע אור λ',' nm'));
   else if(sim.type==='opt-snell')extra=C(rng('snell-th',0,89,35,1,'זווית פגיעה θ₁','°')+rng('snell-n1',1,2.5,1,0.01,'n₁')+rng('snell-n2',1,2.5,1.5,0.01,'n₂')+rng('snell-wl',380,700,550,5,'צבע אור λ',' nm'));

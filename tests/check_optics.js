@@ -375,6 +375,21 @@ const EXPECT = {
   await setv('ri-n', 1.5); await setv('ri-wl', 600); await setv('ri-n', 2.42);
   t('light speed: every mission is reachable', await missions() === '1111', await missions());
 
+  // ── plane mirror: dᵢ = −dₒ; a body point at h is seen at (h + h_eye)/2 on the
+  // mirror, so the part seen is [2·bottom − h_eye, 2·top − h_eye], at any distance ──
+  await open('opt-reflection', 'plane-mirror');
+  for (const [d, top, bot] of [[2, 1.4, 0.6], [0.5, 1.4, 0.6], [3.5, 1.74, 0.84], [1, 2.0, 1.2], [2, 0.8, 0.5]]) {
+    await setv('pm-bot', 0); await setv('pm-top', top); await setv('pm-bot', bot); await setv('pm-dist', d);
+    const tx = await modelTx(), lo = Math.max(0, 2 * bot - 1.68), hi = Math.min(1.8, 2 * top - 1.68), g = /(\d\.\d\d) m[^\d]+(\d\.\d\d) m\.$/.exec(tx);
+    t(`plane mirror d=${d}: dᵢ = −dₒ`, tx.includes('dᵢ = −dₒ = −' + d.toFixed(1) + ' m'), tx);
+    if (hi > lo) t(`plane mirror top=${top} bottom=${bot}: seen ${lo.toFixed(2)}–${hi.toFixed(2)} m`, g && Math.abs(+g[1] - lo) < 0.006 && Math.abs(+g[2] - hi) < 0.006, tx);
+    else t(`plane mirror top=${top} bottom=${bot}: nothing seen`, !g, tx);
+  }
+  await p.evaluate(() => { state.missions = {}; render(); }); await p.waitForTimeout(1100);
+  await p.evaluate(() => document.querySelectorAll('.sk-opt')[1].click()); await p.waitForTimeout(150);
+  await setv('pm-top', 1.74); await setv('pm-bot', 0.84); await setv('pm-top', 1.4); await setv('pm-dist', 0.5); await setv('pm-dist', 2.5);
+  t('plane mirror: every mission is reachable', await missions() === '111', await missions());
+
   // ── the eye: vergence model, glasses touching the eye. Sharp exactly when
   // 1/d − P lies in [D_far, D_far + A]; the glasses' image dᵢ = 1/(P − 1/d)
   // is in the equation line; the section's problem (+3.33 D) is a mission ──
@@ -429,7 +444,8 @@ const EXPECT = {
     ['optics', 'opt-light', 'em-spectrum', W => [[W * 0.3, 50], [W * 0.5, 50], [W * 0.7, 50]], { slider: 'ems-pos' }],
     ['optics', 'opt-light', 'color-mixing', (W, H) => { const cr = Math.min(W * 0.2, H * 0.27), y = H * 0.42 - cr * 0.62; return [[W / 2, y], [W / 2, y - 20], [W / 2, y - 40]]; }, { gone: '^' + LR('✋ גררו את העיגולים — צרו חפיפות חדשות!') }],
     ['optics', 'opt-reflection', 'refl-laws', W => [[W * 0.3, 120], [W * 0.2, 200], [W * 0.15, 260]], { slider: 'ref-angle' }],
-    ['optics', 'opt-reflection', 'plane-mirror', W => [[W * 0.3, 210], [W * 0.25, 210], [W * 0.2, 210]], { slider: 'pm-dist' }],
+    // the person stands 2 m from the mirror (at 0.55 W); drag the person away
+    ['optics', 'opt-reflection', 'plane-mirror', W => { const MX = Math.round(W * 0.55), x = MX - 2 * (MX - 34) / 4.2; return [[x, 250], [x - 15, 250], [x - 30, 250]]; }, { slider: 'pm-dist' }],
     ['optics', 'opt-reflection', 'concave-mirror', W => mirrorObj(W, true), { slider: 'cm-do' }],
     ['optics', 'opt-reflection', 'convex-mirror', W => mirrorObj(W, false), { slider: 'cvm-do' }],
     ['optics', 'opt-refraction', 'snell-law', (W, H) => [[W / 2 - 60, H * 0.44 - 80], [W / 2 - 90, H * 0.44 - 50], [W / 2 - 110, H * 0.44 - 30]], { slider: 'snell-th' }],
