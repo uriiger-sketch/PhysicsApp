@@ -315,6 +315,24 @@ const EXPECT = {
   await dragMk(0, yOf(3, 500e-9, 0.3e-3, 1.5));
   t('Young: every mission is reachable', await missions() === '111', await missions());
 
+  // ── single slit: y₁ = L tan(asin(λ/a)) in the live line; the detector finds
+  // the minima a sinθ = mλ; every mission ──
+  await open('opt-waves', 'diffraction');
+  for (const [a, lam] of [[0.1, 500], [0.05, 650], [0.3, 400]]) {
+    await setv('diff-a', a); await setv('diff-lambda', lam); await p.waitForTimeout(140);
+    const g = /y₁ = L tan θ₁ = (\d+\.\d) mm/.exec(await modelTx()), want = Math.tan(Math.asin(lam * 1e-9 / (a * 1e-3))) * 1e3;
+    t(`single slit a=${a} λ=${lam}: y₁`, g && Math.abs(+g[1] - want) < 0.051, (g || [])[1] + ' vs ' + want.toFixed(2));
+  }
+  await p.evaluate(() => { state.missions = {}; render(); }); await p.waitForTimeout(1100);
+  await p.evaluate(() => document.querySelector('#app .sim-container').dispatchEvent(new Event('click')));
+  await setv('diff-lambda', 500); await setv('diff-a', 0.05); await p.waitForTimeout(160); await setv('diff-a', 0.2); await p.waitForTimeout(120);   // the 2nd minimum on the screen
+  const probeTo = async (m) => { await p.evaluate(() => document.getElementById('sim-canvas').scrollIntoView({ block: 'center' })); await p.waitForTimeout(120);
+    const g = await p.evaluate(() => { const cv = document.getElementById('sim-canvas'), b = cv.getBoundingClientRect(); return { x: b.left, y: b.top, W: cv.offsetWidth, H: cv.offsetHeight }; });
+    const Leff = 1000 * g.H * 0.28 / 5, ym = Math.tan(Math.asin(m * 500e-9 / 0.2e-3)) * Leff, X = g.x + g.W - 52;
+    await p.mouse.move(X, g.y + g.H / 2 + 0.15 * g.H); await p.mouse.down(); await p.mouse.move(X, g.y + g.H / 2 + ym); await p.mouse.up(); await p.waitForTimeout(160); };
+  await probeTo(1); await probeTo(2);
+  t('single slit: every mission is reachable', await missions() === '111', await missions());
+
   // ── the eye: vergence model, glasses touching the eye. Sharp exactly when
   // 1/d − P lies in [D_far, D_far + A]; the glasses' image dᵢ = 1/(P − 1/d)
   // is in the equation line; the section's problem (+3.33 D) is a mission ──

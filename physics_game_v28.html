@@ -6545,7 +6545,7 @@ const OPTICS_CONTENT={
       <div class="enrich-formula">${tex('\\theta_{\\min} = 1.22\\,\\dfrac{\\lambda}{D}', true)}<p class="enrich-cap">D — קוטר הפתח (העדשה או המראה)</p></div>
       <p>שתי דרכים לראות פרטים קטנים יותר: פתח גדול יותר — ולכן טלסקופים ענקיים — או אורך גל קצר יותר. במיקרוסקופ אלקטרונים אורך הגל הוא אלפיות ננומטר, ורואים בו פרטים של כעשירית ננומטר, לעומת כ־200 nm במיקרוסקופ אור.</p>`}
   },
-  sim:{type:'opt-diffraction',desc:'שנו את רוחב הסדק ואורך הגל. ראו כיצד דפוס העקיפה משתנה — סדק צר → פיזור רחב יותר.'},
+  sim:{type:'opt-diffraction',desc:'אור באורך גל אחד עובר בסדק ברוחב a ונופל על מסך במרחק 1 m. המסך מראה את הדפוס עצמו, והעקומה שלידו את העוצמה (sin x/x)². שנו את רוחב הסדק ואת אורך הגל, וגררו את הגלאי לאורך המסך כדי למצוא את המינימומים, שבהם a sinθ = mλ.'},
   example:{title:'עקיפה בסדק יחיד',text:`אור באורך גל ${M('\\lambda=500\\,\\text{nm}')} עובר דרך סדק ברוחב ${M('a=0.1\\,\\text{mm}')}.`,
     steps:[
       {q:'באיזו זווית נמצא המינימום הראשון?',a:`${M('\\sin\\theta_1=\\dfrac{\\lambda}{a}=\\dfrac{5\\times10^{-7}}{1\\times10^{-4}}=5\\times10^{-3}\\Rightarrow\\theta_1\\approx0.29^\\circ')}`},
@@ -19101,6 +19101,22 @@ function simOptDiffraction(canvas){
   canvas.addEventListener('mousedown',_pDn);canvas.addEventListener('touchstart',_pDn,{passive:false});
   canvas.addEventListener('mousemove',_pMv);canvas.addEventListener('touchmove',_pMv,{passive:false});
   canvas.addEventListener('mouseup',_pUp);canvas.addEventListener('touchend',_pUp);
+  canvas.tabIndex=0;
+  canvas.addEventListener('keydown',function(e){if(e.key!=='ArrowUp'&&e.key!=='ArrowDown')return;e.preventDefault();probeTouched=true;
+    probeY=Math.max(10,Math.min(H-10,(probeY===null?H/2:probeY)+(e.key==='ArrowDown'?1:-1)));});
+  var kit=simKit(canvas,{missions:[
+    {text:'״סדק צר — אלומה צרה״? צרו פס מרכזי ברוחב 20 mm, פי 2 מברירת המחדל',
+     hint:'רוחב הפס המרכזי הוא '+_skM('2y₁ ≈ 2λL/a')+'. מה צריך לקרות לרוחב הסדק?',
+     why:_skM('sin θ₁ = λ/a')+': סדק צר פי 2 נותן פס מרכזי רחב פי 2. כשהסדק מתקרב לאורך הגל, העקיפה שולטת והאור מתפזר יותר — לא פחות.',
+     done:function(s){return Math.abs(s.w1-20)<0.6;}},
+    {text:'מצאו בגלאי את המינימום הראשון',
+     hint:'גררו את הגלאי מהמרכז החוצה עד שהוא מאדים: שם '+_skM('a sin θ = λ')+'.',
+     why:'שם הסדק מתחלק לשני חצאים, ולכל גל משני בחצי העליון יש בן זוג בחצי התחתון שדרכו ארוכה בדיוק ב־'+_skM('λ/2')+': הם מבטלים זה את זה בזוגות.',
+     done:function(s){return s.minM===1;}},
+    {text:'הראו שהפס המרכזי רחב פי 2 מהפסים שלידו: הציבו את הגלאי על המינימום השני',
+     hint:'המינימומים נמצאים ב־'+_skM('y ≈ mλL/a')+' — במרווחים שווים, חוץ מהמרכזי.',
+     why:'מ־'+_skM('m = 1')+' ל־'+_skM('m = 2')+' המרחק הוא '+_skM('λL/a')+', אבל הפס המרכזי משתרע מ־'+_skM('−y₁')+' עד '+_skM('+y₁')+': '+_skM('2λL/a')+' — פי 2.',
+     done:function(s){return s.minM===2;}}]});
   function draw(){
     if(_simStop[id])return;
     animT+=0.04;
@@ -19184,8 +19200,11 @@ function simOptDiffraction(canvas){
       });
       if(y1px<13)break;
     }
-    // Screen column
-    ctx.save();ctx.fillStyle='rgba(20,35,60,.9)';ctx.beginPath();ctx.roundRect(scrX-4,8,8,H-16,3);ctx.fill();ctx.restore();
+    // the screen itself: the pattern as it looks, each row as bright as I(θ)
+    ctx.save();ctx.fillStyle='rgba(10,18,32,.95)';ctx.fillRect(scrX-4,8,8,H-16);
+    for(var sy=8;sy<H-8;sy++){var thS=Math.atan2(sy-cy,L_eff),aS=Math.PI*a_m*Math.sin(thS)/lam_m,IS=Math.abs(aS)<1e-6?1:Math.pow(Math.sin(aS)/aS,2);
+      if(IS<0.004)continue;ctx.fillStyle='rgba('+rgb[0]+','+rgb[1]+','+rgb[2]+','+Math.min(1,Math.sqrt(IS)).toFixed(3)+')';ctx.fillRect(scrX-4,sy,8,1);}
+    ctx.restore();
     // Rays
     [-slitHalf/2,0,slitHalf/2].forEach(function(off){
       ctx.save();ctx.strokeStyle=col;ctx.lineWidth=0.8;ctx.globalAlpha=0.12;ctx.setLineDash([4,8]);
@@ -19207,10 +19226,13 @@ function simOptDiffraction(canvas){
     if(!probeTouched&&animT<9)optLabel(ctx,'✋ גררו את הגלאי',scrX-56,probeY-18+Math.sin(animT*4)*3,'#fbbf24',10);
     ctx.save();ctx.fillStyle='rgba(4,9,20,.9)';ctx.strokeStyle=pCol;ctx.lineWidth=1.5;
     ctx.beginPath();ctx.roundRect(8,H-64,230,56,7);ctx.fill();ctx.stroke();ctx.restore();
-    optLabel(ctx,'גלאי: a·sinθ = '+mP.toFixed(2)+'λ  (θ='+(thP*180/Math.PI).toFixed(1)+'°)',123,H-46,pCol,9.5);
+    optLabel(ctx,'גלאי: a·sinθ = '+mP.toFixed(2)+'λ  (y = '+((probeY-cy)/PXMM).toFixed(1)+' mm)',123,H-46,pCol,9.5);
     optLabel(ctx,isMinP?'מינימום עקיפה! a·sinθ = '+mPR+'λ':mP<0.5?'בתוך הפס המרכזי הבהיר':'בין מינימומים',123,H-25,pCol,9.5);
     var y1mm=ratio<1?Math.tan(Math.asin(ratio))*L_SCR*1000:Infinity;
-    optInfoBox(ctx,8,8,164,['\u200ea = '+v.a+' mm,  λ = '+v.lambda+' nm','\u200eθ₁ = '+th1+'°','מסך במרחק L = 1 m:  y₁ = '+(isFinite(y1mm)?y1mm.toFixed(1)+' mm':'—'),'סדק צר → פיזור רחב']);
+    optInfoBox(ctx,8,8,164,['\u200ea = '+v.a+' mm,  λ = '+v.lambda+' nm','\u200eθ₁ = '+th1+'°','מסך במרחק L = 1 m:  y₁ = '+(isFinite(y1mm)?y1mm.toFixed(1)+' mm':'—')]);
+    if(isFinite(y1mm))kit.model('סדק בודד: '+_skM('sin θ₁ = λ/a = '+v.lambda+'×10⁻⁹ / '+v.a.toFixed(2)+'×10⁻³ = '+ratio.toFixed(4))+' ⇒ '+_skM('y₁ = L tan θ₁ = '+y1mm.toFixed(1)+' mm')+'; רוחב הפס המרכזי '+_skM('2y₁ = '+(2*y1mm).toFixed(1)+' mm')+'.');
+    else kit.model('סדק בודד: '+_skM('λ/a > 1')+' — אין מינימום כלל: האור מתפזר לכל הכיוונים.');
+    kit.check({w1:2*y1mm,minM:isMinP?mPR:0});
     requestAnimationFrame(draw);
   }
   function poll(){if(_simStop[id])return;requestAnimationFrame(draw);}poll();
@@ -34507,7 +34529,7 @@ function buildSim(sim){
   else if(sim.type==='opt-eye')extra=C(rng('eye-dist',-1,1.1,0.301,0.005,'מרחק העצם','','_fmtEyeD')+rng('eye-P',-6,6,0,0.05,'עוצמת המשקפיים P','','_fmtEyeP')+btn('eye-normal','😊 עין תקינה','btn-primary')+btn('eye-myopia','👓 קוצר ראייה','btn-secondary')+btn('eye-hyper','🔭 רוחק ראייה','btn-secondary')+btn('eye-presby','📖 פרסביופיה','btn-secondary'));
   else if(sim.type==='opt-interference')extra=C(rng('int-lambda',380,700,500,10,'אורך גל λ',' nm')+rng('int-d',1,4,2,0.1,'מרחק מקורות d',' μm'));
   else if(sim.type==='opt-youngs')extra=C(rng('ys-lambda',400,700,500,10,'אורך גל λ',' nm')+rng('ys-d',0.1,1,0.3,0.05,'מרחק סדקים d',' mm')+rng('ys-a',0.02,0.2,0.04,0.01,'רוחב כל סדק a',' mm')+rng('ys-L',0.5,3,1.5,0.1,'מרחק מסך L',' m'));
-  else if(sim.type==='opt-diffraction')extra=C(rng('diff-a',0.05,1,0.1,0.01,'רוחב סדק a',' mm')+rng('diff-lambda',380,700,500,10,'אורך גל λ',' nm'));
+  else if(sim.type==='opt-diffraction')extra=C(rng('diff-a',0.03,1,0.1,0.01,'רוחב סדק a',' mm')+rng('diff-lambda',380,700,500,10,'אורך גל λ',' nm'));
   else if(sim.type==='opt-em-spectrum')extra=C(rng('ems-pos',0,100,45,1,'מיקום בספקטרום','%'));
   else if(sim.type==='opt-polarization')extra=C(rng('pol-angle',0,180,45,1,'זווית המנתח','°')+rng('pol-mid',0,180,45,1,'זווית המקטב האמצעי','°')+rng('pol-i0',20,100,80,5,'עוצמה ראשונית I₀','%')+btn('pol-mid','➕ הכניסו מקטב באמצע','btn-secondary'));
   else if(sim.type==='opt-doppler')extra=C(rng('dop-v',0,80,20,1,'מהירות מקור (% c)','%')+rng('dop-wl',400,700,550,5,'אורך גל מקורי λ₀',' nm'));
