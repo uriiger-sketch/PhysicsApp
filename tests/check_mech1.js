@@ -398,6 +398,35 @@ const EXPECT = {
   await drag(rr, [[n3xB, n3y], [n3xB + 20, n3y], [n3xB + 50, n3y]]);
   t('third law: pulling skater B 50 px away from A sets F = 350 N and B is the pusher', close(await val('n3-F'), 350, 0.01) && /B/.test(await p.evaluate(() => document.getElementById('btn-n3-who').textContent)), await val('n3-F'));
 
+  // the first law: hold to push; a force changes the motion, nothing keeps it
+  await open('forces.inertia');
+  t('first law: a prediction is asked first — what keeps a puck moving on frictionless ice', (await predOpts()).length === 4, (await predOpts()).join(' | '));
+  rr = await rect(); W = rr.w;
+  const press = async (ms, side) => {   // hold a finger down beside the block (left of it pushes right)
+    const P = { x: rr.x + W / 2 + (side || -1) * 90, y: rr.y + (W < 600 ? 260 : 240) };
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [P] });
+    await p.waitForTimeout(ms);
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+  };
+  const card = async re => { const s = await last(re); return s ? nums(s)[0] : NaN; };
+  await set('friction', 0); await set('in-F', 15); await set('mass-in', 5);
+  await press(500); await p.waitForTimeout(300); await fresh(); await p.waitForTimeout(1200);
+  const vc = (await all('^v = [−+][\\d.]+ m/s$')).map(s => nums(s)[0]);
+  t('first law, μ = 0: after one push the velocity stays constant — no force, no change', vc.length > 20 && vc[0] > 1 && vc.every(x => x === vc[0]) && (await card('^ΣF = ')) === 0, vc.length + ' frames at ' + vc[0] + ' m/s');
+  await until(() => mission('forces.inertia', 0), 4000);
+  t('... which is the mission "one push on a smooth floor"', await mission('forces.inertia', 0));
+  await click('btn-in-reset'); await set('friction', 0.2); await set('in-F', 5); await fresh();
+  await press(400); await p.waitForTimeout(0);
+  t('first law, μ = 0.2, 5 kg, F = 5 N < μmg: the block stays, static friction fₛ = −F', /fₛ = −5\.0 N/.test(((await all('^fₛ = ')).pop() || '')), (await all('^fₛ = ')).pop());
+  // get it going with 15 N, then balance friction with 10 N on the slider while the push stays on
+  await set('in-F', 15); await click('btn-in-hold'); await p.waitForTimeout(700); await set('in-F', 10); await fresh();
+  await until(() => mission('forces.inertia', 1), 5000);
+  const ifk1 = await card('^fₖ = '), isf1 = await card('^ΣF = ');
+  t('... F = 10 N: kinetic friction −μmg = −9.8 N, ΣF = +0.2 N — nearly constant speed, mission solved', ifk1 === -9.8 && isf1 === 0.2 && await mission('forces.inertia', 1), ifk1 + ', ' + isf1);
+  await click('btn-in-hold'); await fresh(); await p.waitForTimeout(250);
+  const ad = await card('^a = ΣF/m = ');
+  t('... let go: ΣF = −μmg, so a = −μg = −1.96 m/s² — moving right, pushed left: mission solved', ad === -1.96 && await mission('forces.inertia', 2), ad);
+
   // ── 4. the learning experience ──────────────────────────────────────
   console.log('\n4) misconception boxes, quiz keys, hints, units');
   await require('./mech_learning')(p, ['kinematics', 'vectors', 'forces', 'newton2', 'forces2'], t);

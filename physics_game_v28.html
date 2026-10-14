@@ -3366,7 +3366,7 @@ const CONTENT={
       <div class="enrich-formula">${tex('m_{\\text{g}} = m_{\\text{i}}', true)}<p class="enrich-cap">מסה כבידתית = מסה התמדית</p></div>`
     }
   },
-  sim:{type:'inertia',title:'התמדה וחיכוך',desc:'לחצו ״💨 דחפו ימינה״ או ״דחפו שמאלה 💨״ כדי להפעיל כוח. שנו חיכוך. צפו כיצד הגוף ממשיך לנוע.'},
+  sim:{type:'inertia',title:'התמדה וחיכוך',desc:'החזיקו לחוץ ליד הגוש כדי לדחוף אותו — משמאלו הוא נדחף ימינה, מימינו שמאלה — ושחררו כדי להפסיק לדחוף; ״✋ דחיפה רציפה״ דוחפת בלי אצבע, כדי שתוכלו לכוונן את F. השוו משטח חלק למחוספס, ועקבו בגרף v(t) אחרי מה שקורה כשאיש אינו דוחף.'},
   example:{title:'החוק הראשון של ניוטון',text:`חללית נעה בחלל הריק, הרחק מכל כוכב, במהירות ${M('200\\,\\text{m/s}')}, ומנועיה כבויים.`,steps:[
     {q:'מה תאוצתה?',a:`${M('a=0')} — לא פועל עליה שום כוח (${M('\\Sigma F=0')}).`},
     {q:'מה תהיה מהירותה אחרי שעה?',a:`עדיין ${M('200\\,\\text{m/s}')}, באותו כיוון. לא צריך כוח כדי ״להחזיק״ תנועה — רק כדי לשנות אותה.`},
@@ -11481,179 +11481,148 @@ function simVectors(canvas){
 // ═══════════════════════════════════════════════════════════════
 // CH2 SIM 1: INERTIA (Newton's 1st Law) — surface with friction
 // ═══════════════════════════════════════════════════════════════
+// The learning goal (the section's misconception box): a force CHANGES the
+// motion; nothing is needed to keep it. On a frictionless floor one push
+// and the block goes on forever at the speed it was given. On a rough floor
+// friction slows it -- and keeping a constant velocity takes a push that
+// only balances friction, ΣF = 0, which is why everyday life suggests that
+// motion needs a force. The learner pushes by holding the pointer down on
+// either side of the block (the hand pushes away from the pointer's side),
+// for as long as they like. The camera follows the block along an endless
+// floor marked every metre. N = mg, μₛ = μₖ = μ; friction is static, as
+// large as needed up to μN, while the block is at rest.
 function simInertia(canvas){
-  // SECTION: forces.inertia — חוק ניוטון הראשון: עקרון ההתמדה
-  // PEDAGOGY: Two-mode demo. Mode A: spacecraft in vacuum — no forces, constant velocity FOREVER.
-  // Mode B: block on surface with friction — loses speed. Student compares both to understand inertia.
-  // Key: objects don't "need a force to keep moving" — they need a force to CHANGE motion.
-  const H=480; const {ctx,W,dpr}=setupCanvas(canvas,H);
-  const id=canvas.id;
-  const g=9.8;
-  let pT=null, t=0;
-  var mode='space'; // 'space' | 'surface'
-  var vel=0, pos=0;
-  var trail=[];
-  // both bodies start on screen, side by side, so the comparison is visible
-  var spaceVel=0, spacePos=W*0.2, spaceTrail=[];
-  var surfVel=0, surfPos=W*0.2, surfTrail=[];
-  var thrust=false, thrustTimer=0;
-  var launched=false;
-
-  function getFriction(){var e=document.getElementById('inp-friction'); return e?parseFloat(e.value):0.3;}
-  function getMass(){var e=document.getElementById('inp-mass-in'); return e?parseFloat(e.value):5;}
-  function getMode(){
-    var space=document.getElementById('inp-mode-space');
-    var surf=document.getElementById('inp-mode-surf');
-    if(space&&space.checked)return 'space';
-    if(surf&&surf.checked)return 'surface';
-    return mode;
+  const _c0=setupCanvas(canvas,400), W=_c0.W, dpr=_c0.dpr, PH=W<600;
+  const H=PH?430:400; const ctx=PH?setupCanvas(canvas,H).ctx:_c0.ctx;
+  const id=canvas.id, g=9.8, FLOOR=PH?300:282, PPM=PH?46:60, BW=PH?54:64, BH=PH?40:46;
+  var x=0, v=0, cam=0, push=0, keep=false, pT=null, hist=[], t=0, coast=0, steady=0, everPushed=false, maxV=4;
+  function getMu(){var e=document.getElementById('inp-friction');return e?parseFloat(e.value):0;}
+  function getM(){var e=document.getElementById('inp-mass-in');return e?parseFloat(e.value):5;}
+  function getF(){var e=document.getElementById('inp-in-F');return e?parseFloat(e.value):15;}
+  function reset(){x=0;v=0;cam=0;push=0;keep=false;keepLabel();hist=[];t=0;coast=0;steady=0;maxV=4;}
+  // a push that stays on without a finger on the screen, so the force can be
+  // changed on its slider while it pushes
+  var keepB=document.getElementById('btn-in-hold');
+  function keepLabel(){if(keepB)keepB.textContent=keep?'✋ דחיפה רציפה: פועלת':'✋ דחיפה רציפה: כבויה';}
+  if(keepB)keepB.addEventListener('click',function(){keep=!keep;everPushed=true;keepLabel();});
+  function dir(){return push||(keep?1:0);}
+  // the forces now: the push, friction (static or kinetic), their sum
+  function forces(){
+    var m=getM(), F=dir()*getF(), fm=getMu()*m*g, f, st=false;
+    if(Math.abs(v)<1e-9){ if(Math.abs(F)<=fm+1e-9){f=-F;st=true;} else f=-Math.sign(F)*fm; }
+    else f=-Math.sign(v)*fm;
+    return {m:m,F:F,f:f,S:F+f,st:st,fm:fm};
   }
-
-  var pushR=document.getElementById('btn-push-right');
-  var pushL=document.getElementById('btn-push-left');
-  if(pushR)pushR.addEventListener('click',function(){
-    var m=getMass();
-    spaceVel+=20/m; surfVel+=20/m;
-    thrust=true; thrustTimer=0.4; launched=true;
+  function step(dt){
+    var guard=0;
+    while(dt>1e-6&&guard++<3){
+      var q=forces(), a=q.S/q.m;
+      // friction can stop the block but never send it back
+      if(Math.abs(v)>1e-9&&a*v<0&&Math.abs(a*dt)>=Math.abs(v)){var ts=Math.abs(v/a);x+=v*ts+0.5*a*ts*ts;v=0;dt-=ts;continue;}
+      x+=v*dt+0.5*a*dt*dt;v+=a*dt;dt=0;
+    }
+  }
+  // ── hands: hold the pointer down beside the block; the hand pushes away from it ──
+  function bx(){return W/2+(x-cam)*PPM;}
+  simDrag(canvas,dpr,{
+    down:function(p){everPushed=true;push=p.x<bx()?1:-1;},
+    move:function(p){if(push)push=p.x<bx()?1:-1;},
+    up:function(){push=0;}
   });
-  if(pushL)pushL.addEventListener('click',function(){
-    var m=getMass();
-    spaceVel-=20/m; surfVel-=20/m;
-    thrust=true; thrustTimer=0.4; launched=true;
-  });
+  var keyDir=0;
+  _mkKeys(canvas,{'ArrowRight':function(){everPushed=true;push=1;keyDir=1;},'ArrowLeft':function(){everPushed=true;push=-1;keyDir=-1;}});
+  canvas.addEventListener('keyup',function(e){if(e.key==='ArrowRight'||e.key==='ArrowLeft'){push=0;keyDir=0;}});
+  var rb=document.getElementById('btn-in-reset');if(rb)rb.addEventListener('click',reset);
 
-  // Layout: two strips, top=space, bottom=surface
-  const SPACE_Y=H*0.25;
-  const SURF_Y=H*0.70;
-  const STRIP_H=80;
+  var kit=simKit(canvas,{missions:[
+    {text:'על משטח חלק ('+_skM('μ = 0')+') דחפו את הגוש דחיפה קצרה אחת ועזבו. מה קורה למהירותו אחר כך?',
+     hint:'הורידו את החיכוך לאפס, החזיקו את הלחיצה שנייה אחת ושחררו, וצפו בגרף המהירות.',
+     why:'אחרי שעזבתם '+_skM('ΣF = 0')+', ולכן המהירות קבועה — היא לא הייתה קטנה גם אחרי שעה. כוח אינו דרוש כדי להמשיך לנוע; הוא דרוש כדי לשנות את התנועה.',
+     done:function(s){return s.mu<1e-6&&s.coast>=2.5&&Math.abs(s.v)>0.3;}},
+    {text:'על משטח מחוספס, דחפו כך שהגוש ינוע במהירות קבועה במשך '+_skM('2 s')+'.',
+     hint:'הפעילו ״✋ דחיפה רציפה״ כדי לצאת לדרך, ואז כוונו את F במחוון. מהירות קבועה פירושה '+_skM('ΣF = 0')+': מה צריך להיות F לעומת החיכוך '+_skM('μmg')+'?',
+     why:'בתנועה במהירות קבועה הדחיפה רק מאזנת את החיכוך: '+_skM('F = μmg')+' ו־'+_skM('ΣF = 0')+'. זה מה שרואים כל יום — ולכן נדמה ש״צריך כוח כדי לנוע״.',
+     done:function(s){return s.mu>=0.1&&s.steady>=2;}},
+    {text:'מצאו רגע שבו הגוש נע ימינה, אבל הכוח השקול עליו פונה שמאלה.',
+     hint:'על משטח מחוספס: דחפו ימינה, ואז עזבו.',
+     why:'הגוש נע ימינה והשקול — החיכוך — פונה שמאלה, ולכן הוא מאט. השקול קובע לאן המהירות משתנה, לא לאן הגוף נע.',
+     done:function(s){return s.v>0.2&&s.S<-0.3;}}
+  ]});
+  var model=_mkModel(kit);
+  kit.predict({q:'דיסקית מחליקה על קרח חסר חיכוך אחרי דחיפה אחת. מה צריך כדי שתמשיך לנוע במהירות קבועה?',
+    opts:['לדחוף אותה כל הזמן בכוח קבוע','לדחוף אותה בכוח שהולך וגדל','שום כוח — היא תמשיך לבד','כוח קטן שיאזן את ההתמדה'],correct:2,
+    why:'בלי חיכוך אין שום כוח שיאט אותה, ולכן '+_skM('ΣF = 0')+' והמהירות קבועה מעצמה. התמדה אינה כוח שצריך לאזן — היא הנטייה של הגוף לשמור על מהירותו. נסו: '+_skM('μ = 0')+', דחיפה אחת.'});
 
   function draw(ts){
     if(_simStop[id])return;
-    if(!pT)pT=ts; var dt=Math.min((ts-pT)/1000,.04); pT=ts;
-    t+=dt;
-    if(thrustTimer>0)thrustTimer-=dt; else thrust=false;
-    var mu=getFriction(), m=getMass();
-
-    // Space: NO force, constant velocity
-    spacePos+=spaceVel*dt*50;
-    if(spacePos>W+60)spacePos=-60;
-    if(spacePos<-60)spacePos=W+60;
-    spaceTrail.push({x:spacePos,v:spaceVel});
-    if(spaceTrail.length>100)spaceTrail.shift();
-
-    // Surface: friction decelerates
-    // Kinetic friction removes μg·dt of speed per step and stops the block
-    // exactly; it can never push it back the other way. (The old update could
-    // overshoot zero by more than its 0.03 m/s dead band and then chatter.)
-    var _dv=mu*g*dt, _v0=surfVel;
-    surfVel=Math.abs(surfVel)<=_dv?0:surfVel-Math.sign(surfVel)*_dv;
-    surfPos+=(_v0+surfVel)/2*dt*50;
-    if(surfPos>W+60)surfPos=-60;
-    if(surfPos<-60)surfPos=W+60;
-    surfTrail.push({x:surfPos,v:surfVel});
-    if(surfTrail.length>100)surfTrail.shift();
-
+    if(pT===null)pT=ts; var dt=Math.min((ts-pT)/1000,.04); pT=ts;
+    step(dt); t+=dt;
+    var q=forces(), m=q.m, mu=getMu(), a=q.S/m, moving=Math.abs(v)>1e-9;
+    coast=dir()===0&&moving?coast+dt:0;
+    steady=dir()!==0&&mu>=0.1&&Math.abs(v)>0.3&&Math.abs(q.S)<=0.5?steady+dt:0;
+    cam+=(x-cam)*Math.min(1,dt*3.5);
+    hist.push([t,v]);while(hist.length&&hist[0][0]<t-8)hist.shift();
+    maxV=Math.max(maxV,Math.abs(v)*1.1);
     simBg(ctx,W,H);
+    // ── the floor: marked every metre, rough or smooth ──
+    var fg=ctx.createLinearGradient(0,FLOOR,0,H);fg.addColorStop(0,mu>0.001?'#13283f':'#0e2a3f');fg.addColorStop(1,'#060d1a');
+    ctx.fillStyle=fg;ctx.fillRect(0,FLOOR,W,H-FLOOR);
+    ctx.save();ctx.strokeStyle=mu>0.001?'#3d6480':'rgba(186,230,253,.6)';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(0,FLOOR);ctx.lineTo(W,FLOOR);ctx.stroke();ctx.restore();
+    var m0=Math.floor(cam-W/2/PPM)-1;
+    for(var mm=m0;mm<m0+W/PPM+3;mm++){var sx=W/2+(mm-cam)*PPM;
+      ctx.save();ctx.strokeStyle='rgba(125,160,200,.35)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(sx,FLOOR);ctx.lineTo(sx,FLOOR+(mm%5===0?12:6));ctx.stroke();ctx.restore();
+      if(mm%5===0)simText(ctx,mm+' m',sx,FLOOR+24,'#7d8da6',9,'center');
+      if(mu>0.001)for(var k2=0;k2<4;k2++){var hx=sx+k2*PPM/4;ctx.save();ctx.strokeStyle='rgba(125,160,200,'+(0.1+mu*0.8)+')';ctx.beginPath();ctx.moveTo(hx,FLOOR);ctx.lineTo(hx+3,FLOOR+4);ctx.stroke();ctx.restore();}}
+    simText(ctx,mu>0.001?'משטח מחוספס:  μ = '+mu.toFixed(2):'משטח חלק:  μ = 0',8,FLOOR+40,mu>0.001?'#94a3b8':'#7dd3fc',10,'left',true);
 
-    // ── TOP: Space strip ──────────────────────────────────
-    // Stars background
-    ctx.save(); ctx.fillStyle='rgba(6,14,28,.6)'; ctx.fillRect(0,SPACE_Y-STRIP_H/2,W,STRIP_H+4); ctx.restore();
-    for(var si=0;si<30;si++){
-      var sx=((si*137.5)%W), sy=SPACE_Y-STRIP_H/2+((si*71.3)%STRIP_H);
-      var ss=0.5+((si*23.7)%1.5);
-      ctx.save(); ctx.fillStyle='rgba(255,255,255,'+( 0.3+((si*17)%0.5)+')'); ctx.beginPath(); ctx.arc(sx,sy,ss,0,Math.PI*2); ctx.fill(); ctx.restore();
-    }
-    ctx.save(); ctx.strokeStyle='rgba(30,58,82,.5)'; ctx.lineWidth=1;
-    ctx.beginPath(); ctx.moveTo(0,SPACE_Y-STRIP_H/2); ctx.lineTo(W,SPACE_Y-STRIP_H/2); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(0,SPACE_Y+STRIP_H/2+4); ctx.lineTo(W,SPACE_Y+STRIP_H/2+4); ctx.stroke();
-    ctx.restore();
-    // Space label
-    simText(ctx,'חלל ריק — אין כוחות',W/2,SPACE_Y-STRIP_H/2+10,'#94a3b8',8,undefined,true);
-    // Space trail
-    for(var ti=1;ti<spaceTrail.length;ti++){
-      ctx.save(); ctx.globalAlpha=(ti/spaceTrail.length)*0.3;
-      ctx.fillStyle=spaceVel>0?'#60a5fa':'#f87171';
-      ctx.fillRect(spaceTrail[ti].x-3,SPACE_Y-4,6,8); ctx.restore();
-    }
-    // Spacecraft
-    var sVis=Math.abs(spaceVel);
-    var sCol=sVis>0.1?'#60a5fa':'#475569';
-    ctx.save(); ctx.shadowColor=sVis>0.1?sCol:'transparent'; ctx.shadowBlur=sVis>0.1?16:0;
-    // Rocket shape
-    var rx=spacePos, ry=SPACE_Y;
-    ctx.fillStyle=sCol+'cc'; ctx.strokeStyle=sCol; ctx.lineWidth=2;
-    ctx.beginPath(); ctx.moveTo(rx+18,ry); ctx.lineTo(rx-12,ry-12); ctx.lineTo(rx-12,ry+12); ctx.closePath(); ctx.fill(); ctx.stroke();
-    // No flame while coasting: nothing pushes it, and that is the whole point.
-    // The flame appears only during the brief push.
-    if(thrust){
-      ctx.fillStyle='rgba(239,68,68,.8)';
-      ctx.beginPath(); ctx.moveTo(rx-12,ry-8); ctx.lineTo(rx-36,ry); ctx.lineTo(rx-12,ry+8); ctx.closePath(); ctx.fill();
-    }
-    ctx.shadowBlur=0; ctx.restore();
-    // Velocity label
-    simText(ctx,'v = '+spaceVel.toFixed(1)+' m/s',rx,ry-22,sVis>0.1?'#22d3ee':'#94a3b8',10,undefined,true);
-    if(launched&&Math.abs(spaceVel)>0.1) simText(ctx,'המנוע כבוי — והמהירות אינה משתנה',W/2,SPACE_Y+STRIP_H/2-8,'#34d399',10,undefined,true);
+    // ── the block, the hand, the forces ──
+    var X=bx(), top=FLOOR-BH, cy=FLOOR-BH/2;
+    var bg=ctx.createLinearGradient(X,top,X,FLOOR);bg.addColorStop(0,'rgba(245,158,11,.92)');bg.addColorStop(1,'rgba(180,83,9,.7)');
+    ctx.save();ctx.shadowColor='rgba(245,158,11,.4)';ctx.shadowBlur=moving?14:4;drawBox(ctx,X-BW/2,top,BW,BH,bg,'#fbbf24',2,6);ctx.restore();
+    simText(ctx,m.toFixed(1)+' kg',X,cy+4,'#1f1300',11,'center',true);
+    // the hand: its palm on the face it pushes, the forearm behind it
+    if(dir()){var hs=dir()>0?-1:1, face=X+hs*BW/2;
+      ctx.save();ctx.fillStyle='#fcd9b6';ctx.strokeStyle='#d6a77a';ctx.lineWidth=1.5;
+      ctx.beginPath();ctx.roundRect(Math.min(face+hs*10,face+hs*46),cy+2,36,11,5);ctx.fill();ctx.stroke();
+      ctx.beginPath();ctx.roundRect(Math.min(face,face+hs*12),cy-6,12,26,6);ctx.fill();ctx.stroke();ctx.restore();}
+    // the horizontal forces, one scale (the vertical ones, W and N = mg,
+    // cancel and are left to the readings)
+    var SC=Math.min(4,(PH?100:130)/Math.max(5,Math.abs(q.F),q.fm));
+    // the push: an arrow that ends on the face it pushes, named at its tail
+    if(Math.abs(q.F)>0.01){var fe=X-Math.sign(q.F)*(BW/2+2),fs=fe-q.F*SC;simArrow(ctx,fs,cy-14,fe,cy-14,'#34d399',3,12);
+      simText(ctx,'F',fs-Math.sign(q.F)*8,cy-10,'#34d399',11,'center',true);}
+    if(Math.abs(q.f)>0.01)_mkVec(ctx,X,FLOOR+4,X+q.f*SC,FLOOR+4,'#f87171',q.st?'fₛ':'fₖ',W,H,2.8);
+    // the net force and the velocity, above the block
+    var ay=top-20;
+    if(Math.abs(q.S)>0.05)_mkVec(ctx,X,ay,X+q.S*SC,ay,'#fb923c','ΣF',W,H,3);
+    else simText(ctx,'ΣF = 0',X,ay+4,'#fb923c',11,'center',true);
+    if(Math.abs(v)>0.02)_mkVec(ctx,X,ay-24,X+Math.max(-110,Math.min(110,v*18)),ay-24,'#22d3ee','v',W,H,2.6);
 
-    // ── BOTTOM: Surface strip ────────────────────────────
-    var sfY=SURF_Y;
-    ctx.save(); ctx.fillStyle='#0f2035'; ctx.fillRect(0,sfY+30,W,STRIP_H-26); ctx.restore();
-    ctx.save(); ctx.strokeStyle='#2d5275'; ctx.lineWidth=2;
-    ctx.beginPath(); ctx.moveTo(0,sfY+30); ctx.lineTo(W,sfY+30); ctx.stroke(); ctx.restore();
-    // Texture by friction amount
-    var texD=Math.max(4,Math.round(8*(1-getFriction())))+Math.round(getFriction()*16);
-    for(var xi=0;xi<W;xi+=texD){
-      ctx.save(); ctx.strokeStyle='rgba(45,82,117,'+( getFriction()*0.6)+')'; ctx.lineWidth=1;
-      ctx.beginPath(); ctx.moveTo(xi,sfY+30); ctx.lineTo(xi-4,sfY+36); ctx.stroke(); ctx.restore();
-    }
-    simText(ctx,'משטח עם חיכוך:  μ = '+getFriction().toFixed(2),W/2,sfY+46,'#94a3b8',10,undefined,true);
-    // Surface trail
-    for(var ti2=1;ti2<surfTrail.length;ti2++){
-      ctx.save(); ctx.globalAlpha=(ti2/surfTrail.length)*0.25;
-      ctx.fillStyle=surfVel>0?'#fb923c':'#f87171';
-      ctx.fillRect(surfTrail[ti2].x-3,sfY+12,6,6); ctx.restore();
-    }
-    // Friction arrow
-    var surfS=Math.abs(surfVel);
-    if(surfS>0.05){
-      var fk=mu*getMass()*g;
-      var fDir=-Math.sign(surfVel);
-      var fLen=Math.min(55,fk*1.2);
-      simArrow(ctx,surfPos,sfY+6,surfPos+fDir*fLen,sfY+6,'#f87171',2.5,9);
-      simText(ctx,'f = '+fk.toFixed(1)+' N',surfPos+fDir*fLen/2,sfY-4,'#f87171',10,undefined,true);
-    }
-    // Surface block
-    var bW=48,bH=36;
-    var bCol=surfS>0.1?'#f59e0b':'#475569';
-    ctx.save(); ctx.shadowColor=surfS>0.1?bCol:'transparent'; ctx.shadowBlur=surfS>0.1?12:0;
-    ctx.fillStyle=bCol+'cc'; ctx.strokeStyle=bCol; ctx.lineWidth=2;
-    ctx.beginPath(); ctx.roundRect(surfPos-bW/2,sfY+30-bH,bW,bH,4); ctx.fill(); ctx.stroke();
-    ctx.shadowBlur=0; ctx.restore();
-    simText(ctx,getMass()+' kg',surfPos,sfY+30-bH/2+4,'#fff',10,undefined,true);
-    simText(ctx,'v = '+surfVel.toFixed(1)+' m/s',surfPos,sfY+30-bH-18,surfS>0.1?'#fbbf24':'#94a3b8',10,undefined,true);
-    if(launched&&surfS<0.05&&Math.abs(spaceVel)>0.1){
-      simText(ctx,'נעצר — כוח החיכוך שינה את מהירותו',W/2,sfY+68,'#f87171',10,undefined,true);
-    }
+    // ── readings (left) and v(t) of the last 8 s (right) ──
+    var cw=PH?Math.floor(W/2)-12:Math.min(240,Math.floor(W*0.3)), ch=PH?118:112;
+    _mkCard(ctx,8,8,cw,ch);
+    [['F = '+_mkS(q.F,1)+' N','#86efac'],[(q.st?'fₛ = ':'fₖ = ')+_mkS(q.f,1)+' N','#fca5a5'],['ΣF = '+_mkS(q.S,1)+' N','#fdba74'],
+     ['a = ΣF/m = '+_mkS(a,2)+' m/s²','#67e8f9'],['v = '+_mkS(v,2)+' m/s','#a5f3fc'],['N = mg = '+(m*g).toFixed(1)+' N','#c4b5fd']]
+      .forEach(function(r,i){simText(ctx,r[0],8+cw/2,8+17+i*(ch-14)/6,r[1],i===5?9.5:10.5,'center',i<5);});
+    var gx=8+cw+(PH?24:40), gw=W-gx-12, gh=ch-24;
+    var vR=_mkUp(maxV), pl=_mkPlot(ctx,{x:gx,y:14,w:gw,h:gh,t1:8,lo:-vR,hi:vR,name:'v (m/s)',col:'#22d3ee'});
+    if(hist.length>1){var t0=Math.max(0,t-8);ctx.save();ctx.strokeStyle='#22d3ee';ctx.lineWidth=2;ctx.beginPath();
+      hist.forEach(function(h2,i){var X2=pl.X(h2[0]-t0),Y2=pl.Y(h2[1]);i?ctx.lineTo(X2,Y2):ctx.moveTo(X2,Y2);});ctx.stroke();ctx.restore();}
+    // what the learner is seeing
+    var msg=q.st&&dir()?'הגוש אינו זז: החיכוך הסטטי מאזן את F (עד μmg)':
+      Math.abs(q.S)<=0.05&&moving?'ΣF = 0 — המהירות קבועה':moving?(q.S*v>0?'ΣF בכיוון התנועה — המהירות גדלה':'ΣF נגד התנועה — המהירות קטנה'):
+      !everPushed?'החזיקו לחוץ משמאל לגוש — היד תדחוף אותו ימינה':'';
+    if(msg)simText(ctx,msg,W/2,H-12,!everPushed?'#fbbf24':'#cbd5e1',10.5,'center',true);
 
-    // ── Main info ─────────────────────────────────────────
-    ctx.save(); ctx.fillStyle='rgba(6,14,28,.92)'; ctx.strokeStyle='#1e4060'; ctx.lineWidth=1.5;
-    ctx.beginPath(); ctx.roundRect(8,6,W-16,42,6); ctx.fill(); ctx.stroke(); ctx.restore();
-    simText(ctx,'חוק ניוטון הראשון: כאשר ΣF = 0 המהירות קבועה',W/2,19,'#22d3ee',11,undefined,true);
-    var compText=launched?
-      (surfS<0.05?'בחלל המהירות נשמרת; על המשטח הגוף נעצר':'בחלל המהירות נשמרת; על המשטח היא קטנה')
-      : 'לחצו ״דחפו״: שני הגופים מקבלים אותה דחיפה';
-    simText(ctx,compText,W/2,36,launched?'#fbbf24':'#94a3b8',10,undefined,true);
-
-    // Middle comparison arrow
-    ctx.save(); ctx.strokeStyle='rgba(34,211,153,.3)'; ctx.lineWidth=1; ctx.setLineDash([4,6]);
-    ctx.beginPath(); ctx.moveTo(W*0.15,SPACE_Y+STRIP_H/2+8); ctx.lineTo(W*0.15,SURF_Y-STRIP_H/2-8);
-    ctx.moveTo(W*0.85,SPACE_Y+STRIP_H/2+8); ctx.lineTo(W*0.85,SURF_Y-STRIP_H/2-8); ctx.stroke();
-    ctx.setLineDash([]); ctx.restore();
-    simText(ctx,'אותה דחיפה, אותה מסה — מה ההבדל?',W/2,(SPACE_Y+STRIP_H/2+SURF_Y-STRIP_H/2)/2,'#34d399',10,undefined,true);
-
+    // ── the model line ──
+    if(q.st)model('במנוחה: '+_skM('fₛ = −F')+' (עד '+_skM('μmg = '+q.fm.toFixed(1)+' N')+'), ולכן '+_skM('ΣF = 0')+' ו־'+_skM('a = 0'));
+    else model(_skM('ΣF = F + f = '+_mkS(q.F,1)+' '+(q.f<0?'− ':'+ ')+Math.abs(q.f).toFixed(1)+' = '+_mkS(q.S,1)+' N')+' · '+_skM('a = ΣF/m = '+_mkS(q.S,1)+'/'+m.toFixed(1)+' = '+_mkS(a,2)+' m/s²'));
+    kit.check({mu:mu,v:v,coast:coast,steady:steady,S:q.S,push:dir()});
     requestAnimationFrame(draw);
   }
   requestAnimationFrame(draw);
 }
+
 function simNewton2(canvas){
   const H=520; const {ctx,W,dpr}=setupCanvas(canvas,H);
   const id=canvas.id;
@@ -34855,7 +34824,7 @@ function buildSim(sim){
   else if(sim.type==='acceleration')extra=C(rng('acc-a',-10,10,3,0.5,'תאוצה a',' m/s²')+rng('acc-v0',-8,8,0,1,'v₀ ראשונית',' m/s')+btn('acc-reset','↺ איפוס','btn-secondary'));
   else if(sim.type==='freefall')extra=C(rng('v0',0,30,18,1,'v₀ ראשונית',' m/s')+rng('ff-g',1.6,25,9.8,0.2,'g כבידה',' m/s²')+rng('ff-m',0.1,10,0.5,0.1,'מסת הכדור m',' kg')+btn('throw','🎯 זרקו!','btn-primary')+btn('ff-pause','⏸ עצרו','btn-secondary'));
   else if(sim.type==='force-types')extra=C(rng('ft-F',0,40,12,1,'דחיפה F',' N')+rng('ft-x',0.01,0.15,0.05,0.01,'מתיחת הקפיץ x',' m'));
-  else if(sim.type==='inertia')extra=C(rng('friction',0,0.8,0.4,0.05,'חיכוך μ')+rng('mass-in',1,15,5,0.5,'מסה m',' kg')+btn('push-right','💨 דחפו ימינה','btn-primary')+btn('push-left','דחפו שמאלה 💨','btn-secondary'));
+  else if(sim.type==='inertia')extra=C(rng('friction',0,0.5,0.2,0.05,'חיכוך μ')+rng('in-F',0,40,15,0.5,'כוח הדחיפה F',' N')+rng('mass-in',1,15,5,0.5,'מסה m',' kg')+btn('in-hold','✋ דחיפה רציפה: כבויה','btn-secondary')+btn('in-reset','↺ איפוס','btn-secondary'));
   else if(sim.type==='newton2')extra=C(rng('mass',1,20,5,0.5,'מסה m',' kg')+rng('n2-F',-60,60,20,1,'כוח F',' N')+rng('n2-mu',0,0.8,0,0.05,'חיכוך μ')+btn('n2-reset','↺ איפוס','btn-secondary'));
   else if(sim.type==='newton3')extra=C(rng('n3-mA',20,90,60,5,'מסת A',' kg')+rng('n3-mB',20,90,30,5,'מסת B',' kg')+rng('n3-F',50,600,300,10,'כוח דחיפה',' N')+btn('n3-push','💥 דחפו!')+btn('n3-who','🔁 הדוחף: A','btn-secondary')+btn('n3-reset','↺ איפוס','btn-secondary'));
   else if(sim.type==='normal-force')extra=C(rng('nf-theta',0,70,0,1,'זווית θ','°')+rng('nf-mass',1,12,4,0.5,'מסה m',' kg')+rng('nf-mu',0,0.7,0,0.05,'חיכוך μ')+btn('nf-reset','↺ איפוס','btn-secondary'));
