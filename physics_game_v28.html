@@ -5853,7 +5853,7 @@ const OPTICS_CONTENT={
       <div class="mis-block"><b>⚠️ טעות נפוצה:</b> למדוד את הזווית מן <b>המראה</b>. בחוק ההחזרה, כמו בחוק סנל, כל הזוויות נמדדות מן ה<b>נורמל</b>. קרן שיוצרת ${M('30^\\circ')} עם פני המראה פוגעת בזווית ${M('\\theta_i=60^\\circ')}, ובזווית זו גם תוחזר. בסימולציה שתי הזוויות נמדדות מהקו המסומן ״נורמל״.</div>
       <div class="theory-anim">${animCanvas('anim-refl-law',140,'חוק ההחזרה: θᵢ = θᵣ')}</div>`,
   },
-  sim:{type:'opt-reflection',desc:'גררו את קרן האור ושנו את זווית הפגיעה. שימו לב שזווית ההחזרה תמיד שווה לזווית הפגיעה — הנמדדות מהנורמל.'},
+  sim:{type:'opt-reflection',desc:'גררו את קרן האור ושנו את זווית הפגיעה, ונסו לפגוע במטרה בקרן המוחזרת. זווית ההחזרה שווה תמיד לזווית הפגיעה — ושתיהן נמדדות מהנורמל; הזווית מפני המראה מוצגת באפור.'},
   example:{title:'חוק ההחזרה',text:`קרן אור פוגעת במראה בזווית ${M('40^\\circ')} <b>מפני המראה</b>. מהי זווית ההחזרה?`,
     steps:[
       {q:'מהי זווית הפגיעה, הנמדדת תמיד מהאנך (הנורמל)?',a:`${M('\\theta_i=90^\\circ-40^\\circ=50^\\circ')}`},
@@ -17972,6 +17972,24 @@ function simOptReflection(canvas){
     if(dy<4)return;
     simSyncSlider('ref-angle',Math.atan2(Math.abs(dx),dy)*180/Math.PI,0);
   }
+  canvas.tabIndex=0;
+  canvas.addEventListener('keydown',function(e){if(e.key!=='ArrowLeft'&&e.key!=='ArrowRight')return;e.preventDefault();
+    simSyncSlider('ref-angle',getAngle()+(e.key==='ArrowLeft'?1:-1),0);});
+  // a target the reflected beam must hit: only θᵣ = θᵢ gets it there
+  var TH_T=52,hitOnce=false;
+  var kit=simKit(canvas,{missions:[
+    {text:'פגעו במטרה בקרן המוחזרת',
+     hint:'המטרה נמצאת ב־'+_skM('52°')+' מהנורמל, מימינו. באיזו זווית צריכה הקרן להגיע משמאל?',
+     why:_skM('θᵣ = θᵢ')+': הקרן המוחזרת יוצאת בזווית שבה הנכנסת הגיעה, בצד השני של הנורמל — ולכן '+_skM('θᵢ = 52°')+'.',
+     done:function(s){return Math.abs(s.th-TH_T)<1;}},
+    {text:'כוונו את הקרן כך שתיצור 30° עם פני המראה',
+     hint:'הזווית שהסימולציה מודדת היא מהנורמל, לא מהמראה. מה הקשר ביניהן?',
+     why:'כל הזוויות בחוק ההחזרה נמדדות מהנורמל: 30° מפני המראה הן '+_skM('θᵢ = 90° − 30° = 60°')+' — ובזווית זו הקרן גם מוחזרת.',
+     done:function(s){return Math.abs(s.th-60)<0.5;}},
+    {text:'החזירו את האור בדיוק אל המקום שממנו בא',
+     hint:'מתי הקרן המוחזרת מתלכדת עם הנכנסת?',
+     why:'כש־'+_skM('θᵢ = 0')+' גם '+_skM('θᵣ = 0')+': קרן שפוגעת לאורך הנורמל חוזרת על עצמה. מחזיר אור של אופניים (פינת קובייה) משיג זאת בכל זווית, בעזרת שלוש מראות ניצבות זו לזו.',
+     done:function(s){return s.th<0.5;}}]});
   function draw(){
     if(_simStop[id])return;
     animT+=0.025;
@@ -18052,6 +18070,16 @@ function simOptReflection(canvas){
     ctx.beginPath();ctx.arc(W-24,22,10,0,Math.PI*2);ctx.fill();optNoGlow(ctx);ctx.restore();
     var cn=optColorName(wl);
     optLabel(ctx,cn+' '+Math.round(wl)+'nm',W-24,38,'#94a3b8',8);
+    // the target
+    var Lt=Math.min(188,MY-30)*0.8,tx=cx+Lt*Math.sin(TH_T*Math.PI/180),ty=MY-Lt*Math.cos(TH_T*Math.PI/180),hitT=Math.abs(angle-TH_T)<1;
+    if(hitT)hitOnce=true;
+    ctx.save();[14,9,4].forEach(function(r,i){ctx.strokeStyle=hitT?'#34d399':i%2?'#f87171':'#fca5a5';ctx.lineWidth=2;if(hitT)optGlow(ctx,'#34d399',12);ctx.beginPath();ctx.arc(tx,ty,r,0,Math.PI*2);ctx.stroke();});ctx.restore();
+    optLabel(ctx,hitT?'פגיעה! ✓':'מטרה',tx,ty-24,hitT?'#34d399':'#fca5a5',10);
+    // the angle from the mirror's surface, in grey: not the one in the law
+    var gA=90-angle;
+    if(angle<84)optLabel(ctx,'מהמראה: '+gA+'°',cx-Math.min(150,W*0.3),MY-16,'#94a3b8',9.5,'center');
+    kit.model('חוק ההחזרה: '+_skM('θᵣ = θᵢ = '+angle+'°')+' (מהנורמל); הזווית מפני המראה '+_skM('90° − '+angle+'° = '+gA+'°')+'.');
+    kit.check({th:angle});
     requestAnimationFrame(draw);
   }
   function poll(){if(_simStop[id])return;requestAnimationFrame(draw);}poll();
@@ -34559,7 +34587,7 @@ function buildSim(sim){
   // OPTICS CONTROLS
   else if(sim.type==='opt-em-wave')extra=C(rng('emw-wl',380,700,500,5,'אורך גל λ',' nm'));
   else if(sim.type==='opt-refr-index')extra=C(rng('ri-n',1,2.5,1.5,0.01,'מדד שבירה n')+rng('ri-wl',380,700,500,5,'אורך גל בריק λ₀',' nm'));
-  else if(sim.type==='opt-reflection')extra=C(rng('ref-angle',5,85,40,1,'זווית פגיעה θᵢ','°')+rng('ref-wl',380,700,550,5,'צבע אור λ',' nm'));
+  else if(sim.type==='opt-reflection')extra=C(rng('ref-angle',0,85,40,1,'זווית פגיעה θᵢ','°')+rng('ref-wl',380,700,550,5,'צבע אור λ',' nm'));
   else if(sim.type==='opt-plane-mirror')extra=C(rng('pm-dist',0.5,4,2,0.1,'מרחק מהמראה dₒ',' m')+rng('pm-top',0.5,2.2,1.4,0.01,'הקצה העליון של המראה',' m')+rng('pm-bot',0,1.6,0.6,0.01,'הקצה התחתון של המראה',' m'));
   else if(sim.type==='opt-concave-mirror')extra=C(rng('cm-do',15,400,213,1,'מרחק העצם dₒ',' mm')+rng('cm-f',45,140,85,1,'אורך מוקד f',' mm')+rng('cm-wl',380,700,550,5,'צבע אור λ',' nm'));
   else if(sim.type==='opt-convex-mirror')extra=C(rng('cvm-do',15,400,213,1,'מרחק העצם dₒ',' mm')+rng('cvm-f',45,140,85,1,'אורך מוקד |f|',' mm')+rng('cvm-wl',380,700,550,5,'צבע אור λ',' nm'));

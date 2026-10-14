@@ -407,6 +407,16 @@ const EXPECT = {
   await setv('prism-ang', Math.round(asind(nF(700) * sind(30)))); await setv('prism-ang', 38);
   t('prism: every mission is reachable', await missions() === '111', await missions());
 
+  // ── law of reflection: θᵣ = θᵢ and the angle from the surface 90° − θᵢ; the
+  // target sits where only θᵢ = 52° sends the reflected ray ──
+  await open('opt-reflection', 'refl-laws');
+  for (const th of [40, 60, 0]) { await setv('ref-angle', th); const tx = await modelTx();
+    t(`reflection θᵢ=${th}°`, tx.includes('θᵣ = θᵢ = ' + th + '°') && tx.includes('90° − ' + th + '° = ' + (90 - th) + '°'), tx); }
+  await p.evaluate(() => { state.missions = {}; render(); }); await p.waitForTimeout(1100);
+  await p.evaluate(() => document.querySelector('#app .sim-container').dispatchEvent(new Event('click')));
+  await setv('ref-angle', 52); await setv('ref-angle', 60); await setv('ref-angle', 0);
+  t('reflection: every mission is reachable', await missions() === '111', await missions());
+
   // ── the eye: vergence model, glasses touching the eye. Sharp exactly when
   // 1/d − P lies in [D_far, D_far + A]; the glasses' image dᵢ = 1/(P − 1/d)
   // is in the equation line; the section's problem (+3.33 D) is a mission ──
