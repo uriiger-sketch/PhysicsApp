@@ -152,6 +152,78 @@ const EXPECT = {
   });
   t('convex mirror: the virtual image is drawn behind the mirror', behind.right > 40, JSON.stringify(behind));
 
+  // ── the imaging bench (both lenses, both mirrors): the live equation line
+  // must carry the thin-lens / mirror equation's own dᵢ and m, the image must
+  // be drawn where that dᵢ puts it, the lens's f must follow n(λ), and every
+  // mission must be reachable ──
+  const setv = (id, v) => p.evaluate(([id, v]) => { const e = document.getElementById('inp-' + id); e.value = v; e.dispatchEvent(new Event('input', { bubbles: true })); }, [id, v]);
+  const modelTx = () => p.evaluate(() => (document.querySelector('.sk-model-tx') || {}).textContent || '');
+  const missions = () => p.evaluate(() => [...document.querySelectorAll('.sk-m')].map(li => li.classList.contains('done') ? 1 : 0).join(''));
+  const num = s => parseFloat(String(s).replace('−', '-').replace('+', ''));
+  const BENCH = [
+    ['opt-lenses', 'convex-lens', 'cl', 1, false, [[209, 95], [60, 95], [143, 95], [300, 50], [120, 160]]],
+    ['opt-lenses', 'concave-lens', 'dcl', -1, false, [[209, 95], [30, 95], [380, 60], [95, 95]]],
+    ['opt-reflection', 'concave-mirror', 'cm', 1, true, [[213, 85], [60, 85], [170, 85], [380, 45], [100, 140]]],
+    ['opt-reflection', 'convex-mirror', 'cvm', -1, true, [[213, 85], [20, 85], [300, 45]]],
+  ];
+  for (const [chId, se, pre, sg, mirror, cases] of BENCH) {
+    await open(chId, se);
+    await p.evaluate(() => { localStorage.removeItem('phys_game_state_v2'); state.missions = {}; });
+    for (const [dO, f0] of cases) {
+      await setv(pre + '-do', dO); await setv(pre + '-f', f0); await p.waitForTimeout(140);
+      const tx = await modelTx(), f = sg * f0, di = f * dO / (dO - f), m = -di / dO;
+      const gdi = /dᵢ = ([+−-]?\d+) mm/.exec(tx), gm = /m = −dᵢ\/dₒ = ([+−-]?\d+\.\d\d)/.exec(tx);
+      t(se + ` dₒ=${dO} f=${f}: dᵢ in the equation line`, gdi && Math.abs(num(gdi[1]) - di) <= 0.6, tx);
+      t(se + ` dₒ=${dO} f=${f}: m in the equation line`, gm && Math.abs(num(gm[1]) - m) <= 0.006, tx);
+      // the image arrow (red if real, green if virtual) stands where dᵢ puts it
+      // (rows of a 3 px strip at x(dᵢ) in the image's colour: a vertical arrow
+      // fills most of its rows, a ray crossing the strip only a few)
+      const at = await p.evaluate(([di, m, real, mirror]) => {
+        const cv = document.getElementById('sim-canvas'), g = cv.getContext('2d'), dpr = cv.width / cv.offsetWidth, W = cv.offsetWidth, H = cv.offsetHeight;
+        const narrow = W < 520, X0 = mirror ? Math.round(W * 0.62) : Math.round(W * (narrow ? 0.44 : 0.45)), k = (X0 - 24) / (narrow ? 300 : 400);
+        const ix = X0 + (mirror ? -1 : 1) * di * k, cy = Math.round(H * (mirror ? 0.43 : 0.42)), len = Math.min(Math.abs(m) * (narrow ? 44 : 58), 120);
+        if (ix < 8 || ix > W - 8) return { off: true };
+        const want = real ? [248, 113, 113] : [52, 211, 153], y0 = Math.round((cy - 130) * dpr), rows = Math.round(260 * dpr), cols = Math.max(3, Math.round(3 * dpr));
+        const d = g.getImageData(Math.round(ix * dpr) - Math.floor(cols / 2), y0, cols, rows).data;
+        let n = 0; for (let r = 0; r < rows; r++) { let hit = false;
+          for (let c = 0; c < cols; c++) { const i = (r * cols + c) * 4; if (Math.abs(d[i] - want[0]) < 30 && Math.abs(d[i + 1] - want[1]) < 30 && Math.abs(d[i + 2] - want[2]) < 30) hit = true; }
+          if (hit) n++; }
+        return { n: n / dpr, len };
+      }, [di, m, di > 0, mirror]);
+      t(se + ` dₒ=${dO} f=${f}: the image is drawn at dᵢ`, at.off || at.n >= Math.max(5, 0.45 * at.len), JSON.stringify(at));
+    }
+    if (!mirror) {   // chromatic aberration: f(λ) = f₅₅₀·(n₅₅₀−1)/(n(λ)−1), Cauchy crown glass
+      await setv(pre + '-do', 209); await setv(pre + '-f', 95); await setv(pre + '-wl', 400); await p.waitForTimeout(140);
+      const n4 = 1.5 + 4241 * (1 / 400 ** 2 - 1 / 550 ** 2), fv = 95 * 0.5 / (n4 - 1);
+      const g = /1\/\(?−?(\d+\.\d)\)? − 1\/209/.exec(await modelTx());
+      t(se + ': violet focuses nearer, f(400 nm) from n(λ)', g && Math.abs(+g[1] - fv) < 0.06, (g || [])[1] + ' vs ' + fv.toFixed(2));
+      await setv(pre + '-wl', 550);
+    }
+  }
+  // every mission of the bench can be solved, by the state its text asks for
+  const reach = async (chId, se, steps, wantAll) => {
+    await open(chId, se);
+    await p.evaluate(() => { state.missions = {}; render(); });
+    await p.waitForTimeout(1100);
+    await p.evaluate(() => document.querySelector('#app .sim-container').dispatchEvent(new Event('click')));
+    for (const s of steps) { if (typeof s === 'function') await s(); else { await setv(s[0], s[1]); await p.waitForTimeout(160); } }
+    const got = await missions();
+    t(se + ': every mission is reachable', got === wantAll, got);
+  };
+  await reach('opt-lenses', 'convex-lens', [['cl-f', 95], ['cl-do', 190], ['cl-do', 60], ['cl-do', 143],
+    async () => {   // a screen at dᵢ = 3f, dragged there by mouse, then cover the lens after predicting
+      await p.evaluate(() => { document.getElementById('btn-cl-screen').click(); document.getElementById('sim-canvas').scrollIntoView({ block: 'start' }); }); await p.waitForTimeout(250);
+      const r = await p.evaluate(() => { const cv = document.getElementById('sim-canvas'), b = cv.getBoundingClientRect(), W = cv.offsetWidth, H = cv.offsetHeight;
+        const X0 = Math.round(W * (W < 520 ? 0.44 : 0.45)), k = (X0 - 24) / (W < 520 ? 300 : 400), s0 = Math.min(W - 30, X0 + Math.max(60, (W - X0) * 0.62));
+        return { x: b.left, y: b.top, s0, to: X0 + 95 * 143 / (143 - 95) * k, yy: H - 96 }; });
+      await p.mouse.move(r.x + r.s0, r.y + r.yy); await p.mouse.down(); await p.mouse.move(r.x + (r.s0 + r.to) / 2, r.y + r.yy); await p.mouse.move(r.x + r.to, r.y + r.yy); await p.mouse.up(); await p.waitForTimeout(160);
+      await p.evaluate(() => document.getElementById('btn-cl-cover').click()); await p.waitForTimeout(150);
+      await p.evaluate(() => document.querySelectorAll('.sk-opt')[2].click()); await p.waitForTimeout(200);
+    }], '1111');
+  await reach('opt-lenses', 'concave-lens', [['dcl-f', 95], ['dcl-do', 20], ['dcl-do', 95], ['dcl-f', 50], ['dcl-do', 210]], '111');
+  await reach('opt-reflection', 'concave-mirror', [['cm-f', 85], ['cm-do', 170], ['cm-do', 60], ['cm-do', 300], ['cm-do', 85]], '1111');
+  await reach('opt-reflection', 'convex-mirror', [['cvm-f', 85], ['cvm-do', 20], ['cvm-do', 85], ['cvm-f', 50], ['cvm-do', 210]], '111');
+
   console.log('   every draggable simulation by touch, on a phone');
   const tc = await b.newContext({ viewport: { width: 390, height: 1300 }, hasTouch: true, isMobile: true, deviceScaleFactor: 2 });
   const q = await tc.newPage(); q.on('pageerror', x => errs.push(x.message));
@@ -177,8 +249,12 @@ const EXPECT = {
     await q.waitForTimeout(150);
     await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] }); await q.waitForTimeout(200); };
   // where each handle starts, from the simulation's own layout (W, H = canvas size)
-  const mirrorObj = (W, concave) => { const mx = Math.round(W * 0.62), k = Math.min(1, (mx - 26) / 340, concave ? 9 : (W - mx - 24) / 170), ox = mx - 2.5 * 85 * k; return [[ox, 200], [ox - 15, 200], [ox - 30, 200]]; };
-  const lensObj = (W, y) => { const lx = W / 2, k = Math.min(1, (lx - 26) / 380), ox = lx - 2.2 * 95 * k; return [[ox, y], [ox - 15, y], [ox - 30, y]]; };
+  // the imaging bench: one scale, px per mm, set by the width; the object's
+  // stem (between its tip and the axis) drags its distance
+  const benchObj = (W, mirror, dO) => { const narrow = W < 520, X0 = mirror ? Math.round(W * 0.62) : Math.round(W * (narrow ? 0.44 : 0.45)),
+    k = (X0 - 24) / (narrow ? 300 : 400), ox = X0 - dO * k, y = Math.round((mirror ? 470 * 0.43 : 490 * 0.42)) - 10; return [[ox, y], [ox - 15, y], [ox - 30, y]]; };
+  const mirrorObj = (W) => benchObj(W, true, 213);
+  const lensObj = (W) => benchObj(W, false, 209);
   const TOUCH = [
     ['optics', 'opt-light', 'light-nature', W => [[W / 2, 200], [W / 2 + 40, 200], [W / 2 + 80, 200]], { slider: 'emw-wl' }],
     ['optics', 'opt-light', 'light-speed', () => [[44, 120], [44, 121]], { slider: 'ri-n' }],
