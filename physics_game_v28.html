@@ -9503,7 +9503,7 @@ const MAG_CONTENT={
       <p>בלם כזה אינו נשחק לעולם — שום דבר אינו נוגע בשום דבר. אבל בלי תנועה אין שינוי בשטף ואין זרמים: הכוח נחלש ככל שהרכבת מאטה, ובמנוחה הוא אפס. את העצירה האחרונה עושה בלם רגיל.</p>
     </div>`,
   },
-  sim:{type:'mag-lenz',desc:'טבעת תלויה כמטוטלת, ומגנט שאתם מזיזים (גררו אותו, או לחצו ״דחפו את המגנט״). ראו את כיוון הזרם המושרה ואת הקוטב שהטבעת מציגה: מגנט מתקרב נדחה, מתרחק נמשך. הפכו את המגנט, או חתכו את הטבעת — ואז שום דבר לא קורה.'},
+  sim:{type:'mag-lenz',desc:'טבעת אלומיניום קלה תלויה על חוט ארוך, ומגנט שאתם מזיזים: גררו אותו (או החזיקו את מקשי החצים), או לחצו ״קרבו את המגנט״ ו״הרחיקו את המגנט״. מתחת לטבעת מוצגים זה מתחת לזה שדה המגנט (כחול) והשדה המושרה (ירוק): כשהשטף גדל הם מנוגדים, וכשהוא קטן — הם באותו כיוון. חוק לנץ מתנגד לשינוי בשטף, לא לשדה. הגרפים מראים את השטף ואת הזרם המושרה; הפכו את המגנט, או חתכו את הטבעת.'},
   example:{title:'כיוון הזרם המושרה',text:'הקוטב הצפוני (N) של מגנט מתקרב לטבעת מוליכה.',steps:[
     {q:'מה קורה לשטף דרך הטבעת?',a:'הוא גדל, בכיוון השדה שיוצא מ־N — כלומר מהמגנט אל הטבעת.'},
     {q:'איזה שדה יוצרת הטבעת?',a:'שדה נגד השינוי — לכיוון המגנט. הצד של הטבעת שפונה אל המגנט הופך לקוטב N.'},
@@ -27473,6 +27473,7 @@ var MU0=4*Math.PI*1e-7, MAG_E=1.6e-19, MAG_MP=1.67e-27, MAG_U=1.66e-27;
 function magV(id,d){var e=document.getElementById('inp-'+id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:d;}
 function magBtn(id,fn){var b=document.getElementById('btn-'+id);if(b)b.addEventListener('click',function(){fn(b);});return b;}
 function magAlive(id,g){return _simGen[id]===g&&!_simStop[id];}
+function magBtnPress(id){var b=document.getElementById('btn-'+id);if(b)b.click();}
 
 // Complete elliptic integrals K(m), E(m) (parameter m=k²) by the AGM — exact
 // to machine precision in a handful of steps, and cheap enough to sum loops.
@@ -27603,6 +27604,54 @@ function magMidArrow(ctx,pts,col,frac,sz){
 function magFx(v,d){var t=v.toFixed(d);return /^-0\.?0*$/.test(t)?t.slice(1):t;}
 function magFmtB(B){var a=Math.abs(B);
   return a>=0.1?B.toFixed(3)+' T':a>=1e-4?(B*1e3).toFixed(a>=1e-2?1:2)+' mT':(B*1e6).toFixed(a>=1e-5?1:2)+' μT';}
+// ── shared by the magnetism sims (next to them; nothing outside uses these) ──
+// The keyboard: the canvas takes the focus with Tab, and while it has it the
+// arrow keys belong to the sim (they no longer turn the page to the next
+// section) and Enter/Space to its main action. h.key(name, down) is told of
+// every press and release, so a held arrow can move a magnet smoothly.
+function magKeys(canvas,h){
+  canvas.tabIndex=0;
+  var map={ArrowLeft:'left',ArrowRight:'right',ArrowUp:'up',ArrowDown:'down',Enter:'enter',' ':'enter'};
+  canvas.addEventListener('keydown',function(e){var k=map[e.key];if(!k||e.altKey||e.ctrlKey||e.metaKey)return;
+    e.preventDefault();e.stopPropagation();h.key(k,true,e.repeat);});
+  canvas.addEventListener('keyup',function(e){var k=map[e.key];if(!k)return;e.stopPropagation();h.key(k,false);});
+  canvas.addEventListener('blur',function(){h.key('blur',false);});
+}
+// The kit's model line, at most ~8 times a second: a number redrawn on every
+// frame cannot be read.
+function magModeler(kit){var last=-1e9,pend=null;
+  return function(html){var t=performance.now();if(t-last>=120){last=t;kit.model(html);}};}
+// A prediction asked at the moment of the reveal: gate(p) returns ask(go);
+// the first ask() shows the question and runs go only once it is answered,
+// later ones run go at once. A replayed press (a phone turned on its side
+// rebuilds the sim and replays the buttons) does not ask again. Two gates of
+// one sim share the panel: opening one puts the other back to unasked.
+function magPredictor(kit,canvas){
+  var cur=null;
+  return function(p){
+    var st={done:false,go:null};
+    return function(go){
+      var host=canvas.closest&&canvas.closest('.sim-container');
+      if(st.done||(host&&host._simReplay)){st.done=true;go();return;}
+      st.go=go;if(cur===st)return;cur=st;
+      kit.predict(p,function(){st.done=true;cur=null;var g=st.go;st.go=null;if(g)g();});
+      try{if(kit.el&&kit.el.scrollIntoView)kit.el.scrollIntoView({block:'nearest'});}catch(e){}
+    };
+  };
+}
+// A strip chart of the last T seconds, newest at the right edge: rows of
+// hist are [t, v0, v1, …] and col k of them is drawn, scaled to ±vmax.
+// Returns the mapping, so a caller can mark points on it.
+function magTrend(ctx,x,y,w,h,title,col,hist,k,tNow,T,vmax,top,unit){
+  magPlotBox(ctx,x,y,w,h,title,col);
+  var gx=x+40,gw=w-48,gy=y+20,gh=h-26;
+  var X=function(t){return gx+gw-(tNow-t)/T*gw;},Y=function(v){return gy+gh/2-Math.max(-1,Math.min(1,v/vmax))*(gh/2-3);};
+  ctx.save();ctx.strokeStyle='#1e3a52';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(gx,Y(0));ctx.lineTo(gx+gw,Y(0));ctx.stroke();ctx.restore();
+  magPoly(ctx,hist.filter(function(q){return tNow-q[0]<=T;}).map(function(q){return [X(q[0]),Y(q[k])];}),col,2);
+  simText(ctx,top,gx-5,Y(vmax)+4,'#64748b',8.5,'right');
+  simText(ctx,unit,gx-5,Y(0)+3,'#64748b',8.5,'right');
+  return {X:X,Y:Y,gx:gx,gw:gw,gy:gy,gh:gh};
+}
 // ── mag-field.mag-magnets ─────────────────────────────────────────────────
 // Two-pole model of a bar magnet: poles ±q_m = m/ℓ at its ends, each with a
 // 1/r² field of strength (μ₀/4π)q_m. Real SI numbers: m = 1 A·m² is an ordinary
@@ -28499,71 +28548,148 @@ MAG_SIMS['mag-faraday']=function(canvas){
 MAG_CTRL['mag-faraday']=function(){return rng('mgy-N',50,500,200,10,'ליפופים N')+rng('mgy-speed',0.1,1,0.4,0.05,'מהירות התנועה האוטומטית',' m/s')+btn('mgy-auto','▶ תנועה אוטומטית','btn-primary')+btn('mgy-flip','🔄 הפכו את המגנט (N פונה לסליל)','btn-secondary');};
 
 // ── mag-induction.mag-lenz ────────────────────────────────────────────────
-// A light ring on a pendulum and a magnet you move. The induced current is
-// I = −Φ′(z)(v_ring − v_magnet)/R and the force on the ring is I·Φ′(z) =
-// −Φ′²(v_ring − v_magnet)/R: it always opposes the RELATIVE motion, whichever
-// pole faces the ring — Lenz's law, falling straight out of Faraday's.
+// A light aluminium ring on a long thread and a bar magnet you move. z = x_ring −
+// x_magnet; Φ(z) is the magnet's flux through the ring (magBarFlux), the emf
+// ε = −dΦ/dt = −Φ′(z)(v_ring − v_magnet), I = ε/R, and the force on the ring
+// F = I·Φ′(z) = −Φ′²(v_ring − v_magnet)/R always opposes the RELATIVE motion,
+// whichever pole faces the ring — Lenz's law, straight out of Faraday's. The
+// ring (Thomson's, of aluminium): r = 3 cm, R = 0.5 mΩ, 5 g — a 3.6 mm
+// aluminium wire is just that heavy and that resistive — on a 50 cm thread
+// whose pivot is above the picture; the magnet: an 8 cm NdFeB bar, 2 × 2 cm,
+// m = 30 A·m², its poles 7 cm apart.
+// At the ring the two fields are drawn one under the other: the magnet's (its
+// mean over the ring, Φ/πr²) and the ring's own (μ₀I/2r at the centre — a few
+// hundred times weaker, so drawn enlarged). They point against each other
+// while |Φ| grows and the SAME way while it shrinks: the ring opposes the
+// change in the flux, not the field.
 MAG_SIMS['mag-lenz']=function(canvas){
   var id=canvas.id,_g=_simGen[id];
-  const H=480; const {ctx,W,dpr}=setupCanvas(canvas,H);
-  var s=W*0.86/0.50, X0=W*0.66, YR=H*0.46, A=0.03, MD=10, LPm=0.07, RR=5e-4, MR=0.01, ELL=0.5;   // 8 cm bar, poles 7 cm apart
-  var xr=0, vr=0, xm=-0.20, vm=0, flip=1, cut=false, drag=false, lastX=null, push=0, pT=null, heat=0, I=0;
-  var toSx=function(x){return X0+x*s;};
+  var PH=(canvas.offsetWidth||(canvas.parentElement&&canvas.parentElement.offsetWidth)||720)<600;
+  const H=PH?560:490; const {ctx,W,dpr}=setupCanvas(canvas,H);
+  var A=0.03, MD=30, LPm=0.07, RR=5e-4, MR=0.005, ELL=0.5, VP=0.5, ML=0.08, IMIN=0.05;
+  var s=PH?W/0.36:Math.min(W*0.86/0.5,1500), X0=W*0.62, YR=150, rr=A*s, ex=Math.max(6,rr*0.26), TH=Math.max(16,0.02*s);
+  var XMIN=Math.max(-0.29,(10-X0)/s+ML/2), XMAX=Math.min(0.2,(W-10-X0)/s-ML/2);
+  var clampX=function(x){return Math.max(XMIN,Math.min(XMAX,x));};
+  var P0=magBarFlux(MD,LPm,A,0), IMX=magBarFluxDmax(MD,LPm,A)*VP/RR;
+  var xr=0, vr=0, xm=XMIN, vm=0, goal=null, off=0, flip=1, cut=false, drag=false, mode=0, hold=0, pT=null, tt=0, heat=0, glow=0, hist=[], tRep=-9;
+  var kit=simKit(canvas,{missions:[
+    {text:'קרבו את המגנט אל הטבעת — וגרמו לה להידחות ממנו.',
+     hint:'לחצו ״קרבו את המגנט״, או גררו את המגנט אל הטבעת בתנועה מהירה.',
+     why:'השטף דרך הטבעת גדל, והזרם המושרה יוצר שדה נגדי לשדה המגנט: הפאה של הטבעת שמול המגנט הופכת לקוטב זהה לקוטב שלו — ושני קטבים זהים דוחים.',
+     done:function(s){return s.pushed&&s.away>0.004;}},
+    {text:'מצאו מצב שבו השדה המושרה מצביע <b>באותו כיוון</b> כמו שדה המגנט.',
+     hint:'הסתכלו על החץ הירוק ועל החץ הכחול כשהמגנט <b>מתרחק</b> מהטבעת.',
+     why:'כשהמגנט מתרחק השטף קטן, והזרם המושרה ״מנסה להחזיק״ אותו — לכן שדהו באותו כיוון כמו שדה המגנט, והטבעת נמשכת אחריו. חוק לנץ מתנגד לשינוי בשטף, לא לשדה.',
+     done:function(s){return Math.abs(s.I)>=0.3&&s.I*s.Phi>0&&s.leaving;}},
+    {text:'הפכו את המגנט, כך ש־S יפנה לטבעת, והראו שגם עכשיו מגנט מתקרב דוחה אותה.',
+     hint:'לחצו ״הפכו את המגנט״, ואז קרבו אותו שוב.',
+     why:'לא משנה איזה קוטב פונה לטבעת: הזרם המושרה זורם עכשיו בכיוון ההפוך, ושוב מתנגד להתקרבות. הכוח מתנגד תמיד לתנועה היחסית.',
+     done:function(s){return s.flip<0&&s.pushed&&s.away>0.004;}},
+    {text:'חתכו את הטבעת והזיזו את המגנט לידה. האם יש עכשיו כוח?',
+     hint:'לחצו ״חתכו את הטבעת״, וקרבו או הרחיקו את המגנט.',
+     why:'גם בטבעת החתוכה נוצר כא״מ, אבל המעגל פתוח ולכן אין זרם. בלי זרם אין שדה מושרה, אין כוח — ואין חום.',
+     done:function(s){return s.cut&&Math.abs(s.vm)>0.3&&s.dist<0.08;}}]});
+  var model=magModeler(kit), gate=magPredictor(kit,canvas);
+  var askIn=gate({q:'המגנט עומד להתקרב אל הטבעת. מה תעשה הטבעת?',
+    opts:['תימשך אל המגנט','תידחה ממנו','לא תזוז — המגנט אינו נוגע בה'],correct:1,
+    why:'השטף דרך הטבעת יגדל, והזרם המושרה מתנגד לגידול: הטבעת מציגה למגנט קוטב זהה לשלו — ונדחית.'});
+  var askOut=gate({q:'עכשיו המגנט יתרחק מהטבעת. השדה המושרה במרכז הטבעת יצביע…',
+    opts:['נגד שדה המגנט — כמו בהתקרבות','באותו כיוון כמו שדה המגנט','לא יהיה שדה מושרה'],correct:1,
+    why:'השטף יקטן, והזרם המושרה מתנגד לשינוי — הוא ״מנסה להחזיק״ את השטף. לכן השדה שלו באותו כיוון כמו שדה המגנט, והטבעת נמשכת אחרי המגנט.'});
+  var push=function(){mode=1;goal=null;}, pull=function(){mode=2;goal=null;};
+  var near=function(){return Math.abs(xr-xm)<0.13;};
+  magBtn('mgn-push',function(){askIn(push);});
+  magBtn('mgn-pull',function(){if(near())askOut(pull);else pull();});
   magBtn('mgn-flip',function(b){flip=-flip;b.textContent=flip>0?'🔄 הפכו את המגנט (N פונה לטבעת)':'🔄 הפכו את המגנט (S פונה לטבעת)';});
   magBtn('mgn-cut',function(b){cut=!cut;b.textContent=cut?'⭕ סגרו את הטבעת':'✂️ חתכו את הטבעת';});
-  magBtn('mgn-push',function(){push=1;});
-  magBtn('mgn-reset',function(){xr=0;vr=0;xm=-0.20;vm=0;push=0;heat=0;});
-  simDrag(canvas,dpr,{down:function(p){drag=true;push=0;lastX=null;},move:function(p){if(drag)xm=Math.min(0.2,Math.max(-0.28,(p.x-X0)/s));},up:function(){drag=false;}});
+  magBtn('mgn-reset',function(){xr=0;vr=0;xm=XMIN;vm=0;mode=0;goal=null;heat=0;hist=[];});
+  simDrag(canvas,dpr,{
+    down:function(p){if(p.y>YR+rr+60)return;drag=true;mode=0;var mx=X0+xm*s;
+      off=Math.abs(p.x-mx)<ML*s/2+24?p.x-mx:0;goal=clampX((p.x-off-X0)/s);},
+    move:function(p){if(drag)goal=clampX((p.x-off-X0)/s);},
+    up:function(){drag=false;goal=null;}});
+  // ← → hold to move the magnet at 0.5 m/s; Enter brings it in, or pulls it out
+  magKeys(canvas,{key:function(k,d){
+    if(k==='left'||k==='right'){var v=k==='left'?-1:1;if(d){hold=v;mode=0;goal=null;}else if(hold===v)hold=0;}
+    else if(k==='blur')hold=0;
+    else if(k==='enter'&&d){if(near()&&xm>XMIN+0.02)magBtnPress('mgn-pull');else magBtnPress('mgn-push');}}});
   function draw(ts){
     if(!magAlive(id,_g))return;
-    var dt=pT?Math.min(0.04,(ts-pT)/1000):0;pT=ts;
-    // push: thrust the magnet into the ring and draw it back out
-    if(push===1){xm+=0.8*dt;vm=0.8;if(xm>=xr-0.006){xm=xr-0.006;push=2;}}   // up to (not past) the ring's centre, at any frame rate
-    else if(push===2){xm-=0.8*dt;vm=-0.8;if(xm<=-0.2){push=0;vm=0;}}
-    else if(drag){if(lastX!==null&&dt>0)vm=vm*0.5+(xm-lastX)/dt*0.5;lastX=xm;}
-    else vm=0;
-    var m=MD*flip;
-    for(var i=0;i<20;i++){var h=dt/20,z=xr-xm,dP=magBarFluxD(m,LPm,A,z);
-      I=cut?0:-dP*(vr-vm)/RR;var F=I*dP;
-      vr+=(F-MR*9.8/ELL*xr-0.004*vr)/MR*h;xr+=vr*h;heat+=I*I*RR*h;}
-    // the readout, the arrow and the caption all describe the END of the frame:
-    // the current of the last sub-step times dΦ/dz at the end position flipped
-    // sign on a slow phone, where one frame can carry the ring across the pole
-    var zf=xr-xm,dPf=magBarFluxD(m,LPm,A,zf);I=cut?0:-dPf*(vr-vm)/RR;var Fr=I*dPf;
+    var dt=pT?Math.min(0.04,(ts-pT)/1000):0;pT=ts;tt+=dt;
+    // where the magnet is at the end of this frame
+    var x1=xm,stop=-0.03;              // in until its front pole is just through the ring's rest place
+    if(mode===1){if(xm<stop)x1=Math.min(xm+VP*dt,stop);if(x1>=stop-1e-9)mode=0;}
+    else if(mode===2){x1=Math.max(xm-VP*dt,XMIN);if(x1<=XMIN+1e-9)mode=0;}
+    else if(hold)x1=xm+hold*0.5*dt;
+    else if(goal!==null)x1=goal+(xm-goal)*Math.exp(-dt/0.04);   // a hand has a little inertia
+    x1=clampX(x1);vm=dt>0?(x1-xm)/dt:0;
+    // the ring and its current in 20 steps, the magnet moving evenly through them
+    var n=20,h=dt/n,m=MD*flip;
+    for(var i=0;i<n;i++){var z0=xr-(xm+(x1-xm)*(i+0.5)/n),d0=magBarFluxD(m,LPm,A,z0);
+      var Ii=cut?0:-d0*(vr-vm)/RR;
+      vr+=(Ii*d0-MR*9.8/ELL*xr-0.004*vr)/MR*h;xr+=vr*h;heat+=Ii*Ii*RR*h;}
+    xm=x1;
+    // every readout, arrow and caption describes the END of the frame
+    var z=xr-xm,dP=magBarFluxD(m,LPm,A,z),Phi=magBarFlux(m,LPm,A,z),dPhi=dP*(vr-vm),eps=-dPhi,I=cut?0:eps/RR,Fr=I*dP;
+    var on=Math.abs(I)>=IMIN, moving=cut?Math.abs(eps)>=IMIN*RR:on, grow=moving&&Phi*dPhi>0, shrink=moving&&Phi*dPhi<0;
+    glow=glow*Math.exp(-dt/0.25)+(1-Math.exp(-dt/0.25))*Math.min(1,Math.abs(I)/IMX*1.5);
+    if(dt>0){hist.push([tt,Phi,I]);while(hist.length&&tt-hist[0][0]>5)hist.shift();}
     simBg(ctx,W,H);
-    // magnet
-    magBar(ctx,toSx(xm),YR,0.08*s,Math.max(16,0.02*s),flip>0?0:Math.PI);
-    simHandle(ctx,toSx(xm),YR,'#e2e8f0',18);
-    if(Math.abs(vm)>0.03)simArrow(ctx,toSx(xm),YR+30,toSx(xm)+Math.sign(vm)*40,YR+30,'#e2e8f0',2,8);
-    // pendulum ring
-    var rx=toSx(xr),rr=A*s,PY=26;
-    ctx.save();ctx.fillStyle='#475569';ctx.fillRect(X0-30,PY-8,60,6);ctx.restore();
-    ctx.save();ctx.strokeStyle='#cbd5e1';ctx.lineWidth=1.3;ctx.beginPath();ctx.moveTo(X0,PY);ctx.lineTo(rx,YR-rr);ctx.stroke();ctx.restore();
+    // the axis, the magnet and its velocity
+    ctx.save();ctx.strokeStyle='rgba(148,163,184,.22)';ctx.setLineDash([5,5]);ctx.beginPath();ctx.moveTo(8,YR);ctx.lineTo(W-8,YR);ctx.stroke();ctx.restore();
+    var mx=X0+xm*s;
+    magBar(ctx,mx,YR,ML*s,TH,flip>0?0:Math.PI);
+    simHandle(ctx,mx,YR,'#e2e8f0',18);
+    if(Math.abs(vm)>0.03)simArrow(ctx,mx-Math.sign(vm)*14,YR-TH/2-12,mx+Math.sign(vm)*Math.min(46,16+Math.abs(vm)*36),YR-TH/2-12,'#e2e8f0',2,8);
+    // the thread (its pivot 50 cm up, above the picture), the ring
+    var rx=X0+xr*s,Ls=ELL*s,yp=YR-Ls,tp=(0-yp)/(YR-rr-yp);
+    ctx.save();ctx.strokeStyle='#cbd5e1';ctx.lineWidth=1.3;ctx.beginPath();ctx.moveTo(X0+tp*(rx-X0),0);ctx.lineTo(rx,YR-rr);ctx.stroke();ctx.restore();
+    if(glow>0.04){ctx.save();ctx.strokeStyle='rgba(251,146,60,'+(0.5*glow).toFixed(3)+')';ctx.lineWidth=11;ctx.beginPath();ctx.ellipse(rx,YR,ex,rr,0,0,6.2832);ctx.stroke();ctx.restore();}
     ctx.save();ctx.strokeStyle='#d97706';ctx.lineWidth=5;ctx.beginPath();
-    if(cut){ctx.ellipse(rx,YR,8,rr,0,-1.2,1.2+Math.PI*0.9,false);}else ctx.ellipse(rx,YR,8,rr,0,0,6.2832);ctx.stroke();ctx.restore();
-    if(cut)simText(ctx,'✂ חתוכה — אין זרם',rx,YR+rr+22,'#fbbf24',10,'center',true);
-    if(Math.abs(I)>0.02){magDot(ctx,rx,YR-rr,7,I>0,'#fbbf24','#1e293b');magDot(ctx,rx,YR+rr,7,I<0,'#fbbf24','#1e293b');
-      // the face toward the magnet: N on the side the ring's own field points to
-      var sideM=xm>xr?1:-1,face=sideM===(I>0?1:-1)?'N':'S';
-      simText(ctx,face,rx+sideM*22,YR,face==='N'?'#f87171':'#60a5fa',15,'center',true);
-      simText(ctx,'הטבעת מציגה '+face,rx+sideM*22,YR+rr+22,face==='N'?'#f87171':'#60a5fa',9.5,'center',true);}
-    if(Math.abs(Fr)>1e-4)simArrow(ctx,rx,YR-rr-20,rx+Math.sign(Fr)*Math.min(70,14+Math.abs(Fr)*900),YR-rr-20,'#fb923c',3,10);
-    var BXW=Math.min(W-16,Math.max(W*0.56,340));ctx.save();ctx.fillStyle='rgba(2,8,16,.85)';ctx.fillRect(8,8,BXW,70);ctx.restore();
-    var rel=vr-vm,zz=xr-xm,closing=(zz>=0?1:-1)*rel<0;     // |z| shrinking
-    simText(ctx,'I = '+magFx(I,2)+' A   ·   F = '+magFx(Fr*1000,1)+' mN',8+BXW/2,26,'#e2e8f0',11,'center',true);
-    simText(ctx,cut?'טבעת פתוחה: יש מתח, אין זרם — ואין כוח':Math.abs(rel)<0.01?'אין תנועה יחסית ⇒ אין זרם':(closing?'המגנט מתקרב ⇒ השטף גדל ⇒ הטבעת דוחה':'המגנט מתרחק ⇒ השטף קטן ⇒ הטבעת נמשכת'),8+BXW/2,46,'#94a3b8',10,'center',true);
-    simText(ctx,'חום בטבעת: '+(heat*1000).toFixed(2)+' mJ — מהעבודה שהשקעתם',8+BXW/2,66,'#64748b',9.5,'center');
-    var y0=H*0.86;magPlotBox(ctx,8,y0,W-16,H-y0-6,'',null);
-    if(W<600){simText(ctx,'גררו את המגנט או לחצו ״דחפו״:',W/2,y0+16,'#94a3b8',9.5,'center');
-      simText(ctx,'הכוח תמיד מתנגד לתנועה היחסית — עם כל קוטב',W/2,y0+32,'#94a3b8',9.5,'center');
-      simText(ctx,'בלי חוק לנץ — אנרגיה יש מאין',W/2,y0+50,'#64748b',9,'center');}
-    else{simText(ctx,'גררו את המגנט אל הטבעת ובחזרה, או לחצו ״דחפו״. הכוח תמיד מתנגד לתנועה היחסית — עם כל קוטב',W/2,y0+22,'#94a3b8',10,'center');
-    simText(ctx,'בלי חוק לנץ: מגנט שנדחף היה נמשך עוד פנימה — אנרגיה יש מאין',W/2,y0+44,'#64748b',9.5,'center');}
+    if(cut)ctx.ellipse(rx,YR,ex,rr,0,-1.2,1.2+Math.PI*0.9,false);else ctx.ellipse(rx,YR,ex,rr,0,0,6.2832);ctx.stroke();ctx.restore();
+    var sideM=xm>xr?1:-1;                                   // the magnet's side of the ring
+    // the current round the ring (⊙ on top: its field along +x), the pole it shows the magnet
+    if(on){magDot(ctx,rx,YR-rr,7,I>0,'#fbbf24','#1e293b');magDot(ctx,rx,YR+rr,7,I<0,'#fbbf24','#1e293b');
+      var face=sideM===(I>0?1:-1)?'N':'S';
+      simText(ctx,face,rx+sideM*(ex+13),Math.min(YR-rr*0.5,YR-TH/2-12),face==='N'?'#f87171':'#60a5fa',15,'center',true);}
+    simText(ctx,'I = '+magFx(Math.abs(I),2)+' A',rx-sideM*(ex+10),YR-rr*0.5+4,on?'#fbbf24':'#64748b',10.5,sideM>0?'right':'left',true);
+    if(cut)simText(ctx,'✂',rx+ex+8,YR+rr*0.5,'#fbbf24',13,'left',true);
+    // the force on the ring
+    var yF=YR-rr-24;
+    if(Math.abs(Fr)>2e-4){var fl=Math.min(80,12+Math.abs(Fr)*5500),fd=Math.sign(Fr);
+      simArrow(ctx,rx,yF,rx+fd*fl,yF,'#fb923c',3,10);
+      simText(ctx,'F = '+(Math.abs(Fr)*1e3).toFixed(1)+' mN',rx+fd*(fl+8),yF+4,'#fb923c',10.5,fd>0?'left':'right',true);}
+    // the two fields at the ring: the magnet's, and the induced one (enlarged)
+    var Bm=Phi/(Math.PI*A*A),Bi=MU0*I/(2*A),L1=PH?52:64,yb1=YR+rr+20,yb2=YR+rr+42,lx=rx-L1/2-12;
+    var bArrow=function(y,B,ref,col){var L=16+(L1-16)*Math.min(1,Math.abs(B)/ref),d=Math.sign(B);simArrow(ctx,rx-d*L/2,y,rx+d*L/2,y,col,2.6,9);};
+    if(Math.abs(Bm)>3e-5)bArrow(yb1,Bm,P0/(Math.PI*A*A),'#60a5fa');
+    simText(ctx,'B המגנט',lx,yb1+4,'#60a5fa',10,'right',true);
+    if(on)bArrow(yb2,Bi,MU0*IMX/(2*A),'#34d399');
+    simText(ctx,'B המושרה (מוגדל)',lx,yb2+4,on?'#34d399':'#475569',10,'right',true);
+    // what the flux is doing, and so what the ring does
+    var cap=cut?'טבעת חתוכה: יש כא״מ, אין זרם — ולכן אין כוח':
+      grow?'השטף גדל ⇒ השדה המושרה נגד שדה המגנט ⇒ הטבעת נדחית':
+      shrink?'השטף קטן ⇒ השדה המושרה עם שדה המגנט ⇒ הטבעת נמשכת':'השטף אינו משתנה ⇒ אין זרם מושרה';
+    dcCap(ctx,cap,W/2,YR+rr+(PH?80:72),cut?'#fbbf24':grow?'#fb923c':shrink?'#34d399':'#94a3b8',PH?10.5:11,true);
+    simText(ctx,'חום בטבעת: '+(heat*1000).toFixed(2)+' mJ',10,18,'#94a3b8',9.5,'left');
+    // Φ(t) and I(t): the current is minus the slope of the flux, over R
+    var gy1=284,gh=PH?118:88,gy2=gy1+gh+6;
+    magTrend(ctx,8,gy1,W-16,gh,'Φ דרך הטבעת','#818cf8',hist,1,tt,5,P0*1.1,(P0*1.1e6).toFixed(0),'μWb');
+    var Ipk=0;hist.forEach(function(q){Ipk=Math.max(Ipk,Math.abs(q[2]));});
+    var Isc=[0.5,1,2,5,10,20].find(function(v){return v>=Ipk*1.1;})||20;
+    var G=magTrend(ctx,8,gy2,W-16,gh,'I מושרה = −(ΔΦ/Δt)/R','#fbbf24',hist,2,tt,5,Isc,String(Isc),'A');
+    simText(ctx,'−5 s',G.gx,gy2+gh+12,'#64748b',8.5,'center');simText(ctx,'0',G.gx+G.gw,gy2+gh+12,'#64748b',8.5,'center');
+    model('כא״מ: '+kit.m('|ε| = |ΔΦ/Δt| = '+(Math.abs(eps)*1e3).toFixed(2)+' mV')+(cut?' · הטבעת חתוכה, ולכן '+kit.m('I = 0'):
+      ' · זרם: '+kit.m('I = |ε|/R = '+(Math.abs(eps)*1e3).toFixed(2)+' mV / 0.50 mΩ = '+Math.abs(I).toFixed(2)+' A')));
+    // a push that repels: the flux grows and the ring is pushed off; it has
+    // swung away a moment later, when the push may already be over
+    var sideR=xr>=xm?1:-1;if(grow&&on&&Fr*sideR>3e-4)tRep=tt;
+    kit.check({pushed:tt-tRep<1.5,away:xr*sideR,I:I,Phi:Phi,leaving:vm*(xm-xr)>0&&Math.abs(vm)>0.05,flip:flip,cut:cut,vm:vm,dist:Math.abs(xr-xm)});
     requestAnimationFrame(draw);
   }
   requestAnimationFrame(draw);
 };
-MAG_CTRL['mag-lenz']=function(){return btn('mgn-push','👉 דחפו את המגנט','btn-primary')+btn('mgn-flip','🔄 הפכו את המגנט (N פונה לטבעת)','btn-secondary')+btn('mgn-cut','✂️ חתכו את הטבעת','btn-secondary')+btn('mgn-reset','↺ איפוס','btn-secondary');};
+MAG_CTRL['mag-lenz']=function(){return btn('mgn-push','👉 קרבו את המגנט','btn-primary')+btn('mgn-pull','👈 הרחיקו את המגנט','btn-secondary')+btn('mgn-flip','🔄 הפכו את המגנט (N פונה לטבעת)','btn-secondary')+btn('mgn-cut','✂️ חתכו את הטבעת','btn-secondary')+btn('mgn-reset','↺ איפוס','btn-secondary');};
 
 // ── mag-induction.mag-motional ────────────────────────────────────────────
 // m dv/dt = F − B²L²v/R. ε = BLv drives the current up the rod when B is into

@@ -7,9 +7,9 @@
 const { chromium } = require('playwright');
 const path = require('path');
 const { L, LR, WORDS } = require('./_lang.js');   // the words of the page's language
-// the induction captions, approaching and receding (coil, ring)
-const APPR = [L('מתקרב: השטף גדל — הסליל דוחה'), L('המגנט מתקרב ⇒ השטף גדל ⇒ הטבעת דוחה')];
-const RECD = [L('מתרחק: השטף קטן — הסליל מושך'), L('המגנט מתרחק ⇒ השטף קטן ⇒ הטבעת נמשכת')];
+// the induction captions of the coil, approaching and receding
+const APPR = [L('מתקרב: השטף גדל — הסליל דוחה')];
+const RECD = [L('מתרחק: השטף קטן — הסליל מושך')];
 const isAppr = (c) => APPR.some((a) => c.includes(a)), isRecd = (c) => RECD.some((a) => c.includes(a));
 const F = 'file://' + (process.env.APP_FILE ? path.resolve(process.env.APP_FILE) : path.resolve(__dirname, '..', 'physics_game_v28.html'));   // APP_FILE: test a language build
 
@@ -183,32 +183,52 @@ const EXPECT = {
   // And at 1/20 s per frame -- a slow phone: there one frame carried the
   // magnet past the ring's centre and the force was the last sub-step's
   // current times dΦ/dz at the end position, so it flipped sign for a frame.
+  // Lenz: every frame of a push in, the ring's swing and a pull out, at
+  // 60 fps and at 20 fps (a slow phone, where one frame can carry the magnet
+  // across a pole). Each frame records what the learner sees: the caption,
+  // the force arrow on the ring, the two field arrows at the ring (the
+  // magnet's, blue; the induced one, green) and where the magnet is.
+  const LZG = [L('השטף גדל ⇒ השדה המושרה נגד שדה המגנט ⇒ הטבעת נדחית')], LZS = [L('השטף קטן ⇒ השדה המושרה עם שדה המגנט ⇒ הטבעת נמשכת')];
   for (const [hz, tag] of [[60, ''], [20, ' (20 fps)']]) {
   await open('mag-induction', 'mag-lenz');
-  const lz = await p.evaluate(async (hz) => {
+  const lz = await p.evaluate(async ([hz, G, S]) => {
     const real = window.requestAnimationFrame, q = [];
-    let T = performance.now() + 1000;
+    let T = performance.now() + 1000, rec = null;
+    const oA = window.simArrow, oB = window.magBar, oT = window.simText;
+    window.simArrow = function (c, x1, y1, x2, y2, col) { if (rec && c.canvas.id === 'sim-canvas') rec.ar.push([x1, x2, col]); return oA.apply(this, arguments); };
+    window.magBar = function (c, x) { if (rec && c.canvas.id === 'sim-canvas') rec.mag = x; return oB.apply(this, arguments); };
+    window.simText = function (c, s) { if (rec && c.canvas.id === 'sim-canvas') { if (G.some(g => s.includes(g))) rec.cap = 'grow'; else if (S.some(g => s.includes(g))) rec.cap = 'shrink'; } return oT.apply(this, arguments); };
     window.requestAnimationFrame = cb => { q.push(cb); return q.length; };
     // the frame already asked of the browser runs once more and hands over
     for (let i = 0; i < 40 && !q.length; i++) await new Promise(r => setTimeout(r, 25));
-    const tick = () => { const cbs = q.splice(0); T += 1000 / hz; window.__txt = []; cbs.forEach(c => c(T)); return window.__txt.slice(); };
+    const tick = () => { const cbs = q.splice(0); T += 1000 / hz; rec = { ar: [], mag: null, cap: null }; cbs.forEach(c => c(T)); const r = rec; rec = null; return r; };
+    // each move is gated by a prediction: answer it, and the move starts
+    const answer = () => { const o = document.querySelectorAll('.sk-predict .sk-opt'); if (o.length) o[1].click(); return o.length ? 1 : 0; };
     for (let i = 0; i < 6; i++) tick();
-    document.getElementById('btn-mgn-push').click();
-    const frames = [];
-    for (let i = 0; i < Math.ceil(1.5 * hz); i++) frames.push(tick());   // 1.5 s: in, back out, at rest
+    const frames = []; let asked = 0;
+    document.getElementById('btn-mgn-push').click(); asked += answer();
+    for (let i = 0; i < Math.ceil(1.6 * hz); i++) frames.push(tick());   // in, and the ring's swing
+    document.getElementById('btn-mgn-pull').click(); asked += answer();
+    for (let i = 0; i < Math.ceil(1.2 * hz); i++) frames.push(tick());   // out again
+    window.simArrow = oA; window.magBar = oB; window.simText = oT;
     window.requestAnimationFrame = real; q.splice(0).forEach(c => real(c));
-    return frames;
-  }, hz);
-  let fa = [], fr = [];
-  for (const fm of lz) for (const [f, c] of pairs(fm, /F = (-?[\d.]+) mN/)) {
-    if (isAppr(c) && f) fa.push(f); if (isRecd(c) && f) fr.push(f); }
-  t('Lenz' + tag + ': magnet pushed in — the ring is pushed AWAY (F > 0)', fa.length > 2 && fa.every(f => f > 0), fa.slice(0, 4).join(','));
-  t('  magnet drawn out' + tag + ' — the ring is pulled AFTER it (F < 0)', fr.length > 1 && fr.every(f => f < 0), fr.slice(0, 4).join(','));
+    return { frames, asked };
+  }, [hz, LZG, LZS]);
+  const st = { gF: [0, 0], sF: [0, 0], gB: [0, 0], sB: [0, 0] };   // [agree, disagree]
+  for (const f of lz.frames) { if (!f.cap) continue;
+    const F = f.ar.find(a => a[2] === '#fb923c'), Bm = f.ar.find(a => a[2] === '#60a5fa'), Bi = f.ar.find(a => a[2] === '#34d399');
+    if (F) { const away = Math.sign(F[1] - F[0]) === Math.sign(F[0] - f.mag); st[f.cap === 'grow' ? 'gF' : 'sF'][(f.cap === 'grow') === away ? 0 : 1]++; }
+    if (Bm && Bi) { const same = Math.sign(Bm[1] - Bm[0]) === Math.sign(Bi[1] - Bi[0]); st[f.cap === 'grow' ? 'gB' : 'sB'][(f.cap === 'shrink') === same ? 0 : 1]++; } }
+  t('Lenz' + tag + ': both moves ask for a prediction first', lz.asked === 2, lz.asked);
+  t('  flux growing' + tag + ': the ring is pushed AWAY from the magnet, every frame', st.gF[0] > 2 && st.gF[1] === 0, st.gF.join('/'));
+  t('  flux shrinking' + tag + ': the ring is pulled TOWARD the magnet, every frame', st.sF[0] > 1 && st.sF[1] === 0, st.sF.join('/'));
+  t('  flux growing' + tag + ': the induced field points AGAINST the magnet\'s', st.gB[0] > 2 && st.gB[1] === 0, st.gB.join('/'));
+  t('  flux shrinking' + tag + ': the induced field points WITH the magnet\'s (it opposes the change, not the field)', st.sB[0] > 1 && st.sB[1] === 0, st.sB.join('/'));
   }
-  let fa = [];
   await click('btn-mgn-reset'); await click('btn-mgn-cut'); await click('btn-mgn-push');
-  for (let i = 0; i < 12; i++) { const r = await read(70); fa.push(num(r, /F = (-?[\d.]+) mN/)); }
-  t('  a cut ring: no current, no force', fa.every(f => f === 0));
+  let lzI = [], lzF = 0;
+  for (let i = 0; i < 12; i++) { const r = await read(70); lzI.push(num(r, /^I = ([\d.]+) A/)); if (r.some(x => /^F = /.test(x))) lzF++; }
+  t('  a cut ring: no current, no force', lzI.every(v => v === 0) && lzF === 0, lzI.join(',') + ' / ' + lzF);
   await open('mag-induction', 'mag-motional'); await click('btn-mgv-go'); T = await read();
   t('motional: terminal speed FR/B²L² = 1.60 m/s', has(T, '1.60 m/s'));
   await p.waitForTimeout(1500); T = await read();
@@ -395,7 +415,7 @@ const EXPECT = {
     ['mag-force', 'mag-motor', W => [[W * 0.36 + 30, 163], [W * 0.36, 128], [W * 0.36 - 30, 153]], '^θ = '],
     ['mag-induction', 'mag-flux', W => [[W * 0.3, 150], [W * 0.3, 180], [W * 0.3, 210]], '^θ = '],
     ['mag-induction', 'mag-faraday', W => [[0.2 * W, 114], [W * 0.4, 114], [W * 0.5, 114]], '^NΦ ='],
-    ['mag-induction', 'mag-lenz', W => [[W * 0.316, 221], [W * 0.4, 221], [W * 0.5, 221]], '^I = '],
+    ['mag-induction', 'mag-lenz', W => [[W * 0.14, 150], [W * 0.3, 150], [W * 0.42, 150]], '^I = '],
     ['mag-induction', 'mag-motional', W => [[174, 130], [200, 130], [230, 130]], '^ε = BLv'],
   ];
   const deaf = [];
