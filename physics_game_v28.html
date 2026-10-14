@@ -7778,7 +7778,7 @@ const ELECTRO_CONTENT={
     <div class="mis-block"><b>⚠️ טעות נפוצה:</b> ״דיאלקטרי תמיד מגדיל את האנרגיה״. במטען קבוע הוא <b>מוריד</b> אותה — ובשני המקרים הלוח <b>נשאב פנימה</b>, כי המערכת — כשהסוללה מחוברת, הקבל יחד עם הסוללה — נעה אל האנרגיה הנמוכה.</div>
     <div class="mis-block"><b>⚠️ ושנייה:</b> הדיאלקטרי אינו מוליך מטען כלל — המולקולות רק מסתובבות או נמתחות במקומן. לכן הוא גם מונע קצר ומאפשר לקרב את הלוחות ולהגדיל את ${M('C')} עוד.</div>`,
   },
-  sim:{type:'elc-dielectric',desc:'החליקו את הדיאלקטרי פנימה והחוצה ושנו את κ. המתג קובע אם הסוללה מחוברת (V קבוע) או מנותקת (Q קבוע) — עברו ביניהם וראו מה משתנה.'},
+  sim:{type:'elc-dielectric',desc:'החליקו את הדיאלקטרי פנימה והחוצה ושנו את κ. הקישו על הסוללה כדי לנתק אותה ולחבר אותה שוב: מחוברת — V קבוע, מנותקת — Q קבוע. העמודות מראות פי כמה גדל או קטן כל גודל לעומת הקבל הריק.'},
   example:{title:'הכנסת חומר דיאלקטרי',text:`קבל של ${M('C_0=200\\,\\text{pF}')} טעון ל־${M('9\\,\\text{V}')}, ואז מכניסים לתוכו חומר דיאלקטרי ${M('\\kappa=3')}.`,steps:[
     {q:'מה הקיבול החדש?',a:`${M('C=\\kappa C_0=3\\times200=600\\,\\text{pF}')} — בשני המקרים, כי הקיבול תלוי רק בגאומטריה ובחומר.`},
     {q:'אם הסוללה נשארה מחוברת — מה המטען?',a:`המתח נשאר ${M('9\\,\\text{V}')}, ולכן ${M('Q=CV=600\\times10^{-12}\\times9=5.4\\,\\text{nC}')} — פי 3 מה־${M('1.8\\,\\text{nC}')} שהיו קודם.`},
@@ -15498,18 +15498,41 @@ function simElcDielectric(canvas){
   // anywhere along the gap row counts, so the slab is not a thin target to hunt
   // for; a press that misses it simply picks it up by the middle
   function inRow(p){return p.x>PL-6&&p.y>PT-16&&p.y<PB+16;}
+  // the battery and its switch are on the canvas too: a tap there opens or closes it
+  function onBat(p){return Math.abs(p.x-BX)<30&&Math.abs(p.y-(PT+PB)/2)<40;}
   function _dn(e){var p=simPointerXY(canvas,dpr,e);
+    if(onBat(p)){if(mb)mb.click();e.preventDefault();return;}
     if(onSlab(p)){drag=true;dragDX=p.x-slabX();e.preventDefault();}
     else if(inRow(p)){drag=true;dragDX=SLW/2;e.preventDefault();}}
   function _mv(e){var p=simPointerXY(canvas,dpr,e);
     if(drag){simSyncSlider('di-f',Math.max(0,Math.min(1,(PR-(p.x-dragDX))/SLW)),2);e.preventDefault();}
-    else canvas.style.cursor=(onSlab(p)||inRow(p))?'grab':'';}
+    else canvas.style.cursor=(onSlab(p)||inRow(p))?'grab':onBat(p)?'pointer':'';}
   function _up(){drag=false;canvas.style.cursor='';}
   canvas.addEventListener('mousedown',_dn);canvas.addEventListener('touchstart',_dn,{passive:false});
   canvas.addEventListener('mousemove',_mv);canvas.addEventListener('touchmove',_mv,{passive:false});
   canvas.addEventListener('mouseup',_up);canvas.addEventListener('mouseleave',_up);
   canvas.addEventListener('touchend',_up);
-
+  var kb=elcKbd(canvas,{n:function(){return 1;},get:function(){return {x:slabX(),y:(PT+PB)/2};},
+    set:function(i,x){simSyncSlider('di-f',Math.max(0,Math.min(1,(PR-x)/SLW)),2);}});
+  // the third mission: with the battery off, the slab goes from in to out
+  var outFrom=null,pulled=false;
+  var kit=simKit(canvas,{missions:[
+    {text:'כשהסוללה מחוברת, החליקו את הדיאלקטרי פנימה עד הסוף. מה גדל, ומה נשאר?',
+     hint:'ודאו שהכפתור אומר ״🔌 הסוללה מחוברת״ וגררו את הלוח הסגול אל בין הלוחות.',
+     why:'הסוללה מחזיקה את '+_skM('V')+': הקיבול גדל פי '+_skM('κ')+', ולכן '+_skM('Q = CV')+' ו־'+_skM('U = ½CV²')+' גדלים פי '+_skM('κ')+' — את המטען הנוסף מספקת הסוללה. '+_skM('E = V/d')+' אינו משתנה.',
+     done:function(s){return s.con&&s.f>0.97&&s.k>=2;}},
+    {text:'נתקו את הסוללה כשהלוח בחוץ, ואז הכניסו אותו: הורידו את המתח לרבע — '+_skM('3 V'),
+     hint:'הוציאו את הלוח, לחצו על הסוללה כדי לנתק אותה, קבעו '+_skM('κ = 4')+' והחליקו את הלוח פנימה עד הסוף.',
+     why:'המטען כלוא על הלוחות: '+_skM('C')+' גדל פי '+_skM('κ')+', ולכן '+_skM('V = Q/C')+' והשדה קטנים פי '+_skM('κ')+', וגם '+_skM('U = Q²/2C')+' קטנה פי '+_skM('κ')+'. את ההפרש עשה השדה כעבודה כשמשך את הלוח פנימה.',
+     done:function(s){return !s.con&&Math.abs(s.Q-1)<0.02&&Math.abs(s.V-0.25)<0.02;}},
+    {text:'הסוללה מנותקת והלוח בפנים: שלפו אותו החוצה. האנרגיה האגורה עולה או יורדת?',
+     hint:'הכניסו את הלוח, נתקו את הסוללה, ואז גררו את הלוח החוצה עד הסוף. עקבו אחר עמודת '+_skM('U')+'.',
+     why:'האנרגיה עולה: הלוח נשאב פנימה, ובשליפתו הידיים עושות עבודה נגד המשיכה — העבודה הזו היא האנרגיה שנוספה לקבל.',
+     done:function(s){return s.pulled;}}
+  ]});
+  kit.predict({q:'הסוללה מנותקת, ומחליקים את הדיאלקטרי אל בין הלוחות. המתח בין הלוחות:',
+    opts:['גדל','קטן','אינו משתנה'],correct:1,
+    why:'בלי הסוללה '+_skM('Q')+' אינו יכול להשתנות, ו־'+_skM('C = κC₀')+' גדל — ולכן '+_skM('V = Q/C')+' קטן פי '+_skM('κ')+'. נסו: נתקו את הסוללה והחליקו את הלוח פנימה.'});
   function draw(){
     if(_simStop[id])return;
     var k=gk(), f=gf();
@@ -15604,22 +15627,35 @@ function simElcDielectric(canvas){
     }
     simText(ctx,connected?'הסוללה מחוברת — V קבוע':'הסוללה מנותקת — Q קבוע',
       W/2,H*0.51,connected?'#10b981':'#f59e0b',13.5,'center',true);
-    // ratio bars against the empty-capacitor baseline
+    // Ratio bars against the empty capacitor at 12 V, on a scale of factors:
+    // a bar UP is "grew by", a bar DOWN is "shrank by", one step per factor of
+    // 2 -- so ×4 and ×¼ are the same height, and "what falls when the
+    // battery is gone" can be seen at a glance. (The bars used to grow from
+    // the floor in proportion, so ×0.25 was a sliver and ×16 ran off the top.)
     var vals=[['C',Cc/C0],['Q',Q/Q0],['V',V/V0],['E',E/E0],['U',U/U0]];
-    var bw=W*0.15, y0=H*0.55, hMax=H*0.23;
-    for(var j=0;j<vals.length;j++){
-      var x=W*0.06+j*(bw+W*0.028), rat=vals[j][1];
-      var hh=Math.min(1,rat/8)*hMax;
-      var col=rat>1.02?'#10b981':(rat<0.98?'#ef4444':'#64748b');
-      ctx.fillStyle=col;ctx.globalAlpha=.75;ctx.fillRect(x,y0+hMax-hh,bw,hh);ctx.globalAlpha=1;
-      ctx.strokeStyle='#334155';ctx.lineWidth=1;ctx.strokeRect(x,y0,bw,hMax);
-      slTxt(ctx,vals[j][0],x+bw/2,y0+hMax+18,'#94a3b8',12.5,'center',true);
-      slTxt(ctx,'×'+rat.toFixed(2),x+bw/2,y0+hMax+34,col,11.5,'center',true);
-    }
+    var bw=W*0.15, y0=H*0.55, hMax=H*0.27, ym=y0+hMax/2, L6=Math.log(8);
     ctx.save();ctx.strokeStyle='#475569';ctx.setLineDash([4,4]);ctx.lineWidth=1;
-    ctx.beginPath();ctx.moveTo(W*0.05,y0+hMax-hMax/8);ctx.lineTo(W*0.97,y0+hMax-hMax/8);ctx.stroke();ctx.restore();
-    slTxt(ctx,'×1',W*0.985,y0+hMax-hMax/8-3,'#7d8da6',10,'right');
-    simText(ctx,'היחס לעומת קבל ריק',W/2,H-8,'#7d8da6',11,'center');
+    ctx.beginPath();ctx.moveTo(W*0.05,ym);ctx.lineTo(W*0.97,ym);ctx.stroke();ctx.restore();
+    for(var j=0;j<vals.length;j++){
+      var x=W*0.06+j*(bw+W*0.028), rat=vals[j][1], lr=Math.log(rat)/L6, hh=Math.max(-1,Math.min(1,lr))*hMax/2;
+      var col=rat>1.02?'#10b981':(rat<0.98?'#ef4444':'#64748b');
+      ctx.strokeStyle='#334155';ctx.lineWidth=1;ctx.strokeRect(x,y0,bw,hMax);
+      ctx.fillStyle=col;ctx.globalAlpha=.75;
+      if(Math.abs(hh)<2)ctx.fillRect(x,ym-1.5,bw,3);else ctx.fillRect(x,hh>0?ym-hh:ym,bw,Math.abs(hh));
+      ctx.globalAlpha=1;
+      if(Math.abs(lr)>1)slTxt(ctx,lr>0?'▲':'▼',x+bw/2,lr>0?y0+11:y0+hMax-3,col,10,'center');
+      slTxt(ctx,vals[j][0],x+bw/2,y0+hMax+18,'#94a3b8',12.5,'center',true);
+      slTxt(ctx,'×'+(rat>=0.995||rat<0.1?rat.toFixed(2):rat.toFixed(3)),x+bw/2,y0+hMax+34,col,11.5,'center',true);
+    }
+    slTxt(ctx,'×1',W*0.985,ym-3,'#7d8da6',10,'right');
+    simText(ctx,'היחס לעומת קבל ריק ב־12 V — למעלה: גדל, למטה: קטן',W/2,H-8,'#7d8da6',11,'center');
+    elcFocus(ctx,kb,0,sx+SLW-12,(PT+PB)/2,18);
+    // ── the lesson's numbers ──
+    var cTx='C = C₀[(1 − f) + κf] = 100 pF × [(1 − '+f.toFixed(2)+') + '+k.toFixed(1)+' × '+f.toFixed(2)+'] = '+(Cc*1e12).toFixed(0)+' pF';
+    kit.model(connected?'הסוללה מחוברת, V קבוע: '+_skM(cTx+' ⇒ Q = CV = '+(Q*1e9).toFixed(2)+' nC')
+      :'הסוללה מנותקת, Q קבוע: '+_skM(cTx+' ⇒ V = Q/C = '+V.toFixed(2)+' V'));
+    if(connected)outFrom=null;else if(f>0.95)outFrom=U;else if(outFrom!==null&&f<0.05&&U>outFrom*1.01){pulled=true;}
+    kit.check({con:connected,f:f,k:k,Q:Q/Q0,V:V/V0,pulled:pulled});
     requestAnimationFrame(draw);
   }
   draw();

@@ -311,6 +311,24 @@ const sig2 = x => x === 0 ? 0 : Number(x.toPrecision(2));
   await dragTo(cb.x3, cb.cy, cb.x2 + (cb.x2 - cb.x1) + 6, cb.cy); await p.waitForTimeout(200); cb = await clb();
   t('superposition: with q₃ = q₁ the net force on q₂ vanishes where r₃ = r₁', Math.abs(cb.Fn) < 1e-9 && Math.abs((cb.x3 - cb.x2) - (cb.x2 - cb.x1)) < 1e-6 && (await done())[2] === true, 'ΣF = ' + cb.Fn);
 
+  // ── dielectric: what is held fixed. Bars read C, Q, V, E, U against the empty capacitor ──
+  await open('elc-dielectric'); await p.waitForTimeout(400);
+  const ratios = async () => { const l = (await txt(300)).split('\n').filter(x => /^×[0-9.]+$/.test(x)).map(x => +x.slice(1)); return l.slice(-6, -1); };
+  await setR('inp-di-k', 4); await setR('inp-di-f', 1);
+  let rt = await ratios();
+  t('dielectric, battery connected, slab in: C, Q, U ×κ; V, E ×1', JSON.stringify(rt) === JSON.stringify([4, 4, 1, 1, 4]), rt.join(' '));
+  t('mission "connected: slide it in" is solved by doing it', (await done())[0] === true);
+  await click('btn-di-mode'); rt = await ratios();
+  t('dielectric: opening the switch with the slab in moves no charge (Q stays ×4, V stays 12 V)', JSON.stringify(rt) === JSON.stringify([4, 4, 1, 1, 4]), rt.join(' '));
+  await setR('inp-di-f', 0); rt = await ratios();
+  t('dielectric, disconnected, slab pulled out: Q fixed, V and E ×κ, U = Q²/2C ×κ²', JSON.stringify(rt) === JSON.stringify([1, 4, 4, 4, 16]), rt.join(' '));
+  await click('btn-di-mode'); await click('btn-di-mode');      // reconnect (charge back to Q0), disconnect empty
+  await setR('inp-di-f', 1); rt = await ratios();
+  t('dielectric, disconnected empty, slab in: V, E and U fall by κ (×0.25)', JSON.stringify(rt) === JSON.stringify([4, 1, 0.25, 0.25, 0.25]), rt.join(' '));
+  t('mission "disconnect, then insert: V to a quarter" is solved by doing it', (await done())[1] === true);
+  await setR('inp-di-f', 0); await p.waitForTimeout(200);
+  t('mission "pull the slab out: does U rise?" is solved by doing it', (await done())[2] === true);
+
   console.log('   every draggable simulation by touch, on a phone');
   const tc = await b.newContext({ viewport: { width: 390, height: 1300 }, hasTouch: true, isMobile: true, deviceScaleFactor: 2 });
   const q = await tc.newPage(); q.on('pageerror', x => errs.push(x.message));
