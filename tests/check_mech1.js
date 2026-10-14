@@ -307,21 +307,24 @@ const EXPECT = {
   t('... and the model line prints that a', !!aM && close(+aM[1], (40 - CK) / 5, 0.006), aM && aM[1]);
   await set('sft-F', 30); await p.waitForTimeout(300); q2 = await probe();
   t('a sliding crate does not re-check μₛN: at fₖ < F = 30 N < μₛN it still speeds up', q2.sliding && q2.a > 0.8, q2.a.toFixed(3));
-  await set('sft-F', 25.5); await p.waitForTimeout(1600);
+  // waits counted on the sim's own clock (a slow machine caps its frames, it does not skip them)
+  const simWait = (sec, until) => p.evaluate(async ([sec, until]) => { const cv = document.querySelector('#app canvas'), c0 = cv._probe().clock, f = until ? new Function('q', 'return ' + until) : null;
+    while (cv._probe().clock - c0 < sec && !(f && f(cv._probe()))) await new Promise(r => setTimeout(r, 30)); return cv._probe(); }, [sec, until || '']);
+  await set('sft-F', 25.5); await simWait(1.4);
   const md1 = await done();
   t('missions: the ceiling found, then constant velocity at F ≈ μₖN', md1[0] && md1[1], JSON.stringify(md1));
-  await set('sft-F', 10); await p.waitForTimeout(4500); q2 = await probe();
+  await set('sft-F', 10); q2 = await simWait(12, '!q.sliding');
   t('below fₖ it slows and stops, and then static friction is the push again (10 N)', !q2.sliding && q2.v === 0 && Math.abs(q2.f - 10) < 1e-9, `v ${q2.v}, f ${q2.f}`);
   // the truck: friction along the motion
   await set('sft-mu', 0.4); await p.evaluate(() => document.getElementById('btn-sft-scene').click()); await p.waitForTimeout(250);
   t('the truck asks first which way friction points', await p.evaluate(() => /🚚|truck|משאית/.test(document.querySelector('#app .sk-pq').textContent)));
-  await set('sft-a', 2); await p.waitForTimeout(700); q2 = await probe();
+  await set('sft-a', 2); q2 = await simWait(0.7);
   const ml2 = await model();
   t('truck speeding up at 2 m/s²: the crate rides along, fₛ = ma = +10 N — forward', q2.stick && Math.abs(q2.f - 10) < 1e-9 && q2.vc === q2.vt && ml2.includes('fₛ = ma = 5.0 × 2.0 = 10.0 N ≤ μₛmg = 19.6 N'), q2.f + ' N');
-  await set('sft-a', 3.8); await p.waitForTimeout(500);
-  await set('sft-a', 5); await p.waitForTimeout(900); q2 = await probe();
+  await set('sft-a', 3.8); await simWait(0.5);
+  await set('sft-a', 5); q2 = await simWait(0.9);
   t('at 5 m/s² > μₛg it slips back: kinetic friction μₖmg still points forward, a_crate = μₖg', !q2.stick && q2.vc < q2.vt && Math.abs(q2.f - 0.3 * N5) < 1e-9 && Math.abs(q2.ac - 0.3 * 9.8) < 1e-9, `f ${q2.f.toFixed(2)} N, a ${q2.ac.toFixed(2)}`);
-  await set('sft-a', -6); await p.waitForTimeout(1200); q2 = await probe();
+  await set('sft-a', -6); q2 = await simWait(1.2);
   t('braking hard it slides forward and friction turns backward', !q2.stick && q2.vc > q2.vt && q2.f < 0, `f ${q2.f.toFixed(2)} N`);
   const md2 = await done();
   t('missions: largest acceleration without slipping (μₛg), and the forward slide when braking', md2[2] && md2[3], JSON.stringify(md2));

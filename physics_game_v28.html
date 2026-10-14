@@ -5273,7 +5273,7 @@ const CONTENT={
       <p>שעוני מטוטלת היו השעונים המדויקים ביותר בעולם עד שנות ה־30 של המאה העשרים, כששעוני הקוורץ החליפו אותם.</p>`
     }
   },
-  sim:{type:'pendulum',title:'מטוטלת',desc:'גררו את המשקולת לזווית כלשהי ושחררו. השוו את T₀=2π√(L/g) למחזור האמיתי במשרעות גדולות, ושנו את L ואת g.'},
+  sim:{type:'pendulum',title:'מטוטלת',desc:'גררו את המשקולת לזווית כלשהי ושחררו. השעון מודד את זמן המחזור של התנועה עצמה: השוו אותו ל־T₀ = 2π√(L/g) ולמחזור המדויק — העקומה מראה עד איזו משרעת הקירוב טוב. שנו את L, את g ואת מסת המשקולת, ובדקו מה משנה את המחזור ומה לא.'},
   example:{title:'מטוטלת פשוטה',text:`מטוטלת באורך ${M('1\\,\\text{m}')} על פני כדור הארץ (${M('g=9.8\\,\\text{m/s}^2')}).`,steps:[
     {q:'מהו זמן המחזור?',a:`${M('T=2\\pi\\sqrt{\\dfrac{L}{g}}=2\\pi\\sqrt{\\dfrac{1}{9.8}}\\approx2.0\\,\\text{s}')}`},
     {q:'מה יקרה אם נאריך את החוט פי 4?',a:`${M('T\\propto\\sqrt L')}, ולכן זמן המחזור יוכפל ל־${M('4.0\\,\\text{s}')}.`},
@@ -14295,7 +14295,7 @@ function simStaticFriction(canvas){
     'ArrowRight':function(){if(scene==='push')simSyncSlider('sft-F',Fp()+0.5,1);else simSyncSlider('sft-a',At()+0.1,1);},
     'ArrowLeft':function(){if(scene==='push')simSyncSlider('sft-F',Fp()-0.5,1);else simSyncSlider('sft-a',At()-0.1,1);},
     'Enter':function(){if(sb)sb.click();}});
-  canvas._probe=function(){var n=M()*g;return {scene:scene,x:x,v:v,sliding:sliding,a:aNow,F:Fp(),N:n,fsmax:mu()*n,fk:KMU*mu()*n,
+  canvas._probe=function(){var n=M()*g;return {clock:t,scene:scene,x:x,v:v,sliding:sliding,a:aNow,F:Fp(),N:n,fsmax:mu()*n,fk:KMU*mu()*n,
     vt:vt,vc:vc,srel:srel,stick:stick,wall:wall,A:Ae,ac:ac,f:fNow};};
   var fNow=0;
 
@@ -15079,49 +15079,75 @@ function simNewton3(canvas){
 
 
 function simPendulum(canvas){
-  // SECTION: shm.pendulum — מטוטלת פשוטה
+  // SECTION: shm.pendulum
   // θ'' = −(g/L)·sinθ − b·θ', integrated in small symplectic steps, so the
-  // large-amplitude pendulum is genuinely slower. The small-angle period and
-  // the exact one are shown side by side. Drag the bob to set the amplitude.
-  const H=490; const {ctx,W,dpr}=setupCanvas(canvas,H);
+  // large-amplitude pendulum is genuinely slower. A stopwatch measures the
+  // period of the motion itself (upward zero crossings, interpolated) beside
+  // T₀ = 2π√(L/g) and the exact period T₀/AGM(1, cos(θ₀/2)); a curve of T/T₀
+  // against θ₀ shows where the small-angle formula holds. The bob's mass can
+  // be changed: the period does not move. Drag the bob to set the amplitude.
+  var cv0=setupCanvas(canvas,490), W=cv0.W, dpr=cv0.dpr, H=490, ctx=cv0.ctx;
   const id=canvas.id;
   let pT=null, t=0;
   var L=1.0, g=9.8, b=0, M=1;           // m, m/s², 1/s, kg
   var theta=0.4, omega=0;
   var dragging=false;
   var thetaHist=[], timeHist=[], clock=0, trailP=[];
-  var Eref=null, lastL=null, lastG=null;
+  var Eref=null, lastKey=null;
+  var cross=[], Tmeas=null, meas=[], ampAtRelease=0.4;
 
-  var PIV_X=W/2, PIV_Y=78;
+  var PIV_X=W/2, PIV_Y=W<560?96:78;              // below the readout card (taller on a phone)
   var GY=H-116;                                    // top of the bottom row
   var RMAX=Math.min(GY-PIV_Y-30, W/2-34);          // longest string that fits at 80°
   var PX=200;                                      // px per metre, set per frame
-  function getL(){var e=document.getElementById('inp-pend-L'); return e?parseFloat(e.value):L;}
-  function getG(){var e=document.getElementById('inp-pend-g'); return e?parseFloat(e.value):g;}
-  function getB(){var e=document.getElementById('inp-pend-damp'); return e?parseFloat(e.value):b;}
+  function getL(){return _mbV('pend-L',L);} function getG(){return _mbV('pend-g',g);}
+  function getB(){return _mbV('pend-damp',b);} function getM(){return _mbV('pend-m',M);}
+  function bobR(){return 9+5*Math.cbrt(M);}
   function bobX(){return PIV_X+Math.sin(theta)*L*PX;}
   function bobY(){return PIV_Y+Math.cos(theta)*L*PX;}
-
+  function clearMeas(){cross=[];Tmeas=null;}
   function onDown(e){var p=simPointerXY(canvas,dpr,e);
-    if(Math.hypot(p.x-bobX(),p.y-bobY())<30){dragging=true;omega=0;thetaHist=[];timeHist=[];clock=0;e.preventDefault();}}
+    if(Math.hypot(p.x-bobX(),p.y-bobY())<Math.max(30,bobR()+12)){dragging=true;omega=0;thetaHist=[];timeHist=[];clock=0;clearMeas();e.preventDefault();}}
   function onMove(e){if(!dragging)return; e.preventDefault(); var p=simPointerXY(canvas,dpr,e);
     theta=Math.max(-1.4,Math.min(1.4,Math.atan2(p.x-PIV_X,p.y-PIV_Y))); omega=0;}
-  function onUp(){if(dragging){dragging=false;Eref=null;}}
+  function onUp(){if(dragging){dragging=false;Eref=null;ampAtRelease=Math.abs(theta);}}
   canvas.addEventListener('mousedown',onDown); canvas.addEventListener('touchstart',onDown,{passive:false});
   canvas.addEventListener('mousemove',onMove); canvas.addEventListener('touchmove',onMove,{passive:false});
   canvas.addEventListener('mouseup',onUp); canvas.addEventListener('mouseleave',onUp); canvas.addEventListener('touchend',onUp);
   var resetBtn=document.getElementById('btn-pend-reset');
-  if(resetBtn)resetBtn.addEventListener('click',function(){theta=0.4;omega=0;thetaHist=[];timeHist=[];clock=0;trailP=[];Eref=null;});
+  if(resetBtn)resetBtn.addEventListener('click',function(){theta=0.4;omega=0;thetaHist=[];timeHist=[];clock=0;trailP=[];Eref=null;clearMeas();ampAtRelease=0.4;});
+  _mbKeys(canvas,{'ArrowLeft':function(){if(Math.abs(omega)<1e-9){theta=Math.max(-1.4,theta-0.035);ampAtRelease=Math.abs(theta);Eref=null;clearMeas();}},
+    'ArrowRight':function(){if(Math.abs(omega)<1e-9){theta=Math.min(1.4,theta+0.035);ampAtRelease=Math.abs(theta);Eref=null;clearMeas();}}});
 
+  canvas._probe=function(){return {px:PIV_X,py:PIV_Y,PX:PX,L:L,theta:theta,omega:omega,Tmeas:Tmeas,M:M,clock:clock,amp0:ampAtRelease};};
   function agm(a,c){for(var i=0;i<30;i++){var n=(a+c)/2;c=Math.sqrt(a*c);a=n;}return a;}
+  var kit=simKit(canvas,{missions:[
+    {text:'הראו שהמסה אינה משנה את זמן המחזור: מדדו את T פעמיים, במסות שונות',
+     hint:'חכו שהשעון ימדוד מחזור, שנו את המסה ב־'+_skM('1 kg')+' לפחות — באותם L, g ומשרעת — ומדדו שוב.',
+     why:'הכוח המשחזר '+_skM('mg·sinθ')+' יחסי למסה, וגם ההתמדה '+_skM('ma')+': המסה מצטמצמת, ונשאר '+_skM('T₀ = 2π√(L/g)')+'. זו אותה סיבה שכל הגופים נופלים באותה תאוצה.',
+     done:function(s){return s.massSame;}},
+    {text:'מצאו משרעת שבה המחזור האמיתי ארוך ב־10% מ־'+_skM('2π√(L/g)'),
+     hint:'גררו את המשקולת לזוויות גדולות יותר ועקבו אחרי הנקודה על עקומת '+_skM('T/T₀')+'.',
+     why:'הקירוב '+_skM('sinθ ≈ θ')+' מתאים רק לזוויות קטנות. בזוויות גדולות הכוח המשחזר קטן מהקירוב, ולכן המטוטלת איטית יותר: ב־'+_skM('θ₀ ≈ 70°')+' המחזור ארוך ב־10%, וב־'+_skM('15°')+' רק ב־0.4%.',
+     done:function(s){return s.rel&&s.dev>=9&&s.dev<=11;}},
+    {text:'בנו ״מטוטלת שניות״: זמן מחזור של '+_skM('2.00 s')+' על כדור הארץ, במשרעת קטנה',
+     hint:_skM('L = gT²/4π²')+': עם '+_skM('g = 9.8 m/s²')+' ו־'+_skM('T = 2 s')+' יוצא כמעט מטר.',
+     why:_skM('T₀ = 2π√(L/g)')+': אורך של כמטר נותן חצי תנודה בכל שנייה — לכן מטוטלת כזו שימשה בשעונים, ובעזרתה אפשר למדוד את g.',
+     done:function(s){return s.rel&&s.amp<0.18&&Math.abs(s.g-9.8)<1e-6&&Math.abs(s.T-2)<0.01;}}]});
+  var model=_mbModel(kit);
+  kit.predict({q:'מטוטלת מתנודדת במשרעת קטנה. מחליפים את המשקולת באחת כבדה פי 2. זמן המחזור:',
+    opts:['גדל פי 2','אינו משתנה','קטן פי 2'],correct:1,
+    why:'משקולת כבדה פי 2 נמשכת בכוח כפול, אבל גם קשה פי 2 להאיץ אותה — שני האפקטים מתבטלים. '+_skM('T₀ = 2π√(L/g)')+' אינו תלוי במסה.'},
+    function(){simSyncSlider('pend-m',Math.min(5,getM()*2),1);});
 
   function draw(ts){
     if(_simStop[id])return;
     if(!pT)pT=ts; var dt=Math.min((ts-pT)/1000,0.04); pT=ts;
     t+=dt;
-    L=getL(); g=getG(); b=getB();
-    if(lastL!==null&&(Math.abs(lastL-L)>1e-9||Math.abs(lastG-g)>1e-9)){Eref=null;trailP=[];}
-    lastL=L; lastG=g;
+    L=getL(); g=getG(); b=getB(); M=getM();
+    var key=L+'|'+g+'|'+M+'|'+b;
+    if(lastKey!==null&&key!==lastKey){Eref=null;trailP=[];clearMeas();}
+    lastKey=key;
     // the drawing scale shrinks only when the string would not fit; a scale
     // bar shows it, so a 3 m string is not mistaken for a 1.3 m one
     PX=Math.min(200,RMAX/L);
@@ -15129,17 +15155,23 @@ function simPendulum(canvas){
     if(!dragging){
       var n=Math.max(1,Math.ceil(dt/0.002)), h=dt/n;
       for(var k=0;k<n;k++){              // semi-implicit Euler: bounded energy error
+        var th0=theta;
         omega+=(-(g/L)*Math.sin(theta)-b*omega)*h;
         theta+=omega*h;
+        clock+=h;
+        // the stopwatch: upward zero crossings, interpolated within the step
+        if(th0<0&&theta>=0){var tc=clock-h*theta/(theta-th0);cross.push(tc);
+          if(cross.length>1){Tmeas=cross[cross.length-1]-cross[cross.length-2];
+            meas.push({m:M,L:L,g:g,b:b,amp:ampAtRelease,T:Tmeas});if(meas.length>40)meas.shift();}
+          if(cross.length>4)cross.shift();}
       }
-      clock+=dt;
       thetaHist.push(theta*180/Math.PI); timeHist.push(clock);
       var _win=3*2*Math.PI*Math.sqrt(L/g);
       while(timeHist.length&&clock-timeHist[0]>_win){thetaHist.shift();timeHist.shift();}
     }
 
     var T0=2*Math.PI*Math.sqrt(L/g);
-    var bx=bobX(), by=bobY();
+    var bx=bobX(), by=bobY(), BR=bobR();
     if(!dragging){trailP.push({x:bx,y:by});if(trailP.length>70)trailP.shift();}else trailP=[];
     var KE=0.5*M*L*L*omega*omega, PE=M*g*L*(1-Math.cos(theta));
     if(Eref===null||!isFinite(Eref)||Eref<1e-6)Eref=Math.max(1e-6,KE+PE);
@@ -15162,7 +15194,6 @@ function simPendulum(canvas){
     var rg=ctx.createLinearGradient(PIV_X,PIV_Y,bx,by); rg.addColorStop(0,'#94a3b8'); rg.addColorStop(1,'#60a5fa');
     ctx.save(); ctx.strokeStyle=rg; ctx.lineWidth=2.5; ctx.beginPath(); ctx.moveTo(PIV_X,PIV_Y); ctx.lineTo(bx,by); ctx.stroke(); ctx.restore();
     ctx.save(); ctx.fillStyle='#334155'; ctx.strokeStyle='#60a5fa'; ctx.lineWidth=2; ctx.beginPath(); ctx.arc(PIV_X,PIV_Y,7,0,Math.PI*2); ctx.fill(); ctx.stroke(); ctx.restore();
-    // vertical through the pivot, and the angle arc on the side the bob is on
     ctx.save(); ctx.strokeStyle='rgba(96,165,250,.25)'; ctx.lineWidth=1; ctx.setLineDash([3,5]);
     ctx.beginPath(); ctx.moveTo(PIV_X,PIV_Y); ctx.lineTo(PIV_X,PIV_Y+L*PX+16); ctx.stroke(); ctx.restore();
     if(Math.abs(theta)>0.03){
@@ -15179,33 +15210,34 @@ function simPendulum(canvas){
     ctx.save(); ctx.strokeStyle='#7d8da6'; ctx.lineWidth=2;
     ctx.beginPath(); ctx.moveTo(14,sbY); ctx.lineTo(14+PX,sbY); ctx.moveTo(14,sbY-4); ctx.lineTo(14,sbY+4); ctx.moveTo(14+PX,sbY-4); ctx.lineTo(14+PX,sbY+4); ctx.stroke(); ctx.restore();
     simText(ctx,'1 m',14+PX/2,sbY-7,'#7d8da6',8,'center');
-    // bob
+    // bob: its size grows with its mass, its colour with its speed
     var vFrac=Math.min(1,Math.abs(omega)*L/3);
     var bobCol='rgba('+Math.round(59+196*vFrac)+','+Math.round(130-50*vFrac)+','+Math.round(246-196*vFrac)+',0.9)';
     ctx.save(); ctx.shadowColor=bobCol; ctx.shadowBlur=14+vFrac*10; ctx.fillStyle=bobCol; ctx.strokeStyle='#93c5fd'; ctx.lineWidth=2.5;
-    ctx.beginPath(); ctx.arc(bx,by,16,0,Math.PI*2); ctx.fill(); ctx.stroke(); ctx.shadowBlur=0; ctx.restore();
-    simText(ctx,'1 kg',bx,by+4,'#fff',8.5,'center',true);
+    ctx.beginPath(); ctx.arc(bx,by,BR,0,Math.PI*2); ctx.fill(); ctx.stroke(); ctx.shadowBlur=0; ctx.restore();
+    simText(ctx,M.toFixed(1)+' kg',bx,by+4,'#fff',8.5,'center',true);
     if(Math.abs(omega)>0.05&&!dragging){
       var vDir=Math.sign(omega), vLen=Math.min(60,Math.abs(omega)*L*15);
       var tx=Math.cos(theta)*vDir, ty=-Math.sin(theta)*vDir;
       simArrow(ctx,bx,by,bx+tx*vLen,by+ty*vLen,'#22d3ee',2.5,9);
     }
-    if(t<4||dragging) simText(ctx,dragging?'שחררו!':'גררו את המשקולת לזווית כלשהי',bx,by-26,'#fbbf24',9,'center',true);
+    if(t<4||dragging) simText(ctx,dragging?'שחררו!':'גררו את המשקולת לזווית כלשהי',bx,by-BR-12,'#fbbf24',9,'center',true);
 
-    // ── formula panel
-    ctx.save(); ctx.fillStyle='rgba(6,14,28,.92)'; ctx.strokeStyle='#1e4060'; ctx.lineWidth=1.5;
-    ctx.beginPath(); ctx.roundRect(8,6,W-16,48,6); ctx.fill(); ctx.stroke(); ctx.restore();
-    simText(ctx,'‎T₀ = 2π√(L/g) = '+T0.toFixed(3)+' s   |   f = '+(1/T0).toFixed(3)+' Hz   |   v = '+(Math.abs(omega)*L).toFixed(2)+' m/s',W/2,20,'#22d3ee',9.5,'center',true);
-    simText(ctx,'‎משרעת θ₀ = '+(amp*180/Math.PI).toFixed(1)+'°  →  T אמיתי = '+Ttrue.toFixed(3)+' s  ('+(dev>=0?'+':'')+dev.toFixed(1)+'%)',W/2,35,dev>1.5?'#fbbf24':'#4ade80',9,'center',true);
-    simText(ctx,dev>1.5?'⚠ קירוב הזווית הקטנה כבר אינו מדויק':'✓ קירוב הזווית הקטנה תקף',W/2,49,dev>1.5?'#fbbf24':'#4ade80',8.5,'center');
+    // ── the readouts: the two periods and the stopwatch
+    var nar=W<560, l1='T₀ = 2π√(L/g) = '+T0.toFixed(3)+' s', l2='משרעת θ₀ = '+(amp*180/Math.PI).toFixed(1)+'°  →  T אמיתי = '+Ttrue.toFixed(3)+' s ('+(dev>=0?'+':'')+dev.toFixed(1)+'%)';
+    _mbCard(ctx,8,6,W-16,nar?66:50);
+    if(nar){simText(ctx,l1,W/2,22,'#22d3ee',10,'center',true);simText(ctx,l2,W/2,38,dev>1.5?'#fbbf24':'#4ade80',9.5,'center',true);}
+    else simText(ctx,l1+'   ·   '+l2,W/2,22,dev>1.5?'#fbbf24':'#4ade80',9.5,'center',true);
+    var ry=nar?58:42;
+    simText(ctx,Tmeas===null?'⏱ השעון מודד מחזור…':'⏱ T נמדד = '+Tmeas.toFixed(3)+' s',W*0.27,ry,'#e2e8f0',10,'center',true);
+    simText(ctx,'Eₖ + Eₚ = '+(KE+PE).toFixed(2)+' J',W*0.73,ry,'#94a3b8',9.5,'center');
 
-    // ── bottom row: θ(t) on the left, energy on the right
-    var GX=8, GW=W*0.62, GH=H-GY-8;
-    ctx.save(); ctx.fillStyle='rgba(6,14,28,.88)'; ctx.strokeStyle='#1e3a52'; ctx.lineWidth=1;
-    ctx.beginPath(); ctx.roundRect(GX,GY,GW,GH,4); ctx.fill(); ctx.stroke(); ctx.restore();
-    simText(ctx,'θ(t) — זווית מול זמן',GX+GW/2,GY+11,'#7d8da6',8,'center',true);
+    // ── bottom row: θ(t) on the left, T/T₀ against θ₀ on the right
+    var GX=8, GW=W*0.56, GH=H-GY-8;
+    _mbCard(ctx,GX,GY,GW,GH,'#1e3a52');
+    simText(ctx,'θ(t) — זווית מול זמן',GX+GW/2,GY+13,'#7d8da6',8.5,'center',true);
     simText(ctx,'t →',GX+GW-8,GY+GH-5,'#7d8da6',8,'right');
-    simText(ctx,'θ (°)',GX+6,GY+20,'#a78bfa',8,'left');
+    simText(ctx,'θ (°)',GX+6,GY+22,'#a78bfa',8,'left');
     var gMY=GY+GH/2+6;
     ctx.save(); ctx.strokeStyle='#1e3a52'; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(GX+6,gMY); ctx.lineTo(GX+GW-6,gMY); ctx.stroke(); ctx.restore();
     if(thetaHist.length>2){
@@ -15217,24 +15249,37 @@ function simPendulum(canvas){
         i===0?ctx.moveTo(px,py):ctx.lineTo(px,py);
       }
       ctx.stroke(); ctx.restore();
+      // the crossings the stopwatch timed
+      cross.forEach(function(c){var px2=GX+6+(c-timeHist[0])*tScale;if(px2<GX+6||px2>GX+GW-6)return;
+        ctx.save();ctx.fillStyle='#fbbf24';ctx.beginPath();ctx.arc(px2,gMY,3,0,6.2832);ctx.fill();ctx.restore();});
     } else simText(ctx,'שחררו את המטוטלת כדי לראות גרף',GX+GW/2,gMY+4,'#7d8da6',8.5,'center',true);
-
     var EX=GX+GW+8, EW=W-8-EX;
-    ctx.save(); ctx.fillStyle='rgba(6,14,28,.88)'; ctx.strokeStyle='#1e4060'; ctx.lineWidth=1;
-    ctx.beginPath(); ctx.roundRect(EX,GY,EW,GH,4); ctx.fill(); ctx.stroke(); ctx.restore();
-    simText(ctx,'אנרגיה (m = 1 kg)',EX+EW/2,GY+12,'#22d3ee',8.5,'center',true);
-    var bw=EW-16, bX=EX+8;
-    [[KE,'E_k','#34d399',GY+26],[PE,'E_p','#fbbf24',GY+52]].forEach(function(r){
-      ctx.save(); ctx.fillStyle=r[2]+'cc'; ctx.fillRect(bX,r[3],Math.max(0,Math.min(1,r[0]/Eref))*bw,9);
-      ctx.strokeStyle=r[2]; ctx.lineWidth=1; ctx.strokeRect(bX,r[3],bw,9); ctx.restore();
-      simText(ctx,r[1]+' = '+r[0].toFixed(2)+' J',EX+EW/2,r[3]+21,r[2],8,'center');
-    });
-    simText(ctx,'E_k + E_p = '+(KE+PE).toFixed(2)+' J',EX+EW/2,GY+GH-6,'#cbd5e1',8,'center',true);
+    _mbCard(ctx,EX,GY,EW,GH,'#1e4060');
+    simText(ctx,'T/T₀ מול המשרעת θ₀',EX+EW/2,GY+13,'#22d3ee',8.5,'center',true);
+    var cl=EX+28, cr=EX+EW-8, cb=GY+GH-16, ct=GY+24, rMax=1.2;
+    function cX(d){return cl+(cr-cl)*d/90;} function cY(r){return cb-(cb-ct)*(r-1)/(rMax-1);}
+    ctx.save();ctx.strokeStyle='rgba(148,163,184,.35)';ctx.beginPath();ctx.moveTo(cl,cb);ctx.lineTo(cr,cb);ctx.moveTo(cl,ct);ctx.lineTo(cl,cb);ctx.stroke();
+    ctx.strokeStyle='#22d3ee';ctx.lineWidth=2;ctx.beginPath();
+    for(var d=0;d<=90;d+=2){var rr=1/agm(1,Math.cos(d*Math.PI/360));d?ctx.lineTo(cX(d),cY(rr)):ctx.moveTo(cX(d),cY(rr));}
+    ctx.stroke();ctx.restore();
+    [1,1.1,1.2].forEach(function(r){simText(ctx,r.toFixed(1),cl-4,cY(r)+3,'#7d8da6',8,'right');});
+    [0,45,90].forEach(function(d){simText(ctx,d+'°',cX(d),cb+11,'#7d8da6',8,'center');});
+    var ad=amp*180/Math.PI;
+    ctx.save();ctx.fillStyle='#fbbf24';ctx.strokeStyle='#030c15';ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(cX(Math.min(90,ad)),cY(Math.min(rMax,Ttrue/T0)),5,0,6.2832);ctx.fill();ctx.stroke();ctx.restore();
 
+    // a mass that changed under the same L, g, damping and amplitude: same period?
+    var massSame=false;
+    for(var a1=0;a1<meas.length&&!massSame;a1++)for(var a2=a1+1;a2<meas.length;a2++){var p1=meas[a1],p2=meas[a2];
+      if(p1.L===p2.L&&p1.g===p2.g&&p1.b===p2.b&&Math.abs(p1.amp-p2.amp)<0.035&&Math.abs(p1.m-p2.m)>=1&&Math.abs(p1.T-p2.T)/p1.T<0.005){massSame=true;break;}}
+    var f0=kit.m('T₀ = 2π√(L/g) = 2π√('+L.toFixed(1)+'/'+g.toFixed(1)+') = '+T0.toFixed(3)+' s');
+    if(Tmeas!==null)model('השעון מדד '+kit.m('T = '+Tmeas.toFixed(3)+' s')+'. קירוב הזווית הקטנה: '+f0+'; החישוב המדויק במשרעת '+kit.m('θ₀ = '+ad.toFixed(1)+'°')+': '+kit.m('T = '+Ttrue.toFixed(3)+' s'));
+    else model('קירוב הזווית הקטנה: '+f0+'; החישוב המדויק במשרעת '+kit.m('θ₀ = '+ad.toFixed(1)+'°')+': '+kit.m('T = '+Ttrue.toFixed(3)+' s'));
+    kit.check({massSame:massSame,rel:!dragging,dev:dev,amp:amp,g:g,T:Ttrue});
     requestAnimationFrame(draw);
   }
   requestAnimationFrame(draw);
 }
+
 
 
 function simProjectile(canvas){
@@ -34883,7 +34928,7 @@ function buildSim(sim){
   else if(sim.type==='static-friction')extra=C(rng('sft-mu',0.1,0.9,0.55,0.05,'μ_s')+rng('sft-mass',1,15,3,0.5,'מסה m',' kg')+rng('sft-F',0,80,0,0.5,'דחיפה F',' N')+rng('sft-a',-6,6,0,0.1,'תאוצת המשאית a',' m/s²')+btn('sft-scene','🚚 ארגז על משאית','btn-secondary')+btn('sft-reset','↺ איפוס','btn-secondary'));
   else if(sim.type==='kinetic-friction')extra=C(rng('kf-v0',2,20,10,1,'מהירות v₀',' m/s')+rng('kf-mass',1,15,5,0.5,'מסה m',' kg')+rng('kf-mu',0.1,0.8,0.38,0.02,'μ_k')+btn('kf-launch','▶ שגרו!','btn-primary')+btn('kf-reset','↺ איפוס','btn-secondary'));
   else if(sim.type==='friction-combined')extra=C(rng('fc-theta',5,70,20,1,'זווית θ','°')+rng('fc-F',0,80,0,2,'כוח F',' N')+rng('fc-mu',0.05,0.8,0.45,0.05,'μ')+rng('fc-m',0.5,10,5,0.5,'מסה m',' kg')+btn('fc-reset','↺ איפוס','btn-secondary'));
-  else if(sim.type==='pendulum')extra=C(rng('pend-L',0.3,3,1,0.1,'אורך L',' m')+rng('pend-g',1.6,25,9.8,0.2,'g',' m/s²')+rng('pend-damp',0,0.1,0,0.005,'ריסון b',' 1/s')+btn('pend-reset','↺ איפוס','btn-secondary'));
+  else if(sim.type==='pendulum')extra=C(rng('pend-L',0.3,3,1,0.1,'אורך L',' m')+rng('pend-g',1.6,25,9.8,0.2,'g',' m/s²')+rng('pend-m',0.2,5,1,0.2,'מסת המשקולת m',' kg')+rng('pend-damp',0,0.1,0,0.005,'ריסון b',' 1/s')+btn('pend-reset','↺ איפוס','btn-secondary'));
   else if(sim.type==='projectile')extra=C(rng('proj-angle',-30,80,45,1,'זווית θ','°')+rng('proj-v0',5,35,20,1,'מהירות v₀',' m/s')+rng('proj-h',0,30,0,1,'גובה המגדל h',' m')+btn('proj-launch','▶ שגרו!','btn-primary')+btn('proj-twin','👥 כדור מושמט: כבוי','btn-secondary')+btn('proj-reset','↺ מטרה חדשה','btn-secondary'));
   else if(sim.type==='elc-dielectric')extra=C(rng('di-k',1,8,4,0.5,'קבוע דיאלקטרי κ')+rng('di-f',0,1,0,0.05,'הכנסת הלוח')+btn('di-mode','🔌 הסוללה מחוברת','btn-secondary'));
   else if(sim.type==='elc-deflect')extra=C(rng('df-V',0,300,100,10,'מתח V',' V')+rng('df-v0',1,5,2,0.25,'v₀',' ×10⁷ m/s')+rng('df-L',4,14,10,1,'אורך הלוחות',' cm')+btn('df-part','🔁 החליפו לפרוטון','btn-secondary'));

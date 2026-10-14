@@ -173,9 +173,9 @@ const EXPECT = {
   console.log('\n3) every draggable canvas, by touch');
   let r, W;
   await open('shm.pendulum'); r = await rect(); W = r.w;
-  let RM = Math.min(490 - 116 - 78 - 30, W / 2 - 34), PX = Math.min(200, RM);
   await p.evaluate(() => document.getElementById('btn-pend-reset').click());
-  await drag(r, [[W / 2 + Math.sin(0.4) * PX, 78 + Math.cos(0.4) * PX], [W / 2, 78 + PX], [W / 2 - 0.7 * PX, 78 + 0.7 * PX]]);
+  const pv = await p.evaluate(() => document.querySelector('#app canvas')._probe()), PX = pv.PX * pv.L;   // the pivot and the string, in px
+  await drag(r, [[pv.px + Math.sin(0.4) * PX, pv.py + Math.cos(0.4) * PX], [pv.px, pv.py + PX], [pv.px - 0.7 * PX, pv.py + 0.7 * PX]]);
   await p.waitForTimeout(500);
   const amp = await last('θ₀ = ');
   t('pendulum: the bob is dragged to 45°', /θ₀ = 4[45]\.\d°/.test(amp), amp && amp.match(/θ₀ = [\d.]+°/)[0]);
@@ -273,7 +273,9 @@ const EXPECT = {
     return cv._probe().hits;
   });
   t('mission: cutting where the tangent meets the target hits it', hit >= 1, hit + ' hit(s)');
-  await set('circ-v', 2); await p.waitForTimeout(700); await set('circ-v', 4); await p.waitForTimeout(700);
+  // each speed is held for half a second of the sim's own time before it counts
+  const held = () => p.evaluate(async () => { const cv = document.querySelector('#app canvas'), c0 = cv._probe().clock; while (cv._probe().clock - c0 < 0.7) await new Promise(r => setTimeout(r, 30)); });
+  await set('circ-v', 2); await held(); await set('circ-v', 4); await held();
   await set('circ-r', 1.6); await set('circ-v', 5); await p.waitForTimeout(500);
   const md = await missionsDone();
   t('missions: the target, v doubled (F ×4) and T = 2πR/v = 2 s are each reachable', md.length === 3 && md.every(Boolean), JSON.stringify(md));
@@ -406,6 +408,29 @@ const EXPECT = {
   await drag(r, [[Px, Py], [geo.CX + 0.10 * PXM * Math.cos(pp.th), geo.CY - 0.10 * PXM * Math.sin(pp.th)], [geo.CX + 0.11 * PXM * Math.cos(pp.th), geo.CY - 0.11 * PXM * Math.sin(pp.th)]]);
   const Ad = num(await p.evaluate(() => document.getElementById('inp-shm-A').value));
   t('SHM: dragging P outward sets the amplitude (8 → 11 cm)', Math.abs(Ad - 11) < 0.6, Ad + ' cm');
+
+  console.log('\n3g) pendulum: the stopwatch against T₀ and the exact period; mass does not matter');
+  await open('shm.pendulum');
+  const pdp = () => p.evaluate(() => document.querySelector('#app canvas')._probe());
+  // the reset puts the bob at rest at 0.4 rad, where a finger can catch it, then the drag sets the angle
+  const swingTo = async deg => { await p.evaluate(() => document.getElementById('btn-pend-reset').click()); const pv = await pdp(), R = pv.PX * pv.L, a = deg * D; r = await rect();
+    await drag(r, [[pv.px + Math.sin(0.4) * R, pv.py + Math.cos(0.4) * R], [pv.px + Math.sin((a + 0.4) / 2) * R, pv.py + Math.cos((a + 0.4) / 2) * R], [pv.px + Math.sin(a) * R, pv.py + Math.cos(a) * R]]); };
+  const measure = () => p.evaluate(async () => { const cv = document.querySelector('#app canvas'); for (let i = 0; i < 500; i++) { await new Promise(r => setTimeout(r, 25)); const q = cv._probe(); if (q.Tmeas !== null) { await new Promise(r => setTimeout(r, 2600)); return cv._probe().Tmeas; } } return null; });
+  const agmT = deg => { let a = 1, c = Math.cos(deg * D / 2); for (let i = 0; i < 30; i++) { const n = (a + c) / 2; c = Math.sqrt(a * c); a = n; } return 1 / a; };
+  const T0p = 2 * Math.PI * Math.sqrt(1 / 9.8);
+  await p.evaluate(() => document.getElementById('btn-pend-reset').click()); await p.waitForTimeout(100);
+  await swingTo(60); await p.waitForTimeout(100);
+  const A60 = (await pdp()).amp0 / D;                // the angle it was released from
+  const T60 = await measure();
+  t(`stopwatch at θ₀ = ${A60.toFixed(1)}°: the measured period is the exact one (T₀ × ${agmT(A60).toFixed(4)}), not 2π√(L/g)`, !!T60 && Math.abs(T60 / (T0p * agmT(A60)) - 1) < 0.003 && T60 / T0p > 1.06, T60 && T60.toFixed(4) + ' s vs T₀ ' + T0p.toFixed(4));
+  await set('pend-m', 4); await p.waitForTimeout(100); await swingTo(60); await p.waitForTimeout(100);
+  const T60b = await measure();
+  t('a bob 4 times heavier, same L, g and amplitude: the same period', !!T60b && Math.abs(T60b / T60 - 1) < 0.003, T60b && T60b.toFixed(4) + ' s');
+  await swingTo(70); await p.waitForTimeout(300);
+  await swingTo(7); await p.waitForTimeout(200);
+  await set('pend-L', 1); await set('pend-g', 9.8); await p.waitForTimeout(300);
+  const pdm = await missionsDone();
+  t('pendulum missions: mass does not matter, 10 % longer at large amplitude, the seconds pendulum', pdm.length === 3 && pdm.every(Boolean), JSON.stringify(pdm));
 
   console.log('\n4) misconception boxes, quiz keys, hints, units');
   await require('./mech_learning')(p, ['statics', 'planar', 'momentum', 'energy', 'shm'], t);
