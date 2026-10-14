@@ -399,6 +399,20 @@ const EXPECT = {
   await set('nf-mass', 4); await set('nf-F', 0); await set('nf-theta', 60); await fresh(); await p.waitForTimeout(300);
   t('... no hand, 60°: N = mg cos60° = ½mg — mission solved', close(nums(await last('^N = mg·cosθ = '))[0], 19.6, 0.051) && await mission('forces.normal-force', 2));
 
+  // the second law: the net force sets the change, not the motion
+  await open('newton2.n2-law');
+  t('second law: a prediction is asked first — the net force on a crate that slides and slows', (await predOpts()).length === 4, (await predOpts()).join(' | '));
+  await set('mass', 10); await set('n2-mu', 0); await set('n2-F', 20); await click('btn-n2-reset');
+  await until(() => mission('newton2.n2-law', 1), 3000);
+  t('second law: 20 N on 10 kg, smooth floor: a = 2.00 m/s² — mission solved', await mission('newton2.n2-law', 1) && nums(await last('^a {2}= '))[0] === 2);
+  await set('mass', 5); await set('n2-mu', 0.2); await set('n2-F', 25); await click('btn-n2-reset');
+  await until(() => mission('newton2.n2-law', 2), 3000);
+  t('... 25 N on 5 kg with μ = 0.2: a = (25 − 9.8)/5 = 3.04 m/s² — mission solved', await mission('newton2.n2-law', 2) && nums(await last('^a {2}= '))[0] === 3.04);
+  await p.waitForTimeout(600); await set('n2-F', 0); await fresh();
+  await until(() => mission('newton2.n2-law', 0), 3000);
+  const sf0 = nums(await last('^ΣF = '))[0];
+  t('... let go while it moves: ΣF = −μmg = −9.8 N with the block still moving right — mission solved', await mission('newton2.n2-law', 0) && sf0 === -9.8 && /ΣF = F \+ f = 0\.0 − 9\.8 = −9\.8 N/.test(await modelTxt()), sf0 + ' | ' + await modelTxt());
+
   // the incline: friction flips with the sliding, the section's problem, the angle of repose
   await open('newton2.n2-apps');
   t('incline: a prediction is asked first — which way friction points while the block slides up', (await predOpts()).length === 4, (await predOpts()).join(' | '));

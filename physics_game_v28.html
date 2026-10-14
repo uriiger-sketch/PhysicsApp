@@ -3444,7 +3444,7 @@ const CONTENT={
       <p>כשהמסה קבועה, ${M('d\\vec p/dt=m\\,d\\vec v/dt=m\\vec a')}, וחוזרים ל־${M('F=ma')}. הניסוח בתנע כללי יותר: הוא מתאים גם למערכות שמסתן משתנה, כמו רקטה שפולטת גז — בתנאי שסופרים את התנע של כל חלקי המערכת.</p>`
     }
   },
-  sim:{type:'newton2',title:'F = ma אינטראקטיבי',desc:'גררו בפס העליון (או במחוון) כדי לשנות את F, ושנו את המסה ואת החיכוך. ראו כיצד a = ΣF/m משתנה — ושהחיכוך נגרע מהכוח.'},
+  sim:{type:'newton2',title:'F = ma אינטראקטיבי',desc:'גררו בפס העליון (או במחוון) כדי לשנות את F, ושנו את המסה ואת החיכוך. ראו כיצד a = ΣF/m משתנה, שהחיכוך נגרע מהכוח — ושכיוון השקול אינו תמיד כיוון התנועה.'},
   example:{title:'החוק השני — חישוב תאוצה',text:`על גוש שמסתו ${M('8\\,\\text{kg}')} מפעילים כוח של ${M('40\\,\\text{N}')} ימינה, וכוח חיכוך של ${M('16\\,\\text{N}')} פועל שמאלה.`,steps:[
     {q:'מהו הכוח השקול?',a:`${M('\\Sigma F=40-16=24\\,\\text{N}')} ימינה — מחסרים, כי הכוחות מנוגדים.`},
     {q:'מהי תאוצת הגוש?',a:`${M('a=\\dfrac{\\Sigma F}{m}=\\dfrac{24}{8}=3\\,\\text{m/s}^2')} ימינה`},
@@ -11675,7 +11675,10 @@ function simNewton2(canvas){
   function getMass(){ const e=document.getElementById('inp-mass');    return e?parseFloat(e.value):5; }
   function getMu()  { const e=document.getElementById('inp-n2-mu');   return e?parseFloat(e.value):0; }
 
-  function resetSim(){ pos=W/2; vel=0; vHist=[]; aHist=[]; simTime=0; }
+  // the v(t) scale only ever grows (until a reset): rescaled to each frame's own
+  // maximum, its slope -- the acceleration, the point of the section -- meant nothing
+  var vTop=2;
+  function resetSim(){ pos=W/2; vel=0; vHist=[]; aHist=[]; simTime=0; vTop=2; }
 
   // Drag top bar to override F
   let dragF=null;
@@ -11824,7 +11827,7 @@ function simNewton2(canvas){
     ctx.save(); ctx.fillStyle='rgba(6,14,28,.93)'; ctx.strokeStyle='#1e4060'; ctx.lineWidth=1.5;
     ctx.beginPath(); ctx.roundRect(ipX,ipY,ipW,ipH,7); ctx.fill(); ctx.stroke(); ctx.restore();
     [['F  = '+F.toFixed(1)+' N','#ef4444'],['m  = '+mass.toFixed(1)+' kg','#a78bfa'],['N  = '+N.toFixed(1)+' N','#34d399'],
-     ['ΣF = '+netF.toFixed(2)+' N','#f59e0b'],['a  = '+a.toFixed(3)+' m/s²','#22d3ee'],['p  = '+(mass*vel).toFixed(2)+' kg·m/s','#fbbf24']]
+     ['ΣF = '+netF.toFixed(2)+' N','#f59e0b'],['a  = '+a.toFixed(3)+' m/s²','#22d3ee'],['f  = '+(atWall?0:f_fric).toFixed(2)+' N','#c4b5fd']]
     .forEach(function(r,k){
       var cx=_ph?ipX+ipW*(k<3?0.75:0.27):ipX+ipW/2, cy=_ph?ipY+15+(k%3)*16:ipY+17+k*16;
       simText(ctx,r[0],cx,cy,r[1],_ph?10:11,undefined,true);
@@ -11834,7 +11837,7 @@ function simNewton2(canvas){
     const gY=H-86, gH=72, gL=12, gR=W-12, gW=(gR-gL)/2-3;
 
     // v(t) graph
-    const vMax=Math.max(1,...vHist.map(Math.abs));
+    vTop=Math.max(vTop,Math.abs(vel)); const vMax=_mkUp(vTop);
     ctx.save(); ctx.fillStyle='rgba(6,14,28,.88)'; ctx.strokeStyle='#1e4060'; ctx.lineWidth=1;
     ctx.beginPath(); ctx.roundRect(gL,gY,gW,gH,5); ctx.fill(); ctx.stroke(); ctx.restore();
     simText(ctx,'v (m/s)',gL+8,gY+12,'#34d399',10,'left');
@@ -11873,8 +11876,31 @@ function simNewton2(canvas){
     }
     simText(ctx,a.toFixed(3)+' m/s²',g2R-6,gY+gH-6,'#22d3ee',10,'right');
 
+    var fr=atWall?0:f_fric;
+    if(atWall)model('הגוש לחוץ אל הדופן, והדופן מאזנת את שאר הכוחות: '+_skM('ΣF = 0')+', ולכן '+_skM('a = 0'));
+    else model(_skM('ΣF = F + f = '+_mkS(F,1)+' '+(fr<0?'− ':'+ ')+Math.abs(fr).toFixed(1)+' = '+_mkS(netF,1)+' N')+' · '+_skM('a = ΣF/m = '+_mkS(netF,1)+'/'+mass.toFixed(1)+' = '+_mkS(a,2)+' m/s²'));
+    kit.check({v:vel,S:netF,a:a,m:mass,mu:mu,moving:Math.abs(vel)>0.05});
     requestAnimationFrame(draw);
   }
+  _mkKeys(canvas,{'ArrowRight':function(){simSyncSlider('n2-F',getF()+1,1);},'ArrowLeft':function(){simSyncSlider('n2-F',getF()-1,1);}});
+  var kit=simKit(canvas,{missions:[
+    {text:'גרמו לגוש לנוע ימינה בזמן שהכוח השקול עליו פונה שמאלה.',
+     hint:'הוסיפו חיכוך, תנו לגוש לצבור מהירות ימינה — ואז הקטינו את F מתחת לחיכוך.',
+     why:'הגוש ממשיך ימינה, אבל '+_skM('ΣF')+' שמאלה — ולכן הוא מאט. '+_skM('ΣF = ma')+' קובע לאן המהירות משתנה, לא לאן הגוף נע.',
+     done:function(s){return s.v>0.3&&s.S<-0.5;}},
+    {text:'על משטח חלק, תנו לגוש של '+_skM('10 kg')+' תאוצה של '+_skM('2.00 m/s²')+'.',
+     hint:'בלי חיכוך '+_skM('a = F/m')+'. איזה F נותן '+_skM('2 m/s²')+' ל־'+_skM('10 kg')+'?',
+     why:_skM('F = ma = 10×2 = 20 N')+'. אותם '+_skM('20 N')+' על '+_skM('5 kg')+' נותנים '+_skM('4 m/s²')+': פי 2 במסה — חצי בתאוצה.',
+     done:function(s){return s.m===10&&s.mu<1e-6&&Math.abs(s.a-2)<0.005;}},
+    {text:'על משטח עם '+_skM('μ = 0.2')+', תנו לגוש של '+_skM('5 kg')+' תאוצה של '+_skM('3 m/s²')+' (עד '+_skM('0.05 m/s²')+').',
+     hint:'החיכוך הקינטי הוא '+_skM('μmg = 9.8 N')+'. מ־'+_skM('F − μmg = ma')+', כמה צריך F?',
+     why:_skM('F = m(a + μg) = 5×(3 + 1.96) ≈ 25 N')+': חלק מהכוח רק מאזן את החיכוך ('+_skM('9.8 N')+'), ורק השאר ('+_skM('15 N')+') מאיץ.',
+     done:function(s){return Math.abs(s.mu-0.2)<1e-6&&s.m===5&&s.moving&&Math.abs(s.a-3)<=0.05;}}
+  ]});
+  var model=_mkModel(kit);
+  kit.predict({q:'ארגז מחליק ימינה על הרצפה ומאט. לאן פונה הכוח השקול עליו?',
+    opts:['ימינה, בכיוון התנועה','שמאלה, נגד התנועה','אין כוח שקול — הארגז עדיין זז','אי אפשר לדעת בלי המסה'],correct:1,
+    why:'המהירות קטנה, ולכן התאוצה — ואיתה '+_skM('ΣF')+' — נגד התנועה: שמאלה. ״הגוף נע ימינה ולכן השקול ימינה״ היא הטעות הנפוצה; '+_skM('ΣF = ma')+' מדבר על שינוי המהירות.'});
   requestAnimationFrame(draw);
 }
 
