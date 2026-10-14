@@ -7058,7 +7058,7 @@ const OPTICS_CONTENT={
       <div class="mis-block"><b>⚠️ טעות נפוצה:</b> ״הבועה מפרקת אור לצבעים כמו פריזמה״. בבועה הצבע נקבע בעיקר ב<b>עובי</b>: לכל עובי ${M('t')} מתחזק בהחזרה אורך הגל ${M('\\lambda=4nt/(2m+1)')}, ולכן הצבעים נודדים כשהקרום מתנקז ומשנה את עוביו. וקרום דק מאוד נראה <b>שחור</b> — דבר ששבירה אינה יכולה להסביר. בסימולציה שנו רק את ${M('t')} וצפו בצבע מתחלף.</div>
       <div class="theory-anim">${animCanvas('anim-thin-film-t',148,'קרום דק — צבעי התאבכות')}</div>`,
   },
-  sim:{type:'opt-thin-film',desc:'שנו עובי קרום t ומדד שבירה n. ראו אילו צבעים משתקפים חזק (I∝sin²(2πnt/λ)) ואת ספקטרום ההשתקפות. הקרום מציג קשת מלאה.'},
+  sim:{type:'opt-thin-film',desc:'קרום שעוביו גדל מלמעלה (דק) כלפי מטה, במבט ניצב. גררו את הסמן לאורכו: לכל עובי t מחושב הספקטרום המוחזר R(λ) משתי ההחזרות, והצבע שהעין רואה באור יום. בחרו קרום סבון, שמן על מים או ציפוי MgF₂ על זכוכית — ושימו לב כמה היפוכי פאזה יש בכל אחד, ואיך הם מחליפים בין בנייה להרס.'},
   example:{title:'ציפוי נגד החזרה',text:`על עדשת זכוכית (${M('n=1.50')}) מצפים שכבה דקה של ${M('\\text{MgF}_2')} (${M('n=1.38')}). מה צריך להיות עוביה כדי לבטל החזרה של אור ירוק, ${M('\\lambda=550\\,\\text{nm}')}?`,
     steps:[
       {q:'כמה היפוכי פאזה יש בהחזרות?',a:'שניים: באוויר→ציפוי ובציפוי→זכוכית מדד השבירה עולה. שני ההיפוכים מקזזים זה את זה, ולכן רק הפרש הדרכים קובע.'},
@@ -20251,178 +20251,151 @@ function simOptTelescope(canvas){
   function poll(){if(_simStop[id])return;requestAnimationFrame(draw);}poll();
 }
 
-// ─────────────────────────────────────────────────────────────
-// THIN FILM INTERFERENCE sim — soap film rainbow
-// ─────────────────────────────────────────────────────────────
+// ─── THIN FILM — the colour a film of thickness t reflects, computed ───
+// Normal incidence, a film n_f between air and a substrate n_s. The two
+// reflections (and all the repeated ones) add by the Airy formula,
+//   R = (r₁² + r₂² + 2r₁r₂cos δ) / (1 + r₁²r₂² + 2r₁r₂cos δ),  δ = 4π n_f t / λ,
+// with r₁ = (1 − n_f)/(1 + n_f), r₂ = (n_f − n_s)/(n_f + n_s). A negative r is
+// the half-wave phase reversal at a surface where the index rises, so the
+// number of reversals (0, 1 or 2) decides whether 2n_f t = mλ reinforces or
+// cancels -- the code does not need to be told, and the screen says it. The
+// colour is the eye's, not a guess: R(λ) under daylight (CIE D65) weighted by
+// the CIE 1931 colour-matching functions (Wyman–Sloan–Shirley fit) to XYZ,
+// then sRGB, brightened by one fixed factor so the brightest reflection this
+// film can give shows as white. A film thinner than ~20 nm with one reversal
+// is black -- as a soap film is just before it bursts.
+var _OPT_D65=[49.98,54.65,82.75,91.49,93.43,86.68,104.86,117.01,117.81,114.86,115.92,108.81,109.35,107.80,104.79,107.69,104.41,104.05,100.00,96.33,95.79,88.69,90.01,89.60,87.70,83.29,83.70,80.03,80.21,82.28,78.28,69.72,71.61,74.35,61.60];   // 380…720 nm, every 10 nm
+function _optCMF(l){
+  var g=function(m,s1,s2){var t=(l-m)/(l<m?s1:s2);return Math.exp(-0.5*t*t);};
+  return [1.056*g(599.8,37.9,31.0)+0.362*g(442.0,16.0,26.7)-0.065*g(501.1,20.4,26.2),
+          0.821*g(568.8,46.9,40.5)+0.286*g(530.9,16.3,31.1),
+          1.217*g(437.0,11.8,36.0)+0.681*g(459.0,26.0,13.8)];
+}
+function _optFilmR(nf,ns,t,l){
+  var r1=(1-nf)/(1+nf),r2=(nf-ns)/(nf+ns),c=Math.cos(4*Math.PI*nf*t/l);
+  return (r1*r1+r2*r2+2*r1*r2*c)/(1+r1*r1*r2*r2+2*r1*r2*c);
+}
+// the colour of a spectrum R(λ) under D65, as sRGB 0..255, with a gain
+function _optSpecRGB(Rf,gain){
+  var X=0,Y=0,Z=0,Yw=0;
+  for(var i=0;i<_OPT_D65.length;i++){var l=380+10*i,c=_optCMF(l),S=_OPT_D65[i],r=Rf(l);
+    X+=r*S*c[0];Y+=r*S*c[1];Z+=r*S*c[2];Yw+=S*c[1];}
+  X*=gain/Yw;Y*=gain/Yw;Z*=gain/Yw;
+  var lin=[3.2406*X-1.5372*Y-0.4986*Z,-0.9689*X+1.8758*Y+0.0415*Z,0.0557*X-0.2040*Y+1.0570*Z];
+  var mn=Math.min(lin[0],lin[1],lin[2]);if(mn<0)lin=lin.map(function(v){return v-mn;});   // out of gamut: toward white
+  var mx=Math.max(lin[0],lin[1],lin[2]);if(mx>1)lin=lin.map(function(v){return v/mx;});
+  return lin.map(function(v){return Math.round(255*(v<=0.0031308?12.92*v:1.055*Math.pow(v,1/2.4)-0.055));});
+}
 function simOptThinFilm(canvas){
-  // initSim calls every simulation as (canvas, TYPE), so a parameter named
-  // `id` here held the type string while _simStop/_simGen are keyed by the
-  // canvas id -- the stop flag could never reach this loop.
-  var id=canvas.id, _g=_simGen[id];
-  var R=setupCanvas(canvas,500);var ctx=R.ctx,W=R.W,H=R.H;
-  var animT=0,last=null;
-  function getT(){var e=document.getElementById('inp-tf-thick');return e?parseFloat(e.value):300;}
-  function getN(){var e=document.getElementById('inp-tf-n');return e?parseFloat(e.value):1.33;}
-  // ── Direct manipulation: drag on the film — down = thicker ──
-  var dragFilm=false,touchedF=false;
-  function _fHit(p){return Math.abs(p.x-R.W*0.44)<70&&p.y>R.H*0.07&&p.y<R.H*0.72;}
-  function _tfDn(e){var p=simPointerXY(canvas,R.dpr,e);
-    if(_fHit(p)){dragFilm=true;touchedF=true;canvas.style.cursor='grabbing';
-      simSyncSlider('tf-thick',50+(p.y-R.H*0.07)/(R.H*0.65)*550,0);e.preventDefault();}}
-  function _tfMv(e){var p=simPointerXY(canvas,R.dpr,e);
-    if(dragFilm){simSyncSlider('tf-thick',50+(p.y-R.H*0.07)/(R.H*0.65)*550,0);e.preventDefault();}
-    else canvas.style.cursor=_fHit(p)?'ns-resize':'';}
-  function _tfUp(){dragFilm=false;canvas.style.cursor='';}
-  canvas.addEventListener('mousedown',_tfDn);canvas.addEventListener('touchstart',_tfDn,{passive:false});
-  canvas.addEventListener('mousemove',_tfMv);canvas.addEventListener('touchmove',_tfMv,{passive:false});
-  canvas.addEventListener('mouseup',_tfUp);canvas.addEventListener('touchend',_tfUp);
-  // Reflected intensity: I ∝ sin²(2πnt/λ) (one phase flip at first surface)
-  function iRefl(wl,t,n){var ph=2*Math.PI*n*t/wl;return Math.pow(Math.sin(ph),2);}
-  // Get dominant reflected color RGB
-  function reflRGB(t,n){
-    var rr=0,gg=0,bb=0,tot=0;
-    for(var wl=380;wl<=700;wl+=8){
-      var I=iRefl(wl,t,n);
-      var hex=wavelengthToHex(wl);
-      rr+=parseInt(hex.slice(1,3),16)*I;
-      gg+=parseInt(hex.slice(3,5),16)*I;
-      bb+=parseInt(hex.slice(5,7),16)*I;
-      tot+=I;
-    }
-    if(tot<0.01)return [20,20,20];
-    return [Math.round(rr/tot),Math.round(gg/tot),Math.round(bb/tot)];
+  var id=canvas.id,_g=_simGen[id];
+  var R=setupCanvas(canvas,460);var ctx=R.ctx,W=R.W,H=R.H;
+  var animT=0,last=null,reduce=_reducedMotion(),touched=false,drag=false,narrow=W<560;
+  var PRE={soap:{nf:1.33,ns:1.00},oil:{nf:1.45,ns:1.33},ar:{nf:1.38,ns:1.50}},sub='soap',ns=1.00;
+  var TMAX=1000,fx=Math.max(10,W*0.04),fw=Math.min(110,W*0.24),fT=34,fB=H-30;
+  // a draining film thickens fast below a thin top: the scale goes as √t, so the
+  // thinnest tens of nanometres -- black, grey, white -- get room to be seen
+  function tToY(t){return fT+(fB-fT)*Math.sqrt(Math.max(0,t)/TMAX);}
+  function yToT(y){var u=Math.max(0,Math.min(1,(y-fT)/(fB-fT)));return TMAX*u*u;}
+  function gt(){var e=document.getElementById('inp-tf-thick');return e?parseFloat(e.value):300;}
+  function gn(){var e=document.getElementById('inp-tf-n');return e?parseFloat(e.value):1.33;}
+  var B={soap:'tf-soap',oil:'tf-oil',ar:'tf-ar'};
+  function paintB(){Object.keys(B).forEach(function(k){var b=document.getElementById('btn-'+B[k]);if(b){b.classList.toggle('btn-primary',k===sub);b.classList.toggle('btn-secondary',k!==sub);}});}
+  Object.keys(B).forEach(function(k){var b=document.getElementById('btn-'+B[k]);if(b)b.addEventListener('click',function(){
+    sub=k;ns=PRE[k].ns;simSyncSlider('tf-n',PRE[k].nf,2);paintB();});});
+  paintB();
+  function hit(p){return p.x>fx-14&&p.x<fx+fw+14&&p.y>fT-12&&p.y<fB+12;}
+  simDrag(canvas,R.dpr,{down:function(p){drag=hit(p);if(drag){touched=true;simSyncSlider('tf-thick',yToT(p.y),0);}},
+    move:function(p){if(drag)simSyncSlider('tf-thick',yToT(p.y),0);},up:function(){drag=false;}});
+  canvas.addEventListener('mousemove',function(e){if(!drag)canvas.style.cursor=hit(simPointerXY(canvas,R.dpr,e))?'ns-resize':'default';});
+  canvas.tabIndex=0;
+  canvas.addEventListener('keydown',function(e){if(e.key!=='ArrowUp'&&e.key!=='ArrowDown')return;e.preventDefault();touched=true;
+    simSyncSlider('tf-thick',gt()+(e.key==='ArrowDown'?5:-5),0);});
+  var kit=simKit(canvas,{missions:[
+    {text:'קרום סבון מתנקז ונעשה דק. מצאו את העובי שבו הוא נראה שחור',
+     hint:'בחרו ״קרום סבון״ וגררו את הסמן אל ראש הקרום, שם הוא הדק ביותר.',
+     why:'כש־'+_skM('t → 0')+' הפרש הדרכים מתאפס — אבל אחת משתי ההחזרות הפוכה ב־π, ולכן הן מבטלות זו את זו בכל הצבעים: שחור. שבירה, כמו בפריזמה, לא הייתה מסבירה זאת.',
+     done:function(s){return s.sub==='soap'&&s.t<=22;}},
+    {text:'גרמו לקרום הסבון להחזיר הכי חזק בירוק, 530 nm, בסדר הראשון (m = 0)',
+     hint:'היפוך אחד: בנייה כש־'+_skM('2nt = (m + ½)λ')+'. ל־'+_skM('m = 0')+': '+_skM('t = λ/4n')+'.',
+     why:_skM('t = 530/(4 · 1.33) ≈ 100 nm')+'. בעובי כפול ומשולש החיזוק עובר לאורכי גל אחרים — ולכן הצבעים נודדים כשהקרום מתנקז.',
+     done:function(s){return s.sub==='soap'&&Math.abs(s.lam0-530)<12;}},
+    {text:'ציפוי אנטי-החזרה: בחרו MgF₂ על זכוכית ומצאו את העובי שבו ההחזרה של 550 nm קטנה ככל האפשר',
+     hint:'כאן יש שני היפוכי פאזה, והם מתקזזים: הרס כש־'+_skM('2nt = λ/2')+'.',
+     why:_skM('t = λ/4n = 550/(4 · 1.38) ≈ 100 nm')+' — שכבת רבע גל: ההחזרה של 550 nm יורדת מכ־4% לכ־1.4% (ביטול מלא דורש '+_skM('n = √1.5 ≈ 1.22')+'). האדום והכחול עדיין מוחזרים, ולכן עדשה מצופה נראית סגלגלה.',
+     done:function(s){return s.sub==='ar'&&s.R550<=s.Rlo+0.0004;}}]});
+  var cache={k:null,img:null};
+  function wedge(nf,gain){
+    var k=nf+'|'+ns+'|'+Math.round(fw)+'|'+Math.round(fB-fT);
+    if(cache.k===k)return cache.img;
+    var h=Math.round(fB-fT),cv=document.createElement('canvas');cv.width=1;cv.height=h;var c2=cv.getContext('2d'),im=c2.createImageData(1,h);
+    for(var y=0;y<h;y++){var u=y/(h-1),t=TMAX*u*u,rgb=_optSpecRGB(function(l){return _optFilmR(nf,ns,t,l);},gain);
+      im.data[y*4]=rgb[0];im.data[y*4+1]=rgb[1];im.data[y*4+2]=rgb[2];im.data[y*4+3]=255;}
+    c2.putImageData(im,0,0);cache={k:k,img:cv};return cv;
   }
   function draw(ts){
     if(_simGen[id]!==_g)return;if(_simStop[id])return;
-    var dt=last?Math.min((ts-last)/1000,0.05):0.016;last=ts;animT+=dt;
-    var t0=getT(),n=getN();
-    ctx.fillStyle='#08101e';ctx.fillRect(0,0,W,H);
-    var filmX=W*0.44,filmW=16;
-    var fTop=H*0.07,fBot=H*0.72;
-    // === FILM with gradient thickness from top (thin) to bottom (thick) ===
-    // Shows rainbow of colors: different thicknesses → different constructive λ
-    // Cache the spectral gradient — rebuilding 33 stops × 40 wavelengths per frame is wasteful
-    var gKey=t0+'_'+n;
-    if(draw._gKey!==gKey){
-      var gf=ctx.createLinearGradient(0,fTop,0,fBot);
-      var nS=32;
-      for(var si=0;si<=nS;si++){
-        var tLocal=t0*(0.2+1.6*si/nS);
-        var rgb=reflRGB(tLocal,n);
-        gf.addColorStop(si/nS,'rgba('+rgb[0]+','+rgb[1]+','+rgb[2]+',0.92)');
-      }
-      draw._gKey=gKey;draw._grad=gf;
-    }
-    var gfilm=draw._grad;
-    if(!touchedF&&animT<9){
-      ctx.save();ctx.fillStyle='#fbbf24';ctx.font='bold 10px Heebo';ctx.textAlign='center';
-      ctx.fillText('✋ גררו על הקרום — למטה = עבה יותר',W*0.44,fBot+44);ctx.restore();
-    }
-    // Film shadow/depth effect
-    var filmGlow=ctx.createLinearGradient(filmX-filmW/2-5,0,filmX+filmW/2+5,0);
-    filmGlow.addColorStop(0,'rgba(0,0,0,0)');
-    filmGlow.addColorStop(0.2,'rgba(255,255,255,0.08)');
-    filmGlow.addColorStop(0.5,'rgba(255,255,255,0.2)');
-    filmGlow.addColorStop(0.8,'rgba(255,255,255,0.08)');
-    filmGlow.addColorStop(1,'rgba(0,0,0,0)');
-    // Draw film
-    ctx.fillStyle=gfilm;
-    ctx.fillRect(filmX-filmW/2,fTop,filmW,fBot-fTop);
-    ctx.fillStyle=filmGlow;
-    ctx.fillRect(filmX-filmW/2,fTop,filmW,fBot-fTop);
-    ctx.strokeStyle='rgba(148,163,184,0.3)';ctx.lineWidth=0.5;
-    ctx.strokeRect(filmX-filmW/2,fTop,filmW,fBot-fTop);
-    // Film label
-    optLabel(ctx,'קרום דק',filmX,fBot+14,'#94a3b8',8);
-    optLabel(ctx,'n='+n.toFixed(2),filmX,fBot+26,'#7d8da6',7);
-    // === INCIDENT WHITE LIGHT (animated photons from left) ===
-    var incY=H*0.22,incAng=Math.PI/6;
-    var bLen=W*0.32;
-    var incX0=filmX-filmW/2-bLen*Math.cos(incAng),incY0=incY+bLen*Math.sin(incAng);
-    // Rainbow gradient beam
-    var bGrad=ctx.createLinearGradient(incX0,incY0,filmX-filmW/2,incY);
-    bGrad.addColorStop(0,'rgba(255,80,80,0.8)');
-    bGrad.addColorStop(0.25,'rgba(255,200,50,0.8)');
-    bGrad.addColorStop(0.5,'rgba(80,255,80,0.8)');
-    bGrad.addColorStop(0.75,'rgba(50,130,255,0.8)');
-    bGrad.addColorStop(1,'rgba(255,255,255,0.9)');
-    ctx.save();ctx.strokeStyle=bGrad;ctx.lineWidth=7;ctx.lineCap='round';
-    ctx.beginPath();ctx.moveTo(incX0,incY0);ctx.lineTo(filmX-filmW/2,incY);ctx.stroke();
-    ctx.restore();
-    optLabel(ctx,'אור לבן',incX0-8,incY0-12,'#e2e8f0',9);
-    // === REFLECTED BEAM (current t) ===
-    var rgb0=reflRGB(t0,n);
-    var rCol='rgb('+rgb0[0]+','+rgb0[1]+','+rgb0[2]+')';
-    var pulse=0.75+0.25*Math.sin(animT*2.8);
-    ctx.save();optGlow(ctx,rCol,14*pulse);ctx.strokeStyle=rCol;ctx.lineWidth=6;ctx.lineCap='round';
-    var refX1=filmX-filmW/2,refY1=incY;
-    var refX0=refX1-bLen*Math.cos(incAng),refY0=refY1-bLen*Math.sin(incAng);
-    ctx.beginPath();ctx.moveTo(refX1,refY1);ctx.lineTo(refX0,refY0);ctx.stroke();
-    optNoGlow(ctx);ctx.restore();
-    // Reflected color swatch
-    ctx.save();ctx.fillStyle=rCol;ctx.strokeStyle='rgba(255,255,255,0.2)';ctx.lineWidth=1;
-    ctx.beginPath();ctx.roundRect(refX0-28,refY0-36,56,16,4);ctx.fill();ctx.stroke();ctx.restore();
-    optLabel(ctx,'מוחזר',refX0-5,refY0-40,'#e2e8f0',8);
-    // === TRANSMITTED BEAM ===
-    ctx.save();ctx.strokeStyle='rgba(200,220,240,0.5)';ctx.lineWidth=4;ctx.lineCap='round';
-    ctx.beginPath();ctx.moveTo(filmX+filmW/2,incY);ctx.lineTo(filmX+filmW/2+0.4*bLen*Math.cos(incAng),incY-0.4*bLen*Math.sin(incAng));ctx.stroke();
-    ctx.restore();
-    optLabel(ctx,'מועבר',filmX+filmW/2+0.2*bLen*Math.cos(incAng)+14,incY-0.2*bLen*Math.sin(incAng)+12,'#7d8da6',8);
-    // === SPECTRUM BAR (right side) ===
-    var sX=W*0.62,sY=H*0.08,sW=W*0.33,sH=H*0.1;
-    optLabel(ctx,'ספקטרום מוחזר',sX+sW/2,sY-10,'#94a3b8',9);
-    for(var xi=0;xi<sW;xi++){
-      var wl=380+320*(xi/sW);
-      var I=iRefl(wl,t0,n);
-      var hex=wavelengthToHex(wl);
-      var rr=parseInt(hex.slice(1,3),16),gg=parseInt(hex.slice(3,5),16),bb=parseInt(hex.slice(5,7),16);
-      ctx.fillStyle='rgba('+rr+','+gg+','+bb+','+Math.max(0.05,I).toFixed(2)+')';
-      ctx.fillRect(sX+xi,sY,1,sH);
-    }
-    ctx.strokeStyle='#334155';ctx.lineWidth=1;ctx.strokeRect(sX,sY,sW,sH);
-    optLabel(ctx,'380',sX,sY+sH+10,'#7d8da6',7);
-    optLabel(ctx,'700nm',sX+sW,sY+sH+10,'#7d8da6',7);
-    // === INTENSITY GRAPH ===
-    var gX=W*0.62,gY=H*0.24,gW=W*0.33,gH=H*0.22;
-    ctx.fillStyle='rgba(10,20,38,0.7)';ctx.fillRect(gX,gY,gW,gH);
-    ctx.strokeStyle='#1e293b';ctx.lineWidth=1;ctx.strokeRect(gX,gY,gW,gH);
-    optLabel(ctx,'עוצמה מוחזרת (λ)',gX+gW/2,gY-8,'#94a3b8',8);
-    ctx.save();ctx.strokeStyle='rgba(148,210,255,0.9)';ctx.lineWidth=2;
-    ctx.beginPath();
-    for(var xi2=0;xi2<gW;xi2++){
-      var wl2=380+320*(xi2/gW);
-      var I2=iRefl(wl2,t0,n);
-      var py=gY+gH*(1-I2);
-      if(xi2===0)ctx.moveTo(gX+xi2,py);else ctx.lineTo(gX+xi2,py);
-    }
-    ctx.stroke();ctx.restore();
-    // Mark peak wavelengths
-    for(var m=0;m<=4;m++){
-      var lpeak=4*n*t0/(2*m+1);
-      if(lpeak>=385&&lpeak<=695){
-        var xi3=(lpeak-380)/320*gW;
-        ctx.save();ctx.strokeStyle='rgba(251,191,36,0.7)';ctx.lineWidth=1;ctx.setLineDash([2,3]);
-        ctx.beginPath();ctx.moveTo(gX+xi3,gY);ctx.lineTo(gX+xi3,gY+gH);ctx.stroke();ctx.setLineDash([]);ctx.restore();
-        optLabel(ctx,Math.round(lpeak)+'nm',gX+xi3,gY+gH+10,'#fbbf24',7);
-      }
-    }
-    // Current t marker on film
-    var tFrac=(t0-t0*0.2)/(t0*1.6-t0*0.2);// normalized position
-    var markerY=fTop+(fBot-fTop)*Math.min(1,Math.max(0,tFrac));
-    ctx.save();ctx.strokeStyle='#fff';ctx.lineWidth=1.5;
-    ctx.beginPath();ctx.moveTo(filmX-filmW/2-8,markerY);ctx.lineTo(filmX+filmW/2+8,markerY);ctx.stroke();
-    ctx.fillStyle='#fff';ctx.font='7px Heebo';ctx.textAlign='right';
-    ctx.fillText('t='+t0+'nm',filmX-filmW/2-10,markerY+3);ctx.restore();
-    // Info box
-    // Live condition readout — makes the single phase flip explicit
-    optInfoBox(ctx,10,H-86,W-20,[
-      't='+t0+'nm,  n='+n.toFixed(2)+',  2nt='+(2*n*t0).toFixed(0)+'nm',
-      'היפוך פאזה π במשטח העליון בלבד ⇒ בנייה כאשר 2nt=(m+½)λ',
-      'בנייה: λ(m=0)='+(4*n*t0).toFixed(0)+'nm,  λ(m=1)='+(4*n*t0/3).toFixed(0)+'nm',
-      'הרס (λ מוחזר חלש): λ='+(2*n*t0).toFixed(0)+'nm,  '+(n*t0).toFixed(0)+'nm']);
+    var dt=last?Math.min((ts-last)/1000,0.05):0.016;last=ts;if(!reduce)animT+=dt;
+    var t=gt(),nf=gn(),r1=(1-nf)/(1+nf),r2=(nf-ns)/(nf+ns);
+    var Rmax=Math.pow((Math.abs(r1)+Math.abs(r2))/(1+Math.abs(r1*r2)),2),gain=1/Math.max(0.01,Rmax);
+    var flips=(nf>1?1:0)+(ns>nf?1:0),odd=flips%2===1;
+    ctx.fillStyle='#070d19';ctx.fillRect(0,0,W,H);
+    // ── the film, thin at the top: every thickness in its own colour ──
+    ctx.imageSmoothingEnabled=true;ctx.drawImage(wedge(nf,gain),fx,fT,fw,fB-fT);
+    ctx.save();ctx.strokeStyle='rgba(148,163,184,.5)';ctx.lineWidth=1;ctx.strokeRect(fx,fT,fw,fB-fT);ctx.restore();
+    [0,25,100,200,400,600,800,1000].forEach(function(v){var y=tToY(v);ctx.save();ctx.strokeStyle='rgba(148,163,184,.6)';ctx.beginPath();ctx.moveTo(fx+fw,y);ctx.lineTo(fx+fw+5,y);ctx.stroke();ctx.restore();
+      optLabel(ctx,String(v),fx+fw+8,y,'#7d8da6',8.5,'left');});
+    optLabel(ctx,'t (nm)',fx+fw+8,fT-14,'#94a3b8',9,'left');
+    var names={soap:'קרום סבון באוויר',oil:'שמן על מים',ar:'MgF₂ על זכוכית'};
+    optLabel(ctx,names[sub],fx+fw/2,fT-14,'#cbd5e1',10);
+    var my=tToY(t);
+    ctx.save();ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(fx-6,my);ctx.lineTo(fx+fw+6,my);ctx.stroke();ctx.restore();
+    simHandle(ctx,fx+fw/2,my,'#ffffff',13);
+    if(!touched&&animT<10)optLabel(ctx,'✋ גררו לאורך הקרום',fx+fw/2,Math.min(fB-10,my+28)+(reduce?0:Math.sin(animT*4)*3),'#fbbf24',10);
+    // ── the two reflections, magnified ──
+    var zx=narrow?fx+fw+52:W*0.36,zw=narrow?W-zx-10:W*0.27,zT=narrow?30:60,zh=narrow?150:200;
+    var sTop=zT+zh*0.42,sBot=zT+zh*0.70;
+    ctx.save();ctx.fillStyle='rgba(125,211,252,.10)';ctx.fillRect(zx,sTop,zw,sBot-sTop);
+    ctx.fillStyle=sub==='soap'?'rgba(7,13,25,0)':'rgba(56,189,248,.16)';ctx.fillRect(zx,sBot,zw,zT+zh-sBot);
+    ctx.strokeStyle='rgba(125,211,252,.6)';ctx.lineWidth=1.2;ctx.beginPath();ctx.moveTo(zx,sTop);ctx.lineTo(zx+zw,sTop);ctx.moveTo(zx,sBot);ctx.lineTo(zx+zw,sBot);ctx.stroke();ctx.restore();
+    optLabel(ctx,'אוויר  n = 1.00',zx+4,sTop-10,'#94a3b8',9,'left');
+    optLabel(ctx,'קרום  n = '+nf.toFixed(2),zx+4,(sTop+sBot)/2,'#7dd3fc',9,'left');
+    optLabel(ctx,(sub==='soap'?'אוויר':sub==='oil'?'מים':'זכוכית')+'  n = '+ns.toFixed(2),zx+4,zT+zh-8,'#94a3b8',9,'left');
+    var ax=zx+zw*0.42,dx=zw*0.10,inc0={x:ax-dx*2.4,y:zT+6};
+    var seg=function(x1,y1,x2,y2,col,w,head){optRay(ctx,x1,y1,x2,y2,col,w,head);};
+    seg(inc0.x,inc0.y,ax,sTop,'#f8fafc',2.4,false);
+    seg(ax,sTop,ax+dx*2.4,zT+6,'#fde68a',2,true);                        // reflected at the top surface
+    seg(ax,sTop,ax+dx,sBot,'#f8fafc',1.6,false);seg(ax+dx,sBot,ax+dx*2,sTop,'#f8fafc',1.6,false);
+    seg(ax+dx*2,sTop,ax+dx*4.4,zT+6,'#fdba74',2,true);                   // reflected at the bottom surface
+    var badge=function(x,y,on){var tx=on?'π':'0';ctx.save();ctx.fillStyle=on?'rgba(244,114,182,.95)':'rgba(71,85,105,.9)';ctx.beginPath();ctx.arc(x,y,9,0,Math.PI*2);ctx.fill();ctx.restore();optLabel(ctx,tx,x,y,'#0b1220',10);};
+    badge(ax-14,sTop-11,nf>1);badge(ax+dx+14,sBot+11,ns>nf);
+    optLabel(ctx,'היפוך פאזה: '+flips,zx+zw-4,zT+zh-8,'#f9a8d4',9.5,'right');
+    optLabel(ctx,'2nt = '+Math.round(2*nf*t)+' nm',zx+zw-4,sBot+14,'#fdba74',9.5,'right');
+    // ── the reflected spectrum R(λ) and the colour it makes ──
+    var gx=narrow?zx:W*0.67,gw=narrow?zw:W-gx-12,gy=narrow?zT+zh+50:60,gh=narrow?Math.min(110,H-gy-62):Math.min(170,H*0.4);
+    var R550=_optFilmR(nf,ns,t,550),Rlo=Math.min(Math.pow((r1-r2)/(1-r1*r2),2),Math.pow((r1+r2)/(1+r1*r2),2));
+    ctx.save();ctx.fillStyle='rgba(4,9,20,.6)';ctx.fillRect(gx,gy,gw,gh);ctx.strokeStyle='rgba(100,116,139,.6)';ctx.lineWidth=1;ctx.strokeRect(gx,gy,gw,gh);
+    for(var i=0;i<gw;i+=2){var l=380+320*i/gw;ctx.fillStyle=wavelengthToHex(l);ctx.globalAlpha=0.85;ctx.fillRect(gx+i,gy+gh+2,2,6);}ctx.globalAlpha=1;
+    ctx.strokeStyle='#e2e8f0';ctx.lineWidth=1.8;ctx.beginPath();
+    for(var j=0;j<=gw;j+=2){var lj=380+320*j/gw,rr=_optFilmR(nf,ns,t,lj)/Rmax,py=gy+gh-rr*gh;j?ctx.lineTo(gx+j,py):ctx.moveTo(gx+j,py);}ctx.stroke();ctx.restore();
+    optLabel(ctx,'R(λ) — מוחזר',gx+gw/2,gy-9,'#94a3b8',9);
+    optLabel(ctx,'380',gx,gy+gh+16,'#7d8da6',8);optLabel(ctx,'700 nm',gx+gw,gy+gh+16,'#7d8da6',8,'right');
+    // the constructive orders in the visible: odd reversals 2nt = (m+½)λ, even 2nt = mλ
+    var peaks=[],lam0=odd?4*nf*t:Infinity;
+    for(var m=0;m<12;m++){var lp=odd?2*nf*t/(m+0.5):(m>0?2*nf*t/m:Infinity);if(lp>=380&&lp<=700)peaks.push([m,lp]);}
+    peaks.forEach(function(q){var x=gx+(q[1]-380)/320*gw;ctx.save();ctx.strokeStyle='rgba(251,191,36,.8)';ctx.setLineDash([3,3]);ctx.beginPath();ctx.moveTo(x,gy);ctx.lineTo(x,gy+gh);ctx.stroke();ctx.restore();
+      optLabel(ctx,Math.round(q[1])+'',x,gy+8,'#fbbf24',8.5);});
+    var rgb=_optSpecRGB(function(l){return _optFilmR(nf,ns,t,l);},gain),sw=narrow?Math.min(70,gw*0.4):70;
+    ctx.save();ctx.fillStyle='rgb('+rgb.join(',')+')';ctx.strokeStyle='rgba(255,255,255,.3)';ctx.beginPath();ctx.roundRect(gx+gw-sw,gy+gh+24,sw,22,5);ctx.fill();ctx.stroke();ctx.restore();
+    optLabel(ctx,'הצבע המוחזר',gx+gw-sw-8,gy+gh+35,'#cbd5e1',9.5,'right');
+    optLabel(ctx,'בהירות מוגברת ×'+gain.toFixed(0)+' (R מרבי '+(Rmax*100).toFixed(0)+'%)',gx,gy+gh+58,'#7d8da6',8.5,'left');
+    // the condition, in numbers
+    var cond=odd?'היפוך אחד: בנייה כש־'+_skM('2nt = (m + ½)λ'):'היפוכים מתקזזים: בנייה כש־'+_skM('2nt = mλ')+', הרס כש־'+_skM('2nt = (m + ½)λ');
+    var list=peaks.length?peaks.map(function(q){return Math.round(q[1])+' nm';}).join(', '):'—';
+    kit.model(_skM('2nt = 2 · '+nf.toFixed(2)+' · '+Math.round(t)+' nm = '+Math.round(2*nf*t)+' nm')+'; '+cond+' ⇒ מתחזקים בתחום הנראה: '+_skM(list)+'.');
+    kit.check({sub:sub,t:t,lam0:lam0,R550:R550,Rlo:Rlo});
     requestAnimationFrame(draw);
   }
-  function poll(){if(_simStop[id])return;requestAnimationFrame(draw);}poll();
+  requestAnimationFrame(draw);
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -26122,35 +26095,22 @@ runAnim('anim-thin-film-t',function(canvas,ctx,W,H,t){
   // Film with animated color (slowly cycling thickness)
   var tCycle=120+180*((Math.sin(t*0.35)+1)/2);// 120-300nm cycle
   var n=1.33;
-  function iR(wl){return Math.pow(Math.sin(2*Math.PI*n*tCycle/wl),2);}
+  // the colours a soap film really reflects (Airy reflectance under daylight,
+  // CIE colour matching -- as in the simulation): each colour at its own
+  // brightness, so a thin part is dark. They used to be normalised to full
+  // brightness, which showed a nearly non-reflecting film in bright colour.
+  var gain=1/Math.pow(2*0.1416/(1+0.1416*0.1416),2),film=function(tt){return _optSpecRGB(function(l){return _optFilmR(n,1,tt,l);},gain);};
   var gfilm=ctx.createLinearGradient(0,fTop,0,fBot);
   for(var si=0;si<=20;si++){
-    var tL=tCycle*(0.3+1.4*si/20);
-    var rr=0,gg=0,bb=0,tot=0;
-    for(var wl=380;wl<=700;wl+=12){
-      var I=Math.pow(Math.sin(2*Math.PI*n*tL/wl),2);
-      var h=wavelengthToHex(wl);
-      rr+=parseInt(h.slice(1,3),16)*I;
-      gg+=parseInt(h.slice(3,5),16)*I;
-      bb+=parseInt(h.slice(5,7),16)*I;
-      tot+=I;
-    }
-    if(tot<0.01){rr=20;gg=20;bb=20;}else{rr/=tot;gg/=tot;bb/=tot;}
-    gfilm.addColorStop(si/20,'rgba('+Math.round(rr)+','+Math.round(gg)+','+Math.round(bb)+',0.9)');
+    var c0=film(tCycle*(0.3+1.4*si/20));
+    gfilm.addColorStop(si/20,'rgba('+c0[0]+','+c0[1]+','+c0[2]+',0.95)');
   }
   ctx.fillStyle=gfilm;ctx.fillRect(fX-fW/2,fTop,fW,fBot-fTop);
   ctx.strokeStyle='rgba(148,163,184,0.3)';ctx.lineWidth=0.5;ctx.strokeRect(fX-fW/2,fTop,fW,fBot-fTop);
   // Incident ray
   oRay(ctx,fX-60,H*0.3+40,fX-fW/2,H*0.3,'rgba(255,255,200,0.8)',3);
   // Reflected ray (colored)
-  var rgb0={r:0,g:0,b:0,tot:0};
-  for(var wl2=380;wl2<=700;wl2+=12){
-    var I2=iR(wl2);var h2=wavelengthToHex(wl2);
-    rgb0.r+=parseInt(h2.slice(1,3),16)*I2;rgb0.g+=parseInt(h2.slice(3,5),16)*I2;
-    rgb0.b+=parseInt(h2.slice(5,7),16)*I2;rgb0.tot+=I2;
-  }
-  if(rgb0.tot>0.01){rgb0.r/=rgb0.tot;rgb0.g/=rgb0.tot;rgb0.b/=rgb0.tot;}
-  var rCol='rgb('+Math.round(rgb0.r)+','+Math.round(rgb0.g)+','+Math.round(rgb0.b)+')';
+  var c1=film(tCycle),rCol='rgb('+c1.join(',')+')';
   ctx.save();optGlow(ctx,rCol,8);
   oRay(ctx,fX-fW/2,H*0.3,fX-60,H*0.3-40,rCol,3);
   optNoGlow(ctx);ctx.restore();
@@ -34623,7 +34583,7 @@ function buildSim(sim){
   else if(sim.type==='opt-color-mix')extra=C(rng('cm-red',0,100,80,5,'אדום R','%')+rng('cm-green',0,100,80,5,'ירוק G','%')+rng('cm-blue',0,100,80,5,'כחול B','%'));
   else if(sim.type==='opt-fiber')extra=C(rng('fib-n1',1.30,1.80,1.50,0.01,'מדד שבירה ליבה n₁','')+rng('fib-n2',1.20,1.70,1.46,0.01,'מדד שבירה מעטה n₂','')+rng('fib-ang',2,40,20,1,'זווית כניסה','°'));
   else if(sim.type==='opt-telescope')extra=C(rng('tel-fo',30,300,150,5,'מוקד אובייקטיב fₒ',' mm')+rng('tel-fe',5,60,25,5,'מוקד עדשת עין fₑ',' mm'));
-  else if(sim.type==='opt-thin-film')extra=C(rng('tf-thick',50,600,300,5,'עובי קרום t',' nm')+rng('tf-n',1.10,2.00,1.33,0.01,'מדד שבירה n',''));
+  else if(sim.type==='opt-thin-film')extra=C(rng('tf-thick',0,1000,300,1,'עובי קרום t',' nm')+rng('tf-n',1.10,2.00,1.33,0.01,'מדד השבירה של הקרום n','')+btn('tf-soap','🫧 קרום סבון','btn-primary')+btn('tf-oil','🛢 שמן על מים','btn-secondary')+btn('tf-ar','👓 MgF₂ על זכוכית','btn-secondary'));
   else if(sim.type==='opt-grating')extra=C(rng('gr-d',0.5,5.0,1.5,0.1,'מרווח סריג d',' μm')+rng('gr-lambda',380,700,550,5,'אורך גל λ',' nm')+btn('gr-white','🌈 אור לבן','btn-secondary'));
   else if(sim.type==='elc-scope')extra=C(rng('scope-q',1,10,5,1,'עוצמת מטען המוט',' nC')+btn('scope-flip','↔ החליפו סימן','btn-secondary')+btn('scope-touch','👆 געו — הולכה','btn-secondary')+btn('scope-ground','⏚ חברו הארקה','btn-secondary'));
   else if(sim.type==='elc-coulomb')extra=C(rng('elc-q1',-5,5,2,0.5,'q₁',' μC')+rng('elc-q2',-5,5,-3,0.5,'q₂',' μC')+btn('clb-three','⊕ הוסיפו מטען q₃ (סופרפוזיציה)','btn-secondary'));

@@ -262,6 +262,27 @@ const EXPECT = {
     t(`three polarizers: middle ${m}°, analyzer ${a}°`, g && Math.abs(+g[1] - want) <= (want < 10 ? 0.051 : 0.51), (g || [])[1] + ' vs ' + want.toFixed(2));
   }
 
+  // ── thin film: the orders reinforced in the visible follow the phase
+  // reversals (one: 2nt = (m+½)λ; two: 2nt = mλ), a vanishing soap film is
+  // black while bare glass under a vanishing coating is not, and every
+  // mission is reachable ──
+  await open('opt-waves', 'thin-film');
+  for (const [pre, nf, tt, odd] of [['tf-soap', 1.33, 300, true], ['tf-soap', 1.33, 500, true], ['tf-oil', 1.45, 200, true], ['tf-ar', 1.38, 400, false], ['tf-ar', 1.38, 700, false]]) {
+    await p.evaluate(id => document.getElementById('btn-' + id).click(), pre); await setv('tf-thick', tt); await p.waitForTimeout(160);
+    const tx = await modelTx(), want = [];
+    for (let m = 0; m < 12; m++) { const l = odd ? 2 * nf * tt / (m + 0.5) : (m ? 2 * nf * tt / m : Infinity); if (l >= 380 && l <= 700) want.push(Math.round(l)); }
+    const got = ((/:\s*([\d ,nm—]+)\.$/.exec(tx) || [])[1] || '').match(/\d+/g) || [];
+    t(`thin film ${pre} t=${tt}: reinforced ${want.join(',')}`, got.join(',') === want.join(','), tx);
+  }
+  for (const [pre, dark] of [['tf-soap', true], ['tf-ar', false]]) {
+    await p.evaluate(id => document.getElementById('btn-' + id).click(), pre); await p.waitForTimeout(250);
+    const px = await p.evaluate(() => { const cv = document.getElementById('sim-canvas'), W = cv.offsetWidth, dpr = cv.width / W, x = Math.max(10, W * 0.04) + Math.min(110, W * 0.24) / 2;
+      const d = cv.getContext('2d').getImageData(Math.round(x * dpr), Math.round(36 * dpr), 1, 1).data; return d[0] + d[1] + d[2]; });
+    t(`thin film ${pre}: the thinnest film is ${dark ? 'black' : 'not black'}`, dark ? px < 60 : px > 200, String(px));
+  }
+  await reach('opt-waves', 'thin-film', [async () => p.evaluate(() => document.getElementById('btn-tf-soap').click()), ['tf-thick', 10], ['tf-thick', 100],
+    async () => p.evaluate(() => document.getElementById('btn-tf-ar').click()), ['tf-thick', 100]], '111');
+
   // ── the eye: vergence model, glasses touching the eye. Sharp exactly when
   // 1/d − P lies in [D_far, D_far + A]; the glasses' image dᵢ = 1/(P − 1/d)
   // is in the equation line; the section's problem (+3.33 D) is a mission ──
@@ -332,7 +353,7 @@ const EXPECT = {
     ['optics', 'opt-waves', 'interference', W => [[W * 0.7, 120], [W * 0.75, 160]], { text: '^Δ = \\|r₂' }],
     ['optics', 'opt-waves', 'youngs-slits', W => { const x = 136 + 0.2 * (W - 180); return [[x, 300], [x + 20, 300], [x + 40, 300]]; }, { slider: 'ys-L' }],
     ['optics', 'opt-waves', 'diffraction', W => [[W - 52, 220], [W - 52, 260], [W - 52, 300]], { text: '^' + LR('גלאי: a·sinθ = ') }],
-    ['optics', 'opt-waves', 'thin-film', W => [[W * 0.44, 150], [W * 0.44, 200], [W * 0.44, 260]], { slider: 'tf-thick' }],
+    ['optics', 'opt-waves', 'thin-film', W => { const x = Math.max(10, W * 0.04) + Math.min(110, W * 0.24) / 2; return [[x, 150], [x, 200], [x, 260]]; }, { slider: 'tf-thick' }],
     ['optics', 'opt-modern', 'polarization', (W, H) => { const y = Math.round(H * 0.31), x = W * 0.69; return [[x + 20, y], [x + 10, y + 20], [x, y + 25]]; }, { slider: 'pol-angle' }],
     // the star rests at the centre when v = 0; a quick flick sets its speed
     ['optics', 'opt-modern', 'doppler', (W, H) => [[W / 2, H / 2], [W / 2 + 40, H / 2], [W / 2 + 80, H / 2]], { slider: 'dop-v' }, ['dop-v', 0]],
