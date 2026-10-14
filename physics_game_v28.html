@@ -9108,7 +9108,7 @@ const MAG_CONTENT={
       <p>הפתרון של איינשטיין (1905): מה שצופה אחד מתאר כשדה מגנטי, הצופה האחר מתאר בחלקו כשדה <b>חשמלי</b> — ושניהם מקבלים אותו כוח. השדה החשמלי והשדה המגנטי הם שני פנים של שדה אחד, <b>השדה האלקטרומגנטי</b>.</p>
     </div>`,
   },
-  sim:{type:'mag-lorentz',desc:'גררו את חץ המהירות. במצב ״שדה ניצב לדף״ הכוח נשאר במישור וניצב ל־v, והחלקיק נע במעגל במהירות קבועה. במצב ״שדה במישור הדף״ שנו את הזווית θ וראו את הכוח (⊙/⊗) גדל כ־sinθ ומתאפס כש־v מקביל ל־B.'},
+  sim:{type:'mag-lorentz',desc:'שלושה מבטים על הכוח F = qv×B. במצב ״שדה ניצב לדף״ גררו את קצה החץ v ולחצו ״שגרו״: המטען נע במעגל שרדיוסו r = mv/qB, ומד המהירות אינו זז — הכוח ניצב למהירות ואינו מבצע עבודה. במצב ״שדה במישור הדף״ שנו את הזווית θ בין v ל־B (גרירה או מקשי החצים): הכוח יוצא מהדף או נכנס אליו, ניצב לשניהם, ומתאפס כש־v מקביל ל־B. ״אתגר כלל יד ימין״ בודק אתכם: לאן פועל הכוח?'},
   example:{title:'פרוטון בשדה מגנטי',text:`פרוטון נע במהירות ${M('2\\times10^{6}\\,\\text{m/s}')} בניצב לשדה ${M('B=0.5\\,\\text{T}')}.`,steps:[
     {q:'מה גודל הכוח?',a:`${M('F=qvB=1.6\\times10^{-19}\\times2\\times10^{6}\\times0.5=1.6\\times10^{-13}\\,\\text{N}')}`},
     {q:'ואם המהירות בזווית 30° לשדה?',a:`${M('F=qvB\\sin30^\\circ=0.8\\times10^{-13}\\,\\text{N}')}`},
@@ -27954,100 +27954,217 @@ MAG_SIMS['mag-solenoid']=function(canvas){
 MAG_CTRL['mag-solenoid']=function(){return rng('mgs-N',4,40,12,1,'מספר ליפופים N')+rng('mgs-L',4,30,16,1,'אורך הסליל L',' cm')+rng('mgs-I',0.5,10,4,0.5,'זרם I',' A');};
 
 // ── mag-force.mag-lorentz ─────────────────────────────────────────────────
-// F = q v × B. With B along z the motion is an exact circle: the velocity
-// turns at ω_z = −qB_z/m and its magnitude never changes. Shown in slow
-// motion with a fixed time scale, so the period visibly ignores the speed.
+// F = q v × B, in three views. (x right, y up, z out of the page.)
+//  0  B across the page (⊗/⊙): set v by dragging its tip, launch, and the
+//     charge circles — exactly: the velocity turns at ω_z = −qB_z/m and its
+//     size never changes, so the speedometer never moves. Shown in slow
+//     motion with one fixed time scale (KT), so the period ignores the speed.
+//  1  B in the page (±x): v at any angle θ to B; F = q v×B points out of or
+//     into the page, F = qvB·sinθ, zero along the field; a 3-D sketch shows
+//     v, B and F at right angles.
+//  2  a right-hand-rule challenge the sim checks: v, B and the sign of q
+//     are dealt at random, and the learner taps the direction of F.
 MAG_SIMS['mag-lorentz']=function(canvas){
   var id=canvas.id,_g=_simGen[id];
-  const H=460; const {ctx,W,dpr}=setupCanvas(canvas,H);
-  var mode=0, qs=1, bz=-1, bxs=1, P=[W*0.5,H*0.62], ang=0, trail=[], drag=null, pT=null, th=60;
-  var SPX=1675, KT=2.99e7;              // px per metre; physical/visual time
-  // one button reverses B in either mode: ⊗/⊙ when B is across the page,
-  // → / ← when it lies in it
-  var bLabel=function(){return mode?(bxs>0?'➡ השדה ימינה':'⬅ השדה שמאלה'):(bz<0?'⊗ השדה נכנס לדף':'⊙ השדה יוצא מהדף');};
-  magBtn('mgz-mode',function(b){mode=1-mode;trail=[];b.textContent=mode?'🧭 מצב: שדה במישור הדף':'🧭 מצב: שדה ניצב לדף';
-    var bb=document.getElementById('btn-mgz-Bdir');if(bb)bb.textContent=bLabel();});
-  magBtn('mgz-q',function(b){qs=-qs;trail=[];b.textContent=qs>0?'⊕ מטען חיובי (פרוטון)':'⊖ מטען שלילי (אנטי-פרוטון)';});
-  magBtn('mgz-Bdir',function(b){if(mode)bxs=-bxs;else bz=-bz;trail=[];b.textContent=bLabel();});
-  function vel(){return magV('mgz-v',2)*1e6;}
-  function arrowLen(){return 30+vel()/1e6*14;}
+  var PH=(canvas.offsetWidth||(canvas.parentElement&&canvas.parentElement.offsetWidth)||720)<600;
+  const H=PH?540:470; const {ctx,W,dpr}=setupCanvas(canvas,H);
+  var SPX=1675, KT=2.99e7, q=MAG_E;            // px per metre; physical time / shown time
+  var mode=0, qs=1, bz=-1, bxs=1, th=60, drag=null, pT=null;
+  var P0=[W*(PH?0.36:0.34),H*(PH?0.62:0.55)], P=P0.slice(), ang=0, fly=false, turned=0, trail=[];
+  var ch=null, streak=0;                        // the challenge: {q, v, B, F, pick}
+  var CX1=PH?W*0.42:W*0.32, CY1=PH?150:H*0.42;  // the charge in view 1
+  var kit=simKit(canvas,{missions:[
+    {text:'שגרו את המטען והניחו לו להשלים סיבוב מלא. האם מד המהירות זז?',
+     hint:'לחצו ״שגרו״ וצפו במחוג של מד המהירות לאורך כל הסיבוב.',
+     why:'הכוח ניצב למהירות בכל רגע, ולכן ההספק שלו F·v = 0 והעבודה שלו אפס: הכוח המגנטי מסובב את המהירות, אבל לא משנה את גודלה ולא את האנרגיה הקינטית.',
+     done:function(s){return s.turned>=6.2832;}},
+    {text:'במצב ״שדה במישור הדף״: מצאו כיוון תנועה שבו אין כוח על המטען — אף שהוא נע.',
+     hint:'עברו למצב ״שדה במישור הדף״ וגררו את חץ המהירות. מתי הכוח מתאפס?',
+     why:'F = qvB·sinθ: מטען שנע לאורך קווי השדה אינו מרגיש כוח. הכוח המגנטי לעולם אינו פועל לאורך השדה — הוא ניצב גם לשדה וגם למהירות.',
+     done:function(s){return s.mode===1&&s.sin<0.03;}},
+    {text:'פתרו נכון 3 אתגרי כלל יד ימין ברצף.',
+     hint:'לחצו ״אתגר כלל יד ימין״. ישרו את האצבעות לכיוון v, כופפו אותן לכיוון B — והאגודל מראה את F על מטען חיובי.',
+     why:'F = qv×B: הכוח ניצב למישור שבו נמצאים v ו־B, וכלל יד ימין בוחר לאיזה צד. על מטען שלילי הכוח הפוך.',
+     done:function(s){return s.streak>=3;}},
+    {text:'הפכו את כיוון הסיבוב של המטען בלי לגעת בשדה.',
+     hint:'השדה נשאר נכנס לדף. מה עוד מופיע בנוסחה '+_skM('F = qv×B')+'?',
+     why:'היפוך סימן המטען הופך את הכוח: אנטי־פרוטון, באותו שדה ובאותה מהירות, מסתובב בכיוון ההפוך — במעגל באותו רדיוס.',
+     done:function(s){return s.fly&&s.turned>3&&s.qs<0&&s.bz<0;}}]});
+  var model=magModeler(kit), gate=magPredictor(kit,canvas);
+  var askGo=gate({q:'הפרוטון משוגר לתוך השדה המגנטי. מה יקרה לגודל המהירות שלו?',
+    opts:['יגדל — השדה מושך אותו','יקטן — השדה בולם אותו','לא ישתנה כלל'],correct:2,
+    why:'הכוח המגנטי ניצב תמיד למהירות, ולכן אינו מבצע עבודה: הוא משנה רק את כיוון התנועה. המסלול מתעקם למעגל — ומד המהירות עומד במקום.'});
+  var vel=function(){return magV('mgz-v',2)*1e6;}, aLen=function(){return 30+vel()/1e6*14;};
+  var bLabel=function(){return mode===1?(bxs>0?'➡ השדה ימינה':'⬅ השדה שמאלה'):(bz<0?'⊗ השדה נכנס לדף':'⊙ השדה יוצא מהדף');};
+  var setLbl=function(i,t){var b=document.getElementById('btn-'+i);if(b)b.textContent=t;};
+  var showGo=function(){var b=document.getElementById('btn-mgz-go');if(b)b.style.display=mode===0?'':'none';};
+  var land=function(){fly=false;turned=0;trail=[];};
+  var deal=function(){var dirs=[[0,1,0],[0,-1,0],[-1,0,0],[1,0,0]],Bs=dirs.concat([[0,0,1],[0,0,-1]]),n;
+    // v along B ("no force") comes up about one time in eight, not one in three
+    do{n={q:Math.random()<0.5?1:-1,v:dirs[Math.floor(Math.random()*4)],B:Bs[Math.floor(Math.random()*6)],pick:-1};}
+    while((ch&&n.q===ch.q&&n.v+''===ch.v+''&&n.B+''===ch.B+'')||(!n.B[2]&&n.B[0]*n.v[0]+n.B[1]*n.v[1]!==0&&Math.random()<0.7));
+    var c=[n.v[1]*n.B[2]-n.v[2]*n.B[1],n.v[2]*n.B[0]-n.v[0]*n.B[2],n.v[0]*n.B[1]-n.v[1]*n.B[0]].map(function(x){return x*n.q;});
+    n.F=c;ch=n;};
+  // the seven answers: ↑ ↓ ← → ⊙ ⊗ and no force; their vectors
+  var CH=[[0,1,0],[0,-1,0],[-1,0,0],[1,0,0],[0,0,1],[0,0,-1],[0,0,0]];
+  var chipXY=function(i){var n=7,gap=PH?6:14,r=22,w=n*2*r+(n-1)*gap,x0=W/2-w/2+r;return [x0+i*(2*r+gap),H-34,r];};
+  var pick=function(i){if(!ch||ch.pick>=0)return;ch.pick=i;var ok=CH[i]+''===ch.F+'';streak=ok?streak+1:0;};
+  magBtn('mgz-mode',function(b){mode=mode===0?1:0;land();b.textContent=mode===1?'🧭 מצב: שדה במישור הדף':'🧭 מצב: שדה ניצב לדף';setLbl('mgz-Bdir',bLabel());showGo();});
+  magBtn('mgz-q',function(b){qs=-qs;land();b.textContent=qs>0?'⊕ מטען חיובי (פרוטון)':'⊖ מטען שלילי (אנטי־פרוטון)';});
+  magBtn('mgz-Bdir',function(b){if(mode===1)bxs=-bxs;else bz=-bz;land();b.textContent=bLabel();});
+  magBtn('mgz-go',function(){askGo(function(){if(mode!==0)return;P=P0.slice();trail=[];turned=0;fly=true;});});
+  magBtn('mgz-rhr',function(){if(mode!==2){mode=2;land();setLbl('mgz-mode','🧭 חזרה לשיגור');showGo();}deal();});
   simDrag(canvas,dpr,{
     down:function(p){
-      if(mode===0){var tip=[P[0]+Math.cos(ang)*arrowLen(),P[1]-Math.sin(ang)*arrowLen()];
-        drag=Math.hypot(p.x-tip[0],p.y-tip[1])<26?'v':(Math.hypot(p.x-P[0],p.y-P[1])<24?'p':'v');}
+      if(mode===2){for(var i=0;i<7;i++){var c=chipXY(i);if(Math.hypot(p.x-c[0],p.y-c[1])<c[2]+4){pick(i);return;}}
+        if(!ch||ch.pick>=0)deal();return;}
+      if(mode===0){fly=false;var tip=[P[0]+Math.cos(ang)*aLen(),P[1]-Math.sin(ang)*aLen()];
+        drag=Math.hypot(p.x-tip[0],p.y-tip[1])<28?'v':(Math.hypot(p.x-P[0],p.y-P[1])<24?'p':'v');trail=[];turned=0;
+        if(drag==='v')this.move(p);}
       else drag='v';},
     move:function(p){
-      if(mode===0){if(drag==='p'){P=[p.x,p.y];trail=[];}
-        else{var dx=p.x-P[0],dy=P[1]-p.y;ang=Math.atan2(dy,dx);var L=Math.hypot(dx,dy);simSyncSlider('mgz-v',(L-30)/14,1);trail=[];}}
-      else{var cx=W*0.34,cy=H*0.40,dx=p.x-cx,dy=cy-p.y;th=((Math.atan2(dy,dx)*180/Math.PI)+360)%360;
-        simSyncSlider('mgz-v',(Math.hypot(dx,dy)-30)/14,1);}},
+      if(mode===0){if(drag==='p'){P=[Math.max(20,Math.min(W-20,p.x)),Math.max(20,Math.min(H-20,p.y))];P0=P.slice();}
+        else if(drag==='v'){var dx=p.x-P[0],dy=P[1]-p.y;if(Math.hypot(dx,dy)>8){ang=Math.atan2(dy,dx);simSyncSlider('mgz-v',(Math.hypot(dx,dy)-30)/14,1);}}}
+      else if(mode===1&&drag){var dx2=p.x-CX1,dy2=CY1-p.y;if(Math.hypot(dx2,dy2)>8){th=((Math.atan2(dy2,dx2)*180/Math.PI)+360)%360;
+        simSyncSlider('mgz-v',(Math.hypot(dx2,dy2)-30)/14,1);}}},
     up:function(){drag=null;}});
+  // ← → turn v by 5°, ↑ ↓ change its size; Enter launches (or deals the next challenge)
+  magKeys(canvas,{chars:{o:4,x:5,'0':6},key:function(k,d){if(!d)return;
+    if(mode===2){if(typeof k==='number')pick(k);else if(k==='up')pick(0);else if(k==='down')pick(1);else if(k==='left')pick(2);else if(k==='right')pick(3);else if(k==='enter')deal();return;}
+    if(k==='enter'){magBtnPress('mgz-go');return;}
+    if(k==='left'||k==='right'){var dd=k==='left'?5:-5;if(mode===1)th=((th+dd)%360+360)%360;else{ang+=dd*Math.PI/180;land();}}
+    if(k==='up'||k==='down')simSyncSlider('mgz-v',magV('mgz-v',2)+(k==='up'?0.1:-0.1),1);}});
+  showGo();
+  // a small card: |v| on a dial that never moves while the charge flies
+  function speedo(x,y,w,v,KE,extra){
+    ctx.save();ctx.fillStyle='rgba(2,8,16,.86)';ctx.strokeStyle='#1e3a52';ctx.beginPath();ctx.roundRect(x,y,w,extra.length?112:84,6);ctx.fill();ctx.stroke();ctx.restore();
+    var cx=x+44,cy=y+52,R=30;
+    ctx.save();ctx.strokeStyle='#334155';ctx.lineWidth=5;ctx.beginPath();ctx.arc(cx,cy,R,Math.PI,0);ctx.stroke();ctx.restore();
+    for(var i=0;i<=5;i++){var a=Math.PI+i/5*Math.PI;ctx.save();ctx.strokeStyle='#64748b';ctx.beginPath();ctx.moveTo(cx+Math.cos(a)*(R-6),cy+Math.sin(a)*(R-6));ctx.lineTo(cx+Math.cos(a)*(R+3),cy+Math.sin(a)*(R+3));ctx.stroke();ctx.restore();}
+    var na=Math.PI+Math.min(1,v/5e6)*Math.PI;
+    ctx.save();ctx.strokeStyle='#34d399';ctx.lineWidth=2.4;ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(cx+Math.cos(na)*(R-3),cy+Math.sin(na)*(R-3));ctx.stroke();ctx.restore();
+    simCircle(ctx,cx,cy,3,'#34d399');
+    simText(ctx,'0',cx-R,cy+12,'#64748b',8.5,'center');simText(ctx,'5',cx+R,cy+12,'#64748b',8.5,'center');
+    simText(ctx,'|v| = '+(v/1e6).toFixed(1)+'×10⁶ m/s',x+84,y+30,'#34d399',10,'left',true);
+    simText(ctx,'Ek = ½mv² = '+sciTxt(KE)+' J',x+84,y+48,'#e2e8f0',9.5,'left');
+    simText(ctx,'מד מהירות',cx,y+14,'#94a3b8',9,'center');
+    extra.forEach(function(t,i){simText(ctx,t,x+10,y+80+i*18,'#cbd5e1',9.5,'left');});
+  }
+  // F seen end-on: ⊙ out of the page, ⊗ into it, sized by |F|
+  function forceDot(x,y,F,ref){var r=6+Math.min(1,Math.abs(F)/ref)*14;magDot(ctx,x,y,r,F>0,'#f87171','rgba(15,23,42,.9)');return r;}
+  function charge(x,y,s){simCircle(ctx,x,y,10,s>0?'#fbbf24':'#60a5fa','#fff',1.5);simText(ctx,s>0?'+':'−',x,y+1,'#0f172a',13,'center',true);}
+  // v, B, F at right angles in 3-D: the page seen tilted, as a floor (its y
+  // receding), so a force out of the page stands straight up from it and a
+  // force into the page hangs straight down, dashed, below it
+  function triad(ox,oy,L,v,B,F){
+    var pr=function(a){return [ox+(a[0]+0.5*a[1])*L,oy-(0.34*a[1]+a[2])*L];};
+    var c=[[-1,-1,0],[1,-1,0],[1,1,0],[-1,1,0]].map(function(a){return pr([a[0]*1.05,a[1]*1.05,0]);});
+    ctx.save();ctx.fillStyle='rgba(99,102,241,.10)';ctx.strokeStyle='rgba(148,163,184,.35)';ctx.beginPath();
+    c.forEach(function(q,i){i?ctx.lineTo(q[0],q[1]):ctx.moveTo(q[0],q[1]);});ctx.closePath();ctx.fill();ctx.stroke();ctx.restore();
+    simText(ctx,'הדף',c[0][0]+4,c[0][1]-4,'#64748b',9,'left');
+    [[v,'#34d399','v'],[B,'#818cf8','B'],[F,'#f87171','F']].forEach(function(t){var n=Math.hypot(t[0][0],t[0][1],t[0][2]);if(n<1e-9)return;
+      var u=t[0].map(function(c){return c/n*0.9;}),e=pr(u);
+      if(u[2]<-0.01){ctx.save();ctx.setLineDash([4,3]);simArrow(ctx,ox,oy,e[0],e[1],t[1],2.4,8);ctx.restore();}
+      else simArrow(ctx,ox,oy,e[0],e[1],t[1],2.4,8);
+      var e2=pr(u.map(function(c){return c*1.25;}));simText(ctx,t[2],e2[0]+(Math.abs(u[2])>0.5?10:0),e2[1]+4,t[1],11,'center',true);});
+  }
   function draw(ts){
     if(!magAlive(id,_g))return;
     var dt=pT?Math.min(0.05,(ts-pT)/1000):0;pT=ts;
-    var B=magV('mgz-B',0.5),v=vel(),q=MAG_E,F=q*v*B;
+    var B=magV('mgz-B',0.5),v=vel(),F=q*v*B,KE=0.5*MAG_MP*v*v,r=MAG_MP*v/(q*B),Tns=2*Math.PI*MAG_MP/(q*B)*1e9;
     simBg(ctx,W,H);
     if(mode===0){
-      magFieldMarks(ctx,0,0,W,H*0.84,bz>0,36);
-      var w=-qs*bz*q*B/MAG_MP, wv=w/KT, r=MAG_MP*v/(q*B), rp=r*SPX;
-      if(!drag&&dt>0){var a0=ang,a1=ang+wv*dt,R=rp*(wv>0?1:-1);
-        P=[P[0]+R*(Math.sin(a1)-Math.sin(a0)),P[1]-R*(-Math.cos(a1)+Math.cos(a0))];ang=a1;
+      magFieldMarks(ctx,0,0,W,H,bz>0,36);
+      var w=-qs*bz*q*B/MAG_MP, wv=w/KT, rp=r*SPX;
+      if(fly&&dt>0){var a0=ang,a1=ang+wv*dt,R=rp*(wv>0?1:-1);
+        P=[P[0]+R*(Math.sin(a1)-Math.sin(a0)),P[1]-R*(-Math.cos(a1)+Math.cos(a0))];ang=a1;turned+=Math.abs(wv*dt);
         trail.push([P[0],P[1]]);if(trail.length>900)trail.shift();
-        if(P[0]<-40||P[0]>W+40||P[1]<-40||P[1]>H*0.84+40){P=[W*0.5,H*0.62];ang=0;trail=[];}}
-      magPoly(ctx,trail,'rgba(251,191,36,.45)',2);
-      // screen vectors: v = (cos, −sin); F is v turned 90° toward the centre
-      var ux=Math.cos(ang),uy=-Math.sin(ang), fx=(wv>0?-1:1)*Math.sin(ang), fy=(wv>0?-1:1)*Math.cos(ang);
-      simArrow(ctx,P[0],P[1],P[0]+ux*arrowLen(),P[1]+uy*arrowLen(),'#34d399',3,11);
-      simArrow(ctx,P[0],P[1],P[0]+fx*(24+F*1e13*16),P[1]+fy*(24+F*1e13*16),'#f87171',3,11);
-      simCircle(ctx,P[0],P[1],10,qs>0?'#fbbf24':'#60a5fa','#fff',1.5);
-      simText(ctx,qs>0?'+':'−',P[0],P[1]+1,'#0f172a',13,'center',true);
-      simHandle(ctx,P[0]+ux*arrowLen(),P[1]+uy*arrowLen(),'#34d399',13);
-      simText(ctx,'v',P[0]+ux*(arrowLen()+14),P[1]+uy*(arrowLen()+14),'#34d399',12,'center',true);
-      simText(ctx,'F',P[0]+fx*(38+F*1e13*16),P[1]+fy*(38+F*1e13*16),'#f87171',12,'center',true);
-      var y0=H*0.85;magPlotBox(ctx,8,y0,W-16,H-y0-6,'',null);
-      var Tns=(2*Math.PI*MAG_MP/(q*B)*1e9).toFixed(0);
-      if(W<600){simText(ctx,'F = qvB = '+sciTxt(F)+' N',W/2,y0+16,'#e2e8f0',11,'center',true);
-        simText(ctx,'r = mv/qB = '+(r*100).toFixed(1)+' cm  ·  T = '+Tns+' ns',W/2,y0+33,'#e2e8f0',10.5,'center',true);
-        simText(ctx,'F ⊥ v ⇒ W = 0: הגודל |v| = '+(v/1e6).toFixed(1)+'×10⁶ m/s לא משתנה',W/2,y0+50,'#94a3b8',9.5,'center');}
-      else{simText(ctx,'F = qvB = '+sciTxt(F)+' N  ·  r = mv/qB = '+(r*100).toFixed(1)+' cm  ·  T = '+Tns+' ns',W/2,y0+20,'#e2e8f0',11,'center',true);
-      simText(ctx,'F ניצב תמיד ל-v ⇒ W = 0: הכיוון מסתובב, והגודל |v| = '+(v/1e6).toFixed(1)+'×10⁶ m/s לא משתנה',W/2,y0+42,'#94a3b8',10,'center');}
-    } else {
+        if(P[0]<-30||P[0]>W+30||P[1]<-30||P[1]>H+30){P=P0.slice();land();}}
+      magPoly(ctx,trail,'rgba(251,191,36,.5)',2);
+      // while it flies: the radius to the centre of its circle, r = mv/qB
+      var ux=Math.cos(ang),uy=-Math.sin(ang),sg=wv>0?1:-1,fx=-sg*Math.sin(ang),fy=-sg*Math.cos(ang);
+      if(fly){var C=[P[0]+fx*rp,P[1]+fy*rp];ctx.save();ctx.strokeStyle='rgba(226,232,240,.45)';ctx.setLineDash([4,4]);ctx.beginPath();ctx.moveTo(C[0],C[1]);ctx.lineTo(P[0],P[1]);ctx.stroke();ctx.restore();
+        simCircle(ctx,C[0],C[1],2.5,'#e2e8f0');simText(ctx,'r',(C[0]+P[0])/2-ux*12,(C[1]+P[1])/2-uy*12+4,'#e2e8f0',11,'center',true);}
+      var fl=24+F*1e13*16;
+      simArrow(ctx,P[0],P[1],P[0]+ux*aLen(),P[1]+uy*aLen(),'#34d399',3,11);
+      simArrow(ctx,P[0],P[1],P[0]+fx*fl,P[1]+fy*fl,'#f87171',3,11);
+      charge(P[0],P[1],qs);
+      if(!fly)simHandle(ctx,P[0]+ux*aLen(),P[1]+uy*aLen(),'#34d399',13);
+      simText(ctx,'v',P[0]+ux*(aLen()+14),P[1]+uy*(aLen()+14)+4,'#34d399',12,'center',true);
+      simText(ctx,'F',P[0]+fx*(fl+13),P[1]+fy*(fl+13)+4,'#f87171',12,'center',true);
+      var cw=PH?Math.min(W-16,236):236;
+      speedo(W-cw-8,8,cw,v,KE,['r = mv/qB = '+(r*100).toFixed(1)+' cm','T = 2πm/qB = '+Tns.toFixed(0)+' ns']);
+      if(!fly)dcCap(ctx,'גררו את קצה החץ v — ולחצו ״שגרו״',W/2,H-12,'#94a3b8',PH?10:10.5);
+      model(kit.m('F = qvB = '+sciTxt(F)+' N')+' · הכוח ניצב ל־v, ולכן '+kit.m('W = 0')+': המסלול מתעקם, וגודל המהירות קבוע');
+    } else if(mode===1){
       // B lies in the page, along ±x; the force is out of or into the page
-      for(var y=24;y<H*0.8;y+=34){ctx.save();ctx.strokeStyle='rgba(129,140,248,.35)';ctx.lineWidth=1.2;ctx.beginPath();ctx.moveTo(10,y);ctx.lineTo(W*0.66,y);ctx.stroke();ctx.restore();
-        simArrow(ctx,W*0.33-bxs*5,y,W*0.33+bxs*5,y,'rgba(129,140,248,.6)',1.2,7);}
-      simText(ctx,bxs>0?'B →':'B ←',W*0.64,16,'#818cf8',11,'center',true);
-      var cx=W*0.34,cy=H*0.40,a=th*Math.PI/180,Lv=arrowLen(),vx=Math.cos(a),vy=Math.sin(a);
+      var bw=PH?W:W*0.62;
+      for(var y=24;y<(PH?300:H-20);y+=34){ctx.save();ctx.strokeStyle='rgba(129,140,248,.35)';ctx.lineWidth=1.2;ctx.beginPath();ctx.moveTo(10,y);ctx.lineTo(bw-10,y);ctx.stroke();ctx.restore();
+        simArrow(ctx,bw/2-bxs*5,y,bw/2+bxs*5,y,'rgba(129,140,248,.6)',1.2,7);}
+      simText(ctx,bxs>0?'B →':'B ←',bw-30,16,'#818cf8',11,'center',true);
+      var a=th*Math.PI/180,Lv=aLen(),vx=Math.cos(a),vy=Math.sin(a);
       var Fz=-qs*bxs*v*B*q*vy;              // (q v×B)_z with B = ±x
+      var thB=((th-(bxs>0?0:180))%360+360)%360;  // θ is measured from B to v
       ctx.save();ctx.setLineDash([4,4]);ctx.strokeStyle='rgba(52,211,153,.55)';ctx.lineWidth=1.6;
-      ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(cx+vx*Lv,cy);ctx.lineTo(cx+vx*Lv,cy-vy*Lv);ctx.stroke();ctx.restore();
-      simText(ctx,'v∥ — לא תורם',cx+vx*Lv/2,cy+14,'#64748b',9,'center');
-      simText(ctx,'v⊥',cx+vx*Lv+(vx>=0?16:-16),cy-vy*Lv/2,'#34d399',10,'center',true);
-      simArrow(ctx,cx,cy,cx+vx*Lv,cy-vy*Lv,'#34d399',3,11);simHandle(ctx,cx+vx*Lv,cy-vy*Lv,'#34d399',13);
-      var fr=4+Math.abs(Fz)/(q*5e6*1)*26;
-      if(Math.abs(Fz)>1e-16){magDot(ctx,cx-46,cy-46,fr,Fz>0,'#f87171','rgba(15,23,42,.9)');
-        simText(ctx,'F '+(Fz>0?'יוצא מהדף':'נכנס לדף'),cx-46,cy-46-fr-10,'#f87171',10,'center',true);}
-      else simText(ctx,'F = 0',cx-46,cy-46,'#f87171',12,'center',true);
-      simCircle(ctx,cx,cy,10,qs>0?'#fbbf24':'#60a5fa','#fff',1.5);simText(ctx,qs>0?'+':'−',cx,cy+1,'#0f172a',13,'center',true);
-      // F(θ) = qvB·sinθ
-      var gx=W*0.70,gy=24,gw=W*0.27,gh=H*0.62;magPlotBox(ctx,gx-8,gy-16,gw+16,gh+42,W<600?'F(θ)':'הכוח כפונקציה של θ: ⊙ למעלה, ⊗ למטה',null);
-      var X=function(t){return gx+t/360*gw;},Y=function(f){return gy+gh/2-f*(gh/2-12);};
+      ctx.beginPath();ctx.moveTo(CX1,CY1);ctx.lineTo(CX1+vx*Lv,CY1);ctx.lineTo(CX1+vx*Lv,CY1-vy*Lv);ctx.stroke();ctx.restore();
+      simText(ctx,'v⊥',CX1+vx*Lv+(vx>=0?16:-16),CY1-vy*Lv/2,'#34d399',10,'center',true);
+      var b0=bxs>0?0:Math.PI;ctx.save();ctx.strokeStyle='#fbbf24';ctx.lineWidth=1.4;ctx.beginPath();ctx.arc(CX1,CY1,22,-b0,-b0-thB*Math.PI/180,true);ctx.stroke();ctx.restore();
+      simText(ctx,'θ = '+thB.toFixed(0)+'°',CX1+(bxs>0?-1:1)*30,CY1+30,'#fbbf24',10.5,'center',true);
+      simArrow(ctx,CX1,CY1,CX1+vx*Lv,CY1-vy*Lv,'#34d399',3,11);simHandle(ctx,CX1+vx*Lv,CY1-vy*Lv,'#34d399',13);
+      var fxP=CX1-(PH?58:66),fyP=CY1-(PH?58:66);
+      if(Math.abs(Fz)>q*v*B*0.02){var fr=forceDot(fxP,fyP,Fz,q*5e6*1);
+        simText(ctx,Fz>0?'F יוצא מהדף':'F נכנס לדף',fxP,fyP-fr-9,'#f87171',10,'center',true);}
+      else simText(ctx,'F = 0',fxP,fyP+4,'#f87171',12,'center',true);
+      charge(CX1,CY1,qs);
+      // F(θ) = qvB·sinθ, and the 3-D sketch
+      var gx,gy,gw,gh;
+      if(PH){gx=40;gy=330;gw=W-56;gh=100;}else{gx=W*0.70;gy=30;gw=W*0.27;gh=H*0.44;}
+      magPlotBox(ctx,gx-30,gy-20,gw+44,gh+40,PH?'F(θ): ⊙ למעלה, ⊗ למטה':'הכוח כפונקציה של θ: ⊙ למעלה, ⊗ למטה',null);
+      var X=function(t){return gx+t/360*gw;},Y=function(f){return gy+gh/2-f*(gh/2-8);};
       ctx.save();ctx.strokeStyle='#1e3a52';ctx.beginPath();ctx.moveTo(gx,Y(0));ctx.lineTo(gx+gw,Y(0));ctx.stroke();ctx.restore();
-      // θ is measured from B to v, so Fz = −qvB·sinθ whichever way B points
-      var thB=((th-(bxs>0?0:180))%360+360)%360;
       var c=[];for(var t=0;t<=360;t+=4)c.push([X(t),Y(-qs*Math.sin(t*Math.PI/180))]);magPoly(ctx,c,'#f87171',2);
       simCircle(ctx,X(thB),Y(-qs*Math.sin(thB*Math.PI/180)),5,'#fbbf24','#fff',1.5);
-      simText(ctx,'⊙',gx-2,Y(1)+4,'#94a3b8',9,'right');simText(ctx,'⊗',gx-2,Y(-1)+4,'#94a3b8',9,'right');
+      simText(ctx,'⊙',gx-4,Y(1)+4,'#94a3b8',9,'right');simText(ctx,'⊗',gx-4,Y(-1)+4,'#94a3b8',9,'right');
       [0,90,180,270,360].forEach(function(t){simText(ctx,t+'°',X(t),gy+gh+12,'#64748b',8.5,'center');});
-      var y0=H*0.85;magPlotBox(ctx,8,y0,W-16,H-y0-6,'',null);
+      var tox=PH?W-70:W*0.835,toy=PH?84:H*0.82,tL=PH?36:46;
+      if(!PH){ctx.save();ctx.fillStyle='rgba(2,8,16,.6)';ctx.beginPath();ctx.roundRect(gx-30,H*0.62,gw+44,H*0.36,6);ctx.fill();ctx.restore();
+        simText(ctx,'במבט תלת־ממדי: F ניצב לשניהם',gx+gw/2-8,H*0.62+16,'#94a3b8',9.5,'center');}
+      triad(tox,toy,tL,[vx,vy,0],[bxs,0,0],[0,0,Fz/(q*v*B||1)]);
       var sth=Math.abs(Math.sin(a));
-      simText(ctx,'θ = '+thB.toFixed(0)+'°   ·   F = qvB·sinθ = '+sciTxt(Math.abs(Fz))+' N',W/2,y0+20,'#e2e8f0',11.5,'center',true);
-      simText(ctx,sth<0.02?'v מקביל ל-B — אין כוח כלל':'F ניצב גם ל-v וגם ל-B — ולכן יוצא מהדף או נכנס אליו',W/2,y0+42,'#94a3b8',10,'center');
+      model(kit.m('F = qvB·sinθ = '+sciTxt(q*v*B)+' N × sin '+thB.toFixed(0)+'° = '+sciTxt(Math.abs(Fz))+' N')+(sth<0.02?' · v מקביל ל־B — אין כוח כלל':' · F ניצב גם ל־v וגם ל־B'));
+    } else {
+      // the challenge: what the sim dealt, and the seven answers
+      if(!ch)deal();
+      var cy=PH?190:H*0.42,cx=W/2,inB=ch.B[2]!==0;
+      if(inB)magFieldMarks(ctx,0,0,W,H-70,ch.B[2]>0,38);
+      else for(var yy=26;yy<H-80;yy+=40)for(var xx=40;xx<W;xx+=110){var dx3=ch.B[0],dy3=-ch.B[1];
+        simArrow(ctx,xx-dx3*16,yy-dy3*16,xx+dx3*16,yy+dy3*16,'rgba(129,140,248,.55)',1.4,7);}
+      simText(ctx,'לאן פועל הכוח המגנטי על המטען? הקישו על הכיוון',W/2,18,'#e2e8f0',PH?11:12,'center',true);
+      simText(ctx,inB?(ch.B[2]>0?'B ⊙ (יוצא מהדף)':'B ⊗ (נכנס לדף)'):'B',W/2,38,'#818cf8',10.5,'center',true);
+      var L=70;simArrow(ctx,cx,cy,cx+ch.v[0]*L,cy-ch.v[1]*L,'#34d399',3.2,12);
+      simText(ctx,'v',cx+ch.v[0]*(L+14),cy-ch.v[1]*(L+14)+4,'#34d399',13,'center',true);
+      charge(cx,cy,ch.q);
+      var done=ch.pick>=0,ok=done&&CH[ch.pick]+''===ch.F+'',F3=ch.F;
+      if(!done)simText(ctx,'F = ?',cx+(ch.v[0]?0:46),cy+(ch.v[0]?-40:5),'#f87171',13,'center',true);
+      else if(F3[2])forceDot(cx+(ch.v[0]?0:52),cy+(ch.v[0]?-48:0),F3[2],1);
+      else if(F3[0]||F3[1]){simArrow(ctx,cx,cy,cx+F3[0]*60,cy-F3[1]*60,'#f87171',3.2,12);simText(ctx,'F',cx+F3[0]*74,cy-F3[1]*74+4,'#f87171',13,'center',true);}
+      else simText(ctx,'F = 0',cx+46,cy+5,'#f87171',13,'center',true);
+      for(var i=0;i<7;i++){var c2=chipXY(i),sel=ch.pick===i,right=done&&CH[i]+''===ch.F+'';
+        ctx.save();ctx.fillStyle=right?'rgba(16,185,129,.28)':sel?'rgba(239,68,68,.25)':'rgba(30,41,59,.95)';ctx.strokeStyle=right?'#10b981':sel?'#ef4444':'#475569';ctx.lineWidth=2;
+        ctx.beginPath();ctx.arc(c2[0],c2[1],c2[2],0,6.2832);ctx.fill();ctx.stroke();ctx.restore();
+        if(i<4)simArrow(ctx,c2[0]-CH[i][0]*9,c2[1]+CH[i][1]*9,c2[0]+CH[i][0]*10,c2[1]-CH[i][1]*10,'#e2e8f0',2.4,8);
+        else if(i<6)magDot(ctx,c2[0],c2[1],10,i===4,'#e2e8f0');
+        else simText(ctx,'0',c2[0],c2[1]+5,'#e2e8f0',14,'center',true);}
+      if(done)simText(ctx,ok?'✓ נכון! רצף: '+streak:'✗ לא בדיוק — הכיוון הנכון מסומן בירוק',W/2,H-72,ok?'#34d399':'#f87171',PH?11:12,'center',true);
+      if(done)simText(ctx,'הקישו על התרשים לאתגר הבא',W/2,H-94,'#94a3b8',9.5,'center');
+      model('הכלל: '+kit.m('F = qv × B')+' — ישרו את האצבעות לכיוון v וכופפו אותן לכיוון B: האגודל מראה את F על מטען חיובי; על מטען שלילי הכוח הפוך.');
     }
+    kit.check({turned:fly?turned:0,fly:fly,qs:qs,bz:bz,mode:mode,sin:Math.abs(Math.sin(th*Math.PI/180)),streak:streak});
     requestAnimationFrame(draw);
   }
   requestAnimationFrame(draw);
 };
-MAG_CTRL['mag-lorentz']=function(){return rng('mgz-B',0.1,1,0.5,0.05,'שדה B',' T')+rng('mgz-v',1,5,2,0.1,'מהירות v',' ×10⁶ m/s')+btn('mgz-q','⊕ מטען חיובי (פרוטון)','btn-secondary')+btn('mgz-Bdir','⊗ השדה נכנס לדף','btn-secondary')+btn('mgz-mode','🧭 מצב: שדה ניצב לדף','btn-secondary');};
+MAG_CTRL['mag-lorentz']=function(){return rng('mgz-B',0.1,1,0.5,0.05,'שדה B',' T')+rng('mgz-v',1,5,2,0.1,'מהירות v',' ×10⁶ m/s')+btn('mgz-go','🚀 שגרו','btn-primary')+btn('mgz-q','⊕ מטען חיובי (פרוטון)','btn-secondary')+btn('mgz-Bdir','⊗ השדה נכנס לדף','btn-secondary')+btn('mgz-mode','🧭 מצב: שדה ניצב לדף','btn-secondary')+btn('mgz-rhr','🎲 אתגר כלל יד ימין','btn-secondary');};
 
 // ── mag-force.mag-circle ──────────────────────────────────────────────────
 // A half circle of radius r = mv/qB, drawn to a ruler in real centimetres.

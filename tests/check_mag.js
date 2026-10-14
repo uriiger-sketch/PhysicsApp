@@ -126,11 +126,73 @@ const EXPECT = {
   await open('mag-field', 'mag-solenoid'); await p.waitForTimeout(400); T = await read();
   t('solenoid: μ₀nI = 0.38 mT and the centre is 94% of it', has(T, '0.38 mT') && has(T, '94%'));
   await open('mag-force', 'mag-lorentz'); T = await read();
-  t('Lorentz: F = qvB = 1.60×10⁻¹³ N, r = 4.2 cm, T = 131 ns', has(T, '1.60×10⁻¹³') && has(T, '4.2 cm') && has(T, '131 ns'));
+  const kmodel = () => p.evaluate(() => { const e = document.querySelector('.sk-model-tx'); return e ? e.textContent : ''; });
+  let LM = await kmodel();
+  t('Lorentz: F = qvB = 1.60×10⁻¹³ N (model line), r = mv/qB = 4.2 cm, T = 2πm/qB = 131 ns', LM.includes('F = qvB = 1.60×10⁻¹³ N') && has(T, 'r = mv/qB = 4.2 cm') && has(T, 'T = 2πm/qB = 131 ns'), LM.slice(0, 40));
+  // launch (after the prediction) and follow the charge: a circle of radius
+  // mv/qB = 4.175 cm (69.9 px at 1675 px/m), counter-clockwise for + in B into
+  // the page, clockwise for −, and the speedometer reading the same throughout
+  const orbit = () => p.evaluate(async () => { const cv = document.getElementById('sim-canvas'), pts = [], sp = new Set();
+    const oC = window.simCircle, oT = window.simText;
+    window.simCircle = function (c, x, y, r, f) { if (c.canvas === cv && r === 10) pts.push([x, y]); return oC.apply(this, arguments); };
+    window.simText = function (c, s) { if (c.canvas === cv && /^\|v\| = /.test(s)) sp.add(s); return oT.apply(this, arguments); };
+    document.getElementById('btn-mgz-go').click();
+    const o = document.querySelectorAll('.sk-predict .sk-opt'); if (o.length && !o[0].disabled) o[2].click();
+    await new Promise(r => setTimeout(r, 2600)); window.simCircle = oC; window.simText = oT;
+    // the circle through three points far apart, then every point against it
+    const P = pts.slice(5), a = P[0], b = P[Math.floor(P.length / 2)], c = P[P.length - 1];
+    const d = 2 * (a[0] * (b[1] - c[1]) + b[0] * (c[1] - a[1]) + c[0] * (a[1] - b[1]));
+    const ux = ((a[0] ** 2 + a[1] ** 2) * (b[1] - c[1]) + (b[0] ** 2 + b[1] ** 2) * (c[1] - a[1]) + (c[0] ** 2 + c[1] ** 2) * (a[1] - b[1])) / d;
+    const uy = ((a[0] ** 2 + a[1] ** 2) * (c[0] - b[0]) + (b[0] ** 2 + b[1] ** 2) * (a[0] - c[0]) + (c[0] ** 2 + c[1] ** 2) * (b[0] - a[0])) / d;
+    const R = Math.hypot(a[0] - ux, a[1] - uy), dev = Math.max(...P.map(q => Math.abs(Math.hypot(q[0] - ux, q[1] - uy) - R)));
+    let turn = 0; for (let i = 1; i < P.length; i++) { let da = Math.atan2(-(P[i][1] - uy), P[i][0] - ux) - Math.atan2(-(P[i - 1][1] - uy), P[i - 1][0] - ux);
+      da = (da + 3 * Math.PI) % (2 * Math.PI) - Math.PI; turn += da; }
+    return { n: P.length, R, dev, turn, speeds: [...sp] }; });
+  let ob = await orbit();
+  t('  launched: a circle of r = mv/qB (69.9 px), counter-clockwise for + in B ⊗, the speed never changing', ob.n > 60 && Math.abs(ob.R - 69.9) < 1.5 && ob.dev < 1.5 && ob.turn > 2 && ob.speeds.length === 1, `R=${ob.R.toFixed(1)} dev=${ob.dev.toFixed(2)} turn=${ob.turn.toFixed(2)} ${ob.speeds.join('/')}`);
+  await click('btn-mgz-q'); ob = await orbit();
+  t('  a − charge: the same circle, clockwise', Math.abs(ob.R - 69.9) < 1.5 && ob.dev < 1.5 && ob.turn < -2 && ob.speeds.length === 1, `R=${ob.R.toFixed(1)} turn=${ob.turn.toFixed(2)}`);
+  await click('btn-mgz-q');
   await click('btn-mgz-mode'); T = await read();
-  t('Lorentz, B along +x, v at 60°: force INTO the page on a + charge', has(T, L('נכנס לדף')));
+  t('Lorentz, B along +x, v at 60°: force INTO the page on a + charge', has(T, L('F נכנס לדף')));
   await click('btn-mgz-q'); T = await read();
-  t('  and OUT of the page on a − charge', has(T, L('יוצא מהדף')));
+  t('  and OUT of the page on a − charge', has(T, L('F יוצא מהדף')));
+  // the keyboard: twelve presses of → turn v 60° clockwise, onto the field: no force
+  await p.focus('#sim-canvas'); for (let i = 0; i < 12; i++) await p.keyboard.press('ArrowRight');
+  T = await read(); LM = await kmodel();
+  const still = await p.evaluate(() => state.section);
+  t('  v turned onto B with the arrow keys (the page stays): θ = 0°, F = 0', still === 'mag-lorentz' && has(T, 'θ = 0°') && has(T, 'F = 0') && /sin 0° = 0 N/.test(LM), still + ' ' + LM.slice(0, 50));
+  // the right-hand-rule challenge: what was dealt is read off the picture,
+  // F = q v×B worked out here, and the chip in that direction tapped
+  const RH = await p.evaluate(async (WR) => { const cv = document.getElementById('sim-canvas'), wait = ms => new Promise(r => setTimeout(r, ms)), out = [];
+    const CH = [[0, 1, 0], [0, -1, 0], [-1, 0, 0], [1, 0, 0], [0, 0, 1], [0, 0, -1], [0, 0, 0]];
+    const rect = () => cv.getBoundingClientRect();
+    for (let k = 0; k < 5; k++) {
+      document.getElementById('btn-mgz-rhr').click();
+      const rec = { v: null, B: null, z: 0, q: 0, chips: [], fb: null };
+      const oA = window.simArrow, oM = window.magFieldMarks, oT = window.simText, oArc = CanvasRenderingContext2D.prototype.arc;
+      window.simArrow = function (c, x1, y1, x2, y2, col) { if (c.canvas === cv) { if (col === '#34d399') rec.v = [x2 - x1, y1 - y2]; if (col === 'rgba(129,140,248,.55)') rec.B = [x2 - x1, y1 - y2]; } return oA.apply(this, arguments); };
+      window.magFieldMarks = function (c, a, b, d, e, o) { if (c.canvas === cv) rec.z = o ? 1 : -1; return oM.apply(this, arguments); };
+      window.simText = function (c, s) { if (c.canvas === cv) { if (s === '+' || s === '−') rec.q = s === '+' ? 1 : -1; } return oT.apply(this, arguments); };
+      CanvasRenderingContext2D.prototype.arc = function (x, y, r) { if (this.canvas === cv && r === 22) rec.chips.push([x, y]); return oArc.apply(this, arguments); };
+      await wait(120);
+      window.simArrow = oA; window.magFieldMarks = oM; window.simText = oT; CanvasRenderingContext2D.prototype.arc = oArc;
+      const u = a => a.map(c => Math.round(c / Math.hypot(...a)));
+      const v = u(rec.v).concat(0), B = rec.z ? [0, 0, rec.z] : u(rec.B).concat(0);
+      const F = [v[1] * B[2] - v[2] * B[1], v[2] * B[0] - v[0] * B[2], v[0] * B[1] - v[1] * B[0]].map(c => c * rec.q);
+      let ans = CH.findIndex(c => c + '' === F + '');
+      if (k === 4) ans = (ans + 1) % 7;                         // and one wrong answer, on purpose
+      const chip = rec.chips.slice(-7)[ans], R = rect(), sc = R.width / cv.offsetWidth;
+      cv.dispatchEvent(new MouseEvent('mousedown', { clientX: R.left + chip[0] * sc, clientY: R.top + chip[1] * sc, bubbles: true, cancelable: true }));
+      cv.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
+      const o2 = window.simText; window.simText = function (c, s) { if (c.canvas === cv && /^[✓✗]/.test(s)) rec.fb = s; return o2.apply(this, arguments); };
+      await wait(120); window.simText = o2;
+      out.push({ F: F.join(','), fb: rec.fb });
+    }
+    return { out, done: document.querySelectorAll('.sk-m')[2].classList.contains('done') };
+  }, []);
+  const okFb = RH.out.slice(0, 4).every((r, i) => r.fb && r.fb.startsWith('✓') && r.fb.endsWith(String(i + 1))), badFb = RH.out[4].fb && RH.out[4].fb.startsWith('✗');
+  t('  right-hand-rule challenge: the sim\'s answer key is F = qv×B (4 dealt, worked out independently), a wrong tap resets the streak', okFb && badFb && RH.done, RH.out.map(r => r.F + ':' + (r.fb || '').slice(0, 14)).join(' | '));
   await open('mag-force', 'mag-circle'); await click('btn-mgr-fire'); T = await read();
   t('circle: r = mv/qB = 15.66 cm, T/2 = 164.0 ns', has(T, '15.66 cm') && has(T, '164.0 ns'));
   // a proton in B into the page turns counter-clockwise: from the lower entry, upward
@@ -336,7 +398,7 @@ const EXPECT = {
   t('motor: n̂ follows the current (right-hand rule), so θ falls toward 0 as the coil turns…', dec > 10 && inc === 0, `${dec} falling, ${inc} rising`);
   t('  …and jumps back to 180° when the commutator reverses the current', flips >= 1, flips + ' flips');
   await open('mag-force', 'mag-lorentz'); await click('btn-mgz-mode'); await click('btn-mgz-Bdir'); T = await read();
-  t('Lorentz, B reversed to −x, v at 60°: θ from B is 240° and the force on + comes OUT of the page', has(T, 'θ = 240°') && has(T, L('יוצא מהדף')));
+  t('Lorentz, B reversed to −x, v at 60°: θ from B is 240° and the force on + comes OUT of the page', has(T, 'θ = 240°') && has(T, L('F יוצא מהדף')));
   await open('mag-force', 'mag-wireforce');
   await slide('mgf-I', 10); await slide('mgf-B', 1); await slide('mgf-L', 0.3); await slide('mgf-m', 5); await p.waitForTimeout(2500);
   const WF = (await read(800)).filter(s => /^F = BIL/.test(s));
