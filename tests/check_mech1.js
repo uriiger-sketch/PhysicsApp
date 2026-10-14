@@ -128,6 +128,10 @@ const EXPECT = {
   const click = id => p.evaluate(id => document.getElementById(id).click(), id);
   const fresh = () => p.evaluate(() => { window.__T = []; });
   const close = (a, b2, tol) => Math.abs(a - b2) <= tol;
+  // the sim kit: a mission solved, the live model line, a prediction's options
+  const mission = (k, i) => p.evaluate(([k, i]) => !!((state.missions || {})[k] || {})[i], [k, i]);
+  const modelTxt = () => p.evaluate(() => { const m = document.querySelector('#app .sk-model'); return m && !m.hidden ? m.textContent.replace(/[⁦-⁩‎‏]/g, '') : ''; });
+  const predOpts = () => p.evaluate(() => [...document.querySelectorAll('#app .sk-opt')].map(b => b.textContent));
 
   // every slider's default must sit on its own step grid, or the browser
   // silently moves it (g = 9.8 on a 1.6 + 0.5k grid became 9.6)
@@ -190,12 +194,15 @@ const EXPECT = {
   t('second law, m = 5 kg, F = 20 N, μ = 0.2: N = mg, ΣF = F − μN, a = ΣF/m', close(NN[0], 49, 0.06) && close(sf[0], 20 - 0.2 * 49, 0.006) && close(aa[0], (20 - 9.8) / 5, 0.0006), NN[0] + ' N, ' + sf[0] + ' N, ' + aa[0]);
 
   await open('newton2.n2-apps');
-  await set('inc-mu', 0.2); await fresh(); await p.waitForTimeout(300);
-  const ia = nums(await last('^= [\\d.]+ m/s²$'))[0], iN = nums(await last('^N = mg·cosθ = '))[0];
-  t('incline 30°, μ = 0.2, 3 kg: N = mg cosθ and a = g(sinθ − μ cosθ)', close(iN, 3 * 9.8 * Math.cos(30 * D), 0.06) && close(ia, 9.8 * (0.5 - 0.2 * Math.cos(30 * D)), 0.0006), iN + ' N, ' + ia);
-  await set('inc-theta', 10); await set('inc-mu', 0.3); await click('btn-inc-reset'); await fresh(); await p.waitForTimeout(400);
+  await set('inc-mu', 0.2); await click('btn-inc-drop'); await fresh(); await p.waitForTimeout(300);
+  const ia = nums(await last('^a = [−+]?[\\d.]+ m/s²$'))[0], iN = nums(await last('^N = mg·cosθ = '))[0];
+  t('incline 30°, μ = 0.2, 3 kg, let go at the top: N = mg cosθ and a = −g(sinθ − μ cosθ)', close(iN, 3 * 9.8 * Math.cos(30 * D), 0.06) && close(ia, -9.8 * (0.5 - 0.2 * Math.cos(30 * D)), 0.0006), iN + ' N, ' + ia);
+  await set('inc-v0', 5); await click('btn-inc-push'); await fresh(); await p.waitForTimeout(250);
+  const iu = nums(await last('^a = [−+]?[\\d.]+ m/s²$'))[0], ifk = nums(await last('^fₖ = μN = '))[0];
+  t('... pushed up it slides up with a = −g(sinθ + μ cosθ): friction μN now points down the slope', close(iu, -9.8 * (0.5 + 0.2 * Math.cos(30 * D)), 0.0006) && close(ifk, 0.2 * 3 * 9.8 * Math.cos(30 * D), 0.06) && /\+ 0\.20×0\.866\)/.test(await modelTxt()), iu + ', ' + ifk + ' N | ' + await modelTxt());
+  await set('inc-theta', 10); await set('inc-mu', 0.3); await click('btn-inc-drop'); await fresh(); await p.waitForTimeout(400);
   const hold = await last('^fₛ = mg·sinθ = ');
-  t('... at 10° with μ = 0.3 it holds, and friction is mg sinθ, not μN', !!hold && close(nums(hold)[0], 3 * 9.8 * Math.sin(10 * D), 0.06) && !!(await last('^a = 0$')), hold);
+  t('... at 10° with μ = 0.3 it holds, and friction is mg sinθ, not μN', !!hold && close(nums(hold)[0], 3 * 9.8 * Math.sin(10 * D), 0.06) && !!(await last('^a = 0\\.000 m/s²$')), hold);
 
   await open('forces.tension');
   await set('ten-ea', 2); await fresh(); await p.waitForTimeout(300);
@@ -278,9 +285,15 @@ const EXPECT = {
   t('components: dragging the tip to (−2, 2) gives θ = 135°, |A| = 2.8', close(await val('vc-ang'), 135, 1.01) && close(await val('vc-mag'), Math.hypot(2, 2), 0.06), (await val('vc-ang')) + '°, ' + (await val('vc-mag')));
 
   await open('newton2.n2-apps'); rr = await rect(); W = rr.w;
-  const RX = W * 0.14, RY = 430 - 72;
+  const RX = W < 600 ? 56 : 76, RY = (W < 600 ? 500 : 460) - 48;
   await drag(rr, [[RX + 100 * Math.cos(30 * D), RY - 100 * Math.sin(30 * D)], [RX + 100 * Math.cos(38 * D), RY - 100 * Math.sin(38 * D)], [RX + 100 * Math.cos(45 * D), RY - 100 * Math.sin(45 * D)]]);
   t('incline: dragging the ramp tilts it to 45°', close(await val('inc-theta'), 45, 1.01), await val('inc-theta'));
+  await set('inc-theta', 30); await fresh();
+  const bx0 = RX - 17 - 3, by0 = RY - 17;   // the block, resting on the floor at the foot
+  await drag(rr, [[bx0, by0], [bx0 + 40 * Math.cos(30 * D), by0 - 40 * Math.sin(30 * D)], [bx0 + 75 * Math.cos(30 * D), by0 - 75 * Math.sin(30 * D)]]);
+  await p.waitForTimeout(120);
+  const pv = (await all('^v = \\+[\\d.]+ m/s$')).map(x => nums(x)[0]);
+  t('incline: pulling the block 5 m/s worth up the slope pushes it off at v0 = 5 m/s', close(await val('inc-v0'), 5, 0.051) && pv.length > 0 && Math.max(...pv) <= 5 + 1e-9 && Math.max(...pv) > 4, (await val('inc-v0')) + ' m/s, first v ' + Math.max(...pv));
 
   await open('kinematics.const-velocity');
   await click('btn-cv-reset'); rr = await rect(); W = rr.w;
@@ -290,9 +303,6 @@ const EXPECT = {
 
   // ── 3b. the rebuilt simulations: missions, predictions, model line ───
   console.log('\n3b) rebuilt simulations: their physics, their missions and predictions');
-  const mission = (k, i) => p.evaluate(([k, i]) => !!((state.missions || {})[k] || {})[i], [k, i]);
-  const modelTxt = () => p.evaluate(() => { const m = document.querySelector('#app .sk-model'); return m && !m.hidden ? m.textContent.replace(/[⁦-⁩‎‏]/g, '') : ''; });
-  const predOpts = () => p.evaluate(() => [...document.querySelectorAll('#app .sk-opt')].map(b => b.textContent));
   const tap = async (rr, x, y) => drag(rr, [[x, y], [x, y]]);
 
   // free fall: the flight is v = v0 − gt, y = v0t − ½gt², and a = −g at EVERY instant
@@ -335,6 +345,23 @@ const EXPECT = {
     T6.push(nums(await last('^t = [\\d.]+ s +· '))[0]);
   }
   t('free fall: a 0.5 kg and a 5 kg ball thrown at 6 m/s land at the same t = 2v0/g', T6.every(x => close(x, 12 / 9.8, 0.006)) && await mission('kinematics.freefall', 2), T6.join(' s, ') + ' s');
+
+  // the incline: friction flips with the sliding, the section's problem, the angle of repose
+  await open('newton2.n2-apps');
+  t('incline: a prediction is asked first — which way friction points while the block slides up', (await predOpts()).length === 4, (await predOpts()).join(' | '));
+  await set('inc-theta', 30); await set('inc-mu', 0.3); await set('inc-v0', 5); await click('btn-inc-push'); await p.waitForTimeout(3200);
+  t('incline 30°, μ = 0.3: pushed up, the block stops and slides back — mission "watch the friction both ways"', await mission('newton2.n2-apps', 0));
+  const back = await last('^' + LR('חזר לתחתית במהירות ') + '[\\d.]+');
+  // back at the foot: v² = 2|a_down|·d, with d = v0²/2|a_up|
+  const aUp = 9.8 * (0.5 + 0.3 * Math.cos(30 * D)), aDn = 9.8 * (0.5 - 0.3 * Math.cos(30 * D));
+  t('... and returns to the foot slower than it left: v = v0·√(a_down/a_up)', !!back && close(nums(back)[0], 5 * Math.sqrt(aDn / aUp), 0.03), back);
+  await set('inc-theta', 37); await set('inc-mu', 0.2); await set('inc-v0', 7.6); await click('btn-inc-push'); await p.waitForTimeout(1500);
+  const dUp = nums(await last('^d = [\\d.]+ m$'))[0], dWant37 = 7.6 ** 2 / (2 * 9.8 * (Math.sin(37 * D) + 0.2 * Math.cos(37 * D)));
+  t('incline: the section\'s problem (37°, μ 0.2, 7.6 m/s) climbs d = v0²/2g(sinθ + μcosθ) = 3.87 m — mission solved', close(dUp, dWant37, 0.011) && await mission('newton2.n2-apps', 1), dUp + ' m of ' + dWant37.toFixed(3));
+  await set('inc-mu', 0.5); await set('inc-theta', 28); await set('inc-v0', 3); await click('btn-inc-push'); await p.waitForTimeout(2200);
+  t('incline μ = 0.5: at 28° (tan 28° > 0.5) the block slides back to the floor', !!(await last('^N = mg = ')) && !(await mission('newton2.n2-apps', 2)));
+  await set('inc-theta', 26); await click('btn-inc-push'); await p.waitForTimeout(1500);
+  t('... at 26° (tan 26° < 0.5, within 2° of arctan μ) it stays put — mission "the angle of repose" solved', !!(await last('^fₛ = mg·sinθ = ')) && await mission('newton2.n2-apps', 2));
 
   // ── 4. the learning experience ──────────────────────────────────────
   console.log('\n4) misconception boxes, quiz keys, hints, units');

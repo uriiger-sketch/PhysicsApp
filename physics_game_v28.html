@@ -4305,7 +4305,7 @@ const CONTENT={
       <p>שימו לב שהמסה מצטמצמת: ילד קל ומבוגר כבד מחליקים באותה תאוצה. ואם ${M('\\mu_k=\\tan\\theta')}, התאוצה מתאפסת — ומי שכבר מחליק ממשיך במהירות קבועה.</p>`
     }
   },
-  sim:{type:'incline',title:'גוף על מדרון עם חיכוך',desc:'שנו את זווית המדרון ואת החיכוך. ראו את תרשים הכוחות, חשבו N ו־a=g(sinθ−μ·cosθ) ובדקו את עצמכם מול הסימולציה.'},
+  sim:{type:'incline',title:'גוף על מדרון עם חיכוך',desc:'גררו את הגוש במעלה המדרון ושחררו — המשיכה היא v₀ (או לחצו ״⬆ דחפו במעלה״), וגררו את המדרון כדי להטות אותו. עקבו אחרי חץ החיכוך בעלייה ובירידה, והשוו את שני השיפועים בגרף v(t).'},
   example:{title:'גוש על מדרון עם חיכוך',text:`גוש שמסתו ${M('5\\,\\text{kg}')} מחליק במורד מדרון בזווית ${M('37^\\circ')}, עם ${M('\\mu_k=0.25')}. (${M('\\sin37^\\circ=0.6')}, ${M('\\cos37^\\circ=0.8')}, ${M('g=9.8\\,\\text{m/s}^2')})`,steps:[
     {q:'אילו כוחות פועלים לאורך המדרון?',a:`רכיב המשקל במורד: ${M('mg\\sin37^\\circ=5\\times9.8\\times0.6=29.4\\,\\text{N}')}. החיכוך במעלה: ${M('\\mu_kmg\\cos37^\\circ=0.25\\times5\\times9.8\\times0.8=9.8\\,\\text{N}')}.`},
     {q:'מה התאוצה?',a:`${M('a=\\dfrac{29.4-9.8}{5}=3.92\\,\\text{m/s}^2')} במורד — או ישירות: ${M('a=g(\\sin\\theta-\\mu_k\\cos\\theta)=9.8\\times0.4')}`},
@@ -11871,346 +11871,251 @@ function simNewton2(canvas){
 
 
 // ═══════════════════════════════════════════════════════════════
-// CH3 SIM 2: INCLINE + ATWOOD — animated physics, full FBD
+// CH3 SIM 2: INCLINE — a block pushed up a rough slope, and back down
 // ═══════════════════════════════════════════════════════════════
+// The learning goal (the section's misconception box): friction opposes the
+// SLIDING, not "the downhill direction". Pushed up the slope, the block
+// slides up and friction points down the slope, together with mg sinθ:
+// |a| = g(sinθ + μcosθ). Sliding back down, friction points up the slope:
+// |a| = g(sinθ − μcosθ), smaller -- the v(t) graph breaks into two slopes.
+// At rest the friction is static, exactly mg sinθ, as long as tanθ ≤ μ.
+// N = mg cosθ in every phase. One coefficient is used for both, μₛ = μₖ = μ
+// (stated on the slider). The block is pushed by dragging it up the slope
+// (the pull is v₀), the slope is tilted by dragging it; a stop at the top
+// end of the ramp catches a push that is too strong, and a block that slides
+// down to the foot comes to rest on the floor (W and N = mg, no friction).
+// Positive along the slope is UP the slope.
 function simIncline(canvas){
-  var H=360; var _cv=setupCanvas(canvas,H); var ctx=_cv.ctx; const W=_cv.W, dpr=_cv.dpr;
-  function _fitCanvas(h){ if(h===H)return; H=h; ctx=setupCanvas(canvas,H).ctx; }
-  // a phone gets a taller canvas, so a steep ramp is not squeezed under the panel
-  const HB=W<480?430:360; _fitCanvas(HB);
-  const id=canvas.id;
-  const g=9.8;
-  let s=0, vel=0, pT=null;
-  let atwoodMode=false;
-  let y1=80, y2=80, velAt=0, pTAt=null;
-
-  function getTheta(){ const e=document.getElementById('inp-inc-theta'); return e?parseFloat(e.value):30; }
-  function getMu()   { const e=document.getElementById('inp-inc-mu');    return e?parseFloat(e.value):0; }
-  function getMass() { const e=document.getElementById('inp-inc-m');  return e?parseFloat(e.value):3; }
-  // ── Direct manipulation: grab the ramp surface and tilt it ──
-  var dragRamp=false;
-  // the ramp stays below the readout panel however steep it is
-  function rampLen(th){return Math.min(W*0.70,320,(H-72-150)/Math.max(Math.sin(th),0.05));}
-  function _rampHit(p){var cxi=W*0.14,cyi=H-72,LEN=rampLen(getTheta()*Math.PI/180);
-    var d=Math.hypot(p.x-cxi,p.y-cyi);var a=Math.atan2(cyi-p.y,p.x-cxi)*180/Math.PI;
-    return d>28&&d<LEN+28&&a>-6&&a<86;}
-  function _rDn(e){var p=simPointerXY(canvas,(window.devicePixelRatio||1),e);
-    if(_rampHit(p)){dragRamp=true;canvas.style.cursor='grabbing';e.preventDefault();}}
-  function _rMv(e){var p=simPointerXY(canvas,(window.devicePixelRatio||1),e);
-    if(dragRamp){var cxi=W*0.14,cyi=H-72;
-      simSyncSlider('inc-theta',Math.atan2(cyi-p.y,p.x-cxi)*180/Math.PI,0);e.preventDefault();
-    } else canvas.style.cursor=_rampHit(p)?'grab':'';}
-  function _rUp(){dragRamp=false;canvas.style.cursor='';}
-  canvas.addEventListener('mousedown',_rDn);canvas.addEventListener('touchstart',_rDn,{passive:false});
-  canvas.addEventListener('mousemove',_rMv);canvas.addEventListener('touchmove',_rMv,{passive:false});
-  canvas.addEventListener('mouseup',_rUp);canvas.addEventListener('touchend',_rUp);
-  function getM1()   { const e=document.getElementById('inp-inc-m1');    return e?parseFloat(e.value):3; }
-  function getM2()   { const e=document.getElementById('inp-inc-m2');    return e?parseFloat(e.value):5; }
-
-  function resetIncline(){ s=0; vel=0; }
-  function resetAtwood() {
-    var CEIL_Y2=28, maxY2=H-90;
-    y1=(CEIL_Y2+18+maxY2)/2; y2=(CEIL_Y2+18+maxY2)/2;
-    velAt=0; pTAt=null;
+  const _c0=setupCanvas(canvas,460), W=_c0.W, dpr=_c0.dpr, PH=W<600;
+  const H=PH?500:460; const ctx=PH?setupCanvas(canvas,H).ctx:_c0.ctx;
+  const id=canvas.id, g=9.8, LM=5, BS=34;          // the ramp is 5 m long; the block 34 px
+  const CX=PH?56:76, CY=H-48, TOP=PH?184:136;        // the foot of the ramp; the band above it
+  function th(){return getTheta()*Math.PI/180;}
+  function Lpx(t){return Math.min((W-CX-34)/Math.cos(t),(CY-TOP-14)/Math.sin(t),640);}
+  function getTheta(){var e=document.getElementById('inp-inc-theta');return e?parseFloat(e.value):30;}
+  function getMu(){var e=document.getElementById('inp-inc-mu');return e?parseFloat(e.value):0.3;}
+  function getM(){var e=document.getElementById('inp-inc-m');return e?parseFloat(e.value):3;}
+  function getV0(){var e=document.getElementById('inp-inc-v0');return e?parseFloat(e.value):5;}
+  // the block: on the floor at the foot, or on the slope at s (m, from the foot) with v (+ = up)
+  var onFloor=true, s=0, v=0, bumped=false, run=null, hist=[], tRun=0, pT=null, dragged=false, aim=null, tilt=false;
+  var vFoot=null;
+  function half(){return BS/2/(Lpx(th())/LM);}
+  function sMin(){return half()+0.02;}
+  function sMax(){return LM-half()-0.06;}
+  function holds(){var t=th();return Math.tan(t)<=getMu()+1e-9;}
+  function accel(vv){
+    var t=th(),sn=Math.sin(t),cs=Math.cos(t),mu=getMu();
+    if(vv>1e-9)return -g*(sn+mu*cs);
+    if(vv<-1e-9)return -g*(sn-mu*cs);
+    return holds()?0:-g*(sn-mu*cs);
   }
-
-  // ── INCLINE ──────────────────────────────────────────────
-  function drawIncline(ts){
-    if(!pT)pT=ts; const dt=Math.min((ts-pT)/1000,.04); pT=ts;
-    const theta=getTheta(), mu=getMu(), m=getMass();
-    const th=theta*Math.PI/180;
-    const sinT=Math.sin(th), cosT=Math.cos(th);
-    const N_=m*g*cosT;
-    const a=g*(sinT-mu*cosT);
-    if(a>0.001){ s+=vel*dt+0.5*a*dt*dt; vel+=a*dt; }
-    else if(a<-0.001&&vel>0){ vel+=a*dt; if(vel<0)vel=0; s+=Math.max(0,vel)*dt; }
-    const CX=W*0.14, CY=H-72;
-    const INCLINE_LEN=rampLen(th);
-    const topX=CX+INCLINE_LEN*cosT, topY=CY-INCLINE_LEN*sinT;
-    // s is distance travelled DOWN-slope in metres, drawn at 60 px/m.
-    // The old limit divided pixels by 9.8 m/s², giving s_max ~ 27 m.
-    const PPM_I=60;
-    // The run restarts before the block reaches the angle arc at the foot,
-    // where its W∥ label used to land on the "θ°" label.
-    const maxS=Math.max(0.5,(INCLINE_LEN-94)/PPM_I);
-    if(s>maxS){ s=0; vel=0; }
-
-    simBg(ctx,W,H);
-
-    // Ground fill
-    const flrG=ctx.createLinearGradient(0,CY,0,H);
-    flrG.addColorStop(0,'#0f2035'); flrG.addColorStop(1,'#060d1a');
-    ctx.fillStyle=flrG; ctx.fillRect(0,CY,W,H-CY);
-    ctx.save(); ctx.strokeStyle='#2d5275'; ctx.lineWidth=2;
-    ctx.beginPath(); ctx.moveTo(0,CY); ctx.lineTo(W,CY); ctx.stroke(); ctx.restore();
-
-    // Incline fill
-    const incGrad=ctx.createLinearGradient(CX,CY,topX,topY);
-    incGrad.addColorStop(0,'rgba(10,30,60,.95)'); incGrad.addColorStop(1,'rgba(16,44,88,.68)');
-    ctx.save(); ctx.fillStyle=incGrad; ctx.strokeStyle='#2d5275'; ctx.lineWidth=2;
-    ctx.beginPath(); ctx.moveTo(CX,CY); ctx.lineTo(topX,topY); ctx.lineTo(topX,CY); ctx.closePath();
-    ctx.fill(); ctx.stroke(); ctx.restore();
-
-    // Surface hatching
-    ctx.save(); ctx.strokeStyle='rgba(30,58,82,.55)'; ctx.lineWidth=1;
-    for(let d=18;d<INCLINE_LEN-12;d+=20){
-      const hx=CX+d*cosT, hy=CY-d*sinT;
-      ctx.beginPath(); ctx.moveTo(hx,hy); ctx.lineTo(hx+sinT*9,hy+cosT*9); ctx.stroke();
-    }
-    ctx.restore();
-
-    // Angle arc
-    ctx.save(); ctx.strokeStyle='#f59e0b'; ctx.lineWidth=2;
-    ctx.beginPath(); ctx.arc(CX,CY,44,-th,0,false); ctx.stroke(); ctx.restore();
-    // left of the foot, where neither the block nor its labels ever pass
-    simText(ctx,theta+'°',CX-8,CY-8,'#fbbf24',12,'right');
-
-    // Block
-    const bS=36;
-    // Distance from the apex SHRINKS as it slides down. It used to grow, which
-    // sent the block up the ramp under gravity alone.
-    const bDist=Math.max(bS/2+6,(INCLINE_LEN-bS/2-6)-s*PPM_I);
-    const bCX=CX+bDist*cosT;
-    const bCY=CY-bDist*sinT;
-
-    // Velocity arrow along slope
-    if(vel>0.1){
-      // The block slides DOWN-slope, so v points down-slope too. This arrow
-      // used to point up the ramp, opposite to the motion beside it.
-      // Drawn just above the block's down-slope edge, off the surface line:
-      // on the centre line it lay on the dashed W∥ and its label on W∥'s.
-      const vLen=Math.min(vel*22,62), vOff=bS/2+12;
-      const vSX=bCX-cosT*(bS/2+2)-sinT*vOff, vSY=bCY+sinT*(bS/2+2)-cosT*vOff;
-      simArrow(ctx,vSX,vSY,vSX-cosT*vLen,vSY+sinT*vLen,'#22d3ee',2.5,10);
-            // Only the symbol at the tip — the value is in the panel. A full
-      // "v = … m/s" label had no free spot at every slope angle.
-      simText(ctx,'v',vSX-cosT*(vLen+10),vSY+sinT*(vLen+10)+4,'#22d3ee',12,'center',true);
-    }
-
-    // Block (rotated)
-    ctx.save(); ctx.translate(bCX,bCY); ctx.rotate(-th);
-    const bGrad=ctx.createLinearGradient(-bS/2,-bS/2,bS/2,bS/2);
-    bGrad.addColorStop(0,'rgba(124,58,237,.9)'); bGrad.addColorStop(1,'rgba(91,33,182,.58)');
-    ctx.shadowColor='rgba(167,139,250,.55)'; ctx.shadowBlur=16;
-    ctx.fillStyle=bGrad; ctx.strokeStyle='#a78bfa'; ctx.lineWidth=2.5;
-    ctx.beginPath(); ctx.roundRect(-bS/2,-bS/2,bS,bS,5); ctx.fill(); ctx.stroke();
-    ctx.shadowBlur=0;
-    ctx.restore();
-
-    // FBD arrows — all vectors from block center
-    // one scale for all forces, short enough to stay on the canvas
-    const SCALE=Math.min(3.4,170/(getMass()*g));
-    const W_mag=getMass()*g, N_mag=getMass()*g*cosT;
-    // At rest the friction is STATIC: exactly what holds the block, mg·sinθ,
-    // not μN (μN is only its ceiling). Sliding, it is kinetic, μN.
-    const holding=(a<=0.001&&vel<=0.0001);
-    const Wpar=getMass()*g*sinT, Fr_mag=holding?Wpar:getMu()*N_mag;
-
-    // Weight (straight down)
-    const wLen=W_mag*SCALE*0.40;
-    simArrow(ctx,bCX,bCY,bCX,bCY+wLen,'#ef4444',3,12);
-    simText(ctx,'W='+W_mag.toFixed(0)+'N',bCX+5,bCY+wLen+14,'#fca5a5',9.5,'left');
-
-    // Normal (perpendicular to slope)
-    const nLen=N_mag*SCALE*0.40;
-    const nEX=bCX-nLen*sinT, nEY=bCY-nLen*cosT;
-    simArrow(ctx,bCX,bCY,nEX,nEY,'#34d399',3,12);
-    simText(ctx,'N='+N_mag.toFixed(1)+'N',nEX-5,nEY-10,'#34d399',9.5,'right');
-
-    // W parallel (down-slope component)
-    const wpLen=Wpar*SCALE*0.40;
-    const wpEX=bCX-wpLen*cosT, wpEY=bCY+wpLen*sinT;
-    // a COMPONENT of W, not another force: dashed, so it is not counted twice
-    ctx.save(); ctx.setLineDash([5,4]); ctx.strokeStyle='#fbbf24'; ctx.lineWidth=2;
-    ctx.beginPath(); ctx.moveTo(bCX,bCY); ctx.lineTo(wpEX,wpEY); ctx.stroke(); ctx.setLineDash([]); ctx.restore();
-    simArrow(ctx,wpEX+cosT*6,wpEY-sinT*6,wpEX,wpEY,'#fbbf24',2,9);
-    // a short component (gentle slope) left its label on the block itself
-    const wpLab=Math.max(wpLen,bS/2+16);
-    simText(ctx,'W∥ = '+Wpar.toFixed(1)+' N',bCX-wpLab*cosT-8,bCY+wpLab*sinT+14,'#fbbf24',9,'center');
-
-    // Friction arrow, up-slope: kinetic while sliding, static while held
-    if(Fr_mag>0.05&&(getMu()>0.01)&&(vel>0.05||holding)){
-      const frLen=Fr_mag*SCALE*0.40;
-      const frEX=bCX+frLen*cosT, frEY=bCY-frLen*sinT;
-      simArrow(ctx,bCX,bCY,frEX,frEY,'#a78bfa',2.5,10);
-      simText(ctx,(holding?'fₛ = ':'fₖ = ')+Fr_mag.toFixed(1)+' N',frEX+5,frEY-14,'#c4b5fd',10,'left');
-    }
-
-    // Info panel
-    const m_inf=getMass(), mu2=getMu(), th2=getTheta();
-    const a_num=g*(Math.sin(th2*Math.PI/180)-mu2*Math.cos(th2*Math.PI/180));
-    // the incline fills the lower-left, so the readout goes where nothing is
-    const panW=Math.min(W*0.42,206), panH=130;
-    const panX=10, panY=10;
-    if(true){
-      ctx.save(); ctx.fillStyle='rgba(6,14,28,.93)'; ctx.strokeStyle='#1e4060'; ctx.lineWidth=1.5;
-      ctx.beginPath(); ctx.roundRect(panX,panY,panW,panH,7); ctx.fill(); ctx.stroke(); ctx.restore();
-      simText(ctx,'θ = '+th2+'°   m = '+m_inf.toFixed(1)+' kg',panX+panW/2,panY+16,'#94a3b8',9.5,undefined,true);
-      simText(ctx,'N = mg·cosθ = '+N_mag.toFixed(1)+' N',panX+panW/2,panY+33,'#34d399',10,undefined,true);
-      simText(ctx,'W∥= mg·sinθ = '+Wpar.toFixed(1)+' N',panX+panW/2,panY+50,'#fbbf24',10,undefined,true);
-      if(holding){
-        simText(ctx,'fₛ = mg·sinθ = '+Fr_mag.toFixed(1)+' N  (≤ μN)',panX+panW/2,panY+67,'#c4b5fd',10,undefined,true);
-        simText(ctx,'הגוף אינו מחליק, כי tanθ ≤ μ',panX+panW/2,panY+86,'#22d3ee',10,undefined,true);
-        simText(ctx,'a = 0',panX+panW/2,panY+103,'#22d3ee',13,undefined,true);
-      } else {
-        simText(ctx,'fₖ = μN = '+Fr_mag.toFixed(1)+' N',panX+panW/2,panY+67,'#c4b5fd',10,undefined,true);
-        simText(ctx,'a = g(sinθ − μ·cosθ)',panX+panW/2,panY+86,'#22d3ee',10,undefined,true);
-        simText(ctx,'= '+(vel>0.0001?a_num:Math.max(a_num,0)).toFixed(3)+' m/s²',panX+panW/2,panY+103,'#22d3ee',13,undefined,true);
-      }
-      simText(ctx,'v = '+vel.toFixed(3)+' m/s',panX+panW/2,panY+120,'#94a3b8',9,undefined,true);
-    } else {
-      ctx.save(); ctx.fillStyle='rgba(6,14,28,.93)'; ctx.strokeStyle='#1e4060'; ctx.lineWidth=1.5;
-      ctx.beginPath(); ctx.roundRect(W-216,CY+10,206,90,7); ctx.fill(); ctx.stroke(); ctx.restore();
-      simText(ctx,'a='+a_num.toFixed(3)+' m/s²  v='+vel.toFixed(2)+' m/s',W-113,CY+26,'#22d3ee',10,undefined,true);
-      simText(ctx,'N='+N_mag.toFixed(1)+'  W∥='+Wpar.toFixed(1)+'  f='+Fr_mag.toFixed(1)+' N',W-113,CY+44,'#94a3b8',9.5,undefined,true);
-    }
-
-    // Status bar
-    const sb=holding?'הגוף בשיווי משקל: החיכוך הסטטי מאזן את W∥, ו-ΣF = 0':'גררו את המדרון או שנו θ, μ ו-m — תרשים הכוחות מתעדכן';
-    simText(ctx,sb,W/2,H-12,holding?'#34d399':'#94a3b8',10);
+  function newRun(kind,s0,v0){
+    run={kind:kind,v0:v0,theta:getTheta(),mu:getMu(),up:false,down:false,stopUp:null,tStop:null,held:false,bump:false};
+    hist=[];tRun=0;vFoot=null;bumped=false;
+    // the time axis is fixed for the whole run, from the run's own prediction,
+    // so the two slopes of v(t) can be compared by eye
+    var t=th(),sn=Math.sin(t),cs=Math.cos(t),mu=getMu(),aU=g*(sn+mu*cs),aD=g*(sn-mu*cs),T=0,top=s0;
+    if(v0>0){var dUp=v0*v0/(2*aU),room=sMax()-s0;
+      if(dUp<=room){T=v0/aU;top=s0+dUp;}
+      else{T=(v0-Math.sqrt(Math.max(0,v0*v0-2*aU*room)))/aU;top=sMax();}}
+    if(aD>1e-9)T+=Math.sqrt(2*Math.max(0,top-sMin())/aD);
+    run.T1=Math.max(1,T*1.08);
   }
-
-  // ── ATWOOD MACHINE ────────────────────────────────────────
-  function drawAtwood(ts){
-    if(!pTAt)pTAt=ts; const dt=Math.min((ts-pTAt)/1000,.04); pTAt=ts;
-    const m1=getM1(), m2=getM2();
-    const a_at=(m2-m1)*g/(m1+m2);
-    const T_at=2*m1*m2*g/(m1+m2);
-    var _vAt0=velAt;
-    velAt+=a_at*dt;
-    var _vAtM=0.5*(_vAt0+velAt);                  // trapezoid: exact for constant a
-    // m2 heavier → y2 increases (goes down), y1 decreases (goes up)
-    y1-=_vAtM*dt*44; y2+=_vAtM*dt*44;
-    const CEIL_Y=28, PX=W/2;
-    const maxY=H-90;
-    // Soft boundary — clamp and reverse velocity instead of hard reset
-    if(y1<CEIL_Y+18){ y1=CEIL_Y+18; velAt=Math.max(0,velAt); }
-    if(y2>maxY){ y2=maxY; velAt=Math.min(0,velAt); }
-    // Full reset only when slider changes handled by resetAtwood call
-    if(y2>maxY+4||y1<CEIL_Y+14){ resetAtwood(); return; }
-
-    simBg(ctx,W,H);
-
-    // Ceiling
-    ctx.save(); ctx.fillStyle='rgba(15,45,80,.95)'; ctx.strokeStyle='#3d6480'; ctx.lineWidth=1.5;
-    ctx.fillRect(PX-55,0,110,CEIL_Y);
-    for(let x=PX-52;x<PX+52;x+=12){ ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x-8,CEIL_Y); ctx.stroke(); }
-    ctx.restore();
-
-    // Pulley
-    ctx.save(); ctx.strokeStyle='#60a5fa'; ctx.lineWidth=3.5;
-    ctx.beginPath(); ctx.arc(PX,CEIL_Y+2,16,0,Math.PI*2); ctx.stroke();
-    ctx.strokeStyle='#3b82f6'; ctx.lineWidth=1.5;
-    ctx.beginPath(); ctx.arc(PX,CEIL_Y+2,8,0,Math.PI*2); ctx.stroke();
-    ctx.fillStyle='#1e3a52'; ctx.beginPath(); ctx.arc(PX,CEIL_Y+2,4,0,Math.PI*2); ctx.fill(); ctx.restore();
-
-    // Ropes
-    const rx1=PX-14, rx2=PX+14;
-    ctx.save(); ctx.strokeStyle='#94a3b8'; ctx.lineWidth=3.5; ctx.lineCap='round';
-    ctx.beginPath(); ctx.moveTo(rx1,CEIL_Y+10); ctx.lineTo(rx1,y1); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(rx2,CEIL_Y+10); ctx.lineTo(rx2,y2); ctx.stroke();
-    ctx.restore();
-
-    // Masses
-    const bW1=Math.max(50,m1*9.5), bH1=Math.max(40,m1*7.5);
-    const bW2=Math.max(50,m2*9.5), bH2=Math.max(40,m2*7.5);
-    const x1L=rx1-bW1/2, x2L=rx2-bW2/2;
-
-    // Mass 1 (left, lighter if a_at>0)
-    const g1=ctx.createLinearGradient(x1L,y1,x1L,y1+bH1);
-    g1.addColorStop(0,'rgba(37,99,235,.88)'); g1.addColorStop(1,'rgba(29,78,216,.58)');
-    ctx.save(); ctx.shadowColor='rgba(59,130,246,.45)'; ctx.shadowBlur=16;
-    drawBox(ctx,x1L,y1,bW1,bH1,g1,'#60a5fa',2.5,6); ctx.restore();
-    simText(ctx,'m₁',x1L+bW1/2,y1+bH1/2-2,'#bfdbfe',13,undefined,true);
-    simText(ctx,m1.toFixed(1)+' kg',x1L+bW1/2,y1+bH1/2+14,'#93c5fd',10,undefined,true);
-
-    // Mass 2 (right, heavier if a_at>0)
-    const g2=ctx.createLinearGradient(x2L,y2,x2L,y2+bH2);
-    g2.addColorStop(0,'rgba(185,28,28,.88)'); g2.addColorStop(1,'rgba(153,27,27,.58)');
-    ctx.save(); ctx.shadowColor='rgba(239,68,68,.45)'; ctx.shadowBlur=16;
-    drawBox(ctx,x2L,y2,bW2,bH2,g2,'#ef4444',2.5,6); ctx.restore();
-    simText(ctx,'m₂',x2L+bW2/2,y2+bH2/2-2,'#fecaca',13,undefined,true);
-    simText(ctx,m2.toFixed(1)+' kg',x2L+bW2/2,y2+bH2/2+14,'#fca5a5',10,undefined,true);
-
-    // Force arrows
-    const scale=0.55;
-    const T_len=Math.min(T_at*scale,80);
-    const W1_len=Math.min(m1*g*scale,80);
-    const W2_len=Math.min(m2*g*scale,80);
-
-    // Tension (up) on both
-    simArrow(ctx,x1L+bW1/2,y1,x1L+bW1/2,y1-T_len,'#34d399',3,12);
-    simText(ctx,'T='+T_at.toFixed(1)+'N',x1L+bW1/2-5,y1-T_len-7,'#34d399',9.5,'right');
-    simArrow(ctx,x2L+bW2/2,y2,x2L+bW2/2,y2-T_len,'#34d399',3,12);
-    simText(ctx,'T='+T_at.toFixed(1)+'N',x2L+bW2/2+5,y2-T_len-7,'#34d399',9.5,'left');
-
-    // Weight (down)
-    simArrow(ctx,x1L+bW1/2,y1+bH1,x1L+bW1/2,Math.min(y1+bH1+W1_len,H-6),'#ef4444',2.5,10);
-    simText(ctx,'W₁='+(m1*g).toFixed(0)+'N',x1L+bW1/2-5,Math.min(y1+bH1+W1_len+13,H-4),'#fca5a5',9.5,'right');
-    simArrow(ctx,x2L+bW2/2,y2+bH2,x2L+bW2/2,Math.min(y2+bH2+W2_len,H-6),'#ef4444',2.5,10);
-    simText(ctx,'W₂='+(m2*g).toFixed(0)+'N',x2L+bW2/2+5,Math.min(y2+bH2+W2_len+13,H-4),'#fca5a5',9.5,'left');
-
-    // Acceleration arrows (on sides)
-    if(Math.abs(a_at)>0.05){
-      const aLen=Math.min(Math.abs(a_at)*20,52);
-      const dir1=(a_at>0)?1:-1; // m1: if a_at>0 m2 goes down → m1 goes UP
-      const dir2=-dir1;
-      simArrow(ctx,x1L-20,y1+bH1/2,x1L-20,y1+bH1/2-dir1*aLen,'#22d3ee',2.5,10);
-      simText(ctx,'a',x1L-22,y1+bH1/2-dir1*(aLen+8),'#22d3ee',9,'right');
-      simArrow(ctx,x2L+bW2+20,y2+bH2/2,x2L+bW2+20,y2+bH2/2-dir2*aLen,'#22d3ee',2.5,10);
-      simText(ctx,'a',x2L+bW2+22,y2+bH2/2-dir2*(aLen+8),'#22d3ee',9,'left');
-    }
-
-    // Info panel
-    ctx.save(); ctx.fillStyle='rgba(6,14,28,.93)'; ctx.strokeStyle='#1e4060'; ctx.lineWidth=1.5;
-    ctx.beginPath(); ctx.roundRect(W/2-150,H-110,300,100,7); ctx.fill(); ctx.stroke(); ctx.restore();
-    simText(ctx,'a = (m₂-m₁)g/(m₁+m₂)',W/2,H-94,'#94a3b8',9.5,undefined,true);
-    simText(ctx,'= '+(m2-m1>=0?'+':'')+(m2-m1).toFixed(1)+'×9.8/'+( m1+m2).toFixed(1)+' = '+a_at.toFixed(3)+' m/s²',W/2,H-78,'#22d3ee',11,undefined,true);
-    simText(ctx,'T = 2m₁m₂g/(m₁+m₂) = '+T_at.toFixed(2)+' N',W/2,H-58,'#34d399',11,undefined,true);
-    const dir=a_at>0.02?'m₂ יורדת ו-m₁ עולה':a_at<-0.02?'m₁ יורדת ו-m₂ עולה':'שיווי משקל: m₁ = m₂';
-    simText(ctx,dir,W/2,H-36,Math.abs(a_at)>0.02?'#fbbf24':'#34d399',11,undefined,true);
-    simText(ctx,'שנו את m₁ ו-m₂; ↺ איפוס מחזיר להתחלה',W/2,H-14,'#94a3b8',9);
+  function push(v0,s0){
+    if(v0<0.1)return;
+    onFloor=false;s=s0===undefined?sMin():s0;v=v0;newRun('push',s,v0);
   }
+  function drop(){onFloor=false;s=sMax();v=0;newRun('drop',s,0);}
+  function toFloor(){onFloor=true;s=0;v=0;}
+  function reset(){toFloor();run=null;hist=[];vFoot=null;bumped=false;}
+  // one step of exactly piecewise-constant acceleration; a stop splits the step
+  function step(dt){
+    var guard=0;
+    while(dt>1e-6&&guard++<4){
+      var a=accel(v);
+      if(v>1e-9&&v+a*dt<0){var ts=-v/a;s+=v*ts+0.5*a*ts*ts;v=0;dt-=ts;
+        if(run&&run.stopUp===null){run.stopUp=s-sMin();run.tStop=tRun;}continue;}
+      if(v<-1e-9&&a>0&&v+a*dt>0){var ts2=-v/a;s+=v*ts2+0.5*a*ts2*ts2;v=0;dt-=ts2;continue;}
+      s+=v*dt+0.5*a*dt*dt;v+=a*dt;dt=0;
+    }
+    if(s>=sMax()&&v>0){s=sMax();v=0;bumped=true;if(run){run.bump=true;if(run.stopUp===null)run.stopUp=s-sMin();}}
+    if(s<=sMin()&&v<0){vFoot=v;toFloor();}
+    if(run){if(v>0.02)run.up=true;if(v<-0.02&&run.up)run.down=true;
+      run.held=!onFloor&&Math.abs(v)<1e-9&&holds()&&run.up&&!run.bump;}
+  }
+  // ── hands: drag the block up the slope to push it; drag the slope to tilt it ──
+  function blockC(){
+    if(onFloor)return {x:CX-BS/2-3,y:CY-BS/2};
+    var t=th(),P=Lpx(t)/LM,d=s*P;
+    return {x:CX+d*Math.cos(t)-Math.sin(t)*BS/2,y:CY-d*Math.sin(t)-Math.cos(t)*BS/2};
+  }
+  const AIMPX=15;                                  // px of pull per m/s
+  function aimTo(p){
+    var t=th(),b=blockC(),d=(p.x-b.x)*Math.cos(t)-(p.y-b.y)*Math.sin(t);
+    aim.v=Math.max(0,Math.min(10,Math.round(d/AIMPX*10)/10));simSyncSlider('inc-v0',Math.max(0.5,aim.v),1);
+  }
+  function rampHit(p){var t=th(),L=Lpx(t),d=Math.hypot(p.x-CX,p.y-CY),a=Math.atan2(CY-p.y,p.x-CX);
+    return d>30&&d<L+30&&a>t-0.35&&a<t+0.3;}
+  simDrag(canvas,dpr,{
+    down:function(p){
+      var b=blockC();dragged=true;
+      var still=onFloor||Math.abs(v)<1e-9;
+      if(still&&Math.hypot(p.x-b.x,p.y-b.y)<BS*0.9){aim={v:0};aimTo(p);return;}
+      if(rampHit(p)){tilt=true;canvas.style.cursor='grabbing';}
+    },
+    move:function(p){
+      if(aim){aimTo(p);return;}
+      if(tilt)simSyncSlider('inc-theta',Math.atan2(CY-p.y,p.x-CX)*180/Math.PI,0);
+    },
+    up:function(){
+      if(aim){var vv=aim.v;aim=null;if(vv>=0.5)push(vv,onFloor?undefined:s);}
+      tilt=false;canvas.style.cursor='pointer';
+    }
+  });
+  _mkKeys(canvas,{
+    'ArrowUp':function(){simSyncSlider('inc-theta',getTheta()+1,0);},
+    'ArrowDown':function(){simSyncSlider('inc-theta',getTheta()-1,0);},
+    'Enter':function(){push(getV0());},' ':function(){push(getV0());}
+  });
+  var bP=document.getElementById('btn-inc-push');if(bP)bP.addEventListener('click',function(){push(getV0());});
+  var bD=document.getElementById('btn-inc-drop');if(bD)bD.addEventListener('click',drop);
+  var bR=document.getElementById('btn-inc-reset');if(bR)bR.addEventListener('click',reset);
+  // a new angle, friction or mass is a new experiment: the block goes back to the floor
+  ['inc-theta','inc-mu','inc-m'].forEach(function(k){var e=document.getElementById('inp-'+k);
+    if(e)e.addEventListener('input',function(){if(!aim)reset();});});
+
+  var kit=simKit(canvas,{missions:[
+    {text:'דחפו את הגוש במעלה מדרון מחוספס, ועקבו אחרי חץ החיכוך: לאן הוא פונה בעלייה, ולאן בירידה?',
+     hint:'בחרו '+_skM('μ')+' של '+_skM('0.1')+' לפחות וזווית שבה הגוש מחליק בחזרה, למשל '+_skM('θ = 30°, μ = 0.3')+'.',
+     why:'החיכוך מתנגד להחלקה, לא לכיוון ״מטה״: בעלייה הוא פונה במורד, יחד עם '+_skM('mg sinθ')+', ובירידה — במעלה. לכן בעלייה '+_skM('|a| = g(sinθ + μcosθ)')+' ובירידה '+_skM('|a| = g(sinθ − μcosθ)')+': הגוש מאט מהר יותר משהוא מאיץ.',
+     done:function(s){return s.run&&s.run.up&&s.run.down&&s.run.mu>=0.1-1e-9;}},
+    {text:'שחזרו את בעיית הסעיף: '+_skM('θ = 37°, μ = 0.2')+', ודחיפה ב־'+_skM('v₀ = 7.6 m/s')+'. כמה מטרים יעלה הגוש לאורך המדרון?',
+     hint:'קבעו את הזווית, את החיכוך ואת '+_skM('v₀')+' במחוונים, ולחצו ״⬆ דחפו במעלה״.',
+     why:'בעלייה '+_skM('|a| = g(sinθ + μcosθ) = 9.8×(0.60 + 0.2×0.80) ≈ 7.5 m/s²')+', ולכן '+_skM('d = v₀²/2|a| ≈ 3.9 m')+'. בבעיה, עם '+_skM('g = 10 m/s²')+', יוצא '+_skM('3.8 m')+'.',
+     done:function(s){return s.run&&s.run.kind==='push'&&s.run.theta===37&&Math.abs(s.run.mu-0.2)<1e-6&&Math.abs(s.run.v0-7.6)<0.051&&s.run.stopUp!==null&&!s.run.bump;}},
+    {text:'מצאו את הזווית התלולה ביותר שבה הגוש, אחרי שנדחף ונעצר, נשאר במקומו ואינו חוזר למטה (בדיוק של '+_skM('2°')+').',
+     hint:'הגוש נשאר כש־'+_skM('mg sinθ ≤ μ·mg cosθ')+'. מה זה אומר על '+_skM('tanθ')+'?',
+     why:'הגוש נשאר כל עוד '+_skM('tanθ ≤ μ')+': רכיב המשקל לאורך המדרון אינו גדול מהחיכוך הסטטי המרבי. הזווית הגבולית, '+_skM('θ = arctan μ')+', אינה תלויה במסה.',
+     done:function(s){return s.run&&s.run.held&&s.run.mu>=0.15&&s.run.theta>=Math.atan(s.run.mu)*180/Math.PI-2;}}
+  ]});
+  var model=_mkModel(kit);
+  kit.predict({q:'דוחפים גוש במעלה מדרון מחוספס. בזמן שהוא מחליק כלפי מעלה, לאן פונה כוח החיכוך עליו?',
+    opts:['במעלה המדרון','במורד המדרון','אין חיכוך כשהגוש עולה','ניצב למדרון, החוצה'],correct:1,
+    why:'החיכוך מתנגד להחלקה: הגוש מחליק מעלה, ולכן החיכוך פונה מטה — יחד עם רכיב המשקל, ושניהם מאטים אותו. לכן בעלייה '+_skM('|a| = g(sinθ + μcosθ)')+', גדולה מאשר בירידה. דחפו וראו.'});
 
   function draw(ts){
     if(_simStop[id])return;
-    if(atwoodMode) drawAtwood(ts);
-    else drawIncline(ts);
+    if(pT===null)pT=ts; var dt=Math.min((ts-pT)/1000,.04); pT=ts;
+    var t=th(),sn=Math.sin(t),cs=Math.cos(t),mu=getMu(),m=getM(),L=Lpx(t),P=L/LM;
+    if(!onFloor&&!aim){step(dt);}
+    if(run&&!onFloor){tRun+=dt;if(!hist.length||tRun-hist[hist.length-1][0]>=1/30)hist.push([tRun,v]);}
+    else if(run&&onFloor&&hist.length&&hist[hist.length-1][1]!==0){tRun+=dt;hist.push([tRun,vFoot===null?0:vFoot]);hist.push([tRun,0]);}
+    var a=onFloor?0:accel(v), sliding=!onFloor&&Math.abs(v)>1e-9, rest=!onFloor&&!sliding;
+    var Wn=m*g, Nn=onFloor?Wn:Wn*cs, Wpar=Wn*sn;
+    var fK=mu*Nn, f=onFloor?0:sliding?fK:(holds()?Wpar:fK);     // its size
+    var fDir=onFloor?0:sliding?(v>0?-1:1):(holds()?1:1);          // along the slope: +1 = up
+    simBg(ctx,W,H);
+
+    // ── the floor, the ramp, its stop, the angle ──
+    var fg=ctx.createLinearGradient(0,CY,0,H);fg.addColorStop(0,'#0f2035');fg.addColorStop(1,'#060d1a');
+    ctx.fillStyle=fg;ctx.fillRect(0,CY,W,H-CY);
+    ctx.save();ctx.strokeStyle='#2d5275';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(0,CY);ctx.lineTo(W,CY);ctx.stroke();ctx.restore();
+    var tx=CX+L*cs, ty=CY-L*sn;
+    var rg=ctx.createLinearGradient(CX,CY,tx,ty);rg.addColorStop(0,'rgba(10,30,60,.95)');rg.addColorStop(1,'rgba(16,44,88,.7)');
+    ctx.save();ctx.fillStyle=rg;ctx.strokeStyle='#3d6480';ctx.lineWidth=2;
+    ctx.beginPath();ctx.moveTo(CX,CY);ctx.lineTo(tx,ty);ctx.lineTo(tx,CY);ctx.closePath();ctx.fill();ctx.stroke();ctx.restore();
+    if(mu>0.001){ctx.save();ctx.strokeStyle='rgba(125,160,200,'+(0.15+mu*0.5)+')';ctx.lineWidth=1;
+      for(var dd=10;dd<L-6;dd+=Math.max(5,12-mu*8)){var hx=CX+dd*cs,hy=CY-dd*sn;
+        ctx.beginPath();ctx.moveTo(hx,hy);ctx.lineTo(hx+sn*4+cs*3,hy+cs*4-sn*3);ctx.stroke();}ctx.restore();}
+    // the stop at the top end
+    ctx.save();ctx.translate(tx,ty);ctx.rotate(-t);ctx.fillStyle='#64748b';ctx.fillRect(-6,-16,6,16);ctx.restore();
+    ctx.save();ctx.strokeStyle='#f59e0b';ctx.lineWidth=2;ctx.beginPath();ctx.arc(CX,CY,40,-t,0);ctx.stroke();ctx.restore();
+    simText(ctx,'θ = '+getTheta().toFixed(0)+'°',CX+58*Math.cos(t/2)+4,CY-58*Math.sin(t/2)+14,'#fbbf24',11,'left',true);
+    if(!dragged)simHandle(ctx,tx-cs*12,ty+sn*12,'#94a3b8',14);
+
+    // ── the block ──
+    var b=blockC();
+    ctx.save();ctx.translate(b.x,b.y);if(!onFloor)ctx.rotate(-t);
+    var bg=ctx.createLinearGradient(-BS/2,-BS/2,BS/2,BS/2);bg.addColorStop(0,'rgba(124,58,237,.92)');bg.addColorStop(1,'rgba(91,33,182,.62)');
+    ctx.shadowColor='rgba(167,139,250,.5)';ctx.shadowBlur=14;ctx.fillStyle=bg;ctx.strokeStyle='#a78bfa';ctx.lineWidth=2.2;
+    ctx.beginPath();ctx.roundRect(-BS/2,-BS/2,BS,BS,5);ctx.fill();ctx.stroke();ctx.restore();
+
+    // ── its free-body diagram: one scale for every force (W is 62 or 78 px) ──
+    var SC=(PH?62:78)/Wn, ux=onFloor?1:cs, uy=onFloor?0:-sn, nx=onFloor?0:-sn, ny=onFloor?-1:-cs;
+    if(!onFloor){
+      ctx.save();ctx.setLineDash([4,4]);ctx.strokeStyle='rgba(251,191,36,.75)';ctx.lineWidth=1.6;
+      ctx.beginPath();ctx.moveTo(b.x,b.y);ctx.lineTo(b.x-ux*Wpar*SC,b.y-uy*Wpar*SC);
+      ctx.moveTo(b.x,b.y);ctx.lineTo(b.x-nx*Nn*SC,b.y-ny*Nn*SC);ctx.stroke();ctx.restore();
+      if(Wpar*SC>16)simText(ctx,'mg sinθ',b.x-ux*(Wpar*SC+6)+nx*12,b.y-uy*(Wpar*SC+6)+ny*12+3,'#fde68a',9,'center');
+    }
+    _mkVec(ctx,b.x,b.y,b.x,b.y+Wn*SC,'#fbbf24','W',W,H);
+    _mkVec(ctx,b.x,b.y,b.x+nx*Nn*SC,b.y+ny*Nn*SC,'#a78bfa','N',W,H);
+    if(f>0.01){var cx0=b.x-nx*BS/2, cy0=b.y-ny*BS/2;
+      _mkVec(ctx,cx0,cy0,cx0+fDir*ux*f*SC,cy0+fDir*uy*f*SC,'#f87171',sliding?'fₖ':'fₛ',W,H);}
+    // motion: v (green) and a (cyan), in two lanes above the block, along the
+    // slope; each starts a little to the side it points to, clear of N
+    if(!onFloor){
+      var lane=function(dist,val,k,col,lab){if(Math.abs(val)*k<4)return;var sg=val>0?1:-1,
+        x0=b.x+nx*dist+ux*sg*9,y0=b.y+ny*dist+uy*sg*9;_mkVec(ctx,x0,y0,x0+ux*val*k,y0+uy*val*k,col,lab,W,H,2.6);};
+      lane(BS/2+12,v,9,'#34d399','v');lane(BS/2+28,a,6,'#22d3ee','a');
+    }
+    // aiming: the pull along the slope is the push
+    if(aim&&aim.v>0){var t0=th(),ex=b.x+Math.cos(t0)*aim.v*AIMPX,ey=b.y-Math.sin(t0)*aim.v*AIMPX;
+      ctx.save();ctx.setLineDash([6,5]);ctx.strokeStyle='#fbbf24';ctx.lineWidth=2.4;ctx.beginPath();ctx.moveTo(b.x,b.y);ctx.lineTo(ex,ey);ctx.stroke();ctx.restore();
+      simArrow(ctx,ex-Math.cos(t0)*10,ey+Math.sin(t0)*10,ex,ey,'#fbbf24',2.4,11);
+      simText(ctx,'v₀ = '+aim.v.toFixed(1)+' m/s',ex,ey-14,'#fbbf24',12,'center',true);}
+    else if(onFloor&&!dragged)simText(ctx,'גררו את הגוש במעלה המדרון',CX+60,CY+24,'#fbbf24',10,'left',true);
+
+    // ── the readings (left) and v(t) along the slope (right) ──
+    var cw=PH?Math.floor(W/2)-12:Math.min(250,Math.floor(W*0.34)), ch=TOP-16;
+    _mkCard(ctx,8,8,cw,ch);
+    var rows=[['θ = '+getTheta().toFixed(0)+'°   μ = '+mu.toFixed(2)+'   m = '+m.toFixed(1)+' kg','#94a3b8',9.5]];
+    if(onFloor){rows.push(['N = mg = '+Nn.toFixed(1)+' N','#c4b5fd',10.5],['f = 0','#fca5a5',10.5],['a = 0','#67e8f9',11]);}
+    else{
+      rows.push(['N = mg·cosθ = '+Nn.toFixed(1)+' N','#c4b5fd',10.5],['W∥ = mg·sinθ = '+Wpar.toFixed(1)+' N','#fde68a',10.5]);
+      if(sliding)rows.push(['fₖ = μN = '+fK.toFixed(1)+' N','#fca5a5',10.5]);
+      else if(holds())rows.push(['fₛ = mg·sinθ = '+Wpar.toFixed(1)+' N','#fca5a5',10.5]);
+      else rows.push(['fₖ = μN = '+fK.toFixed(1)+' N','#fca5a5',10.5]);
+      rows.push(['a = '+_mkS(a,3)+' m/s²','#67e8f9',11]);
+    }
+    rows.push(['v = '+_mkS(onFloor?0:v,2)+' m/s','#86efac',10.5]);
+    var lh=Math.min(20,(ch-10)/rows.length);
+    rows.forEach(function(r,k){simText(ctx,r[0],8+cw/2,8+16+k*lh,r[1],r[2],'center',k>0);});
+    var gx=8+cw+(PH?24:44), gw=W-gx-12, gy=20, gh=ch-30;
+    var T1=run?Math.max(run.T1,tRun):2, vR=_mkUp(Math.max(2,getV0(),run?run.v0:0,vFoot?Math.abs(vFoot):0));
+    var pl=_mkPlot(ctx,{x:gx,y:gy,w:gw,h:gh,t1:T1,lo:-vR,hi:vR,name:'v (m/s)',col:'#34d399'});
+    if(hist.length>1){ctx.save();ctx.strokeStyle='#34d399';ctx.lineWidth=2.2;ctx.lineJoin='round';ctx.beginPath();
+      hist.forEach(function(q,i){var X=pl.X(q[0]),Y=pl.Y(q[1]);i?ctx.lineTo(X,Y):ctx.moveTo(X,Y);});ctx.stroke();ctx.restore();}
+    // each straight piece of v(t) carries its slope: steeper going up than coming down
+    if(run&&run.tStop!==null&&run.kind==='push'){var aU=-g*(sn+mu*cs);
+      simText(ctx,_mkS(aU,1)+' m/s²',pl.X(run.tStop/2)+6,pl.Y(run.v0/2)-5,'#22d3ee',9,'left',true);}
+    if(run&&run.down&&hist.length>4){var aD=-g*(sn-mu*cs),q=hist[Math.floor(hist.length*0.8)];
+      if(q&&q[1]<0)simText(ctx,_mkS(aD,1)+' m/s²',pl.X(q[0])-6,pl.Y(q[1])+15,'#22d3ee',9,'right',true);}
+    // status under the ramp
+    var st=null;
+    if(onFloor&&vFoot!==null)st=run&&run.kind==='push'&&mu>0.001?'חזר לתחתית במהירות '+Math.abs(vFoot).toFixed(2)+' m/s — פחות מ־v₀: החיכוך לקח אנרגיה':'הגיע לתחתית במהירות '+Math.abs(vFoot).toFixed(2)+' m/s';
+    else if(rest&&bumped)st='נעצר בבולם שבראש המדרון';
+    else if(rest&&holds()&&run)st='במנוחה: tanθ ≤ μ, והחיכוך הסטטי מחזיק את הגוש';
+    else if(sliding&&v>0)st='עולה: החיכוך פונה במורד, יחד עם mg sinθ';
+    else if(sliding)st='יורד: החיכוך פונה במעלה, נגד mg sinθ';
+    // where the push turned round: a mark on the ramp, and the distance climbed
+    if(run&&run.stopUp!==null&&!run.bump&&run.kind==='push'){
+      var ds=(run.stopUp+sMin())*P, mx=CX+ds*cs, my=CY-ds*sn;
+      ctx.save();ctx.strokeStyle='#fbbf24';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(mx+sn*4,my+cs*4);ctx.lineTo(mx-sn*14,my-cs*14);ctx.stroke();ctx.restore();
+      simText(ctx,'d = '+run.stopUp.toFixed(2)+' m',mx-sn*22+4,my-cs*22-2,'#fbbf24',11,'left',true);}
+    if(st)simText(ctx,st,W/2,H-12,'#cbd5e1',10,'center',true);
+
+    // ── the model line ──
+    var sgn=function(x,d){return x.toFixed(d);};
+    if(sliding&&v>0)model('בעלייה: '+_skM('a = −g(sinθ + μcosθ) = −9.8×('+sgn(sn,3)+' + '+mu.toFixed(2)+'×'+sgn(cs,3)+') = '+_mkS(a,2)+' m/s²'));
+    else if(sliding)model('בירידה: '+_skM('a = −g(sinθ − μcosθ) = −9.8×('+sgn(sn,3)+' − '+mu.toFixed(2)+'×'+sgn(cs,3)+') = '+_mkS(a,2)+' m/s²'));
+    else if(rest&&holds())model('במנוחה: '+_skM('fₛ = mg sinθ = '+Wpar.toFixed(1)+' N ≤ μN = '+fK.toFixed(1)+' N')+' — ולכן '+_skM('a = 0'));
+    else model('על המדרון: '+_skM('N = mg cosθ = '+(m*g*cs).toFixed(1)+' N')+' · בעלייה: '+_skM('a = −g(sinθ + μcosθ) = '+_mkS(-g*(sn+mu*cs),2)+' m/s²'));
+    kit.check({run:run});
     requestAnimationFrame(draw);
   }
-
-  // Mode + reset buttons
-  const atwBtn=document.getElementById('btn-inc-atwood');
-  const resetBtn=document.getElementById('btn-inc-reset');
-  if(atwBtn) atwBtn.addEventListener('click',()=>{
-    atwoodMode=!atwoodMode;
-    _fitCanvas(atwoodMode?540:HB);
-    atwBtn.textContent=atwoodMode?'↩ מדרון':'⚖️ מכונת אטווד';
-    pT=null; pTAt=null;
-    resetIncline(); resetAtwood();
-    // Toggle slider visibility
-    ['inc-theta','inc-mu','inc-m'].forEach(sid=>{   // the row emits inc-m, not inc-mass
-      const e=document.getElementById('inp-'+sid);
-      if(e){ const w=e.closest('.range-wrap'); if(w)w.style.display=atwoodMode?'none':'flex'; }
-    });
-    ['inc-m1','inc-m2'].forEach(sid=>{
-      const e=document.getElementById('inp-'+sid);
-      if(e){ const w=e.closest('.range-wrap'); if(w)w.style.display=atwoodMode?'flex':'none'; }
-    });
-  });
-  if(resetBtn) resetBtn.addEventListener('click',()=>{ resetIncline(); resetAtwood(); pT=null; pTAt=null; });
-
-  // Hide Atwood sliders initially
-  setTimeout(()=>{
-    ['inc-m1','inc-m2'].forEach(sid=>{
-      const e=document.getElementById('inp-'+sid);
-      if(e){ const w=e.closest('.range-wrap'); if(w)w.style.display='none'; }
-    });
-  },80);
-
   requestAnimationFrame(draw);
 }
-
 
 function simTension(canvas){
   // SECTION: forces.tension — מתיחות — כוח בחוט
@@ -35009,7 +34914,7 @@ function buildSim(sim){
   else if(sim.type==='newton2')extra=C(rng('mass',1,20,5,0.5,'מסה m',' kg')+rng('n2-F',-60,60,20,1,'כוח F',' N')+rng('n2-mu',0,0.8,0,0.05,'חיכוך μ')+btn('n2-reset','↺ איפוס','btn-secondary'));
   else if(sim.type==='newton3')extra=C(rng('n3-mA',20,90,60,5,'מסת A',' kg')+rng('n3-mB',20,90,30,5,'מסת B',' kg')+rng('n3-F',50,600,300,10,'כוח דחיפה',' N')+btn('n3-push','💥 דחפו!')+btn('n3-reset','↺ איפוס','btn-secondary'));
   else if(sim.type==='normal-force')extra=C(rng('nf-theta',0,70,0,1,'זווית θ','°')+rng('nf-mass',1,12,4,0.5,'מסה m',' kg')+rng('nf-mu',0,0.7,0,0.05,'חיכוך μ')+btn('nf-reset','↺ איפוס','btn-secondary'));
-  else if(sim.type==='incline')extra=C(rng('inc-theta',5,75,30,1,'זווית θ','°')+rng('inc-mu',0,0.8,0,0.05,'חיכוך μ')+rng('inc-m',0.5,10,3,0.5,'מסה m',' kg')+rng('inc-m1',0.5,10,3,0.5,'m₁ אטווד',' kg')+rng('inc-m2',0.5,10,5,0.5,'m₂ אטווד',' kg')+btn('inc-atwood','⚖️ מכונת אטווד','btn-secondary')+btn('inc-reset','↺ איפוס','btn-secondary'));
+  else if(sim.type==='incline')extra=C(rng('inc-theta',5,60,30,1,'זווית θ','°')+rng('inc-mu',0,0.8,0.3,0.05,'חיכוך μ (μₛ = μₖ)')+rng('inc-m',0.5,10,3,0.5,'מסה m',' kg')+rng('inc-v0',0.5,10,5,0.1,'מהירות הדחיפה v₀',' m/s')+btn('inc-push','⬆ דחפו במעלה','btn-primary')+btn('inc-drop','⬇ שחררו מלמעלה','btn-secondary')+btn('inc-reset','↺ איפוס','btn-secondary'));
   else if(sim.type==='tension')extra=C(rng('ten-m1',0.5,12,3,0.5,'m₁ אטווד',' kg')+rng('ten-m2',0.5,12,5,0.5,'m₂ אטווד',' kg')+rng('ten-el',0.5,5,3,0.5,'מסת הגוף במעלית',' kg')+rng('ten-ea',-5,5,0,0.5,'תאוצת המעלית',' m/s²')+btn('ten-launch','▶ שחררו!')+btn('ten-reset','↺ איפוס','btn-secondary'));
   else if(sim.type==='fbd')extra=C(rng('fbd-F',-10,25,0,0.5,'כוח נוסף על הגוף (+ מעלה)',' N')+btn('fbd-reset','↺ נקו הכול','btn-secondary'));
   else if(sim.type==='momentum')extra=C(rng('mom-mass',0.5,8,2,0.5,'מסה',' kg')+rng('mom-vel',-10,10,4,1,'מהירות',' m/s'));
