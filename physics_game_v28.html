@@ -18682,7 +18682,27 @@ function simOptPrism(canvas){
   function setTh(p){var d={x:ent.x-p.x,y:ent.y-p.y},l=Math.hypot(d.x,d.y);if(l<20)return;d.x/=l;d.y/=l;
     var a=Math.atan2(nin.x*d.y-nin.y*d.x,nin.x*d.x+nin.y*d.y)*sideApex;
     simSyncSlider('prism-ang',a*180/Math.PI,0);}
-  var cols=[400,430,460,490,520,550,580,610,640,670,700];
+  var cols=[400,430,460,490,520,550,580,610,640,670,700],predicted=false;
+  canvas.tabIndex=0;
+  canvas.addEventListener('keydown',function(e){if(e.key!=='ArrowLeft'&&e.key!=='ArrowRight')return;e.preventDefault();
+    var el=document.getElementById('inp-prism-ang');simSyncSlider('prism-ang',(el?parseFloat(el.value):55)+(e.key==='ArrowRight'?1:-1),0);});
+  var kit=simKit(canvas,{missions:[
+    {text:'איזה צבע סוטה הכי הרבה? ענו על השאלה שמתחת לתרשים',
+     hint:'השוו בתרשים את כיווני הקרניים האדומה והסגולה ביציאה.',
+     why:'לסגול מדד שבירה גדול יותר, '+_skM('n(400 nm) > n(700 nm)')+', ולכן הוא מאט יותר ונשבר יותר בשתי הפאות. את הכיפוף קובע מדד השבירה — לא ״האנרגיה״ של הצבע.',
+     done:function(s){return s.predicted;}},
+    {text:'מצאו את זווית הסטייה המינימלית של האור האדום',
+     hint:'סובבו את הקרן לאט ועקבו אחרי δ של האדום: היכן היא מפסיקה לקטון ומתחילה לגדול?',
+     why:'בסטייה המינימלית המסלול בפריזמה סימטרי: הקרן בפנים מקבילה לבסיס ('+_skM('θ₂ = A/2 = 30°')+'). מכאן '+_skM('n = sin((A + δmin)/2) / sin(A/2)')+' — כך מודדים מדד שבירה.',
+     done:function(s){return Math.abs(s.r1R-30)<0.5;}},
+    {text:'כלאו את הסגול בפריזמה בעוד שהאדום עדיין יוצא',
+     hint:'הקטינו את זווית הפגיעה: לקרן שבפנים קשה יותר לצאת מהפאה השנייה.',
+     why:_skM('sin θc = 1/n')+': לסגול n גדול יותר ולכן זווית קריטית קטנה יותר — הוא נכלא בהחזרה פנימית מלאה לפני האדום. גם הזווית הקריטית תלויה באורך הגל.',
+     done:function(s){return s.vTrapped&&s.rOut;}}]});
+  kit.predict({q:'אור לבן נכנס לפריזמה מזכוכית. איזה צבע ייצא בסטייה הגדולה ביותר?',
+    opts:['אדום — יש לו אורך הגל הארוך ביותר','ירוק — באמצע הספקטרום','סגול — מדד השבירה שלו הגדול ביותר','כולם באותה סטייה'],correct:2,
+    why:'בזכוכית '+_skM('n')+' גדל ככל ש־'+_skM('λ')+' קטן (נוסחת קושי), ולכן הסגול נשבר הכי הרבה. ראו בתרשים את המניפה שיוצאת מהפאה השנייה.'},
+    function(){predicted=true;});
   function draw(){
     if(_simStop[id])return;
     animT+=0.02;
@@ -18718,6 +18738,12 @@ function simOptPrism(canvas){
       lines.push('הגדילו את זווית הפגיעה כדי שהאור ייצא');
     }
     optInfoBox(ctx,8,8,Math.min(300,W-16),lines);
+    var nR=prismN(700),nV=prismN(400),r1R=Math.asin(Math.sin(th)/nR)*180/Math.PI;
+    var rOut=!!(rR.out&&rR.face===1),vOut=!!(rV.out&&rV.face===1);
+    if(rOut&&vOut)kit.model('סטייה '+_skM('δ = θ₁ + θ₄ − A')+': לאדום (700 nm, '+_skM('n = '+nR.toFixed(3))+') '+_skM(rR.dev.toFixed(1)+'°')+', לסגול (400 nm, '+_skM('n = '+nV.toFixed(3))+') '+_skM(rV.dev.toFixed(1)+'°')+'.');
+    else if(rOut)kit.model('הסגול כלוא: בפאה השנייה '+_skM('θ > θc = arcsin(1/'+nV.toFixed(3)+') = '+(Math.asin(1/nV)*180/Math.PI).toFixed(1)+'°')+', והאדום עוד יוצא ('+_skM('θc = '+(Math.asin(1/nR)*180/Math.PI).toFixed(1)+'°')+').');
+    else kit.model('כל הצבעים כלואים: בפאה השנייה '+_skM('θ > θc')+' לכולם — הגדילו את זווית הפגיעה.');
+    kit.check({predicted:predicted,r1R:r1R,rOut:rOut,vTrapped:!vOut});
     // photon on the incident beam
     var ph=(animT*0.5)%1;ctx.save();ctx.fillStyle='#fff';optGlow(ctx,'#fff',14);
     ctx.beginPath();ctx.arc(src.x+(ent.x-src.x)*ph,src.y+(ent.y-src.y)*ph,3.5,0,Math.PI*2);ctx.fill();optNoGlow(ctx);ctx.restore();

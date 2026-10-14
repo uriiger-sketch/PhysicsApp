@@ -390,6 +390,23 @@ const EXPECT = {
   await setv('pm-top', 1.74); await setv('pm-bot', 0.84); await setv('pm-top', 1.4); await setv('pm-dist', 0.5); await setv('pm-dist', 2.5);
   t('plane mirror: every mission is reachable', await missions() === '111', await missions());
 
+  // ── prism (60°, flint n = 1.62 + 8800(1/λ² − 1/550²)): the deviation of red
+  // and violet from two refractions, δ = θ₁ + θ₄ − A; violet trapped first ──
+  await open('opt-refraction', 'prism');
+  const nF = l => 1.62 + 8800 * (1 / l ** 2 - 1 / 550 ** 2);
+  const dev = (th, n) => { const t2 = asind(sind(th) / n), t3 = 60 - t2; if (n * sind(t3) >= 1) return null; return th + asind(n * sind(t3)) - 60; };
+  for (const th of [55, 45, 70]) {
+    await setv('prism-ang', th);
+    const tx = await modelTx(), g = /\) (\d+\.\d)°[^)]*\) (\d+\.\d)°/.exec(tx.replace(/,/g, ''));
+    t(`prism θ=${th}°: deviation of red and violet`, g && Math.abs(+g[1] - dev(th, nF(700))) < 0.06 && Math.abs(+g[2] - dev(th, nF(400))) < 0.06, tx + ' | ' + dev(th, nF(700)).toFixed(2) + ' ' + dev(th, nF(400)).toFixed(2));
+  }
+  await setv('prism-ang', 38);
+  t('prism θ=38°: violet trapped, red out', /arcsin/.test(await modelTx()) && dev(38, nF(400)) === null && dev(38, nF(700)) !== null, await modelTx());
+  await p.evaluate(() => { state.missions = {}; render(); }); await p.waitForTimeout(1100);
+  await p.evaluate(() => document.querySelectorAll('.sk-opt')[2].click()); await p.waitForTimeout(150);
+  await setv('prism-ang', Math.round(asind(nF(700) * sind(30)))); await setv('prism-ang', 38);
+  t('prism: every mission is reachable', await missions() === '111', await missions());
+
   // ── the eye: vergence model, glasses touching the eye. Sharp exactly when
   // 1/d − P lies in [D_far, D_far + A]; the glasses' image dᵢ = 1/(P − 1/d)
   // is in the equation line; the section's problem (+3.33 D) is a mission ──
