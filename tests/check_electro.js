@@ -274,6 +274,27 @@ const sig2 = x => x === 0 ? 0 : Number(x.toPrecision(2));
   t('potential: at the null point of two like charges E = 0 but V = kQ₁/r₁ + kQ₂/r₂ > 0',
     m.E < 1 && m.V > 1e4 && (await done())[1] === true, 'E = ' + m.E + ', V = ' + m.V);
 
+  // ── Coulomb: equal arrows (Newton 3) on one linear scale, and the inverse square measured ──
+  await open('elc-coulomb');
+  const clb = () => p.evaluate(() => document.querySelector('#app canvas').__clb());
+  let cb = await clb();
+  t('Coulomb at the start: r = 20 cm, F = k|q₁q₂|/r² = 1.35 N', Math.abs(cb.r - 20) < 0.01 && Math.abs(cb.F - k * 6e-12 / 0.04) < 1e-9, cb.r + ' cm, ' + cb.F + ' N');
+  await setR('inp-elc-q1', 5); await setR('inp-elc-q2', 1); await p.waitForTimeout(250); cb = await clb();
+  t('Coulomb, q₁ = 5 μC and q₂ = 1 μC: the two force arrows are equal in length (Newton 3)', cb.L1 > 0 && cb.L1 === cb.L2 && Math.abs(cb.F - k * 5e-12 / (cb.r / 100) ** 2) < 1e-9, cb.L1 + ' / ' + cb.L2);
+  t('mission "one charge 4 times the other" is solved by doing it', (await done())[0] === true);
+  for (const rc of [10, 20, 30]) { cb = await clb(); await dragTo(cb.x2, cb.cy, cb.x1 + rc * cb.PXC, cb.cy); }
+  cb = await clb();
+  const fr2 = cb.tab.map(m2 => m2.F * (m2.r / 100) ** 2);
+  t('Coulomb: three measurements, F·r² the same at each = k|q₁q₂|', cb.tab.length === 3 && fr2.every(v => Math.abs(v - k * 5e-12) < 1e-9 * k * 5e-12),
+    JSON.stringify(cb.tab));
+  t('Coulomb: doubling r from 10 to 20 cm divides F by 4', Math.abs(cb.tab[0].F / cb.tab[1].F - 4) < 1e-6, (cb.tab[0].F / cb.tab[1].F).toFixed(4));
+  t('mission "measure at three distances" is solved by doing it', (await done())[1] === true);
+  await setR('inp-elc-q1', 2); await setR('inp-elc-q2', -3); cb = await clb();
+  await dragTo(cb.x2, cb.cy, cb.x1 + 12 * cb.PXC, cb.cy);
+  await click('btn-clb-three'); await p.waitForTimeout(200); cb = await clb();
+  await dragTo(cb.x3, cb.cy, cb.x2 + (cb.x2 - cb.x1) + 6, cb.cy); await p.waitForTimeout(200); cb = await clb();
+  t('superposition: with q₃ = q₁ the net force on q₂ vanishes where r₃ = r₁', Math.abs(cb.Fn) < 1e-9 && Math.abs((cb.x3 - cb.x2) - (cb.x2 - cb.x1)) < 1e-6 && (await done())[2] === true, 'ΣF = ' + cb.Fn);
+
   console.log('   every draggable simulation by touch, on a phone');
   const tc = await b.newContext({ viewport: { width: 390, height: 1300 }, hasTouch: true, isMobile: true, deviceScaleFactor: 2 });
   const q = await tc.newPage(); q.on('pageerror', x => errs.push(x.message));
@@ -301,7 +322,7 @@ const sig2 = x => x === 0 ? 0 : Number(x.toPrecision(2));
   // where each handle starts, from the simulation's own layout (W, H = canvas size)
   const TOUCH = [
     ['electro', 'elc-charge', 'elc-basics', W => [[W * 0.22, 170], [W * 0.35, 160], [W * 0.5, 150]], { text: '^[✓•] 1\\.' }],
-    ['electro', 'elc-charge', 'elc-coulomb', W => [[W / 2 - 110, 140], [W / 2 - 130, 140], [W / 2 - 150, 140]], { text: '^r = ' }],
+    ['electro', 'elc-charge', 'elc-coulomb', W => { const c = (W - 80) / (W < 560 ? 40 : 60), x = W / 2 - 10 * c; return [[x, 112], [x - 20, 112], [x - 40, 112]]; }, { text: '^r = ' }],
     ['electro', 'elc-charge', 'elc-field', (W, H) => [[W * 0.68, H * 0.3], [W * 0.62, H * 0.35], [W * 0.55, H * 0.4]], { text: '^\\|E\\| = ' }],
     ['electro', 'elc-charge', 'elc-plane', (W, H) => [[W * 0.5, H * 0.3], [W * 0.45, H * 0.3], [W * 0.1, H * 0.3]], { text: '^E = E₁ \\+ E₂|^E₁ \\+ E₂' }],
     ['electro', 'elc-charge', 'elc-conductor', (W, H) => [[W * 0.27 + 95, H * 0.42 - 40], [W * 0.27 + 60, H * 0.42 - 30], [W * 0.27 + 30, H * 0.42 - 10]], { text: '^' + LR('גשוש r=') }],
