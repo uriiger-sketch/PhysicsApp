@@ -142,10 +142,19 @@ const EXPECT = {
   t('... and heat is actually produced', !!Q && num(Q.split('Q = ')[1]) > 1, Q && Q.split('   ').pop());
 
   await open('momentum.momentum-cons');
-  await p.waitForTimeout(6000);
-  const P = (await all('^' + LR('Σp עכשיו = '))).map(s => num(s.split('=')[1]));
+  const mcRun = () => p.evaluate(async () => { const cv = document.querySelector('#app canvas'); window.__T = []; document.getElementById('btn-mc-run').click();
+    for (let i = 0; i < 700 && cv._probe().st !== 'done'; i++) await new Promise(r => setTimeout(r, 25)); return cv._probe(); });
+  let mq = await mcRun();
+  let P = (await all('^Σp = ')).map(s => num(s.split('=')[1]));
   spread = Math.max(...P) - Math.min(...P);
-  t('momentum conservation sim: Σp unchanged through the collision and the run', P.length > 100 && spread < 0.005, `spread ${spread.toFixed(3)} kg·m/s`);
+  t('momentum conservation, explosion from rest: Σp = 0.00 kg·m/s on every frame of the push and the run', P.length > 30 && spread < 0.005 && Math.abs(P[0]) < 0.005, `${P.length} frames, spread ${spread.toFixed(3)}`);
+  const vE = Math.sqrt(2 * 12 * 1.5 / (3 * 4.5));
+  t('... and the spring\'s 12 J split exactly: v₁ = −√(2E·m₂/(m₁(m₁+m₂))), v₂ = −(m₁/m₂)v₁', Math.abs(mq.v1 + vE) < 1e-9 && Math.abs(mq.v2 - 2 * vE) < 1e-9, mq.v1.toFixed(4) + ', ' + mq.v2.toFixed(4));
+  await p.evaluate(() => document.getElementById('btn-mc-mode').click());
+  mq = await mcRun();
+  P = (await all('^Σp = ')).map(s => num(s.split('=')[1]));
+  spread = Math.max(...P) - Math.min(...P);
+  t('sticking: Σp = m₁v₁ + m₂v₂ = 15.00 kg·m/s before, during and after; v = Σp/(m₁+m₂)', P.length > 30 && spread < 0.005 && Math.abs(P[0] - 15) < 0.005 && mq.stuck && Math.abs(mq.v1 - 15 / 4.5) < 1e-9 && mq.v1 === mq.v2, `${P.length} frames, v ${mq.v1.toFixed(3)}`);
 
   await open('shm.pendulum');
   await set('pend-L', 0.3); await set('pend-g', 25);
@@ -312,6 +321,60 @@ const EXPECT = {
   t('θ = 0° from 20 m: the fired ball and the dropped one land at the same instant, √(2h/g)', lq.twin && Math.abs(lq.twin.land - lq.shot.tf) < 1e-12 && Math.abs(lq.shot.tf - Math.sqrt(40 / 9.8)) < 1e-12, lq.shot.tf.toFixed(4) + ' s');
   const pjm = await missionsDone();
   t('projectile missions: hit, two angles, the same landing time — all reachable', pjm.length === 3 && pjm.every(Boolean), JSON.stringify(pjm));
+
+  console.log('\n3d) collisions: Σp in every collision, Eₖ only in an elastic one; the lost part is heat');
+  await open('momentum.collision');
+  const colProbe = () => p.evaluate(() => document.querySelector('#app canvas')._probe());
+  const colRun = () => p.evaluate(async () => { const cv = document.querySelector('#app canvas'); document.getElementById('btn-col-run').click();
+    for (let i = 0; i < 700 && cv._probe().st !== 'done'; i++) await new Promise(r => setTimeout(r, 25)); return cv._probe(); });
+  const bad3 = [];
+  for (const [m1, m2, u1, u2, e] of [[3, 2, 4, -2, 1], [3, 2, 4, -2, 0], [2, 6, 5, 0, 0.5], [1, 8, 6, -1, 0.8], [4, 4, 2, 2, 1]]) {
+    await set('col-m1', m1); await set('col-m2', m2); await set('col-v1', u1); await set('col-v2', u2); await set('col-e', e); await p.waitForTimeout(60);
+    const q = await colRun();
+    const meet = u1 > u2, w1 = meet ? ((m1 - e * m2) * u1 + (1 + e) * m2 * u2) / (m1 + m2) : u1, w2 = meet ? ((m2 - e * m1) * u2 + (1 + e) * m1 * u1) / (m1 + m2) : u2;
+    const p0 = m1 * u1 + m2 * u2, pf = m1 * q.v1 + m2 * q.v2, K0 = 0.5 * m1 * u1 * u1 + 0.5 * m2 * u2 * u2, Kf = 0.5 * m1 * q.v1 * q.v1 + 0.5 * m2 * q.v2 * q.v2;
+    const dK = meet ? m1 * m2 / (2 * (m1 + m2)) * (1 - e * e) * (u1 - u2) ** 2 : 0;
+    const ok = q.hit === meet && Math.abs(q.v1 - w1) < 1e-9 && Math.abs(q.v2 - w2) < 1e-9 && Math.abs(pf - p0) < 1e-9 && Math.abs(K0 - Kf - dK) < 1e-9 && (!meet || Math.abs((q.v2 - q.v1) - e * (u1 - u2)) < 1e-9);
+    if (!ok) bad3.push(`${m1},${m2},${u1},${u2},e=${e}: v' ${q.v1.toFixed(3)},${q.v2.toFixed(3)} want ${w1.toFixed(3)},${w2.toFixed(3)}`);
+  }
+  t('five collisions: v₁′, v₂′ from e, Σp unchanged, ΔEₖ = m₁m₂(1−e²)(v₁−v₂)²/2(m₁+m₂), v_rel′ = e·v_rel', bad3.length === 0, bad3.join(' | ') || 'all exact');
+  const mlc = await model();
+  t('... (the last pair never meets: the model line still states Σp before)', /Σp = m₁v₁ \+ m₂v₂ = 4\.0 × 2\.0 \+ 4\.0 × 2\.0 = 16\.00 kg·m\/s/.test(mlc), mlc.slice(0, 70));
+  // the prediction sets up the head-on sticking collision and runs it
+  await p.evaluate(() => document.querySelectorAll('#app .sk-opt')[1].click());
+  await p.waitForTimeout(400);
+  let cq = await p.evaluate(async () => { const cv = document.querySelector('#app canvas'); for (let i = 0; i < 400 && cv._probe().st !== 'done'; i++) await new Promise(r => setTimeout(r, 25)); return cv._probe(); });
+  t('the prediction\'s experiment: equal carts head-on, stuck — both stop, Σp = 0 before and after', cq.hit && cq.joined && cq.v1 === 0 && cq.v2 === 0 && cq.u1 === -cq.u2, `${cq.u1} / ${cq.u2} → ${cq.v1}, ${cq.v2}`);
+  await set('col-e', 0); await set('col-m1', 2); await set('col-m2', 2); await set('col-v1', 5); await set('col-v2', 0); await colRun();
+  await set('col-e', 1); await set('col-v1', 3); await set('col-v2', -1); cq = await colRun();
+  t('equal masses, elastic: the carts swap velocities', Math.abs(cq.v1 - -1) < 1e-9 && Math.abs(cq.v2 - 3) < 1e-9, cq.v1 + ', ' + cq.v2);
+  const cm = await missionsDone();
+  t('collision missions: both stop, half the Eₖ to heat, the swap — all reachable', cm.length === 3 && cm.every(Boolean), JSON.stringify(cm));
+  // drag the first cart's arrow before a run
+  await p.evaluate(() => document.getElementById('btn-col-reset').click());
+  await set('col-v1', 2); await p.waitForTimeout(200);
+  r = await rect(); W = r.w;
+  const cx1 = 26 + 2.6 * (W - 52) / 10;
+  await drag(r, [[cx1 + 26, 150 - 52], [cx1 + 40, 150 - 52], [cx1 + 52, 150 - 52]]);
+  const v1d = num(await p.evaluate(() => document.getElementById('inp-col-v1').value));
+  t('collision: dragging the v₁ arrow sets v₁ (2 → 4 m/s)', Math.abs(v1d - 4) < 0.51, v1d + ' m/s');
+
+  console.log('\n3e) momentum conservation: an isolated system, and what an external force does');
+  await open('momentum.momentum-cons');
+  await set('mc-m1', 3); await set('mc-m2', 1); await p.waitForTimeout(100);
+  mq = await mcRun();
+  t('explosion 3 kg | 1 kg: the light cart flies off exactly 3 times as fast (m₁|v₁| = m₂|v₂|)', Math.abs(Math.abs(mq.v2 / mq.v1) - 3) < 1e-9 && Math.abs(3 * mq.v1 + 1 * mq.v2) < 1e-12, (mq.v2 / mq.v1).toFixed(6));
+  await p.evaluate(() => document.getElementById('btn-mc-mode').click());
+  await set('mc-m1', 3); await set('mc-m2', 1); await set('mc-v1', 6); await set('mc-v2', -2); await p.waitForTimeout(100);
+  mq = await mcRun();
+  t('the section\'s problem: 3 kg at +6 m/s sticks to 1 kg at −2 m/s → 4 m/s', mq.stuck && Math.abs(mq.v1 - 4) < 1e-9, mq.v1 + ' m/s');
+  await p.evaluate(() => document.getElementById('btn-mc-air').click());
+  await set('mc-m2', 4); await set('mc-v2', 0); await p.waitForTimeout(100);
+  mq = await mcRun();
+  const pf = mq.m1 * mq.v1 + mq.m2 * mq.v2;
+  t('with the air off, friction (external) changes Σp: 18 kg·m/s at the start, less at the end', mq.p0 === 18 && pf < 18 - 0.3, pf.toFixed(2) + ' kg·m/s');
+  const mcm = await missionsDone();
+  t('momentum missions: 3× the speed, the problem, Σp changed by friction — all reachable', mcm.length === 3 && mcm.every(Boolean), JSON.stringify(mcm));
 
   console.log('\n4) misconception boxes, quiz keys, hints, units');
   await require('./mech_learning')(p, ['statics', 'planar', 'momentum', 'energy', 'shm'], t);

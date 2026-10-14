@@ -4848,7 +4848,7 @@ const CONTENT={
       <p>ככל שהגז נפלט מהר יותר, הרקטה מקבלת יותר תנע מכל קילוגרם דלק. לכן מהנדסי טילים מחפשים דלקים שגזי הפליטה שלהם מהירים ככל האפשר.</p>`
     }
   },
-  sim:{type:'momentum-cons',title:'שימור תנע',desc:'שני גופים מתנגשים — התנע הכולל זהה לפני ואחרי. שנו מסות ומהירויות ראשוניות.'},
+  sim:{type:'momentum-cons',title:'שימור תנע',desc:'שתי עגלות על מסילת אוויר הן מערכת מבודדת. שחררו קפיץ דחוס ביניהן (״פיצוץ״) או הצמידו אותן בהתנגשות, ועקבו בגרף אחרי p₁, p₂ ו־Σp: הכוחות הפנימיים משנים את תנע כל עגלה — לא את הסכום. כבו את האוויר, והחיכוך, כוח חיצוני, ישנה גם את Σp.'},
   example:{title:'רתע של רובה',text:`רובה שמסתו ${M('4\\,\\text{kg}')} יורה קליע שמסתו ${M('0.02\\,\\text{kg}')} במהירות ${M('400\\,\\text{m/s}')}.`,steps:[
     {q:'מה התנע הכולל לפני הירייה?',a:`אפס — גם הרובה וגם הקליע במנוחה.`},
     {q:'מה מהירות הרובה אחרי הירייה?',a:`שימור תנע: ${M('0=0.02\\times400+4V\\Rightarrow V=-2\\,\\text{m/s}')} — הסימן השלילי: הרובה נרתע לאחור.`},
@@ -4930,7 +4930,7 @@ const CONTENT={
       <p>הקרניים נעות לאורך הצינור, ולכן התנע הכולל בניצב לקרן לפני ההתנגשות הוא אפס. אם סכום התנע הניצב של כל מה שנמדד אינו אפס, סימן שחלקיק כלשהו ״ברח״ בלי להשאיר עקבות — כך ״רואים״ ניטרינו. ובוזון היגס, שהתגלה ב־2012, זוהה כשמהאנרגיה והתנע של תוצרי הדעיכה שלו חושבה שוב ושוב אותה מסה.</p>`
     }
   },
-  sim:{type:'collision',title:'התנגשויות',desc:'שנו מסות ומהירויות. בחרו אלסטית/אי-אלסטית. ראו שהתנע לפני שווה לתנע אחרי.'},
+  sim:{type:'collision',title:'התנגשויות',desc:'שתי עגלות על מסילת אוויר. גררו את חיצי המהירות, בחרו את מקדם התקומה e — מ־0 (נצמדות) עד 1 (אלסטית) — ולחצו ״▶ הפעילו״. העמודות מראות את התנע ואת האנרגיה לפני ואחרי: Σp תמיד נשמר, ו־Eₖ רק כש־e = 1; מה שחסר הפך לחום Q.'},
   example:{title:'התנגשות אלסטית בין מסות שוות',text:`כדור ${M('m_1=2\\,\\text{kg}')} במהירות ${M('6\\,\\text{m/s}')} פוגע התנגשות אלסטית בכדור זהה ${M('m_2=2\\,\\text{kg}')} שנמצא במנוחה.`,steps:[
     {q:'מה מהירות הכדור הראשון אחרי ההתנגשות?',a:`${M('v_1^{\\prime}=0')} — הוא נעצר.`},
     {q:'ומה מהירות השני?',a:`${M('v_2^{\\prime}=6\\,\\text{m/s}')} — הוא ממשיך בדיוק במהירות של הראשון.`},
@@ -12566,10 +12566,61 @@ function _mbKeys(canvas,map){
 }
 // A signed number as maths prints it: the minus sign, not a hyphen.
 function _mbS(x,d){return (x<0&&Math.abs(x)>=0.5*Math.pow(10,-d)?'\u2212':'')+Math.abs(x).toFixed(d);}
+// ... and in brackets when it is a factor: 3.0 × (−1.63)
+function _mbP(x,d){var q=_mbS(x,d);return q.charAt(0)==='\u2212'?'('+q+')':q;}
 // A slider's value, or a default when the slider is not on the page.
 function _mbV(id,d){var e=document.getElementById('inp-'+id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:d;}
 // A button's label, set in place (restartSim gives it back its first label).
 function _mbBtn(id,html){var b=document.getElementById('btn-'+id);if(b&&b.innerHTML!==html)b.innerHTML=html;return b;}
+// ── An air track and its gliders, shared by the two momentum labs ──
+// The track: a rail with air holes; L metres long from x0 to x1 (px) at height y.
+function _mbTrack(ctx,x0,x1,y,airOn){
+  ctx.save();
+  var g=ctx.createLinearGradient(0,y,0,y+12);g.addColorStop(0,'#475569');g.addColorStop(1,'#1e293b');
+  ctx.fillStyle=g;ctx.beginPath();ctx.roundRect(x0-6,y,x1-x0+12,12,3);ctx.fill();
+  ctx.fillStyle=airOn===false?'rgba(148,163,184,.25)':'rgba(125,211,252,.55)';
+  for(var x=x0+6;x<x1-4;x+=12){ctx.beginPath();ctx.arc(x,y+4,1.4,0,6.2832);ctx.fill();}
+  ctx.fillStyle='#334155';ctx.fillRect(x0-10,y-22,6,34);ctx.fillRect(x1+4,y-22,6,34);   // the end stops
+  ctx.restore();
+}
+// A glider: a body of width w px, its mass on it, and a bumper on each face
+// (a spring for a bouncy collision, a velcro pad for a sticking one).
+function _mbCart(ctx,cx,y,w,col,txt,kind){
+  var h=30, x=cx-w/2, top=y-h;
+  ctx.save();
+  var g=ctx.createLinearGradient(0,top,0,y);g.addColorStop(0,col[0]);g.addColorStop(1,col[1]);
+  ctx.fillStyle=g;ctx.strokeStyle=col[2];ctx.lineWidth=1.8;
+  ctx.beginPath();ctx.moveTo(x,y-2);ctx.lineTo(x+6,top);ctx.lineTo(x+w-6,top);ctx.lineTo(x+w,y-2);ctx.closePath();ctx.fill();ctx.stroke();
+  if(kind==='spring'){ctx.strokeStyle='#cbd5e1';ctx.lineWidth=1.4;
+    [[x,-1],[x+w,1]].forEach(function(q){ctx.beginPath();ctx.moveTo(q[0],y-14);
+      for(var i=1;i<=4;i++)ctx.lineTo(q[0]+q[1]*i*1.6,y-14+(i%2?4:-4));ctx.stroke();});}
+  else if(kind==='velcro'){ctx.fillStyle='#fbbf24';ctx.fillRect(x-3,y-22,3,16);ctx.fillRect(x+w,y-22,3,16);}
+  ctx.restore();
+  simText(ctx,txt,cx,y-11,'#ffffff',9.5,'center',true);
+}
+// Bars for a few signed (or positive) quantities in groups, one shared scale:
+// box {x,y,w,h}; groups [{name, bars:[{v,col,lbl}]}]; o.max the scale, o.title, o.stack.
+function _mbBars(ctx,box,groups,o){
+  o=o||{};
+  _mbCard(ctx,box.x,box.y,box.w,box.h);
+  simText(ctx,o.title||'',box.x+box.w/2,box.y+14,'#cbd5e1',9.5,'center',true);
+  if(o.key){var kx=box.x+box.w/2-o.key.length*24;o.key.forEach(function(k,i){ctx.fillStyle=k[0];ctx.fillRect(kx+i*48,box.y+24,8,8);
+    simText(ctx,k[1],kx+i*48+11,box.y+32,'#94a3b8',8.5,'left');});}
+  var top=box.y+(o.key?40:26), bot=box.y+box.h-30, signed=!!o.signed, zero=signed?(top+bot)/2:bot, half=signed?(bot-top)/2:(bot-top);
+  var mx=Math.max(1e-9,o.max||1), n=groups.length, gw=(box.w-16)/n;
+  ctx.save();ctx.strokeStyle='rgba(148,163,184,.45)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(box.x+8,zero);ctx.lineTo(box.x+box.w-8,zero);ctx.stroke();ctx.restore();
+  groups.forEach(function(gr,gi){
+    var gx=box.x+8+gi*gw, nb=o.stack?1:gr.bars.length, bw=o.stack?Math.min(44,gw-24):Math.min(26,(gw-14)/nb), x0=gx+(gw-nb*bw-(nb-1)*4)/2;
+    if(o.stack){var acc=0;gr.bars.forEach(function(b){var hh=Math.max(0,b.v)/mx*half;
+        ctx.fillStyle=b.col;ctx.fillRect(x0,zero-acc-hh,bw,hh);acc+=hh;});
+      ctx.save();ctx.strokeStyle='rgba(226,232,240,.5)';ctx.strokeRect(x0,zero-acc,bw,acc);ctx.restore();
+      if(gr.total!==undefined)simText(ctx,gr.total,x0+bw/2,zero-acc-5,'#e2e8f0',9,'center',true);}
+    else gr.bars.forEach(function(b,bi){var x=x0+bi*(bw+4),hh=Math.min(1.08,Math.abs(b.v)/mx)*half;
+      ctx.fillStyle=b.col;ctx.fillRect(x,b.v>=0?zero-hh:zero,bw,hh);
+      if(b.lbl)simText(ctx,b.lbl,x+bw/2,signed?(b.v>=0?zero+11:zero-4):bot+11,b.tcol||'#cbd5e1',8.5,'center',true);});
+    simText(ctx,gr.name,gx+gw/2,box.y+box.h-8,'#94a3b8',9,'center',true);
+  });
+}
 
 // ─────────────────────────────────────────────────────────────
 // MOMENTUM DISPLAY: p = mv, drag slider
@@ -12671,394 +12722,285 @@ function simMomentumDisplay(canvas){
 window._fmtKg1=function(v){return v.toFixed(1)+' kg';};
 window._fmtMs1=function(v){return v.toFixed(1)+' m/s';};
 function simMomentumCons(canvas){
-  var H=480; var setup=setupCanvas(canvas,H); var ctx=setup.ctx; var W=setup.W;
-  var id=canvas.id;
-  var m1=3, m2=2, v1i=5, v2i=-2;
-  var pT=null, state='before', collTimer=0, clock=0, endT=-1;
-  var x1, x2, v1, v2;
-  var hist=[];                 // {t, p1, p2}
-  var WIN=6;                   // seconds of history on the graph
-  var PPS=28;                  // px per (m/s) per second
-
-  // The two balls are the whole system. They used to bounce off the canvas
-  // edges, and each bounce is an impulse from OUTSIDE the system: the total
-  // jumped while the banner kept saying "conserved". Now the run ends when a
-  // ball reaches an edge, holds the result, and starts again.
+  // SECTION: momentum.momentum-cons
+  // PEDAGOGY: the total momentum of an isolated system never changes,
+  // whatever happens inside it. Two carts on an air track: (1) a spring
+  // released between them at rest -- an explosion: they fly apart with
+  // m₁v₁ = −m₂v₂, Σp stays 0; (2) a moving cart hits another and they stick
+  // (velcro) -- the section's problem. The p(t) graph shows p₁, p₂ and Σp.
+  // Switch the air off and the track's friction -- an EXTERNAL force -- acts:
+  // Σp changes. The run ends before a cart reaches an end stop (also external).
+  // The spring is integrated with equal and opposite impulses each sub-step,
+  // so Σp is exact by construction, as the third law makes it.
+  var cv0=setupCanvas(canvas,470), W=cv0.W, dpr=cv0.dpr, PH=W<520, H=PH?470:420, ctx=setupCanvas(canvas,H).ctx;
+  const id=canvas.id, L=10, g=9.8, MU=0.06;
+  var km=_skM;   // maths inside a kit text: one left-to-right run (= kit.m)
+  var TX0=26, TX1=W-26, PPM=(TX1-TX0)/L, TY=PH?140:146;
+  var mode='boom', air=true, st='set', x1, x2, v1, v2, pT=null, t=0, tRun=0, hist=[], stuck=false, comp=0, p0=0, hitT=-1;
+  var S0=0.30, D0=0.16;                          // the spring: 30 cm long, compressed by 16 cm
+  var tau=0, sep=false, xc=0, rel0=0;            // the push, solved exactly: a quarter of an oscillation
+  function M1(){return _mbV('mc-m1',3);} function M2(){return _mbV('mc-m2',1.5);}
+  function U1(){return _mbV('mc-v1',6);} function U2(){return _mbV('mc-v2',-2);} function ES(){return _mbV('mc-E',12);}
+  function wOf(m){return Math.max(0.55+0.07*m,(46+3*m)/PPM);}
+  function rowOf(k){var e=document.getElementById('inp-'+k);return e&&e.closest('.range-wrap');}
+  function showRows(){[['mc-v1',mode==='stick'],['mc-v2',mode==='stick'],['mc-E',mode==='boom']].forEach(function(q){var r=rowOf(q[0]);if(r)r.style.display=q[1]?'':'none';});}
   function reset(){
-    x1=W*0.22; x2=W*0.78;
-    v1=v1i; v2=v2i;
-    state='before'; collTimer=0; clock=0; endT=-1; hist=[];
+    var w1=wOf(M1()),w2=wOf(M2());
+    if(mode==='boom'){var g0=S0-D0;x1=L/2-w1/2-g0/2;x2=L/2+w2/2+g0/2;v1=0;v2=0;comp=D0;}
+    else{x1=2.4;x2=7.6;v1=U1();v2=U2();comp=0;}
+    st='set';stuck=false;hist=[];tRun=0;hitT=-1;p0=M1()*v1+M2()*v2;
+    tau=0;sep=false;xc=(M1()*x1+M2()*x2)/(M1()+M2());rel0=x2-x1;
+    _mbBtn('mc-run',mode==='boom'?'💥 שחררו את הקפיץ':'▶ הפעילו');
   }
-  reset();
+  var kit=simKit(canvas,{missions:[
+    {text:'שחררו את הקפיץ כך שהעגלה הקלה תעוף מהר פי 3 מהכבדה',
+     hint:km('m₁v₁ = −m₂v₂')+': המהירויות ביחס הפוך למסות.',
+     why:'הקפיץ דוחף את שתי העגלות בכוחות שווים והפוכים, באותו זמן, ולכן נותן להן תנעים שווים והפוכים: '+km('m₁|v₁| = m₂|v₂|')+'. מסה פי 3 — מהירות שליש. '+km('Σp')+' היה ונשאר אפס.',
+     done:function(s){return s.mode==='boom'&&s.out&&Math.abs(s.ratio-3)<0.05;}},
+    {text:'שחזרו את הבעיה של הסעיף: עגלה של '+km('3 kg')+' ב־'+km('+6 m/s')+' פוגעת בעגלה של '+km('1 kg')+' שנעה ב־'+km('−2 m/s')+', והן נצמדות',
+     hint:'בחרו ״🧲 הצמדה״ וקבעו את המסות והמהירויות. מה תהיה המהירות המשותפת?',
+     why:km('Σp = 3×6 + 1×(−2) = 16 kg·m/s')+' לפני — ואותו תנע אחרי: '+km('(3+1)v = 16')+', ולכן '+km('v = 4 m/s')+'. האנרגיה הקינטית ירדה מ־'+km('56 J')+' ל־'+km('32 J')+': '+km('24 J')+' הפכו לחום, והתנע לא נפגע.',
+     done:function(s){return s.mode==='stick'&&s.stuck&&s.m1===3&&s.m2===1&&s.u1===6&&s.u2===-2;}},
+    {text:'כבו את האוויר במסילה וראו את '+km('Σp')+' משתנה',
+     hint:'״💨 אוויר״ — ואז הפעילו עגלות שמסותיהן שונות.',
+     why:'בלי אוויר המסילה מפעילה חיכוך על העגלות — כוח חיצוני למערכת, '+km('ΣFₑₓₜ ≠ 0')+' — ולכן '+km('Σp')+' משתנה. דחיפת הקפיץ וההיצמדות הן כוחות פנימיים: הן לעולם אינן משנות את '+km('Σp')+'.',
+     done:function(s){return !s.air&&Math.abs(s.pN-s.p0)>0.3;}}]});
+  var model=_mbModel(kit);
+  kit.predict({q:'שתי עגלות במנוחה, ובין שתיהן קפיץ דחוס. עגלה A כבדה פי 2 מעגלה B. משחררים את הקפיץ. התנע הכולל אחרי הדחיפה:',
+    opts:['אפס — שני התנעים שווים והפוכים','חיובי — B מהירה יותר, ולכן התנע שלה גדול','שלילי — A כבדה יותר, ולכן התנע שלה גדול'],correct:0,
+    why:'הקפיץ דוחף את A ואת B בכוחות שווים והפוכים (החוק השלישי) באותו זמן, ולכן נותן להן תנעים שווים והפוכים. B אמנם מהירה פי 2, אבל מסתה חצי — ו־'+km('Σp')+' נשאר אפס, כפי שהיה לפני.'},
+    function(){mode='boom';air=true;_mbBtn('mc-air','💨 אוויר: מופעל');_mbBtn('mc-mode','🧲 הצמדה');showRows();
+      simSyncSlider('mc-m1',4,1);simSyncSlider('mc-m2',2,1);reset();setTimeout(run,300);});
 
-  function readSliders(){
-    var m1S=document.getElementById('inp-mc-m1');
-    var m2S=document.getElementById('inp-mc-m2');
-    var v1S=document.getElementById('inp-mc-v1');
-    var v2S=document.getElementById('inp-mc-v2');
-    var changed=false;
-    if(m1S){var nv=parseFloat(m1S.value);if(nv!==m1){m1=nv;changed=true;} var l=document.getElementById('lbl-mc-m1');if(l)l.textContent=m1+' kg';}
-    if(m2S){var nv2=parseFloat(m2S.value);if(nv2!==m2){m2=nv2;changed=true;} var l2=document.getElementById('lbl-mc-m2');if(l2)l2.textContent=m2+' kg';}
-    if(v1S){var nv3=parseFloat(v1S.value);if(nv3!==v1i){v1i=nv3;changed=true;} var l3=document.getElementById('lbl-mc-v1');if(l3)l3.textContent=v1i+' m/s';}
-    if(v2S){var nv4=parseFloat(v2S.value);if(nv4!==v2i){v2i=nv4;changed=true;} var l4=document.getElementById('lbl-mc-v2');if(l4)l4.textContent=v2i+' m/s';}
-    if(changed) reset();
+  function run(){if(st!=='set')return;st='run';tRun=0;_mbBtn('mc-run','↺ איפוס');}
+  var rb=document.getElementById('btn-mc-run');
+  if(rb)rb.addEventListener('click',function(){if(st==='set')run();else reset();});
+  var mb=document.getElementById('btn-mc-mode');
+  if(mb)mb.addEventListener('click',function(){mode=mode==='boom'?'stick':'boom';_mbBtn('mc-mode',mode==='boom'?'🧲 הצמדה':'💥 פיצוץ');showRows();reset();});
+  var ab=document.getElementById('btn-mc-air');
+  if(ab)ab.addEventListener('click',function(){air=!air;_mbBtn('mc-air',air?'💨 אוויר: מופעל':'💨 אוויר: כבוי');reset();});
+  ['mc-m1','mc-m2','mc-v1','mc-v2','mc-E'].forEach(function(k){var e=document.getElementById('inp-'+k);if(e)e.addEventListener('input',reset);});
+  showRows();reset();
+  _mbKeys(canvas,{'Enter':function(){if(rb)rb.click();},' ':function(){if(rb)rb.click();}});
+  canvas.addEventListener('click',function(e){var p=simPointerXY(canvas,dpr,e);if(p.y<TY+20&&st==='set')run();});
+  canvas._probe=function(){return {mode:mode,air:air,st:st,x1:x1,x2:x2,v1:v1,v2:v2,m1:M1(),m2:M2(),u1:U1(),u2:U2(),E:ES(),stuck:stuck,comp:comp,p0:p0,clock:t};};
+
+  function step(dt){
+    var m1=M1(),m2=M2(),w1=wOf(m1),w2=wOf(m2),dt0=dt;
+    var k=2*ES()/(D0*D0);
+    // with the air on, the push of the spring is a quarter of an oscillation of
+    // the relative coordinate about a fixed centre of mass -- exactly
+    if(mode==='boom'&&air&&!sep){
+      var Mt=m1+m2, mr=m1*m2/Mt, w=Math.sqrt(k/mr), Tq=Math.PI/2/w, t1=Math.min(Tq,tau+dt);
+      var sR=D0*(1-Math.cos(w*t1)), vr=D0*w*Math.sin(w*t1);
+      x1=xc-(m2/Mt)*(rel0+sR);x2=xc+(m1/Mt)*(rel0+sR);v1=-(m2/Mt)*vr;v2=(m1/Mt)*vr;comp=D0-sR;
+      dt-=t1-tau;tau=t1;
+      if(t1>=Tq){sep=true;comp=0;}
+    }
+    var n=mode==='boom'&&!sep?400:20,h=dt/n;
+    for(var i=0;i<n;i++){
+      // the spring: equal and opposite impulses (an internal force)
+      if(mode==='boom'&&!sep){var gap=(x2-w2/2)-(x1+w1/2);comp=Math.max(0,S0-gap);if(comp===0)sep=true;
+        if(comp>0){var F=k*comp;v1-=F/m1*h;v2+=F/m2*h;}}
+      // the track's friction with the air off (an external force); a cart at rest stays at rest
+      if(!air){var fr=function(v){if(v===0)return 0;var dv=MU*g*h*(v>0?-1:1);return (v>0&&v+dv<0)||(v<0&&v+dv>0)?0:v+dv;};
+        if(stuck)v1=v2=fr(v1);else{v1=fr(v1);v2=fr(v2);}}
+      // velcro: the carts stick on contact
+      if(mode==='stick'&&!stuck&&v1>v2){var gp=(x2-w2/2)-(x1+w1/2);if(gp<=(v1-v2)*h){var vf=(m1*v1+m2*v2)/(m1+m2);x1+=v1*gp/(v1-v2);x2+=v2*gp/(v1-v2);v1=v2=vf;stuck=true;hitT=t;}}
+      x1+=v1*h;x2+=v2*h;
+    }
+    tRun+=dt0;
+    if(x1-w1/2<=0.02||x2+w2/2>=L-0.02||tRun>12||(tRun>0.5&&v1===0&&v2===0)){
+      x1=Math.max(w1/2+0.02,x1);x2=Math.min(L-w2/2-0.02,x2);st='done';_mbBtn('mc-run','↺ איפוס');}
   }
-  ['inp-mc-m1','inp-mc-m2','inp-mc-v1','inp-mc-v2'].forEach(function(sid){
-    var el=document.getElementById(sid);
-    if(el) el.addEventListener('input',readSliders);
-  });
-  var resetBtn=document.getElementById('btn-mc-reset');
-  if(resetBtn) resetBtn.addEventListener('click',function(){readSliders(); reset();});
-  readSliders();
 
-  var GND=Math.round(H*0.46);
-  var GRAPH_TOP=GND+34, GRAPH_H=H-GRAPH_TOP-8;
-
-  function getElastic(m1v,m2v,v1in,v2in){
-    return {
-      v1f:((m1v-m2v)*v1in+2*m2v*v2in)/(m1v+m2v),
-      v2f:(2*m1v*v1in+(m2v-m1v)*v2in)/(m1v+m2v)
-    };
-  }
-
+  var C1=['#60a5fa','#1d4ed8','#93c5fd'], C2=['#f87171','#b91c1c','#fca5a5'], WIN=6;
   function draw(ts){
-    if(_simStop[id]) return;
-    if(!pT) pT=ts;
-    var dt=Math.min((ts-pT)/1000, 0.04); pT=ts;
-    readSliders();
-
-    var r1=Math.max(16,m1*4.5);
-    var r2=Math.max(14,m2*4.5);
-    var approaching=v1i>v2i;
-
-    if(endT<0){
-      // sub-steps, so a fast pair cannot pass through each other in one frame
-      for(var k=0;k<4;k++){
-        var h=dt/4;
-        x1+=v1*h*PPS; x2+=v2*h*PPS;
-        if(state==='before'&&x1+r1>=x2-r2&&v1>v2){
-          var res=getElastic(m1,m2,v1,v2);
-          v1=res.v1f; v2=res.v2f;
-          var ov=x1+r1-(x2-r2); x1-=ov/2; x2+=ov/2;
-          state='after'; collTimer=0;
-        }
-      }
-      clock+=dt;
-      hist.push({t:clock,p1:m1*v1,p2:m2*v2});
-      while(hist.length&&clock-hist[0].t>WIN)hist.shift();
-      if(x1-r1<=6||x1+r1>=W-6||x2-r2<=6||x2+r2>=W-6){
-        x1=Math.max(r1+6,Math.min(W-r1-6,x1)); x2=Math.max(r2+6,Math.min(W-r2-6,x2));
-        endT=clock;
-      }
-    } else if(clock-endT>3.2){ reset(); }
-    else clock+=dt;
-    collTimer+=dt;
-
-    var p_before=m1*v1i+m2*v2i;
-    var p_now=m1*v1+m2*v2;
-
+    if(_simStop[id])return;
+    if(!pT)pT=ts; var dt=Math.min((ts-pT)/1000,0.04); pT=ts; t+=dt;
+    if(st==='run')step(dt);
+    var m1=M1(),m2=M2(),p1=m1*v1,p2=m2*v2,pN=p1+p2;
+    if(st==='run'){hist.push({t:tRun,a:p1,b:p2});while(hist.length&&tRun-hist[0].t>WIN)hist.shift();}
     simBg(ctx,W,H);
-    simGround(ctx,W,GND);
-
-    // ── Info banner
-    ctx.save();ctx.fillStyle='rgba(6,14,28,.92)';ctx.strokeStyle='#1e3a52';ctx.lineWidth=1;
-    ctx.beginPath();ctx.roundRect(10,8,W-20,52,6);ctx.fill();ctx.stroke();ctx.restore();
-    simText(ctx,'שימור תנע: על שני הגופים יחד אין כוח חיצוני אופקי',W/2,21,'#7d8da6',9,'center');
-    simText(ctx,'Σp לפני = '+p_before.toFixed(2)+' kg·m/s',W/2,35,'#fbbf24',10,'center',true);
-    simText(ctx,'Σp עכשיו = '+p_now.toFixed(2)+' kg·m/s'+(Math.abs(p_before-p_now)<0.01?'  ✅ נשמר':''),W/2,50,'#22d3ee',10,'center',true);
-
-    // ── Ball 1
-    var g1=ctx.createRadialGradient(x1-r1*0.3,GND-r1-r1*0.3,r1*0.08,x1,GND-r1,r1);
-    g1.addColorStop(0,'#bfdbfe'); g1.addColorStop(1,'rgba(29,78,216,.85)');
-    simCircle(ctx,x1,GND-r1,r1,g1,'#60a5fa',2);
-    simText(ctx,m1+' kg',x1,GND-r1+4,'#fff',9,undefined,true);
-    var cl=function(x){return Math.max(6,Math.min(W-6,x));}, cT=function(x){return Math.max(44,Math.min(W-44,x));};
-    simText(ctx,'v₁='+v1.toFixed(1)+' m/s',cT(x1),GND-r1*2-20,'#93c5fd',8.5,undefined,true);
-    if(Math.abs(v1)>0.2) simArrow(ctx,x1,GND-r1*2-7,cl(x1+v1*10),GND-r1*2-7,'#60a5fa',2.5,9);
-
-    // ── Ball 2
-    var g2=ctx.createRadialGradient(x2-r2*0.3,GND-r2-r2*0.3,r2*0.08,x2,GND-r2,r2);
-    g2.addColorStop(0,'#fecaca'); g2.addColorStop(1,'rgba(185,28,28,.85)');
-    simCircle(ctx,x2,GND-r2,r2,g2,'#f87171',2);
-    simText(ctx,m2+' kg',x2,GND-r2+4,'#fff',9,undefined,true);
-    simText(ctx,'v₂='+v2.toFixed(1)+' m/s',cT(x2),GND-r2*2-20,'#fca5a5',8.5,undefined,true);
-    if(Math.abs(v2)>0.2) simArrow(ctx,x2,GND-r2*2-7,cl(x2+v2*10),GND-r2*2-7,'#f87171',2.5,9);
-
-    // Collision flash
-    if(state==='after'&&collTimer<0.4){
-      var alpha=(0.4-collTimer)/0.4;
-      ctx.save();ctx.globalAlpha=alpha*0.6;
-      var gf=ctx.createRadialGradient((x1+x2)/2,GND-r1,0,(x1+x2)/2,GND-r1,26);
-      gf.addColorStop(0,'#fbbf24');gf.addColorStop(1,'transparent');
-      ctx.fillStyle=gf;ctx.beginPath();ctx.arc((x1+x2)/2,GND-r1,26,0,Math.PI*2);ctx.fill();ctx.restore();
-    }
-    var note=!approaching?'v₁ ≤ v₂: הגופים אינם מתקרבים זה לזה, ולכן לא יתנגשו':
-             (endT>=0?(state==='after'?'אחרי ההתנגשות: כל תנע לחוד השתנה — הסכום לא':'גוף הגיע לקצה — מתחילים מחדש'):'');
-    if(note) simText(ctx,note,W/2,GND+18,'#a78bfa',9,'center',true);
-
-    // ── p(t) graph: each momentum keeps its sign about a zero line
-    ctx.save();ctx.fillStyle='rgba(6,14,28,.78)';ctx.strokeStyle='#1e3a52';ctx.lineWidth=1;
-    ctx.beginPath();ctx.roundRect(12,GRAPH_TOP,W-24,GRAPH_H,4);ctx.fill();ctx.stroke();ctx.restore();
-    simText(ctx,'תנע לאורך זמן — p₁ (כחול), p₂ (אדום), Σp (צהוב)',W/2,GRAPH_TOP+11,'#7d8da6',8,'center');
-    var gL=40, gR=W-18, gMid=GRAPH_TOP+GRAPH_H/2+6, gAmp=GRAPH_H/2-16;
-    var pMax=Math.max(Math.abs(p_before),Math.abs(m1*v1i),Math.abs(m2*v2i),Math.abs(m1*v1),Math.abs(m2*v2),1)*1.1;
-    ctx.save();ctx.strokeStyle='rgba(255,255,255,.16)';ctx.lineWidth=1;ctx.setLineDash([3,5]);
-    ctx.beginPath();ctx.moveTo(gL,gMid);ctx.lineTo(gR,gMid);ctx.stroke();ctx.setLineDash([]);ctx.restore();
-    simText(ctx,'0',gL-6,gMid+3,'#7d8da6',8,'right');
-    simText(ctx,'+'+(pMax).toFixed(0),gL-6,gMid-gAmp+3,'#7d8da6',8,'right');
-    simText(ctx,'−'+(pMax).toFixed(0),gL-6,gMid+gAmp+3,'#7d8da6',8,'right');
-    simText(ctx,'t →',gR,gMid+gAmp+12,'#7d8da6',8,'right');
-    function curve(key,col,dash){
-      if(hist.length<2)return;
-      ctx.save();ctx.strokeStyle=col;ctx.lineWidth=2;if(dash)ctx.setLineDash([6,4]);
-      ctx.beginPath();
-      hist.forEach(function(q,i){
-        var px=gL+(q.t-hist[0].t)/WIN*(gR-gL);
-        var v=key==='s'?q.p1+q.p2:q[key];
-        var py=gMid-v/pMax*gAmp;
-        i===0?ctx.moveTo(px,py):ctx.lineTo(px,py);
-      });
-      ctx.stroke();ctx.restore();
-    }
-    curve('p1','#60a5fa');curve('p2','#f87171');curve('s','#fbbf24',true);
-
+    _mbTrack(ctx,TX0,TX1,TY,air);
+    var c1=TX0+x1*PPM, c2=TX0+x2*PPM, w1=wOf(m1)*PPM, w2=wOf(m2)*PPM;
+    // the spring between them (explosion) or the velcro pads (sticking)
+    if(mode==='boom'&&comp>0.002){var sx0=c1+w1/2,sx1=c2-w2/2;ctx.save();ctx.strokeStyle='#e2e8f0';ctx.lineWidth=1.6;ctx.beginPath();ctx.moveTo(sx0,TY-15);
+      for(var i=1;i<8;i++)ctx.lineTo(sx0+(sx1-sx0)*i/8,TY-15+(i%2?5:-5));ctx.lineTo(sx1,TY-15);ctx.stroke();ctx.restore();}
+    _mbCart(ctx,c1,TY,w1,C1,m1.toFixed(1)+' kg',mode==='stick'?'velcro':'');
+    _mbCart(ctx,c2,TY,w2,C2,m2.toFixed(1)+' kg',mode==='stick'?'velcro':'');
+    var vl=['v₁ = '+_mbS(v1,2)+' m/s','v₂ = '+_mbS(v2,2)+' m/s'];
+    var lx=_spread2(c1,labelW(ctx,vl[0],9.5)*1.1,c2,labelW(ctx,vl[1],9.5)*1.1,8,W);
+    [[c1,v1,'#93c5fd'],[c2,v2,'#fca5a5']].forEach(function(q,k){var y=TY-50;
+      if(Math.abs(q[1])>0.02)simArrow(ctx,q[0],y,Math.max(8,Math.min(W-8,q[0]+q[1]*13)),y,q[2],3,10);
+      simText(ctx,vl[k],lx[k],y-13,q[2],9.5,'center',true);});
+    simText(ctx,!air?'💨 האוויר כבוי: המסילה מפעילה חיכוך — כוח חיצוני':mode==='boom'?'פיצוץ: קפיץ דחוס בין שתי עגלות במנוחה':'הצמדה: העגלות נצמדות כשהן נוגעות',W/2,20,!air?'#fb923c':'#94a3b8',10,'center',true);
+    if(st==='set')simText(ctx,mode==='boom'?'💥 הקישו על המסילה או לחצו כדי לשחרר':'▶ הקישו על המסילה או לחצו כדי להתחיל',W/2,40,'#fbbf24',10,'center',true);
+    // p(t)
+    var GX=8,GY=TY+42,GW=W-16,GH=H-GY-8;
+    _mbCard(ctx,GX,GY,GW,GH);
+    simText(ctx,'תנע לאורך זמן: p₁ (כחול), p₂ (אדום), Σp (צהוב)',GX+GW/2,GY+15,'#cbd5e1',9.5,'center',true);
+    var gl=GX+40,gr=GX+GW-12,gm=GY+GH/2+8,ga=GH/2-26;
+    var pm=Math.max(1,Math.abs(p0),Math.abs(m1*U1()),Math.abs(m2*U2()),Math.sqrt(2*ES()*Math.max(m1,m2)))*1.15;
+    hist.forEach(function(q){pm=Math.max(pm,Math.abs(q.a)*1.08,Math.abs(q.b)*1.08);});
+    ctx.save();ctx.strokeStyle='rgba(148,163,184,.4)';ctx.setLineDash([3,5]);ctx.beginPath();ctx.moveTo(gl,gm);ctx.lineTo(gr,gm);ctx.stroke();ctx.restore();
+    simText(ctx,'0',gl-6,gm+3,'#7d8da6',8.5,'right');
+    simText(ctx,'+'+pm.toFixed(0),gl-6,gm-ga+3,'#7d8da6',8.5,'right');simText(ctx,'−'+pm.toFixed(0),gl-6,gm+ga+3,'#7d8da6',8.5,'right');
+    simText(ctx,'t →',gr,GY+GH-8,'#7d8da6',8.5,'right');
+    function curve(f,col,dash){if(hist.length<2)return;ctx.save();ctx.strokeStyle=col;ctx.lineWidth=2;if(dash)ctx.setLineDash([6,4]);ctx.beginPath();
+      hist.forEach(function(q,i){var X=gl+(q.t-hist[0].t)/WIN*(gr-gl),Y=gm-f(q)/pm*ga;i?ctx.lineTo(X,Y):ctx.moveTo(X,Y);});ctx.stroke();ctx.restore();}
+    curve(function(q){return q.a;},'#60a5fa');curve(function(q){return q.b;},'#f87171');curve(function(q){return q.a+q.b;},'#fbbf24',true);
+    simText(ctx,'Σp = '+_mbS(pN,2)+' kg·m/s',gr,GY+32,'#fbbf24',10,'right',true);
+    var out=st!=='set'&&(mode==='boom'?comp===0:true), ratio=0;
+    if(mode==='boom'&&out&&Math.abs(v1)>1e-6&&Math.abs(v2)>1e-6){var lt=m1<m2?v1:v2,hv=m1<m2?v2:v1;ratio=Math.abs(lt/hv);}
+    if(!air&&st!=='set')model('האוויר כבוי: החיכוך הוא כוח חיצוני על המערכת, ולכן Σp משתנה: '+kit.m('Σp = '+_mbS(p0,2)+' → '+_mbS(pN,2)+' kg·m/s'));
+    else if(mode==='boom')model('מערכת מבודדת: '+kit.m('Σp = m₁v₁ + m₂v₂ = '+m1.toFixed(1)+' × '+_mbP(v1,2)+' + '+m2.toFixed(1)+' × '+_mbP(v2,2)+' = '+_mbS(pN,2)+' kg·m/s')+' — כמו לפני השחרור');
+    else model('מערכת מבודדת: '+kit.m('Σp = '+m1.toFixed(1)+' × '+_mbP(v1,2)+' + '+m2.toFixed(1)+' × '+_mbP(v2,2)+' = '+_mbS(pN,2)+' kg·m/s')+(stuck?' — ואחרי ההיצמדות '+kit.m('v = Σp/(m₁+m₂) = '+_mbS(pN/(m1+m2),2)+' m/s'):''));
+    kit.check({mode:mode,out:out,ratio:ratio,stuck:stuck,m1:m1,m2:m2,u1:U1(),u2:U2(),air:air,p0:p0,pN:pN});
     requestAnimationFrame(draw);
   }
   requestAnimationFrame(draw);
 }
-
 
 // ─────────────────────────────────────────────────────────────
 // COLLISION: elastic vs inelastic, e coefficient
 // ─────────────────────────────────────────────────────────────
 function simCollision(canvas){
-  var H=520; var setup=setupCanvas(canvas,H); var ctx=setup.ctx; var W=setup.W;
-  var id=canvas.id;
-  var m1=3, m2=2, v1i=4, v2i=-2, e=1;
-  var pT=null, state='before', collTimer=0;
-  var x1, x2, v1, v2;
-  var p1Hist=[], p2Hist=[], pTotHist=[];
-  var MAX_HIST=240;
-  var stopped=false;
-  // px-per-(m/s)-per-second: controls visual speed
-  var PPS=18; // pixels per second per m/s
-
-  function reset(){
-    var r1=Math.max(16,m1*4.5), r2=Math.max(14,m2*4.5);
-    // Place balls so they approach each other but don't start overlapping
-    if(v1i>v2i){
-      // m1 on left approaching right, m2 on right
-      x1=W*0.18; x2=W*0.78;
-    } else {
-      // Both moving right (m2 faster) or m2 negative
-      x1=W*0.20; x2=W*0.72;
-    }
-    v1=v1i; v2=v2i;
-    state='before'; collTimer=0;
-    p1Hist=[]; p2Hist=[]; pTotHist=[];
-    stopped=false;
-  }
+  // SECTION: momentum.collision
+  // PEDAGOGY: momentum is conserved in every collision; kinetic energy only in
+  // an elastic one. Two gliders on an air track; set their velocities by
+  // dragging the arrows (or the sliders) and e from 0 (they stick) to 1
+  // (elastic). Bars, before and after: p₁, p₂, Σp (Σp never changes) and the
+  // kinetic energy stacked with the heat Q it turned into (the total never
+  // changes either: energy is converted, not used up). Exact contact time
+  // within a frame; v₁' = ((m₁−em₂)v₁ + (1+e)m₂v₂)/(m₁+m₂), and the mirror.
+  var cv0=setupCanvas(canvas,480), W=cv0.W, dpr=cv0.dpr, PH=W<520, H=PH?500:430, ctx=setupCanvas(canvas,H).ctx;
+  const id=canvas.id, L=10;                    // the track is 10 m long
+  var km=_skM;   // maths inside a kit text: one left-to-right run (= kit.m)
+  var TX0=26, TX1=W-26, PPM=(TX1-TX0)/L, TY=PH?150:156;
+  var st='set', x1, x2, v1, v2, hit=false, joined=false, pT=null, t=0, endMsg='', after=null;
+  function M1(){return _mbV('col-m1',3);} function M2(){return _mbV('col-m2',2);}
+  function U1(){return _mbV('col-v1',4);} function U2(){return _mbV('col-v2',-2);} function E(){return _mbV('col-e',1);}
+  function wOf(m){return Math.max(0.55+0.07*m,(46+3*m)/PPM);}   // cart length, m (wide enough for its label)
+  function reset(){x1=2.6;x2=7.4;v1=U1();v2=U2();hit=false;joined=false;st='set';after=null;endMsg='';}
   reset();
+  var kit=simKit(canvas,{missions:[
+    {text:'גרמו לשתי העגלות לעצור לגמרי אחרי ההתנגשות',
+     hint:'תנע כולל אפס לפני ההתנגשות, ועגלות שנצמדות ('+km('e = 0')+').',
+     why:km('Σp')+' לפני היה אפס, ולכן גם אחרי: כשהעגלות נצמדות הן נעות יחד ב־'+km('v = Σp/(m₁+m₂) = 0')+'. התנע לא ״אבד״ — הוא היה אפס מההתחלה. כל האנרגיה הקינטית הפכה לחום ולעיוות.',
+     done:function(s){return s.hit&&s.e<=0.01&&Math.abs(s.p0)<0.05&&s.K0>0.5&&Math.abs(s.v1)<0.02&&Math.abs(s.v2)<0.02;}},
+    {text:'כוונו את ההתנגשות כך שבדיוק חצי מהאנרגיה הקינטית יהפוך לחום',
+     hint:'נסו מסות שוות, אחת מהן במנוחה, ו־'+km('e = 0')+'.',
+     why:'מסות שוות, אחת במנוחה, ונצמדות: המהירות המשותפת '+km('v/2')+', ולכן '+km('Eₖ = ½(2m)(v/2)²')+' — חצי מההתחלה. באופן כללי מה שאובד הוא החלק '+km('(1−e²)')+' של אנרגיית התנועה היחסית, '+km('m₁m₂(v₁−v₂)²/(2(m₁+m₂))')+'.',
+     done:function(s){return s.hit&&s.K0>0.5&&Math.abs(s.K1/s.K0-0.5)<0.02;}},
+    {text:'גרמו לשתי העגלות להחליף ביניהן מהירויות',
+     hint:'התנגשות אלסטית ('+km('e = 1')+') של מסות שוות.',
+     why:'בהתנגשות אלסטית של מסות שוות, שימור התנע ושימור האנרגיה הקינטית יחד מותירים פתרון אחד: העגלות מחליפות מהירויות — כמו בעריסת ניוטון.',
+     done:function(s){return s.hit&&s.e>=0.99&&Math.abs(s.m1-s.m2)<1e-9&&Math.abs(s.u1-s.u2)>0.5&&Math.abs(s.v1-s.u2)<0.02&&Math.abs(s.v2-s.u1)<0.02;}}]});
+  var model=_mbModel(kit);
+  kit.predict({q:'שתי עגלות זהות נעות זו מול זו באותה מהירות, מתנגשות ונצמדות. מה נכון אחרי ההתנגשות?',
+    opts:['הן נעצרות, והתנע הכולל אבד בהתנגשות','הן נעצרות; התנע הכולל היה ונשאר אפס','הן חוזרות לאחור, כל אחת במהירותה'],correct:1,
+    why:'לפני ההתנגשות התנעים שווים בגודלם והפוכים בכיוונם, ולכן '+km('Σp = 0')+' — והוא נשאר אפס. מה שנעלם הוא האנרגיה הקינטית: היא הפכה לחום ולעיוות. תנע ואנרגיה קינטית הם שני חוקים נפרדים.'},
+    function(){simSyncSlider('col-m1',2,1);simSyncSlider('col-m2',2,1);simSyncSlider('col-v1',3,1);simSyncSlider('col-v2',-3,1);simSyncSlider('col-e',0,2);reset();setTimeout(run,300);});
 
-  function readSliders(){
-    var eS=document.getElementById('inp-col-e');
-    var m1S=document.getElementById('inp-col-m1');
-    var m2S=document.getElementById('inp-col-m2');
-    var v1S=document.getElementById('inp-col-v1');
-    var v2S=document.getElementById('inp-col-v2');
-    var changed=false;
-    if(eS){var nv=parseFloat(eS.value);if(nv!==e){e=nv;changed=true;}
-      var lb=document.getElementById('lbl-col-e');if(lb)lb.textContent=nv.toFixed(2);}
-    if(m1S){var nv2=parseFloat(m1S.value);if(nv2!==m1){m1=nv2;changed=true;}}
-    if(m2S){var nv3=parseFloat(m2S.value);if(nv3!==m2){m2=nv3;changed=true;}}
-    if(v1S){var nv4=parseFloat(v1S.value);if(nv4!==v1i){v1i=nv4;changed=true;}}
-    if(v2S){var nv5=parseFloat(v2S.value);if(nv5!==v2i){v2i=nv5;changed=true;}}
-    if(changed) reset();
+  var tRun=0;
+  function run(){if(st!=='set')return;v1=U1();v2=U2();st='run';tRun=0;
+    _mbBtn('col-run','⏹ איפוס');}
+  var rb=document.getElementById('btn-col-run');
+  if(rb)rb.addEventListener('click',function(){if(st==='set')run();else{reset();_mbBtn('col-run','▶ הפעילו');}});
+  var zb=document.getElementById('btn-col-reset');
+  if(zb)zb.addEventListener('click',function(){reset();_mbBtn('col-run','▶ הפעילו');});
+  ['col-m1','col-m2','col-v1','col-v2','col-e'].forEach(function(k){var e=document.getElementById('inp-'+k);
+    if(e)e.addEventListener('input',function(){reset();_mbBtn('col-run','▶ הפעילו');});});
+
+  function collide(){
+    var m1=M1(),m2=M2(),e=E(),a=v1,b=v2;
+    v1=((m1-e*m2)*a+(1+e)*m2*b)/(m1+m2);
+    v2=((m2-e*m1)*b+(1+e)*m1*a)/(m1+m2);
+    if(e<=0.01){joined=true;v1=v2=(m1*a+m2*b)/(m1+m2);}
+    hit=true;hitT=t;
   }
-  ['inp-col-e','inp-col-m1','inp-col-m2','inp-col-v1','inp-col-v2'].forEach(function(sid){
-    var el=document.getElementById(sid);
-    if(el) el.addEventListener('input',readSliders);
+  var hitT=-1;
+  function step(dt){
+    var w1=wOf(M1()),w2=wOf(M2());
+    var rem=dt;
+    if(!hit&&v1>v2){var gap=(x2-w2/2)-(x1+w1/2),tc=gap/(v1-v2);
+      if(tc<=rem){x1+=v1*tc;x2+=v2*tc;rem-=tc;collide();}}
+    x1+=v1*rem;x2+=v2*rem;
+    // the end stops are outside the system: the run ends before either is touched
+    if(x1-w1/2<=0||x2+w2/2>=L||x1+w1/2>=L||x2-w2/2<=0){
+      x1=Math.max(w1/2,Math.min(L-w1/2,x1));x2=Math.max(w2/2,Math.min(L-w2/2,x2));
+      st='done';_mbBtn('col-run','↺ שוב');endMsg=hit?'':'העגלות לא נפגשו: השנייה מהירה מהראשונה, או שהן מתרחקות';}
+    if(!hit&&v1<=v2&&st==='run'&&t>0)endMsg='העגלות לא ייפגשו: השנייה מהירה מהראשונה, או שהן מתרחקות';
+    // both at rest after the collision, or a very slow run: the experiment is over
+    tRun+=dt;
+    if(st==='run'&&((hit&&Math.abs(v1)<1e-6&&Math.abs(v2)<1e-6&&t-hitT>0.6)||tRun>14)){st='done';_mbBtn('col-run','↺ שוב');}
+  }
+  // drag the arrows (before the run) to set the velocities
+  var drag=null;
+  function arrowTip(k){var x=k===1?x1:x2,v=k===1?U1():U2();return {x:TX0+x*PPM+v*13,y:TY-52};}
+  simDrag(canvas,dpr,{
+    down:function(p){if(st!=='set')return;for(var k=1;k<=2;k++){var a=arrowTip(k);if(Math.hypot(p.x-a.x,p.y-a.y)<26){drag=k;return;}}
+      // a press on a glider itself: grab its arrow
+      for(var k2=1;k2<=2;k2++){var cx=TX0+(k2===1?x1:x2)*PPM;if(Math.abs(p.x-cx)<30&&p.y>TY-60&&p.y<TY+6){drag=k2;return;}}},
+    move:function(p){if(!drag)return;var cx=TX0+(drag===1?x1:x2)*PPM;
+      simSyncSlider(drag===1?'col-v1':'col-v2',Math.max(-8,Math.min(8,(p.x-cx)/13)),1);},
+    up:function(){drag=null;}
   });
-  var resetBtn=document.getElementById('btn-col-reset');
-  if(resetBtn) resetBtn.addEventListener('click',function(){readSliders(); reset();});
-  readSliders();
+  _mbKeys(canvas,{'Enter':function(){if(rb)rb.click();},' ':function(){if(rb)rb.click();},
+    'ArrowRight':function(){simSyncSlider('col-v1',U1()+0.5,1);},'ArrowLeft':function(){simSyncSlider('col-v1',U1()-0.5,1);}});
+  canvas._probe=function(){return {st:st,hit:hit,joined:joined,x1:x1,x2:x2,v1:v1,v2:v2,u1:U1(),u2:U2(),m1:M1(),m2:M2(),e:E(),clock:t};};
 
-  var GND=H-160;
-  var GRAPH_TOP=GND+18, GRAPH_H=H-GRAPH_TOP-10;
-
+  var C1=['#60a5fa','#1d4ed8','#93c5fd'], C2=['#f87171','#b91c1c','#fca5a5'];
   function draw(ts){
-    if(_simStop[id]) return;
-    if(!pT) pT=ts;
-    var dt=Math.min((ts-pT)/1000, 0.04); pT=ts;
-    readSliders();
-
-    var r1=Math.max(16,m1*4.5);
-    var r2=Math.max(14,m2*4.5);
-
-    if(!stopped){
-      // Sub-stepped integration prevents pass-through at high speeds
-      var _subN=4, _subDt=dt/_subN;
-      for(var _si2=0;_si2<_subN;_si2++){
-        x1+=v1*_subDt*PPS; x2+=v2*_subDt*PPS;
-        if(state==='before'&&x1+r1>=x2-r2){
-          if(v1>v2){
-            var v1f=((m1-e*m2)*v1+(1+e)*m2*v2)/(m1+m2);
-            var v2f=((m2-e*m1)*v2+(1+e)*m1*v1)/(m1+m2);
-            v1=v1f; v2=v2f; state='after'; collTimer=0;
-          }
-          var _ov=x1+r1-(x2-r2);
-          if(_ov>0){ x1-=_ov*0.5; x2+=_ov*0.5; }
-        }
-      }
-      collTimer+=dt;
-      // Wall collisions → STOP
-      if(x1<=r1+6 || x1>=W-r1-6 || x2<=r2+6 || x2>=W-r2-6){
-        stopped=true;
-      }
-    }
-
-    var p1_now=m1*v1, p2_now=m2*v2, pTot=p1_now+p2_now;
-    var ek_now=0.5*m1*v1*v1+0.5*m2*v2*v2;
-    var ek_before=0.5*m1*v1i*v1i+0.5*m2*v2i*v2i;
-    var p_before=m1*v1i+m2*v2i;
-
-    if(!stopped){
-      p1Hist.push(p1_now); p2Hist.push(p2_now); pTotHist.push(pTot);
-      if(p1Hist.length>MAX_HIST){p1Hist.shift();p2Hist.shift();pTotHist.shift();}
-    }
-
+    if(_simStop[id])return;
+    if(!pT)pT=ts; var dt=Math.min((ts-pT)/1000,0.04); pT=ts; t+=dt;
+    if(st==='set'){v1=U1();v2=U2();}
+    if(st==='run')step(dt);
+    var m1=M1(),m2=M2(),e=E(),u1=U1(),u2=U2();
+    var p0=m1*u1+m2*u2, K0=0.5*m1*u1*u1+0.5*m2*u2*u2, pN=m1*v1+m2*v2, KN=0.5*m1*v1*v1+0.5*m2*v2*v2, Q=Math.max(0,K0-KN);
     simBg(ctx,W,H);
-    simGround(ctx,W,GND);
-
-    // Type label banner
-    var typeLbl=e>=0.99?'התנגשות אלסטית לחלוטין (e=1)':e<=0.01?'התנגשות אי-אלסטית לחלוטין — הגופים נצמדים (e=0)':'התנגשות אי-אלסטית חלקית (e='+e.toFixed(2)+')';
-    var typeCol=e>=0.99?'#34d399':e<=0.01?'#f87171':'#f59e0b';
-    ctx.save();ctx.fillStyle='rgba(6,14,28,.92)';ctx.strokeStyle=typeCol+'55';ctx.lineWidth=1.5;
-    ctx.beginPath();ctx.roundRect(10,8,W-20,54,6);ctx.fill();ctx.stroke();ctx.restore();
-    simText(ctx,typeLbl,W/2,24,typeCol,10.5,'center',true);
-    simText(ctx,'תנע לפני = '+p_before.toFixed(2)+'   תנע עכשיו = '+pTot.toFixed(2)+' kg·m/s  '+(Math.abs(p_before-pTot)<0.3?'✅ שמור':'⚠'),W/2,39,'#22d3ee',9,'center',true);
-    simText(ctx,state==='before'?'E_k לפני ההתנגשות = '+ek_before.toFixed(1)+' J':
-      ('E_k: '+ek_before.toFixed(1)+' → '+ek_now.toFixed(1)+' J  '+(e>=0.99?'✅ נשמרה':'↓ '+(100*(1-ek_now/Math.max(ek_before,0.01))).toFixed(0)+'% הפכו לחום ולעיוות')),
-      W/2,53,(e>=0.99||state==='before')?'#34d399':'#f59e0b',8.5,'center',false);
-
-    // Ball 1
-    var g1=ctx.createRadialGradient(x1-r1*0.3,GND-r1-r1*0.3,r1*0.08,x1,GND-r1,r1);
-    g1.addColorStop(0,'#bfdbfe');g1.addColorStop(1,'rgba(29,78,216,.85)');
-    simCircle(ctx,x1,GND-r1,r1,g1,'#60a5fa',2);
-    simText(ctx,m1+' kg',x1,GND-r1+5,'#fff',9,undefined,true);
-    if(Math.abs(v1)>0.05){
-      var arLen1=v1*PPS*0.6;
-      simArrow(ctx,x1,GND-r1*2-10,x1+arLen1,GND-r1*2-10,'#60a5fa',2.5,9);
-    }
-    simText(ctx,'v₁='+v1.toFixed(2)+' m/s',x1,GND-r1*2-22,'#93c5fd',8,undefined,false);
-    simText(ctx,'p₁='+p1_now.toFixed(2),x1,GND-r1*2-34,'#60a5fa',7.5,undefined,false);
-
-    // Ball 2 (or merged)
-    if(e<=0.01&&state==='after'){
-      var mx2=(x1+x2)/2;
-      ctx.save();ctx.fillStyle='rgba(120,15,30,.75)';ctx.strokeStyle='#f87171';ctx.lineWidth=2;
-      ctx.beginPath();ctx.roundRect(mx2-r1-r2+4,GND-r1*2,r1*2+r2*2-8,r1*2,5);ctx.fill();ctx.stroke();ctx.restore();
-      simText(ctx,(m1+m2)+' kg',mx2,GND-r1+4,'#fff',9,undefined,true);
-      if(Math.abs(v1)>0.05){
-        var arLen0=v1*PPS*0.6;
-        simArrow(ctx,mx2,GND-r1*2-10,mx2+arLen0,GND-r1*2-10,'#f87171',2.5,9);
-      }
-    } else {
-      var g2=ctx.createRadialGradient(x2-r2*0.3,GND-r2-r2*0.3,r2*0.08,x2,GND-r2,r2);
-      g2.addColorStop(0,'#fecaca');g2.addColorStop(1,'rgba(185,28,28,.85)');
-      simCircle(ctx,x2,GND-r2,r2,g2,'#f87171',2);
-      simText(ctx,m2+' kg',x2,GND-r2+5,'#fff',9,undefined,true);
-      if(Math.abs(v2)>0.05){
-        var arLen2=v2*PPS*0.6;
-        simArrow(ctx,x2,GND-r2*2-10,x2+arLen2,GND-r2*2-10,'#f87171',2.5,9);
-      }
-      simText(ctx,'v₂='+v2.toFixed(2)+' m/s',x2,GND-r2*2-22,'#fca5a5',8,undefined,false);
-      simText(ctx,'p₂='+p2_now.toFixed(2),x2,GND-r2*2-34,'#f87171',7.5,undefined,false);
-    }
-
-    // Collision flash: core glow + expanding ring + radial sparks
-    if(state==='after'&&collTimer<0.35){
-      var alpha2=(0.35-collTimer)/0.35;
-      var fx2=(x1+x2)/2,fy2=GND-r1;
-      ctx.save();ctx.globalAlpha=alpha2*0.65;
-      var gf=ctx.createRadialGradient(fx2,fy2,0,fx2,fy2,32);
-      gf.addColorStop(0,'#fbbf24');gf.addColorStop(1,'transparent');
-      ctx.fillStyle=gf;ctx.beginPath();ctx.arc(fx2,fy2,32,0,Math.PI*2);ctx.fill();ctx.restore();
-      var ringR=10+collTimer*160;
-      ctx.save();ctx.globalAlpha=alpha2*0.8;
-      ctx.strokeStyle='#fde68a';ctx.lineWidth=Math.max(0.5,2.5*alpha2);
-      ctx.beginPath();ctx.arc(fx2,fy2,ringR,0,Math.PI*2);ctx.stroke();
-      ctx.strokeStyle='#fbbf24';ctx.lineWidth=1.6;
-      for(var si2=0;si2<8;si2++){
-        var sa=si2*Math.PI/4+0.4;
-        var sr1=12+collTimer*90,sr2=sr1+10+alpha2*14;
-        ctx.beginPath();ctx.moveTo(fx2+Math.cos(sa)*sr1,fy2+Math.sin(sa)*sr1);
-        ctx.lineTo(fx2+Math.cos(sa)*sr2,fy2+Math.sin(sa)*sr2);ctx.stroke();
-      }
-      ctx.restore();
-    }
-
-    // STOPPED banner
-    if(stopped){
-      ctx.save();ctx.fillStyle='rgba(239,68,68,.18)';ctx.strokeStyle='#f87171';ctx.lineWidth=1.5;
-      ctx.beginPath();ctx.roundRect(W/2-110,GND-58,220,30,5);ctx.fill();ctx.stroke();ctx.restore();
-      simText(ctx,'גוף הגיע לקצה — לחצו ↺ איפוס',W/2,GND-38,'#f87171',9.5,undefined,true);
-    }
-
-    // Momentum graph: p1 (blue), p2 (red), pTotal (yellow dashed)
-    var n=p1Hist.length;
-    if(n>1){
-      ctx.save();ctx.fillStyle='rgba(6,14,28,.82)';ctx.strokeStyle='#1e3a52';ctx.lineWidth=1;
-      ctx.beginPath();ctx.roundRect(12,GRAPH_TOP,W-24,GRAPH_H,4);ctx.fill();ctx.stroke();ctx.restore();
-      simText(ctx,'תנע: p₁ (כחול), p₂ (אדום), Σp (צהוב, מקווקו) — Σp קבוע',W/2,GRAPH_TOP+10,'#64748b',7.5,undefined,true);
-
-      // Compute y-scale to show all values including negative
-      var allVals=p1Hist.concat(p2Hist).concat(pTotHist);
-      var pMin2=Math.min.apply(null,allVals), pMax2=Math.max.apply(null,allVals);
-      var pRange2=Math.max(Math.abs(pMin2),Math.abs(pMax2),1)*2.4;
-      var midY=GRAPH_TOP+GRAPH_H/2;
-      // Zero line
-      ctx.save();ctx.strokeStyle='rgba(255,255,255,.12)';ctx.lineWidth=1;
-      ctx.beginPath();ctx.moveTo(14,midY);ctx.lineTo(W-14,midY);ctx.stroke();ctx.restore();
-      simText(ctx,'0',14,midY+3,'#7d8da6',6.5,'left');
-      // Labels sit AT the height of the value they name (they were pinned to
-      // the frame's top/bottom, which is ±1.2·max — so the axis misread p).
-      if(Math.abs(pMax2)>0.05)simText(ctx,pMax2.toFixed(1),14,midY-pMax2/pRange2*(GRAPH_H-28)+3,'#7d8da6',6.5,'left');
-      if(Math.abs(pMin2)>0.05)simText(ctx,pMin2.toFixed(1),14,midY-pMin2/pRange2*(GRAPH_H-28)+3,'#7d8da6',6.5,'left');
-
-      function plotMomentum(hist,col,dash){
-        ctx.save();ctx.strokeStyle=col;ctx.lineWidth=2;
-        if(dash)ctx.setLineDash([5,4]);
-        ctx.beginPath();
-        for(var i=0;i<hist.length;i++){
-          var px3=14+(W-28)*i/(MAX_HIST-1);
-          var py3=midY-hist[i]/pRange2*(GRAPH_H-28);
-          i===0?ctx.moveTo(px3,py3):ctx.lineTo(px3,py3);
-        }
-        ctx.stroke();ctx.setLineDash([]);ctx.restore();
-      }
-      plotMomentum(p1Hist,'#60a5fa',false);
-      plotMomentum(p2Hist,'#f87171',false);
-      plotMomentum(pTotHist,'#fbbf24',true);
-
-      // Live legend
-      var LX=W-18,LY=GRAPH_TOP+30;
-      ctx.save();ctx.fillStyle='rgba(6,14,28,.8)';
-      ctx.beginPath();ctx.roundRect(LX-86,LY-11,88,56,3);ctx.fill();ctx.restore();
-      simText(ctx,'p₁ ='+p1_now.toFixed(2),LX-4,LY,'#60a5fa',7.5,'right');
-      simText(ctx,'p₂ ='+p2_now.toFixed(2),LX-4,LY+16,'#f87171',7.5,'right');
-      simText(ctx,'Σp ='+pTot.toFixed(2),LX-4,LY+32,'#fbbf24',7.5,'right');
-    } else {
-      ctx.save();ctx.fillStyle='rgba(6,14,28,.82)';ctx.strokeStyle='#1e3a52';ctx.lineWidth=1;
-      ctx.beginPath();ctx.roundRect(12,GRAPH_TOP,W-24,GRAPH_H,4);ctx.fill();ctx.stroke();ctx.restore();
-      simText(ctx,'גרף תנע יופיע כשהגופים זעים',W/2,GRAPH_TOP+GRAPH_H/2,'#7d8da6',9,undefined,true);
-    }
-
+    _mbTrack(ctx,TX0,TX1,TY,true);
+    for(var xm=0;xm<=L;xm+=2)simText(ctx,xm+' m',TX0+xm*PPM,TY+26,'#64748b',8.5,'center');
+    var kind=e>=0.5?'spring':e<=0.01?'velcro':'';
+    var c1=TX0+x1*PPM, c2=TX0+x2*PPM, w1=wOf(m1)*PPM, w2=wOf(m2)*PPM;
+    _mbCart(ctx,c1,TY,w1,C1,m1.toFixed(1)+' kg',kind);
+    _mbCart(ctx,c2,TY,w2,C2,m2.toFixed(1)+' kg',kind);
+    if(hit&&t-hitT<0.35){var a=(0.35-(t-hitT))/0.35,fx=(c1+w1/2+c2-w2/2)/2;ctx.save();ctx.globalAlpha=a;ctx.strokeStyle='#fde68a';ctx.lineWidth=2.5;
+      ctx.beginPath();ctx.arc(fx,TY-15,10+(1-a)*26,0,6.2832);ctx.stroke();ctx.restore();}
+    // velocity arrows over the gliders (drawn at 13 px per m/s); handles before the run
+    var vl=['v₁ = '+_mbS(v1,2)+' m/s','v₂ = '+_mbS(v2,2)+' m/s'];
+    var lx=_spread2(c1,labelW(ctx,vl[0],9.5)*1.1,c2,labelW(ctx,vl[1],9.5)*1.1,8,W);
+    [[c1,v1,'#93c5fd'],[c2,v2,'#fca5a5']].forEach(function(q,k){
+      var y=TY-52;
+      if(Math.abs(q[1])>0.05)simArrow(ctx,q[0],y,Math.max(8,Math.min(W-8,q[0]+q[1]*13)),y,q[2],3,10);
+      else{ctx.fillStyle=q[2];ctx.beginPath();ctx.arc(q[0],y,3,0,6.2832);ctx.fill();}
+      simText(ctx,vl[k],lx[k],y-14,q[2],9.5,'center',true);
+      if(st==='set')simHandle(ctx,q[0]+q[1]*13,y,q[2],13);
+    });
+    if(st==='set'&&t<10)simText(ctx,'✋ גררו את חיצי המהירות, ואז ▶',W/2,22,'#fbbf24',10,'center',true);
+    else if(endMsg)simText(ctx,endMsg,W/2,22,'#fbbf24',10,'center',true);
+    else simText(ctx,e>=0.99?'התנגשות אלסטית: e = 1':e<=0.01?'התנגשות פלסטית — העגלות נצמדות: e = 0':'התנגשות אי־אלסטית חלקית: e = '+e.toFixed(2),W/2,22,e>=0.99?'#34d399':e<=0.01?'#f87171':'#fbbf24',10,'center',true);
+    // the bars, before and after (live during the run)
+    var bx=8, by=TY+40, bh=H-by-8, bw=(W-24)/2;
+    var pm=Math.max(Math.abs(m1*u1),Math.abs(m2*u2),Math.abs(p0),Math.abs(m1*v1),Math.abs(m2*v2),1);
+    var sp=hit||st==='done';
+    _mbBars(ctx,{x:bx,y:by,w:bw,h:bh},[
+      {name:'לפני',bars:[{v:m1*u1,col:'#3b82f6',lbl:'p₁'},{v:m2*u2,col:'#ef4444',lbl:'p₂'},{v:p0,col:'#fbbf24',lbl:'Σp'}]},
+      {name:sp?'אחרי':'עכשיו',bars:[{v:m1*v1,col:'#3b82f6',lbl:'p₁'},{v:m2*v2,col:'#ef4444',lbl:'p₂'},{v:pN,col:'#fbbf24',lbl:'Σp'}]}],
+      {signed:true,max:pm,title:'תנע (kg·m/s): Σp = '+_mbS(p0,1)+' → '+_mbS(pN,1)});
+    _mbBars(ctx,{x:bx+bw+8,y:by,w:bw,h:bh},[
+      {name:'לפני',bars:[{v:0.5*m1*u1*u1,col:'#3b82f6'},{v:0.5*m2*u2*u2,col:'#ef4444'}],total:K0.toFixed(1)+' J'},
+      {name:sp?'אחרי':'עכשיו',bars:[{v:0.5*m1*v1*v1,col:'#3b82f6'},{v:0.5*m2*v2*v2,col:'#ef4444'},{v:Q,col:'#fb923c'}],total:(KN+Q).toFixed(1)+' J'}],
+      {stack:true,key:[['#3b82f6','Eₖ₁'],['#ef4444','Eₖ₂'],['#fb923c','Q']],max:Math.max(K0,1)*1.18,title:'אנרגיה (J): Eₖ = '+K0.toFixed(1)+' → '+KN.toFixed(1)+(Q>0.05?' + Q = '+Q.toFixed(1):'')});
+    if(!hit)model('לפני ההתנגשות: '+kit.m('Σp = m₁v₁ + m₂v₂ = '+m1.toFixed(1)+' × '+_mbP(u1,1)+' + '+m2.toFixed(1)+' × '+_mbP(u2,1)+' = '+_mbS(p0,2)+' kg·m/s')+',  '+kit.m('Eₖ = '+K0.toFixed(2)+' J'));
+    else if(e>=0.99)model('אחרי: '+kit.m('Σp = '+m1.toFixed(1)+' × '+_mbP(v1,2)+' + '+m2.toFixed(1)+' × '+_mbP(v2,2)+' = '+_mbS(pN,2)+' kg·m/s')+' — התנע נשמר, וגם '+kit.m('Eₖ = '+KN.toFixed(2)+' J')+' נשמרה: התנגשות אלסטית.');
+    else model('אחרי: '+kit.m('Σp = '+_mbS(pN,2)+' kg·m/s')+' — התנע נשמר; אבל '+kit.m('Eₖ: '+K0.toFixed(2)+' → '+KN.toFixed(2)+' J')+', ו־'+kit.m('Q = '+Q.toFixed(2)+' J')+' הפכו לחום ולעיוות.');
+    kit.check({hit:hit&&st!=='set',e:e,p0:p0,K0:K0,K1:KN,v1:v1,v2:v2,u1:u1,u2:u2,m1:m1,m2:m2});
     requestAnimationFrame(draw);
   }
   requestAnimationFrame(draw);
 }
-
 
 // ─────────────────────────────────────────────────────────────
 // ENERGY: roller coaster track
@@ -14274,6 +14216,7 @@ function simStaticFriction(canvas){
   var cv0=setupCanvas(canvas,470), W=cv0.W, dpr=cv0.dpr;
   var WIDE=W>=640, H=WIDE?400:470, ctx=WIDE?setupCanvas(canvas,H).ctx:cv0.ctx;
   const id=canvas.id, g=9.8, KMU=0.75;
+  var km=_skM;   // maths inside a kit text: one left-to-right run (= kit.m)
   // layout: the scene, and the f–F graph beside it (wide) or under it (phone)
   var SW=WIDE?Math.round(W*0.56):W, SH=WIDE?H:250;
   var GX=WIDE?SW+10:10, GY=WIDE?14:SH+8, GW=WIDE?W-SW-20:W-20, GH=WIDE?H-28:H-SH-16;
@@ -14296,15 +14239,15 @@ function simStaticFriction(canvas){
   var kit=simKit(canvas,{missions:[
     {text:'מצאו את הדחיפה החזקה ביותר שעדיין אינה מזיזה את הארגז',
      hint:'הגדילו את F לאט ועקבו אחרי הגרף: החיכוך עולה יחד עם הדחיפה — עד תקרה.',
-     why:'החיכוך הסטטי שווה לדחיפה בדיוק, ולכן הוא גדל איתה עד התקרה μₛN. רק ברגע השבירה הוא μₛN; בכל דחיפה חלשה יותר הוא חלש יותר — ובלי דחיפה אין חיכוך בכלל.',
+     why:'החיכוך הסטטי שווה לדחיפה בדיוק, ולכן הוא גדל איתה עד התקרה '+km('μₛN')+'. רק ברגע השבירה הוא '+km('μₛN')+'; בכל דחיפה חלשה יותר הוא חלש יותר — ובלי דחיפה אין חיכוך בכלל.',
      done:function(s){return s.scene==='push'&&!s.sliding&&s.F>=s.fsmax-1&&s.F<=s.fsmax;}},
     {text:'הזיזו את הארגז, ואז הקטינו את הדחיפה כך שימשיך להחליק במהירות קבועה',
-     hint:'כשהארגז מחליק החיכוך קטן ל־μₖN. דחיפה שווה לו בדיוק נותנת שקול אפס.',
-     why:'בהחלקה החיכוך הוא μₖN — קטן מ־μₛN שנדרש כדי להתחיל. דחיפה שווה ל־μₖN נותנת ΣF = 0, ולכן מהירות קבועה: לא צריך כוח ״כדי לנוע״, רק כדי לאזן את החיכוך.',
+     hint:'כשהארגז מחליק החיכוך קטן ל־'+km('μₖN')+'. דחיפה שווה לו בדיוק נותנת שקול אפס.',
+     why:'בהחלקה החיכוך הוא '+km('μₖN')+' — קטן מ־'+km('μₛN')+' שנדרש כדי להתחיל. דחיפה שווה ל־'+km('μₖN')+' נותנת '+km('ΣF = 0')+', ולכן מהירות קבועה: לא צריך כוח ״כדי לנוע״, רק כדי לאזן את החיכוך.',
      done:function(s){return s.scene==='push'&&s.steady;}},
     {text:'במשאית: מצאו את התאוצה הגדולה ביותר שבה הארגז עוד נוסע איתה בלי להחליק',
-     hint:'הכוח היחיד שמאיץ את הארגז הוא החיכוך: ma ≤ μₛmg. איזו תאוצה זו?',
-     why:'החיכוך הסטטי מושך את הארגז קדימה — בכיוון התנועה! — ונותן לו את תאוצת המשאית: f = ma ≤ μₛmg, ולכן a ≤ μₛg. המסה מצטמצמת: ארגז כבד וקל מחליקים באותה תאוצה.',
+     hint:'הכוח היחיד שמאיץ את הארגז הוא החיכוך: '+km('ma ≤ μₛmg')+'. איזו תאוצה זו?',
+     why:'החיכוך הסטטי מושך את הארגז קדימה — בכיוון התנועה! — ונותן לו את תאוצת המשאית: '+km('f = ma ≤ μₛmg')+', ולכן '+km('a ≤ μₛg')+'. המסה מצטמצמת: ארגז כבד וקל מחליקים באותה תאוצה.',
      done:function(s){return s.scene==='truck'&&s.stick&&!s.wall&&s.vt>0.2&&s.A>0&&s.A>=s.mug-0.25&&s.A<=s.mug;}},
     {text:'בלמו בחוזקה, עד שהארגז מחליק קדימה על המשטח',
      hint:'הזיזו את המחוון של תאוצת המשאית לערך שלילי גדול, בזמן שהמשאית נוסעת.',
@@ -15306,6 +15249,7 @@ function simProjectile(canvas){
   // landing at the root of y(t) = 0, so R and t are exact.
   var cv0=setupCanvas(canvas,470), W=cv0.W, dpr=cv0.dpr, H=W<480?400:470, ctx=W<480?setupCanvas(canvas,H).ctx:cv0.ctx;
   const id=canvas.id, g=9.8;
+  var km=_skM;   // maths inside a kit text: one left-to-right run (= kit.m)
   var LX=W<480?62:74, GY=H-40;               // the tower's foot on the screen, the ground line
   var pT=null, t=0;
   var fly=false, shot=null, trail=[], ghosts=[], twin=null, landT=-1, aim=false, aimed=false;
@@ -15327,14 +15271,14 @@ function simProjectile(canvas){
   var kit=simKit(canvas,{missions:[
     {text:'פגעו במטרה 🎯',
      hint:'משכו מהתותח הרחק ממנו: כיוון המשיכה הוא הזווית, האורך הוא המהירות. הקו המקווקו מראה לאן תנחת הירייה.',
-     why:'הטווח נקבע משתי תנועות נפרדות: זמן המעוף נקבע בתנועה האנכית בלבד (v₀sinθ, h ו־g), ובזמן הזה הכדור מתקדם במהירות אופקית קבועה v₀cosθ. R = v₀cosθ · t.',
+     why:'הטווח נקבע משתי תנועות נפרדות: זמן המעוף נקבע בתנועה האנכית בלבד ('+km('v₀sinθ')+', h ו־g), ובזמן הזה הכדור מתקדם במהירות אופקית קבועה '+km('v₀cosθ')+'. '+km('R = v₀cosθ · t')+'.',
      done:function(s){return s.hits>0;}},
     {text:'פגעו באותה מטרה פעמיים, בשתי זוויות שונות',
-     hint:'מהקרקע (h = 0), זוויות שסכומן 90° נותנות אותו טווח: למשל 30° ו־60°, באותה v₀.',
-     why:'מהקרקע R = v₀²sin2θ/g, ו־sin2θ = sin(180° − 2θ): הזוויות θ ו־90° − θ נותנות אותו טווח. הזווית הגבוהה עולה גבוה יותר ושוהה באוויר זמן רב יותר — אבל מתקדמת לאט יותר.',
+     hint:'מהקרקע ('+km('h = 0')+'), זוויות שסכומן '+km('90°')+' נותנות אותו טווח: למשל '+km('30°')+' ו־'+km('60°')+', באותה '+km('v₀')+'.',
+     why:'מהקרקע '+km('R = v₀²sin2θ/g')+', ו־'+km('sin2θ = sin(180° − 2θ)')+': הזוויות θ ו־'+km('90° − θ')+' נותנות אותו טווח. הזווית הגבוהה עולה גבוה יותר ושוהה באוויר זמן רב יותר — אבל מתקדמת לאט יותר.',
      done:function(s){return s.twoAng;}},
     {text:'מראש המגדל, ירו אופקית לצד כדור שמשמיטים באותו רגע — ובדקו מי נוחת ראשון',
-     hint:'קבעו θ = 0° וגובה מגדל של 10 m או יותר, והפעילו את ״👥 כדור מושמט״.',
+     hint:'קבעו '+km('θ = 0°')+' וגובה מגדל של '+km('10 m')+' או יותר, והפעילו את ״👥 כדור מושמט״.',
      why:'שניהם נוחתים יחד: לשניהם אין מהירות אנכית התחלתית, ו־g מאיצה את שניהם כלפי מטה באותה מידה. המהירות האופקית אינה משנה את הנפילה — שתי התנועות בלתי תלויות.',
      done:function(s){return s.sameT;}}]});
   var model=_mbModel(kit);
@@ -16149,6 +16093,7 @@ function simCircular(canvas){
   var cv0=setupCanvas(canvas,480), W=cv0.W, dpr=cv0.dpr;
   var PH=W<480, H=PH?500:480, ctx=PH?setupCanvas(canvas,H).ctx:cv0.ctx;
   const id=canvas.id;
+  var km=_skM;   // maths inside a kit text: one left-to-right run (= kit.m)
   var CX=W/2, CY=H/2+(PH?6:0);
   var S=(Math.min(W/2,H/2)-34)/3.15;          // px per metre: the 3 m circle and its arrows fit
   var PR=13;                                  // puck radius, px
@@ -16181,12 +16126,12 @@ function simCircular(canvas){
      why:'ברגע הגזירה השקול מתאפס, ולכן — לפי החוק הראשון — הדיסקית ממשיכה בקו ישר במהירות שהייתה לה, בכיוון המשיק. שום כוח לא ״זרק״ אותה החוצה; החוט רק הפסיק למשוך פנימה.',
      done:function(s){return s.hits>0;}},
     {text:'הכפילו את המהירות בלי לשנות את R ואת m, וראו פי כמה גדל כוח החוט',
-     hint:'קבעו מהירות כלשהי, למשל 2 m/s, ואז הזיזו רק את המחוון של v ל־4 m/s.',
-     why:'F = mv²/R: המהירות מופיעה בריבוע, ולכן מהירות כפולה דורשת כוח פי 4. לכן פנייה במהירות כפולה דורשת מהצמיגים חיכוך פי 4.',
+     hint:'קבעו מהירות כלשהי, למשל '+km('2 m/s')+', ואז הזיזו רק את המחוון של v ל־'+km('4 m/s')+'.',
+     why:km('F = mv²/R')+': המהירות מופיעה בריבוע, ולכן מהירות כפולה דורשת כוח פי 4. לכן פנייה במהירות כפולה דורשת מהצמיגים חיכוך פי 4.',
      done:function(s){return s.twoV;}},
     {text:'כוונו את המעגל כך שהקפה אחת תימשך בדיוק 2 שניות',
-     hint:'בהקפה אחת הדיסקית עוברת את היקף המעגל: T = 2πR/v. למשל, ב־R = 1.6 m צריך v ≈ 5.0 m/s.',
-     why:'T = 2πR/v: באותו זמן מחזור, מעגל כפול ברדיוסו דורש מהירות כפולה — ואז גם התאוצה v²/R כפולה.',
+     hint:'בהקפה אחת הדיסקית עוברת את היקף המעגל: '+km('T = 2πR/v')+'. למשל, ב־'+km('R = 1.6 m')+' צריך '+km('v ≈ 5.0 m/s')+'.',
+     why:km('T = 2πR/v')+': באותו זמן מחזור, מעגל כפול ברדיוסו דורש מהירות כפולה — ואז גם התאוצה '+km('v²/R')+' כפולה.',
      done:function(s){return !s.cut&&Math.abs(s.T-2)<0.03;}}]});
   var model=_mbModel(kit);
   var PRED={q:'הדיסקית מסתובבת, והחוט נגזר ברגע זה. באיזה מסלול היא תנוע?',
@@ -34939,8 +34884,8 @@ function buildSim(sim){
   else if(sim.type==='tension')extra=C(rng('ten-m1',0.5,12,3,0.5,'m₁ אטווד',' kg')+rng('ten-m2',0.5,12,5,0.5,'m₂ אטווד',' kg')+rng('ten-el',0.5,5,3,0.5,'מסת הגוף במעלית',' kg')+rng('ten-ea',-5,5,0,0.5,'תאוצת המעלית',' m/s²')+btn('ten-launch','▶ שחררו!')+btn('ten-reset','↺ איפוס','btn-secondary'));
   else if(sim.type==='fbd')extra=C(rng('fbd-F',-10,25,0,0.5,'כוח נוסף על הגוף (+ מעלה)',' N')+btn('fbd-reset','↺ נקו הכול','btn-secondary'));
   else if(sim.type==='momentum')extra=C(rng('mom-mass',0.5,8,2,0.5,'מסה',' kg')+rng('mom-vel',-10,10,4,1,'מהירות',' m/s'));
-  else if(sim.type==='momentum-cons')extra=C(rng('mc-m1',1,8,3,0.5,'m₁',' kg','_fmtKg1')+rng('mc-m2',1,8,2,0.5,'m₂',' kg','_fmtKg1')+rng('mc-v1',-8,8,4,1,'v₁',' m/s','_fmtMs1')+rng('mc-v2',-8,8,-2,1,'v₂',' m/s','_fmtMs1')+btn('mc-reset','↺ איפוס','btn-secondary'));
-  else if(sim.type==='collision')extra=C(rng('col-e',0,1,1,0.05,'מקדם התקומה e (0 נצמדים, 1 אלסטית)')+rng('col-m1',1,8,3,0.5,'m₁',' kg')+rng('col-m2',1,8,2,0.5,'m₂',' kg')+rng('col-v1',0,8,4,0.5,'v₁ התחלתית',' m/s')+rng('col-v2',-8,0,-2,0.5,'v₂ התחלתית',' m/s')+btn('col-reset','↺ איפוס','btn-secondary'));
+  else if(sim.type==='momentum-cons')extra=C(rng('mc-m1',1,8,3,0.5,'m₁',' kg','_fmtKg1')+rng('mc-m2',1,8,1.5,0.5,'m₂',' kg','_fmtKg1')+rng('mc-v1',-8,8,6,1,'v₁',' m/s','_fmtMs1')+rng('mc-v2',-8,8,-2,1,'v₂',' m/s','_fmtMs1')+rng('mc-E',2,40,12,1,'אנרגיית הקפיץ',' J')+btn('mc-run','💥 שחררו את הקפיץ','btn-primary')+btn('mc-mode','🧲 הצמדה','btn-secondary')+btn('mc-air','💨 אוויר: מופעל','btn-secondary'));
+  else if(sim.type==='collision')extra=C(rng('col-e',0,1,1,0.05,'מקדם התקומה e (0 נצמדות, 1 אלסטית)')+rng('col-m1',1,8,3,0.5,'m₁',' kg')+rng('col-m2',1,8,2,0.5,'m₂',' kg')+rng('col-v1',-8,8,4,0.5,'v₁ התחלתית',' m/s')+rng('col-v2',-8,8,-2,0.5,'v₂ התחלתית',' m/s')+btn('col-run','▶ הפעילו','btn-primary')+btn('col-reset','↺ איפוס','btn-secondary'));
   else if(sim.type==='energy-kinetic')extra=C(rng('ek-F',2,50,10,1,'כוח F',' N')+rng('ek-m',0.5,10,2,0.5,'מסה m',' kg')+btn('ek-launch','▶ הפעילו!','btn-primary')+btn('ek-reset','↺ איפוס','btn-secondary'));
   else if(sim.type==='energy-potential')extra=C(rng('ep-m',0.5,8,2,0.5,'מסה m',' kg')+rng('ep-g',1.6,25,9.8,0.2,'g',' m/s²')+btn('ep-elastic','⚡ אנרגיה אלסטית','btn-secondary')+btn('ep-reset','↺ איפוס','btn-secondary'));
   else if(sim.type==='energy')extra=C(rng('energy-m',0.5,4,1,0.5,'מסה m',' kg')+rng('energy-mu',0,0.1,0,0.005,'מקדם חיכוך μ','')+btn('energy-reset','↺ איפוס','btn-secondary'));
