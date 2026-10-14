@@ -10199,7 +10199,7 @@ function simKit(canvas,spec){
     Q.hidden=false;Q.setAttribute('role','group');Q.setAttribute('aria-labelledby','sk-q'+uid);
     var eb=el('div','sk-eyebrow');eb.textContent='🤔 תחזית';
     var qq=el('div','sk-pq',p.q);qq.id='sk-q'+uid;
-    var o=el('div','sk-po'),a=el('div','sk-pa');a.hidden=true;a.setAttribute('aria-live','polite');
+    var o=el('div','sk-po'),a=el('div','sk-pa');a.hidden=true;
     Q.appendChild(eb);Q.appendChild(qq);Q.appendChild(o);Q.appendChild(a);
     var bs=p.opts.map(function(t,i){
       var b=el('button','sk-opt'),k=el('span','sk-mk');b.type='button';k.setAttribute('aria-hidden','true');
@@ -10214,7 +10214,7 @@ function simKit(canvas,spec){
           x.firstChild.textContent=r?'✓':w?'✗':'';x.setAttribute('aria-disabled','true');
           if(j===i)x.setAttribute('aria-pressed','true');});
         a.hidden=false;
-        a.innerHTML=(ok?'<b class="sk-ok">✓ נכון.</b> ':'<b class="sk-no">✗ לא בדיוק.</b> ')+(p.why||'');fx(a);
+        a.innerHTML=(ok?'<b class="sk-ok">✓ נכון.</b> ':'<b class="sk-no">✗ לא בדיוק.</b> ')+(p.why||'');fx(a);_say(a.innerHTML);
         if(cb)cb(i,ok);
       });
       o.appendChild(b);return b;
@@ -20682,11 +20682,13 @@ function simOptColorMix(canvas){
   function focusRing(x,y,r){ctx.save();ctx.setLineDash([4,3]);ctx.lineWidth=2;ctx.strokeStyle='#22d3ee';ctx.beginPath();ctx.arc(x,y,r,0,6.2832);ctx.stroke();ctx.restore();}
   function caption(t){ctx.save();simText(ctx,t,rtl?S.x+S.w-12:S.x+12,S.y+20,'#94a3b8',10,rtl?'right':'left');ctx.restore();}
   function stageHint(t){
-    if(tried[mode])return;
+    // with the keyboard on the canvas: how the keys work, instead
+    if(hasFocus()&&kbd)t='חצים: הזזה · Enter: הפריט הבא · Shift: צעד גדול';
+    else if(tried[mode])return;
     ctx.save();ctx.font='11px Heebo';var w=ctx.measureText(_mathIso(t)).width+22,y=mode==='obj'?S.y+66:mode==='sub'?BOX.y+BOX.h-18:S.y+S.h-16;
     ctx.fillStyle='rgba(4,9,20,.78)';rr(cx0-w/2,y-12,w,22,11);ctx.fill();
     simText(ctx,t,cx0,y+3,'#fde68a',11);ctx.restore();}
-  var hasFocus=function(){return document.activeElement===canvas;};
+  var hasFocus=function(){return document.activeElement===canvas;},kbd=false;
   // ── the three stages ──
   function drawAdd(sm0){
     ctx.save();rr(S.x,S.y,S.w,S.h,12);ctx.clip();
@@ -20752,7 +20754,9 @@ function simOptColorMix(canvas){
       if(i===1){ctx.moveTo(o.x+ow*.14,o.y+oh*.9);ctx.quadraticCurveTo(o.x+ow*.5,o.y+oh*.5,o.x+ow*.9,o.y+oh*.1);ctx.moveTo(o.x+ow*.1,o.y+oh*.92);ctx.lineTo(o.x+ow*.02,o.y+oh*1.02);}
       if(i===2){ctx.moveTo(o.x+ow*.72,o.y+oh*.06);ctx.lineTo(o.x+ow*.72,o.y+oh*.2);ctx.lineTo(o.x+ow*.86,o.y+oh*.2);}
       ctx.stroke();ctx.restore();
-      ctx.save();halo(true);simText(ctx,ONM[i],o.cx,o.y+oh+20,'#e2e8f0',11,'center',true);ctx.restore();}
+      // the name on a small dark tag: the table under it can be any colour
+      ctx.save();var nw2=labelW(ctx,ONM[i],11)*1.08+16;ctx.fillStyle='rgba(4,9,20,.72)';rr(o.cx-nw2/2,o.y+oh+8,nw2,18,9);ctx.fill();
+      simText(ctx,ONM[i],o.cx,o.y+oh+21,'#f1f5f9',11,'center',true);ctx.restore();}
   }
   // ── the eye's panel: swatch and name, the spectrum, the three cones ──
   // the spectrum keeps one scale per mode, so a dimmer light draws lower:
@@ -20947,12 +20951,15 @@ function simOptColorMix(canvas){
   canvas.addEventListener('mousemove',function(e){if(drag)return;var p=simPointerXY(canvas,R.dpr,e);
     canvas.style.cursor=pick(p)?'grab':(p.x>=S.x&&p.x<=S.x+S.w&&p.y>=S.y&&p.y<=S.y+S.h?'crosshair':'default');});
   kit.keys(function(e){
-    var hs=handles(),k=e.key;
+    var hs=handles(),k=e.key;if(k!=='Tab'&&k!=='Shift'){if(!kbd)dirty=true;kbd=true;}
     if(k==='Enter'||k===' '){sel=(sel+1)%hs.length;kit.say('נבחר: '+selName());dirty=true;return true;}
     if(k==='Escape'){if(sel===0)return false;sel=0;kit.say('נבחר: '+selName());dirty=true;return true;}
     var st=e.shiftKey?24:6,d={ArrowLeft:[-st,0],ArrowRight:[st,0],ArrowUp:[0,-st],ArrowDown:[0,st]}[k];
     if(!d)return false;
     var t=hs[Math.min(sel,hs.length-1)],q=clampP({x:t.x+d[0],y:t.y+d[1]},sel===0?4:0);t.x=q.x;t.y=q.y;tried[mode]=true;moved();return true;});
+  // the key hint is for a keyboard user: Tab onto the canvas shows it, a click does not
+  canvas.addEventListener('keyup',function(e){if(e.key==='Tab'&&!kbd){kbd=true;dirty=true;}});
+  canvas.addEventListener('mousedown',function(){if(kbd){kbd=false;dirty=true;}});
   canvas.addEventListener('focus',function(){dirty=true;});canvas.addEventListener('blur',function(){dirty=true;});
   grp();showVals();renderAdd();subRegions();
   // ── the loop: drawn when something changed ──
@@ -26985,9 +26992,11 @@ runAnim('anim-color-mix-t',function(canvas,ctx,W,H,t){
   // Three spotlights breathing together. Every region is painted in the
   // colour its lights make in linear light (the simulation's own model,
   // _cmx): adding screen RGB values instead is right only at full power.
+  // (the three used to sit at fixed fractions of the width: on a wide
+  // screen they never touched, and nothing mixed)
   oBg(ctx,W,H);
-  var cy=H*0.48,r=Math.min(W,H)*0.22,cr=r*0.85;
-  var P=[[W*0.35,cy+r*0.38],[W*0.65,cy+r*0.38],[W*0.5,cy-r*0.5]];
+  var cy=H*0.47,cr=Math.min(H*0.24,W*0.16),rho=cr*0.62;
+  var P=[[W/2-0.866*rho,cy+0.5*rho],[W/2+0.866*rho,cy+0.5*rho],[W/2,cy-rho]];
   var pulse=0.6+0.35*Math.sin(t*1.2),C=_cmx;
   var col=function(m){var X=[0,0,0];for(var k=0;k<3;k++)if(m&1<<k)for(var j=0;j<3;j++)X[j]+=pulse*C.LX[k][j];
     var d=C.disp(X);return 'rgb('+d[0]+','+d[1]+','+d[2]+')';};
@@ -26997,9 +27006,9 @@ runAnim('anim-color-mix-t',function(canvas,ctx,W,H,t){
   [[0,1],[0,2],[1,2]].forEach(function(q){ctx.save();disc(q[0]);ctx.clip();disc(q[1]);ctx.fillStyle=col((1<<q[0])|(1<<q[1]));ctx.fill();ctx.restore();});
   ctx.save();disc(0);ctx.clip();disc(1);ctx.clip();disc(2);ctx.fillStyle=col(7);ctx.fill();ctx.restore();
   ctx.restore();
-  oLbl(ctx,'R',P[0][0]-cr*0.55,P[0][1]+cr+11,'#ff6464',9);
-  oLbl(ctx,'G',P[1][0]+cr*0.55,P[1][1]+cr+11,'#44ff44',9);
-  oLbl(ctx,'B',P[2][0],P[2][1]-cr-6,'#6496ff',9);
+  oLbl(ctx,'R',P[0][0]-cr*1.25,P[0][1]+cr*0.55,'#ff6464',9);
+  oLbl(ctx,'G',P[1][0]+cr*1.25,P[1][1]+cr*0.55,'#44ff44',9);
+  oLbl(ctx,'B',P[2][0]+cr*1.2,P[2][1]-cr*0.45,'#6496ff',9);
   oLbl(ctx,'R+G+B=לבן',W/2,H-6,'#94a3b8',8);
 });
 
