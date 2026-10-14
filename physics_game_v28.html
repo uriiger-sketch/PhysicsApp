@@ -7991,7 +7991,7 @@ const ELECTRO_CONTENT={
         <li>במאמר כתב שאלה כל הטיפות שמדד; מחברותיו מראות שהשמיט חלק מהן. ניתוחים מאוחרים מצאו שההשמטה כמעט לא שינתה את התוצאה — אבל השאלה מה מותר למדען להשמיט נשארה שיעור בפני עצמו.</li>
       </ul></div>`,
   },
-  sim:{type:'elc-millikan',desc:'שלב 1: הורידו את המתח ל־0 — מהירות הנפילה הסופית נותנת את מסת הטיפה. שלב 2: העלו את המתח עד שהטיפה עוצרת, ומכאן המטען. ״טיפה חדשה״ נותנת טיפה בגודל אחר ובמטען אחר; בדקו שהמטען תמיד כפולה שלמה של e.'},
+  sim:{type:'elc-millikan',desc:'שלב 1: הורידו את המתח ל־0 — מהירות הנפילה הסופית נותנת את מסת הטיפה. שלב 2: העלו את המתח עד שהטיפה עוצרת, ומכאן המטען. כל מטען שנמדד נרשם ביומן ועל ציר המטען; ״🎲 טיפה חדשה״ נותנת טיפה אחרת. אחרי כמה טיפות הזיזו את המסרק ומצאו את הצעד המשותף לכל המטענים.'},
   example:{title:'טיפה מרחפת',text:`טיפת שמן שמסתה ${M('1.6\\times10^{-15}\\,\\text{kg}')} נמצאת בין לוחות שהמרווח ביניהם ${M('4\\,\\text{mm}')} (${M('g=10\\,\\text{m/s}^2')}). היא מרחפת כשהמתח ${M('200\\,\\text{V}')}.`,steps:[
     {q:'מה השדה?',a:`${M('E=\\dfrac{V}{d}=\\dfrac{200}{0.004}=5\\times10^{4}\\,\\text{V/m}')}`},
     {q:'מה מטען הטיפה?',a:`${M('q=\\dfrac{mg}{E}=\\dfrac{1.6\\times10^{-14}}{5\\times10^{4}}=3.2\\times10^{-19}\\,\\text{C}')}`},
@@ -15718,46 +15718,96 @@ function simElcMillikan(canvas){
   // terminal speed, where Stokes drag balances the weight, 6*pi*eta*r*v = mg =
   // rho*(4/3)*pi*r^3*g; that speed gives r, and r gives m. (2) Field on: tune V
   // until the drop hovers, qE = mg, which gives q. Every new drop has its own
-  // size and its own whole number of electrons, both hidden; the learner
-  // measures m, then q, and checks that q/e came out an integer. (The mass used
-  // to be a constant the simulation simply knew -- the very quantity Millikan
-  // had no way to weigh.)
-  const H=500; const {ctx,W,dpr}=setupCanvas(canvas,H);
-  const id=canvas.id;
+  // size and its own whole number of electrons, both hidden. Each charge
+  // measured goes into a log and onto a number line, and the learner lays a
+  // comb over the dots: the LARGEST spacing that puts every dot on a tooth is
+  // the elementary charge. Quantisation is read off the data -- the
+  // simulation never divides by a value of e it already knew.
+  var id=canvas.id,_g=_simGen[id];
+  var NAR=((canvas.parentElement&&canvas.parentElement.clientWidth)||800)<560;
+  const H=NAR?660:540; const {ctx,W,dpr}=setupCanvas(canvas,H);
   const d_m=0.005, g=10, e_c=1.6e-19, ETA=1.8e-5, RHO=900;
   const TL=25;                 // on screen the motion runs 25 times faster than life
+  var LTR=document.documentElement.dir==='ltr';
   var nEl=2, rD=1e-6, mD=1e-15, bD=1e-10, y=0.5, revealed=false, Vbal=0, bestF=0, mMeas=null, vFall=0;
+  var log=[], cur=null, nDrop=0, comb=2.5e-19, combDrag=false, snapT=-9, t=0, touched=false;
+  function gcd(a,b){while(b){var c=a%b;a=b;b=c;}return a;}
+  function logGcd(){return log.reduce(function(a,m){return gcd(a,m.n);},0);}
   function newDrop(){
-    for(var k=0;k<60;k++){
+    // a fresh drop of its own size and charge; if the drops logged so far
+    // happen to share a factor (2 and 4), the next one does not, so a
+    // learner who keeps measuring can always find e itself
+    var G=log.length>=2?logGcd():1;
+    for(var k=0;k<80;k++){
       nEl=1+Math.floor(Math.random()*5);
+      if(G>1&&gcd(nEl,G)>1)continue;
       rD=(0.75+Math.random()*0.45)*1e-6;
       mD=RHO*4/3*Math.PI*rD*rD*rD;
       var vb=mD*g*d_m/(nEl*e_c);           // its balance voltage: must be on the slider
       if(vb>80&&vb<960)break;
-      nEl=2;rD=0.95e-6;mD=RHO*4/3*Math.PI*rD*rD*rD;
+      nEl=G>1?1:2;rD=0.95e-6;mD=RHO*4/3*Math.PI*rD*rD*rD;
     }
     bD=6*Math.PI*ETA*rD;
-    y=0.5;revealed=false;Vbal=0;bestF=0;mMeas=null;vFall=0;
+    y=0.5;revealed=false;Vbal=0;bestF=0;mMeas=null;vFall=0;cur=null;
   }
   var nb=document.getElementById('btn-mk-new');
   if(nb)nb.addEventListener('click',newDrop);
   function gV(){var e=document.getElementById('inp-mk-V');return e?parseFloat(e.value):300;}
-  // Finding the balance voltage on a slider is fiddly; dragging up and down on
-  // the drop itself gives the fine control the measurement actually needs.
+  // geometry: the chamber, the number line of q, the log
+  var PL=NAR?W*0.12:W*0.05, PR=NAR?W*0.80:W*0.50, PT=36, PB=NAR?236:246;
+  var NLx0=NAR?36:44, NLx1=W-(NAR?28:36), NLy=NAR?428:440, QMAX=9e-19;
+  function qX(q){return NLx0+(NLx1-NLx0)*q/QMAX;}
+  function xQ(x){return (x-NLx0)/(NLx1-NLx0)*QMAX;}
+  function onTooth(q){var k=q/comb;return Math.round(k)>=1&&Math.abs(k-Math.round(k))<0.1;}
+  // the comb settles on the spacing that fits the dots best (least squares
+  // over whole numbers) once it is close to one that fits them all
+  function snapComb(){
+    var qs=log.map(function(m){return m.q;});if(!qs.length)return;
+    var ns=qs.map(function(q){return Math.max(1,Math.round(q/comb));}),sn=0,s2=0;
+    qs.forEach(function(q,i){sn+=ns[i]*q;s2+=ns[i]*ns[i];});
+    var best=sn/s2;
+    if(qs.every(function(q,i){return Math.abs(q/best-ns[i])<0.1;})&&Math.abs(best-comb)<0.12*comb){comb=best;snapT=t;}
+  }
+  // drag on the number line moves the comb; anywhere else, up and down,
+  // fine-tunes the voltage (finer than the slider's 1 V steps)
   var dragV0=0,dragY0=0;
   simDrag(canvas,dpr,{
-    down:function(p){dragV0=gV();dragY0=p.y;},
-    move:function(p){simSyncSlider('mk-V',dragV0+(dragY0-p.y)*1.1,0);}});
+    down:function(p){touched=true;
+      if(Math.abs(p.y-NLy)<34&&p.x>NLx0-10){combDrag=true;setComb(p.x);}
+      else{combDrag=false;dragV0=gV();dragY0=p.y;}},
+    move:function(p){if(combDrag)setComb(p.x);else simSyncSlider('mk-V',dragV0+(dragY0-p.y)*1.1,0);},
+    up:function(){if(combDrag)snapComb();combDrag=false;}});
+  function setComb(x){comb=Math.max(0.4e-19,Math.min(QMAX*0.6,xQ(x)));}
+  var kb=elcKbd(canvas,{n:function(){return 1;},get:function(){return {x:qX(comb),y:NLy};},
+    set:function(i,x){touched=true;setComb(x);},end:function(){snapComb();}});
+  var kit=simKit(canvas,{missions:[
+    {text:'שקלו טיפה ואזנו אותה: מדדו את המטען '+_skM('q')+' שלה',
+     hint:'קודם הורידו את המתח ל־0 וחכו שהטיפה תיפול במהירות קבועה. אחר כך העלו את המתח עד שהיא נעצרת — גרירה מעלה ומטה על התא מכווננת בעדינות.',
+     why:'במהירות הסופית הגרר מאזן את המשקל ונותן את '+_skM('r')+' ואת '+_skM('m')+'; בריחוף '+_skM('qE = mg')+', ולכן '+_skM('q = mgd/V')+'. בלי השקילה אי אפשר לדעת את '+_skM('q')+'.',
+     done:function(s){return s.n>=1;}},
+    {text:'מדדו לפחות ארבע טיפות שונות',
+     hint:'אחרי כל מדידה לחצו ״🎲 טיפה חדשה״ — לכל טיפה גודל משלה ומטען משלה.',
+     why:'מדידה אחת אינה מוכיחה דבר: רק אוסף של מטענים מראה אם יש להם צעד משותף.',
+     done:function(s){return s.n>=4;}},
+    {text:'הזיזו את המסרק שעל ציר המטען: מצאו את המרווח הגדול ביותר שמעמיד כל נקודה על שן',
+     hint:'גררו את השן הראשונה. אם גם חצי מהמרווח מתאים לכל הנקודות — זה עוד לא הגדול ביותר. צריך לפחות שלוש טיפות.',
+     why:'כל מטען שנמדד הוא כפולה שלמה של אותו ערך, '+_skM('e ≈ 1.6×10⁻¹⁹ C')+'. גם מרווח של חצי ממנו מתאים, אבל אף טיפה מעולם לא נשאה חצי — הצעד המשותף הגדול ביותר הוא מטען היסוד.',
+     done:function(s){return s.n>=3&&s.g===1&&s.fit&&Math.abs(s.comb/e_c-1)<0.04;}}
+  ]});
+  kit.predict({q:'טיפה מרחפת בין הלוחות. מכפילים את המתח. מה תעשה הטיפה?',
+    opts:['תאיץ כלפי מעלה עד שתפגע בלוח','תעלה במהירות קבועה','תישאר במקומה'],correct:1,
+    why:'תוך מיליוניות שנייה הגרר גדל עד שהוא מאזן את ההפרש '+_skM('qE − mg')+', והטיפה עולה במהירות סופית קבועה — ולכן מיליקן יכול היה למדוד אותה. נסו: הכפילו את המתח.'});
+  canvas.__mk=function(){return {n:nEl,revealed:revealed,Vbal:Vbal,mMeas:mMeas,log:log.slice(),comb:comb,NLy:NLy,qX0:NLx0,qX1:NLx1,QMAX:QMAX};};
   function draw(){
-    if(_simStop[id])return;
+    if(_simGen[id]!==_g||_simStop[id])return;
+    t+=1/60;
     var V=gV(), E=V/d_m, q=nEl*e_c;
     var Fe=q*E, Fg=mD*g, Fnet=Fe-Fg;
     // A micron-sized drop reaches its terminal speed within microseconds, so its
     // velocity simply follows the net force: v = (qE - mg)/(6*pi*eta*r).
     var vy=Fnet/bD;                      // m/s, positive = upward
     y+=vy*TL*0.016/d_m;                  // fraction of the gap per frame
-    // the microscope's field of view: the drop is watched between two lines
-    var YLO=0.36, YHI=0.66, edge=0;
+    var YLO=0.30, YHI=0.70, edge=0;
     if(y>=YHI){y=YHI;edge=vy>0?1:0;} if(y<=YLO){y=YLO;edge=vy<0?-1:0;}
     var off=V<0.5;
     if(off){                             // measurement 1: the fall speed -> r -> m
@@ -15766,29 +15816,25 @@ function simElcMillikan(canvas){
       mMeas=RHO*4/3*Math.PI*rM*rM*rM;
     }
     // The measurement IS the balance voltage, so record it when balance is
-    // reached and keep it; recomputing from a later slider position would
-    // report a charge the drop never had.
-    // While it hovers, keep the voltage at which it hovered BEST, so fine-tuning
-    // (the slider moves in 1 V steps; dragging on the drop is finer still)
-    // improves the result instead of freezing the first rough hit.
+    // reached and keep the best one seen: fine-tuning improves the result
+    // instead of freezing the first rough hit.
     var bal=!off&&Math.abs(Fnet)<Fg*0.015;
-    if(bal&&mMeas!==null&&(!revealed||Math.abs(Fnet)<bestF)){revealed=true;Vbal=V;bestF=Math.abs(Fnet);}
+    if(bal&&mMeas!==null&&(!revealed||Math.abs(Fnet)<bestF)){revealed=true;Vbal=V;bestF=Math.abs(Fnet);
+      var qm=mMeas*g*d_m/Vbal;
+      if(!cur){cur={i:++nDrop,m:mMeas,V:Vbal,q:qm,n:nEl};log.push(cur);if(log.length>8)log.shift();}
+      else{cur.m=mMeas;cur.V=Vbal;cur.q=qm;}}
     if(bal)edge=0;
     ctx.clearRect(0,0,W,H);
     ctx.fillStyle='#0f1c2e';ctx.fillRect(0,0,W,H);
-    var PL=W*0.16, PR=W*0.72, PT=H*0.13, PB=H*0.58;
+    // ── the chamber ──
     ctx.fillStyle='#ef4444';ctx.fillRect(PL,PT-10,PR-PL,10);
     ctx.fillStyle='#3b82f6';ctx.fillRect(PL,PB,PR-PL,10);
-    slTxt(ctx,'+',PL-18,PT-1,'#ef4444',17,'center',true);
-    slTxt(ctx,'−',PL-18,PB+11,'#3b82f6',17,'center',true);
-    slTxt(ctx,'d = 5 mm',PR+14,(PT+PB)/2,'#7d8da6',11,'left');
-    ctx.save();ctx.strokeStyle='#334155';ctx.setLineDash([3,4]);ctx.lineWidth=1;
-    ctx.beginPath();ctx.moveTo(PR+6,PT);ctx.lineTo(PR+6,PB);ctx.stroke();ctx.restore();
-    // the reticle lines the drop is timed between
+    slTxt(ctx,'+',PL-14,PT-1,'#ef4444',17,'center',true);
+    slTxt(ctx,'−',PL-14,PB+11,'#3b82f6',17,'center',true);
+    slTxt(ctx,'d = 5 mm',PR+8,(PT+PB)/2,'#7d8da6',10.5,'left');
     ctx.save();ctx.strokeStyle='rgba(148,163,184,.28)';ctx.setLineDash([2,5]);ctx.lineWidth=1;
     [YLO,YHI].forEach(function(f){var yy=PB-(PB-PT)*f;ctx.beginPath();ctx.moveTo(PL+10,yy);ctx.lineTo(PR-10,yy);ctx.stroke();});
     ctx.restore();
-    // the drop
     var cx=(PL+PR)/2, dy=PB-(PB-PT)*y;
     ctx.fillStyle='#fbbf24';ctx.beginPath();ctx.arc(cx,dy,9,0,6.2832);ctx.fill();
     ctx.strokeStyle='#f59e0b';ctx.lineWidth=1.5;ctx.stroke();
@@ -15804,35 +15850,78 @@ function simElcMillikan(canvas){
       simArrow(ctx,cx+62,dy,cx+62,dy-Fd*sc,'#94a3b8',2,8);
       slTxt(ctx,'גרר',cx+70,dy-Fd*sc/2,'#94a3b8',10.5,'left',true);
     }
+    var sy=PB+30;
     simText(ctx,off?'השדה כבוי: נופלת במהירות קבועה — הגרר מאזן את המשקל'
       :bal?'⚖ מרחפת — qE = mg':(Fnet>0?'עולה במהירות קבועה — qE > mg, והגרר מאזן את ההפרש':'יורדת במהירות קבועה — mg > qE, והגרר מאזן את ההפרש'),
-      W/2,H*0.655,bal?'#10b981':'#94a3b8',13,'center',true);
+      (PL+PR)/2,sy,bal?'#10b981':'#94a3b8',12,'center',true);
     simText(ctx,edge?(edge<0?'הטיפה בתחתית שדה הראייה — העלו את המתח כדי להחזיר אותה':'הטיפה בראש שדה הראייה — הורידו את המתח')
-      :'על המסך התנועה מואצת פי '+TL,W/2,H*0.655+19,edge?'#f59e0b':'#7d8da6',10,'center');
-    var by=H-112;
+      :'על המסך התנועה מואצת פי '+TL,(PL+PR)/2,sy+18,edge?'#f59e0b':'#7d8da6',10,'center');
+    // ── the two measurements on this drop ──
+    var by=sy+46;
     slTxt(ctx,'E = V/d = '+E.toFixed(0)+' V/m      v = '+(Math.abs(vy)*1000).toFixed(3)+' mm/s '+(Math.abs(vy)<1e-7?'':(vy>0?'↑':'↓')),
-      W/2,by,'#94a3b8',11.5,'center');
+      W/2,by,'#94a3b8',11,'center');
     if(mMeas===null){
-      simText(ctx,'שלב 1: הורידו את המתח ל-0 — מהירות הנפילה תיתן את מסת הטיפה',W/2,by+24,'#fbbf24',12,'center',true);
+      simText(ctx,'שלב 1: הורידו את המתח ל-0 — מהירות הנפילה תיתן את מסת הטיפה',W/2,by+22,'#fbbf24',11.5,'center',true);
     } else {
       var rM2=Math.cbrt(3*mMeas/(4*Math.PI*RHO));
       slTxt(ctx,'v₀ = '+(vFall*1000).toFixed(3)+' mm/s  ⇒  r = √(9ηv₀/2ρg) = '+(rM2*1e6).toFixed(2)+' μm  ⇒  m = '+sciTxt(mMeas)+' kg',
-        W/2,by+24,'#dde6f0',12,'center',true);
+        W/2,by+22,'#dde6f0',11.5,'center',true);
     }
     if(revealed){
-      var qm=mMeas*g*d_m/Vbal;
-      slTxt(ctx,'q = mgd/V = '+sciTxt(qm)+' C   (V = '+Vbal.toFixed(0)+' V)',W/2,by+48,'#dde6f0',13,'center',true);
-      slTxt(ctx,'n = q/e = '+(qm/e_c).toFixed(2)+'  ≈  '+Math.round(qm/e_c),W/2,by+70,'#fbbf24',13.5,'center',true);
-      simText(ctx,'מספר שלם — על הטיפה '+Math.round(qm/e_c)+' אלקטרונים עודפים',W/2,by+92,'#10b981',11.5,'center',true);
+      slTxt(ctx,'q = mgd/V = '+sciTxt(cur.q)+' C   (V = '+Vbal.toFixed(0)+' V)',W/2,by+44,'#fbbf24',12.5,'center',true);
     } else if(mMeas!==null){
-      simText(ctx,'שלב 2: העלו את המתח עד שהטיפה תעצור — ואז ייחשב המטען',W/2,by+52,'#7d8da6',12,'center');
+      simText(ctx,'שלב 2: העלו את המתח עד שהטיפה תעצור — ואז ייחשב המטען',W/2,by+44,'#7d8da6',11.5,'center');
     } else if(bal){
-      simText(ctx,'הטיפה מרחפת — אבל q = mgd/V דורש את m: התחילו בשלב 1',W/2,by+52,'#f59e0b',12,'center',true);
+      simText(ctx,'הטיפה מרחפת — אבל q = mgd/V דורש את m: התחילו בשלב 1',W/2,by+44,'#f59e0b',11.5,'center',true);
     }
+    // ── the number line of q, and the comb ──
+    var fitAll=log.length>0&&log.every(function(m){return onTooth(m.q);});
+    ctx.save();ctx.strokeStyle='#64748b';ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(NLx0,NLy);ctx.lineTo(NLx1,NLy);ctx.stroke();ctx.restore();
+    for(var k2=0;k2<=8;k2+=2){var xx=qX(k2*1e-19);
+      ctx.save();ctx.strokeStyle='#64748b';ctx.beginPath();ctx.moveTo(xx,NLy+4);ctx.lineTo(xx,NLy+9);ctx.stroke();ctx.restore();
+      simText(ctx,String(k2),xx,NLy+22,'#7d8da6',9.5,'center');}
+    simText(ctx,'q (×10⁻¹⁹ C)',LTR?NLx1:NLx0,NLy+36,'#7d8da6',9.5,LTR?'right':'left');
+    simText(ctx,'המטענים שנמדדו',LTR?NLx0:NLx1,NLy-54,'#cbd5e1',10.5,LTR?'left':'right',true);
+    for(var kk=1;kk*comb<=QMAX*1.001;kk++){var tx=qX(kk*comb);
+      ctx.save();ctx.strokeStyle=fitAll?'rgba(52,211,153,.85)':'rgba(251,191,36,.7)';ctx.lineWidth=kk===1?2.4:1.6;
+      ctx.beginPath();ctx.moveTo(tx,NLy-16);ctx.lineTo(tx,NLy+3);ctx.stroke();ctx.restore();}
+    ctx.save();ctx.strokeStyle=fitAll?'rgba(52,211,153,.85)':'rgba(251,191,36,.7)';ctx.lineWidth=1.6;
+    ctx.beginPath();ctx.moveTo(qX(0),NLy-16);ctx.lineTo(qX(Math.floor(QMAX/comb)*comb),NLy-16);ctx.stroke();ctx.restore();
+    simHandle(ctx,qX(comb),NLy-16,fitAll?'#34d399':'#fbbf24',14);
+    elcFocus(ctx,kb,0,qX(comb),NLy-16,19);
+    simText(ctx,'מרווח המסרק = '+sciTxt(comb)+' C',Math.max(NLx0+60,Math.min(NLx1-60,qX(comb))),NLy-32,fitAll?'#34d399':'#fbbf24',10,'center',true);
+    log.forEach(function(m){var on=onTooth(m.q),xx=qX(m.q);
+      ctx.save();ctx.fillStyle=on?'#34d399':'#e2e8f0';ctx.strokeStyle='#0f1c2e';ctx.lineWidth=1.5;
+      ctx.beginPath();ctx.arc(xx,NLy,5,0,6.2832);ctx.fill();ctx.stroke();ctx.restore();});
+    if(t-snapT<0.7){ctx.save();ctx.strokeStyle='rgba(255,255,255,'+(0.8*(1-(t-snapT)/0.7)).toFixed(2)+')';ctx.lineWidth=2;
+      ctx.beginPath();ctx.arc(qX(comb),NLy-16,10+24*(t-snapT),0,6.2832);ctx.stroke();ctx.restore();}
+    var G=log.length?logGcd():0;
+    if(fitAll&&log.length>=3&&G===1&&Math.abs(comb/e_c-1)<0.04)
+      simText(ctx,'כל מטען הוא כפולה שלמה של e ≈ '+sciTxt(comb)+' C',W/2,NLy+56,'#34d399',11.5,'center',true);
+    else if(!touched&&t<9)simText(ctx,'✋ גררו את השן הראשונה של המסרק',W/2,NLy+56,'#fbbf24',10,'center');
+    // ── the log ──
+    var lx=NAR?14:W*0.585,lw=NAR?W-28:W*0.415-14,ly=NAR?NLy+76:PT-12,rh=NAR?18:20,rows=NAR?4:8,shown=log.slice(-rows);
+    ctx.save();ctx.fillStyle='rgba(4,9,20,.85)';ctx.strokeStyle='rgba(59,130,246,.35)';ctx.lineWidth=1;
+    ctx.beginPath();ctx.roundRect(lx,ly,lw,rh*(Math.max(shown.length,1)+2)+8,8);ctx.fill();ctx.stroke();ctx.restore();
+    var cols=LTR?[0.08,0.33,0.58,0.84]:[0.92,0.67,0.42,0.16],showN=fitAll&&Math.abs(comb/e_c-1)<0.04;
+    simText(ctx,'יומן המדידות',lx+lw/2,ly+15,'#cbd5e1',10,'center',true);
+    ['#','m (kg)','V (V)',showN?'q / e':'q (C)'].forEach(function(h,i){simText(ctx,h,lx+lw*cols[i],ly+15+rh,'#7d8da6',9,'center');});
+    if(!shown.length)simText(ctx,'עוד אין מדידות',lx+lw/2,ly+15+2*rh,'#7d8da6',9,'center');
+    shown.forEach(function(m,i){var yy=ly+15+(i+2)*rh,on=onTooth(m.q);
+      simText(ctx,String(m.i),lx+lw*cols[0],yy,m===cur?'#fbbf24':'#94a3b8',10,'center');
+      simText(ctx,sciTxt(m.m),lx+lw*cols[1],yy,'#e2e8f0',10,'center');
+      simText(ctx,m.V.toFixed(0),lx+lw*cols[2],yy,'#e2e8f0',10,'center');
+      simText(ctx,showN?(m.q/comb).toFixed(2):sciTxt(m.q),lx+lw*cols[3],yy,on?'#34d399':'#e2e8f0',10,'center',true);});
     slTxt(ctx,'η = 1.8×10⁻⁵ Pa·s    ρ = 900 kg/m³    g = 10 m/s²',W/2,H-6,'#7d8da6',9.5,'center');
+    // ── the lesson's numbers ──
+    if(off)kit.model('שלב 1, שקילה: '+_skM('6πηrv₀ = (4/3)πr³ρg ⇒ r = √(9ηv₀/2ρg) = '+(Math.cbrt(3*mMeas/(4*Math.PI*RHO))*1e6).toFixed(2)+' μm ⇒ m = '+sciTxt(mMeas)+' kg'));
+    else if(mMeas===null)kit.model('שלב 1: הורידו את המתח ל־0 כדי לשקול את הטיפה — '+_skM('6πηrv₀ = mg'));
+    else if(revealed)kit.model('שלב 2, ריחוף: '+_skM('qE = mg ⇒ q = mgd/V = ('+sciTxt(cur.m)+')(10)(0.005) / '+Vbal.toFixed(0)+' = '+sciTxt(cur.q)+' C'));
+    else kit.model('שלב 2: כוונו את המתח עד ש־'+_skM('qE = mg')+'. עכשיו '+_skM(Fnet>0?'qE > mg':'qE < mg'));
+    kit.check({n:log.length,g:G,fit:fitAll&&!combDrag,comb:comb});   // a comb still in the hand is not an answer
     requestAnimationFrame(draw);
   }
-  newDrop(); draw();
+  newDrop(); requestAnimationFrame(draw);
 }
 
 function simStaticsTorque(canvas){

@@ -141,6 +141,14 @@ const sig2 = x => x === 0 ? 0 : Number(x.toPrecision(2));
     await p.mouse.up();
   };
 
+  // the missions' check boxes, and a drag in canvas pixels (the sims publish
+  // their model in those units)
+  const done = () => p.evaluate(() => [...document.querySelectorAll('.sk-m')].map(li => li.classList.contains('done')));
+  const cv = async () => p.evaluate(() => { const r = document.querySelector('#app canvas').getBoundingClientRect(); return { x: r.left, y: r.top }; });
+  const dragTo = async (x0, y0, x1, y1) => { const o = await cv(); await p.mouse.move(o.x + x0, o.y + y0); await p.mouse.down();
+    for (let i = 1; i <= 12; i++) await p.mouse.move(o.x + x0 + (x1 - x0) * i / 12, o.y + y0 + (y1 - y0) * i / 12);
+    await p.mouse.up(); await p.waitForTimeout(250); };
+
   // Millikan: weigh, then balance -- n must be a whole number
   await open('elc-millikan');
   for (let drop = 0; drop < 3; drop++) {
@@ -154,13 +162,26 @@ const sig2 = x => x === 0 ? 0 : Number(x.toPrecision(2));
     for (let v = 20; v <= 1000; v += 1) {
       await setR('inp-mk-V', v);
       await p.waitForTimeout(20);
-      const s = bare(await p.evaluate(() => { const r = window.__txt.slice(-30).join('\n'); window.__txt = []; return r; }));
-      const m = s.match(/n = q\/e = ([0-9.]+)/);
-      if (m) { nq = parseFloat(m[1]); if (!hit) hit = v; }
+      const s = bare(await p.evaluate(() => { const r = window.__txt.slice(-160).join('\n'); window.__txt = []; return r; }));
+      // the simulation prints the measured q only; n = q/e is computed here
+      const q = num(s, /q = mgd\/V = ([0-9.]+×10⁻[⁰¹²³⁴⁵⁶⁷⁸⁹]+) C/);
+      if (q > 0) { nq = q / e; if (!hit) hit = v; }
       if (hit && v > hit * 1.04) break;
     }
     t(`Millikan drop ${drop}: n = q/e is a whole number`, Math.abs(nq - Math.round(nq)) < 0.02 && nq >= 0.98, 'n = ' + nq);
   }
+  // the comb: half of e fits every dot too, but is not the answer; the
+  // largest spacing that fits settles on e itself, measured from the data
+  const mk = () => p.evaluate(() => document.querySelector('#app canvas').__mk());
+  let mkm = await mk();
+  const qX = q => mkm.qX0 + (mkm.qX1 - mkm.qX0) * q / mkm.QMAX;
+  t('Millikan: three drops in the log, with no common factor in their electron counts',
+    mkm.log.length === 3 && mkm.log.reduce((a, x) => { let b = x.n; while (b) [a, b] = [b, a % b]; return a; }, 0) === 1, mkm.log.map(x => x.n).join(','));
+  t('missions "measure a charge" solved, "four drops" not yet', (await done())[0] === true && (await done())[1] === false);
+  await dragTo(qX(mkm.comb), mkm.NLy - 16, qX(0.81e-19), mkm.NLy - 16); mkm = await mk();
+  t('Millikan comb at e/2: every dot is on a tooth, yet the mission is not solved', Math.abs(mkm.comb / 0.8e-19 - 1) < 0.02 && (await done())[2] === false, mkm.comb);
+  await dragTo(qX(mkm.comb), mkm.NLy - 16, qX(1.52e-19), mkm.NLy - 16); mkm = await mk();
+  t('Millikan comb: the largest spacing that fits every drop is e, to 2 %', Math.abs(mkm.comb / e - 1) < 0.02 && (await done())[2] === true, mkm.comb);
 
   // pair energy: released from rest, two like charges fly apart
   await open('elc-upair');
@@ -215,11 +236,6 @@ const sig2 = x => x === 0 ? 0 : Number(x.toPrecision(2));
   // its model, as the sim publishes it: charges, probe readings, null point,
   // and where every field line starts (from) and ends (end)
   const elc = () => p.evaluate(() => document.querySelector('#app canvas').__elc());
-  const done = () => p.evaluate(() => [...document.querySelectorAll('.sk-m')].map(li => li.classList.contains('done')));
-  const cv = async () => p.evaluate(() => { const r = document.querySelector('#app canvas').getBoundingClientRect(); return { x: r.left, y: r.top }; });
-  const dragTo = async (x0, y0, x1, y1) => { const o = await cv(); await p.mouse.move(o.x + x0, o.y + y0); await p.mouse.down();
-    for (let i = 1; i <= 12; i++) await p.mouse.move(o.x + x0 + (x1 - x0) * i / 12, o.y + y0 + (y1 - y0) * i / 12);
-    await p.mouse.up(); await p.waitForTimeout(250); };
   const perQ = (m, i) => m.lines.filter(l => l.from === i).length + m.lines.filter(l => l.end === i).length;
   await open('elc-field');
   let m = await elc();
