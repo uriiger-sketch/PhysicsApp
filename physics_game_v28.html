@@ -6365,7 +6365,7 @@ const OPTICS_CONTENT={
       <div class="mis-block"><b>⚠️ טעות נפוצה:</b> ״קוצר ראייה — לא רואים מקרוב״. ההפך: קצר הראייה רואה היטב <b>מקרוב</b>, ומטושטש לו הרחוק. העין ארוכה מדי, והתמונה של עצם רחוק נוצרת לפני הרשתית, ולכן מתקנים בעדשה <b>מפזרת</b> (${M('f<0')}). השם מתאר את טווח הראייה, שהוא הקצר. עברו בסימולציה לקוצר ראייה והרחיקו את העצם.</div>
       <div class="theory-anim">${animCanvas('anim-eye-focus-t',180,'ראייה תקינה, קוצר ראייה ורוחק ראייה')}</div>`,
   },
-  sim:{type:'opt-eye',desc:'גררו את העצם קרוב ורחוק — צפו באקומודציה של העדשה. עברו בין ראייה תקינה, קוצר ראייה ורוחק ראייה, והוסיפו משקפיים מתקנים. התיבה משמאל מראה מה העין רואה!'},
+  sim:{type:'opt-eye',desc:'גררו את העצם קרוב ורחוק: העדשה מתעבה (אקומודציה) עד הנקודה הקרובה, והפס הירוק מסמן את טווח הראייה החדה. בחרו עין קצרת ראייה, רחוקת ראייה או עין עם פרסביופיה, וכוונו את עוצמת המשקפיים P בדיופטרים עד שהטווח יחזור. המשקפיים צמודים לעין, כמו בבעיה של הסעיף.'},
   example:{title:'העוצמה של מערכת העין',text:`במודל פשוט של העין, העדשה צריכה למקד אור מעצם רחוק על הרשתית, שנמצאת ${M('25\\,\\text{mm}')} מאחוריה.`,
     steps:[
       {q:'מה המוקד הדרוש?',a:`${M('d_o=\\infty,\\;d_i=25\\,\\text{mm}\\Rightarrow f=25\\,\\text{mm}')}`},
@@ -18191,7 +18191,8 @@ function _optBench(canvas,P){
   });
   // ── the buttons: a screen, and a card over half the lens ──
   var bS=ids.scr&&document.getElementById('btn-'+ids.scr),bC=ids.cover&&document.getElementById('btn-'+ids.cover);
-  if(bS)bS.addEventListener('click',function(){screenOn=!screenOn;
+  function scr0(){return Math.min(W-30,X0+Math.max(60,(W-X0)*0.62));}
+  if(bS)bS.addEventListener('click',function(){screenOn=!screenOn;if(scrX===null)scrX=scr0();
     bS.textContent=screenOn?'🖼 הסירו את המסך':'🖼 הציבו מסך';});
   function paintCover(){if(bC)bC.textContent=covered?'↺ הסירו את הכיסוי':'✋ כסו חצי עדשה';}
   if(bC)bC.addEventListener('click',function(){
@@ -18382,7 +18383,7 @@ function _optBench(canvas,P){
     // the screen: a real image is caught on it, and is sharp only at dᵢ
     var focus=false;
     if(screenOn&&!mirror){
-      if(scrX===null)scrX=Math.min(W-30,X0+Math.max(60,(W-X0)*0.62));
+      if(scrX===null)scrX=scr0();
       var blurR=real?Math.abs(scrX-ix)*(covered?AP/2:AP)/Math.max(10,Math.abs(ix-X0)):0;
       focus=real&&blurR<3.2;
       var sT=BAND0+16,sB=BAND1;
@@ -18784,203 +18785,179 @@ function simOptPrism(canvas){
 
 
 
-// ─── EYE — Enhanced ───────────────────────────────────────────────
+// ─── THE EYE — accommodation, near and far point, glasses in dioptres ──
+// Vergence model, glasses touching the eye (as the lesson's problem assumes):
+// an object at d asks the eye for 1/d dioptres beyond what infinity needs,
+// glasses of power P take P of that, and the eye supplies the rest by
+// accommodation, from D_far (its relaxed state: 0 normal, +E myopic, −E
+// hyperopic) up to D_far + A (A its amplitude of accommodation). Sharp when
+// 1/d − P lies in [D_far, D_far + A]; outside it the focus falls before or
+// behind the retina by the missing dioptres. The glasses do what the lesson
+// does with 1/f = 1/dₒ + 1/dᵢ: they image the object to dᵢ, and the eye looks
+// at that image. Inside the eye (reduced eye, n = 1.336, 60 D) the focus sits
+// at n/(P_eye − 1/d′) behind the lens.
+window._fmtEyeD=function(v){return v>1.0001?'∞':Math.pow(10,v).toFixed(2)+' m';};
+window._fmtEyeP=function(v){return (v>0?'+':v<0?'−':'')+Math.abs(v).toFixed(2)+' D';};
 function simOptEye(canvas){
-  const H=460;const{ctx,W,dpr}=setupCanvas(canvas,H);
-  const id=canvas.id;var animT=0;var mode='normal';var glasses=false;
-  window._eyeMode=function(m){mode=(m==='far')?'normal':m;};
-  window._eyeGlasses=function(){glasses=!glasses;
-    var b=document.getElementById('btn-eye-glasses');
-    if(b)b.textContent=glasses?'❌ הסירו משקפיים':'👓 הוסיפו משקפיים';};
-  function getDist(){var e=document.getElementById('inp-eye-dist');return e?parseFloat(e.value):2;}
-  // Geometry
-  var es=Math.min(1,(W*0.28-8)/118);   // shrink the eye to fit a phone-width canvas
-  var cx=W*0.72,cy=H*0.46,Rx=118*es,Ry=92*es;
-  var eyeFront=cx-Rx,retinaX=cx+Rx*0.72;
-  // the log distance axis runs from _xL (6 m) to _xR (0.25 m); on a phone the
-  // old fixed margins left it 5 px long, so dragging hardly moved the object
-  var _xR=eyeFront-Math.max(60,90*es),_xL=Math.min(60,W*0.08);
-  function distToX(d){return _xR-(Math.log(d/0.25)/Math.log(24))*(_xR-_xL);}
-  function xToDist(x){return 0.25*Math.pow(24,(_xR-x)/(_xR-_xL));}
-  // ── Direct manipulation: drag the object closer/farther ──
-  var dragObj=false,hasDragged=false;
-  function _hit(p){var ox=distToX(getDist());return Math.abs(p.x-ox)<28&&p.y>cy-96&&p.y<cy+22;}
-  function _dn(e){var p=simPointerXY(canvas,dpr,e);if(_hit(p)){dragObj=true;hasDragged=true;canvas.style.cursor='grabbing';e.preventDefault();}}
-  function _mv(e){var p=simPointerXY(canvas,dpr,e);
-    if(dragObj){simSyncSlider('eye-dist',xToDist(p.x),2);e.preventDefault();}
-    else canvas.style.cursor=_hit(p)?'grab':'';}
-  function _up(){dragObj=false;canvas.style.cursor='';}
-  canvas.addEventListener('mousedown',_dn);canvas.addEventListener('touchstart',_dn,{passive:false});
-  canvas.addEventListener('mousemove',_mv);canvas.addEventListener('touchmove',_mv,{passive:false});
-  canvas.addEventListener('mouseup',_up);canvas.addEventListener('touchend',_up);
-  function draw(ts){
+  var _w=canvas.offsetWidth||(canvas.parentElement&&canvas.parentElement.offsetWidth)||720;
+  const H=_w<520?350:390;const{ctx,W,dpr}=setupCanvas(canvas,H);
+  const id=canvas.id;var animT=0,reduce=_reducedMotion();
+  var EYES={normal:{far:0,A:4},myopia:{far:2,A:4},hyper:{far:-10/3,A:4},presby:{far:0,A:1}};
+  var mode='normal',touched=false,drag=false;
+  var ltr=document.documentElement.dir==='ltr';
+  function lv(){var e=document.getElementById('inp-eye-dist');return e?parseFloat(e.value):0.301;}
+  function dObj(){var v=lv();return v>1.0001?Infinity:Math.pow(10,v);}
+  function pG(){var e=document.getElementById('inp-eye-P');return e?parseFloat(e.value):0;}
+  var BTN={normal:'eye-normal',myopia:'eye-myopia',hyper:'eye-hyper',presby:'eye-presby'};
+  function paintBtns(){Object.keys(BTN).forEach(function(k){var b=document.getElementById('btn-'+BTN[k]);
+    if(b){b.classList.toggle('btn-primary',k===mode);b.classList.toggle('btn-secondary',k!==mode);}});}
+  Object.keys(BTN).forEach(function(k){var b=document.getElementById('btn-'+BTN[k]);
+    if(b)b.addEventListener('click',function(){mode=k;paintBtns();});});
+  paintBtns();
+  // geometry: the eye on the right, a log distance axis on the left
+  var narrow=W<520,es=Math.min(1,(W*(narrow?0.24:0.30)-8)/118), cx=W-Math.max(14,W*0.04)-118*es, cy=Math.round(H*(narrow?0.46:0.42)), Rx=118*es, Ry=92*es;
+  var eyeFront=cx-Rx, retinaX=cx+Rx*0.74, lensX=eyeFront+40*es, spectX=eyeFront-24*es;
+  var xR=spectX-Math.max(34,40*es), xInf=Math.max(18,W*0.035), xL=xInf+Math.max(26,W*0.05);   // 0.1 m … 10 m, ∞ beyond
+  function vToX(v){return v>1.0001?xInf:xR-(v+1)/2*(xR-xL);}
+  function xToV(x){return x<(xInf+xL)/2?1.1:Math.max(-1,Math.min(1,(xR-x)/(xR-xL)*2-1));}
+  function dToX(d){return !isFinite(d)?xInf:vToX(Math.log10(Math.max(0.1,Math.min(10,d))));}
+  var axY=cy+Math.max(56,70*es);
+  function hit(p){var ox=vToX(lv());return Math.abs(p.x-ox)<24&&p.y>cy-80&&p.y<axY+14;}
+  simDrag(canvas,dpr,{down:function(p){drag=hit(p);if(drag)touched=true;},
+    move:function(p){if(drag)simSyncSlider('eye-dist',xToV(p.x),3);},up:function(){drag=false;}});
+  canvas.addEventListener('mousemove',function(e){if(!drag)canvas.style.cursor=hit(simPointerXY(canvas,dpr,e))?'grab':'default';});
+  canvas.tabIndex=0;
+  canvas.addEventListener('keydown',function(e){
+    if(e.key==='ArrowLeft'||e.key==='ArrowRight'){e.preventDefault();touched=true;simSyncSlider('eye-dist',Math.min(1.1,lv()+(e.key==='ArrowLeft'?0.05:-0.05)),3);}
+    if(e.key==='ArrowUp'||e.key==='ArrowDown'){e.preventDefault();touched=true;simSyncSlider('eye-P',pG()+(e.key==='ArrowUp'?0.25:-0.25),2);}});
+  var kit=simKit(canvas,{missions:[
+    {text:'קוצר ראייה: עד איזה מרחק העין רואה בחדות, בלי משקפיים?',
+     hint:'בחרו ״קוצר ראייה״, הסירו את המשקפיים (P = 0) והרחיקו את העצם לאט — עד היכן הוא עוד חד?',
+     why:'העין קצרת הראייה חזקה מדי גם כשהיא רפויה: היא ממקדת בחדות עד הנקודה הרחוקה, '+_skM('1/2 D = 0.50 m')+', ומקרוב — טוב מאוד. השם מתאר את הטווח הקצר, לא ראייה גרועה מקרוב.',
+     done:function(s){return s.mode==='myopia'&&Math.abs(s.P)<0.01&&s.sharp&&s.d>=0.45;}},
+    {text:'התאימו לקצר הראייה את המשקפיים החלשים ביותר שבהם יראה בחדות כוכב באינסוף',
+     hint:'המשקפיים צריכים ליצור מהכוכב תמונה בנקודה הרחוקה: '+_skM('P = 1/dₒ + 1/dᵢ = 0 + 1/(−0.5 m)')+'.',
+     why:_skM('P = 1/∞ + 1/(−0.50) = −2.0 D')+': עדשה מפזרת שתמונת הכוכב שלה נמצאת בדיוק בנקודה הרחוקה, ועין רפויה ממקדת אותה. עדשה חזקה יותר תעבוד רק בעזרת אקומודציה מיותרת.',
+     done:function(s){return s.mode==='myopia'&&!isFinite(s.d)&&s.sharp&&Math.abs(s.P+2)<0.06;}},
+    {text:'משקפי קריאה לרוחק הראייה: קרבו את הנקודה הקרובה שלו ל־25 cm',
+     hint:'בלי משקפיים הנקודה הקרובה שלו ב־1.5 m. העדשה צריכה ליצור מספר ב־0.25 m תמונה ב־1.5 m, באותו צד.',
+     why:_skM('P = 1/0.25 + 1/(−1.5) = 4 − 0.67 = +3.33 D')+' — עדשה מרכזת, בדיוק כמו בבעיה של הסעיף.',
+     done:function(s){return s.mode==='hyper'&&s.near>=0.235&&s.near<=0.265;}},
+    {text:'עין תקינה: קרבו את העצם ככל שאפשר כשהוא עדיין חד',
+     hint:'בחרו ״עין תקינה״, ובלי משקפיים קרבו את העצם עד שיתחיל להיטשטש.',
+     why:'העדשה מתעבה ומוסיפה עד '+_skM('A = 4 D')+'; העצם הקרוב ביותר שהיא ממקדת נמצא ב־'+_skM('1/4 D = 0.25 m')+' — הנקודה הקרובה. מקרוב יותר — טשטוש.',
+     done:function(s){return s.mode==='normal'&&Math.abs(s.P)<0.01&&s.sharp&&s.d<=0.27;}}]});
+  function eyeOptics(){
+    var E=EYES[mode],d=dObj(),P=pG(),D=isFinite(d)?1/d:0,Dp=D-P;
+    var acc=Math.max(0,Math.min(E.A,Dp-E.far)),miss=Dp<E.far?Dp-E.far:Dp>E.far+E.A?Dp-E.far-E.A:0;
+    var sharp=Math.abs(miss)<0.03;
+    // object distances seen sharply, with these glasses: 1/d ∈ [far + P, far + A + P]
+    var lo=E.far+P,hi=E.far+E.A+P;
+    var near=hi>0?1/hi:Infinity,far=lo>0?1/lo:Infinity;
+    var nearB=E.far+E.A>0?1/(E.far+E.A):Infinity,farB=E.far>0?1/E.far:Infinity;   // the bare eye
+    return {E:E,d:d,P:P,D:D,Dp:Dp,acc:acc,miss:miss,sharp:sharp,near:near,far:far,nearB:nearB,farB:farB,ok:hi>0};
+  }
+  function fmtD(x){return isFinite(x)?x.toFixed(2)+' m':'∞';}
+  function draw(){
     if(_simStop[id])return;
-    animT+=0.025;
-    // ── Optical model (diopters): eye supplies power in [offEff, offEff+4] beyond the relaxed-normal state.
-    //    Myopia: range shifted +2D (too strong when relaxed → far blurry, near sharp).
-    //    Hyperopia: range shifted −2D (can't add enough → near blurry, far sharp).
-    //    Corrective glasses cancel the shift exactly (−2D diverging / +2D converging).
-    var d0=getDist();
-    var Ddem=1/d0;
-    var off=mode==='myopia'?2:mode==='hyper'?-2:0;
-    var offEff=glasses?0:off;
-    var blur=Ddem<offEff?(offEff-Ddem):Ddem>offEff+4?(Ddem-offEff-4):0;
-    var acc=Math.max(0,Math.min(4,Ddem-offEff));
-    var focalShift=Ddem<offEff?-(offEff-Ddem)*16:Ddem>offEff+4?(Ddem-offEff-4)*16:0;
-    focalShift=Math.max(-34,Math.min(34,focalShift))*es;
-    var focalX=retinaX+focalShift;
-    var sharp=blur<0.05;
-    // Background
-    var bg=ctx.createRadialGradient(W/2,H/2,0,W/2,H/2,W*0.7);
-    bg.addColorStop(0,'#040e1e');bg.addColorStop(1,'#020810');
+    animT+=0.016;
+    var o=eyeOptics(),ox=vToX(lv());
+    var bg=ctx.createRadialGradient(W/2,H/2,0,W/2,H/2,W*0.7);bg.addColorStop(0,'#040e1e');bg.addColorStop(1,'#020810');
     ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);
-    // Distance axis
-    ctx.save();ctx.strokeStyle='rgba(51,65,85,.5)';ctx.lineWidth=1;
-    ctx.beginPath();ctx.moveTo(40,cy+58);ctx.lineTo(eyeFront-20,cy+58);ctx.stroke();ctx.restore();
-    (_xR-_xL<200?[0.25,1,6]:[0.25,0.5,1,2,4,6]).forEach(function(dm){
-      var xm=distToX(dm);if(xm<20)return;
-      ctx.save();ctx.strokeStyle='rgba(51,65,85,.6)';ctx.beginPath();ctx.moveTo(xm,cy+54);ctx.lineTo(xm,cy+62);ctx.stroke();ctx.restore();
-      optLabel(ctx,dm+' m',xm,cy+72,'#7d8da6',8);
-    });
-    // ── EYE ──────────────────────────────────────────────
-    ctx.save();
-    var sclG=ctx.createRadialGradient(cx,cy,0,cx,cy,Rx);
-    sclG.addColorStop(0,'rgba(220,230,245,.13)');sclG.addColorStop(1,'rgba(180,200,230,.05)');
-    ctx.fillStyle=sclG;ctx.strokeStyle='rgba(120,150,200,.4)';ctx.lineWidth=2;
-    ctx.beginPath();ctx.ellipse(cx,cy,Rx,Ry,0,0,Math.PI*2);ctx.fill();ctx.stroke();ctx.restore();
-    // Retina (red arc, back inner surface)
-    ctx.save();ctx.strokeStyle='rgba(248,113,113,.55)';ctx.lineWidth=4;
-    optGlow(ctx,'#f87171',8);
-    ctx.beginPath();ctx.arc(cx+Rx*0.30,cy,Ry*0.82,-Math.PI*0.42,Math.PI*0.42);ctx.stroke();
-    optNoGlow(ctx);ctx.restore();
-    optLabel(ctx,'רשתית',cx+Rx*0.95,cy-Ry*0.62,'#f87171',10);
-    // Cornea
-    ctx.save();ctx.strokeStyle='rgba(96,165,250,.9)';ctx.lineWidth=3.5;
-    optGlow(ctx,'#60a5fa',12);
-    ctx.beginPath();ctx.arc(eyeFront+52*es,cy,58*es,Math.PI*0.7,Math.PI*1.3);ctx.stroke();
-    optNoGlow(ctx);ctx.restore();
-    optLabel(ctx,'קרנית',eyeFront+4,cy-Ry-10,'#60a5fa',10);
-    // Crystalline lens — thickness shows ACCOMMODATION live
-    var lensX=eyeFront+42*es,lensW=(9+acc*2.6)*es,lensH=64*es;
-    ctx.save();
-    var lG=ctx.createRadialGradient(lensX,cy,0,lensX,cy,lensH/2);
-    lG.addColorStop(0,'rgba(180,210,255,.45)');lG.addColorStop(1,'rgba(100,140,220,.12)');
-    ctx.fillStyle=lG;ctx.strokeStyle='rgba(147,197,253,.85)';ctx.lineWidth=2;
-    ctx.beginPath();ctx.ellipse(lensX,cy,lensW,lensH/2,0,0,Math.PI*2);ctx.fill();
-    optGlow(ctx,'#93c5fd',8);ctx.stroke();optNoGlow(ctx);ctx.restore();
-    optLabel(ctx,'עדשה',lensX,cy+lensH/2+14,'#93c5fd',9);
-    optLabel(ctx,'אקומודציה: '+acc.toFixed(1)+'D',lensX+4,cy-lensH/2-12,'#93c5fd',9);
-    // ── CORRECTIVE GLASSES ───────────────────────────────
-    var spectX=eyeFront-42*es;
-    if(glasses&&mode==='myopia'){
-      optDivLensShape(ctx,spectX,cy,12,124,'#22d3ee','rgba(34,211,238,.08)');
-      optLabel(ctx,'עדשה מתקנת −2.0D',spectX,cy+80,'#22d3ee',9);
-    } else if(glasses&&mode==='hyper'){
-      optLensShape(ctx,spectX,cy,12,124,'#22d3ee','rgba(34,211,238,.08)');
-      optLabel(ctx,'עדשה מתקנת +2.0D',spectX,cy+80,'#22d3ee',9);
+    // ── the distance axis, its sharp range, and the bare eye's ──
+    ctx.save();ctx.strokeStyle='rgba(100,116,139,.6)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(xInf,axY);ctx.lineTo(xR,axY);ctx.stroke();ctx.restore();
+    var band=function(n,f,col,y,h){if(!(n<Infinity)&&!(f<Infinity))return;var x1=dToX(f),x2=dToX(Math.max(0.1,n));if(!(n<Infinity))return;
+      ctx.save();ctx.fillStyle=col;ctx.fillRect(Math.min(x1,x2),y,Math.abs(x2-x1),h);ctx.restore();};
+    if(Math.abs(o.P)>0.001)band(o.nearB,o.farB,'rgba(148,163,184,.22)',axY+7,4);
+    if(o.ok)band(o.near,o.far,'rgba(52,211,153,.45)',axY-3,6);
+    var ticks=narrow?[0.1,0.3,1,3,10]:[0.1,0.25,0.5,1,2,5,10];
+    ticks.forEach(function(dm){var xm=dToX(dm);ctx.save();ctx.strokeStyle='rgba(100,116,139,.7)';ctx.beginPath();ctx.moveTo(xm,axY-5);ctx.lineTo(xm,axY+5);ctx.stroke();ctx.restore();
+      optLabel(ctx,narrow?(dm===10?'10 m':String(dm)):dm+' m',xm,axY+17,'#7d8da6',8.5);});
+    optLabel(ctx,'∞',xInf,axY+17,'#7d8da6',11);
+    // near and far point markers (with these glasses)
+    var mk=function(dist,txt,dy){if(!isFinite(dist)&&txt!=='far')return;var x=dToX(dist);
+      ctx.save();ctx.fillStyle='#34d399';ctx.beginPath();ctx.moveTo(x,axY-4);ctx.lineTo(x-5,axY-13);ctx.lineTo(x+5,axY-13);ctx.closePath();ctx.fill();ctx.restore();};
+    if(o.ok){mk(o.near,'near');mk(o.far,'far');
+      optLabel(ctx,'קרובה '+fmtD(o.near),dToX(o.near),axY+31,'#34d399',9,dToX(o.near)>xR-30?'right':'center');
+      var fx=dToX(o.far);optLabel(ctx,'רחוקה '+fmtD(o.far),fx,axY+44,'#34d399',9,fx<xInf+40?'left':'center');}
+    else optLabel(ctx,'אין טווח חד — המשקפיים חזקים מדי',(xInf+xR)/2,axY+31,'#f87171',9);
+    // ── the eye ──
+    ctx.save();var sg=ctx.createRadialGradient(cx,cy,0,cx,cy,Rx);sg.addColorStop(0,'rgba(220,230,245,.12)');sg.addColorStop(1,'rgba(180,200,230,.05)');
+    ctx.fillStyle=sg;ctx.strokeStyle='rgba(120,150,200,.45)';ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(cx,cy,Rx,Ry,0,0,Math.PI*2);ctx.fill();ctx.stroke();ctx.restore();
+    ctx.save();ctx.strokeStyle='rgba(248,113,113,.6)';ctx.lineWidth=4;optGlow(ctx,'#f87171',8);
+    ctx.beginPath();ctx.arc(retinaX-Ry*0.80,cy,Ry*0.80,-0.75,0.75);ctx.stroke();optNoGlow(ctx);ctx.restore();
+    optLabel(ctx,'רשתית',retinaX,cy-Ry-6,'#f87171',9.5,ltr?'center':'center');
+    ctx.save();ctx.strokeStyle='rgba(96,165,250,.9)';ctx.lineWidth=3;optGlow(ctx,'#60a5fa',10);
+    ctx.beginPath();ctx.arc(eyeFront+50*es,cy,56*es,Math.PI*0.72,Math.PI*1.28);ctx.stroke();optNoGlow(ctx);ctx.restore();
+    // the crystalline lens: its thickness is the accommodation in use
+    var lw=(8+o.acc*2.4)*es,lh=60*es;
+    ctx.save();var lg=ctx.createRadialGradient(lensX,cy,0,lensX,cy,lh/2);lg.addColorStop(0,'rgba(180,210,255,.45)');lg.addColorStop(1,'rgba(100,140,220,.12)');
+    ctx.fillStyle=lg;ctx.strokeStyle='rgba(147,197,253,.85)';ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(lensX,cy,lw,lh/2,0,0,Math.PI*2);ctx.fill();ctx.stroke();ctx.restore();
+    optLabel(ctx,'עדשה',lensX,cy+lh/2+11,'#93c5fd',9);
+    // the glasses
+    if(Math.abs(o.P)>0.001){
+      if(o.P>0)optLensShape(ctx,spectX,cy,10,110*es+20,'#22d3ee','rgba(34,211,238,.08)');
+      else optDivLensShape(ctx,spectX,cy,10,110*es+20,'#22d3ee','rgba(34,211,238,.07)');
+      optLabel(ctx,_fmtEyeP(o.P),spectX,cy-55*es-22,'#22d3ee',10);
     }
-    // ── OBJECT (draggable arrow on the distance axis) ────
-    var objX=distToX(d0),objH=64;
-    ctx.save();ctx.strokeStyle='#a78bfa';ctx.lineWidth=3.5;optGlow(ctx,'#a78bfa',12);
-    ctx.beginPath();ctx.moveTo(objX,cy+46);ctx.lineTo(objX,cy-objH);ctx.stroke();
-    ctx.fillStyle='#c4b5fd';ctx.beginPath();
-    ctx.moveTo(objX,cy-objH);ctx.lineTo(objX-9,cy-objH+17);ctx.lineTo(objX+9,cy-objH+17);ctx.closePath();ctx.fill();
-    optNoGlow(ctx);ctx.restore();
-    optLabel(ctx,'עצם',objX,cy+88,'#a78bfa',10);
-    optLabel(ctx,d0.toFixed(2)+' m',objX,cy-objH-12,'#c4b5fd',9);
-    // ── RAYS: object tip → (glasses) → cornea → focus → retina ──
-    var tipY=cy-objH+8;
-    // The rays from the arrow's tip meet at the tip's IMAGE: below the axis
-    // (the image on the retina is inverted), where the undeviated ray through
-    // the centre of the eye's optics crosses the focal plane. They used to
-    // meet on the axis itself, as if the tip were imaged at the centre.
-    var imgY=cy+Math.min(Ry*0.42,(cy-tipY)*(focalX-lensX)/Math.max(40,lensX-objX));   // the distance axis is compressed, so cap the size
-    [-24,0,24].forEach(function(off2,ri){
-      var eyeHitX=eyeFront+16*es,eyeHitY=cy+off2*0.55*es;
-      var path=[{x:objX,y:tipY}];
-      if(glasses&&mode!=='normal'){
-        var sy=tipY+((eyeHitY-tipY)*((spectX-objX)/(eyeHitX-objX)));
-        sy+= (mode==='myopia'?off2*0.22:-off2*0.22); // visible kink at the corrective lens
-        path.push({x:spectX,y:sy});
-      }
-      path.push({x:eyeHitX,y:eyeHitY});
-      path.push({x:focalX,y:imgY});
-      if(!sharp){
-        var sl=(imgY-eyeHitY)/(focalX-eyeHitX);
-        path.push({x:retinaX,y:eyeHitY+sl*(retinaX-eyeHitX)});
-      }
-      ctx.save();ctx.strokeStyle='rgba(251,191,36,'+(ri===1?0.85:0.45)+')';ctx.lineWidth=ri===1?2:1.4;
-      optGlow(ctx,'#fbbf24',4);
-      ctx.beginPath();ctx.moveTo(path[0].x,path[0].y);
-      path.slice(1).forEach(function(p){ctx.lineTo(p.x,p.y);});ctx.stroke();
-      optNoGlow(ctx);ctx.restore();
-      // photon stream on the central ray
-      if(ri===1){
-        var segs=[],tot=0;
-        for(var si=1;si<path.length;si++){var L2=Math.hypot(path[si].x-path[si-1].x,path[si].y-path[si-1].y);segs.push(L2);tot+=L2;}
-        [0,0.5].forEach(function(po){
-          var prog=((animT*0.5+po)%1)*tot;
-          for(var si=0;si<segs.length;si++){
-            if(prog<=segs[si]){
-              var fr=prog/Math.max(1e-6,segs[si]);
-              ctx.save();ctx.fillStyle='#fff7d6';optGlow(ctx,'#fbbf24',10);
-              ctx.beginPath();ctx.arc(path[si].x+(path[si+1].x-path[si].x)*fr,path[si].y+(path[si+1].y-path[si].y)*fr,2.6,0,Math.PI*2);ctx.fill();
-              optNoGlow(ctx);ctx.restore();break;
-            }
-            prog-=segs[si];
-          }
-        });
-      }
+    // ── the rays: from the object's tip, through glasses and eye, to their focus ──
+    var Lmm=22.27,nE=1.336,Pe=60+o.E.far+o.acc,vgc=Pe-o.Dp;     // reduced eye: n/L = 60 D
+    var xmm=vgc>0.5?nE/vgc*1000:1e9,dmm=xmm-Lmm;                 // focus behind the lens, mm; − before the retina
+    var focX=retinaX+Math.max(-36*es,Math.min(36*es,dmm*14*es));
+    var tipY=cy-58,inf=!isFinite(o.d);
+    var imgY=cy+Math.min(Ry*0.38,inf?14:Math.max(6,(cy-tipY)*(retinaX-lensX)/Math.max(30,lensX-ox)*1.4));
+    [-22,0,22].forEach(function(off,ri){
+      var eyY=cy+off*0.6*es,pts=[];
+      if(inf){var sl0=(imgY-cy)/(retinaX-lensX);pts.push({x:xInf+6,y:eyY-sl0*(eyeFront-xInf)});}
+      else pts.push({x:ox,y:tipY});
+      if(Math.abs(o.P)>0.001){var t=(spectX-pts[0].x)/(eyeFront+6*es-pts[0].x);pts.push({x:spectX,y:pts[0].y+(eyY-pts[0].y)*t+(o.P>0?-1:1)*off*0.12});}
+      pts.push({x:eyeFront+6*es,y:eyY});
+      var last=pts[pts.length-1],sl=(imgY-last.y)/(focX-last.x);
+      if(focX<=retinaX){pts.push({x:focX,y:imgY});pts.push({x:retinaX,y:imgY+(imgY-last.y)/(focX-last.x)*(retinaX-focX)});}
+      else pts.push({x:retinaX,y:last.y+sl*(retinaX-last.x)});
+      ctx.save();ctx.strokeStyle='rgba(251,191,36,'+(ri===1?0.9:0.5)+')';ctx.lineWidth=ri===1?2:1.4;optGlow(ctx,'#fbbf24',4);
+      ctx.beginPath();ctx.moveTo(pts[0].x,pts[0].y);for(var i=1;i<pts.length;i++)ctx.lineTo(pts[i].x,pts[i].y);ctx.stroke();optNoGlow(ctx);ctx.restore();
+      if(focX>retinaX)optDash(ctx,retinaX,last.y+sl*(retinaX-last.x),focX,imgY,'#fbbf24',0.5);
     });
-    // Focus marker + retina blur disc
-    ctx.save();ctx.fillStyle=sharp?'#34d399':'#f87171';optGlow(ctx,sharp?'#34d399':'#f87171',16);
-    ctx.beginPath();ctx.arc(focalX,imgY,5,0,Math.PI*2);ctx.fill();optNoGlow(ctx);ctx.restore();
-    if(!sharp){
-      var blurR=Math.min(26,blur*10+5);
-      ctx.save();ctx.fillStyle='rgba(248,113,113,.25)';optGlow(ctx,'#f87171',10);
-      ctx.beginPath();ctx.arc(retinaX,imgY,blurR,0,Math.PI*2);ctx.fill();optNoGlow(ctx);ctx.restore();
-      optLabel(ctx,'טשטוש',retinaX,imgY+blurR+10,'#f87171',9);
+    ctx.save();ctx.fillStyle=o.sharp?'#34d399':'#f87171';optGlow(ctx,o.sharp?'#34d399':'#f87171',12);
+    ctx.beginPath();ctx.arc(focX,imgY,4,0,Math.PI*2);ctx.fill();optNoGlow(ctx);ctx.restore();
+    // ── the object (a star at infinity) ──
+    if(inf){ctx.save();ctx.fillStyle='#fde68a';optGlow(ctx,'#fde68a',14);ctx.font='20px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('★',xInf,tipY+10);optNoGlow(ctx);ctx.restore();}
+    else{ctx.save();ctx.strokeStyle='#a78bfa';ctx.lineWidth=3.5;optGlow(ctx,'#a78bfa',10);ctx.beginPath();ctx.moveTo(ox,axY-6);ctx.lineTo(ox,tipY);ctx.stroke();
+      ctx.fillStyle='#c4b5fd';ctx.beginPath();ctx.moveTo(ox,tipY);ctx.lineTo(ox-8,tipY+15);ctx.lineTo(ox+8,tipY+15);ctx.closePath();ctx.fill();optNoGlow(ctx);ctx.restore();}
+    simHandle(ctx,ox,tipY+30,'#c4b5fd',14);
+    optLabel(ctx,fmtD(o.d),ox,tipY-12,'#c4b5fd',10,ox<40?'left':'center');
+    // ── what the eye sees ──
+    var ibw=Math.min(150,W*0.40),ibh=86,ibx=narrow?W-ibw-8:8,iby=H-ibh-8;   // below the drawing: the object's labels need the top
+    ctx.save();ctx.fillStyle='rgba(6,14,28,.94)';ctx.strokeStyle=o.sharp?'#34d399':'#f87171';ctx.lineWidth=1.5;ctx.beginPath();ctx.roundRect(ibx,iby,ibw,ibh,8);ctx.fill();ctx.stroke();ctx.restore();
+    optLabel(ctx,'👁 מה העין רואה',ibx+ibw/2,iby+12,'#94a3b8',9);
+    var blur=Math.abs(o.miss),rad=Math.min(14,blur*5),passes=o.sharp?1:9;
+    ctx.save();ctx.beginPath();ctx.rect(ibx+3,iby+20,ibw-6,ibh-36);ctx.clip();
+    for(var bp=0;bp<passes;bp++){var a=bp*Math.PI*2/9,dx=Math.cos(a)*rad,dy=Math.sin(a)*rad;
+      ctx.globalAlpha=o.sharp?1:0.2;ctx.fillStyle='#e2e8f0';ctx.font='bold 26px Heebo,sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
+      ctx.fillText(inf?'★':'E',ibx+ibw/2+dx,iby+ibh/2+2+dy);}
+    ctx.restore();
+    optLabel(ctx,o.sharp?'חד ✓':'מטושטש — '+Math.abs(o.miss).toFixed(2)+' D מחוץ לטווח',ibx+ibw/2,iby+ibh-9,o.sharp?'#34d399':'#f87171',9);
+    // accommodation in use, beside the lens
+    optLabel(ctx,'אקומודציה '+o.acc.toFixed(2)+' D מתוך '+o.E.A+' D',Math.min(W-6,cx+Rx*0.1),cy+Ry+14,'#93c5fd',9,'center');
+    if(!touched&&animT<10)optLabel(ctx,'✋ גררו את העצם',Math.max(60,ox),tipY-30+(reduce?0:Math.sin(animT*4)*3),'#fbbf24',10);
+    // ── the model line ──
+    var dS=isFinite(o.d)?o.d.toFixed(2)+' m':'∞',range=_skM(fmtD(o.near))+' עד '+_skM(fmtD(o.far));
+    if(Math.abs(o.P)<0.001){
+      if(!o.ok)kit.model('');
+      else if(o.sharp)kit.model('העין רואה את העצם עצמו, ב־'+_skM('dₒ = '+dS)+'; היא ממקדת מ־'+range+' — ולכן הוא חד.');
+      else kit.model('העין רואה את העצם עצמו, ב־'+_skM('dₒ = '+dS)+'; היא ממקדת רק מ־'+range+' — ולכן הוא מטושטש.');
     } else {
-      // the image on the retina is real and inverted (Kepler, 1604)
-      ctx.save();ctx.strokeStyle='#34d399';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(retinaX-3,cy);ctx.lineTo(retinaX-3,imgY);ctx.stroke();ctx.restore();
-      optLabel(ctx,'חד ✓ — תמונה הפוכה',retinaX-4,imgY+14,'#34d399',9);
+      var v=o.P-o.D,diS=Math.abs(v)<1e-6?'∞':(1/v).toFixed(2)+' m';
+      var lens=_skM('1/dᵢ = P − 1/dₒ = '+_fmtEyeP(o.P).replace(' D','')+' − '+o.D.toFixed(2)+' = '+_optSgn(v,2)+' D')+' ⇒ '+_skM('dᵢ = '+(v<0?'':'+')+diS.replace('-','−'));
+      var bare=_skM(fmtD(o.nearB))+' עד '+_skM(fmtD(o.farB));
+      if(o.sharp)kit.model('המשקפיים: '+lens+'. העין ממקדת מ־'+bare+', והתמונה בטווח — חד.');
+      else kit.model('המשקפיים: '+lens+'. העין ממקדת רק מ־'+bare+', והתמונה מחוץ לטווח — מטושטש.');
     }
-    // ── INSET: what the eye actually sees ────────────────
-    var ibx=12,iby=12,ibw=158,ibh=112;
-    ctx.save();ctx.fillStyle='rgba(6,14,28,.92)';ctx.strokeStyle=sharp?'#34d399':'#f87171';ctx.lineWidth=1.5;
-    ctx.beginPath();ctx.roundRect(ibx,iby,ibw,ibh,8);ctx.fill();ctx.stroke();ctx.restore();
-    optLabel(ctx,'👁 מה העין רואה',ibx+ibw/2,iby+15,'#94a3b8',9);
-    var iaX=ibx+ibw/2,iaTop=iby+34,iaBot=iby+ibh-20;
-    var passes=sharp?1:7;
-    for(var bp=0;bp<passes;bp++){
-      var ang=bp*Math.PI*2/7,rad=sharp?0:Math.min(14,blur*5);
-      var ox2=Math.cos(ang)*rad,oy2=Math.sin(ang)*rad*0.6;
-      ctx.save();ctx.globalAlpha=sharp?1:0.25;
-      ctx.strokeStyle='#a78bfa';ctx.lineWidth=3;
-      if(sharp)optGlow(ctx,'#a78bfa',8);
-      ctx.beginPath();ctx.moveTo(iaX+ox2,iaBot+oy2);ctx.lineTo(iaX+ox2,iaTop+oy2);ctx.stroke();
-      ctx.fillStyle='#c4b5fd';ctx.beginPath();
-      ctx.moveTo(iaX+ox2,iaTop+oy2);ctx.lineTo(iaX+ox2-7,iaTop+oy2+13);ctx.lineTo(iaX+ox2+7,iaTop+oy2+13);ctx.closePath();ctx.fill();
-      if(sharp)optNoGlow(ctx);
-      ctx.restore();
-    }
-    optLabel(ctx,sharp?'תמונה חדה ✓':'תמונה מטושטשת',ibx+ibw/2,iby+ibh-6,sharp?'#34d399':'#f87171',8.5);
-    // the drag hint, drawn after the inset and moved below it on a narrow
-    // screen, where the object stands under the inset and the inset hid it
-    if(!hasDragged&&animT<8){
-      var hy=cy-objH-28, hx=objX+10, ha='center';
-      if(hx-90<ibx+ibw&&hy<iby+ibh+12){hx=ibx+ibw+8;ha='left';}
-      optLabel(ctx,'✋ גררו את העצם קרוב/רחוק',hx,hy+Math.sin(animT*4)*3,'#fbbf24',10,ha);
-    }
-    // ── Status + sharp-range readout ─────────────────────
-    var modeName=mode==='myopia'?'קוצר ראייה':mode==='hyper'?'רוחק ראייה':'ראייה תקינה';
-    var nearPt=1/(offEff+4),farPt=offEff>0.01?(1/offEff):Infinity;
-    var rangeStr='טווח ראייה חדה: '+nearPt.toFixed(2)+'m עד '+(isFinite(farPt)?farPt.toFixed(2)+'m':'∞');
-    ctx.save();ctx.fillStyle='rgba(4,9,20,.85)';ctx.beginPath();ctx.roundRect(W/2-190,H-56,380,44,6);ctx.fill();ctx.restore();
-    optLabel(ctx,modeName+(glasses&&mode!=='normal'?' + משקפיים מתקנים':'')+(sharp?' — ממוקד על הרשתית ✓':' — טשטוש '+blur.toFixed(1)+'D'),W/2,H-42,sharp?'#34d399':'#f87171',11);
-    optLabel(ctx,rangeStr,W/2,H-24,'#94a3b8',9);
+    kit.check({mode:mode,P:o.P,d:o.d,sharp:o.sharp,near:o.near,far:o.far});
     requestAnimationFrame(draw);
-  }requestAnimationFrame(draw);
+  }
+  requestAnimationFrame(draw);
 }
 
 // ─── INTERFERENCE — Enhanced (real 2D wave sim) ────────────────────
@@ -34778,11 +34755,7 @@ function buildSim(sim){
   else if(sim.type==='opt-prism')extra=C(rng('prism-ang',10,85,55,1,'זווית פגיעה θ','°'));
   else if(sim.type==='opt-convex-lens')extra=C(rng('cl-do',15,400,209,1,'מרחק העצם dₒ',' mm')+rng('cl-f',50,160,95,1,'אורך מוקד f',' mm')+rng('cl-wl',380,700,550,5,'צבע אור λ',' nm')+btn('cl-screen','🖼 הציבו מסך','btn-secondary')+btn('cl-cover','✋ כסו חצי עדשה','btn-secondary'));
   else if(sim.type==='opt-concave-lens')extra=C(rng('dcl-do',15,400,209,1,'מרחק העצם dₒ',' mm')+rng('dcl-f',50,160,95,1,'אורך מוקד |f|',' mm')+rng('dcl-wl',380,700,550,5,'צבע אור λ',' nm'));
-  else if(sim.type==='opt-eye')extra=C(rng('eye-dist',0.25,6,2,0.05,'מרחק העצם',' m')+'<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px">'+
-    '<button class="btn btn-primary" onclick="window._eyeMode(\'normal\')">😊 תקינה</button>'+
-    '<button class="btn btn-secondary" onclick="window._eyeMode(\'myopia\')">👓 קוצר ראייה</button>'+
-    '<button class="btn btn-secondary" onclick="window._eyeMode(\'hyper\')">🔭 רוחק ראייה</button>'+
-    '<button class="btn btn-secondary" id="btn-eye-glasses" onclick="window._eyeGlasses()">👓 הוסיפו משקפיים</button></div>');
+  else if(sim.type==='opt-eye')extra=C(rng('eye-dist',-1,1.1,0.301,0.005,'מרחק העצם','','_fmtEyeD')+rng('eye-P',-6,6,0,0.05,'עוצמת המשקפיים P','','_fmtEyeP')+btn('eye-normal','😊 עין תקינה','btn-primary')+btn('eye-myopia','👓 קוצר ראייה','btn-secondary')+btn('eye-hyper','🔭 רוחק ראייה','btn-secondary')+btn('eye-presby','📖 פרסביופיה','btn-secondary'));
   else if(sim.type==='opt-interference')extra=C(rng('int-lambda',380,700,500,10,'אורך גל λ',' nm')+rng('int-d',1,4,2,0.1,'מרחק מקורות d',' μm'));
   else if(sim.type==='opt-youngs')extra=C(rng('ys-lambda',400,700,500,10,'אורך גל λ',' nm')+rng('ys-d',0.1,1,0.3,0.05,'מרחק סדקים d',' mm')+rng('ys-L',0.5,3,1,0.1,'מרחק מסך L',' m'));
   else if(sim.type==='opt-diffraction')extra=C(rng('diff-a',0.05,1,0.1,0.01,'רוחב סדק a',' mm')+rng('diff-lambda',380,700,500,10,'אורך גל λ',' nm'));

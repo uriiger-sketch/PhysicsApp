@@ -212,7 +212,7 @@ const EXPECT = {
   };
   await reach('opt-lenses', 'convex-lens', [['cl-f', 95], ['cl-do', 190], ['cl-do', 60], ['cl-do', 143],
     async () => {   // a screen at dᵢ = 3f, dragged there by mouse, then cover the lens after predicting
-      await p.evaluate(() => { document.getElementById('btn-cl-screen').click(); document.getElementById('sim-canvas').scrollIntoView({ block: 'start' }); }); await p.waitForTimeout(250);
+      await p.evaluate(() => { document.getElementById('btn-cl-screen').click(); document.getElementById('sim-canvas').scrollIntoView({ block: 'start' }); }); await p.waitForTimeout(500);
       const r = await p.evaluate(() => { const cv = document.getElementById('sim-canvas'), b = cv.getBoundingClientRect(), W = cv.offsetWidth, H = cv.offsetHeight;
         const X0 = Math.round(W * (W < 520 ? 0.44 : 0.45)), k = (X0 - 24) / (W < 520 ? 300 : 400), s0 = Math.min(W - 30, X0 + Math.max(60, (W - X0) * 0.62));
         return { x: b.left, y: b.top, s0, to: X0 + 95 * 143 / (143 - 95) * k, yy: H - 96 }; });
@@ -223,6 +223,22 @@ const EXPECT = {
   await reach('opt-lenses', 'concave-lens', [['dcl-f', 95], ['dcl-do', 20], ['dcl-do', 95], ['dcl-f', 50], ['dcl-do', 210]], '111');
   await reach('opt-reflection', 'concave-mirror', [['cm-f', 85], ['cm-do', 170], ['cm-do', 60], ['cm-do', 300], ['cm-do', 85]], '1111');
   await reach('opt-reflection', 'convex-mirror', [['cvm-f', 85], ['cvm-do', 20], ['cvm-do', 85], ['cvm-f', 50], ['cvm-do', 210]], '111');
+
+  // ── the eye: vergence model, glasses touching the eye. Sharp exactly when
+  // 1/d − P lies in [D_far, D_far + A]; the glasses' image dᵢ = 1/(P − 1/d)
+  // is in the equation line; the section's problem (+3.33 D) is a mission ──
+  const click = id => p.evaluate(id => document.getElementById('btn-' + id).click(), id);
+  await reach('opt-lenses', 'lens-eye', [async () => click('eye-myopia'), ['eye-P', 0], ['eye-dist', Math.log10(0.48)], ['eye-dist', 1.1], ['eye-P', -2],
+    async () => click('eye-hyper'), ['eye-dist', Math.log10(0.25)], ['eye-P', 3.35], async () => click('eye-normal'), ['eye-P', 0], ['eye-dist', Math.log10(0.26)]], '1111');
+  const EYE = { normal: [0, 4], myopia: [2, 4], hyper: [-10 / 3, 4], presby: [0, 1] };
+  for (let [mode, P, d] of [['myopia', 0, 0.6], ['myopia', 0, 0.3], ['myopia', -2, Infinity], ['myopia', -1.5, Infinity], ['hyper', 0, 0.5], ['hyper', 0, 2], ['hyper', 3.35, 0.251],
+    ['normal', 0, 0.2], ['presby', 0, 0.5], ['presby', 3, 0.3], ['presby', 3, 3]]) {
+    await click('eye-' + mode); await setv('eye-P', P); await setv('eye-dist', isFinite(d) ? Math.log10(d) : 1.1); await p.waitForTimeout(140);
+    const v = +(await p.evaluate(() => document.getElementById('inp-eye-dist').value)); d = v > 1.0001 ? Infinity : 10 ** v;   // as the slider holds it
+    const tx = await modelTx(), [far, A] = EYE[mode], Dp = (isFinite(d) ? 1 / d : 0) - P, sharp = Dp >= far - 0.03 && Dp <= far + A + 0.03;
+    t(`eye ${mode} P=${P} d=${d}: ${sharp ? 'sharp' : 'blurred'}`, sharp ? /— (ולכן הוא )?חד|sharp\.?$|— sharp/.test(tx) && !/מטושטש|blurred/.test(tx) : /מטושטש|blurred/.test(tx), tx);
+    if (P !== 0) { const g = /dᵢ = ([+−-]?\d+\.\d\d) m/.exec(tx); t(`eye ${mode} P=${P} d=${d}: the glasses' image dᵢ`, g && Math.abs(num(g[1]) - 1 / (P - (isFinite(d) ? 1 / d : 0))) < 0.011, tx); }
+  }
 
   console.log('   every draggable simulation by touch, on a phone');
   const tc = await b.newContext({ viewport: { width: 390, height: 1300 }, hasTouch: true, isMobile: true, deviceScaleFactor: 2 });
@@ -270,7 +286,10 @@ const EXPECT = {
     ['optics', 'opt-refraction', 'fiber-optics', (W, H) => [[W * 0.05, H * 0.4 + 30], [W * 0.05, H * 0.4 + 60], [W * 0.05, H * 0.4 + 90]], { slider: 'fib-ang' }],
     ['optics', 'opt-lenses', 'convex-lens', W => lensObj(W, 200), { slider: 'cl-do' }],
     ['optics', 'opt-lenses', 'concave-lens', W => lensObj(W, 180), { slider: 'dcl-do' }],
-    ['optics', 'opt-lenses', 'lens-eye', (W, H) => { const es = Math.min(1, (W * 0.28 - 8) / 118), ef = W * 0.72 - 118 * es, xR = ef - Math.max(60, 90 * es), xL = Math.min(60, W * 0.08), ox = xR - Math.log(8) / Math.log(24) * (xR - xL); return [[ox, H * 0.46 - 10], [ox + 15, H * 0.46 - 10], [ox + 30, H * 0.46 - 10]]; }, { slider: 'eye-dist' }],
+    // the eye: a log axis from ∞ (left) through 10 m … 0.1 m to the glasses in front of the eye
+    ['optics', 'opt-lenses', 'lens-eye', (W, H) => { const nw = W < 520, es = Math.min(1, (W * (nw ? 0.24 : 0.30) - 8) / 118), cx = W - Math.max(14, W * 0.04) - 118 * es, ef = cx - 118 * es,
+      xR = ef - 24 * es - Math.max(34, 40 * es), xInf = Math.max(18, W * 0.035), xL = xInf + Math.max(26, W * 0.05), ox = xR - (0.301 + 1) / 2 * (xR - xL), y = Math.round(H * (nw ? 0.46 : 0.42)) - 10;
+      return [[ox, y], [ox + 15, y], [ox + 30, y]]; }, { slider: 'eye-dist' }],
     ['optics', 'opt-lenses', 'telescope', (W, H) => { const m = W * 0.05, sc = (W - m * 2 - 70) / (150 * 1.3 + 25), L1 = m + 150 * sc * 0.3; return [[L1, H / 2], [L1 + 10, H / 2], [L1 + 20, H / 2]]; }, { slider: 'tel-fo' }],
     ['optics', 'opt-waves', 'interference', W => [[W * 0.7, 120], [W * 0.75, 160]], { text: '^Δ = \\|r₂' }],
     ['optics', 'opt-waves', 'youngs-slits', W => { const x = 136 + 0.2 * (W - 180); return [[x, 300], [x + 20, 300], [x + 40, 300]]; }, { slider: 'ys-L' }],
