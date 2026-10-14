@@ -4604,7 +4604,7 @@ const CONTENT={
       <p>לכן צריך כוח גדול יותר כדי לשבור את המנוחה מאשר כדי לשמור על התנועה — ולכן ארון תקוע ״קופץ״ פתאום כשהוא סוף-סוף זז.</p>`
     }
   },
-  sim:{type:'static-friction',title:'חיכוך סטטי',desc:'הגדילו בהדרגה את הכוח המופעל: החיכוך הסטטי שווה לו בדיוק עד הערך המרבי μₛN — ומעליו הגוף מתחיל לנוע.'},
+  sim:{type:'static-friction',title:'חיכוך סטטי',desc:'דחפו את הארגז בעזרת היד ומד־הכוח, והגדילו את הדחיפה בהדרגה: החיכוך הסטטי שווה לה בדיוק עד התקרה μₛN, ומעליה הארגז מחליק והחיכוך יורד ל־μₖN. אחר כך הניחו את הארגז על משאית שמאיצה ובולמת, וגלו לאן החיכוך מכוון.'},
   example:{title:'חיכוך סטטי מרבי',text:`גוש שמסתו ${M('6\\,\\text{kg}')} מונח על רצפה, ${M('\\mu_s=0.4')}. (${M('g=9.8\\,\\text{m/s}^2')})`,steps:[
     {q:'מה הכוח הנורמלי?',a:`${M('N=mg=6\\times9.8=58.8\\,\\text{N}')}`},
     {q:'מה החיכוך הסטטי המרבי?',a:`${M('f_{s,\\max}=\\mu_sN=0.4\\times58.8\\approx23.5\\,\\text{N}')}`},
@@ -12562,6 +12562,8 @@ function _mbKeys(canvas,map){
     f(e);e.preventDefault();
   });
 }
+// A signed number as maths prints it: the minus sign, not a hyphen.
+function _mbS(x,d){return (x<0&&Math.abs(x)>=0.5*Math.pow(10,-d)?'\u2212':'')+Math.abs(x).toFixed(d);}
 // A slider's value, or a default when the slider is not on the page.
 function _mbV(id,d){var e=document.getElementById('inp-'+id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:d;}
 // A button's label, set in place (restartSim gives it back its first label).
@@ -14256,203 +14258,276 @@ function simGravityForce(canvas){
 }
 
 function simStaticFriction(canvas){
-  // SECTION: forces2.static-friction — חיכוך סטטי
-  // PEDAGOGY: Gradually increase applied force with a slider. Student watches friction force
-  // MATCH the applied force perfectly until threshold. At breakaway, both forces shown.
-  // The live F vs fs graph reveals the key concept: static friction is NOT constant.
-  const H=490; const {ctx,W,dpr}=setupCanvas(canvas,H);
-  const id=canvas.id;
-  const g=9.8;
-  let pT=null, t=0;
-  var mu_s=0.55, m=5, F=0;
-  var vel=0, pos=null, state='static';
-  var graphData=[]; // {F_applied, fs_actual}
-  // Keyed by applied force. A point used to be pushed every frame, so the buffer
-  // filled with duplicates at the current F and five seconds of idling flushed
-  // out the curve the learner had just swept.
-  var _fsMap={}, _lastMu=null, _lastM=null;
-  var FLOOR_Y=232;
+  // SECTION: forces2.static-friction
+  // PEDAGOGY: two scenes, one law. (1) Push a crate through a spring scale:
+  // static friction equals the push exactly, from zero up to the ceiling
+  // μₛN, and only at the ceiling is it μₛN; past it the crate slides and
+  // friction drops to μₖN, constant. The f-against-F graph is traced by the
+  // learner's own push, against the true curve (a rise, a drop, a plateau).
+  // (2) The same crate on a truck bed: when the truck speeds up, static
+  // friction on the crate points FORWARD -- along the motion -- because it
+  // opposes sliding between the surfaces, not motion; braking turns it
+  // backward. Too hard either way and the crate slips, and kinetic friction
+  // still points toward the truck's acceleration. μₖ = 0.75 μₛ (stated).
+  var cv0=setupCanvas(canvas,470), W=cv0.W, dpr=cv0.dpr;
+  var WIDE=W>=640, H=WIDE?400:470, ctx=WIDE?setupCanvas(canvas,H).ctx:cv0.ctx;
+  const id=canvas.id, g=9.8, KMU=0.75;
+  // layout: the scene, and the f–F graph beside it (wide) or under it (phone)
+  var SW=WIDE?Math.round(W*0.56):W, SH=WIDE?H:250;
+  var GX=WIDE?SW+10:10, GY=WIDE?14:SH+8, GW=WIDE?W-SW-20:W-20, GH=WIDE?H-28:H-SH-16;
+  var FY=WIDE?Math.round(H*0.62):172;           // floor / road line
+  var scene='push', pT=null, t=0;
+  // push scene: the crate's position x (m) and speed v; F from the slider (or the drag)
+  var x=0, v=0, slid=false, sliding=false, aNow=0, zeroSince=-1;
+  // truck scene
+  var vt=0, xt=0, vc=0, srel=0, stick=true, wall=0, slipT=0, slipFwdT=0, Ae=0, ac=0;
+  var BED=4, CR=0.8;                            // bed length and crate size, m
+  var pts={}, ptsKey='';
+  function mu(){return _mbV('sft-mu',0.55);} function M(){return _mbV('sft-mass',3);}
+  function Fp(){return _mbV('sft-F',0);} function At(){return _mbV('sft-a',0);}
+  function rowOf(k){var e=document.getElementById('inp-'+k);return e&&e.closest('.range-wrap');}
+  function showRows(){var a=rowOf('sft-F'),b=rowOf('sft-a');
+    if(a)a.style.display=scene==='push'?'':'none';if(b)b.style.display=scene==='truck'?'':'none';}
+  function resetPush(){x=0;v=0;sliding=false;slid=false;pts={};}
+  function resetTruck(){vt=0;xt=0;vc=0;srel=0;stick=true;wall=0;slipT=0;slipFwdT=0;pts={};}
+  var N0=M()*g, fsmax0=mu()*N0;
+  var kit=simKit(canvas,{missions:[
+    {text:'מצאו את הדחיפה החזקה ביותר שעדיין אינה מזיזה את הארגז',
+     hint:'הגדילו את F לאט ועקבו אחרי הגרף: החיכוך עולה יחד עם הדחיפה — עד תקרה.',
+     why:'החיכוך הסטטי שווה לדחיפה בדיוק, ולכן הוא גדל איתה עד התקרה μₛN. רק ברגע השבירה הוא μₛN; בכל דחיפה חלשה יותר הוא חלש יותר — ובלי דחיפה אין חיכוך בכלל.',
+     done:function(s){return s.scene==='push'&&!s.sliding&&s.F>=s.fsmax-1&&s.F<=s.fsmax;}},
+    {text:'הזיזו את הארגז, ואז הקטינו את הדחיפה כך שימשיך להחליק במהירות קבועה',
+     hint:'כשהארגז מחליק החיכוך קטן ל־μₖN. דחיפה שווה לו בדיוק נותנת שקול אפס.',
+     why:'בהחלקה החיכוך הוא μₖN — קטן מ־μₛN שנדרש כדי להתחיל. דחיפה שווה ל־μₖN נותנת ΣF = 0, ולכן מהירות קבועה: לא צריך כוח ״כדי לנוע״, רק כדי לאזן את החיכוך.',
+     done:function(s){return s.scene==='push'&&s.steady;}},
+    {text:'במשאית: מצאו את התאוצה הגדולה ביותר שבה הארגז עוד נוסע איתה בלי להחליק',
+     hint:'הכוח היחיד שמאיץ את הארגז הוא החיכוך: ma ≤ μₛmg. איזו תאוצה זו?',
+     why:'החיכוך הסטטי מושך את הארגז קדימה — בכיוון התנועה! — ונותן לו את תאוצת המשאית: f = ma ≤ μₛmg, ולכן a ≤ μₛg. המסה מצטמצמת: ארגז כבד וקל מחליקים באותה תאוצה.',
+     done:function(s){return s.scene==='truck'&&s.stick&&!s.wall&&s.vt>0.2&&s.A>0&&s.A>=s.mug-0.25&&s.A<=s.mug;}},
+    {text:'בלמו בחוזקה, עד שהארגז מחליק קדימה על המשטח',
+     hint:'הזיזו את המחוון של תאוצת המשאית לערך שלילי גדול, בזמן שהמשאית נוסעת.',
+     why:'עכשיו הארגז מחליק קדימה ביחס למשטח, ולכן החיכוך הקינטי מכוון אחורה. כיוון החיכוך נקבע לפי ההחלקה בין המשטחים — לא לפי כיוון התנועה: בהאצה הוא היה קדימה.',
+     done:function(s){return s.scene==='truck'&&s.slipFwd>0.4;}}]});
+  var model=_mbModel(kit);
+  function predPush(){
+    var n=M()*g, c=mu()*n;
+    kit.predict({q:'הארגז במנוחה, ו־'+kit.m('μₛN = '+c.toFixed(1)+' N')+'. דוחפים אותו בכוח '+kit.m('F = 6 N')+' והוא אינו זז. מה גודל כוח החיכוך?',
+      opts:[kit.m('0 N'),kit.m('6 N'),kit.m(c.toFixed(1)+' N')],correct:1,
+      why:'הארגז במנוחה, ולכן השקול אפס: החיכוך מאזן בדיוק את הדחיפה, '+kit.m('fₛ = F = 6 N')+'. '+kit.m('μₛN')+' הוא רק התקרה — מה שהמשטח יכול לתת לכל היותר.'},
+      function(){if(scene==='push')simSyncSlider('sft-F',6,1);});
+  }
+  function predTruck(){
+    kit.predict({q:'המשאית מאיצה קדימה, והארגז נוסע איתה בלי להחליק. לאן מכוון כוח החיכוך על הארגז?',
+      opts:['אחורה — נגד כיוון התנועה','קדימה — בכיוון התנועה','אין חיכוך — הארגז אינו מחליק'],correct:1,
+      why:'בלי חיכוך המשטח היה מחליק קדימה מתחת לארגז, והארגז היה נשאר מאחור. החיכוך מתנגד להחלקה בין המשטחים, ולכן הוא מושך את הארגז קדימה — הוא הכוח שמאיץ אותו. ״החיכוך תמיד נגד התנועה״ אינו נכון.'},
+      function(){if(scene==='truck'&&At()===0)simSyncSlider('sft-a',2,1);});
+  }
+  var askedTruck=false;
+  predPush();
+  var sb=document.getElementById('btn-sft-scene');
+  if(sb)sb.addEventListener('click',function(){
+    scene=scene==='push'?'truck':'push';
+    _mbBtn('sft-scene',scene==='push'?'🚚 ארגז על משאית':'📦 דחיפת ארגז');
+    showRows();pts={};
+    if(scene==='truck'&&!askedTruck){askedTruck=true;resetTruck();predTruck();}
+  });
+  var rb=document.getElementById('btn-sft-reset');
+  if(rb)rb.addEventListener('click',function(){
+    if(scene==='push'){resetPush();simSyncSlider('sft-F',0,1);}
+    else{resetTruck();simSyncSlider('sft-a',0,1);}});
+  showRows();
 
-  function getF(){var e=document.getElementById('inp-sft-F'); return e?parseFloat(e.value):F;}
-  function getMu(){var e=document.getElementById('inp-sft-mu'); return e?parseFloat(e.value):mu_s;}
-  function getM(){var e=document.getElementById('inp-sft-mass'); return e?parseFloat(e.value):m;}
+  // drag: in the push scene the hand (right = harder), in the truck scene the pedal
+  var drag=null, dragged=false;
+  simDrag(canvas,dpr,{
+    down:function(p){if(p.x>SW||p.y>SH)return;dragged=true;drag={x:p.x,v0:scene==='push'?Fp():At()};},
+    move:function(p){if(!drag)return;
+      if(scene==='push')simSyncSlider('sft-F',Math.max(0,Math.min(80,drag.v0+(p.x-drag.x)*0.4)),1);
+      else simSyncSlider('sft-a',Math.max(-6,Math.min(6,drag.v0+(p.x-drag.x)*0.03)),1);},
+    up:function(){drag=null;}
+  });
+  _mbKeys(canvas,{
+    'ArrowRight':function(){if(scene==='push')simSyncSlider('sft-F',Fp()+0.5,1);else simSyncSlider('sft-a',At()+0.1,1);},
+    'ArrowLeft':function(){if(scene==='push')simSyncSlider('sft-F',Fp()-0.5,1);else simSyncSlider('sft-a',At()-0.1,1);},
+    'Enter':function(){if(sb)sb.click();}});
+  canvas._probe=function(){var n=M()*g;return {scene:scene,x:x,v:v,sliding:sliding,a:aNow,F:Fp(),N:n,fsmax:mu()*n,fk:KMU*mu()*n,
+    vt:vt,vc:vc,srel:srel,stick:stick,wall:wall,A:Ae,ac:ac,f:fNow};};
+  var fNow=0;
 
-  var resetBtn=document.getElementById('btn-sft-reset');
-  if(resetBtn)resetBtn.addEventListener('click',function(){vel=0;pos=null;state='static';graphData=[];_fsMap={};
-    var fe=document.getElementById('inp-sft-F');if(fe){fe.value=0;var rv=document.getElementById('rv-sft-F');if(rv)rv.textContent='0';}});
+  function stepPush(dt){
+    var n=M()*g, cs=mu()*n, ck=KMU*mu()*n, F=Fp();
+    if(!sliding){
+      if(F>cs){sliding=true;slid=true;}
+      else{v=0;aNow=0;fNow=F;return;}
+    }
+    var a=(F-ck)/M();
+    var v1=v+a*dt;
+    if(v1<=0&&a<0){                       // it stops inside this step
+      var ts=v/(-a); x+=v*ts/2; v=0; aNow=0;
+      if(F<=cs){sliding=false;fNow=F;return;}
+    } else { x+=(v+v1)/2*dt; v=v1; aNow=a; }
+    fNow=ck;
+  }
+  function stepTruck(dt){
+    var n=M()*g, cs=mu()*g, ck=KMU*mu()*g, A=At();
+    // the truck: it cannot reverse, and it cruises at 25 m/s
+    Ae=A; if(vt<=0&&A<0)Ae=0; if(vt>=25&&A>0)Ae=0;
+    var vt1=Math.max(0,Math.min(25,vt+Ae*dt));
+    xt+=(vt+vt1)/2*dt; vt=vt1;
+    var lim=(BED-CR)/2;
+    if(stick){
+      if(Math.abs(Ae)<=cs+1e-12){ac=Ae;vc=vt;fNow=M()*Ae;wall=0;slipT=0;slipFwdT=0;return;}
+      stick=false;
+    }
+    var u=vc-vt;                           // the crate's speed relative to the bed
+    if(wall){                             // against the tailgate (−1) or the cab (+1), at rest on the bed
+      if(Math.abs(Ae)<=cs){wall=0;stick=true;ac=Ae;vc=vt;fNow=M()*Ae;return;}
+      if(Ae*(-wall)>0){ac=Ae;vc=vt;fNow=0;return;}   // pressed into it: it pushes the crate
+      wall=0;                                        // pulled away from it: it slides off
+    }
+    var sg=u!==0?-Math.sign(u):Math.sign(Ae); // kinetic friction opposes the sliding
+    ac=sg*ck; fNow=M()*ac;
+    var vc1=vc+ac*dt, u1=vc1-vt1;
+    if(u!==0&&u*u1<0&&Math.abs(Ae)<=cs){vc1=vt1;stick=true;}
+    srel+=((vc-vt)+(vc1-vt1))/2*dt; vc=vc1;
+    if(srel<-lim){srel=-lim;wall=-1;vc=vt;}
+    if(srel>lim){srel=lim;wall=1;vc=vt;}
+    if(!stick){if(vc<vt)slipT+=dt;else if(vc>vt)slipFwdT+=dt;}
+  }
+
+  function crate(cx,cy,w,h,col,txt){
+    var gr=ctx.createLinearGradient(cx-w/2,cy-h,cx-w/2,cy);
+    gr.addColorStop(0,'#b45309');gr.addColorStop(1,'#78350f');
+    ctx.save();ctx.fillStyle=gr;ctx.strokeStyle=col;ctx.lineWidth=2;
+    ctx.beginPath();ctx.roundRect(cx-w/2,cy-h,w,h,4);ctx.fill();ctx.stroke();
+    ctx.strokeStyle='rgba(253,230,138,.35)';ctx.lineWidth=1.5;
+    ctx.beginPath();ctx.moveTo(cx-w/2+5,cy-h+5);ctx.lineTo(cx+w/2-5,cy-5);ctx.moveTo(cx+w/2-5,cy-h+5);ctx.lineTo(cx-w/2+5,cy-5);ctx.stroke();ctx.restore();
+    simText(ctx,txt,cx+w/4,cy-h/2+4,'#fff7ed',9.5,'center',true);   // beside the centre: N and W leave from there
+  }
+  function graph(xv,fv,xMax,cs,ck,xName,slipping){
+    _mbCard(ctx,GX,GY,GW,GH);
+    simText(ctx,scene==='push'?'כוח החיכוך f מול הדחיפה F':'כוח החיכוך f על הארגז מול m·a של המשאית',GX+GW/2,GY+15,'#cbd5e1',9.5,'center',true);
+    var ax=GX+34, ay=GY+GH-22, aw=GW-48, ah=GH-48, fMax=xMax;
+    function X(q){return ax+Math.min(1,q/xMax)*aw;} function Y(q){return ay-Math.min(1,q/fMax)*ah;}
+    ctx.save();ctx.strokeStyle='#2d4a66';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(ax,ay-ah);ctx.lineTo(ax,ay);ctx.lineTo(ax+aw,ay);ctx.stroke();ctx.restore();
+    var st=_kinTick(xMax,4);
+    for(var q=0;q<=xMax+1e-9;q+=st){simText(ctx,String(+q.toFixed(1)),X(q),ay+12,'#7d8da6',8.5,'center');
+      if(q>0)simText(ctx,String(+q.toFixed(1)),ax-4,Y(q)+3,'#7d8da6',8.5,'right');}
+    simText(ctx,'f (N)',ax+4,ay-ah-4,'#93c5fd',9,'left');
+    simText(ctx,xName,ax+aw,ay-6,'#94a3b8',9,'right');
+    // the true curve: f = F up to the ceiling, a drop, then the kinetic plateau
+    ctx.save();ctx.strokeStyle='rgba(148,163,184,.5)';ctx.lineWidth=1.3;ctx.setLineDash([4,4]);ctx.beginPath();
+    ctx.moveTo(X(0),Y(0));
+    if(cs<xMax){ctx.lineTo(X(cs),Y(cs));ctx.lineTo(X(cs),Y(ck));ctx.lineTo(X(xMax),Y(ck));}
+    else ctx.lineTo(X(xMax),Y(xMax));
+    ctx.stroke();ctx.restore();
+    if(cs<xMax){ctx.save();ctx.strokeStyle='rgba(248,113,113,.55)';ctx.lineWidth=1;ctx.setLineDash([2,4]);
+      ctx.beginPath();ctx.moveTo(ax,Y(cs));ctx.lineTo(ax+aw,Y(cs));ctx.stroke();ctx.restore();
+      // the ceiling named at the drop, the plateau just after it -- clear of the axis name at the far end
+      var xs=X(cs), rt=xs>ax+aw*0.55;
+      simText(ctx,'μₛN = '+cs.toFixed(1)+' N',rt?xs-6:xs+6,Y(cs)-5,'#fca5a5',9,rt?'right':'left',true);
+      simText(ctx,'μₖN = '+ck.toFixed(1)+' N',xs>ax+aw-110?xs-6:xs+6,Y(ck)+12,'#fdba74',9,xs>ax+aw-110?'right':'left');}
+    // what the learner's own push traced
+    var ks=Object.keys(pts).map(parseFloat).sort(function(a,b){return a-b;});
+    ks.forEach(function(k){var f=pts[k];ctx.fillStyle=f.k?'rgba(248,113,113,.85)':'rgba(52,211,153,.85)';
+      ctx.beginPath();ctx.arc(X(k),Y(f.f),2.6,0,6.2832);ctx.fill();});
+    ctx.save();ctx.fillStyle=slipping?'#f87171':'#34d399';ctx.strokeStyle='#030c15';ctx.lineWidth=1.5;
+    ctx.beginPath();ctx.arc(X(xv),Y(fv),5.5,0,6.2832);ctx.fill();ctx.stroke();ctx.restore();
+  }
 
   function draw(ts){
     if(_simStop[id])return;
-    if(!pT)pT=ts; var dt=Math.min((ts-pT)/1000,.04); pT=ts;
-    t+=dt;
-    F=getF(); mu_s=getMu(); m=getM();
-    if(pos===null)pos=W*0.40;
-
-    var N=m*g, fs_max=mu_s*N, mu_k=mu_s*0.72, fk=mu_k*N;
-
-    if(state==='static'){
-      if(F>fs_max){state='sliding';vel=0;}
-    } else {
-      vel=Math.max(0,vel+(F-fk)/m*dt);
-      if(vel<0.01&&F<=fk){vel=0;state='static';}
-      pos+=vel*dt*60;
-      // Setting state back to 'static' at the wall while F was still above
-      // fs_max made the next frame break it away again with the block pinned:
-      // the state and the friction readout flickered every frame.
-      if(pos>W-72){pos=W*0.40;vel=0;state='static';}
-    }
-    var fs_actual=state==='static'?Math.min(F,fs_max):(fk*Math.sign(vel||1));
-    // Changing μ or m is a NEW experiment: keeping the old points would plot two
-    // different fs_max on one curve.
-    if(_lastMu!==null&&(Math.abs(_lastMu-mu_s)>1e-9||Math.abs(_lastM-m)>1e-9))_fsMap={};
-    _lastMu=mu_s; _lastM=m;
-    _fsMap[Math.round(F*2)/2]=fs_actual;
-    graphData=Object.keys(_fsMap).map(function(kk){return {x:parseFloat(kk),y:_fsMap[kk]};})
-                                 .sort(function(p,q){return p.x-q.x;});
-
+    if(!pT)pT=ts; var dt=Math.min((ts-pT)/1000,0.04); pT=ts; t+=dt;
+    var m=M(), n=m*g, cs=mu()*n, ck=KMU*mu()*n;
+    var key=scene+'|'+m+'|'+mu(); if(key!==ptsKey){ptsKey=key;pts={};}
+    if(scene==='push')stepPush(dt); else stepTruck(dt);
     simBg(ctx,W,H);
-
-    // ── FLOOR ─────────────────────────────────────────────
-    ctx.save(); ctx.fillStyle='#0f2035'; ctx.fillRect(0,FLOOR_Y,W,96); ctx.restore();
-    ctx.save(); ctx.strokeStyle='#2d5275'; ctx.lineWidth=2;
-    ctx.beginPath(); ctx.moveTo(0,FLOOR_Y); ctx.lineTo(W,FLOOR_Y); ctx.stroke(); ctx.restore();
-    // Roughness texture
-    for(var xi=0;xi<W;xi+=14){
-      ctx.save(); ctx.strokeStyle='rgba(100,116,139,'+(mu_s*0.5)+')'; ctx.lineWidth=1;
-      ctx.beginPath(); ctx.moveTo(xi,FLOOR_Y); ctx.lineTo(xi-7,FLOOR_Y+7); ctx.stroke(); ctx.restore();
+    var kA=Math.min(1.6,64/Math.max(n,40));     // px per newton, one scale for every force
+    var keep=[];
+    ctx.save();ctx.beginPath();ctx.rect(0,0,SW,SH);ctx.clip();
+    if(scene==='push'){
+      var F=Fp(), steady=sliding&&v>0.1&&Math.abs(F-ck)<=0.3;
+      if(steady){if(zeroSince<0)zeroSince=t;}else zeroSince=-1;
+      // floor, scrolling under a crate the camera follows
+      var cx=SW*0.56, off=(x*50)%28;
+      ctx.save();ctx.fillStyle='#0b1a2c';ctx.fillRect(0,FY,SW,SH-FY);ctx.strokeStyle='#3d6480';ctx.lineWidth=2;
+      ctx.beginPath();ctx.moveTo(0,FY);ctx.lineTo(SW,FY);ctx.stroke();
+      ctx.strokeStyle='rgba(100,116,139,'+(0.25+mu()*0.5)+')';ctx.lineWidth=1;
+      for(var xi=-off;xi<SW+28;xi+=28){ctx.beginPath();ctx.moveTo(xi,FY);ctx.lineTo(xi-8,FY+8);ctx.stroke();}
+      ctx.restore();
+      var bw=72,bh=56,left=cx-bw/2;
+      // the hand and the spring scale: the spring shortens as the push grows
+      var comp=F/80*30, L=58-comp, hx=left-L;
+      ctx.save();ctx.strokeStyle='#e2e8f0';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(hx,FY-bh/2);
+      for(var i=1;i<8;i++)ctx.lineTo(hx+L*i/8,FY-bh/2+(i%2?6:-6));
+      ctx.lineTo(left,FY-bh/2);ctx.stroke();ctx.restore();
+      ctx.save();ctx.fillStyle='#334155';ctx.strokeStyle='#94a3b8';ctx.lineWidth=1.5;
+      ctx.beginPath();ctx.roundRect(hx-22,FY-bh/2-13,22,26,6);ctx.fill();ctx.stroke();ctx.restore();
+      simHandle(ctx,hx-11,FY-bh/2,'#fbbf24',18);
+      crate(cx,FY,bw,bh,sliding?'#f87171':'#fbbf24',m.toFixed(1)+' kg');
+      // forces: F on the face it pushes, f along the contact, N and W from the centre of mass
+      if(F>0.2){var Fl=Math.max(14,F*kA);simArrow(ctx,left-Fl,FY-bh/2-17,left,FY-bh/2-17,'#fbbf24',3,11);
+        simText(ctx,'F = '+F.toFixed(1)+' N',left-Fl/2,FY-bh/2-25,'#fbbf24',10,'center',true);}
+      var fv=sliding?ck:F;
+      if(fv>0.2){var fl=fv*kA;simArrow(ctx,left,FY+5,left-fl,FY+5,sliding?'#f87171':'#34d399',3,11);
+        simText(ctx,(sliding?'fₖ = ':'fₛ = ')+fv.toFixed(1)+' N',left-fl/2,FY+22,sliding?'#fca5a5':'#6ee7b7',10,'center',true);}
+      _mbVec(ctx,cx,FY-bh/2,cx,FY-bh/2-n*kA,'#a78bfa','N = '+n.toFixed(1)+' N',SW,SH,{sz:9.5});
+      _mbVec(ctx,cx,FY-bh/2,cx,FY-bh/2+n*kA,'#fde68a','W = '+n.toFixed(1)+' N',SW,SH,{sz:9.5});
+      simText(ctx,sliding?'⚡ מחליק:  v = '+v.toFixed(2)+' m/s':'✓ במנוחה',SW-10,FY+46,sliding?'#f87171':'#34d399',10,'right',true);
+      simText(ctx,'μₛ = '+mu().toFixed(2)+'   ·   μₖ = 0.75μₛ = '+(KMU*mu()).toFixed(2),SW/2,22,'#94a3b8',9.5,'center');
+      if(!dragged)simText(ctx,'✋ גררו את היד ימינה כדי לדחוף',SW/2,42,'#fbbf24',10,'center',true);
+      var pk=Math.round(F*2)/2; if(!sliding||!pts[pk]||!pts[pk].k)pts[pk]={f:fv,k:sliding};
+      ctx.restore();
+      graph(F,fv,80,cs,ck,'F (N)',sliding);
+      if(sliding)model('הארגז מחליק: החיכוך קינטי וקבוע, '+kit.m('fₖ = μₖN = '+(KMU*mu()).toFixed(2)+' × '+n.toFixed(1)+' = '+ck.toFixed(1)+' N')+', ולכן '+kit.m('a = (F − fₖ)/m = ('+F.toFixed(1)+' − '+ck.toFixed(1)+')/'+m.toFixed(1)+' = '+aNow.toFixed(2)+' m/s²'));
+      else model('הארגז במנוחה, ולכן החיכוך הסטטי שווה לדחיפה: '+kit.m('fₛ = F = '+F.toFixed(1)+' N ≤ μₛN = '+mu().toFixed(2)+' × '+n.toFixed(1)+' = '+cs.toFixed(1)+' N'));
+      kit.check({scene:'push',sliding:sliding,F:F,fsmax:cs,steady:zeroSince>=0&&t-zeroSince>1});
+    } else {
+      var PPM=Math.min(WIDE?80:64,(SW*0.62)/BED), tx=SW*0.48, ry=FY+26;
+      // road, scrolling: the camera rides with the truck
+      ctx.save();ctx.fillStyle='#0b1a2c';ctx.fillRect(0,ry,SW,SH-ry);ctx.strokeStyle='#3d6480';ctx.lineWidth=2;
+      ctx.beginPath();ctx.moveTo(0,ry);ctx.lineTo(SW,ry);ctx.stroke();
+      var o2=(xt*PPM)%60;ctx.strokeStyle='rgba(226,232,240,.35)';ctx.lineWidth=3;
+      for(var xr=-o2;xr<SW+60;xr+=60){ctx.beginPath();ctx.moveTo(xr,ry+16);ctx.lineTo(xr+26,ry+16);ctx.stroke();}
+      ctx.restore();
+      // the truck: a flat bed, the cab at the front (right)
+      var bl=tx-BED*PPM/2, br=tx+BED*PPM/2, by=FY;
+      ctx.save();ctx.fillStyle='#1e3a5f';ctx.strokeStyle='#60a5fa';ctx.lineWidth=1.6;
+      ctx.beginPath();ctx.roundRect(bl,by,br-bl,10,2);ctx.fill();ctx.stroke();
+      ctx.fillRect(bl-4,by-14,5,24);                                   // the tailgate
+      ctx.beginPath();ctx.roundRect(br+2,by-40,Math.min(46,PPM*1.0),50,6);ctx.fill();ctx.stroke();
+      ctx.fillStyle='rgba(147,197,253,.35)';ctx.fillRect(br+8,by-34,Math.min(26,PPM*0.55),16);
+      ctx.restore();
+      var wr=11, spin=xt*PPM/wr;
+      [bl+PPM*0.7,br-PPM*0.3,br+Math.min(46,PPM)*0.6].forEach(function(wx){
+        ctx.save();ctx.translate(wx,ry-wr);ctx.rotate(spin);ctx.fillStyle='#0f172a';ctx.strokeStyle='#94a3b8';ctx.lineWidth=2;
+        ctx.beginPath();ctx.arc(0,0,wr,0,6.2832);ctx.fill();ctx.stroke();ctx.beginPath();ctx.moveTo(-wr,0);ctx.lineTo(wr,0);ctx.stroke();ctx.restore();});
+      var cw=CR*PPM, ccx=tx+srel*PPM, slip=!stick&&!wall;
+      crate(ccx,by,cw,cw*0.8,slip?'#f87171':'#fbbf24',m.toFixed(1)+' kg');
+      // the truck's acceleration, above the cab
+      // the truck's acceleration, centred over the scene
+      if(Math.abs(Ae)>0.05){var al=Ae*12;simArrow(ctx,tx-al/2,by-74,tx+al/2,by-74,'#22d3ee',3,11);
+        simText(ctx,'a = '+_mbS(Ae,1)+' m/s²',tx,by-84,'#22d3ee',10,'center',true);}
+      // friction on the crate, along the bed
+      var fv2=Math.abs(fNow);
+      if(fv2>0.2&&!wall){var fl2=fv2*kA*Math.sign(fNow);
+        simArrow(ctx,ccx,by-3,ccx+fl2,by-3,slip?'#f87171':'#34d399',3,11);
+        simText(ctx,(slip?'fₖ = ':'fₛ = ')+fv2.toFixed(1)+' N',ccx+fl2/2,by-cw*0.8-10,slip?'#fca5a5':'#6ee7b7',10,'center',true);}
+      if(wall)simText(ctx,wall<0?'הארגז נשען על הדופן האחורית':'הארגז נשען על תא הנהג',ccx,by-cw*0.8-10,'#fbbf24',10,'center',true);
+      simText(ctx,'v = '+vt.toFixed(1)+' m/s',14,22,'#94a3b8',10,'left',true);
+      if(vt<0.05&&Math.abs(At())<0.05&&!dragged)simText(ctx,'✋ גררו ימינה כדי להאיץ, שמאלה כדי לבלום',SW/2,46,'#fbbf24',10,'center',true);
+      var xa=Math.abs(m*Ae), fsT=cs, fkT=ck;
+      var pk2=Math.round(xa*2)/2; if(Ae!==0&&!wall)pts[pk2]={f:fv2,k:slip};
+      ctx.restore();
+      graph(xa,wall?0:fv2,Math.max(30,Math.ceil(m*6/10)*10),fsT,fkT,'m·a (N)',slip);
+      var mg=mu()*g;
+      if(wall)model('הארגז נשען על הדופן: עכשיו גם היא דוחפת אותו, והחיכוך כבר אינו הכוח היחיד שמאיץ אותו.');
+      else if(slip)model((vc<vt?'הארגז מחליק אחורה על המשטח, ולכן החיכוך הקינטי מכוון קדימה: ':'הארגז מחליק קדימה על המשטח, ולכן החיכוך הקינטי מכוון אחורה: ')+kit.m('fₖ = μₖmg = '+fkT.toFixed(1)+' N'));
+      else if(Ae>0.02)model('החיכוך הסטטי הוא הכוח היחיד שמאיץ את הארגז — והוא מכוון קדימה, בכיוון התנועה: '+kit.m('fₛ = ma = '+m.toFixed(1)+' × '+_mbS(Ae,1)+' = '+(m*Ae).toFixed(1)+' N ≤ μₛmg = '+fsT.toFixed(1)+' N'));
+      else if(Ae<-0.02)model('המשאית בולמת: החיכוך הסטטי מכוון אחורה, בכיוון התאוצה — והמשאית עדיין נוסעת קדימה: '+kit.m('fₛ = m|a| = '+(m*-Ae).toFixed(1)+' N ≤ μₛmg = '+fsT.toFixed(1)+' N'));
+      else model('מהירות קבועה: הארגז אינו צריך כוח כדי לנוע איתה, ולכן '+kit.m('f = 0')+'. הארגז יחליק רק אם '+kit.m('|a| > μₛg = '+mg.toFixed(2)+' m/s²'));
+      kit.check({scene:'truck',stick:stick,wall:wall,vt:vt,A:Ae,mug:mg,slipFwd:slipFwdT});
     }
-    simText(ctx,'μₛ = '+mu_s.toFixed(2)+'     μₖ = '+(mu_s*0.72).toFixed(2),W-12,FLOOR_Y+86,'#cbd5e1',10,'right',true);
-
-    // ── BLOCK ──────────────────────────────────────────────
-    var bW=62, bH=52;
-    var bX=pos-bW/2, bY=FLOOR_Y-bH;
-    var isSliding=(state==='sliding');
-    var bCol=isSliding?'#ef4444':'#3b82f6';
-    var bG=ctx.createLinearGradient(bX,bY,bX,bY+bH);
-    bG.addColorStop(0,bCol+'cc'); bG.addColorStop(1,bCol+'55');
-    ctx.save(); ctx.shadowColor=bCol; ctx.shadowBlur=isSliding?16:0;
-    ctx.fillStyle=bG; ctx.strokeStyle=bCol; ctx.lineWidth=2;
-    ctx.beginPath(); ctx.roundRect(bX,bY,bW,bH,5); ctx.fill(); ctx.stroke(); ctx.shadowBlur=0; ctx.restore();
-    simText(ctx,m.toFixed(0)+' kg',pos,bY+bH/2+3,isSliding?'#fca5a5':'#bfdbfe',10,undefined,true);
-    simText(ctx,isSliding?'⚡ מחליק':'✓ נייח',pos,bY+bH/2+16,isSliding?'#f87171':'#34d399',8.5,undefined,true);
-
-    // Heat sparks when sliding
-    if(isSliding&&vel>0.1){
-      for(var pi=0;pi<5;pi++){
-        var px2=pos+(-bW/2+Math.random()*bW);
-        ctx.save(); ctx.fillStyle='rgba(251,191,36,'+( 0.4+Math.random()*0.5)+')';
-        ctx.beginPath(); ctx.arc(px2,FLOOR_Y-1+Math.random()*4,1+Math.random()*2,0,Math.PI*2); ctx.fill(); ctx.restore();
-      }
-    }
-
-    // One scale for F, f, N and W, so their lengths compare
-    var kA=Math.min(3,88/Math.max(N,F,fs_actual,1));
-    // Applied force arrow
-    if(F>0.3){
-      var arLen=F*kA;
-      simArrow(ctx,bX-4-arLen,bY+bH/2,bX-4,bY+bH/2,'#fbbf24',3,12);
-      simText(ctx,'F = '+F.toFixed(0)+' N',bX-arLen/2-4,bY+bH/2-13,'#fbbf24',10,undefined,true);
-    }
-    // Friction force arrow
-    // Friction: F pushes to the right, friction acts along the contact surface
-    // to the left. (It used to be drawn from the right face pointing back INTO
-    // the block, with its label out to the right.) Same scale as F.
-    if(fs_actual>0.3){
-      var fLen=fs_actual*kA;
-      var fsCol=isSliding?'#f87171':'#34d399';
-      var fsName=isSliding?'fₖ':'fₛ';
-      simArrow(ctx,bX,FLOOR_Y+5,bX-fLen,FLOOR_Y+5,fsCol,3,12);
-      simText(ctx,fsName+' = '+fs_actual.toFixed(1)+' N',bX-fLen/2,FLOOR_Y+22,fsCol,10,undefined,true);
-    }
-    // N up, W down
-    simArrow(ctx,pos,bY,pos,bY-N*kA,'#a78bfa',2.5,9);
-    simText(ctx,'N = '+N.toFixed(0)+' N',pos+6,bY-N*kA*0.6,'#c4b5fd',10,'left');
-    simArrow(ctx,pos+14,bY+bH,pos+14,bY+bH+N*kA,'#fbbf24',2.5,9);
-    simText(ctx,'W = '+N.toFixed(0)+' N',pos+20,bY+bH+N*kA*0.6,'#fbbf24',10,'left');
-
-    // ── TOP PANEL ──────────────────────────────────────────
-    ctx.save(); ctx.fillStyle='rgba(6,14,28,.92)'; ctx.strokeStyle='#1e4060'; ctx.lineWidth=1.5;
-    ctx.beginPath(); ctx.roundRect(8,6,W-16,54,6); ctx.fill(); ctx.stroke(); ctx.restore();
-    simText(ctx,'חיכוך סטטי:  fₛ ≤ μₛN',W/2,19,'#22d3ee',11,undefined,true);
-    simText(ctx,'μₛN = '+mu_s.toFixed(2)+'×'+N.toFixed(1)+' = '+fs_max.toFixed(1)+' N',W/2,33,'#c4b5fd',10,undefined,true);
-    // Progress bar F vs threshold
-    var barX=40, barW2=W-80, barY2=44;
-    ctx.save(); ctx.fillStyle='#0f2035'; ctx.strokeStyle='#1e3a52'; ctx.lineWidth=1;
-    ctx.beginPath(); ctx.roundRect(barX,barY2,barW2,12,3); ctx.fill(); ctx.stroke(); ctx.restore();
-    // Max marker
-    var maxPx=barX+(fs_max/(fs_max*1.4))*barW2;
-    ctx.save(); ctx.strokeStyle='rgba(239,68,68,.7)'; ctx.lineWidth=2; ctx.setLineDash([2,3]);
-    ctx.beginPath(); ctx.moveTo(maxPx,barY2-4); ctx.lineTo(maxPx,barY2+16); ctx.stroke(); ctx.setLineDash([]); ctx.restore();
-    simText(ctx,'μₛN',maxPx+16,barY2+10,'#f87171',9,undefined,true);
-    // F bar
-    var Fpx=Math.min(barW2, (F/(fs_max*1.4))*barW2);
-    ctx.save(); ctx.fillStyle=isSliding?'rgba(239,68,68,.8)':'rgba(251,191,36,.8)';
-    ctx.beginPath(); ctx.roundRect(barX,barY2,Fpx,12,3); ctx.fill(); ctx.restore();
-    // fs bar (thinner, on top)
-    var fspx=Math.min(barW2, (fs_actual/(fs_max*1.4))*barW2);
-    ctx.save(); ctx.fillStyle=isSliding?'rgba(239,68,68,.5)':'rgba(34,211,153,.7)';
-    ctx.beginPath(); ctx.roundRect(barX,barY2+4,fspx,5,2); ctx.fill(); ctx.restore();
-
-    // ── F(x) GRAPH ─────────────────────────────────────────
-    var GX=8, GY=FLOOR_Y+102, GW=W-16, GH=H-GY-8;
-    ctx.save(); ctx.fillStyle='rgba(6,14,28,.88)'; ctx.strokeStyle='#1e3a52'; ctx.lineWidth=1;
-    ctx.beginPath(); ctx.roundRect(GX,GY,GW,GH,4); ctx.fill(); ctx.stroke(); ctx.restore();
-    simText(ctx,'כוח החיכוך f כפונקציה של הכוח המופעל F',GX+GW/2,GY+12,'#cbd5e1',9.5,undefined,true);
-    // Axes
-    var gAX=GX+30, gAY=GY+GH-20, gAW=GW-40, gAH=GH-30;
-    simText(ctx,'f (N)',gAX+4,gAY-gAH+6,'#93c5fd',9,'left');
-    simText(ctx,'F (N)',gAX+gAW,gAY-6,'#94a3b8',9,'right');
-    for(var _tk=0;_tk<=80;_tk+=20){
-      simText(ctx,String(_tk),gAX+_tk/80*gAW,gAY+12,'#94a3b8',9,'center');
-      if(_tk>0)simText(ctx,String(_tk),gAX-4,gAY-_tk/80*gAH+3,'#94a3b8',9,'right');
-    }
-    ctx.save(); ctx.strokeStyle='#1e3a52'; ctx.lineWidth=1;
-    ctx.beginPath(); ctx.moveTo(gAX,gAY-gAH); ctx.lineTo(gAX,gAY); ctx.lineTo(gAX+gAW,gAY); ctx.stroke(); ctx.restore();
-    // Max F scale
-    // The axis used to be fs_max·1.6, which μ and m both move — so the axes
-    // rescaled under data already recorded. At μ=0.1, m=1 kg it topped out at
-    // 1.6 N while the F slider reaches 80, piling 98% of the range against the
-    // right edge. Fixed to the slider's own range: the breakaway point now
-    // slides along a stationary axis as μ and m change, which is the lesson.
-    var fScaleMax=80;
-    // Theoretical line: f=F up to max, then flat (kinetic)
-    ctx.save(); ctx.strokeStyle='rgba(100,116,139,.3)'; ctx.lineWidth=1; ctx.setLineDash([3,4]);
-    // y=x slope until fs_max
-    var bp=Math.min(1,fs_max/fScaleMax);
-    ctx.beginPath();
-    ctx.moveTo(gAX,gAY);
-    ctx.lineTo(gAX+bp*gAW,gAY-bp*gAH);
-    // Past breakaway friction drops to the kinetic value and stays flat. If
-    // fs_max is beyond the slider's reach the block never breaks away and the
-    // whole visible graph is the f = F line.
-    if(bp<1)ctx.lineTo(gAX+gAW,gAY-(fk/fScaleMax)*gAH);
-    ctx.stroke(); ctx.setLineDash([]); ctx.restore();
-    // Data
-    if(graphData.length>2){
-      ctx.save(); ctx.strokeStyle='#22d3ee'; ctx.lineWidth=2;
-      ctx.beginPath();
-      graphData.forEach(function(dp,i){
-        var px2=gAX+(dp.x/fScaleMax)*gAW;
-        var py2=gAY-(dp.y/fScaleMax)*gAH;
-        px2=Math.max(gAX,Math.min(gAX+gAW,px2));
-        py2=Math.max(gAY-gAH,Math.min(gAY,py2));
-        i===0?ctx.moveTo(px2,py2):ctx.lineTo(px2,py2);
-      });
-      ctx.stroke(); ctx.restore();
-    }
-    // Current point
-    var cpx3=gAX+(F/fScaleMax)*gAW;
-    var cpy3=gAY-(fs_actual/fScaleMax)*gAH;
-    cpx3=Math.max(gAX,Math.min(gAX+gAW,cpx3));
-    cpy3=Math.max(gAY-gAH,Math.min(gAY,cpy3));
-    ctx.save(); ctx.fillStyle=isSliding?'#f87171':'#34d399'; ctx.strokeStyle='#030c15'; ctx.lineWidth=1.5;
-    ctx.beginPath(); ctx.arc(cpx3,cpy3,5,0,Math.PI*2); ctx.fill(); ctx.stroke(); ctx.restore();
-    // fs_max dashed horizontal
-    var fmY=gAY-(fs_max/fScaleMax)*gAH;
-    ctx.save(); ctx.strokeStyle='rgba(239,68,68,.5)'; ctx.lineWidth=1; ctx.setLineDash([3,4]);
-    ctx.beginPath(); ctx.moveTo(gAX,fmY); ctx.lineTo(gAX+gAW,fmY); ctx.stroke(); ctx.setLineDash([]); ctx.restore();
-    simText(ctx,'μₛN = '+fs_max.toFixed(1)+' N',gAX+gAW-2,fmY-4,'#f87171',9,'right');
-
     requestAnimationFrame(draw);
   }
   requestAnimationFrame(draw);
@@ -34969,7 +35044,7 @@ function buildSim(sim){
   else if(sim.type==='spring')extra=C(rng('spring-k',0.1,25,2,0.1,'k (N/m)')+rng('spring-m',0.1,2,0.5,0.1,'מסה',' kg'));
   else if(sim.type==='gravity-force')extra=C(rng('gf-m',1,200,70,1,'מסה m',' kg'));
   else if(sim.type==='spring-force')extra=C(rng('sf-k',5,200,40,5,'k קשיחות',' N/m')+rng('sf-m',0.1,2,0.4,0.05,'מסה m',' kg')+rng('sf-damp',0,2,0.8,0.1,'ריסון b')+btn('sf-reset','↺ איפוס','btn-secondary')+btn('sf-fmode','📐 הציגו F = −kx (עם סימן)','btn-secondary'));
-  else if(sim.type==='static-friction')extra=C(rng('sft-mu',0.1,0.9,0.55,0.05,'μ_s')+rng('sft-mass',1,15,3,0.5,'מסה m',' kg')+rng('sft-F',0,80,0,1,'כוח F',' N')+btn('sft-reset','↺ איפוס','btn-secondary'));
+  else if(sim.type==='static-friction')extra=C(rng('sft-mu',0.1,0.9,0.55,0.05,'μ_s')+rng('sft-mass',1,15,3,0.5,'מסה m',' kg')+rng('sft-F',0,80,0,0.5,'דחיפה F',' N')+rng('sft-a',-6,6,0,0.1,'תאוצת המשאית a',' m/s²')+btn('sft-scene','🚚 ארגז על משאית','btn-secondary')+btn('sft-reset','↺ איפוס','btn-secondary'));
   else if(sim.type==='kinetic-friction')extra=C(rng('kf-v0',2,20,10,1,'מהירות v₀',' m/s')+rng('kf-mass',1,15,5,0.5,'מסה m',' kg')+rng('kf-mu',0.1,0.8,0.38,0.02,'μ_k')+btn('kf-launch','▶ שגרו!','btn-primary')+btn('kf-reset','↺ איפוס','btn-secondary'));
   else if(sim.type==='friction-combined')extra=C(rng('fc-theta',5,70,20,1,'זווית θ','°')+rng('fc-F',0,80,0,2,'כוח F',' N')+rng('fc-mu',0.05,0.8,0.45,0.05,'μ')+rng('fc-m',0.5,10,5,0.5,'מסה m',' kg')+btn('fc-reset','↺ איפוס','btn-secondary'));
   else if(sim.type==='pendulum')extra=C(rng('pend-L',0.3,3,1,0.1,'אורך L',' m')+rng('pend-g',1.6,25,9.8,0.2,'g',' m/s²')+rng('pend-damp',0,0.1,0,0.005,'ריסון b',' 1/s')+btn('pend-reset','↺ איפוס','btn-secondary'));
