@@ -8966,7 +8966,7 @@ const MAG_CONTENT={
       <p>זה כעשירית משדה כדור הארץ, שבו אנחנו חיים כל חיינו. בנוסף, הזרם בקו משנה כיוון 100 פעמים בשנייה (50 מחזורים), ושלושת המוליכים (״שלוש הפאזות״) יוצרים שדות שמבטלים זה את זה חלקית.</p>
     </div>`,
   },
-  sim:{type:'mag-wire',desc:'גררו את הגשש סביב התיל: חץ השדה תמיד משיקי, ועוצמתו יורדת כ־1/r (ראו בגרף). הפכו את כיוון הזרם, והוסיפו תיל שני כדי לראות כיצד השדות מתחברים — ואיפה הם מתבטלים.'},
+  sim:{type:'mag-wire',desc:'גררו את הגשש סביב התיל (או הזיזו אותו במקשי החצים): חץ השדה תמיד משיקי, ועוצמתו יורדת כ־1/r (ראו בגרף). הפכו את כיוון הזרם, והוסיפו תיל שני כדי לראות כיצד השדות מתחברים כווקטורים — ואיפה הם מתבטלים. ״אתגר כלל יד ימין״ מסתיר את קווי השדה ושואל: לאן תצביע מחט המצפן?'},
   example:{title:'השדה של תיל ישר',text:`בתיל ישר ארוך עובר זרם של ${M('20\\,\\text{A}')}.`,steps:[
     {q:'מה השדה במרחק 4 cm?',a:`${M('B=\\dfrac{\\mu_0I}{2\\pi r}=\\dfrac{2\\times10^{-7}\\times20}{0.04}=100\\,\\mu\\text{T}')}`},
     {q:'ובמרחק 8 cm?',a:`המרחק כפול — השדה חצי: ${M('50\\,\\mu\\text{T}')}`},
@@ -27753,28 +27753,91 @@ MAG_CTRL['mag-magnets']=function(){return rng('mgm-m',0.2,3,1,0.1,'מומנט ה
 // ── mag-field.mag-wire ────────────────────────────────────────────────────
 // B = μ₀I/2πr, circulating counter-clockwise about a current out of the page.
 // Field lines are drawn as level sets of ψ = Σ I·ln r in equal steps, so their
-// spacing is honest: twice the current, twice as many lines.
+// spacing is honest: twice the current, twice as many lines. Two views: the
+// explorer (a probe that reads B, a second wire whose field adds as a vector)
+// and a right-hand-rule challenge: the field lines are hidden, the current
+// and a point are dealt at random, and the learner taps where the compass
+// at the point will point.
 MAG_SIMS['mag-wire']=function(canvas){
   var id=canvas.id,_g=_simGen[id];
   const H=480; const {ctx,W,dpr}=setupCanvas(canvas,H);
-  var TOP=H*0.60, s=W/0.30, cy=TOP*0.5;
-  var dir=1, two=false, w2=[0.07,0], probe=[0.0,0.045], drag=null, segs=null, key='';
+  var PH=W<600, TOP=H*0.60, s=W/0.30, cy=TOP*0.5;
+  var dir=1, two=false, w2=[0.07,0], probe=[0.045,0], drag=null, segs=null, key='', mode=0, ch=null, streak=0;
   var X1=function(){return two?-0.04:0;};
   var toS=function(x,y){return [W/2+x*s,cy-y*s];}, toW=function(px,py){return [(px-W/2)/s,(cy-py)/s];};
   function wires(){var L=[[X1(),0,dir*magV('mgw-I',20)]];if(two)L.push([w2[0],w2[1],magV('mgw-I2',-20)]);return L;}
   function Bat(x,y,Ls){var bx=0,by=0;Ls.forEach(function(w){var dx=x-w[0],dy=y-w[1],r2=Math.max(dx*dx+dy*dy,1e-6);
     bx+=-2e-7*w[2]*dy/r2;by+=2e-7*w[2]*dx/r2;});return [bx,by];}
-  magBtn('mgw-dir',function(b){dir=-dir;b.textContent=dir>0?'⊙ הזרם יוצא מהדף':'⊗ הזרם נכנס לדף';});
+  var kit=simKit(canvas,{missions:[
+    {text:'פתרו נכון 3 אתגרי כלל יד ימין ברצף: לאן תצביע מחט המצפן?',
+     hint:'לחצו ״אתגר כלל יד ימין״. כוונו את האגודל לכיוון הזרם (⊙ — אליכם): האצבעות המתכופפות מראות את כיוון השדה.',
+     why:'השדה מקיף את התיל — אינו מצביע אליו ולא ממנו. זרם שיוצא מהדף (⊙) מוקף בשדה נגד כיוון השעון; זרם שנכנס (⊗) — עם כיוון השעון.',
+     done:function(s){return s.streak>=3;}},
+    {text:'מצאו נקודה שבה השדה של התיל הוא בדיוק 100 μT.',
+     hint:'גררו את הגשש קרוב יותר או רחוק יותר מהתיל. '+_skM('r = μ₀I/2πB'),
+     why:'B = μ₀I/2πr: ב־20 A השדה הוא 100 μT במרחק 4 cm — ובמרחק כפול, 8 cm, הוא קטן פי 2. כל המעגל הזה סביב התיל — אותו גודל.',
+     done:function(s){return !s.two&&s.mode===0&&Math.abs(s.B-100e-6)<2e-6;}},
+    {text:'הוסיפו תיל שני ומצאו נקודה שבה השדות של שני התילים מבטלים זה את זה.',
+     hint:'כשהזרמים בכיוונים הפוכים ושווים, אין נקודה כזאת. הפכו את סימן I₂, וחפשו בין התילים.',
+     why:'השדות מתחברים כווקטורים: בין שני זרמים באותו כיוון, השדה של כל תיל מצביע לצד הפוך — ובנקודה שבה גודליהם שווים, השדה הכולל אפס.',
+     done:function(s){return s.two&&s.mode===0&&s.B<2e-6;}}]});
+  var model=magModeler(kit), gate=magPredictor(kit,canvas);
+  var askFlip=gate({q:'אתם עומדים להפוך את כיוון הזרם. מה יקרה למחטי המצפנים סביב התיל?',
+    opts:['לא ישתנו — השדה תלוי רק בגודל הזרם','כולן יסתובבו לכיוון ההפוך','יצביעו אל התיל'],correct:1,
+    why:'כיוון השדה נקבע בכלל יד ימין מכיוון הזרם: זרם הפוך — שדה שמסתובב הפוך, וכל מחט מסתובבת ב־180°.'});
+  var CHD=[[0,1],[0,-1],[-1,0],[1,0]];          // the answers: ↑ ↓ ← →
+  var chipXY=function(i){var r=24,gap=PH?14:22,w=4*2*r+3*gap,x0=W/2-w/2+r;return [x0+i*(2*r+gap),TOP+(H-TOP)*0.5,r];};
+  var deal=function(){var n;do{n={d:Math.random()<0.5?1:-1,p:Math.floor(Math.random()*4),pick:-1};}while(ch&&n.d===ch.d&&n.p===ch.p);
+    var P=CHD[n.p];n.B=[-n.d*P[1],n.d*P[0]];ch=n;};   // B ∝ I ẑ × r̂: CCW about ⊙
+  var pick=function(i){if(!ch||ch.pick>=0)return;ch.pick=i;streak=CHD[i]+''===ch.B+''?streak+1:0;};
+  var setMode=function(m){mode=m;var b=document.getElementById('btn-mgw-rhr');if(b)b.textContent=m?'🧭 חזרה לחקירה':'🎲 אתגר כלל יד ימין';};
+  magBtn('mgw-dir',function(b){askFlip(function(){dir=-dir;b.textContent=dir>0?'⊙ הזרם יוצא מהדף':'⊗ הזרם נכנס לדף';});});
   magBtn('mgw-two',function(b){two=!two;b.textContent=two?'➖ הסירו את התיל השני':'➕ תיל שני';});
+  magBtn('mgw-rhr',function(){if(mode){setMode(0);}else{setMode(1);deal();}});
   simDrag(canvas,dpr,{
-    down:function(p){var q2=toS(w2[0],w2[1]);drag=(two&&Math.hypot(p.x-q2[0],p.y-q2[1])<18)?'w':'p';
+    down:function(p){
+      if(mode){for(var i=0;i<4;i++){var c=chipXY(i);if(Math.hypot(p.x-c[0],p.y-c[1])<c[2]+4){pick(i);return;}}
+        if(ch&&ch.pick>=0)deal();return;}
+      var q2=toS(w2[0],w2[1]);drag=(two&&Math.hypot(p.x-q2[0],p.y-q2[1])<20)?'w':'p';
       if(drag==='p'&&p.y<TOP-4)probe=toW(p.x,p.y);},
-    move:function(p){if(p.y>TOP-6)return;var w=toW(p.x,p.y);
+    move:function(p){if(mode||p.y>TOP-6)return;var w=toW(p.x,p.y);
       if(drag==='w')w2=[Math.max(-0.12,Math.min(0.14,w[0])),Math.max(-0.08,Math.min(0.08,w[1]))];
-      else probe=w;},
+      else if(drag==='p')probe=w;},
     up:function(){drag=null;}});
+  // arrows move the probe 2 mm; in the challenge they answer
+  magKeys(canvas,{key:function(k,d){if(!d)return;
+    if(mode){var m={up:0,down:1,left:2,right:3}[k];if(m!==undefined)pick(m);else if(k==='enter')deal();return;}
+    var st=0.002,dd={left:[-st,0],right:[st,0],up:[0,st],down:[0,-st]}[k];
+    if(dd)probe=[Math.max(-W/2/s,Math.min(W/2/s,probe[0]+dd[0])),Math.max(-cy/s,Math.min(cy/s,probe[1]+dd[1]))];}});
+  function chips(){
+    for(var i=0;i<4;i++){var c=chipXY(i),sel=ch.pick===i,right=ch.pick>=0&&CHD[i]+''===ch.B+'';
+      ctx.save();ctx.fillStyle=right?'rgba(16,185,129,.28)':sel?'rgba(239,68,68,.25)':'rgba(30,41,59,.95)';ctx.strokeStyle=right?'#10b981':sel?'#ef4444':'#475569';ctx.lineWidth=2;
+      ctx.beginPath();ctx.arc(c[0],c[1],c[2],0,6.2832);ctx.fill();ctx.stroke();ctx.restore();
+      simArrow(ctx,c[0]-CHD[i][0]*10,c[1]+CHD[i][1]*10,c[0]+CHD[i][0]*11,c[1]-CHD[i][1]*11,'#e2e8f0',2.6,9);}
+  }
   function draw(){
     if(!magAlive(id,_g))return;
+    simBg(ctx,W,H);
+    if(mode){
+      if(!ch)deal();
+      var c0=toS(0,0),P=CHD[ch.p],R=Math.min(0.045*s,TOP*0.36),px=c0[0]+P[0]*R,py=c0[1]-P[1]*R;
+      simText(ctx,'לאן תצביע מחט המצפן בנקודה P? הקישו על הכיוון',W/2,20,'#e2e8f0',PH?11:12,'center',true);
+      magDot(ctx,c0[0],c0[1],14,ch.d>0,'#fbbf24','#0f172a');
+      simText(ctx,ch.d>0?'I ⊙ (יוצא מהדף)':'I ⊗ (נכנס לדף)',c0[0],c0[1]+(P[1]<0?-28:34),'#fbbf24',10.5,'center',true);
+      ctx.save();ctx.setLineDash([3,4]);ctx.strokeStyle='rgba(148,163,184,.4)';ctx.beginPath();ctx.moveTo(c0[0],c0[1]);ctx.lineTo(px,py);ctx.stroke();ctx.restore();
+      if(ch.pick<0){ctx.save();ctx.fillStyle='rgba(15,23,42,.85)';ctx.strokeStyle='#64748b';ctx.lineWidth=1.4;ctx.beginPath();ctx.arc(px,py,19,0,6.2832);ctx.fill();ctx.stroke();ctx.restore();
+        simText(ctx,'?',px,py+5,'#fbbf24',15,'center',true);}
+      else magNeedle(ctx,px,py,Math.atan2(ch.B[1],ch.B[0]),16,true);
+      simText(ctx,'P',px+(P[0]?P[0]*30:24),py-(P[1]?P[1]*30:0)+(P[0]?4:-22),'#e2e8f0',12,'center',true);
+      magPlotBox(ctx,8,TOP+8,W-16,H-TOP-16,'',null);chips();
+      if(ch.pick>=0){var ok=CHD[ch.pick]+''===ch.B+'';
+        simText(ctx,ok?'✓ נכון! רצף: '+streak:'✗ לא בדיוק — המחט מראה את הכיוון הנכון',W/2,TOP+30,ok?'#34d399':'#f87171',PH?11:12,'center',true);
+        simText(ctx,'הקישו על התרשים לאתגר הבא',W/2,H-22,'#94a3b8',9.5,'center');}
+      else simText(ctx,'אגודל לכיוון הזרם — האצבעות המתכופפות מראות את כיוון השדה',W/2,TOP+30,'#94a3b8',PH?9.5:10.5,'center');
+      model('כלל יד ימין לתיל: '+kit.m('B = μ₀I/2πr')+' — השדה מקיף את התיל: נגד כיוון השעון סביב ⊙, עם כיוון השעון סביב ⊗.');
+      kit.check({streak:streak,mode:mode,two:two,B:1});
+      requestAnimationFrame(draw);return;
+    }
     var Ls=wires(), k=Ls.map(function(w){return w.map(function(v){return v.toFixed(4);}).join(',');}).join(';');
     if(k!==key){key=k;
       var psi=function(x,y){var v=0;Ls.forEach(function(w){v+=w[2]*Math.log(Math.max(1e-4,Math.hypot(x-w[0],y-w[1])));});return v;};
@@ -27784,7 +27847,6 @@ MAG_SIMS['mag-wire']=function(canvas){
       for(var L=Math.ceil(lo/step)*step;L<=hi;L+=step)lv.push(L+0.5);
       segs=magContours(psi,-xr,xr,-yr,yr,Math.round(W/5),Math.round(TOP/5),lv,
         function(x,y){return Ls.some(function(w){return Math.hypot(x-w[0],y-w[1])<0.0045;});});}
-    simBg(ctx,W,H);
     ctx.save();ctx.strokeStyle='rgba(96,165,250,.7)';ctx.lineWidth=1.2;ctx.beginPath();
     segs.forEach(function(sg){var a=toS(sg[0][0],sg[0][1]),b=toS(sg[1][0],sg[1][1]);ctx.moveTo(a[0],a[1]);ctx.lineTo(b[0],b[1]);});
     ctx.stroke();ctx.restore();
@@ -27799,19 +27861,20 @@ MAG_SIMS['mag-wire']=function(canvas){
       magDot(ctx,q[0],q[1],11,w[2]>=0,i?'#f472b6':'#fbbf24','#0f172a');
       simText(ctx,(i?'I₂':'I₁')+' = '+Math.abs(w[2]).toFixed(0)+' A',q[0],q[1]+25,i?'#f472b6':'#fbbf24',9.5,'center',true);});
     if(two){var q2=toS(w2[0],w2[1]);simHandle(ctx,q2[0],q2[1],'#f472b6',17);}
-    // probe
+    // the probe: each wire's field (thin) and their vector sum (thick green)
     var pb=Bat(probe[0],probe[1],Ls),pn=Math.hypot(pb[0],pb[1]),pq=toS(probe[0],probe[1]);
     var sc=function(B){return Math.min(70,18+14*Math.log10(1+Math.abs(B)/5e-6));};
-    if(two)Ls.forEach(function(w,i){var bi=Bat(probe[0],probe[1],[w]),ni=Math.hypot(bi[0],bi[1]);if(ni>0){var L=sc(ni);
+    var Bi=Ls.map(function(w){return Bat(probe[0],probe[1],[w]);});
+    if(two)Bi.forEach(function(bi,i){var ni=Math.hypot(bi[0],bi[1]);if(ni>0){var L=sc(ni);
       simArrow(ctx,pq[0],pq[1],pq[0]+bi[0]/ni*L,pq[1]-bi[1]/ni*L,i?'rgba(244,114,182,.6)':'rgba(251,191,36,.6)',1.6,7);}});
     if(pn>0){var L=sc(pn);simArrow(ctx,pq[0],pq[1],pq[0]+pb[0]/pn*L,pq[1]-pb[1]/pn*L,'#34d399',2.8,10);}
     simHandle(ctx,pq[0],pq[1],'#34d399',12);
-    var r1=Math.hypot(probe[0]-X1(),probe[1]);
-    var RW=W<600?W-16:W*0.46;
-    ctx.save();ctx.fillStyle='rgba(2,8,16,.82)';ctx.fillRect(8,8,RW,two?62:44);ctx.restore();
-    simText(ctx,'בגשש: B = '+(pn*1e6).toFixed(1)+' μT',8+RW/2,24,'#34d399',12,'center',true);
-    simText(ctx,'r₁ = '+(r1*100).toFixed(1)+' cm   ·   B₁ = μ₀I₁/2πr₁ = '+(2e-7*Math.abs(Ls[0][2])/r1*1e6).toFixed(1)+' μT',8+RW/2,42,'#94a3b8',9.5,'center');
-    if(two)simText(ctx,'צהוב + ורוד = ירוק: השדות מתחברים כווקטורים',8+RW/2,60,'#94a3b8',9.5,'center');
+    var r1=Math.hypot(probe[0]-X1(),probe[1]),B1=Math.hypot(Bi[0][0],Bi[0][1]);
+    var RW=PH?W-16:Math.min(W*0.46,360);
+    ctx.save();ctx.fillStyle='rgba(2,8,16,.82)';ctx.beginPath();ctx.roundRect(8,8,RW,two?60:44,6);ctx.fill();ctx.restore();
+    simText(ctx,'בגשש: B = '+(pn*1e6).toFixed(1)+' μT',8+RW/2,25,'#34d399',12,'center',true);
+    simText(ctx,'r₁ = '+(r1*100).toFixed(1)+' cm',8+RW/2,42,'#94a3b8',9.5,'center');
+    if(two)simText(ctx,'צהוב + ורוד = ירוק: השדות מתחברים כווקטורים',8+RW/2,58,'#94a3b8',9.5,'center');
     // B(r) for the first wire, with the probe on it
     var gx=46,gy=TOP+10,gw=W-66,gh=H-TOP-40,Bmax=600e-6,rmax=0.15;
     magPlotBox(ctx,gx-38,gy-4,gw+50,gh+34,'',null);
@@ -27826,12 +27889,15 @@ MAG_SIMS['mag-wire']=function(canvas){
     simText(ctx,'שדה כדור הארץ',gx+gw-4,Y(30e-6)-5,'#34d399',8.5,'right');
     var I1=Math.abs(Ls[0][2]),pts=[];for(var r=0.004;r<=rmax;r+=0.001){var B=2e-7*I1/r;if(B<=Bmax)pts.push([X(r),Y(B)]);}
     magPoly(ctx,pts,'#fbbf24',2.2);
-    if(r1<=rmax){var B1=2e-7*I1/r1;if(B1<=Bmax)simCircle(ctx,X(r1),Y(B1),5,'#34d399','#fff',1.5);}
+    if(r1<=rmax){var Br=2e-7*I1/r1;if(Br<=Bmax)simCircle(ctx,X(r1),Y(Br),5,'#34d399','#fff',1.5);}
+    if(two)model('חיבור וקטורי, '+kit.m('B = B₁ + B₂')+': '+kit.m('B₁ = '+(B1*1e6).toFixed(1)+' μT')+', '+kit.m('B₂ = '+(Math.hypot(Bi[1][0],Bi[1][1])*1e6).toFixed(1)+' μT')+' — ובסכום הווקטורי '+kit.m('|B| = '+(pn*1e6).toFixed(1)+' μT'));
+    else model(kit.m('B = μ₀I/2πr = (4π×10⁻⁷ × '+I1.toFixed(0)+')/(2π × '+r1.toFixed(3)+') = '+(B1*1e6).toFixed(1)+' μT'));
+    kit.check({streak:streak,mode:mode,two:two,B:pn});
     requestAnimationFrame(draw);
   }
   requestAnimationFrame(draw);
 };
-MAG_CTRL['mag-wire']=function(){return rng('mgw-I',0,30,20,1,'זרם I₁',' A')+btn('mgw-dir','⊙ הזרם יוצא מהדף','btn-secondary')+btn('mgw-two','➕ תיל שני','btn-secondary')+rng('mgw-I2',-30,30,-20,1,'זרם I₂ (+ יוצא מהדף)',' A');};
+MAG_CTRL['mag-wire']=function(){return rng('mgw-I',0,30,20,1,'זרם I₁',' A')+btn('mgw-dir','⊙ הזרם יוצא מהדף','btn-secondary')+btn('mgw-two','➕ תיל שני','btn-secondary')+rng('mgw-I2',-30,30,-20,1,'זרם I₂ (+ יוצא מהדף)',' A')+btn('mgw-rhr','🎲 אתגר כלל יד ימין','btn-secondary');};
 
 // ── mag-field.mag-loop ────────────────────────────────────────────────────
 // A cut through the loop's axis. Field lines are traced through the exact
