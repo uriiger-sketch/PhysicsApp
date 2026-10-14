@@ -398,6 +398,44 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 .sim-stat{background:var(--bg);border:1px solid var(--border);border-radius:9px;padding:9px 14px;min-width:100px;}
 .sim-stat .slab{font-size:.7rem;color:var(--muted);font-weight:700;letter-spacing:.4px;}
 .sim-stat .sval{font-size:1.05rem;font-weight:700;color:var(--accent2);font-family:'Courier New',monospace;}
+/* the sim kit: model line, prediction, missions -- between canvas and sliders */
+.sk-panel{display:flex;flex-direction:column;gap:10px;padding:12px 20px 0;}
+.sk-panel:empty{display:none;}
+.sk-model{display:flex;align-items:baseline;gap:8px;background:var(--panel2);border:1px solid var(--border);border-inline-start:3px solid var(--accent2);
+  border-radius:10px;padding:8px 12px;font-size:.92rem;line-height:1.7;color:var(--text);}
+.sk-model .sk-f{font-family:'Courier New',monospace;font-weight:700;color:var(--t-param);margin:0 2px;font-size:1em;white-space:normal;}
+.sk-predict{background:var(--wx-bg);border:1px solid var(--wx-border);border-radius:10px;padding:10px 12px;}
+.sk-pq{font-weight:700;color:var(--text);font-size:.92rem;line-height:1.6;}
+.sk-po{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;}
+.sk-opt{min-height:40px;padding:6px 14px;border-radius:9px;border:1px solid var(--border);background:var(--chip);color:var(--text);
+  font:inherit;font-size:.88rem;cursor:pointer;transition:border-color .15s,background .15s;}
+.sk-opt:hover:not(:disabled){border-color:var(--accent);}
+.sk-opt.right{border-color:var(--green);background:rgba(16,185,129,.16);}
+.sk-opt.wrong{border-color:var(--red);background:rgba(239,68,68,.14);}
+.sk-opt:disabled{cursor:default;}
+.sk-pa{margin-top:8px;font-size:.86rem;line-height:1.65;color:var(--t-body);}
+.sk-ok{color:var(--t-green);} .sk-no{color:var(--t-err);}
+.sk-missions{border:1px solid var(--border);border-radius:10px;overflow:hidden;}
+.sk-head{display:flex;align-items:center;justify-content:space-between;padding:7px 12px;background:var(--panel2);font-weight:700;font-size:.88rem;color:var(--text);}
+.sk-count{font-family:'Courier New',monospace;color:var(--gold);font-size:.85rem;}
+.sk-missions.all .sk-head{background:rgba(16,185,129,.14);}
+.sk-missions ol{list-style:none;margin:0;padding:4px 0;}
+.sk-m{padding:6px 12px;border-top:1px solid var(--border);}
+.sk-m:first-child{border-top:none;}
+.sk-row{display:flex;align-items:flex-start;gap:9px;}
+.sk-box{flex:0 0 18px;height:18px;margin-top:3px;border-radius:5px;border:2px solid var(--muted);transition:all .25s;}
+.sk-m.done .sk-box{border-color:var(--green);background:var(--green);box-shadow:0 0 0 3px rgba(16,185,129,.18);}
+.sk-m.done .sk-box::after{content:'✓';display:block;color:#fff;font-size:12px;line-height:14px;text-align:center;font-weight:900;}
+.sk-tx{flex:1;font-size:.88rem;line-height:1.6;color:var(--text);}
+.sk-m.done .sk-tx{color:var(--muted);}
+.sk-hint-b{flex:0 0 auto;border:none;background:none;color:var(--t-hint);font:inherit;font-size:.8rem;cursor:pointer;padding:2px 4px;min-height:28px;}
+.sk-hint,.sk-why{margin-inline-start:27px;margin-top:4px;font-size:.83rem;line-height:1.6;}
+.sk-hint{color:var(--t-hint);}
+.sk-why{color:var(--t-ok);}
+.sk-m.sk-just{animation:skjust 1.6s ease-out;}
+@keyframes skjust{0%{background:rgba(16,185,129,.35);}100%{background:transparent;}}
+@media (prefers-reduced-motion:reduce){.sk-m.sk-just{animation:none;}.sk-box{transition:none;}}
+@media (max-width:480px){.sk-panel{padding:10px 12px 0;}}
 .range-wrap{display:flex;align-items:center;gap:8px;font-size:.85rem;}
 .range-wrap label{color:var(--muted);font-size:.8rem;white-space:nowrap;}
 .range-wrap span{color:var(--accent2);font-family:'Courier New',monospace;font-size:.85rem;min-width:38px;}
@@ -2623,6 +2661,7 @@ function saveState(){
       chapter:state.chapter, section:state.section, tab:state.tab,
       xp:state.xp, completed:state.completed, visited:state.visited,
       quizState:state.quizState, problemState:state.problemState,
+      missions:state.missions,
       theme:state.theme,
       difficulty:state.difficulty,
       lastPos:state.lastPos
@@ -2646,6 +2685,7 @@ function loadState(){
     state.visited=obj(saved.visited);
     state.quizState=obj(saved.quizState);
     state.problemState=obj(saved.problemState);
+    state.missions=obj(saved.missions);
     if(saved.theme)state.theme=saved.theme;
     if(saved.difficulty)state.difficulty=saved.difficulty||'normal';
     state.lastPos=obj(saved.lastPos);
@@ -2683,7 +2723,7 @@ function applyTheme(t){
 const state={
   subject:'mechanics',
   chapter:'kinematics', section:'distance-time', tab:'theory',
-  xp:0, completed:{}, visited:{}, quizState:{}, problemState:{}, simState:{},
+  xp:0, completed:{}, visited:{}, quizState:{}, problemState:{}, simState:{}, missions:{},
   theme:'dark', difficulty:'normal',  // 'easy'|'normal'|'hard'
   lastPos:{}   // subject -> {c,s,t}: where the learner was in it
 };
@@ -9934,6 +9974,114 @@ function simSyncSlider(id,val,dec){
   el.value=Math.max(lo,Math.min(hi,val)).toFixed(dec);
   el.dispatchEvent(new Event('input'));
 }
+
+// ── The sim kit ─────────────────────────────────────────────────
+// What turns a moving picture into a lesson, in one look for every sim:
+//  • missions -- a goal the sim itself checks, a hint on request, and on
+//    success the reason it worked (the physics, not "well done");
+//  • the model line -- the governing equation with the numbers on the screen
+//    substituted into it, so the picture and the formula are one thing;
+//  • a prediction asked before the answer is shown.
+// Every text is a whole literal at the call (with + value + pieces), so each
+// language can order its own sentence.
+//
+//   var kit=simKit(canvas,{missions:[
+//     {text:'…', hint:'…', why:'…', done:function(s){return s.I>1;}}, …]});
+//   kit.check(s)        each frame: s is whatever the missions' done() read
+//   kit.model(html)     the live equation line; kit.m('I = 2.0 A') for maths
+//   kit.predict({q:'…',opts:['…','…'],correct:1,why:'…'},function(i,ok){…})
+//
+// A mission is solved only after the learner has touched the sim (a state
+// that is true when it opens is not an achievement), is kept per section in
+// the saved state -- the same in every language -- and gives 10 XP once.
+function simKit(canvas,spec){
+  spec=spec||{};
+  var host=canvas.closest&&canvas.closest('.sim-container');
+  var key=state.chapter+'.'+state.section, ms=spec.missions||[];
+  if(!state.missions||typeof state.missions!=='object')state.missions={};
+  var got=state.missions[key]||{}, armed=false, lastModel=null;
+  var api={check:function(){},model:function(){},predict:function(){},m:_skM,el:null};
+  if(!host)return api;
+  [].forEach.call(host.querySelectorAll('.sk-panel'),function(o){o.remove();});
+  var P=document.createElement('div');P.className='sk-panel';
+  var M=document.createElement('div');M.className='sk-model';M.setAttribute('aria-live','polite');M.hidden=true;
+  var Q=document.createElement('div');Q.className='sk-predict';Q.hidden=true;
+  P.appendChild(M);P.appendChild(Q);
+  var items=[];
+  if(ms.length){
+    var box=document.createElement('div');box.className='sk-missions';
+    var head=document.createElement('div');head.className='sk-head';
+    head.innerHTML='<span class="sk-title">🎯 משימות</span><span class="sk-count"></span>';
+    var ol=document.createElement('ol');
+    ms.forEach(function(m,i){
+      var li=document.createElement('li');li.className='sk-m';
+      li.innerHTML='<div class="sk-row"><span class="sk-box" aria-hidden="true"></span><span class="sk-tx"></span>'+
+        (m.hint?'<button type="button" class="sk-hint-b">💡 רמז</button>':'')+'</div>'+
+        (m.hint?'<div class="sk-hint" hidden></div>':'')+'<div class="sk-why" hidden></div>';
+      li.querySelector('.sk-tx').innerHTML=m.text;
+      if(m.hint){li.querySelector('.sk-hint').innerHTML=m.hint;
+        li.querySelector('.sk-hint-b').addEventListener('click',function(){var h=li.querySelector('.sk-hint');h.hidden=!h.hidden;});}
+      li.querySelector('.sk-why').innerHTML=m.why||'';
+      ol.appendChild(li);items.push(li);
+    });
+    box.appendChild(head);box.appendChild(ol);P.appendChild(box);
+  }
+  var wrap=canvas.closest('.sim-canvas-wrap')||canvas;
+  // under the canvas and its touch hint, above the sliders
+  var after=wrap;while(after.nextSibling&&after.nextSibling.classList&&after.nextSibling.classList.contains('sim-hint'))after=after.nextSibling;
+  after.parentNode.insertBefore(P,after.nextSibling);
+  api.el=P;
+  function paint(fresh){
+    var n=0;
+    items.forEach(function(li,i){var d=!!got[i];if(d)n++;
+      li.classList.toggle('done',d);li.querySelector('.sk-why').hidden=!d||!ms[i].why;
+      if(d&&fresh===i){li.classList.add('sk-just');setTimeout(function(){li.classList.remove('sk-just');},1600);}});
+    var c=P.querySelector('.sk-count');if(c)c.textContent=n+'/'+items.length;
+    var b=P.querySelector('.sk-missions');if(b)b.classList.toggle('all',n===items.length&&n>0);
+  }
+  paint();
+  var arm=function(){armed=true;};
+  ['pointerdown','mousedown','touchstart','keydown','input','change','click'].forEach(function(t){host.addEventListener(t,arm,{capture:true,passive:true});});
+  api.check=function(s){
+    if(!armed||!items.length)return;
+    for(var i=0;i<ms.length;i++){
+      if(got[i])continue;
+      var ok=false;try{ok=!!ms[i].done(s);}catch(e){}
+      if(!ok)continue;
+      got[i]=true;state.missions[key]=got;state.xp+=10;saveState();
+      try{playXPSound();}catch(e){}
+      var xb=document.getElementById('xp-badge-el');
+      if(xb){xb.textContent='⭐ '+state.xp+' XP';xb.classList.remove('xp-pop');void xb.offsetWidth;xb.classList.add('xp-pop');}
+      paint(i);
+    }
+  };
+  api.model=function(html){
+    if(html===lastModel)return;lastModel=html;
+    M.hidden=!html;M.innerHTML=html?'<span class="sk-model-ic" aria-hidden="true">📐</span><span class="sk-model-tx">'+html+'</span>':'';
+  };
+  api.predict=function(p,cb){
+    if(!p){Q.hidden=true;Q.innerHTML='';return;}
+    Q.hidden=false;
+    Q.innerHTML='<div class="sk-pq"><span aria-hidden="true">🤔</span> '+p.q+'</div><div class="sk-po"></div><div class="sk-pa" hidden></div>';
+    var o=Q.querySelector('.sk-po');
+    p.opts.forEach(function(t,i){
+      var b=document.createElement('button');b.type='button';b.className='sk-opt';b.innerHTML=t;
+      b.addEventListener('click',function(){
+        if(Q.classList.contains('answered'))return;
+        Q.classList.add('answered');var ok=i===p.correct;
+        [].forEach.call(o.children,function(x,j){x.classList.toggle('right',j===p.correct);x.classList.toggle('wrong',j===i&&!ok);x.disabled=true;});
+        var a=Q.querySelector('.sk-pa');a.hidden=false;
+        a.innerHTML=(ok?'<b class="sk-ok">✓ נכון.</b> ':'<b class="sk-no">✗ לא בדיוק.</b> ')+(p.why||'');
+        if(cb)cb(i,ok);
+      });
+      o.appendChild(b);
+    });
+    Q.classList.remove('answered');
+  };
+  return api;
+}
+// maths inside a kit text: one left-to-right run, whatever the page direction
+function _skM(t){return '<span class="math-ltr sk-f" dir="ltr">'+String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;')+'</span>';}
 
 // ── Shared drawing helpers ─────────────────────
 function simArrow(ctx, x1,y1, x2,y2, color, lw, hw){
