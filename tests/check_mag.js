@@ -165,15 +165,32 @@ const EXPECT = {
   await slide('mgx-th', 60); T = await read();
   t('  and 5.00 mWb at 60°', has(T, '5.00 mWb'));
   await open('mag-induction', 'mag-faraday'); T = await read();
-  t('Faraday: a magnet at rest induces nothing', num(T, /ε = (-?[\d.]+) mV/) === 0);
+  t('Faraday: a magnet at rest induces nothing', num(T, /ε = ([-−]?[\d.]+) mV/) === 0);
   // pair each readout with the caption drawn right after it, frame by frame
   const pairs = (r, re) => { const out = []; for (let i = 0; i + 1 < r.length; i++) { const m = r[i].match(re);
-    if (m) out.push([parseFloat(m[1]), r[i + 1]]); } return out; };
+    if (m) out.push([parseFloat(m[1].replace("−", "-")), r[i + 1]]); } return out; };
   await click('btn-mgy-auto'); let sgn = { app: [], rec: [] };
-  for (let i = 0; i < 60; i++) { for (const [e, c] of pairs(await read(80), /ε = (-?[\d.]+) mV/)) {
+  for (let i = 0; i < 60; i++) { for (const [e, c] of pairs(await read(80), /ε = ([-−]?[\d.]+) mV/)) {
     if (isAppr(c) && e) sgn.app.push(e); if (isRecd(c) && e) sgn.rec.push(e); } }
   t('  N approaching: ε < 0 (the coil sets up a field toward the magnet — repulsion)', sgn.app.length > 3 && sgn.app.every(e => e < 0), sgn.app.slice(0, 4).join(','));
   t('  N receding: ε > 0 (attraction)', sgn.rec.length > 3 && sgn.rec.every(e => e > 0), sgn.rec.slice(0, 4).join(','));
+  // the model line under the canvas is Faraday's law with the numbers in it:
+  // its ε must be −N times its ΔΦ/Δt, and its I that ε over 10 Ω, every time
+  const fmod = async () => p.evaluate(() => { const e = document.querySelector('.sk-model-tx'); return e ? e.textContent : ''; });
+  const mnum = x => parseFloat(String(x).replace('−', '-'));
+  let fm = { n: 0, big: 0, bad: [] };
+  for (let i = 0; i < 40; i++) { await p.waitForTimeout(130); const m = await fmod();
+    const a = m.match(/ε = −N·ΔΦ\/Δt = −(\d+) × \(([−\d.]+) mWb\/s\) = ([−\d.]+) mV/), b = m.match(/I = ε\/R = ([−\d.]+) mV \/ 10 Ω = ([−\d.]+) mA/);
+    if (!a || !b) { fm.bad.push(m.slice(0, 60)); continue; } fm.n++;
+    const N = +a[1], r = mnum(a[2]), e = mnum(a[3]), e2 = mnum(b[1]), I = mnum(b[2]);
+    if (Math.abs(e) > 20) fm.big++;
+    if (Math.abs(e + N * r) > 0.5 * N * 0.01 + 1 || e2 !== e || Math.abs(I - e / 10) > 0.1) fm.bad.push(m); }
+  t('  the model line: ε = −N·ΔΦ/Δt and I = ε/R with its own numbers, in every reading', fm.n > 30 && fm.big > 5 && fm.bad.length === 0, fm.n + ' read, ' + fm.big + ' large; ' + fm.bad.slice(0, 2).join(' | '));
+  await click('btn-mgy-auto');
+  const parkAsked = await p.evaluate(() => { document.getElementById('btn-mgy-park').click(); const o = document.querySelectorAll('.sk-predict .sk-opt'); if (o.length) o[2].click(); return o.length; });
+  await p.waitForTimeout(2600); T = await read();
+  const parked = await p.evaluate(() => ({ m: document.querySelector('.sk-model-tx').textContent, done: document.querySelectorAll('.sk-m.done').length }));
+  t('  parked in the coil, where the flux is largest (predicted first): ε = 0, ΔΦ/Δt = 0, and the mission says why', parkAsked === 3 && num(T, /ε = ([-−]?[\d.]+) mV/) === 0 && /\(0\.00 mWb\/s\)/.test(parked.m) && parked.done >= 1, parkAsked + ' options; ' + parked.m.slice(0, 50) + '; ' + parked.done + ' done');
   // The ring is stepped once per animation frame, and on a busy machine a
   // frame can be 40 ms long: then one frame's readout and caption could
   // disagree, and this check failed now and then (seen at load 8.8). Here
@@ -414,7 +431,7 @@ const EXPECT = {
     ['mag-force', 'mag-parallel', W => [[W / 2 + 40, 170], [W / 2 + 70, 170], [W / 2 + 90, 170]], '^F/L'],
     ['mag-force', 'mag-motor', W => [[W * 0.36 + 30, 163], [W * 0.36, 128], [W * 0.36 - 30, 153]], '^θ = '],
     ['mag-induction', 'mag-flux', W => [[W * 0.3, 150], [W * 0.3, 180], [W * 0.3, 210]], '^θ = '],
-    ['mag-induction', 'mag-faraday', W => [[0.2 * W, 114], [W * 0.4, 114], [W * 0.5, 114]], '^NΦ ='],
+    ['mag-induction', 'mag-faraday', W => [[0.13 * W, 110], [W * 0.3, 110], [W * 0.42, 110]], '^ε = '],
     ['mag-induction', 'mag-lenz', W => [[W * 0.14, 150], [W * 0.3, 150], [W * 0.42, 150]], '^I = '],
     ['mag-induction', 'mag-motional', W => [[174, 130], [200, 130], [230, 130]], '^ε = BLv'],
   ];
