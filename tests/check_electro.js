@@ -185,10 +185,27 @@ const sig2 = x => x === 0 ? 0 : Number(x.toPrecision(2));
 
   // pair energy: released from rest, two like charges fly apart
   await open('elc-upair');
-  const r0 = num(await txt(), /r = ([0-9.]+) m/);
+  const r0 = num(await txt(), /r = ([0-9.]+) cm/);
   await click('btn-up-release');
-  const r1 = num(await txt(900), /r = ([0-9.]+) m/);
-  t('pair released from rest: the charges move apart', r1 > r0 + 0.05, r0 + ' → ' + r1);
+  const up = () => p.evaluate(() => document.querySelector('#app canvas').__up());
+  // the flight is animated: wait for it to end (frame rates vary), at most 6 s
+  const landed = async () => { for (let i = 0; i < 60; i++) { if (!(await p.evaluate(() => document.querySelector('#app canvas').__up().released))) return; await p.waitForTimeout(100); } };
+  await landed();
+  const r1 = num(await txt(300), /r = ([0-9.]+) cm/);
+  t('pair released from rest: the charges move apart', r1 > r0 + 5, r0 + ' → ' + r1);
+  let u1 = await up();
+  t('pair, like charges let go: U + E_k stays U₀ (energy from the motion, not an integrator)', u1.U0 > 0 && Math.abs(u1.U + u1.K - u1.U0) < 1e-9 * u1.U0 && u1.K > 0, JSON.stringify(u1));
+  t('pair at the start: 2 and 3 μC at 30 cm, U = kq₁q₂/r = +0.18 J', Math.abs(k * 6e-12 / 0.3 - 0.18) < 1e-12 && Math.abs(r0 - 30) < 0.05);
+  // an unlike pair let go from rest falls together: U more negative, E_k > 0
+  await setR('inp-up-q2', -3); u1 = await up();
+  await dragTo(u1.x2, u1.cy, u1.x1 + 30 * u1.PXC, u1.cy);
+  await click('btn-up-release'); await landed(); await p.waitForTimeout(150); const u2 = await up();
+  t('pair, unlike charges let go: they approach, U falls below U₀ < 0 and E_k = U₀ − U > 0', u2.U0 < 0 && u2.r < 0.3 - 0.02 && u2.U < u2.U0 && Math.abs(u2.K - (u2.U0 - u2.U)) < 1e-12, JSON.stringify(u2));
+  t('pair missions: U < 0, a like pair and an unlike pair released', (await done())[0] && (await done())[2] && (await done())[3]);
+  u1 = await up(); await dragTo(u1.x2, u1.cy, u1.x1 + 40 * u1.PXC, u1.cy); u1 = await up();
+  const U40 = u1.U, r40 = u1.r; await dragTo(u1.x2, u1.cy, u1.x1 + 20 * u1.PXC, u1.cy); u1 = await up();
+  t('pair: U ∝ 1/r -- about half the distance, about twice the energy; mission solved',
+    Math.abs(u1.U / U40 - r40 / u1.r) < 1e-9 && Math.abs(r40 / u1.r - 2) < 0.02 && (await done())[1] === true, (u1.U / U40).toFixed(4) + ' vs ' + (r40 / u1.r).toFixed(4));
 
   // electroscope: charge it by contact, then an opposite rod closes the leaves
   await open('elc-basics');
@@ -270,7 +287,9 @@ const sig2 = x => x === 0 ? 0 : Number(x.toPrecision(2));
   await click('btn-field-dipole'); await setR('inp-elc-Q2', -4); m = await elc();
   const sep = m.A[1].x - m.A[0].x;
   await dragTo(m.probe.x, m.probe.y, m.A[0].x + sep * 0.3, m.A[0].y - sep * 0.4);
-  await click('btn-field-release'); await p.waitForTimeout(3500); m = await elc();
+  await click('btn-field-release');
+  for (let i = 0; i < 80; i++) { m = await elc(); if (m.fly && (m.fly.done || m.fly.dev >= 12)) break; await p.waitForTimeout(100); }
+  await p.waitForTimeout(150); m = await elc();
   t('released from rest where the line curves (a dipole), it leaves the field line: inertia', m.fly && m.fly.dev >= 12 && (await done())[2] === true, JSON.stringify(m.fly));
   await click('btn-field-q0'); await p.waitForTimeout(300);
   t('a negative test charge: F = q₀E reverses, E does not -- mission solved', (await done())[3] === true);
@@ -382,7 +401,7 @@ const sig2 = x => x === 0 ? 0 : Number(x.toPrecision(2));
     ['electro', 'elc-charge', 'elc-plane', (W, H) => [[W * 0.5, H * 0.3], [W * 0.45, H * 0.3], [W * 0.1, H * 0.3]], { text: '^E = E₁ \\+ E₂|^E₁ \\+ E₂' }],
     ['electro', 'elc-charge', 'elc-conductor', (W, H) => [[W * 0.27 + 95, H * 0.42 - 40], [W * 0.27 + 60, H * 0.42 - 30], [W * 0.27 + 30, H * 0.42 - 10]], { text: '^' + LR('גשוש r=') }],
     ['electro', 'elc-energy', 'elc-potential', (W, H) => [[W * 0.7, H * 0.26], [W * 0.65, H * 0.3], [W * 0.6, H * 0.34]], { text: '^V = ' }],
-    ['electro', 'elc-energy', 'elc-upair', (W, H) => [[W * 0.66, H * 0.34], [W * 0.72, H * 0.34], [W * 0.8, H * 0.34]], { text: '^r = ' }],
+    ['electro', 'elc-energy', 'elc-upair', (W, H) => { const c = (W - 60) / (W < 560 ? 40 : 60), x = W / 2 + 15 * c; return [[x, H * 0.3], [x + 20, H * 0.3], [x + 40, H * 0.3]]; }, { text: '^r = ' }],
     ['electro', 'elc-energy', 'elc-sphere', W => [[46 + 0.2 * (W - 60), 300], [46 + 0.4 * (W - 60), 300], [46 + 0.6 * (W - 60), 300]], { text: '^r = [0-9]' }],
     ['electro', 'elc-energy', 'elc-plates', (W, H) => [[W * 0.28 - 20, H / 2], [W * 0.28 - 40, H / 2], [W * 0.28 - 60, H / 2]], { slider: 'elc-v0' }],
     ['electro', 'elc-energy', 'elc-capacitor', W => [[W * 0.3 + 72, 193], [W * 0.3 + 90, 193], [W * 0.3 + 110, 193]], { slider: 'elc-cd' }],

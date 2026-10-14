@@ -7576,7 +7576,7 @@ const ELECTRO_CONTENT={
       <p>אנרגיה שלילית פירושה <b>מערכת קשורה</b>. זה נכון לאלקטרון שנמשך אל הגרעין, ליונים בגביש מלח — וגם לכוכב לכת שמקיף את השמש, שם הנוסחה כמעט זהה: ${M('U=-\\dfrac{Gm_1m_2}{r}')}</p>
       <p>״אנרגיית הקשר״ היא האנרגיה שצריך להשקיע כדי לפרק מערכת לגמרי. לזוג שנח במקומו היא ${M('|U|')}. אבל אלקטרון סביב גרעין וכוכב לכת סביב השמש גם <b>נעים</b>, והאנרגיה הקינטית שלהם כבר ״משלמת״ חלק: במסלול מעגלי בדיוק חצי, ואנרגיית הקשר היא ${M('|U|/2')}.</p></div>`,
   },
-  sim:{type:'elc-upair',desc:'גררו את המטענים וקראו את U עם הסימן; סימנים מנוגדים נותנים U שלילית (מצב קשור). ״שחרר״ מראה את U הופכת ל־E_k בסכום קבוע.'},
+  sim:{type:'elc-upair',desc:'גררו את המטענים על הסרגל וקראו את U עם הסימן: סימנים מנוגדים נותנים U שלילית (מצב קשור). ״שחררו״ משחרר את הזוג ממנוחה — זוג זהה מתרחק וזוג מנוגד נופל זה אל זה, ובשניהם U הופכת ל־Eₖ והסכום קבוע.'},
   example:{title:'אנרגיה של זוג מטענים',text:`המטענים ${M('q_1=+1\\,\\mu\\text{C}')} ו־${M('q_2=+4\\,\\mu\\text{C}')} נמצאים במרחק ${M('0.3\\,\\text{m}')} זה מזה.`,steps:[
     {q:'מה האנרגיה הפוטנציאלית של הזוג?',a:`${M('U=\\dfrac{kq_1q_2}{r}=\\dfrac{9\\times10^{9}\\times4\\times10^{-12}}{0.3}=0.12\\,\\text{J}')}`},
     {q:'מקרבים אותם ל־0.15 m. מה קורה ל־U, ומה לכוח?',a:`${M('U\\propto\\dfrac{1}{r}')}, ולכן היא מוכפלת: ${M('U=0.24\\,\\text{J}')}. הכוח לעומת זאת ${M('\\propto\\dfrac{1}{r^2}')}, ולכן גדל פי 4.`}]},
@@ -32193,118 +32193,152 @@ function simElcConductor(canvas){
 }
 
 // ─── PAIR ENERGY U = k q1 q2 / r — with its sign ───────────────────
+// SECTION: elc-energy.elc-upair
+// PEDAGOGY: the sign is the lesson. U is drawn above its zero line for a like
+// pair and below it for an unlike one, on a cm ruler in the section's own
+// numbers (2 and 3 μC at 30 cm: +0.18 J). Let go from rest, BOTH pairs move --
+// a like pair apart, an unlike pair together -- and in both U turns into
+// kinetic energy with U + E_k fixed; the bars hang from one zero line.
 function simElcUpair(canvas){
+  var id=canvas.id,_g=_simGen[id];
+  var NAR=((canvas.parentElement&&canvas.parentElement.clientWidth)||800)<560;
   const H=460;const{ctx,W,dpr}=setupCanvas(canvas,H);
-  const id=canvas.id;var animT=0;
-  var PXM=150, cy=H*0.34;
-  var x1=W*0.30, x2=W*0.66, dragC=null, touched=false;
-  var released=false, rRel=0, U0=0, qRel=0, mkg=0.002, Uscale=1;   // mkg: reduced mass (4 g each)
+  const S=NAR?40:60, X0=30, PXC=(W-2*X0)/S, cy=H*0.30, SLOW=10, MU=0.005;  // MU: reduced mass (10 g each); shown 10 times slower
+  var LTR=document.documentElement.dir==='ltr';
+  var x1=W/2-15*PXC, x2=W/2+15*PXC, dragC=null, dOff=0, touched=false, t=0;
+  var released=false, U0=0, qRel=0, Uscale=1, Kmax=0, rMax=0, rKey='';
   function Q1(){var e=document.getElementById('inp-up-q1');return e?parseFloat(e.value):2;}
   function Q2(){var e=document.getElementById('inp-up-q2');return e?parseFloat(e.value):3;}
-  function Uof(r){return ELC_K*Q1()*Q2()*1e-12/Math.max(0.05,r);}
+  function rad(q){return 11+Math.abs(q)*1.6;}
+  function rOf(){return (x2-x1)/PXC/100;}                                  // m
+  function Uof(r){return ELC_K*Q1()*Q2()*1e-12/Math.max(0.01,r);}
   var rb=document.getElementById('btn-up-release');
   // Released from rest, a like pair flies apart and an unlike pair falls
   // together: in both, U turns into kinetic energy and U + E_k stays put.
-  // (An unlike pair used to be refused, with "there is no energy to release
-  // here" -- but it does accelerate: U only becomes more negative.)
-  function rad(q){return 13+Math.abs(q)*1.6;}
   if(rb)rb.addEventListener('click',function(){
     if(Q1()*Q2()===0)return;
-    released=true; rRel=Math.abs(x2-x1)/PXM; U0=Uof(rRel); qRel=Q1()*Q2();
+    released=true; U0=Uof(rOf()); qRel=Q1()*Q2(); Kmax=0;
     // one scale for the bars for the whole flight: U0 apart, U at contact together
-    Uscale=Math.max(Math.abs(U0),qRel<0?Math.abs(Uof((rad(Q1())+rad(Q2()))/PXM)):0)||1;
+    Uscale=Math.max(Math.abs(U0),qRel<0?Math.abs(Uof((rad(Q1())+rad(Q2()))/PXC/100)):0)||1;
   });
-  function _dn(e){var p=simPointerXY(canvas,dpr,e);
-    if(Math.hypot(p.x-x1,p.y-cy)<28)dragC=1;else if(Math.hypot(p.x-x2,p.y-cy)<28)dragC=2;
-    if(dragC){touched=true;released=false;U0=0;canvas.style.cursor='grabbing';e.preventDefault();}}
-  function _mv(e){var p=simPointerXY(canvas,dpr,e);
-    if(dragC===1){x1=Math.max(40,Math.min(x2-40,p.x));e.preventDefault();}
-    else if(dragC===2){x2=Math.max(x1+40,Math.min(W-40,p.x));e.preventDefault();}
-    else canvas.style.cursor=(Math.hypot(p.x-x1,p.y-cy)<28||Math.hypot(p.x-x2,p.y-cy)<28)?'grab':'';}
-  function _up(){dragC=null;canvas.style.cursor='';}
-  canvas.addEventListener('mousedown',_dn);canvas.addEventListener('touchstart',_dn,{passive:false});
-  canvas.addEventListener('mousemove',_mv);canvas.addEventListener('touchmove',_mv,{passive:false});
-  canvas.addEventListener('mouseup',_up);canvas.addEventListener('touchend',_up);
+  simDrag(canvas,dpr,{
+    down:function(p){
+      if(Math.hypot(p.x-x1,p.y-cy)<rad(Q1())+14)dragC=1;else if(Math.hypot(p.x-x2,p.y-cy)<rad(Q2())+14)dragC=2;
+      if(dragC){touched=true;released=false;U0=0;dOff=(dragC===1?x1:x2)-p.x;}},
+    move:function(p){if(dragC)place(dragC,p.x+dOff);},
+    up:function(){dragC=null;}});
+  function place(i,x){var g=rad(Q1())+rad(Q2())+4;
+    if(i===1)x1=Math.max(X0,Math.min(x2-g,x));else x2=Math.max(x1+g,Math.min(W-X0,x));}
+  var kb=elcKbd(canvas,{n:function(){return 2;},get:function(i){return {x:i?x2:x1,y:cy};},
+    set:function(i,x){touched=true;released=false;U0=0;place(i+1,x);}});
+  var kit=simKit(canvas,{missions:[
+    {text:'הפכו את האנרגיה של הזוג לשלילית',
+     hint:'שנו את הסימן של אחד המטענים.',
+     why:'בסימנים מנוגדים '+_skM('U = kq₁q₂/r < 0')+': זוג קשור. כדי להפריד אותו עד אינסוף צריך להשקיע '+_skM('|U|')+'.',
+     done:function(s){return s.qq<0;}},
+    {text:'קרבו את המטענים למחצית המרחק: פי כמה גדלה '+_skM('U')+', ופי כמה '+_skM('F')+'?',
+     hint:'התחילו כשהם רחוקים, למשל 40 cm, וגררו אחד מהם עד 20 cm, וקראו את '+_skM('U')+' ואת '+_skM('F')+'.',
+     why:'ל־'+_skM('U = kq₁q₂/r')+' יש חזקה אחת של '+_skM('r')+': חצי מרחק — פי 2 אנרגיה. הכוח, '+_skM('∝ 1/r²')+', גדל פי 4.',
+     done:function(s){return s.halved;}},
+    {text:'שחררו זוג זהה, וצפו ב־'+_skM('U')+' הופכת לאנרגיה קינטית',
+     hint:'שני מטענים באותו סימן, ואז ״🚀 שחררו״. עקבו אחר שלוש העמודות.',
+     why:'הסכום '+_skM('U + Eₖ')+' קבוע: כשהם מתרחקים '+_skM('U')+' יורדת לעבר 0, ו־'+_skM('Eₖ')+' עולה לעבר '+_skM('U₀')+'.',
+     done:function(s){return s.rel&&s.qq>0&&s.K>=0.2*s.U0;}},   // reachable on the short phone ruler too
+    {text:'ועכשיו שחררו זוג מנוגד ממנוחה',
+     hint:'מטענים בסימנים מנוגדים, ואז ״🚀 שחררו״.',
+     why:'הם נופלים זה אל זה: '+_skM('U')+' נעשית שלילית יותר ו־'+_skM('Eₖ = U₀ − U')+' גדלה — והסכום נשאר '+_skM('U₀ < 0')+'.',
+     done:function(s){return s.rel&&s.qq<0&&s.K>0.01*Math.abs(s.U0);}}
+  ]});
+  kit.predict({q:'שני מטענים במנוחה: '+_skM('q₁ = +2 μC')+' ו־'+_skM('q₂ = −3 μC')+'. משחררים אותם. הם:',
+    opts:['נשארים במקום — ל־'+_skM('U < 0')+' אין אנרגיה לשחרר','נעים זה אל זה וצוברים אנרגיה קינטית','מתרחקים זה מזה'],correct:1,
+    why:'הם נמשכים, ולכן נעים זה אל זה. '+_skM('U')+' יורדת — נעשית שלילית יותר — וההפרש הופך לאנרגיה קינטית. '+_skM('U < 0')+' פירושו שצריך להשקיע עבודה כדי להפריד אותם, לא שהם אינם יכולים לנוע.'});
+  canvas.__up=function(){return {x1:x1,x2:x2,cy:cy,PXC:PXC,r:rOf(),U:Uof(rOf()),U0:U0,released:released,K:released||U0?Math.max(0,U0-Uof(rOf())):0};};
   function draw(){
-    if(_simStop[id])return;animT+=0.03;
+    if(_simGen[id]!==_g||_simStop[id])return;t+=1/60;
     var q1=Q1(),q2=Q2();
     if(U0!==0&&q1*q2!==qRel){released=false;U0=0;}   // new charges: the old bars mean nothing
-    // While released, speed is derived from energy: v=sqrt(2(E-U)/m). Conservation
+    place(1,x1);place(2,x2);
+    // While released, speed comes from energy: v = sqrt(2(U0 − U)/μ). Conservation
     // is then exact by construction rather than accumulated by an integrator.
     if(released){
-      var r=Math.abs(x2-x1)/PXM, dt=0.016;
-      var K=Math.max(0,U0-Uof(r)), sg=qRel>0?1:-1;
-      var v=sg*Math.sqrt(2*K/mkg), acc=ELC_K*Q1()*Q2()*1e-12/(mkg*r*r);
-      // the ½a·dt² term is what gets the pair off the mark: released from rest,
-      // v = 0 alone never changes r, and the button used to do nothing at all
-      var dx=(v*dt+0.5*acc*dt*dt)*PXM/2, touch=rad(Q1())+rad(Q2());
-      if(x2-x1+2*dx<touch)dx=(touch-(x2-x1))/2;    // an unlike pair stops on contact
-      x1-=dx; x2+=dx;
-      if(x1<30||x2>W-30||x2-x1<=touch+0.01){released=false;}
+      for(var sub=0;sub<8;sub++){
+        var r=rOf(), dt=0.016/SLOW/8;
+        var K=Math.max(0,U0-Uof(r)), sg=qRel>0?1:-1;
+        var v=sg*Math.sqrt(2*K/MU), acc=ELC_K*q1*q2*1e-12/(MU*r*r);
+        // the ½a·dt² term gets the pair off the mark from rest
+        var dx=(v*dt+0.5*acc*dt*dt)*100*PXC/2, touch=rad(q1)+rad(q2);
+        if(x2-x1+2*dx<touch)dx=(touch-(x2-x1))/2;      // an unlike pair stops on contact
+        x1-=dx; x2+=dx;
+        if(x1<X0||x2>W-X0||x2-x1<=touch+0.01){released=false;x1=Math.max(X0,x1);x2=Math.min(W-X0,x2);break;}
+      }
     }
-    var r_m=Math.max(0.05,Math.abs(x2-x1)/PXM);
-    var U=Uof(r_m), F=ELC_K*Math.abs(q1*q2)*1e-12/(r_m*r_m);
+    var r_m=rOf(), U=Uof(r_m), F=ELC_K*Math.abs(q1*q2)*1e-12/(r_m*r_m), K2=Math.max(0,U0-U);
+    if(released||U0)Kmax=Math.max(Kmax,K2);
+    var ky=q1+'|'+q2;if(ky!==rKey){rKey=ky;rMax=0;}
+    if(!released)rMax=Math.max(rMax,r_m);
     var bg=ctx.createLinearGradient(0,0,0,H);bg.addColorStop(0,'#020810');bg.addColorStop(1,'#04101e');
     ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);
-    optDash(ctx,30,cy,W-30,cy,'#1e3a5f',0.6);
-    function ch(x,q,lab){
-      var col=q>0?'#f87171':q<0?'#60a5fa':'#64748b';
-      ctx.save();ctx.fillStyle=col;optGlow(ctx,col,16);
-      ctx.beginPath();ctx.arc(x,cy,13+Math.abs(q)*1.6,0,Math.PI*2);ctx.fill();optNoGlow(ctx);
-      ctx.fillStyle='#0b1220';ctx.font='bold 15px Heebo';ctx.textAlign='center';
-      ctx.fillText(q>0?'+':q<0?'−':'0',x,cy+5);ctx.restore();
-      optLabel(ctx,'‎'+lab+' = '+q.toFixed(1)+' μC',x,cy-30,col,9.5);
-    }
-    ch(x1,q1,'q₁'); ch(x2,q2,'q₂');
-    ctx.save();ctx.strokeStyle='#64748b';ctx.lineWidth=1;
-    ctx.beginPath();ctx.moveTo(x1,cy+34);ctx.lineTo(x2,cy+34);ctx.stroke();ctx.restore();
-    optLabel(ctx,'‎r = '+r_m.toFixed(2)+' m',(x1+x2)/2,cy+46,'#94a3b8',9.5);
+    // ruler
+    ctx.save();ctx.strokeStyle='#1e3a5f';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(X0,cy);ctx.lineTo(W-X0,cy);ctx.stroke();
+    ctx.strokeStyle='rgba(148,163,184,.4)';ctx.lineWidth=1;
+    for(var c=0;c<=S;c+=(NAR?2:1)){var x=X0+c*PXC;ctx.beginPath();ctx.moveTo(x,cy+30);ctx.lineTo(x,cy+30+(c%10===0?8:c%5===0?5:3));ctx.stroke();}
+    ctx.restore();
+    for(var c2=0;c2<=S;c2+=10)simText(ctx,c2+' cm',X0+c2*PXC,cy+50,'#7d8da6',9,'center');
+    elcCharge(ctx,x1,cy,rad(q1),q1);elcCharge(ctx,x2,cy,rad(q2),q2);
+    [[x1,q1],[x2,q2]].forEach(function(a,i){ctx.save();ctx.strokeStyle='rgba(148,163,184,.4)';ctx.setLineDash([3,4]);ctx.lineWidth=1.2;
+      ctx.beginPath();ctx.arc(a[0],cy,rad(a[1])+5,0,6.2832);ctx.stroke();ctx.restore();elcFocus(ctx,kb,i,a[0],cy,rad(a[1])+9);});
+    var t1='q₁ = '+elcSg(q1,1)+' μC',t2='q₂ = '+elcSg(q2,1)+' μC',sp=_spread2(x1,labelW(ctx,t1,10),x2,labelW(ctx,t2,10),10,W);
+    var qc=function(q){return q>0?'#fca5a5':q<0?'#93c5fd':'#94a3b8';};
+    optLabel(ctx,t1,sp[0],cy-rad(Math.max(Math.abs(q1),Math.abs(q2)))-16,qc(q1),10);
+    optLabel(ctx,t2,sp[1],cy-rad(Math.max(Math.abs(q1),Math.abs(q2)))-16,qc(q2),10);
+    ctx.save();ctx.strokeStyle='#94a3b8';ctx.lineWidth=1;ctx.beginPath();
+    ctx.moveTo(x1,cy+62);ctx.lineTo(x2,cy+62);ctx.moveTo(x1,cy+57);ctx.lineTo(x1,cy+67);ctx.moveTo(x2,cy+57);ctx.lineTo(x2,cy+67);ctx.stroke();ctx.restore();
+    optLabel(ctx,'r = '+(r_m*100).toFixed(1)+' cm',(x1+x2)/2,cy+76,'#cbd5e1',10);
     var attract=q1*q2<0;
-    optLabel(ctx,attract?'מטענים מנוגדים — מצב קשור (U<0)':'מטענים זהים — אנרגיה אגורה (U>0)',
-             (x1+x2)/2,cy+62,attract?'#60a5fa':'#f87171',9.5);
-    // U(r) curve with the sign made visual: positive above the axis, negative below
-    var gx=W*0.08,gy=H*0.56,gw=W*0.52,gh=H*0.34, mid=gy+gh/2;
+    optLabel(ctx,attract?'מטענים מנוגדים — מצב קשור (U<0)':'מטענים זהים — אנרגיה אגורה (U>0)',W/2,22,attract?'#93c5fd':'#fca5a5',10);
+    // U(r) with its sign: above the axis for a like pair, below for an unlike one
+    var gx=X0+24,gy=cy+98,gw=NAR?W-gx-14-(released||U0?128:0):W*0.58-gx,gh=H-gy-26,mid=gy+gh/2;
     ctx.save();ctx.strokeStyle='rgba(100,116,139,.45)';ctx.lineWidth=1;
     ctx.beginPath();ctx.moveTo(gx,gy);ctx.lineTo(gx,gy+gh);ctx.stroke();
     ctx.beginPath();ctx.moveTo(gx,mid);ctx.lineTo(gx+gw,mid);ctx.stroke();ctx.restore();
-    optLabel(ctx,'‎U = 0  (r → ∞)',gx+gw-46,mid-9,'#7d8da6',8);
-    var rMaxG=(W-70)/PXM, Uref=Math.abs(ELC_K*q1*q2*1e-12/0.12)||1;
-    ctx.save();ctx.strokeStyle=attract?'#60a5fa':'#f87171';ctx.lineWidth=2;ctx.beginPath();
-    for(var i=0;i<=60;i++){
-      var rr=0.12+(rMaxG-0.12)*i/60;
-      var Uv=ELC_K*q1*q2*1e-12/rr;
-      var X=gx+(rr/rMaxG)*gw, Y=mid-Math.max(-1,Math.min(1,Uv/Uref))*(gh/2-6);
-      i===0?ctx.moveTo(X,Y):ctx.lineTo(X,Y);
-    }
+    simText(ctx,'U = 0  (r → ∞)',gx+gw,mid-6,'#7d8da6',8.5,'right');
+    simText(ctx,'U(r) ∝ 1/r',gx+gw,gy+10,'#a78bfa',9.5,'right',true);
+    simText(ctx,'r (cm)',gx+gw,gy+gh+16,'#7d8da6',8.5,'right');
+    var Uref=Math.abs(ELC_K*q1*q2*1e-12/0.05)||1;            // the axis: |U| at 5 cm
+    ctx.save();ctx.beginPath();ctx.rect(gx,gy,gw,gh);ctx.clip();
+    ctx.strokeStyle=attract?'#60a5fa':'#f87171';ctx.lineWidth=2;ctx.beginPath();
+    for(var i=0;i<=80;i++){var rc=2+(S-2)*i/80,Uv=ELC_K*q1*q2*1e-12/(rc/100);
+      var X=gx+(rc/S)*gw, Y=mid-Math.max(-1.2,Math.min(1.2,Uv/Uref))*(gh/2-6);i===0?ctx.moveTo(X,Y):ctx.lineTo(X,Y);}
     ctx.stroke();ctx.restore();
-    var cpx=gx+Math.min(1,r_m/rMaxG)*gw, cpy=mid-Math.max(-1,Math.min(1,U/Uref))*(gh/2-6);
-    ctx.save();ctx.fillStyle='#fbbf24';optGlow(ctx,'#fbbf24',9);
-    ctx.beginPath();ctx.arc(cpx,cpy,5,0,Math.PI*2);ctx.fill();optNoGlow(ctx);ctx.restore();
-    optLabel(ctx,'‎U(r) ∝ 1/r  —  לא 1/r²',gx+gw/2,gy-8,'#a78bfa',9);
-    // energy bars while a release is in progress
+    var cpx=gx+Math.min(1,r_m*100/S)*gw, cpy=mid-Math.max(-1,Math.min(1,U/Uref))*(gh/2-6);
+    ctx.save();ctx.fillStyle='#fbbf24';optGlow(ctx,'#fbbf24',9);ctx.beginPath();ctx.arc(cpx,cpy,5,0,6.2832);ctx.fill();optNoGlow(ctx);ctx.restore();
+    // energy bars about one zero line while a release is on
+    var bx=NAR?W-118:W*0.66,bw2=26,BH=gh,BY=gy;
     if(released||U0!==0){
-      // signed bars about a zero line: a bound pair's U and total hang below it
-      var K=Math.max(0,U0-U);
-      var BX=W*0.68,BW=30,BH=H*0.30,BY=H*0.58,neg=U0<0,Z=neg?BY+BH*0.42:BY+BH;
+      var neg=U0<0,Z=neg?BY+BH*0.42:BY+BH*0.86;
       function bar(i,lab,val,col){
-        var X=BX+i*(BW+14), f=Math.max(-1,Math.min(1,val/Uscale)), h=f*(neg?BH*0.42:BH);
-        ctx.save();ctx.fillStyle='rgba(148,163,184,.12)';ctx.fillRect(X,BY,BW,BH);
-        ctx.fillStyle=col;ctx.fillRect(X,h>=0?Z-h:Z,BW,Math.abs(h));
-        ctx.strokeStyle='rgba(148,163,184,.4)';ctx.lineWidth=1;ctx.strokeRect(X,BY,BW,BH);
-        ctx.beginPath();ctx.moveTo(X-3,Z);ctx.lineTo(X+BW+3,Z);ctx.stroke();ctx.restore();
-        optLabel(ctx,lab,X+BW/2,BY-8,col,9);
-        optLabel(ctx,'‎'+(val<0?'−':'')+Math.abs(val).toFixed(3),X+BW/2,BY+BH+12,col,8.5);
+        var X=bx+i*(bw2+12), f=Math.max(-1,Math.min(1,val/Uscale)), h=f*(neg?BH*0.40:BH*0.80);
+        ctx.save();ctx.fillStyle='rgba(148,163,184,.10)';ctx.fillRect(X,BY,bw2,BH);
+        ctx.fillStyle=col;ctx.fillRect(X,h>=0?Z-h:Z,bw2,Math.abs(h));
+        ctx.strokeStyle='rgba(148,163,184,.4)';ctx.lineWidth=1;ctx.strokeRect(X,BY,bw2,BH);
+        ctx.beginPath();ctx.moveTo(X-3,Z);ctx.lineTo(X+bw2+3,Z);ctx.stroke();ctx.restore();
+        optLabel(ctx,lab,X+bw2/2,BY-8,col,9);
+        optLabel(ctx,elcSg(val,3),X+bw2/2,BY+BH+11,col,8.5);
       }
-      bar(0,'U',U,'#f87171'); bar(1,'E_k',K,'#4ade80'); bar(2,'סה״כ',U+K,'#fbbf24');
+      bar(0,'U',U,'#f87171'); bar(1,'Eₖ',K2,'#4ade80'); bar(2,'סה״כ',U+K2,'#fbbf24');
+      simText(ctx,'J · מואט פי '+SLOW,bx+(3*bw2+24)/2,BY+BH+24,'#7d8da6',8.5,'center');
     }
-    if(!touched&&animT<8)optLabel(ctx,'✋ גררו את המטענים, ואז שחררו',W*0.34,H-12,'#fbbf24',10);
-    optInfoBox(ctx,W-236,10,228,[
-      '‎U = k·q₁q₂/r',
-      '‎U = '+(U>=0?'+':'')+U.toFixed(3)+' J',
-      '‎F = '+F.toFixed(3)+' N   (∝ 1/r²)',
+    if(!touched&&t<8)optLabel(ctx,'✋ גררו את המטענים, ואז שחררו',W/2,cy+92,'#fbbf24',10);
+    if(!NAR)optInfoBox(ctx,W-236,10,228,[
+      'U = k·q₁q₂/r',
+      'U = '+(U>0?'+':'')+elcSg(U,3)+' J',
+      'F = '+F.toFixed(3)+' N   (∝ 1/r²)',
       attract?'הפרדה לאינסוף עולה '+Math.abs(U).toFixed(3)+' J':'שחרור ייתן '+U.toFixed(3)+' J']);
+    kit.model('אנרגיית הזוג: '+_skM('U = kq₁q₂/r = 9×10⁹ × ('+elcSg(q1,1)+'×10⁻⁶)('+elcSg(q2,1)+'×10⁻⁶) / '+r_m.toFixed(3)+' = '+(U>0?'+':'')+elcSg(U,3)+' J')+' · הכוח: '+_skM('F = k|q₁q₂|/r² = '+F.toFixed(3)+' N'));
+    kit.check({qq:q1*q2,halved:rMax>=0.2&&r_m<=rMax/2+1e-9&&!released,rel:released||U0!==0,K:Kmax,U0:U0});
     requestAnimationFrame(draw);
-  }requestAnimationFrame(draw);
+  }
+  requestAnimationFrame(draw);
 }
 
 // ─── CAPACITOR NETWORK — series vs parallel ────────────────────────
