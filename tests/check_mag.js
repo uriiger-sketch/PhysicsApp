@@ -152,6 +152,7 @@ const EXPECT = {
   let nb = [1, 0, 0]; for (let x = -0.2; x <= 0.2; x += 0.002) for (let y = 0.03; y <= 0.14; y += 0.002) { const b = mgB(x, y, BAR, true), n = Math.hypot(...b); if (n < nb[0]) nb = [n, x, y]; }
   await mgPut(nb[1], nb[2]); mr = await mgRead();
   t('  with Earth\'s field: a neutral point at (' + (nb[1] * 100).toFixed(1) + ', ' + (nb[2] * 100).toFixed(1) + ') cm — |B| < 2 μT, the warning, the mission', mr.B < 2 && mr.T.some(x => x.includes(L('⚠ נקודה ניטרלית — השדות מבטלים זה את זה, והמחט אינה מתכוונת'))) && await mgDone(2), mr.B + ' μT');
+  await open('mag-field', 'mag-wire'); let T = await read();
   t('wire: B at the probe = μ₀I/2πr (20 A, 4.5 cm)', near(num(T, /B = ([\d.]+) μT/), 2e-7 * 20 / 0.045 * 1e6, 0.2), num(T, /B = ([\d.]+) μT/));
   const wmodel = () => p.evaluate(() => { const e = document.querySelector('.sk-model-tx'); return e ? e.textContent : ''; });
   let WM = await wmodel();
@@ -186,7 +187,7 @@ const EXPECT = {
       window.magDot = function (c, x, y, r, o) { if (c.canvas === cv && r === 14) rec.wire = [x, y, o ? 1 : -1]; return oD.apply(this, arguments); };
       window.simText = function (c, s, x, y) { if (c.canvas === cv && s === '?') rec.q = [x, y]; return oT.apply(this, arguments); };
       CanvasRenderingContext2D.prototype.arc = function (x, y, r) { if (this.canvas === cv && r === 24) rec.chips.push([x, y]); return oArc.apply(this, arguments); };
-      await wait(120); window.magDot = oD; window.simText = oT; CanvasRenderingContext2D.prototype.arc = oArc;
+      await wait(60); for (let w = 0; w < 30 && !(rec.wire && rec.q && rec.chips.length >= 4); w++) await wait(50); window.magDot = oD; window.simText = oT; CanvasRenderingContext2D.prototype.arc = oArc;
       const dx = rec.q[0] - rec.wire[0], dy = -(rec.q[1] - 5 - rec.wire[1]), L = Math.hypot(dx, dy), rx = Math.round(dx / L), ry = Math.round(dy / L);
       const B = [-rec.wire[2] * ry, rec.wire[2] * rx];
       let ans = CH.findIndex(c => c + '' === B + ''); if (k === 4) ans = (ans + 2) % 4;
@@ -194,7 +195,7 @@ const EXPECT = {
       cv.dispatchEvent(new MouseEvent('mousedown', { clientX: R.left + chip[0], clientY: R.top + chip[1], bubbles: true, cancelable: true }));
       cv.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
       const o2 = window.simText; window.simText = function (c, s) { if (c.canvas === cv && /^[✓✗]/.test(s)) rec.fb = s; return o2.apply(this, arguments); };
-      await wait(120); window.simText = o2; out.push({ B: B.join(','), fb: rec.fb });
+      for (let w = 0; w < 30 && !rec.fb; w++) await wait(50); window.simText = o2; out.push({ B: B.join(','), fb: rec.fb });
     }
     return { out, done: document.querySelectorAll('.sk-m')[0].classList.contains('done') }; });
   const wOk = WH.out.slice(0, 4).every((r, i) => r.fb && r.fb.startsWith('✓') && r.fb.endsWith(String(i + 1))) && WH.out[4].fb && WH.out[4].fb.startsWith('✗');
@@ -253,7 +254,7 @@ const EXPECT = {
       window.magFieldMarks = function (c, a, b, d, e, o) { if (c.canvas === cv) rec.z = o ? 1 : -1; return oM.apply(this, arguments); };
       window.simText = function (c, s) { if (c.canvas === cv) { if (s === '+' || s === '−') rec.q = s === '+' ? 1 : -1; } return oT.apply(this, arguments); };
       CanvasRenderingContext2D.prototype.arc = function (x, y, r) { if (this.canvas === cv && r === 22) rec.chips.push([x, y]); return oArc.apply(this, arguments); };
-      await wait(120);
+      await wait(60); for (let w = 0; w < 30 && !(rec.v && rec.q && rec.chips.length >= 7); w++) await wait(50);
       window.simArrow = oA; window.magFieldMarks = oM; window.simText = oT; CanvasRenderingContext2D.prototype.arc = oArc;
       const u = a => a.map(c => Math.round(c / Math.hypot(...a)));
       const v = u(rec.v).concat(0), B = rec.z ? [0, 0, rec.z] : u(rec.B).concat(0);
@@ -264,23 +265,45 @@ const EXPECT = {
       cv.dispatchEvent(new MouseEvent('mousedown', { clientX: R.left + chip[0] * sc, clientY: R.top + chip[1] * sc, bubbles: true, cancelable: true }));
       cv.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
       const o2 = window.simText; window.simText = function (c, s) { if (c.canvas === cv && /^[✓✗]/.test(s)) rec.fb = s; return o2.apply(this, arguments); };
-      await wait(120); window.simText = o2;
+      for (let w = 0; w < 30 && !rec.fb; w++) await wait(50); window.simText = o2;
       out.push({ F: F.join(','), fb: rec.fb });
     }
     return { out, done: document.querySelectorAll('.sk-m')[2].classList.contains('done') };
   }, []);
   const okFb = RH.out.slice(0, 4).every((r, i) => r.fb && r.fb.startsWith('✓') && r.fb.endsWith(String(i + 1))), badFb = RH.out[4].fb && RH.out[4].fb.startsWith('✗');
   t('  right-hand-rule challenge: the sim\'s answer key is F = qv×B (4 dealt, worked out independently), a wrong tap resets the streak', okFb && badFb && RH.done, RH.out.map(r => r.F + ':' + (r.fb || '').slice(0, 14)).join(' | '));
-  await open('mag-force', 'mag-circle'); await click('btn-mgr-fire'); T = await read();
-  t('circle: r = mv/qB = 15.66 cm, T/2 = 164.0 ns', has(T, '15.66 cm') && has(T, '164.0 ns'));
-  // a proton in B into the page turns counter-clockwise: from the lower entry, upward
-  const yel = async () => p.evaluate(() => { const c = document.getElementById('sim-canvas'), d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data;
-    let up = 0, lo = 0; for (let y = 0; y < c.height; y += 2) for (let x = Math.round(c.width * 0.25); x < c.width; x += 2) { const i = (y * c.width + x) * 4;
-      if (d[i] > 220 && d[i + 1] > 160 && d[i + 1] < 210 && d[i + 2] < 80) { if (y < c.height / 2) up++; else lo++; } } return [up, lo]; });
-  await p.waitForTimeout(2600); let yy = await yel();
-  t('  the proton curves UP (counter-clockwise) in B into the page', yy[0] > 20, yy.join('/'));
-  await click('btn-mgr-Bdir'); await click('btn-mgr-fire'); await p.waitForTimeout(2600); yy = await yel();
-  t('  and DOWN (clockwise) when B comes out of the page', yy[1] > 20 && yy[1] > yy[0], yy.join('/'));
+  // the circle sim, on its fixed scale (42 cm of the field's edge in H − 64 px):
+  // the proton enters moving right; in B into the page it turns UP, and lands
+  // 2r = 2mv/qB = 31.3 cm from where it entered — on the ruler and in the mark
+  await open('mag-force', 'mag-circle');
+  const cmodel = () => p.evaluate(() => (document.querySelector('.sk-model-tx') || {}).textContent || '');
+  let CM = await cmodel();
+  t('circle: r = mv/qB = 15.66 cm and T/2 = πm/qB = 164.0 ns in the model line', CM.includes(') = 15.66 cm') && CM.includes('T/2 = πm/qB = 164.0 ns'), CM.slice(0, 80));
+  const shoot = (btn, ms, ans) => p.evaluate(async ([btn, ms, ans]) => { const cv = document.getElementById('sim-canvas'), o = window.simCircle, oT = window.simText, fr = [], tx = new Set();
+    let cur = []; window.simCircle = function (c, x, y, r) { if (c.canvas === cv && r === 6) cur.push([x, y]); return o.apply(this, arguments); };
+    window.simText = function (c, s) { if (c.canvas === cv) tx.add(s); return oT.apply(this, arguments); };
+    const real = window.requestAnimationFrame; window.requestAnimationFrame = cb => real(t => { cur = []; cb(t); fr.push(cur); });
+    document.getElementById(btn).click(); const op = document.querySelectorAll('.sk-predict .sk-opt'); if (ans !== undefined && op.length && !op[0].disabled) op[ans].click();
+    await new Promise(r => setTimeout(r, ms)); window.simCircle = o; window.simText = oT; window.requestAnimationFrame = real;
+    return { fr: fr.filter(f => f.length), tx: [...tx], H: cv.offsetHeight, W: cv.offsetWidth }; }, [btn, ms, ans]);
+  let sh = await shoot('btn-mgr-fire', 3600);
+  const sc0 = (sh.H - 64) / 0.42, yE0 = sh.H - 30, ys = sh.fr.map(f => f[0][1]);
+  t('  the proton curves UP in B ⊗ and lands 2r = 31.3 cm above the entry (310 px on the ruler\'s scale)', Math.min(...ys) < yE0 - 0.3 * sc0 && near(ys[ys.length - 1], yE0 - 0.3132 * sc0, 2) && sh.tx.some(x => x.startsWith('2r = 31.3 cm')), (yE0 - ys[ys.length - 1]).toFixed(1) + ' px vs ' + (0.3132 * sc0).toFixed(1));
+  await click('btn-mgr-Bdir'); sh = await shoot('btn-mgr-fire', 3600);
+  const ys2 = sh.fr.map(f => f[0][1]);
+  t('  and DOWN when B comes out of the page, the same 2r below the entry', near(ys2[ys2.length - 1], 30 + 0.3132 * sc0, 2), (ys2[ys2.length - 1] - 30).toFixed(1) + ' px');
+  await click('btn-mgr-Bdir');
+  // the target, 24 cm away: B = 2mv/(qD) = 0.261 T → 0.260 on the slider's 0.005 T steps
+  await slide('mgr-B', 0.26); sh = await shoot('btn-mgr-fire', 3600);
+  const cDone = i => p.evaluate(i => document.querySelectorAll('.sk-m')[i].classList.contains('done'), i);
+  t('  B = 0.260 T puts the proton on the 24 cm detector (2r = 24.1 cm): a hit, and its mission', sh.tx.some(x => x.includes('24.1 cm')) && sh.tx.some(x => x.startsWith(L('🎯 פגיעה! 2r = '))) && await cDone(0), sh.tx.filter(x => /2r/.test(x)).join(' | '));
+  // an α particle (m/q twice the proton's) at the same v needs twice the field
+  await click('btn-mgr-p'); await click('btn-mgr-p'); await slide('mgr-B', 0.52); sh = await shoot('btn-mgr-fire', 3600);
+  t('  an α at the same speed hits it at twice the field, B = 0.520 T (2r = 23.9 cm)', sh.tx.some(x => x.includes('23.9 cm')) && await cDone(2), sh.tx.filter(x => /2r/.test(x)).join(' | '));
+  // v and 2v (a prediction first): both leave the field in the same frame
+  await slide('mgr-B', 0.4); sh = await shoot('btn-mgr-pair', 3600, 2);
+  const X0c = sh.W * 0.2, out1 = sh.fr.findIndex(f => f.length === 2 && f[0][0] < X0c - 1 && f[0][1] < yE0 - 5), out2 = sh.fr.findIndex(f => f.length === 2 && f[1][0] < X0c - 1 && f[1][1] < yE0 - 5);
+  t('  v and 2v leave the field together (T = 2πm/qB), the faster on a circle twice as large', out1 > 0 && Math.abs(out1 - out2) <= 1 && await cDone(1), 'frames ' + out1 + ' / ' + out2);
   await open('mag-force', 'mag-spectro'); T = await read();
   t('spectrometer: v = E/B = 4.00×10⁵ m/s; ¹²C and ¹⁴C land at 49.8 and 58.1 cm', has(T, '4.00×10⁵') && has(T, '49.8 cm') && has(T, '58.1 cm'));
   await open('mag-force', 'mag-wireforce'); await p.waitForTimeout(2500); T = await read();

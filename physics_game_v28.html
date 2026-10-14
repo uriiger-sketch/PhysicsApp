@@ -9159,7 +9159,7 @@ const MAG_CONTENT={
       <p>הסוד: כל חצי סיבוב לוקח <b>אותו זמן</b>, בלי קשר למהירות — ולכן מתח בתדירות קבועה אחת מתאים תמיד. החלקיק מסתחרר החוצה ויוצא במהירות עצומה. היום ציקלוטרונים בבתי חולים מייצרים חומרים רדיואקטיביים לסריקות PET.</p>
     </div>`,
   },
-  sim:{type:'mag-circle',desc:'בחרו חלקיק, מהירות ושדה, ושגרו אותו אל אזור השדה. מדדו את קוטר חצי המעגל ואת הזמן. שגרו שני חלקיקים זהים במהירויות שונות — הם יוצאים מהשדה באותו רגע בדיוק. הפכו את כיוון השדה כדי להפוך את כיוון הסיבוב (כל החלקיקים כאן חיוביים; מטען שלילי היה מסתובב הפוך).'},
+  sim:{type:'mag-circle',desc:'בחרו חלקיק, מהירות ושדה, ושגרו אותו אל אזור השדה (או הקישו על התותח). הסרגל לאורך שפת השדה מודד בסנטימטרים אמיתיים את המרחק שבו החלקיק נוחת — 2r. כוונו אותו אל הגלאי 🎯 בבחירת B (מקשי החצים מכווננים את B ב־0.005 T), ושגרו שני חלקיקים זהים במהירויות v ו־2v — הם יוצאים מהשדה באותו רגע בדיוק. הפכו את כיוון השדה כדי להפוך את כיוון הסיבוב (כל החלקיקים כאן חיוביים; מטען שלילי היה מסתובב הפוך).'},
   example:{title:'פרוטון במסלול מעגלי',text:`פרוטון נכנס במהירות ${M('3\\times10^{6}\\,\\text{m/s}')} לשדה ${M('B=0.2\\,\\text{T}')}, בניצב.`,steps:[
     {q:'מה רדיוס המסלול?',a:`${M('r=\\dfrac{mv}{qB}\\approx0.157\\,\\text{m}')}`},
     {q:'מה זמן המחזור?',a:`${M('T=\\dfrac{2\\pi m}{qB}\\approx3.28\\times10^{-7}\\,\\text{s}')}`},
@@ -27474,6 +27474,11 @@ function magV(id,d){var e=document.getElementById('inp-'+id);var v=e?parseFloat(
 function magBtn(id,fn){var b=document.getElementById('btn-'+id);if(b)b.addEventListener('click',function(){fn(b);});return b;}
 function magAlive(id,g){return _simGen[id]===g&&!_simStop[id];}
 function magBtnPress(id){var b=document.getElementById('btn-'+id);if(b)b.click();}
+// simText set small enough to fit a box maxW wide (an English line is longer
+// than its Hebrew, and a panel is narrower than the canvas simText fits to)
+function magFitText(ctx,t,x,y,col,sz,align,bold,maxW){
+  ctx.save();ctx.font=(bold?'bold ':'')+sz+'px Heebo';var w=ctx.measureText(_mathIso(_cvSub(String(t)))).width;ctx.restore();
+  simText(ctx,t,x,y,col,w>maxW?Math.max(8,sz*maxW/w):sz,align,bold);}
 
 // Complete elliptic integrals K(m), E(m) (parameter m=k²) by the AGM — exact
 // to machine precision in a handful of steps, and cheap enough to sum loops.
@@ -28264,79 +28269,111 @@ MAG_SIMS['mag-lorentz']=function(canvas){
 MAG_CTRL['mag-lorentz']=function(){return rng('mgz-B',0.1,1,0.5,0.05,'שדה B',' T')+rng('mgz-v',1,5,2,0.1,'מהירות v',' ×10⁶ m/s')+btn('mgz-go','🚀 שגרו','btn-primary')+btn('mgz-q','⊕ מטען חיובי (פרוטון)','btn-secondary')+btn('mgz-Bdir','⊗ השדה נכנס לדף','btn-secondary')+btn('mgz-mode','🧭 מצב: שדה ניצב לדף','btn-secondary')+btn('mgz-rhr','🎲 אתגר כלל יד ימין','btn-secondary');};
 
 // ── mag-force.mag-circle ──────────────────────────────────────────────────
-// A half circle of radius r = mv/qB, drawn to a ruler in real centimetres.
-// One fixed conversion from physical to screen time per shot, so a pair shot
-// at v and 2v genuinely arrives together: T = 2πm/qB has no v in it.
+// A half circle of radius r = mv/qB, on one fixed scale with a ruler in real
+// centimetres along the field's edge, so 2r is measured where the particle
+// lands — and aimed: a detector waits at a distance D, and B (or v) has to be
+// chosen so that 2r = D. One fixed conversion from physical to shown time, so
+// a pair shot at v and 2v genuinely arrives together: T = 2πm/qB has no v.
 MAG_SIMS['mag-circle']=function(canvas){
   var id=canvas.id,_g=_simGen[id];
-  const H=480; const {ctx,W,dpr}=setupCanvas(canvas,H);
+  var PH=(canvas.offsetWidth||(canvas.parentElement&&canvas.parentElement.offsetWidth)||720)<600;
+  const H=PH?520:480; const {ctx,W,dpr}=setupCanvas(canvas,H);
   var PARTS=[{n:'פרוטון',m:MAG_MP,q:1,c:'#fbbf24'},{n:'דאוטרון ²H⁺',m:2*MAG_MP,q:1,c:'#f472b6'},{n:'חלקיק α',m:6.64e-27,q:2,c:'#34d399'},{n:'יון ¹²C⁺',m:12*MAG_U,q:1,c:'#60a5fa'}];
-  var pi=0, bz=-1, shots=[], marks=[], X0=W*0.2, sc=1, tv=0, pT=null, Tvis=2.6;
+  var pi=0, bz=-1, shots=[], marks=[], X0=PH?W*0.22:W*0.2, tv=0, pT=null, Tvis=2.6;
+  var SPAN=0.42, sc=(H-(PH?96:64))/SPAN, D=0.24, last=null, hits={}, pairDone=false;   // px per metre: 42 cm of the edge in view
+  var up=function(){return bz<0;}, yE=function(){return up()?H-30:30;};   // positive charges turn up when B is into the page
+  var kit=simKit(canvas,{missions:[
+    {text:'כוונו את הפרוטון אל הגלאי: בחרו שדה B שבו הוא נוחת בדיוק במטרה.',
+     hint:'נקודת הנחיתה במרחק '+_skM('2r = 2mv/qB')+' מהכניסה. גלאי רחוק — דרוש שדה חלש יותר.',
+     why:'r = mv/qB: שדה חזק יותר מכופף חזק יותר והמעגל קטן. כש־m, v ו־q קבועים, מקום הנחיתה קובע את B — כך בדיוק פועל ספקטרומטר מסות.',
+     done:function(s){return !!s.hits[0];}},
+    {text:'שגרו שני פרוטונים, במהירות v ו־2v. מי מהם יוצא מהשדה ראשון?',
+     hint:'לחצו ״שגרו שניים״ וצפו בשעון.',
+     why:'T = 2πm/qB אינו תלוי ב־v: הפרוטון המהיר עובר מעגל ארוך פי 2 במהירות גדולה פי 2 — ושניהם יוצאים באותו רגע. על זה בנוי הציקלוטרון.',
+     done:function(s){return s.pair;}},
+    {text:'פגעו באותו גלאי עם חלקיק α, בלי לשנות את המהירות.',
+     hint:'ל־α מסה פי 4 ומטען פי 2 מאלה של הפרוטון. פי כמה צריך לשנות את B?',
+     why:'r = mv/qB: היחס m/q של חלקיק α גדול פי 2 משל הפרוטון, ולכן באותה מהירות צריך שדה חזק פי 2 כדי לקבל אותו מעגל.',
+     done:function(s){var a=s.hits[2],p=s.hits[0];return !!(a&&p&&Math.abs(a.v-p.v)<1&&a.D===p.D);}}]});
+  var model=magModeler(kit), gate=magPredictor(kit,canvas);
+  var askPair=gate({q:'שני פרוטונים זהים נכנסים יחד לשדה, אחד במהירות v והשני במהירות 2v. מי יצא מהשדה ראשון?',
+    opts:['המהיר — הוא מהיר פי 2','האיטי — המעגל שלו קצר יותר','שניהם יחד'],correct:2,
+    why:'למהיר מעגל גדול פי 2 (r = mv/qB), אבל גם המהירות שלו גדולה פי 2 — ולכן זמן חצי הסיבוב πm/qB זהה. שניהם יוצאים באותו רגע.'});
+  var newTarget=function(){var o=D;do{D=(Math.round(10+Math.random()*28))/100;}while(Math.abs(D-o)<0.03);marks=[];shots=[];};
   magBtn('mgr-p',function(b){pi=(pi+1)%PARTS.length;b.textContent='⚛ '+PARTS[pi].n;});
   magBtn('mgr-Bdir',function(b){bz=-bz;marks=[];shots=[];b.textContent=bz<0?'⊗ השדה נכנס לדף':'⊙ השדה יוצא מהדף';});
+  magBtn('mgr-target',newTarget);
   function fire(vs){
-    var p=PARTS[pi],B=magV('mgr-B',0.2),q=p.q*MAG_E,rs=vs.map(function(v){return p.m*v/(q*B);}),rmax=Math.max.apply(null,rs);
-    sc=Math.min((H-(W<600?140:70))/(2*rmax),(W-X0-16)/rmax);    // on a phone, keep clear of the readout panel
-    var T=2*Math.PI*p.m/(q*B);
-    marks=[];shots=vs.map(function(v,i){return {v:v,r:rs[i],T:T,p:p,t0:tv,col:i?'#f472b6':p.c};});
+    var p=PARTS[pi],B=magV('mgr-B',0.2),q=p.q*MAG_E,T=2*Math.PI*p.m/(q*B);
+    marks=[];shots=vs.map(function(v,i){return {v:v,r:p.m*v/(q*B),T:T,p:p,pi:pi,t0:tv,col:i?'#f472b6':p.c,B:B};});
+    if(vs.length===1)last={v:vs[0],pi:pi};
   }
   magBtn('mgr-fire',function(){fire([magV('mgr-v',3)*1e6]);});
-  magBtn('mgr-pair',function(){var v=magV('mgr-v',3)*1e6;fire([v,2*v]);});
+  magBtn('mgr-pair',function(){askPair(function(){pi=0;var b=document.getElementById('btn-mgr-p');if(b)b.textContent='⚛ '+PARTS[0].n;var v=magV('mgr-v',3)*1e6;fire([v,2*v]);});});
+  // the gun is tapped to fire; ↑ ↓ trim B by 0.005 T, Enter fires
+  simDrag(canvas,dpr,{down:function(p){if(p.x<X0&&Math.abs(p.y-yE())<34)magBtnPress('mgr-fire');}});
+  magKeys(canvas,{key:function(k,d){if(!d)return;if(k==='enter')magBtnPress('mgr-fire');
+    else if(k==='up'||k==='down')simSyncSlider('mgr-B',magV('mgr-B',0.2)+(k==='up'?0.005:-0.005),3);}});
   function draw(ts){
     if(!magAlive(id,_g))return;
     var dt=pT?Math.min(0.05,(ts-pT)/1000):0;pT=ts;tv+=dt;
-    var up=bz<0,yE=up?H-36:36;              // positive charges turn up when B is into the page
+    var U=up(),yE0=yE(),dir=U?-1:1,yAt=function(d){return yE0+dir*d*sc;};
     simBg(ctx,W,H);
     ctx.save();ctx.fillStyle='rgba(99,102,241,.06)';ctx.fillRect(X0,0,W-X0,H);ctx.restore();
     magFieldMarks(ctx,X0,0,W,H,bz>0,38);
     ctx.save();ctx.strokeStyle='#475569';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(X0,0);ctx.lineTo(X0,H);ctx.stroke();ctx.restore();
-    // ruler along the boundary, in real centimetres
-    // (steps up to 50 m: a slow-turning ion at the sliders' ends has r of tens
-    // of metres, and 1 m steps stacked ~50 numbers into one column; a number
-    // that would run into the "cm" at the ruler's end is left out)
-    if(shots.length){var span=(H-50)/sc,st=[0.005,0.01,0.02,0.05,0.1,0.2,0.5,1,2,5,10,20,50];var tk=st.find(function(x){return span/x<=10;})||50;
-      var yCm=up?14:H-8;
-      for(var d=0;d*sc<H-30;d+=tk){var yy=up?yE-d*sc:yE+d*sc;ctx.save();ctx.strokeStyle='#64748b';ctx.beginPath();ctx.moveTo(X0-8,yy);ctx.lineTo(X0,yy);ctx.stroke();ctx.restore();
-        if(Math.abs(yy+3-yCm)>=11)simText(ctx,(d*100).toFixed(tk<0.01?1:0),X0-11,yy+3,'#64748b',8.5,'right');}
-      simText(ctx,'cm',X0-11,yCm,'#64748b',8.5,'right');}
+    // the ruler along the edge: real centimetres, from the entry point
+    for(var d=0;d<=SPAN+1e-9;d+=0.01){var yy=yAt(d),big=Math.round(d*100)%10===0,mid=Math.round(d*100)%5===0;
+      ctx.save();ctx.strokeStyle='#64748b';ctx.beginPath();ctx.moveTo(X0-(big?10:mid?7:4),yy);ctx.lineTo(X0,yy);ctx.stroke();ctx.restore();
+      if(big&&d>0)simText(ctx,(d*100).toFixed(0),X0-13,yy+3,'#64748b',8.5,'right');}
+    simText(ctx,'cm',X0-13,yAt(0.05)+3,'#64748b',8.5,'right');
+    // the detector, D from the entry
+    var yD=yAt(D);
+    ctx.save();ctx.fillStyle='rgba(251,191,36,.18)';ctx.fillRect(X0-4,yD-0.006*sc,22,0.012*sc);ctx.strokeStyle='#fbbf24';ctx.lineWidth=2;
+    ctx.beginPath();ctx.moveTo(X0+18,yD-0.006*sc);ctx.lineTo(X0-4,yD-0.006*sc);ctx.moveTo(X0+18,yD+0.006*sc);ctx.lineTo(X0-4,yD+0.006*sc);ctx.stroke();ctx.restore();
+    simText(ctx,'🎯 '+(D*100).toFixed(0)+' cm',X0+24,yD+(U?-0.006*sc-6:0.006*sc+14),'#fbbf24',10.5,'left',true);
     // the gun
-    ctx.save();ctx.fillStyle='#334155';ctx.fillRect(8,yE-9,X0*0.55,18);ctx.restore();
-    simText(ctx,PARTS[pi].n,8+X0*0.27,yE+(up?-18:22),'#94a3b8',9.5,'center',true);
-    var q0=null;
+    ctx.save();ctx.fillStyle='#334155';ctx.fillRect(8,yE0-9,X0*0.55,18);ctx.restore();
+    simHandle(ctx,8+X0*0.3,yE0,'#94a3b8',15);
+    simText(ctx,PARTS[pi].n,8+X0*0.27,yE0+(U?-20:24),'#94a3b8',9.5,'center',true);
+    var q0=null,landed=0;
     shots.forEach(function(s){
-      var vis=Tvis/(s.T/2), te=tv-s.t0;                       // screen seconds per physical second
-      var tPre=0.35, x, y, done=false, tin=(te-tPre)/vis;     // physical time spent in the field
-      var rp=s.r*sc, cxs=X0, cys=up?yE-rp:yE+rp;
-      if(te<tPre){x=X0*0.55+(X0-X0*0.55)*(te/tPre);y=yE;}
-      else if(tin<s.T/2){var ph=tin/(s.T/2)*Math.PI;x=cxs+rp*Math.sin(ph);y=up?cys+rp*Math.cos(ph):cys-rp*Math.cos(ph);}
-      else{done=true;var out=(tin-s.T/2)*vis;x=X0-out*(rp*Math.PI/Tvis);y=up?yE-2*rp:yE+2*rp;
-        if(!marks.some(function(m){return m.s===s;}))marks.push({s:s,y:y});}
+      var vis=Tvis/(s.T/2), te=tv-s.t0, tPre=0.35, x, y, tin=(te-tPre)/vis;     // physical time spent in the field
+      var rp=s.r*sc, cxs=X0, cys=yE0+dir*rp;
+      if(te<tPre){x=X0*0.55+(X0-X0*0.55)*(te/tPre);y=yE0;}
+      else if(tin<s.T/2){var ph=tin/(s.T/2)*Math.PI;x=cxs+rp*Math.sin(ph);y=cys-dir*rp*Math.cos(ph);}
+      else{landed++;var out=(tin-s.T/2)*vis;x=X0-out*(rp*Math.PI/Tvis);y=yE0+dir*2*rp;
+        if(!marks.some(function(m){return m.s===s;})){marks.push({s:s,y:y});
+          if(shots.length===1&&Math.abs(2*s.r-D)<=0.006)hits[s.pi]={v:s.v,D:D};}}
       var path=[];for(var k=0;k<=60;k++){var ph2=Math.min(Math.PI,(te<tPre?0:Math.min(1,tin/(s.T/2)))*Math.PI)*k/60;
-        path.push([cxs+rp*Math.sin(ph2),up?cys+rp*Math.cos(ph2):cys-rp*Math.cos(ph2)]);}
+        path.push([cxs+rp*Math.sin(ph2),cys-dir*rp*Math.cos(ph2)]);}
       if(te>=tPre)magPoly(ctx,path,s.col,2.2);
       if(x>-10)simCircle(ctx,x,y,6,s.col,'#fff',1.2);
       q0=s;});
-    marks.forEach(function(m){ctx.save();ctx.strokeStyle=m.s.col;ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(X0-14,m.y);ctx.lineTo(X0+6,m.y);ctx.stroke();ctx.restore();
-      simText(ctx,'2r = '+(2*m.s.r*100).toFixed(1)+' cm',X0+12,m.y+(up?14:-8),m.s.col,10,'left',true);});
-    // The panel is as wide as its widest line (on a phone the first line was
-    // ~240 px in a 226 px panel), never reaching left of the field's edge X0;
-    // a line that still does not fit is set smaller to the panel's width.
-    var y0=up?8:H-68,rows;
-    if(q0){var tin2=Math.max(0,(tv-q0.t0-0.35)/(Tvis/(q0.T/2)));
-      rows=[['r = mv/qB = '+(q0.r*100).toFixed(q0.r<1?2:0)+' cm   ·   T/2 = πm/qB = '+(q0.T/2*1e9).toFixed(1)+' ns',18,'#e2e8f0',10.5,true],
-        ['שעון (הילוך איטי): '+(Math.min(tin2,q0.T/2)*1e9).toFixed(1)+' ns',38,'#fbbf24',10.5,true],
-        [shots.length>1?'המהיר עושה מעגל כפול — ויוצא באותו רגע בדיוק':'שנו את v ושגרו שוב: הרדיוס משתנה, הזמן לא',54,'#94a3b8',9.5,false]];}
-    else rows=[['לחצו ״שגרו״ — או ״שגרו שניים״ להשוואת זמנים',30,'#94a3b8',10.5,false]];
-    ctx.save();rows.forEach(function(r){ctx.font=(r[4]?'bold ':'')+r[3]+'px Heebo';r.push(ctx.measureText(_mathIso(r[0])).width);});ctx.restore();
-    var pw=Math.min(W-X0-12,Math.max(Math.min(W*0.62,420),Math.max.apply(null,rows.map(function(r){return r[5];}))+20));
-    ctx.save();ctx.fillStyle='rgba(2,8,16,.85)';ctx.fillRect(W-pw-8,y0,pw,60);ctx.restore();
-    var bx=W-pw/2-8;
-    rows.forEach(function(r){simText(ctx,r[0],bx,y0+r[1],r[2],r[3]*Math.min(1,(pw-12)/r[5]),'center',r[4]);});
+    if(shots.length>1&&landed===shots.length)pairDone=true;
+    marks.forEach(function(m){var inView=2*m.s.r<=SPAN+0.005;
+      if(!inView)return;
+      ctx.save();ctx.strokeStyle=m.s.col;ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(X0-14,m.y);ctx.lineTo(X0+6,m.y);ctx.stroke();ctx.restore();
+      simText(ctx,'2r = '+(2*m.s.r*100).toFixed(1)+' cm',X0+12,m.y+(U?16:-9),m.s.col,10,'left',true);});
+    // the outcome of the last single shot, and the clock
+    var pw=PH?W-X0-12:Math.min(W-X0-24,330),px=W-pw-8,py=U?8:H-62;
+    ctx.save();ctx.fillStyle='rgba(2,8,16,.85)';ctx.beginPath();ctx.roundRect(px,py,pw,54,6);ctx.fill();ctx.restore();
+    if(q0){var tin2=Math.max(0,(tv-q0.t0-0.35)/(Tvis/(q0.T/2))),hit=Math.abs(2*q0.r-D)<=0.006,far=2*q0.r>SPAN+0.005;
+      var res=shots.length>1?'המהיר עובר מעגל כפול — ויוצא באותו רגע בדיוק':
+        landed?(hit?'🎯 פגיעה! 2r = '+(2*q0.r*100).toFixed(1)+' cm':far?'הנחיתה מחוץ לתמונה: 2r = '+(2*q0.r*100).toFixed(0)+' cm':'החטאה: 2r = '+(2*q0.r*100).toFixed(1)+' cm, והגלאי ב־'+(D*100).toFixed(0)+' cm'):'בדרך…';
+      magFitText(ctx,res,px+pw/2,py+20,landed&&shots.length===1?(hit?'#34d399':'#f87171'):'#e2e8f0',PH?10:11,'center',true,pw-12);
+      magFitText(ctx,'שעון (הילוך איטי): '+(Math.min(tin2,q0.T/2)*1e9).toFixed(1)+' ns',px+pw/2,py+40,'#fbbf24',PH?9.5:10.5,'center',true,pw-12);}
+    else magFitText(ctx,'לחצו ״שגרו״ — או הקישו על התותח',px+pw/2,py+30,'#94a3b8',PH?10:10.5,'center',false,pw-12);
+    var p=PARTS[pi],B=magV('mgr-B',0.2),v=magV('mgr-v',3)*1e6,qq=p.q*MAG_E,r=p.m*v/(qq*B);
+    model(kit.m('r = mv/qB = ('+sciTxt(p.m)+' × '+(v/1e6).toFixed(1)+'×10⁶)/('+sciTxt(qq)+' × '+B.toFixed(3)+') = '+(r*100).toFixed(r<1?2:0)+' cm')+' · '+
+      kit.m('T/2 = πm/qB = '+(Math.PI*p.m/(qq*B)*1e9).toFixed(1)+' ns'));
+    kit.check({hits:hits,pair:pairDone});
     requestAnimationFrame(draw);
   }
   requestAnimationFrame(draw);
 };
-MAG_CTRL['mag-circle']=function(){return rng('mgr-v',1,10,3,0.5,'מהירות v',' ×10⁶ m/s')+rng('mgr-B',0.05,1,0.2,0.05,'שדה B',' T')+btn('mgr-fire','🚀 שגרו','btn-primary')+btn('mgr-pair','⚡ שגרו שניים: v ו-2v','btn-secondary')+btn('mgr-p','⚛ פרוטון','btn-secondary')+btn('mgr-Bdir','⊗ השדה נכנס לדף','btn-secondary');};
+MAG_CTRL['mag-circle']=function(){return rng('mgr-v',1,10,3,0.5,'מהירות v',' ×10⁶ m/s')+rng('mgr-B',0.05,1,0.2,0.005,'שדה B',' T')+btn('mgr-fire','🚀 שגרו','btn-primary')+btn('mgr-pair','⚡ שגרו שניים: v ו-2v','btn-secondary')+btn('mgr-p','⚛ פרוטון','btn-secondary')+btn('mgr-target','🎯 גלאי במקום חדש','btn-secondary')+btn('mgr-Bdir','⊗ השדה נכנס לדף','btn-secondary');};
+
 // ── mag-force.mag-spectro ─────────────────────────────────────────────────
 // Every ion is integrated through the crossed fields with the full force
 // q(E + v×B): E points down (top plate +), B into the page, so the net
