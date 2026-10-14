@@ -134,7 +134,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 .lang-item:hover,.lang-item:focus-visible{background:var(--panel2);outline:2px solid var(--accent);outline-offset:-2px;}
 .lang-item.cur{color:var(--t-accent);font-weight:700;}
 /* the header fits 320 px: on a narrow phone the globe alone says it */
-@media (max-width:400px){.lang-btn .lang-code{display:none;}}
+@media (max-width:450px){.lang-btn .lang-code{display:none;}}
 @media (max-width:360px){.header-progress{gap:4px !important;}.header .xp-badge{padding:3px 7px;font-size:.74rem;}.header .ver-badge{margin-inline-start:4px;}}
 @media (max-width:340px){.header .ver-badge{padding:3px 4px;font-size:.62rem;margin-inline-start:2px;}.header .xp-badge{padding:3px 5px;}.header-progress{gap:3px !important;}}
 .cl-ver{padding:14px 20px 4px;display:flex;align-items:baseline;gap:10px}
@@ -225,6 +225,24 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
   border-radius:8px;padding:9px 14px;margin:8px 0 14px;font-size:.9rem;color:var(--t-sum);line-height:1.9;}
 .sum-open b{color:var(--t-sumb);}
 .tex-fb{font-family:'Cambria Math','Times New Roman',serif;font-size:1.05em;white-space:nowrap;}
+/* a long offline chain breaks only between its pieces (_texFbInline) */
+.tex-fb.tf-br{white-space:normal;}
+.tf-s{white-space:nowrap;}
+/* the offline renderer's vector arrow, drawn over the letter */
+.tf-vec{position:relative;}
+.tf-vec::after{content:'\2192';position:absolute;left:50%;top:-.5em;transform:translateX(-50%) scaleX(.85);
+  font-size:.7em;line-height:1;pointer-events:none;}
+/* a formula and the mark touching it ("N=mg cos θ." or "(g=9.8 m/s²")
+   are one word: the line cannot break between them (_gluePunct). Only the
+   box's edge is held: everything inside it wraps as before, and the box
+   gives up the width of its marks (--gw, measured by _fitMath) so the pair
+   fits the line. */
+.mglue{white-space:nowrap;}
+.mglue>*{white-space:normal;}
+.mglue .math-ltr:not(.param-val){max-width:calc(100% - var(--gw,1.2em));}
+/* ...and one longer than its line flows on in it, so the mark follows its
+   last piece (_fitMath) */
+.mglue>.math-ltr.ml-flow{display:inline;unicode-bidi:isolate;vertical-align:baseline;overflow:visible;padding:0;}
 .enrich-formula{direction:ltr;}
 /* Responsive equation sizing */
 @media(max-width:600px){
@@ -823,6 +841,15 @@ input[type=range]{accent-color:var(--accent);cursor:pointer;}
   width: 90px; height: 6px; background:var(--chip);
   border-radius: 3px; overflow: hidden;
 }
+/* 561-620 px (a small tablet, an unfolded phone): with the title and the
+   print button back, the header ran up to 55 px past the screen. It takes the
+   phone's padding, gap and 60 px course bar there (the 560 px block above
+   sets those two, but the later rules here always won). */
+@media (min-width:561px) and (max-width:620px){
+  .header{ padding: 0 10px; }
+  .header-progress{ gap: 5px; }
+  .header .progress-bar-wrap{ width: 60px; }
+}
 .progress-bar-fill {
   height: 100%; background: linear-gradient(90deg, #34d399, #22d3ee);
   border-radius: 3px; transition: width .5s ease;
@@ -1024,9 +1051,11 @@ html{scroll-padding-top:72px;}
   /* room to scroll the last card clear of the screen edge */
   .main{padding-bottom:40px;}
 }
-@media (max-width:400px){
+@media (max-width:450px){
   /* 320 px: hamburger, version, XP and two buttons are all the header holds;
-     the course-progress bar was what pushed the page 28 px sideways */
+     the course-progress bar was what pushed the page 28 px sideways. Up to
+     450 px: at 401-445 (the 414-430 px of the larger iPhones) the bar and the
+     language code came back and the header ran 31 px past the screen. */
   .progress-bar-wrap{display:none;}
 }
 /* A touch screen of any width -- a phone on its side, a tablet: the floating
@@ -1062,9 +1091,12 @@ html{scroll-padding-top:72px;}
   .header-progress .theme-btn,.drawer-close button,.formula-panel-close{
     min-width:44px;min-height:44px;align-items:center;justify-content:center;}
   .header-progress .theme-btn:not(.print-btn),.drawer-close button,.formula-panel-close{display:inline-flex;}
-  /* the version pill keeps its size; its hit area grows invisibly */
+  /* the version pill keeps its size; its hit area grows invisibly -- up and
+     down: the pill is already wider than 44 px, and an area that also stuck
+     out at its end made the pill measure as overflowing its own box (54/50 px
+     at 390). On the narrowest phones (42 px) it grows 2 px at its left. */
   .ver-badge{position:relative;}
-  .ver-badge::after{content:'';position:absolute;inset:-12px -4px;}
+  .ver-badge::after{content:'';position:absolute;inset:-12px 0;}
   .tab,.sec-btn,.subject-tab,.btn,.hint-btn,.quiz-hint-btn,.fold-btn,.next-section-btn,
   .anim-ctrl button,.sl-ctrl button,.quiz-reset-link{min-height:44px;}
   .anim-ctrl{padding:4px 12px;}
@@ -1073,6 +1105,7 @@ html{scroll-padding-top:72px;}
   /* below 16 px iOS zooms the whole page into the field and leaves it there */
   input[type=text],input[type=number],input:not([type]),select,textarea{font-size:16px!important;}
 }
+@media (pointer:coarse) and (max-width:340px){.ver-badge::after{left:-2px;}}
 /* Keyboard: one visible focus ring, in both themes */
 :focus-visible{outline:2px solid var(--accent2);outline-offset:2px;}
 .step-inp:focus-visible{outline:2px solid var(--accent2);outline-offset:1px;}
@@ -1118,6 +1151,9 @@ html{scroll-padding-top:72px;}
      separators: they may break there rather than scroll (the enrichment
      box clipped "...=500 s ≈ 8.3 min" after "500 s") */
   .formula-box .tex-fb,.enrich-formula .tex-fb,.math-ltr .tex-fb{white-space:normal;}
+  /* ...and a long one keeps every break it had: its pieces only add breaks
+     after a relation written without spaces ("r=mv/qB=...") */
+  .math-ltr .tf-s{white-space:normal;}
   /* a chain typed as plain text in a quiz explanation has no space to
      break at: sinθ=mλ/a=1×500×10⁻⁹/(0.5×10⁻³)=10⁻³ ran out of its card */
   #app .ltr-run{overflow-wrap:anywhere;}
@@ -1167,8 +1203,34 @@ var APP_LANGS=[
   {code:'he',name:'עברית',file:'physics_game_v28.html'},
   {code:'en',name:'English',file:'physics_game_en.html'}
 ];
-var APP_VERSION='28.32';
+var APP_VERSION='28.36';
 var APP_CHANGELOG=[
+  {v:'28.36',d:'2026-10-14',notes:[
+    `Formulas in running text: a full stop, comma, colon, question mark, or closing bracket after a formula — and an opening bracket, dash, or quotation mark before it — no longer stands alone at the end or the start of a line; a formula longer than its line continues on the next one, and the punctuation stays after its last piece`,
+    `Solutions and explanations on a phone: a long chain of working (“r=mv/qB′=…=0.249 m”, “290 - 100(t-0.5) = …”) breaks after an equals sign instead of running out of its frame or being cut in the middle of a number`,
+    `Without KaTeX (offline): ↔ instead of the word “rightarrow”, B′ instead of “Bprime”, an arrow over a vector letter instead of an empty gap, and no stray space inside brackets`,
+    `The electromagnetic-spectrum table: the “Uses” header is aligned with the start of the row, like its column; the geometry comparison (electrostatics): on a phone the table shows that it scrolls sideways — a fade at the edge and a “swipe” hint, like the other wide tables`,
+    `The header: the version badge’s touch area no longer sticks out at its sides; at 401–450 and 561–620 pixels wide the header is no longer wider than the screen`,
+    `Problems: in the Hebrew edition, a title ending in a question mark is no longer followed by a colon; projectile motion: sin2θ shows “—” (a quantity without a unit) instead of “°”`
+  ]},
+  {v:'28.35',d:'2026-10-13',notes:[
+    `Vectors: in the scalar-versus-vector animation, a value moves below its name when the row has no room, and the labels of the turning vector — |v|, the angle, the components, and “Origin” — no longer overlap one another or the arrow; in vector addition the working panel is as wide as its lines, and “R = A + B” is no longer written over the sums on a phone`,
+    `Newton’s third law: the two objects’ readouts no longer run together right after the push; acceleration: the clock moved to the top of the animation and no longer touches “a = 4 m/s²”`,
+    `Projectile motion: the names of the landing angles (20° and 70° land at the same point) are no longer written over each other, and vx and vy are named on different sides of their arrows; in the range graph “R (m)” is no longer on the “33”, and the two angles no longer run together at 45°`,
+    `Field of a wire: the unit μT heads the column of numbers instead of sitting on the 600; Young’s experiment: “I(y)” is no longer hidden under the info box when the screen is near the slits, the screen’s name is no longer under the detector panel, and r₁, r₂ are no longer on “d=…mm”`,
+    `Incline sensor lab: the status message stands to the right of the readouts, on two lines when needed, instead of on “N = mg·cosθ”`,
+    `Electrostatics: in sharp-tip mode on a phone the σ bars stay above the sparks and the pear shape (also at R = 70); in the electric field the force label sits by the arrowhead, not on the arrow, and near the edge it no longer disappears; free fall: the axis letter y is no longer hidden under the info bar; concave mirror at dₒ = 2f: “C” beside the image, not on it`
+  ]},
+  {v:'28.34',d:'2026-10-13',notes:[
+    `Free fall: in the animation, the captions “a = g = 9.8 m/s² for every mass”, h_max and “v=0 at the top!” no longer run over the balls at the top; in the simulation, the h_max tag is no longer hidden behind the ball on a phone`,
+    `Electrostatics: the hint “Drag the test charge” now sits below the charge, not on the right plate; the conductor’s info boxes are as wide as their lines — on a phone a long line is set slightly smaller or splits in two instead of running out of its frame`,
+    `Circular motion in a magnetic field: the readout panel “r = … · T/2 = …” is as wide as its line, and the ruler along the field’s edge no longer turns into a column of numbers when the radius is tens of meters`,
+    `Optics: the caption of the speed of light in materials no longer touches the diamond’s bar; in the laser, the partial mirror’s name touches neither the inversion meter nor the end of the mirror; in Snell’s law, “Normal” is no longer hidden behind the info box on a phone; in the concave mirror with the object at the focal point, the bottom message has its own row below “Concave mirror”, and the object’s name is no longer on “F”`,
+    `Optics and electrostatics simulations: a line wider than its info box is set smaller until it fits, instead of running out of the frame`
+  ]},
+  {v:'28.33',d:'2026-10-13',notes:[
+    `Telescope: the name of the quantity and the formula at the top of the simulation follow the language’s reading order — in the English edition they ran together on a phone`
+  ]},
   {v:'28.32',d:'2026-10-13',notes:[
     `Quizzes: stronger distractors — “instantaneous acceleration” for the slope of the tangent, “temperature” as a scalar, “tension in a string” — so that the correct answer does not stand out by its length in translation either`,
     `Questions written as a bare formula (“m=10 kg, g=9.8. W=?”) are now sentences, so they can be translated`,
@@ -1494,6 +1556,7 @@ var _OPS={times:'×',cdot:'·',div:'÷',pm:'±',mp:'∓',approx:'≈',
   neq:'≠',ne:'≠',leq:'≤',le:'≤',geq:'≥',ge:'≥',ll:'≪',
   gg:'≫',propto:'∝',infty:'∞',partial:'∂',sum:'Σ',int:'∫',
   Rightarrow:'⇒',rightarrow:'→',to:'→',Leftarrow:'⇐',leftarrow:'←',
+  leftrightarrow:'↔',Leftrightarrow:'⇔',longrightarrow:'⟶',
   perp:'⊥',parallel:'∥',angle:'∠',circ:'°',degree:'°',
   ldots:'…',dots:'…',cong:'≅',equiv:'≡',in:'∈',
   implies:'⟹',Longrightarrow:'⟹',Longleftarrow:'⟸',sim:'~',
@@ -1547,6 +1610,11 @@ function _texFallback(s){
       return pr.length>1?(`${pr[0].trim()} for ${pr[1].trim()}`):row.trim();
     }).filter(function(x){return x;}).join('   ·   ');
   });
+  // a prime is a prime: B' and B^{\prime} are B′ -- the generic rule below
+  // printed the command's name, "Bprime" (an apostrophe in \text{} is text)
+  t=t.replace(/(\\(?:text|mathrm|textbf|mathbf|mathit|operatorname)\{[^{}]*\})|\^\{((?:\s*\\prime\s*)+)\}|\^\\prime|\\prime|''|'/g,function(m,txt,pp){
+    if(txt)return txt;
+    return (pp?pp.match(/\\prime/g).length>1:m==="''")?'″':'′';});
   // two commands back to back (\cdot\vec{d}) must stay two: converting the
   // second first left the first fused to a letter and printed as "cdotd"
   t=t.replace(/(\\[A-Za-z]+)(?=\\[A-Za-z])/g,'$1 ');
@@ -1554,7 +1622,12 @@ function _texFallback(s){
   // an explicit space (\, \; \quad) must survive: a Greek letter swallows an
   // ordinary space after it, which printed "4πrad/s"
   t=t.replace(/\\(,|;|:)/g,'\u2009').replace(/\\(quad|qquad)/g,'\u2003');
-  t=t.replace(/\\(left|right|!|\s|displaystyle|limits)/g,' ');
+  // \left and \right only size the bracket after them -- but as bare prefixes
+  // they were also cut off the front of \leftrightarrow ("1 kg rightarrow
+  // 9×10¹⁶ J") and \rightarrow ("arrow"), and each left a stray space
+  // inside its bracket: "arcsin (n₂/n₁ )". \left. is no bracket at all.
+  t=t.replace(/\\(left|right)\s*\.|\\(left|right)(?![A-Za-z])\s*|\\!/g,'');
+  t=t.replace(/\\(\s|displaystyle|limits)/g,' ');
   // font switches take no argument, so the generic rule below turned \rm into
   // the letters "rm" and glued them into the subscript that followed
   t=t.replace(/\\(rm|bf|it|sf|tt|scriptstyle|textstyle|boldsymbol)\b\s*/g,'');
@@ -1587,9 +1660,12 @@ function _texFallback(s){
   for(var q=t.indexOf('\\sqrt{');q>=0;q=t.indexOf('\\sqrt{',q)){var g=_texGrab(t,q+5);if(!g)break;
     t=t.slice(0,q)+'√('+g.body+')'+t.slice(g.end);}
   t=t.replace(/\\sqrt\s*(\w)/g,'√$1');           // \sqrt m, as \sqrt{m}
-  // a vector keeps its arrow: F⃗, not a bare F, and "\vec F" (with a space)
-  // used to fall through to the generic rule and print the word "vec"
-  t=t.replace(/\\vec\{([^{}]*)\}/g,'$1⃗').replace(/\\vec\s*(\w)/g,'$1⃗');
+  // a vector keeps its arrow, and "\vec F" (with a space) used to fall
+  // through to the generic rule and print the word "vec". The arrow is drawn
+  // by the stylesheet (.tf-vec) over the letter: the combining arrow U+20D7
+  // is missing from most text fonts, and printed "F  =q v  ×B" with gaps
+  // where the arrows should be.
+  t=t.replace(/\\vec\{([^{}]*)\}/g,'\u0006$1\u0007').replace(/\\vec\s*(\\[A-Za-z]+|\w)/g,'\u0006$1\u0007');
   t=t.replace(/\\hat\{([^{}]*)\}/g,'$1̂').replace(/\\hat\s*(\w)/g,'$1̂');
   t=t.replace(/\\bar\{([^{}]*)\}/g,'$1̄').replace(/\\bar\s*(\w)/g,'$1̄');
   t=t.replace(/\\overline\{([^{}]*)\}/g,'$1̄');
@@ -1600,7 +1676,7 @@ function _texFallback(s){
     // -> Delta-h), but a relation must keep it or it fuses with what follows
     if(_GREEK[w])return _GREEK[w];
     // ...on both sides: "500 s\approx 8.3 min" printed "500 s≈ 8.3 min"
-    if(_OPS[w]&&/[⟹⟸→←≈≠≤≥∝≡≅∈~]/.test(_OPS[w]))return (off&&!/[\s({\[]/.test(str.charAt(off-1))?' ':'')+_OPS[w]+' ';
+    if(_OPS[w]&&/[⟹⟸→←↔⇔⟶≈≠≤≥∝≡≅∈~]/.test(_OPS[w]))return (off&&!/[\s({\[]/.test(str.charAt(off-1))?' ':'')+_OPS[w]+' ';
     // a binary operator is spaced on both sides or on neither: the space that
     // only ended the command's name printed "g± a", "3× 10⁸", "a· b"
     if(_OPS[w]&&/[×·÷±∓]/.test(_OPS[w]))return _OPS[w]+(str.charAt(off-1)===' '?sp:'');
@@ -1627,12 +1703,45 @@ function _texFallback(s){
   t=t.replace(/[\u0001\u0003]([^\u0002\u0004]*)[\u0002\u0004]/g,function(m,x){
     var tag=m.charAt(0)==='\u0001'?'sub':'sup';
     return '<'+tag+'>'+x+'</'+tag+'>';});
+  t=t.replace(/\u0006([^\u0007]*)\u0007/g,'<span class="tf-vec">$1</span>');
   return t.replace(/\u0005/g,'_');
+}
+// The offline renderer's inline formula is one unbreakable run (the
+// stylesheet keeps "3 m" on one line), so a worked chain such as
+// "290 - 100(t-0.5) = 290 - 100t + 50 = 340 - 100t" ran up to 32 px out of a
+// phone's card. KaTeX breaks an inline formula after a relation or a binary
+// operator; so does this -- at the outer level only (never inside a bracket,
+// an index or a vector), and only in a chain long enough to need it. Each
+// piece stays whole; the line may break between pieces. Shorter formulas are
+// built exactly as before.
+function _texFbInline(h){
+  var plain='<span class="ltr-run tex-fb">'+h+'</span>';
+  if(h.replace(/<[^>]*>/g,'').replace(/&[a-z]+;/g,'x').length<28)return plain;
+  var tk=h.match(/<[^>]*>|&[a-z]+;|[\s\S]/g)||[],cuts=[],tag=0,par=0,i,j,k;
+  for(i=0;i<tk.length;i++){
+    k=tk[i];
+    if(k.length>1&&k.charAt(0)==='<'){tag+=k.charAt(1)==='/'?-1:1;continue;}
+    if(tag)continue;
+    if(k==='('||k==='[')par++;
+    else if(k===')'||k===']')par=Math.max(0,par-1);
+    if(par||!i)continue;
+    if(/^(=|≈|≠|≤|≥|⇒|⟹|→|←|↔|⇔|⟶|∝|≡|≅|&lt;|&gt;)$/.test(k)||
+       (/^[+\-−×·÷±]$/.test(k)&&tk[i-1]===' '&&tk[i+1]===' ')||(k===','&&tk[i+1]===' ')){
+      for(j=i+1;tk[j]===' ';j++);
+      if(j<tk.length)cuts.push([i+1,j]);
+    }
+  }
+  if(!cuts.length)return plain;
+  var out='',from=0;
+  cuts.forEach(function(c){
+    out+='<span class="tf-s">'+tk.slice(from,c[0]).join('')+'</span>'+(c[1]>c[0]?tk.slice(c[0],c[1]).join(''):'<wbr>');
+    from=c[1];});
+  return '<span class="ltr-run tex-fb tf-br">'+out+'<span class="tf-s">'+tk.slice(from).join('')+'</span></span>';
 }
 function tex(str, display){
   if(display===undefined)display=false;
   try{ return katex.renderToString(str,{throwOnError:false,displayMode:display,output:'html'}); }
-  catch(e){ return '<span class="ltr-run tex-fb">'+_texFallback(str)+'</span>'; }
+  catch(e){ var h=_texFallback(str); return display?'<span class="ltr-run tex-fb">'+h+'</span>':_texFbInline(h); }
 }
 // M() — inline math, always LTR, embeds correctly in RTL paragraphs
 function M(str){ return `<span class="math-ltr">${tex(str,false)}</span>`; }
@@ -1675,6 +1784,10 @@ function _siUnit(sym,nm,desc,unit){
   }
   // Greek and subscripted symbols, resolved from the RAW LaTeX before stripping
   var raw=(sym||'');
+  // a sine, cosine or tangent is a pure number whatever its argument: tested
+  // after the angle's own rule below, "\sin2\theta" took the angle's degree
+  // sign ("sin2θ — maximum at θ=45°" [°])
+  if(/\\sin|\\cos|\\tan/.test(raw))         return '—';
   if(/\\theta/.test(raw)||/^θ/.test(raw))   return '°';
   if(/\\omega/.test(raw)||/^ω/.test(raw))   return 'rad/s';
   if(/\\lambda/.test(raw)||/^λ/.test(raw))  return 'nm';
@@ -2087,7 +2200,131 @@ function fixInlineMath(root){
   });
   _mergeLtr(root);
   _subifyDom(root);
+  _chainBreaks(root);
+  _gluePunct(root);
   _fitMath(root);
+}
+// ── A worked chain typed as plain text ───────────────────────────────────
+// "r=mv/qB′=12·1.66×10⁻²⁷·4×10⁵/(1.6×10⁻¹⁹·0.2)=0.249 m=24.9 cm" offers the
+// line breaker nothing ("=" is a letter to it): on a left-to-right page it
+// ran up to 64 px past a phone's card, and in Hebrew overflow-wrap cut it
+// mid-number. A long chain -- 24 characters or more without a space -- may
+// break after "=", "≈" or "⇒" outside brackets, as a typeset formula would,
+// and a piece still that long after "·" as well. Shorter ones are untouched.
+var _CH_REL=/[=≈⇒]/,_CH_NEXT=/[^\s=≈⇒·.,;:!?)\]]/;
+function _chainCuts(word,at,re,out){
+  var par=0,i,c;
+  for(i=0;i<word.length-1;i++){c=word.charAt(i);
+    if(c==='('||c==='[')par++;
+    else if(c===')'||c===']')par=Math.max(0,par-1);
+    else if(!par&&re.test(c)&&_CH_NEXT.test(word.charAt(i+1)))out.push(at+i+1);}
+}
+function _chainBreaks(root){
+  if(!root||!document.createTreeWalker)return;
+  var w=document.createTreeWalker(root,NodeFilter.SHOW_TEXT,{acceptNode:function(n){
+    if(!/\S{24}/.test(n.nodeValue)||!_CH_REL.test(n.nodeValue))return NodeFilter.FILTER_REJECT;
+    var e=n.parentElement;
+    if(!e||e.closest('script,style,textarea,.katex,.tex-fb,.nb,.param-tip'))return NodeFilter.FILTER_REJECT;
+    return NodeFilter.FILTER_ACCEPT;}});
+  var ns=[],n;while((n=w.nextNode()))ns.push(n);
+  ns.forEach(function(node){
+    var s=node.nodeValue,cuts=[];
+    s.replace(/\S{24,}/g,function(word,at){
+      if(/[֐-׿]/.test(word)||!_CH_REL.test(word))return word;
+      var c=[];_chainCuts(word,at,_CH_REL,c);
+      var pts=[at].concat(c,[at+word.length]);
+      for(var k=0;k+1<pts.length;k++)if(pts[k+1]-pts[k]>=24)_chainCuts(s.slice(pts[k],pts[k+1]),pts[k],/·/,c);
+      c.sort(function(a,b){return a-b;});cuts=cuts.concat(c);
+      return word;});
+    if(!cuts.length)return;
+    var f=document.createDocumentFragment(),from=0;
+    cuts.forEach(function(c){f.appendChild(document.createTextNode(s.slice(from,c)));
+      f.appendChild(document.createElement('wbr'));from=c;});
+    f.appendChild(document.createTextNode(s.slice(from)));
+    node.parentNode.replaceChild(f,node);
+  });
+}
+// ── Punctuation stays with its formula ───────────────────────────────────
+// An inline formula is a box: M() an inline-flex, a bare KaTeX formula a
+// row of inline-blocks, a symbol chip an inline-block. A line may break
+// before and after any box, even where the characters around it forbid a
+// break (CSS Text 3, "for Web-compatibility"), so the full stop after
+// "N=mg cos θ" started the next line on its own, and an opening bracket, a
+// maqaf or a quotation mark hung at a line's end with its formula below it
+// (about 50 places in English and 100 in Hebrew at 390 px, more with
+// KaTeX). Whether a line may break at a box's edge follows the no-wrap
+// state around it, so the box and the marks touching it go into one
+// no-wrap span. A box inside another element (the last piece of a bare
+// KaTeX formula, an M() in <b>) cannot share a span with a mark outside
+// that element: there the box alone goes into one, which holds every mark
+// the line breaker would not break before anyway (. , ; : ? ! ) and the
+// rest). The box itself keeps white-space:normal, so a long formula still
+// wraps inside itself exactly where it did; only its edge is held.
+var _GLUE_R=/^[.,;:!?)\]}…%’”»״"'׳\-‐‑–]+/;
+var _GLUE_L=/[(\[{“‘«„"״'־\-‐‑–]+$/;
+// the formula box at el's last (or first) edge, or null when that edge is
+// text -- characters already keep their punctuation
+function _glueBox(el,last){
+  for(var g=0;g<40&&el&&el.nodeType===1;g++){
+    var cs=getComputedStyle(el);
+    if(/^inline-(block|flex|grid|table)$/.test(cs.display))
+      return (el.classList.contains('math-ltr')||el.classList.contains('param-wrap')||(el.closest&&el.closest('.katex')))?el:null;
+    if(cs.display!=='inline')return null;
+    var k=last?el.lastChild:el.firstChild;
+    // what takes no room in the line: empty text, KaTeX's hidden MathML, a tooltip
+    while(k&&(k.nodeType===8||(k.nodeType===3&&!k.nodeValue)||(k.nodeType===1&&(k.classList.contains('katex-mathml')||
+          getComputedStyle(k).display==='none'||/^(absolute|fixed)$/.test(getComputedStyle(k).position)))))
+      k=last?k.previousSibling:k.nextSibling;
+    el=k;
+  }
+  return null;
+}
+function _mglue(el){var g=document.createElement('span');g.className='mglue';el.parentNode.insertBefore(g,el);g.appendChild(el);return g;}
+function _gluePunct(root){
+  if(!root||!document.createTreeWalker)return;
+  var w=document.createTreeWalker(root,NodeFilter.SHOW_TEXT,{acceptNode:function(n){
+    var v=n.nodeValue;
+    if(!v||!((n.previousSibling&&_GLUE_R.test(v))||(n.nextSibling&&_GLUE_L.test(v))))return NodeFilter.FILTER_REJECT;
+    var e=n.parentElement;      // (a mark already glued sits in an .mglue)
+    if(!e||e.classList.contains('mglue')||e.closest('script,style,textarea,svg,.katex,.tex-fb,.param-tip'))return NodeFilter.FILTER_REJECT;
+    return NodeFilter.FILTER_ACCEPT;}});
+  var ns=[],n,todo=[];
+  while((n=w.nextNode()))ns.push(n);
+  // read everything first, then change the page once
+  var isG=function(x){return !!(x&&x.classList&&x.classList.contains('mglue'));};
+  ns.forEach(function(t){
+    if(getComputedStyle(t.parentElement).whiteSpace!=='normal')return;
+    var pv=t.previousSibling,nx=t.nextSibling,b,m,r=null;
+    if(pv&&pv.nodeType===1&&(m=_GLUE_R.exec(t.nodeValue))&&(b=_glueBox(pv,true))&&getComputedStyle(b.parentNode).whiteSpace==='normal'){
+      var top=b===pv||(isG(pv)&&pv.lastChild===b);
+      if(top||!isG(b.parentNode))todo.push(r={box:b,t:t,n:m[0].length,top:top});
+    }
+    if(nx&&nx.nodeType===1&&(m=_GLUE_L.exec(t.nodeValue))&&_glueBox(nx,false)){
+      // a dash between two formulas ("40–80 km") goes with the second
+      if(r)r.n=Math.min(r.n,m.index);
+      todo.push({t:t,k:m[0].length,el:nx});
+    }
+  });
+  todo.forEach(function(a){
+    if(a.box){
+      var bx=a.box,gb=isG(bx.parentNode)?bx.parentNode:_mglue(bx);
+      if(a.top&&a.n&&gb.lastChild===bx&&gb.nextSibling===a.t){
+        gb.appendChild(document.createTextNode(a.t.nodeValue.slice(0,a.n)));
+        a.t.nodeValue=a.t.nodeValue.slice(a.n);
+        if(!a.t.nodeValue)a.t.parentNode.removeChild(a.t);
+      }
+      return;
+    }
+    if(!a.t.parentNode)return;
+    var el=a.el,p=el.parentNode,g;
+    if(el.classList.contains('mglue'))g=el;
+    else if(p.classList&&p.classList.contains('mglue')&&p.firstChild===el)g=p;
+    else g=_mglue(el);
+    var v=a.t.nodeValue;
+    g.insertBefore(document.createTextNode(v.slice(v.length-a.k)),g.firstChild);
+    a.t.nodeValue=v.slice(0,v.length-a.k);
+    if(!a.t.nodeValue)a.t.parentNode.removeChild(a.t);
+  });
 }
 // A formula and its unit, or two halves of one chain, can arrive as separate
 // pieces -- a KaTeX span followed by " m/s", or "a = " then a bold result.
@@ -2185,6 +2422,26 @@ function _fitMath(root){
   if(!root||!root.querySelectorAll)return;
   var fitted=root.querySelectorAll('.katex[data-fit]');
   for(var i=0;i<fitted.length;i++){fitted[i].style.fontSize='';fitted[i].removeAttribute('data-fit');}
+  // every formula is measured as a box (see the end of this function)
+  var fl=root.querySelectorAll('.math-ltr.ml-flow');
+  for(i=0;i<fl.length;i++)fl[i].classList.remove('ml-flow');
+  // A formula glued to its marks (_gluePunct) leaves its line room for what
+  // can no longer be parted from it: the marks, the letters they touch
+  // outside the span (the ב of ב־, the s of 's) and its own margins.
+  var gl=root.querySelectorAll('.mglue'),gw=[];
+  var tw=function(n,a,b){var rg=document.createRange();rg.setStart(n,a);rg.setEnd(n,b);return rg.getBoundingClientRect().width;};
+  for(i=0;i<gl.length;i++){
+    var g=gl[i],bx=null,w=0,k,v,cs;
+    for(k=g.firstChild;k;k=k.nextSibling){
+      if(k.nodeType===3&&k.nodeValue)w+=tw(k,0,k.nodeValue.length);
+      else if(k.nodeType===1&&k.classList.contains('math-ltr'))bx=k;}
+    if(!bx)continue;
+    k=g.previousSibling;if(k&&k.nodeType===3){v=k.nodeValue;w+=tw(k,v.search(/\S*$/),v.length);}
+    k=g.nextSibling;if(k&&k.nodeType===3){v=k.nodeValue;w+=tw(k,0,v.search(/\s|$/));}
+    cs=getComputedStyle(bx);
+    gw.push([g,Math.ceil(w+parseFloat(cs.marginLeft)+parseFloat(cs.marginRight))+1]);
+  }
+  gw.forEach(function(x){x[0].style.setProperty('--gw',x[1]+'px');});
   // the boxes first, then a formula inside a line of text
   ['.formula-box,.enrich-formula','.math-ltr'].forEach(function(sel){
     root.querySelectorAll(sel).forEach(function(box){
@@ -2192,12 +2449,41 @@ function _fitMath(root){
       if(!kx||!box.clientWidth||box.scrollWidth<=box.clientWidth+1)return;
       var cs=getComputedStyle(box),pad=parseFloat(cs.paddingLeft)+parseFloat(cs.paddingRight);
       var r=(box.clientWidth-pad-2)/(box.scrollWidth-pad);
-      if(!(r>=0.74&&r<1))return;
+      // a glued one is judged by the width it would have had on its own
+      var gx=box.parentElement.classList.contains('mglue')?parseFloat(box.parentElement.style.getPropertyValue('--gw'))||0:0;
+      if(!((box.clientWidth+gx-pad-2)/(box.scrollWidth-pad)>=0.74&&r<1))return;
       kx.style.fontSize=(parseFloat(getComputedStyle(kx).fontSize)*r).toFixed(2)+'px';
       kx.setAttribute('data-fit','1');
     });
   });
+  // A formula with a mark glued to it (_gluePunct) that is wider than its
+  // line wraps inside its box, and the mark could only stand beside the box:
+  // halfway up its rows, or at the far end of a box as wide as the line.
+  // Such a formula flows on in the line instead, as KaTeX's own inline maths
+  // does, and its mark follows its last piece. One that scrolls stays a box.
+  var go=[];
+  root.querySelectorAll('.mglue>.math-ltr:not(.param-val)').forEach(function(b){
+    if(b.clientWidth&&b.scrollWidth<=b.clientWidth+1&&_mathRows(b)>1)go.push(b);});
+  go.forEach(function(b){
+    b.classList.add('ml-flow');
+    // its last piece now ends the box's edge: the mark after it needs that
+    // piece held, as a bare KaTeX formula's is
+    var kh=b.querySelector('.katex-html'),lb=kh&&kh.lastElementChild;
+    if(b.nextSibling&&lb&&!lb.classList.contains('mglue'))_mglue(lb);
+  });
   _markScroll(root);
+}
+// how many rows the content of a formula box takes
+function _mathRows(b){
+  var e=b.querySelector('.katex-html');
+  if(e)return [].filter.call(e.getClientRects(),function(q){return q.width>1;}).length;
+  e=b.querySelector('.tex-fb');if(!e)return 1;
+  var rg=document.createRange(),fs=parseFloat(getComputedStyle(e).fontSize)||16,ys=[],n=0,i;
+  rg.selectNodeContents(e);
+  [].forEach.call(rg.getClientRects(),function(q){if(q.width>1)ys.push(q.bottom);});
+  ys.sort(function(a,c){return a-c;});
+  for(i=0;i<ys.length;i++)if(!i||ys[i]-ys[i-1]>fs*0.8)n++;
+  return n||1;
 }
 // ── What is left to scroll ───────────────────────────────────────────────
 // A wide table or a long chain still scrolls inside its own box on a phone,
@@ -2220,21 +2506,29 @@ function _scrollEdges(el){
   el.classList.toggle('x-more-l',(rtl?atEnd:atStart)>6);
   el.classList.toggle('x-more-r',(rtl?atStart:atEnd)>6);
 }
+function _canScrollX(el){return el.clientWidth>0&&el.scrollWidth>el.clientWidth+1&&/auto|scroll/.test(getComputedStyle(el).overflowX);}
 function _markScroll(root){
   if(!root||!root.querySelectorAll)return;
   root.querySelectorAll('.theory-card table,.wx table,.formula-box,.enrich-formula,.math-ltr').forEach(function(el){
-    var can=el.clientWidth>0&&el.scrollWidth>el.clientWidth+1&&/auto|scroll/.test(getComputedStyle(el).overflowX);
-    el.classList.toggle('x-scroll',can);
-    if(!can){el.classList.remove('x-more-l','x-more-r');}
+    var box=el,can=_canScrollX(el),tbl=el.tagName==='TABLE',par=el.parentElement;
+    // a table with a minimum width of its own (elc-compare: 430 px) is not
+    // the box that scrolls on a phone -- the wrapper around it is, and that
+    // wrapper went without the fade and the swipe hint
+    if(tbl&&!can&&par&&par.children.length===1&&_canScrollX(par)){box=par;can=true;}
+    if(tbl)[el,par].forEach(function(x){if(x&&x!==box&&x.classList.contains('x-scroll'))x.classList.remove('x-scroll','x-more-l','x-more-r');});
+    box.classList.toggle('x-scroll',can);
+    if(!can){box.classList.remove('x-more-l','x-more-r');}
     else{
-      if(!el.dataset.xs){el.dataset.xs='1';el.addEventListener('scroll',function(){_scrollEdges(el);},{passive:true});}
-      _scrollEdges(el);
+      if(!box.dataset.xs){box.dataset.xs='1';box.addEventListener('scroll',function(){_scrollEdges(box);},{passive:true});}
+      _scrollEdges(box);
     }
-    if(el.tagName==='TABLE'){
-      var prev=el.previousElementSibling,has=prev&&prev.classList&&prev.classList.contains('x-scroll-hint');
-      if(can&&!has){var h=document.createElement('div');h.className='x-scroll-hint';h.setAttribute('aria-hidden','true');
-        h.textContent=`⇆ This table is wider than the screen — swipe it sideways to see all of it`;el.parentNode.insertBefore(h,el);}
-      else if(!can&&has)prev.remove();
+    if(tbl){
+      [el,par].forEach(function(x){
+        var prev=x&&x.previousElementSibling,has=prev&&prev.classList&&prev.classList.contains('x-scroll-hint');
+        if(x===box&&can&&!has){var h=document.createElement('div');h.className='x-scroll-hint';h.setAttribute('aria-hidden','true');
+          h.textContent=`⇆ This table is wider than the screen — swipe it sideways to see all of it`;x.parentNode.insertBefore(h,x);}
+        else if((x!==box||!can)&&has)prev.remove();
+      });
     }
   });
 }
@@ -2665,7 +2959,7 @@ const CONTENT={
      opts:[tex('x=11\\,\\text{m}'),tex('x=-5\\,\\text{m}'),tex('x=-2\\,\\text{m}'),tex('x=5\\,\\text{m}')],correct:1,
      explain:`${tex('x = 3 + (-2)\\cdot 4 = 3 - 8 = -5\\,\\text{m}')}. A negative velocity means motion in the negative direction.`},
     {q:`On an x(t) graph, what does a negative slope indicate?`,
-     opts:[`The object is slowing to a stop`,`The object is moving in the negative direction`,`The object is on the negative side`,`The object’s acceleration is negative`],correct:1,
+     opts:[`The object is slowing to a stop`,`The object moves in the −x direction`,`The object is on the negative side`,`The object’s acceleration is negative`],correct:1,
      explain:`Slope = ${tex('\\Delta x/\\Delta t = v')}. Negative slope ↔ ${tex('v < 0')} ↔ motion in the negative direction. A straight line with a constant slope means <b>constant</b> velocity — there is no slowing down here and no acceleration. Nor does it mean a negative position: an object at ${tex('x=+50\\,\\text{m}')} approaching the origin gives a negative slope while the whole graph lies above the axis.`},
     {q:`Two cars: A travels at ${tex('60\\,\\text{km/h}')} and B at ${tex('-40\\,\\text{km/h}')}. What is B’s speed?`,
      opts:[tex('60\\,\\text{km/h}'),tex('40\\,\\text{km/h}'),tex('-40\\,\\text{km/h}'),tex('100\\,\\text{km/h}')],correct:1,
@@ -2717,7 +3011,7 @@ const CONTENT={
         <p>The limit as ${tex('\\Delta t \\to 0')}:</p>
       </div>
       ${fBox('v(t) = \\lim_{\\Delta t \\to 0} \\dfrac{\\Delta x}{\\Delta t} = \\dfrac{dx}{dt}',`Instantaneous velocity — a derivative`,[
-        ['dx/dt',`Derivative of position with respect to time`,`Slope of the tangent to the x(t) graph at time t`,"m/s"],
+        ['dx/dt',`Time derivative of position`,`Slope of the tangent to the x(t) graph at time t`,"m/s"],
       ])}
       <p><b>On an x(t) graph:</b> the instantaneous velocity = the <b>slope of the tangent line</b> to the curve at that point.</p>
       <div class="info-grid">
@@ -3372,7 +3666,7 @@ const CONTENT={
      opts:[`Zero`,`Maximum`,`Equal to the amplitude`,`Negative`],correct:1,
      explain:`At equilibrium ${tex('x=0')}, so ${tex('E_p=\\tfrac12kx^2=0')} and all the energy is kinetic — that is, the speed is greatest. “Equal to the amplitude” cannot be right even in terms of units: amplitude is measured in meters and speed in meters per second.`},
     {q:`Does the stiffness of the spring ${tex('k')} affect the period?`,
-     opts:[`No`,`Yes — a larger ${tex('k')} gives a shorter period`,`Yes — a larger ${tex('k')} gives a longer period`,`Only if the mass is large`],correct:1,
+     opts:[`No`,`Yes — larger ${tex('k')}, shorter period`,`Yes — larger ${tex('k')}, longer period`,`Only if the mass is large`],correct:1,
      explain:`${tex('T=2\\pi\\sqrt{m/k}')} — ${tex('k')} is in the denominator, so a stiffer spring oscillates faster. Intuitively: a stronger restoring force brings the mass back to the center sooner. Note that the dependence is through a square root — to halve the period, you have to make ${tex('k')} 4 times larger.`},
     {q:`The same mass–spring system is hung vertically instead of horizontally. The period:`,
      opts:[`Increases — gravity stretches the spring`,`Decreases — gravity helps it return`,`Does not change`,`It depends on ${tex('g')}`],correct:2,
@@ -3649,7 +3943,7 @@ const CONTENT={
       ${animCanvas('anim-vecdiff',158,`Subtraction A−B`)}
       ${fBox('|\\vec{R}| = \\sqrt{A^2 + B^2 + 2AB\\cos\\theta}',`Magnitude of the sum`,[
         ['A,B',`Magnitudes of the vectors`,'',"—"],
-        ['\\theta',`The angle between them (when drawn from the same point)`,'',"°"],
+        ['\\theta',`The angle between them, tail to tail`,'',"°"],
       ])}
       <div class="info-grid">
         <div class="info-item"><div class="il">Perpendicular θ=90°</div><div class="iv">${M('R=\\sqrt{A^2+B^2}')}</div></div>
@@ -3688,7 +3982,7 @@ const CONTENT={
      opts:[tex('60^\\circ'),tex('90^\\circ'),tex('120^\\circ'),tex('180^\\circ')],correct:2,
      explain:`From |R|=√(A²+B²+2AB·cosθ) with A=B=10, we need cosθ=−0.5, that is, θ=120°. The three vectors then form an equilateral triangle — which is why 120° turns up so often in equilibrium problems with three strings.`},
     {q:`Is vector addition commutative, that is, ${tex('\\vec{A}+\\vec{B}=\\vec{B}+\\vec{A}')}?`,
-     opts:[`No — the order changes the direction`,`Yes — any order gives the same resultant`,`Only for perpendicular vectors`,`Only if the magnitudes are equal`],correct:1,
+     opts:[`No — the order changes the direction`,`Yes — the same resultant in any order`,`Only for perpendicular vectors`,`Only if the magnitudes are equal`],correct:1,
      explain:`Yes. That is exactly why you can add “head to tail” in any order and get the same resultant, and why the parallelogram method and the triangle method are equivalent. <b>Subtraction</b>, by contrast, is not commutative: ${tex('\\vec{A}-\\vec{B}')} and ${tex('\\vec{B}-\\vec{A}')} are opposites of each other.`},
   ],
   problem:{
@@ -4177,7 +4471,7 @@ const CONTENT={
       ${fBox('F = -kx',`Hooke’s law`,[
         ['F',`Spring force`,`Negative = opposite to the displacement`,"N"],
         ['k',`Spring constant`,`N/m — the “stiffness” of the spring`,"N/m"],
-        ['x',`Change in length from the natural length`,`m — positive = stretched, negative = compressed`,"m"],
+        ['x',`Change from the natural length`,`m — positive = stretched, negative = compressed`,"m"],
       ])}
       ${animCanvas('anim-spring-force',255,`Spring — F=-kx`)}
       <p class="anim-note">Springs in series: ${M('k_{\\text{eff}}')} decreases (${M('1/k_{\\text{eff}}=1/k_1+1/k_2')}). In parallel: ${M('k_{\\text{eff}}=k_1+k_2')} increases. And the system as a whole obeys Hooke’s law: <b>${M('|F|=k_{\\text{eff}}\\,|x|')}</b>.</p>
@@ -4994,7 +5288,7 @@ const CONTENT={
       <p>Eliminating t from the equations: ${M('y=x\\tan\\theta - \\frac{gx^2}{2v_0^2\\cos^2\\theta}')} — a parabola!</p>
       ${fBox('R=\\frac{v_0^2\\sin2\\theta}{g}',`Horizontal range — landing at the launch height`,[
         ['R',`Range`,`m — horizontal distance to the landing point`,"m"],
-        ['\\sin2\\theta',`Maximum at θ=45°`,`Then R_max = v₀²/g`,"°"],
+        ['\\sin2\\theta',`Maximum at θ=45°`,`Then R_max = v₀²/g`,"—"],
       ])}
       ${animCanvas('anim-projectile-range',174,`Range as a function of angle`)}
       ${fBox('H=\\frac{v_0^2\\sin^2\\theta}{2g}',`Maximum height`,[
@@ -5134,7 +5428,7 @@ const CONTENT={
      explain:`It is falling all the time, and no force balances gravity — gravity is exactly the centripetal force that bends its path. But its tangential speed is so great that, as it falls, the Earth’s surface curves away beneath it at the same rate. This is Newton’s cannonball picture.`},
   ],
   problem:{
-    title:`A car on a curve — how much friction is needed?`,
+    title:`A car on a curve — the friction it needs`,
     text:`A car of mass m=1200 kg travels on a level road around a circular curve of radius R=50 m at a speed of v=15 m/s. Take ${M('g=10\\,\\text{m/s}^2')}.`,
     steps:[
       {q:`What is the centripetal acceleration ${M('a_c')} of the car on the curve?`,
@@ -5802,7 +6096,7 @@ const OPTICS_CONTENT={
   quiz:[
     {q:`When does total internal reflection occur?`,opts:[`Whenever light strikes glass at a large angle`,`From a less dense to a denser material, above the critical angle`,`From a denser to a less dense material, above the critical angle`,`When light strikes the boundary exactly perpendicular to it`],correct:2,explain:`Two conditions: 1) from a denser to a less dense material (n₁>n₂); 2) angle of incidence > critical angle. Both are required!`},
     {q:`Water has n=1.33 and air n=1. What is sinθ_c?`,opts:['1.33','0.75','0.5','1'],correct:1,explain:'sinθ_c=n₂/n₁=1/1.33=0.75 → θ_c=arcsin(0.75)≈48.6°',formula:'sinθ_c=n₂/n₁'},
-    {q:`Why does a diamond sparkle so brilliantly?`,opts:[`Because n is small → light passes through it almost without refracting`,`Because n is large → θ_c is small → most light reflects inside again and again`,`Because its polished surface reflects light like a mirror`,`Because it absorbs light and re-emits it in other colors`],correct:1,explain:`Diamond has n=2.42, so θ_c=arcsin(1/2.42)≈24.4°. The critical angle is very small, so most of the light rays that enter undergo total internal reflection again and again — hence the sparkle.`},
+    {q:`Why does a diamond sparkle so brilliantly?`,opts:[`Because n is small → light passes through it almost without refracting`,`Because n is large → θ_c is small → most light is reflected back inside`,`Because its polished surface reflects light like a mirror`,`Because it absorbs light and re-emits it in other colors`],correct:1,explain:`Diamond has n=2.42, so θ_c=arcsin(1/2.42)≈24.4°. The critical angle is very small, so most of the light rays that enter undergo total internal reflection again and again — hence the sparkle.`},
     {q:`An optical fiber relies on:`,opts:[`Total refraction`,`Total reflection`,`Electrical bouncing`,`Radiation pressure`],correct:1,explain:`An optical fiber has a glass core (high n) inside a cladding (low n). Any light that strikes the walls above the critical angle is reflected. That is how the fiber guides light with almost no loss.`},
     {q:`Why can’t total internal reflection occur when light passes from air into glass?`,
      opts:[`Because in glass ${tex('v=c\\cdot n')}, so light travels faster in it`,`Because ${tex('\\sin\\theta_c=n_2/n_1')} must be less than 1, which requires ${tex('n_1>n_2')}`,`Because in glass the angle of refraction is always larger than the angle of incidence`,`Because on entering a denser material all the light is reflected anyway`],correct:1,
@@ -5990,7 +6284,7 @@ const OPTICS_CONTENT={
       {q:`For lenses in contact, the powers add: ${M('P=P_1+P_2')}. What is the power ${M('P_2')} of the diverging lens, in diopters?`,unit:'D',answer:'-6.67',tolerance:0.1,
        explain:`P₁=1/0.10=10 D, so P₂=3.33−10≈−6.67 D. The minus sign confirms that this is a diverging lens; and the pair stays converging only because |P₁|>|P₂|.`,
        nudge:`First calculate the power of the converging lens alone, then subtract.`,hint:`The powers of lenses in contact add, so ${M('P_2=P-P_1')} with ${M('P_1=1/(0.10\\,\\text{m})=10\\,\\text{D}')}.`},
-      {q:`What is the focal length ${M('f_2')} of the diverging lens, in centimeters? (include the sign)`,unit:'cm',answer:'-15',tolerance:0.5,
+      {q:`What is the focal length ${M('f_2')} of the diverging lens, in centimeters? (Include the sign.)`,unit:'cm',answer:'-15',tolerance:0.5,
        explain:`f₂=1/(−6.67 D)≈−0.15 m=−15 cm. This is the standard laboratory method for measuring a diverging lens: put a stronger converging lens in contact with it, measure the pair, and subtract.`,
        nudge:`Invert the power you calculated, and remember to convert from meters to centimeters.`,hint:`The focal length is the reciprocal of the power: ${M('f_2=1/P_2')} in meters — then convert to centimeters.`},
     ]}
@@ -6033,7 +6327,7 @@ const OPTICS_CONTENT={
     ]},
   quiz:[
     {q:`Which part of the eye refracts light the most?`,opts:[`Lens`,`Cornea`,`Retina`,`Optic nerve`],correct:1,explain:`The cornea provides about 70% of the eye’s refractive power — a refractive power of ~43 diopters. The eye’s lens adds about 20 diopters and changes its power for accommodation.`},
-    {q:`Accommodation is:`,opts:[`A change in the size of the pupil`,`A change in the power of the eye’s lens`,`A movement of the eyeball`,`A change in the sensitivity of the retina`],correct:1,explain:`Accommodation = a change in the curvature (and hence the power) of the eye’s lens, produced by the ciliary muscle. It allows sharp vision at different distances.`},
+    {q:`Accommodation is:`,opts:[`A change in the size of the pupil`,`A change in the power of the lens`,`A movement of the eyeball`,`A change in the sensitivity of the retina`],correct:1,explain:`Accommodation = a change in the curvature (and hence the power) of the eye’s lens, produced by the ciliary muscle. It allows sharp vision at different distances.`},
     {q:`Myopia (nearsightedness) is corrected with:`,opts:[`A converging lens (f>0)`,`A diverging lens (f<0)`,`Sunglasses`,`A cylindrical lens`],correct:1,explain:`Myopia: the image forms in front of the retina. A diverging lens moves the point of focus back onto the retina.`,hint:`Myopia = an eye that is too long → the image must move back → spread the rays`},
     {q:`The normal near point of a healthy eye at age 25 is about:`,opts:['10 cm','25 cm','50 cm','100 cm'],correct:1,explain:`The normal near point is ~25 cm. From about age 45 the eye’s ability to accommodate declines and the near point recedes (presbyopia).`},
     {q:`Why do most people need reading glasses around age 45?`,
@@ -6045,7 +6339,7 @@ const OPTICS_CONTENT={
   ],
   problem:{title:`Reading glasses for farsightedness`,text:`A farsighted person sees sharply only objects at least 1.5 m away — this is their near point. They want to read a book at a distance of 25 cm. What eyeglass lens do they need? (Neglect the distance between the glasses and the eye.)`,
     steps:[
-      {q:`The lens must form an image of the book (${M('d_o=0.25\\,\\text{m}')}) that the person can focus on — at their near point, on the same side of the lens. What is ${M('d_i')} in meters? (include the sign)`,unit:'m',answer:'-1.5',tolerance:0.05,
+      {q:`The lens must form an image of the book (${M('d_o=0.25\\,\\text{m}')}) that the person can focus on — at their near point, on the same side of the lens. What is ${M('d_i')}, in meters? (Include the sign.)`,unit:'m',answer:'-1.5',tolerance:0.05,
        explain:`dᵢ=−1.5 m: the image is virtual — it lies on the same side of the lens as the book — so the sign is negative. This is the idea behind every vision correction: the lens takes an object the eye cannot focus on and places its image where the eye <b>can</b> focus.`,
        nudge:`Is the image the eye looks at real or virtual? On which side of the lens is it?`,hint:`The eye looks at a virtual image at its near point, on the same side as the book — so ${M('d_i')} is negative.`},
       {q:`What is the power ${M('P=1/f')} of the lens in diopters?`,unit:'D',answer:'3.33',tolerance:0.05,
@@ -6104,7 +6398,7 @@ const OPTICS_CONTENT={
      opts:[`Increases by a factor of 2`,`Increases by a factor of 4`,`The same`,`Increases by a factor of 8`],correct:1,
      explain:`The amplitudes add: A+A=2A. But the intensity is proportional to the <b>square</b> of the amplitude, so I∝4A² — a factor of 4. Energy is conserved: alongside the places that are 4 times brighter there are dark regions, and averaged over the screen the intensity is exactly 2 times that of a single wave.`},
   ],
-  problem:{title:`Bright or dark?`,text:`Two coherent sources emit light in phase. Point P is 12.0 μm from source 1 and 13.5 μm from source 2.`,
+  problem:{title:`Bright or dark`,text:`Two coherent sources emit light in phase. Point P is 12.0 μm from source 1 and 13.5 μm from source 2.`,
     steps:[
       {q:`What is the path difference ${M('\\Delta d')} at point P, in nanometers?`,unit:'nm',answer:'1500',tolerance:10,
        explain:`Δd=13.5−12.0=1.5 μm=1500 nm. Only the difference matters, not the distances themselves: it is what determines the phase relationship with which the two waves meet.`,
@@ -6124,7 +6418,7 @@ const OPTICS_CONTENT={
     html:`
       <p>In 1801 <b>Thomas Young</b> passed light through two slits and obtained a pattern of fringes — something particles cannot do — and so shook a century of Newtonian consensus. (The debate was settled only by Fresnel’s theory, in 1818.)</p>
       ${fBox('d \\sin\\theta = m\\lambda',`Bright fringes`,[
-        ['d',`Distance between the slits`,'',"m"],
+        ['d',`Slit separation`,'',"m"],
         ['\\theta',`Angle from the axis`,'',"°"],
         ['m',`Order number`,'0,\\pm1,\\pm2,\\ldots',"—"]
       ])}
@@ -6212,7 +6506,7 @@ const OPTICS_CONTENT={
       {q:`How wide is the central band on a screen 1 m away?`,a:`${M('2L\\tan\\theta_1\\approx2\\times1\\times0.005=10\\,\\text{mm}')} — 100 times the width of the slit. The light has spread far beyond the geometric shadow.`},
     ]},
   quiz:[
-    {q:`A slit has a=0.5 mm, and λ=500 nm. For the first minimum, sinθ=?`,opts:['0.001','0.100','0.010','0.500'],correct:0,explain:`sinθ=mλ/a=1×500×10⁻⁹/(0.5×10⁻³)=10⁻³=0.001 → θ≈0.057°. The first minimum.`,formula:'sinθ=mλ/a'},
+    {q:`A slit has a=0.5 mm, and λ=500 nm. For the first minimum, sinθ=?`,opts:['0.001','0.100','0.010','0.500'],correct:0,explain:`sinθ = mλ/a = 1×500×10⁻⁹/(0.5×10⁻³) = 10⁻³ = 0.001 → θ ≈ 0.057°. The first minimum.`,formula:'sinθ=mλ/a'},
     {q:`What happens if we narrow the slit (smaller a)?`,opts:[`Weaker diffraction — narrower fringes`,`The fringes crowd together; the central one keeps its width`,`Stronger diffraction — wider fringes`,`The pattern stays the same, only dimmer`],correct:2,explain:`sinθ=λ/a → smaller a → larger θ → wider fringes. A narrower slit → stronger diffraction — the wave “spreads out” in all directions.`},
     {q:`Why do radio waves bend around buildings while light does not?`,opts:[`Radio waves are faster than light`,`A radio photon carries more energy than a photon of light`,`λ_radio is far larger than λ_light → stronger diffraction`,`Light is reflected by buildings, and radio waves never are`],correct:2,explain:`λ_radio ~ meters, λ_light ~ 500 nm. The larger λ is relative to the size of the obstacle, the stronger the diffraction. Radio waves bend around buildings; light travels in a straight line.`},
     {q:`What is the main difference between a diffraction grating and Young’s experiment?`,opts:[`The condition for a maximum is entirely different in the two cases`,`In a grating the fringes are far sharper, because of the many slits`,`Only a grating splits white light into colors; Young’s slits do not`,`In a grating the spacing of the fringes depends on the number of slits`],correct:1,explain:`d·sinθ=mλ in both. But a grating has hundreds of slits → its bright fringes are very narrow and sharp, which makes precise spectroscopy possible.`},
@@ -6246,7 +6540,7 @@ const OPTICS_CONTENT={
       ${fBox('c = \\lambda f',`Wavelength–frequency relation`,[['c',`Speed of light`,'3×10⁸ m/s',"m/s"],['\\lambda',`Wavelength`,`m (meters)`,"m"],['f',`Frequency`,`Hertz (Hz)`,"Hz"] ])}
       ${fBox('E = hf = \\dfrac{hc}{\\lambda}',`Photon energy`,[['h',`Planck’s constant`,'6.626×10⁻³⁴ J·s',"J·s"],['f',`Frequency`,'Hz',"Hz"],['E',`Photon energy`,`J (joules)`,"J"] ])}
       <div style="overflow-x:auto;margin:16px 0"><table style="width:100%;border-collapse:collapse;font-size:.82rem;margin:0">
-        <tr style="background:rgba(99,102,241,.18);color:#c7d2fe"><th style="padding:6px 8px;text-align:start">Band</th><th dir="ltr" style="padding:6px 8px">λ</th><th dir="ltr" style="padding:6px 8px">f</th><th dir="ltr" style="padding:6px 8px">E (photon)</th><th style="padding:6px 8px;text-align:right">Uses</th></tr>
+        <tr style="background:rgba(99,102,241,.18);color:#c7d2fe"><th style="padding:6px 8px;text-align:start">Band</th><th dir="ltr" style="padding:6px 8px">λ</th><th dir="ltr" style="padding:6px 8px">f</th><th dir="ltr" style="padding:6px 8px">E (photon)</th><th style="padding:6px 8px;text-align:start">Uses</th></tr>
         <tr style="border-bottom:1px solid rgba(99,102,241,.15)"><td style="padding:5px 8px;color:#e2e8f0">Radio waves</td><td dir="ltr" style="padding:5px 8px;color:#94a3b8">&gt;1 m</td><td dir="ltr" style="padding:5px 8px;color:#94a3b8">&lt;300 MHz</td><td dir="ltr" style="padding:5px 8px;color:#94a3b8">&lt;1.2 μeV</td><td style="padding:5px 8px;color:#94a3b8">Radio and TV broadcasting</td></tr>
         <tr style="border-bottom:1px solid rgba(99,102,241,.15)"><td style="padding:5px 8px;color:#e2e8f0">Microwaves</td><td dir="ltr" style="padding:5px 8px;color:#94a3b8">1 mm–1 m</td><td dir="ltr" style="padding:5px 8px;color:#94a3b8">0.3–300 GHz</td><td dir="ltr" style="padding:5px 8px;color:#94a3b8">1.2 μeV–1.2 meV</td><td style="padding:5px 8px;color:#94a3b8">Microwave ovens, radar, cell phones, Wi-Fi</td></tr>
         <tr style="border-bottom:1px solid rgba(99,102,241,.15)"><td style="padding:5px 8px;color:#fbbf24">Infrared (IR)</td><td dir="ltr" style="padding:5px 8px;color:#94a3b8">700 nm–1 mm</td><td dir="ltr" style="padding:5px 8px;color:#94a3b8">0.3–430 THz</td><td dir="ltr" style="padding:5px 8px;color:#94a3b8">1.2 meV–1.8 eV</td><td style="padding:5px 8px;color:#94a3b8">Heat, remote controls, night vision</td></tr>
@@ -6346,7 +6640,7 @@ const OPTICS_CONTENT={
      opts:[`From visible light up: photons of about ${tex('2\\,\\text{eV}')} or more`,`From the far UV up: photons of about ${tex('10\\,\\text{eV}')} or more`,`From microwaves up, since they already heat tissue`,`Only gamma rays, which are emitted by atomic nuclei`],correct:1,
      explain:`Ionization takes about 10 eV or more to knock out an electron (13.6 eV for hydrogen). Far UV, X-rays, and gamma rays meet this; near UV (3–10 eV) already breaks chemical bonds but is not ionizing; visible light excites electrons; and IR, microwaves, and radio waves only heat — none of these is ionizing. This is the line that separates heating from dangerous radiation.`},
   ],
-  problem:{title:`How much energy does ionization take?`,text:`Removing the electron from a hydrogen atom takes 13.6 eV. What is the longest wavelength of a photon that can ionize a hydrogen atom, and in which part of the spectrum does it lie?`,
+  problem:{title:`The energy needed for ionization`,text:`Removing the electron from a hydrogen atom takes 13.6 eV. What is the longest wavelength of a photon that can ionize a hydrogen atom, and in which part of the spectrum does it lie?`,
     steps:[
       {q:`Convert the ionization energy to joules. (${M('1\\,\\text{eV}=1.6\\times10^{-19}\\,\\text{J}')})`,unit:'J',answer:'2.18e-18',tolerance:5e-20,
        explain:`E=13.6×1.6×10⁻¹⁹≈2.18×10⁻¹⁸ J. You can type 2.18e-18. The electron volt is convenient for atoms, but the formula E=hf needs joules.`,
@@ -6365,7 +6659,7 @@ const OPTICS_CONTENT={
     title:`Polarization of light — Malus’s law`,
     html:`
       <p>An electromagnetic wave is a <b>transverse wave</b>: the electric field oscillates perpendicular to the direction of travel, and the direction in which it oscillates is the <b>polarization</b>. In natural light all directions are present at once; a polarizing filter passes only one.</p>
-      ${fBox('I = I_0 \\cos^2\\theta',`Malus’s law (1809)`,[['I_0',`Intensity of the polarized light reaching the analyzer`,'W/m²',"W/m²"],['\\theta',`Angle between the polarizer and analyzer axes`,'°',"°"],['I',`Intensity after the analyzer`,'W/m²',"W/m²"]])}
+      ${fBox('I = I_0 \\cos^2\\theta',`Malus’s law (1809)`,[['I_0',`Intensity incident on the analyzer`,'W/m²',"W/m²"],['\\theta',`Angle between polarizer and analyzer`,'°',"°"],['I',`Intensity after the analyzer`,'W/m²',"W/m²"]])}
       <div class="info-grid">
         <div class="info-item"><div class="il" style="text-transform:none">θ=0°</div><div class="iv">I = I₀ — full</div></div>
         <div class="info-item"><div class="il" style="text-transform:none">θ=45°</div><div class="iv">I = I₀/2</div></div>
@@ -6400,7 +6694,7 @@ const OPTICS_CONTENT={
      opts:[`Still nothing — crossed polarizers block everything`,`Light gets through — ${tex('I_0/8')}`,`Light gets through — ${tex('I_0/4')}`,`Light gets through — ${tex('I_0/2')}`],correct:1,
      explain:`It seems impossible: an extra filter <b>increases</b> the transmission. After the first polarizer, I₀/2; the middle one passes cos²45°=½ and turns the polarization to 45°; and the third passes another half — I₀/8 in all. A polarizer <b>projects</b> the polarization onto a new axis.`},
     {q:`Why do polarized sunglasses mainly reduce glare from water and roads?`,
-     opts:[`They are dark, and dim all light equally`,`Light reflected from water is polarized mainly horizontally, and the lens blocks it`,`They filter out the UV radiation reflected from the water`,`Light reflected from water is polarized mainly vertically, and the lens blocks it`],correct:1,
+     opts:[`They are dark, and dim all light equally`,`Reflected light is polarized mainly horizontally; the lens blocks it`,`They filter out the UV radiation reflected from the water`,`Reflected light is polarized mainly vertically; the lens blocks it`],correct:1,
      explain:`Reflection at a shallow angle polarizes light <b>horizontally</b>. A lens whose axis is vertical blocks exactly this component, so the glare is cut far more than the scene itself. Turn the glasses through 90° and the glare comes back.`},
   ],
   problem:{title:`A photographic filter`,text:`Natural light of intensity I₀=1000 W/m² passes through a first polarizer (vertical), and then through an analyzer tilted at θ=40° from the vertical.`,
@@ -6477,7 +6771,7 @@ const OPTICS_CONTENT={
           <div class="info-item"><div class="il">Stimulated emission ★</div><div class="iv">A photon produces an <em>identical</em> photon — same direction, phase, and frequency</div></div>
         </div>
       </div>
-      ${fBox('E_2 - E_1 = hf',`Laser photon energy`,[['E_2-E_1',`Energy difference between the states`,'J',"J"],['h',`Planck’s constant`,'6.626×10⁻³⁴ J·s',"J·s"],['f',`Laser frequency`,'Hz',"Hz"]])}
+      ${fBox('E_2 - E_1 = hf',`Laser photon energy`,[['E_2-E_1',`Energy difference between states`,'J',"J"],['h',`Planck’s constant`,'6.626×10⁻³⁴ J·s',"J·s"],['f',`Laser frequency`,'Hz',"Hz"]])}
       <p><b>Population inversion</b> is the essential condition: more atoms in the <b>upper level</b> of the laser transition than in its <b>lower level</b>, achieved by external <b>pumping</b>. Without it, absorption outweighs amplification, and there is no laser.</p>
       <div class="def-block"><div class="def-title">Why are three or four levels needed?</div>
         <p><b>Two levels are not enough:</b> the pump light, at the same frequency, also stimulates emission from every atom that has already been raised. As the populations approach each other, absorption and stimulated emission balance — at most the populations can be equalized, never inverted.</p>
@@ -6589,7 +6883,7 @@ const OPTICS_CONTENT={
     html:`
       <p>An optical fiber guides light by <b>repeated total internal reflection</b>. It consists of a core with a high refractive index ${M('n_1')}, wrapped in a cladding whose refractive index is ${M('n_2 < n_1')}.</p>
       ${fBox('\\theta_c = \\arcsin\\!\\left(\\dfrac{n_2}{n_1}\\right)',`Critical angle`,[['n_1',`Core refractive index`,'≈1.48',"—"],['n_2',`Cladding refractive index`,'≈1.46',"—"],['\\theta_c',`Critical angle`,'~80°',"°"]])}
-      ${fBox('\\mathrm{NA} = \\sqrt{n_1^2 - n_2^2}',`Numerical aperture`,[['\\mathrm{NA}',`Numerical aperture — how much light gets in`,`Typical value: 0.1 to 0.5`,"—"]])}
+      ${fBox('\\mathrm{NA} = \\sqrt{n_1^2 - n_2^2}',`Numerical aperture`,[['\\mathrm{NA}',`Numerical aperture (light accepted)`,`Typical value: 0.1 to 0.5`,"—"]])}
       <p><b>The condition in a fiber:</b> a ray that enters the fiber stays in it as long as it strikes the wall at an angle (from the normal) greater than ${M('\\theta_c')}. In a gently curved fiber the condition still holds, and the light follows the curve; at a sharp bend it escapes.</p>
       <div class="def-block"><div class="def-title">Advantages over copper wire</div>
         <div class="info-grid">
@@ -6615,7 +6909,7 @@ const OPTICS_CONTENT={
   quiz:[
     {q:`An optical fiber guides light because of:`,opts:[`Reflection from a metal coating`,`Constructive interference`,`Total internal reflection`,`Diffraction around the bends`],correct:2,explain:`TIR: the light strikes the core–cladding interface at more than the critical angle and is reflected completely, with no loss. A ray undergoes thousands of such reflections in every meter of fiber — and a metal coating, which loses a few percent at every reflection, would extinguish it within a few meters.`,formula:'θ_c=arcsin(n₂/n₁)'},
     {q:`What happens when n₁ is smaller (a less dense core)?`,opts:[`The critical angle increases`,`The critical angle decreases`,`NA increases`,`No change`],correct:0,explain:`θ_c=arcsin(n₂/n₁): when n₁ is smaller, n₂/n₁ grows → arcsin grows → θ_c grows. The range of angles that give total internal reflection narrows, and fewer rays are reflected.`,formula:'θ_c=arcsin(n₂/n₁)'},
-    {q:`NA (numerical aperture) determines:`,opts:[`The speed of light in the fiber`,`How much light is collected into the fiber`,`How much light is lost per meter`,`Which wavelength the fiber transmits`],correct:1,explain:`NA is the sine of the maximum acceptance angle, and equals √(n₁²-n₂²). A large NA means the fiber accepts incoming rays over a wider range of angles. It does not determine the loss along the fiber — that depends on the purity of the glass.`,formula:'NA=√(n₁²-n₂²)'},
+    {q:`NA (numerical aperture) determines:`,opts:[`The speed of light in the fiber`,`How much light the fiber collects`,`How much light is lost per meter`,`Which wavelength the fiber transmits`],correct:1,explain:`NA is the sine of the maximum acceptance angle, and equals √(n₁²-n₂²). A large NA means the fiber accepts incoming rays over a wider range of angles. It does not determine the loss along the fiber — that depends on the purity of the glass.`,formula:'NA=√(n₁²-n₂²)'},
     {q:`Why are optical fibers better than copper for the internet?`,opts:[`The signal travels much faster in them than in copper`,`They are more flexible, so they are easier to install`,`Much higher bandwidth + low attenuation`,`They conduct electricity better than copper`],correct:2,explain:`In pure glass the attenuation is about 0.2 dB/km, compared with about 20 dB/km in a copper cable; the bandwidth is in terahertz rather than gigahertz; and there is no electromagnetic interference. This is the basis of the modern internet.`,formula:''},
     {q:`Why does an optical fiber need a <b>cladding</b> — why can’t it be a bare glass core in air?`,
      opts:[`Only for mechanical protection: total reflection does not depend on what surrounds the core`,`The cladding fixes a constant ${tex('n_2')} and protects the reflecting surface from dirt and contact`,`So that the light passes into the cladding and travels faster there`,`To absorb the light that leaves the core at each reflection`],correct:1,
@@ -6742,7 +7036,7 @@ const OPTICS_CONTENT={
   problem:{title:`A soap bubble`,text:`A soap bubble has n=1.34 and t=320 nm. (a) Which visible wavelengths are strongly reflected (m=1,2)? (b) What color is seen?`,
     steps:[
       {q:`Which wavelength ${M('\\lambda')} does the bubble reflect most strongly for ${M('m=1')}? (in nanometers)`,unit:'nm',answer:'571',tolerance:5,
-       explain:`λ=4nt/(2m+1)=4×1.34×320/3=1715.2/3≈571.7 nm — yellow-green. Note where the odd form of the formula comes from: the condition for constructive interference in reflection is ${M('2nt=(m+\\tfrac12)\\lambda')}, because of the phase reversal at the top surface, and multiplying by 2 gives the form ${M('4nt/(2m+1)')}.`,
+       explain:`λ = 4nt/(2m+1) = 4×1.34×320/3 = 1715.2/3 ≈ 571.7 nm — yellow-green. Note where the odd form of the formula comes from: the condition for constructive interference in reflection is ${M('2nt=(m+\\tfrac12)\\lambda')}, because of the phase reversal at the top surface, and multiplying by 2 gives the form ${M('4nt/(2m+1)')}.`,
        nudge:`Substitute ${M('m=1')} into the formula for maximum reflection. Note that the thickness and the index are multiplied first, and only then divided.`,hint:`A soap film has one phase reversal, so the reflection is strongest when ${M('\\lambda=4nt/(2m+1)')}.`},
       {q:`And what is the wavelength ${M('\\lambda')} of the next order, ${M('m=2')}?`,unit:'nm',answer:'343',tolerance:5,
        explain:`λ=4×1.34×320/5≈343 nm — ultraviolet, outside the visible range. So only the ${M('m=1')} order contributes to the color we see, and the bubble looks yellow-green. And since the thickness of the bubble varies from point to point and drains downward, each region reflects a different color — the source of the moving bands of color in a real bubble.`,
@@ -6785,7 +7079,7 @@ const OPTICS_CONTENT={
      opts:[`There is no limit: the farther from the center, the more orders`,`The largest one that satisfies ${tex('m\\lambda/d\\leq1')}`,`Three orders for every grating, on each side`,`It depends on the intensity: bright light shows more orders`],correct:1,
      explain:`${tex('\\sin\\theta=m\\lambda/d')}, and ${tex('\\sin\\theta')} cannot exceed 1, so ${tex('m_{\\max}=\\lfloor d/\\lambda\\rfloor')}. A dense grating (small d) gives a large angular spread but fewer orders — and if ${tex('d<\\lambda')}, only the central order remains.`},
     {q:`Why is a grating with thousands of grooves better than two slits for spectroscopy?`,
-     opts:[`It lets through more light, so the fringes are brighter — that is all`,`The many slits sharpen the maxima, so close wavelengths can be separated`,`Its maxima lie at different angles from those of two slits`,`It splits white light into colors, and two slits do not split it at all`],correct:1,
+     opts:[`It lets through more light, so the fringes are brighter — that is all`,`The many slits sharpen the maxima, separating close wavelengths`,`Its maxima lie at different angles from those of two slits`,`It splits white light into colors, and two slits do not split it at all`],correct:1,
      explain:`The condition for a maximum is the same (d·sinθ=mλ), but the <b>sharpness</b> is different: the more slits there are, the tinier the departure from that angle at which their contributions cancel one another. The result is thin lines instead of broad fringes — and hence the identification of elements by their emission lines.`},
   ],
   problem:{title:`A spectroscope`,text:`A grating has 800 grooves per millimeter. Hydrogen emits lines at λ₁=486 nm and λ₂=656 nm. What is the difference between their first-order angles?`,
@@ -6914,7 +7208,7 @@ const ELECTRO_CONTENT={
 'elc-charge.elc-coulomb':{
   theory:{html:`
     <p>In 1785 Coulomb used a torsion balance to measure the force between two charges, and found a law strikingly similar to the law of gravity:</p>
-    ${fBox('F = k\\dfrac{|q_1||q_2|}{r^2}',`Coulomb’s law`,[['F',`Magnitude of the force (on each charge)`,'N',"N"],['k',`Coulomb constant`,'8.99×10⁹ ≈ 9×10⁹ N·m²/C²',"N·m²/C²"],['q_1,q_2',`Charges`,'C',"C"],['r',`Distance between the centers`,'m',"m"]])}
+    ${fBox('F = k\\dfrac{|q_1||q_2|}{r^2}',`Coulomb’s law`,[['F',`Magnitude of the force on each charge`,'N',"N"],['k',`Coulomb constant`,'8.99×10⁹ ≈ 9×10⁹ N·m²/C²',"N·m²/C²"],['q_1,q_2',`Charges`,'C',"C"],['r',`Distance between the centers`,'m',"m"]])}
     <p><b>Direction:</b> along the line joining the charges — like charges repel, unlike charges attract. And by Newton’s third law the two forces are equal in magnitude <b>even if one charge is huge and the other tiny</b>.</p>
     <div class="def-block"><b>The 1/r² dependence:</b> doubling the distance ⇒ the force drops by a factor of 4; tripling it ⇒ by a factor of 9. Just like gravity, but incomparably stronger: between two electrons the electric repulsion is ~4×10⁴² times greater than the gravitational attraction.</div>
     <p><b>Superposition:</b> work out each pair separately and add the forces <b>as vectors</b>.</p>
@@ -7097,7 +7391,7 @@ const ELECTRO_CONTENT={
     {q:`The potential inside a charged conducting sphere is:`,opts:[`Zero, because the field inside is zero`,`Constant, the same as at the surface`,`Increasing toward the center, like kQ/r`,`Decreasing toward the center, to zero there`],correct:1,explain:`E=0 means that V does not change — not that it is zero. At every point inside, V=kQ/R, exactly as at the surface.`},
     {q:`On a pointed (non-spherical) conductor, the charge concentrates:`,opts:[`On the flat part, where it has more area to spread over`,`At the tip — where the radius of curvature is small`,`Uniformly over the whole surface, as on a sphere`,`Inside the object, as far from the surface as possible`],correct:1,explain:`The whole surface is at the same potential. Where the radius of curvature is small, less charge is enough to reach the same V — so that is where the charge density σ and the local field are greatest.`},
     {q:`A sphere of radius R and a sphere of radius 3R, far apart, are connected by a long wire. Which of them has the stronger field at its surface?`,opts:[`The larger one`,`The smaller one`,`Equal`,`It depends on the initial charge`],correct:1,explain:`Same potential ⇒ Q∝R, so E=kQ/R²∝1/R. The small sphere has a field 3 times stronger — even though it holds less charge. This is the sharp-point effect.`},
-    {q:`A lightning rod works because:`,opts:[`It attracts the charged clouds and keeps them away from the house`,`The huge field at its tip ionizes the air and creates a conducting, grounded path`,`The metal repels the lightning’s charge and deflects it to the side`,`It insulates the house from the ground, so no current flows through it`],correct:1,explain:`At the tip the field exceeds the dielectric strength of air (~3×10⁶ V/m), the air is ionized, and a conducting path to the ground forms — instead of one through the house.`},
+    {q:`A lightning rod works because:`,opts:[`It attracts the charged clouds and keeps them away from the house`,`The huge field at its tip ionizes the air into a conducting, grounded path`,`The metal repels the lightning’s charge and deflects it to the side`,`It insulates the house from the ground, so no current flows through it`],correct:1,explain:`At the tip the field exceeds the dielectric strength of air (~3×10⁶ V/m), the air is ionized, and a conducting path to the ground forms — instead of one through the house.`},
   ],
   problem:{title:`Conducting sphere`,text:`A conducting sphere of radius R=10 cm carries a charge Q=+2 μC. (k=9×10⁹)`,steps:[
     {q:`What is the potential ${M('V')} at the surface of the conducting sphere, in volts?`,unit:'V',answer:'180000',tolerance:2000,
@@ -7106,7 +7400,7 @@ const ELECTRO_CONTENT={
     {q:`What is the field strength ${M('E')} at a point 20 cm from the center of the sphere?`,unit:'V/m',answer:'450000',tolerance:5000,
      explain:`The point is outside the sphere (20 > 10 cm), so E=kQ/r²=9×10⁹·2×10⁻⁶/0.04=4.5×10⁵ V/m. The first step in any question like this is to check whether the point is inside or outside — the answer is completely different in the two cases, as the next step shows.`,
      nudge:`First decide whether 20 cm is inside the sphere or outside it. From outside, the sphere is equivalent to a point charge at its center.`,hint:`The point is outside the sphere, so the sphere acts as a point charge: ${M('E=kQ/r^2')} with ${M('r=0.2\\,\\text{m}')}.`},
-    {q:`And what is the field strength ${M('E')} 5 cm from the center — that is, inside the material of the conductor?`,unit:'V/m',answer:'0',tolerance:0.1,
+    {q:`And what is the field strength ${M('E')} at 5 cm from the center — that is, inside the material of the conductor?`,unit:'V/m',answer:'0',tolerance:0.1,
      explain:`Exactly zero. If there were a field inside the conductor, it would drive the free electrons until they canceled it — which is why all the charge sits on the surface. Note the contrast: E=0, yet V is still 1.8×10⁵ V, because a constant potential means precisely zero field. This is the principle of the Faraday cage.`,
      nudge:`Ask yourself what would happen to the free electrons inside the conductor if there were any field there — and whether that situation could be steady.`,hint:`In electrostatic equilibrium the charges in a conductor do not move — and that is possible only if the field inside it is zero.`},
   ]},
@@ -7151,7 +7445,7 @@ const ELECTRO_CONTENT={
   problem:{title:`A capacitor network`,text:`Capacitors C₁=4 μF and C₂=12 μF are connected to a V=24 V battery.`,steps:[
     {q:`What is the equivalent capacitance ${M('C_{eq}')} of the two capacitors connected in <b>parallel</b>, in microfarads?`,unit:'μF',answer:'16',tolerance:0.2,
      explain:`C_eq=C₁+C₂=4+12=16 μF. In parallel both capacitors have the same voltage across them, and the charges add — this is equivalent to increasing the plate area, so the capacitance <b>increases</b> and always exceeds that of each component.`,
-     nudge:`In parallel the two capacitors are connected to the same two points, so they share the same voltage. What does this say about their charges, and hence about the total capacitance?`,hint:`In parallel the charges add at the same voltage, so the capacitances add: ${M('C_{eq}=C_1+C_2')}.`},
+     nudge:`In parallel the two capacitors are connected to the same two points, so they have the same voltage across them. What does this say about their charges, and hence about the total capacitance?`,hint:`In parallel the charges add at the same voltage, so the capacitances add: ${M('C_{eq}=C_1+C_2')}.`},
     {q:`And what is the equivalent capacitance ${M('C_{eq}')} of the same two capacitors connected in <b>series</b>?`,unit:'μF',answer:'3',tolerance:0.1,
      explain:`1/C_eq=1/4+1/12=4/12, so C_eq=3 μF — smaller than either. This is the exact opposite of parallel, and it is the sanity check: in series the equivalent capacitance is always <b>smaller</b> than the smallest component, because the connection is equivalent to increasing the distance between the plates.`,
      nudge:`In series the equivalent capacitance comes out smaller than the smallest capacitor — that is the sanity check. Don’t forget to invert the result at the end.`,hint:`In series, add the reciprocals: ${M('1/C_{eq}=1/C_1+1/C_2')}.`},
@@ -7163,7 +7457,7 @@ const ELECTRO_CONTENT={
 'elc-energy.elc-potential':{
   theory:{html:`
     <p>Just as it is convenient to describe gravity in terms of height and energy rather than forces, it is convenient to describe electricity in terms of <b>potential</b>: energy per unit charge, an “electrical height.”</p>
-    ${fBox('V = k\\dfrac{Q}{r}',`Potential of a point charge`,[['V',`Potential (a scalar, including the sign of Q)`,`V (volt = J/C)`,"V"],['r',`Distance from the charge`,'m',"m"]])}
+    ${fBox('V = k\\dfrac{Q}{r}',`Potential of a point charge`,[['V',`Potential (a scalar, sign of Q included)`,`V (volt = J/C)`,"V"],['r',`Distance from the charge`,'m',"m"]])}
     ${fBox('W_{A\\to B} = q\\,(V_A - V_B)',`Work done by the electric force`,[['W',`Work done by the field`,'J',"J"],['q',`Charge being moved`,'C',"C"],['V_A-V_B',`Potential difference`,'V',"V"]])}
     ${fBox('U = qV',`Electric potential energy`,[['q',`Charge — with its sign`,'C',"C"],['V',`Potential at the point`,'V',"V"]])}
     <p>If only the electric force acts, ${M('E_k+U')} is constant — just like ${M('\\tfrac12mv^2+mgh')}, with ${M('V')} in place of ${M('h')} and ${M('q')} in place of ${M('m')}. And potentials are <b>scalars</b>: they add as signed numbers, and a positive charge “rolls” from high potential to low.</p>
@@ -7311,7 +7605,7 @@ const ELECTRO_CONTENT={
     {q:`What is the potential ${M('V')} at the surface of the sphere, in volts?`,unit:'V',answer:'2.4e5',tolerance:4000,
      explain:`V=kQ/R=9×10⁹·4×10⁻⁶/0.15=2.4×10⁵ V. The value is exactly the same at every point inside the sphere: E=0 there, so V does not change.`,
      nudge:`At the surface of the sphere and outside it, the potential is the same as that of a point charge at the center. What distance do you substitute when you want the potential at the surface itself?`,hint:`At the surface of the sphere, the distance from the center is the radius: ${M('V=kQ/R')} with ${M('R=0.15\\,\\text{m}')}.`},
-    {q:`What is the field strength ${M('E')} 30 cm from the center, in V/m?`,unit:'V/m',answer:'4e5',tolerance:8000,
+    {q:`What is the field strength ${M('E')} at 30 cm from the center, in V/m?`,unit:'V/m',answer:'4e5',tolerance:8000,
      explain:`30 cm is outside the sphere, so E=kQ/r²=9×10⁹·4×10⁻⁶/0.09=4×10⁵ V/m. Always check first: inside or outside?`,
      nudge:`First decide whether 30 cm is inside the sphere or outside it. From outside, the sphere is equivalent to a point charge at its center.`,hint:`The point is outside the sphere, so ${M('E=kQ/r^2')} with ${M('r=0.3\\,\\text{m}')}.`},
     {q:`How much energy ${M('U')} is stored in the sphere, in joules?`,unit:'J',answer:'0.48',tolerance:0.01,
@@ -7365,7 +7659,7 @@ const ELECTRO_CONTENT={
      explain:`Ek=eV=1.6×10⁻¹⁹×200=3.2×10⁻¹⁷ J (type 3.2e-17). Note that you do not need the field or the distance you computed at all — only the voltage: every electron that crosses a potential difference ${M('V')} gains an energy ${M('eV')}, hence the name of the unit, the electron volt. Here it is exactly 200 eV.`,
      nudge:`How much work does the field do on a charge that crosses a potential difference? The electron started from rest — where did the work go?`,hint:`All of the work became kinetic energy: ${M('E_k=eV')}.`},
     {q:`What will the speed ${M('v')} of the electron be at the moment it hits the plate, in m/s?`,unit:'m/s',answer:'8.4e6',tolerance:3e5,
-     explain:`v=√(2E_k/m)=√(2·3.2×10⁻¹⁷/9.1×10⁻³¹)≈8.4×10⁶ m/s — about 3% of the speed of light, from a modest 200 volts. That is still low enough for the classical calculation to be accurate; at tens of kilovolts, as in an X-ray tube, a relativistic correction is already needed.`,
+     explain:`v = √(2E_k/m) = √(2·3.2×10⁻¹⁷/9.1×10⁻³¹) ≈ 8.4×10⁶ m/s — about 3% of the speed of light, from a modest 200 volts. That is still low enough for the classical calculation to be accurate; at tens of kilovolts, as in an X-ray tube, a relativistic correction is already needed.`,
      nudge:`Invert the definition of kinetic energy to find the speed. The electron’s mass is given in the problem.`,hint:`From the definition of kinetic energy, ${M('E_k=\\tfrac{1}{2}mv^2')}: ${M('v=\\sqrt{2E_k/m}')}.`},
   ]},
 },
@@ -7585,7 +7879,7 @@ const ELECTRO_CONTENT={
   sim:{type:'elc-deflect',desc:`Launch a particle and change the voltage, the speed, and the plate length. Between the plates the path is parabolic, and outside them it is straight — notice the point where one turns into the other.`},
   example:{title:`Deflection between plates`,text:`An electron enters at speed ${M('3\\times10^{7}\\,\\text{m/s}')} between plates of length ${M('5\\,\\text{cm}')}, with a gap of ${M('2\\,\\text{cm}')} between them and a voltage of ${M('120\\,\\text{V}')}.`,steps:[
     {q:`What is the field between the plates?`,a:`${M('E=\\dfrac{V}{d}=\\dfrac{120}{0.02}=6000\\,\\text{V/m}')}`},
-    {q:`What is the acceleration?`,a:`${M('a=\\dfrac{eE}{m}=\\dfrac{1.6\\times10^{-19}\\times6000}{9.1\\times10^{-31}}\\approx1.05\\times10^{15}\\,\\text{m/s}^2')}, toward the positive plate.`},
+    {q:`What is the acceleration?`,a:`${M('a=\\dfrac{eE}{m}=\\dfrac{1.6\\times10^{-19}\\times6000}{9.1\\times10^{-31}}\\approx1.05\\times10^{15}\\,\\text{m/s}^2')} — toward the positive plate.`},
     {q:`What is the deflection at the exit?`,a:`${M('t=\\dfrac{L}{v_0}\\approx1.67\\times10^{-9}\\,\\text{s}\\Rightarrow y=\\tfrac12at^2=\\tfrac12\\times1.05\\times10^{15}\\times(1.67\\times10^{-9})^2\\approx1.5\\,\\text{mm}')} — much less than half the gap, 10 mm: the electron is faster and the plates are shorter, so it spends less time in the field.`},
   ]},
   quiz:[
@@ -7613,7 +7907,7 @@ const ELECTRO_CONTENT={
      explain:`E=V/d=150/0.03=5000 V/m. Substituting 3 instead of 0.03 would give an answer a hundred times too small — the most common mistake at this step.`,
      nudge:`The distance between the plates is given in centimeters. Convert it to meters before substituting.`,hint:`Between parallel plates the field is uniform: ${M('E=V/d')} with ${M('d=0.03\\,\\text{m}')}.`},
     {q:`What is the electron’s acceleration ${M('a')} in the direction perpendicular to its motion?`,unit:'m/s²',answer:'8.8e14',tolerance:2e13,
-     explain:`a=eE/m=1.6×10⁻¹⁹·5000/9.1×10⁻³¹≈8.8×10¹⁴ m/s² (you can type 8.8e14). An enormous acceleration — not because the force is large, but because the electron’s mass is tiny.`,
+     explain:`a = eE/m = 1.6×10⁻¹⁹·5000/9.1×10⁻³¹ ≈ 8.8×10¹⁴ m/s² (you can type 8.8e14). An enormous acceleration — not because the force is large, but because the electron’s mass is tiny.`,
      nudge:`Newton’s second law, with the electric force.`,hint:`The only force is the electric one, ${M('F=eE')}, so ${M('a=eE/m')}.`},
     {q:`What is the deflection ${M('y')} at the moment the electron leaves the plates, in millimeters?`,unit:'mm',answer:'4.5',tolerance:0.3,
      explain:`t=L/v₀=0.08/2.5×10⁷=3.2×10⁻⁹ s, so y=½at²=½·8.8×10¹⁴·(3.2×10⁻⁹)²=4.5×10⁻³ m = 4.5 mm. Sanity check: half the gap is 15 mm and the deflection is 4.5 mm — the electron gets out without hitting a plate.`,
@@ -7963,7 +8257,7 @@ const DC_CONTENT={
     <div class="def-block"><div class="def-title">A real voltmeter — loading error</div>
       <p>Its resistance ${M('R_V')} is finite, and it is connected <b>in parallel</b> with the component being measured. The combination ${M('R\\parallel R_V')} is smaller than ${M('R')}, so the voltage it measures is <b>lower than the true value</b>. The better ${M('R_V\\gg R')} holds, the smaller the error.</p>
     </div>
-    ${fBox('\\delta = \\dfrac{V_{true}-V_{meas}}{V_{true}}\\times100\\%',`Percentage measurement error`,[['\\delta',`Measurement error`,`% — always positive`,null],['V_{true}',`Voltage before the meter is connected`,'V',"V"],['V_{meas}',`What the meter reads`,`V — always the smaller of the two`,"V"]])}
+    ${fBox('\\delta = \\dfrac{V_{true}-V_{meas}}{V_{true}}\\times100\\%',`Percentage measurement error`,[['\\delta',`Measurement error`,`% — always positive`,null],['V_{true}',`Voltage with no meter connected`,'V',"V"],['V_{meas}',`What the meter reads`,`V — always the smaller of the two`,"V"]])}
     ${animCanvas('anim-dc-realmeter',190,`As the voltmeter’s resistance increases, the reading climbs toward the true value`)}
     <div class="def-block"><div class="def-title">A real ammeter</div>
       <p>Its resistance ${M('R_A')} is added <b>in series</b>, so the current is smaller than the true current, and the reading is <b>too low</b>. The better ${M('R_A\\ll R')} holds, the smaller the error.</p>
@@ -7991,7 +8285,7 @@ const DC_CONTENT={
     {q:`A real ammeter is connected in series. The reading will be:`,opts:[`Higher than the true value`,`Lower than the true value`,`Exact`,`Negative`],correct:1,explain:`R_A is added in series and increases the total resistance, so the current is smaller than it would be without it.`},
     {q:`Two equal 10 kΩ resistors are connected in series across 12 V, and a 10 kΩ voltmeter is connected across one of them. The reading is:`,opts:['6 V','4 V','3 V','12 V'],correct:1,explain:`R₂∥R_V=5 kΩ, R_eq=15 kΩ, I=0.8 mA, and the reading is 0.8·5=4 V instead of 6 — an error of one third.`},
     {q:`An ideal meter is one that:`,opts:[`Is manufactured with perfect accuracy`,`Does not change the circuit it measures`,`Is recalibrated before every measurement`,`Shows the value in digits, not with a needle`],correct:1,explain:`“Ideal” here is not about the quality of manufacture but about the effect: R_A=0 and R_V=∞ are exactly the conditions under which the meter is invisible to the circuit.`},
-    {q:`Why does a good voltmeter have a resistance of megohms?`,opts:[`To measure alternating current as well`,`To draw a negligible current from the circuit`,`To measure quickly`,`To protect the user from electric shock`],correct:1,explain:`Any current it draws is taken from the component being measured and changes the voltage across it. A high resistance means a negligible current, so the measurement hardly disturbs the circuit.`},
+    {q:`Why does a good voltmeter have a resistance of megohms?`,opts:[`To measure alternating current as well`,`To draw only a negligible current`,`To measure quickly`,`To protect the user from electric shock`],correct:1,explain:`Any current it draws is taken from the component being measured and changes the voltage across it. A high resistance means a negligible current, so the measurement hardly disturbs the circuit.`},
   ],
   problem:{title:`Loading error of a voltmeter`,text:`A 9 V battery is connected to R₁=R₂=20 kΩ in series. A voltmeter with RV=60 kΩ is connected across R₂.`,steps:[
     {q:`What is the true voltage across R₂ before the voltmeter is connected, in volts?`,unit:'V',answer:'4.5',tolerance:0.1,
@@ -8064,7 +8358,7 @@ const DC_CONTENT={
       <p>There is an insulator between the capacitor’s plates, so charge does not cross the gap. Once the capacitor is charged, the <b>current in its branch is zero</b> — so there is no voltage drop across any resistor in series with it, and the voltage across the capacitor equals the voltage between the points its branch is connected to.</p>
     </div>
     ${animCanvas('anim-dc-cap',195,`The capacitor charges, the current in its branch decays to zero — and the rest of the circuit carries on as usual`)}
-    ${fBox('Q = C\\,V_C',`Stored charge`,[['Q',`Charge on each plate`,'C',"C"],['C',`Capacitance`,'F',"F"],['V_C',`Voltage across the capacitor in the steady state`,'V',"V"]])}
+    ${fBox('Q = C\\,V_C',`Stored charge`,[['Q',`Charge on each plate`,'C',"C"],['C',`Capacitance`,'F',"F"],['V_C',`Capacitor voltage at steady state`,'V',"V"]])}
     <div class="mis-block"><b>⚠️ Common misconception:</b> “The capacitor blocks current, so there is no current in the circuit.” It blocks only <b>its own branch</b>. The rest of the circuit goes on working exactly as if that branch did not exist — which is why the first step in every problem is to <b>erase the capacitor’s branch</b> and solve the circuit that is left.</div>
     <div class="def-block"><div class="def-title">Two extremes in time</div>
       <p><b>At the moment of connection</b> the capacitor is empty, the voltage across it is zero, and it behaves like a <b>wire</b>.<br>
@@ -8222,7 +8516,7 @@ const DC_CONTENT={
 'dc-basics.dc-current':{
   theory:{title:`Electric current and the ampere`,html:`
     <p>In electrostatics the charges stood still. Now we let them flow — and right away we need a quantity that measures <b>how much</b> charge passes, and at what rate.</p>
-    ${fBox('I = \\dfrac{q}{t}',`Electric current`,[['I',`Current`,`A (ampere)`,"A"],['q',`Charge that passes through the cross-section`,`C (coulomb)`,"C"],['t',`Time interval`,`s (second)`,"s"]])}
+    ${fBox('I = \\dfrac{q}{t}',`Electric current`,[['I',`Current`,`A (ampere)`,"A"],['q',`Charge through the cross-section`,`C (coulomb)`,"C"],['t',`Time interval`,`s (second)`,"s"]])}
     <div class="def-block"><div class="def-title">One ampere</div>
       <p>${M('1\\,\\text{A}=1\\,\\text{C/s}')} — one coulomb passes through a cross-section of the wire every second. In terms of electrons, that is ${M('1/1.6\\times10^{-19}\\approx6.25\\times10^{18}')} electrons per second.</p>
     </div>
@@ -8264,7 +8558,7 @@ const DC_CONTENT={
     {q:`How many electrons passed in that time?`,unit:`electrons`,answer:'7.5e20',tolerance:2e19,
      explain:`N=q/e=120/1.6×10⁻¹⁹=7.5×10²⁰ electrons. A huge number — which is why the current looks perfectly continuous to us rather than a stream of separate packets.`,nudge:`How many elementary charges are there in the amount of charge you found?`,hint:`Divide the charge by the elementary charge: N=q/e`},
     {q:`What is the drift velocity ${M('v_d')} in the wire, in meters per second?`,unit:'m/s',answer:'2.21e-4',tolerance:1e-5,
-     explain:`v=I/(nAq)=3/(8.5×10²⁸·10⁻⁶·1.6×10⁻¹⁹)=2.21×10⁻⁴ m/s — about a fifth of a millimeter per second. Remember to convert: 1 mm² = 10⁻⁶ m².`,nudge:`In a time t, all the electrons in a cylinder of length vt pass through the cross-section. How much charge is in that cylinder?`,hint:`Solve I=nAvq for v — and write A in square meters.`},
+     explain:`v = I/(nAq) = 3/(8.5×10²⁸·10⁻⁶·1.6×10⁻¹⁹) = 2.21×10⁻⁴ m/s — about a fifth of a millimeter per second. Remember to convert: 1 mm² = 10⁻⁶ m².`,nudge:`In a time t, all the electrons in a cylinder of length vt pass through the cross-section. How much charge is in that cylinder?`,hint:`Solve I=nAvq for v — and write A in square meters.`},
     {q:`How long would a single electron take to travel one meter of wire, in seconds?`,unit:'s',answer:'4530',tolerance:250,
      explain:`t=L/v=1/2.21×10⁻⁴≈4530 s — about an hour and a quarter. And yet the bulb lights up at once: what moves fast is the field, not the electrons.`,nudge:`The electron moves at the drift velocity you found, and it is constant.`,hint:`Time is distance divided by speed: t=L/v`},
   ]},
@@ -8332,7 +8626,7 @@ const DC_CONTENT={
 'dc-kirchhoff.dc-loop':{
   theory:{title:`The loop rule — go all the way around and return to the same potential`,html:`
     <p>Kirchhoff’s second law is about <b>energy</b>. A coulomb that makes a complete trip around a loop and returns to its starting point must come back to exactly the same potential.</p>
-    ${fBox('\\sum \\Delta V = 0',`Kirchhoff’s loop rule`,[['\\Delta V',`Change in potential across each component`,`V — signed`,"V"],['\\sum',`Sum around a loop`,`Loop: any closed path in the circuit`,null]])}
+    ${fBox('\\sum \\Delta V = 0',`Kirchhoff’s loop rule`,[['\\Delta V',`Potential change per component`,`V — signed`,"V"],['\\sum',`Sum around a loop`,`Loop: any closed path in the circuit`,null]])}
     <div class="def-block"><div class="def-title">The sign rules — all you need to remember</div>
       <p>Choose a direction in which to walk around the loop, then:<br>
       <b>Battery</b> — entering at the − terminal and leaving at +: ${M('+\\varepsilon')}. In the opposite direction: ${M('-\\varepsilon')}.<br>
@@ -8583,7 +8877,7 @@ const MAG_CONTENT={
     {q:`Where will the needle point?`,a:`Along the total field: ${M('\\tan\\alpha=\\dfrac{20}{30}\\Rightarrow\\alpha\\approx33.7^\\circ')} east of north.`},
     {q:`What field from the magnet would deflect the needle by exactly 45°?`,a:`The one that makes the components equal: ${M('30\\,\\mu\\text{T}')} east.`}]},
   quiz:[
-    {q:`A bar magnet is cut in half. What do you get?`,opts:[`A lone N pole and a lone S pole`,`Two magnets, each with an N and an S`,`Two nonmagnetic pieces`,`One magnet and a piece of iron`],correct:1,explain:`No isolated magnetic pole has ever been found. Every piece, however small, is a complete magnet with two poles — right down to a single atom.`},
+    {q:`A bar magnet is cut in half. What do you get?`,opts:[`A lone N pole and a lone S pole`,`Two magnets, each with two poles`,`Two nonmagnetic pieces`,`One magnet and a piece of iron`],correct:1,explain:`No isolated magnetic pole has ever been found. Every piece, however small, is a complete magnet with two poles — right down to a single atom.`},
     {q:`The north end of a compass needle points toward geographic north. What kind of magnetic pole is there?`,opts:[`North`,`South`,`There is no pole there`,`It depends on the season`],correct:1,explain:`Unlike poles attract: the north end of the needle is attracted to a magnetic south pole. So near the geographic North Pole there is a magnetic south pole.`},
     {q:`Inside a bar magnet, the field lines:`,opts:[`Do not exist`,`Run from N to S`,`Run from S to N`,`Begin and end in the middle`],correct:2,explain:`Outside the magnet the lines run from N to S, and inside they continue from S back to N — every line is a closed loop, because there is no magnetic charge for it to begin on.`},
     {q:`Where the field lines are closer together, the field:`,opts:[`Is weaker`,`Is stronger`,`Changes direction`,`Becomes zero`],correct:1,explain:`The density of the lines represents the strength of the field — just as for the electric field. That is why the lines are crowded near the poles and sparse far from the magnet.`},
@@ -8690,7 +8984,7 @@ const MAG_CONTENT={
     {q:`What is the field at the center of the coil, in milliteslas?`,unit:'mT',answer:'1.26',tolerance:0.02,
      explain:'B=μ₀NI/2R=4π×10⁻⁷·50·2/(2·0.05)=1.26×10⁻³ T=1.26 mT.',nudge:`The turns are close together — their fields add, which means multiplying by N.`,hint:`Field at a loop’s center, times N: B=μ₀NI/2R`},
     {q:`What current is needed for the field at the center to be 2.0 mT, in amperes?`,unit:'A',answer:'3.18',tolerance:0.03,
-     explain:`I=2BR/(μ₀N)=2·2×10⁻³·0.05/(4π×10⁻⁷·50)=3.18 A. Check: the field is proportional to the current, and 2/1.26 × 2 A = 3.18 A ✓`,nudge:`The field is directly proportional to the current.`,hint:`Solve the field formula for the current: I=2BR/μ₀N`},
+     explain:`I = 2BR/(μ₀N) = 2·2×10⁻³·0.05/(4π×10⁻⁷·50) = 3.18 A. Check: the field is proportional to the current, and 2/1.26 × 2 A = 3.18 A ✓`,nudge:`The field is directly proportional to the current.`,hint:`Solve the field formula for the current: I=2BR/μ₀N`},
     {q:`By what factor is the field at the center of a single turn greater than the field of a long straight wire carrying the same current, at a distance of 5 cm from it?`,unit:'',answer:'3.14',tolerance:0.03,
      explain:`Single turn: μ₀I/2R=25.1 μT. Straight wire: μ₀I/2πR=8 μT. The ratio is 25.1/8=3.14=π — because in a loop all the segments of the wire are at a distance R and contribute in the same direction.`,nudge:`Calculate both fields and divide, or compare the formulas directly.`,hint:`Divide the field of the turn by the field of the wire: (μ₀I/2R)/(μ₀I/2πR) — almost everything cancels.`},
   ]},
@@ -8840,7 +9134,7 @@ const MAG_CONTENT={
     {q:`What will the radius be if the speed is doubled, in centimeters?`,unit:'cm',answer:'31.3',tolerance:0.3,
      explain:`r∝v: 2·15.7=31.3 cm. The period stays at 0.328 μs.`,nudge:`How does r depend on v?`,hint:`The radius is proportional to the speed: r∝v`},
     {q:`An electron (m=9.11×10⁻³¹ kg) enters the same field at the same speed. What is the radius of its path, in millimeters?`,unit:'mm',answer:'0.0854',tolerance:0.002,
-     explain:`r=9.11×10⁻³¹·3×10⁶/(1.6×10⁻¹⁹·0.2)=8.54×10⁻⁵ m=0.0854 mm — 1836 times smaller than the proton’s, and with the opposite sense of rotation.`,nudge:`Use the same formula with the electron’s mass.`,hint:`Substitute the electron’s mass: r=mv/qB, and convert to millimeters.`},
+     explain:`r = 9.11×10⁻³¹·3×10⁶/(1.6×10⁻¹⁹·0.2) = 8.54×10⁻⁵ m = 0.0854 mm — 1836 times smaller than the proton’s, and with the opposite sense of rotation.`,nudge:`Use the same formula with the electron’s mass.`,hint:`Substitute the electron’s mass: r=mv/qB, and convert to millimeters.`},
   ]},
 },
 
@@ -8890,7 +9184,7 @@ const MAG_CONTENT={
     {q:`What is the radius of the path of ¹²C⁺ in the spectrometer, in centimeters?`,unit:'cm',answer:'24.9',tolerance:0.2,
      explain:'r=mv/qB′=12·1.66×10⁻²⁷·4×10⁵/(1.6×10⁻¹⁹·0.2)=0.249 m=24.9 cm.',nudge:`Write the mass in kg: 12·1.66×10⁻²⁷.`,hint:`The radius in the spectrometer’s field: r=mv/qB′`},
     {q:`And what is the radius of ¹⁴C⁺, in centimeters?`,unit:'cm',answer:'29.1',tolerance:0.2,
-     explain:`r=14·1.66×10⁻²⁷·4×10⁵/(3.2×10⁻²⁰)=0.2905 m=29.1 cm. Or, in short: 24.9·14/12=29.1 cm.`,nudge:`The radius is proportional to the mass.`,hint:`Everything else is the same, so: r₁₄=r₁₂·14/12`},
+     explain:`r = 14·1.66×10⁻²⁷·4×10⁵/(3.2×10⁻²⁰) = 0.2905 m = 29.1 cm. Or, in short: 24.9·14/12 = 29.1 cm.`,nudge:`The radius is proportional to the mass.`,hint:`Everything else is the same, so: r₁₄=r₁₂·14/12`},
     {q:`What is the distance between the two spots on the detector, in centimeters?`,unit:'cm',answer:'8.3',tolerance:0.2,
      explain:`Each ion hits at a distance 2r from the entrance: 2·(29.05−24.9)=8.3 cm. It is the diameter, not the radius, because the ion completes a full semicircle.`,nudge:`The ion completes a semicircle. At what distance from the entry point does it hit?`,hint:`Each ion hits one diameter away from the entrance: Δd=2(r₁₄−r₁₂)`},
   ]},
@@ -8965,7 +9259,7 @@ const MAG_CONTENT={
     </div>`,
   },
   sim:{type:'mag-parallel',desc:`Two wires seen end-on, with the field lines of their combined field. Change the currents (the sign gives the direction), and drag a wire to change the distance. The force arrows are always equal in magnitude — even when the currents differ — and they flip from attraction to repulsion when one of the currents reverses.`},
-  example:{title:`Two parallel wires`,text:`Two parallel wires ${M('5\\,\\text{cm}')} apart each carry ${M('10\\,\\text{A}')} in the same direction.`,steps:[
+  example:{title:`Two parallel wires`,text:`Two parallel wires, ${M('5\\,\\text{cm}')} apart, each carry ${M('10\\,\\text{A}')} in the same direction.`,steps:[
     {q:`What is the force per meter?`,a:`${M('\\dfrac FL=\\dfrac{2\\times10^{-7}\\times10\\times10}{0.05}=4\\times10^{-4}\\,\\text{N/m}')}`},
     {q:`Attraction or repulsion?`,a:`Attraction — the currents are in the same direction.`},
     {q:`The distance is doubled. What is the force?`,a:`Smaller by a factor of 2: ${M('2\\times10^{-4}\\,\\text{N/m}')}`}]},
@@ -8979,7 +9273,7 @@ const MAG_CONTENT={
   ],
   problem:{title:`Parallel cables`,text:`Two long, straight, parallel wires are 5 cm apart. Each carries a current of 10 A, in the same direction.`,steps:[
     {q:`What is the force per unit length between the wires, in units of 10⁻⁴ N/m?`,unit:'×10⁻⁴ N/m',answer:'4',tolerance:0.05,
-     explain:`F/L=μ₀I₁I₂/(2πd)=2×10⁻⁷·10·10/0.05=4×10⁻⁴ N/m, that is, 4 in units of 10⁻⁴ N/m. Currents in the same direction — attraction.`,nudge:`The field of one wire at the location of the other, times the current in the other.`,hint:`Force per unit length, with d in meters: F/L=μ₀I₁I₂/2πd`},
+     explain:`F/L = μ₀I₁I₂/(2πd) = 2×10⁻⁷·10·10/0.05 = 4×10⁻⁴ N/m, that is, 4 in units of 10⁻⁴ N/m. Currents in the same direction — attraction.`,nudge:`The field of one wire at the location of the other, times the current in the other.`,hint:`Force per unit length, with d in meters: F/L=μ₀I₁I₂/2πd`},
     {q:`What is the total force on a 2 m section, in millinewtons?`,unit:'mN',answer:'0.8',tolerance:0.02,
      explain:`F=4×10⁻⁴·2=8×10⁻⁴ N=0.8 mN — about the weight of a few grains of rice.`,nudge:`Multiply the force per meter by the length.`,hint:`Force per meter times the number of meters: F=(F/L)·L`},
     {q:`The current in the second wire is changed to 30 A in the opposite direction. What is the force per unit length, in units of 10⁻⁴ N/m?`,unit:'×10⁻⁴ N/m',answer:'12',tolerance:0.1,
@@ -8990,7 +9284,7 @@ const MAG_CONTENT={
 'mag-force.mag-motor':{
   theory:{title:`Torque on a loop — the electric motor`,html:`
     <p><b>Place a current-carrying rectangular loop in a magnetic field.</b> In the two sides perpendicular to the field, the current flows in opposite directions — so the forces on them are equal and <b>opposite</b>. The net force is zero, but the forces do not act along the same line: they form a <b>couple</b>, and the loop rotates.</p>
-    ${fBox('\\tau=NBIA\\sin\\theta',`Torque on a loop`,[['N',`Number of turns`,'',null],['A',`Area of the loop`,'','m²'],['\\theta',`Angle between the loop’s normal and the field`,'',"°"]])}
+    ${fBox('\\tau=NBIA\\sin\\theta',`Torque on a loop`,[['N',`Number of turns`,'',null],['A',`Area of the loop`,'','m²'],['\\theta',`Angle between the normal and the field`,'',"°"]])}
     ${animCanvas('anim-mag-motor',200,`View from the end of the axle: the two sides, the forces on them, and the commutator, which reverses the current every half turn`)}
     <div class="def-block"><div class="def-title">When the torque is large, and when it is zero</div>
       <p>• <b>Plane of the loop parallel to the field</b> (its normal perpendicular to B, ${M('\\theta=90^\\circ')}) — the forces are as far from the axis as possible: <b>maximum torque</b> ${M('NBIA')}.<br>
@@ -9036,7 +9330,7 @@ const MAG_CONTENT={
 'mag-induction.mag-flux':{
   theory:{title:`Magnetic flux`,html:`
     <p><b>How much field “passes through” a loop?</b> Picture the field lines as rain, and the loop as a window frame. A wider window catches more rain; heavier rain, more still; and if you tilt the window until it is parallel to the rain, nothing gets through. This quantity is the <b>magnetic flux</b> ${M('\\Phi')}.</p>
-    ${fBox('\\Phi=BA\\cos\\theta',`Magnetic flux through a flat loop in a uniform field`,[['\\Phi',`Flux`,'',`Wb (weber) = T·m²`],['A',`Area of the loop`,'','m²'],['\\theta',`Angle between the field and the loop’s normal`,'',"°"]])}
+    ${fBox('\\Phi=BA\\cos\\theta',`Magnetic flux through a flat loop in a uniform field`,[['\\Phi',`Flux`,'',`Wb (weber) = T·m²`],['A',`Area of the loop`,'','m²'],['\\theta',`Angle between the field and the normal`,'',"°"]])}
     ${animCanvas('anim-mag-flux',190,`The loop rotates: the number of lines passing through it varies as cosθ`)}
     <div class="def-block"><div class="def-title">What to remember</div>
       <p>• ${M('\\theta')} is measured from the <b>normal</b> to the loop, not from its plane. For a loop whose plane is perpendicular to the field, ${M('\\theta=0')} and the flux is maximum, ${M('BA')}.<br>
@@ -9063,7 +9357,7 @@ const MAG_CONTENT={
     {q:`And if the angle between the field and the normal is 60°?`,a:`${M('\\Phi=0.01\\times\\cos60^\\circ=0.005\\,\\text{Wb}')}`},
     {q:`And if the plane of the loop is parallel to the field?`,a:`${M('\\Phi=0')} — no line passes through it.`}]},
   quiz:[
-    {q:`When is the flux through a loop maximum?`,opts:[`When its plane is parallel to the field`,`When its plane is perpendicular to the field`,`It is always the same`,`When it is rotated by 45°`],correct:1,explain:`When the plane of the loop is perpendicular to the field, its normal is parallel to the field — θ=0 and cosθ=1. This is the position in which the most lines pass through it.`},
+    {q:`When is the flux through a loop maximum?`,opts:[`With its plane parallel to the field`,`With its plane perpendicular to the field`,`It is always the same`,`When it is rotated by 45°`],correct:1,explain:`When the plane of the loop is perpendicular to the field, its normal is parallel to the field — θ=0 and cosθ=1. This is the position in which the most lines pass through it.`},
     {q:`What is the unit of magnetic flux?`,opts:['T','Wb = T·m²','Wb = T/m²','A·m²'],correct:1,explain:`Φ=BA: tesla times square meter, which is called the weber (Wb).`},
     {q:`The radius of a circular loop in a constant field is doubled. The flux:`,opts:[`Increases by a factor of 2`,`Increases by a factor of 4`,`Does not change`,`Decreases by a factor of 2`],correct:1,explain:`The area πr² increases by a factor of 4, and so does the flux.`},
     {q:`A loop is rotated by 180° from the position in which the flux is +BA. The flux is now:`,opts:['+BA','0','−BA','2BA'],correct:2,explain:`The normal to the loop pointed along the field, and now it points against it: cos180°=−1. The same lines pass through the loop, but “from the other side.”`},
@@ -9184,7 +9478,7 @@ const MAG_CONTENT={
     {q:`What power is converted into heat in the ring, in milliwatts?`,unit:'mW',answer:'0.2',tolerance:0.005,
      explain:`P=I²R=0.01·0.02=2×10⁻⁴ W=0.2 mW (or εI=2×10⁻³·0.1). This energy comes from whoever is increasing the field.`,nudge:`Recall the power dissipated in a resistor.`,hint:`The heating power in the ring: P=I²R`},
     {q:`What field does the induced current produce at the center of the ring, in microteslas? (The radius of the ring: r=√(A/π))`,unit:'μT',answer:'1.57',tolerance:0.05,
-     explain:`r=√(5×10⁻³/π)=0.0399 m, and B=μ₀I/(2r)=4π×10⁻⁷·0.1/(2·0.0399)=1.57×10⁻⁶ T, that is, 1.57 μT. Tiny compared with the external field: opposing the change fixes a direction; it does not cancel the change.`,nudge:`Use the field at the center of a single loop, from Chapter 1.`,hint:`Find r from the area, and substitute it into the field of a loop: B=μ₀I/2r`},
+     explain:`r = √(5×10⁻³/π) = 0.0399 m, and B = μ₀I/(2r) = 4π×10⁻⁷·0.1/(2·0.0399) = 1.57×10⁻⁶ T, that is, 1.57 μT. Tiny compared with the external field: opposing the change fixes a direction; it does not cancel the change.`,nudge:`Use the field at the center of a single loop, from Chapter 1.`,hint:`Find r from the area, and substitute it into the field of a loop: B=μ₀I/2r`},
   ]},
 },
 
@@ -9195,7 +9489,7 @@ const MAG_CONTENT={
       <p><b>Via the force:</b> the electrons in the rod move with it at speed ${M('v')} through the field, and a force ${M('qvB')} acts on each of them along the rod. They are pushed to one end — the rod is a battery, and the resistance of the rod itself is its internal resistance: ${M('I=\\varepsilon/(R+r)')}, exactly as in the circuits chapter.<br>
       <b>Via the flux:</b> the rod increases the area of the circuit at a rate ${M('Lv')}, so the flux increases at a rate ${M('BLv')}. By Faraday’s law, that is exactly the emf.</p>
     </div>
-    ${fBox('\\varepsilon=BLv',`Emf in a rod moving perpendicular to the field`,[['L',`Length of the rod (the distance between the rails)`,'','m'],['v',`Speed of the rod`,'','m/s']])}
+    ${fBox('\\varepsilon=BLv',`Emf in a rod moving perpendicular to the field`,[['L',`Length of the rod (rail spacing)`,'','m'],['v',`Speed of the rod`,'','m/s']])}
     ${animCanvas('anim-mag-motional',190,`The rod moves to the right in a field pointing into the page: the current circulates counterclockwise, and the force on the rod points left — against the motion`)}
     <p><b>And what does the current cost?</b> A current ${M('I=BLv/R')} flows in a rod that is in a field — so there is a force ${M('F=BIL=\\dfrac{B^2L^2v}{R}')} on it, and by Lenz’s law that force <b>brakes</b> the rod. To keep going at constant speed, you must push with an equal force, and supply power:</p>
     ${fBox('P=Fv=\\dfrac{B^2L^2v^2}{R}=I^2R',`Mechanical power converted into heat in the resistor`)}
@@ -9297,7 +9591,7 @@ const MAG_CONTENT={
     <div class="def-block"><div class="def-title">How it works</div>
       <p>Two coils are wound on a shared <b>iron core</b>. An alternating current in the primary coil produces a changing flux, and the core guides <b>the same</b> flux through the secondary coil as well. Every turn — in both coils — experiences the same ${M('\\Delta\\Phi/\\Delta t')}, so the voltage per turn is the same:</p>
     </div>
-    ${fBox('\\dfrac{V_2}{V_1}=\\dfrac{N_2}{N_1}',`Voltage ratio in an ideal transformer`,[['V_1,V_2',`Voltages across the primary and the secondary`,'','V'],['N_1,N_2',`Numbers of turns`,'',null]])}
+    ${fBox('\\dfrac{V_2}{V_1}=\\dfrac{N_2}{N_1}',`Voltage ratio in an ideal transformer`,[['V_1,V_2',`Primary and secondary voltages`,'','V'],['N_1,N_2',`Numbers of turns`,'',null]])}
     ${animCanvas('anim-mag-transformer',190,`Alternating flux in the core: the same flux through both coils, and so the same voltage per turn`)}
     <p><b>Conservation of energy:</b> an ideal transformer loses no power (real transformers are 95–99% efficient), so ${M('V_1I_1=V_2I_2')}. Step the voltage up, and the current goes down in the same ratio:</p>
     ${fBox('\\dfrac{I_2}{I_1}=\\dfrac{N_1}{N_2}',`Current ratio`)}
@@ -10727,9 +11021,14 @@ function simFreefall(canvas){
       var hmPy=toY(hm);
       ctx.save(); ctx.strokeStyle='rgba(52,211,153,.45)'; ctx.lineWidth=1.5; ctx.setLineDash([5,5]);
       ctx.beginPath(); ctx.moveTo(WALLX+9,hmPy); ctx.lineTo(W-18,hmPy); ctx.stroke(); ctx.setLineDash([]); ctx.restore();
+      // the tag stays left of the ball's column: on a phone the 124 px tag ran
+      // under the ball, which hid it at the very moment the ball reached h_max
+      var hTx='h_max = '+hm.toFixed(1)+' m';
+      ctx.save(); ctx.font='bold 10px Heebo'; var hTw=ctx.measureText(_cvSub(hTx)).width; ctx.restore();
+      var hbW=Math.max(40,Math.min(124,Math.floor(W/2)-26-(WALLX+12)));
       ctx.save(); ctx.fillStyle='rgba(8,20,38,.82)'; ctx.strokeStyle='rgba(52,211,153,.55)'; ctx.lineWidth=1;
-      ctx.beginPath(); ctx.roundRect(WALLX+12,hmPy-18,124,16,4); ctx.fill(); ctx.stroke();
-      simText(ctx,'h_max = '+hm.toFixed(1)+' m',WALLX+74,hmPy-7,'#34d399',10,'center',true); ctx.restore();
+      ctx.beginPath(); ctx.roundRect(WALLX+12,hmPy-18,hbW,16,4); ctx.fill(); ctx.stroke();
+      simText(ctx,hTx,WALLX+12+hbW/2,hmPy-7,'#34d399',10*Math.min(1,(hbW-8)/hTw),'center',true); ctx.restore();
     }
     // Ball
     if(ball){
@@ -17152,12 +17451,73 @@ function optLabel(ctx,txt,x,y,col,sz,align){
   if(fx!==null)ctx.fillText(txt,fx,_fitY(ctx,y,sz));
   ctx.restore();
 }
-function optInfoBox(ctx,x,y,w,lines){
-  ctx.save();ctx.fillStyle='rgba(4,9,20,.88)';ctx.strokeStyle='rgba(59,130,246,.35)';ctx.lineWidth=1;
-  var lh=16,pad=10,h=lines.length*lh+pad;
-  ctx.beginPath();ctx.roundRect(x,y,w,h,6);ctx.fill();ctx.stroke();
-  lines.forEach(function(l,i){optLabel(ctx,l,x+w/2,y+pad/2+lh/2+i*lh,l[0]==='='?'#22d3ee':'#94a3b8',9);});
+// A text cut in two at the separator nearest its middle (a dash, a semicolon,
+// a comma, a colon, else a space); every character is kept. null: no separator.
+function _splitHalf(t){
+  var mid=t.length/2,c1=-1,c2=-1,bs=1e9;
+  [' — ','; ',', ',': ',' '].forEach(function(sep,pri){var i=-1;
+    while((i=t.indexOf(sep,i+1))>=0){var sc=Math.abs(i-mid)+pri*6;
+      if(sc<bs){bs=sc;c1=sep===' '?i:i+sep.length-1;c2=i+sep.length;}}});
+  return c1<0?null:[t.slice(0,c1).trim(),t.slice(c2).trim()];
+}
+// The centre of an arrow's name (w by h, drawn centred as optLabel draws) at
+// the arrow's head: just beyond the head along the arrow, so no part of the
+// text lies on the shaft -- or, where the canvas has no room there, beside
+// the last stretch of the arrow on whichever side has room.
+function _tipSpot(x1,y1,x2,y2,w,h,W,H,gap){
+  var L=Math.hypot(x2-x1,y2-y1)||1,ux=(x2-x1)/L,uy=(y2-y1)/L,nx=-uy,ny=ux;gap=gap||6;
+  var ok=function(c){return c.x-w/2>=3&&c.x+w/2<=W-3&&c.y-h/2>=3&&c.y+h/2<=H-3;};
+  var d=gap+w/2*Math.abs(ux)+h/2*Math.abs(uy),c0={x:x2+ux*d,y:y2+uy*d};
+  if(ok(c0))return c0;
+  // beside it: pulled inside the canvas, and kept only if the shaft stays clear
+  var e=gap+w/2*Math.abs(nx)+h/2*Math.abs(ny),b=Math.min(L/2,w/2*Math.abs(ux)+h/2*Math.abs(uy));
+  var cl=function(c){return {x:Math.max(3+w/2,Math.min(W-3-w/2,c.x)),y:Math.max(3+h/2,Math.min(H-3-h/2,c.y))};};
+  var free=function(c){return !_segHitsBox([x1,y1,x2,y2],[c.x-w/2,c.y-h/2,c.x+w/2,c.y+h/2],2);};
+  var cs=[1,-1].map(function(s){return cl({x:x2+s*nx*e-ux*b,y:y2+s*ny*e-uy*b});}).filter(free)
+    .sort(function(p,q){return p.y-q.y;});                   // above the arrow, where both fit
+  return cs.length?cs[0]:cl(c0);
+}
+// A text cut in two lines at the space that makes the longer line the
+// shortest, measured in the context's current font; null for one word.
+function _splitBal(ctx,t){
+  var best=null,bw=1e9;
+  for(var i=t.indexOf(' ');i>0;i=t.indexOf(' ',i+1)){
+    var a=t.slice(0,i).trim(),b=t.slice(i+1).trim();if(!a||!b)continue;
+    var w=Math.max(ctx.measureText(_mathIso(a)).width,ctx.measureText(_mathIso(b)).width);
+    if(w<bw){bw=w;best=[a,b];}}
+  return best;
+}
+// The width an info box needs for its lines at their own size.
+function optInfoBoxW(ctx,lines){
+  ctx.save();ctx.font='9px Heebo,sans-serif';var m=0;
+  lines.forEach(function(l){m=Math.max(m,ctx.measureText(_mathIso(_cvSub(String(l)))).width);});
+  ctx.restore();return Math.ceil(m)+12;
+}
+// A line wider than its box used to run out across the border (the
+// conductor's readout on a phone, a translation longer than the Hebrew).
+// Each line is measured: one that does not fit is set smaller, down to 8 px;
+// past that, with o.wrap, it is broken in two near its middle and the box
+// grows by a line -- upward when o.bottom says that y is its bottom edge.
+// Returns the box, so a caller can keep its neighbours clear of it.
+function optInfoBox(ctx,x,y,w,lines,o){
+  o=o||{};
+  var lh=16,pad=10,inner=w-12,rows=[];
+  ctx.save();ctx.font='9px Heebo,sans-serif';
+  var wid=function(s){return ctx.measureText(_mathIso(_cvSub(String(s)))).width;};
+  var fit=function(lw){return lw>inner?Math.max(6.5,9*inner/lw):9;};
+  lines.forEach(function(l){
+    var col=String(l)[0]==='='?'#22d3ee':'#94a3b8',lw=wid(l),two=null;
+    if(o.wrap&&fit(lw)<8)two=_splitHalf(String(l));
+    if(two)two.forEach(function(s){rows.push([s,col,fit(wid(s))]);});
+    else rows.push([l,col,fit(lw)]);
+  });
   ctx.restore();
+  var h=rows.length*lh+pad;if(o.bottom)y-=h;
+  ctx.save();ctx.fillStyle='rgba(4,9,20,.88)';ctx.strokeStyle='rgba(59,130,246,.35)';ctx.lineWidth=1;
+  ctx.beginPath();ctx.roundRect(x,y,w,h,6);ctx.fill();ctx.stroke();
+  rows.forEach(function(r,i){optLabel(ctx,r[0],x+w/2,y+pad/2+lh/2+i*lh,r[1],r[2]);});
+  ctx.restore();
+  return {x:x,y:y,w:w,h:h};
 }
 function optAngleArc(ctx,cx,cy,r,a1,a2,col){
   ctx.save();ctx.strokeStyle=col;ctx.lineWidth=1.5;ctx.globalAlpha=0.8;
@@ -17648,14 +18008,20 @@ function _optMirrorSim(canvas,P){
     optNoGlow(ctx);ctx.strokeStyle='rgba(96,165,250,.35)';ctx.lineWidth=1;
     for(var yh=-AP;yh<=AP;yh+=12){var xh=hitX(cy+yh,R);ctx.beginPath();ctx.moveTo(xh+2,cy+yh);ctx.lineTo(xh+10,cy+yh-6);ctx.stroke();}
     ctx.restore();
-    optLabel(ctx,concave?`Concave mirror`:`Convex mirror`,mx+8,cy+AP+12,'#93c5fd',10);
+    var mLbl=concave?`Concave mirror`:`Convex mirror`,mLy=cy+AP+12;   // drawn once the bottom rows are known
     // F and C: in front for concave (real), behind for convex (virtual)
     var sgn=concave?-1:1, Fx=mx+sgn*fpx, Cx=mx+sgn*R;
+    var virt=isFinite(diV)&&diV<0, ix=mx-diV*k, iy=cy-mV*objH;
+    var imgOn=isFinite(diV)&&ix>8&&ix<W-8&&Math.abs(iy-cy)<cy-6;
     [{x:Fx,l:concave?'F':`F (virtual)`},{x:Cx,l:concave?'C':`C (virtual)`}].forEach(function(q,qi){
       if(q.x<6||q.x>W-6)return;
       ctx.save();ctx.strokeStyle=qi?'#94a3b8':'#f59e0b';ctx.lineWidth=2;if(!concave)ctx.setLineDash([3,3]);
       ctx.beginPath();ctx.moveTo(q.x,cy-8);ctx.lineTo(q.x,cy+8);ctx.stroke();ctx.restore();
-      optLabel(ctx,q.l,q.x,cy+20,qi?'#94a3b8':'#f59e0b',10);
+      // a name the image would stand on (C at dₒ = 2f: the image is on C,
+      // under the object) goes to the right of its tick
+      ctx.save();ctx.font='10px Heebo,sans-serif';var qW=ctx.measureText(_mathIso(q.l)).width;ctx.restore();
+      var onImg=imgOn&&Math.abs(ix-q.x)<qW/2+9&&Math.min(cy,iy)<cy+26&&Math.max(cy,iy)>cy+14;
+      optLabel(ctx,q.l,onImg?ix+9+qW/2:q.x,cy+20,qi?'#94a3b8':'#f59e0b',10);
     });
     // object
     var ox=mx-doV*k,ty=cy-objH;
@@ -17663,11 +18029,13 @@ function _optMirrorSim(canvas,P){
     ctx.beginPath();ctx.moveTo(ox,cy);ctx.lineTo(ox,ty);ctx.stroke();
     ctx.fillStyle='#93c5fd';ctx.beginPath();ctx.moveTo(ox,ty);ctx.lineTo(ox-8,ty+15);ctx.lineTo(ox+8,ty+15);ctx.closePath();ctx.fill();
     optNoGlow(ctx);ctx.restore();
-    optLabel(ctx,`Object`,ox,cy+14,'#60a5fa',10);
+    // At dₒ = f the object stands on F, and its name steps below F's; at 2f it
+    // stands on C, with the image right under it, so its name goes to its left.
+    var oTx=`Object`;ctx.save();ctx.font='10px Heebo,sans-serif';var oW=ctx.measureText(oTx).width/2+10;ctx.restore();
+    if(concave&&Math.abs(ox-Cx)<oW)optLabel(ctx,oTx,ox-12,cy+14,'#60a5fa',10,'right');
+    else optLabel(ctx,oTx,ox,(concave&&Math.abs(ox-Fx)<oW)?cy+34:cy+14,'#60a5fa',10);
     if(!hasDragged&&animT<7)optLabel(ctx,`✋ Drag the object`,ox,ty-22+Math.sin(animT*4)*3,'#fbbf24',10);
-    // image
-    var virt=isFinite(diV)&&diV<0, ix=mx-diV*k, iy=cy-mV*objH;
-    var imgOn=isFinite(diV)&&ix>8&&ix<W-8&&Math.abs(iy-cy)<cy-6;
+    // image (its place is worked out above, with F and C)
     var C1='rgba(251,191,36,.8)',C2='rgba(167,139,250,.8)',C3='rgba(52,211,153,.8)';
     var used=[];
     // ray A: parallel to the axis → reflects through F (or away from virtual F)
@@ -17712,11 +18080,16 @@ function _optMirrorSim(canvas,P){
       var dir=iy<cy?1:-1;ctx.fillStyle=col;ctx.beginPath();ctx.moveTo(ix,iy);ctx.lineTo(ix-7,iy+dir*14);ctx.lineTo(ix+7,iy+dir*14);ctx.closePath();ctx.fill();
       optNoGlow(ctx);ctx.restore();
       optLabel(ctx,virt?`Virtual image`:`Real image`,ix,iy<cy?iy-14:iy+14,col,10);
-    } else if(!isFinite(diV)){
-      optLabel(ctx,`Object at the focus: reflected rays are parallel — image at infinity`,W/2,H-58,'#f59e0b',10);
     } else {
-      optLabel(ctx,`Image far off the diagram — move the object closer, or away from F`,W/2,H-58,'#f59e0b',10);
+      // The message spans the canvas, so it takes its own row just above the
+      // ray legend; it used to share H-58 with the mirror's name, which then
+      // moves to the mirror's top end if the rows below still reach it.
+      var msgY=H-12-(used.length-1)*15-16;
+      if(msgY-7<mLy+7)mLy=cy-AP-12;
+      optLabel(ctx,!isFinite(diV)?`Object at the focus: reflected rays are parallel — image at infinity`
+        :`Image far off the diagram — move the object closer, or away from F`,W/2,msgY,'#f59e0b',10);
     }
+    optLabel(ctx,mLbl,mx+8,mLy,'#93c5fd',10);
     // legend of the rays actually drawn
     if(!dragObj)used.forEach(function(u,i){optLabel(ctx,u[1],W-10,H-12-(used.length-1-i)*15,u[0],9,'right');});
     // numbers, in mm, with their signs
@@ -17730,9 +18103,11 @@ function _optMirrorSim(canvas,P){
     if(dragObj){
       var msg=concave?(atF?`dₒ = f — the rays leave parallel: no image`:Math.abs(doM-2)<0.06?`dₒ = 2f (center of curvature) — real, inverted, same size`:doM<1?`dₒ < f — makeup mirror: virtual, upright, enlarged`:'')
                      :`At any distance — virtual, upright, reduced`;
-      if(msg){ctx.save();ctx.fillStyle='rgba(4,9,20,.9)';ctx.strokeStyle='#fbbf24';ctx.lineWidth=1;
-        ctx.beginPath();ctx.roundRect(W/2-170,H-30,340,22,6);ctx.fill();ctx.stroke();ctx.restore();
-        optLabel(ctx,msg,W/2,H-19,'#fbbf24',10);}
+      // the frame is as wide as the message (a fixed 340 px ran off a phone)
+      if(msg){ctx.save();ctx.font='10px Heebo,sans-serif';var mgW=ctx.measureText(_mathIso(msg)).width,mbW=Math.min(W-12,mgW+24);
+        ctx.fillStyle='rgba(4,9,20,.9)';ctx.strokeStyle='#fbbf24';ctx.lineWidth=1;
+        ctx.beginPath();ctx.roundRect(W/2-mbW/2,H-30,mbW,22,6);ctx.fill();ctx.stroke();ctx.restore();
+        optLabel(ctx,msg,W/2,H-19,'#fbbf24',10*Math.min(1,(mbW-16)/mgW));}
     }
     // a photon along the parallel ray, toward the mirror
     if(Math.abs(ty-cy)<=AP){var ph=(animT*0.35)%1;
@@ -17805,7 +18180,12 @@ function simOptSnell(canvas){
     optLabel(ctx,'\u200ev₂ = c/n₂ = '+(3e8/n2/1e8).toFixed(2)+'×10⁸ m/s',68,MY+34,'#7d8da6',8);
     // Normal
     optDash(ctx,cx,MY-170,cx,MY+130,'#334155',0.7);
-    optLabel(ctx,`Normal`,cx+22,MY-150,'#7d8da6',9);
+    // The normal is named by its top end -- unless the info box (top right,
+    // 150 px) reaches over that corner, as on a phone: then just under the box.
+    var IBX=W-160,IBB=8+3*16+10,nTx=`Normal`,nY=MY-150;
+    ctx.save();ctx.font='9px Heebo,sans-serif';var nW=ctx.measureText(nTx).width;ctx.restore();
+    if(cx+22+nW/2>IBX-4&&nY-6<IBB+2)nY=IBB+10;
+    optLabel(ctx,nTx,cx+22,nY,'#7d8da6',9);
     var L=Math.min(175,W/2-14);
     // Incident beam (animated pulse)
     var ix=cx-L*Math.sin(th1),iy=MY-L*Math.cos(th1);
@@ -17854,7 +18234,7 @@ function simOptSnell(canvas){
       ctx.save();ctx.fillStyle='rgba(4,9,20,.8)';ctx.beginPath();ctx.roundRect(cx+34,MY+30,44,18,3);ctx.fill();ctx.restore();
       optLabel(ctx,'\u200eθ₂ = '+(th2*180/Math.PI).toFixed(1)+'°',cx+56,MY+39,wlHex,10);
     }
-    optInfoBox(ctx,W-160,8,150,['n₁·sinθ₁=n₂·sinθ₂',tir?`Total reflection: θ₁ > θc`:'\u200eθ₂ = '+(th2*180/Math.PI).toFixed(1)+'°',`Dispersion: n depends on λ`]);
+    optInfoBox(ctx,IBX,8,150,['n₁·sinθ₁=n₂·sinθ₂',tir?`Total reflection: θ₁ > θc`:'\u200eθ₂ = '+(th2*180/Math.PI).toFixed(1)+'°',`Dispersion: n depends on λ`]);
     requestAnimationFrame(draw);
   }
   function poll(){if(_simStop[id])return;requestAnimationFrame(draw);}poll();
@@ -18826,11 +19206,16 @@ function simOptYoungs(canvas){
       yy2===6?ctx.moveTo(xx,yy2):ctx.lineTo(xx,yy2);
     }
     ctx.stroke();ctx.restore();
-    optLabel(ctx,'I(y)',scrX-56,16,'#7d8da6',8);
     // Screen frame (draggable → L)
     ctx.save();ctx.strokeStyle='rgba(148,163,184,.5)';ctx.lineWidth=1.5;
     ctx.strokeRect(scrX-8,6,16,H-12);ctx.restore();
-    optLabel(ctx,`Screen ↔ L=${v.L.toFixed(2)}m`,scrX,H-10,'#94a3b8',9);
+    // The screen's name goes beside the verdict panel where the panel (drawn
+    // later) would cover it -- the screen near the slits, on a phone -- or,
+    // with no room there either, just above the panel.
+    var scT=`Screen ↔ L=${v.L.toFixed(2)}m`;ctx.save();ctx.font='9px Heebo,sans-serif';var scW=ctx.measureText(_mathIso(scT)).width;ctx.restore();
+    var scX=scrX,scY=H-10;
+    if(scX-scW/2<246+4){scX=Math.min(Math.max(scX,252+scW/2),W-4-scW/2);if(scX-scW/2<250){scX=scrX;scY=H-88;}}
+    optLabel(ctx,scT,scX,scY,'#94a3b8',9);
     // Δy bracket
     if(DyPx>H*0.44){
       optLabel(ctx,`Δy = ${(c.Dy_m*1000).toFixed(2)} mm — wider than the screen`,scrX-92,cy-H*0.30,'#fbbf24',8.5);
@@ -18859,8 +19244,12 @@ function simOptYoungs(canvas){
     ctx.strokeStyle='rgba(34,211,238,.75)';
     ctx.beginPath();ctx.moveTo(slitX,s2y);ctx.lineTo(scrX-8,detY);ctx.stroke();
     ctx.setLineDash([]);ctx.restore();
-    optLabel(ctx,'r₁',slitX+(scrX-slitX)*0.45,s1y+(detY-s1y)*0.45-10,'#fbbf24',9);
-    optLabel(ctx,'r₂',slitX+(scrX-slitX)*0.45,s2y+(detY-s2y)*0.45+12,'#22d3ee',9);
+    // r₁ and r₂ are named a little way along their rays -- far enough to clear
+    // "d=…mm ↕" beside the slits, which r₂ ran into with the screen near them
+    ctx.save();ctx.font='9px Heebo,sans-serif';var dEnd=slitX+26+ctx.measureText(_mathIso('d='+v.d.toFixed(2)+'mm ↕')).width/2;ctx.restore();
+    var rf=Math.min(0.75,Math.max(0.45,(dEnd+10-slitX)/Math.max(1,scrX-slitX)));
+    optLabel(ctx,'r₁',slitX+(scrX-slitX)*rf,s1y+(detY-s1y)*rf-10,'#fbbf24',9);
+    optLabel(ctx,'r₂',slitX+(scrX-slitX)*rf,s2y+(detY-s2y)*rf+12,'#22d3ee',9);
     // detector marker
     ctx.save();ctx.fillStyle=kCol;optGlow(ctx,kCol,14);
     ctx.beginPath();ctx.arc(scrX+16,detY,8,0,Math.PI*2);ctx.fill();optNoGlow(ctx);
@@ -18874,7 +19263,11 @@ function simOptYoungs(canvas){
     optLabel(ctx,`Detector: y = ${(y_m*1000).toFixed(2)} mm`,127,H-62,'#e2e8f0',10);
     optLabel(ctx,'Δ = r₂−r₁ = '+mVal.toFixed(2)+'λ',127,H-45,kCol,11);
     optLabel(ctx,kind==='max'?`Constructive interference — bright fringe (m=${mR})`:kind==='min'?`Destructive interference — dark fringe`:`Between a maximum and a minimum`,127,H-26,kCol,9.5);
-    optInfoBox(ctx,8,8,176,['λ='+v.lambda+'nm',`d=${v.d.toFixed(2)}mm  (drag a slit)`,`L=${v.L.toFixed(2)}m  (drag the screen)`,'Δy=λL/d='+(c.Dy_m*1000).toFixed(2)+'mm']);
+    var ib=optInfoBox(ctx,8,8,176,['λ='+v.lambda+'nm',`d=${v.d.toFixed(2)}mm  (drag a slit)`,`L=${v.L.toFixed(2)}m  (drag the screen)`,'Δy=λL/d='+(c.Dy_m*1000).toFixed(2)+'mm']);
+    // I(y) names its curve at the top -- or just under the info box, which
+    // covered that spot (and "λ=500nm") whenever the screen stood near the slits
+    ctx.save();ctx.font='8px Heebo,sans-serif';var iyW=ctx.measureText('I(y)').width;ctx.restore();
+    optLabel(ctx,'I(y)',scrX-56,scrX-56-iyW/2<ib.x+ib.w+3?ib.y+ib.h+10:16,'#7d8da6',8);
     requestAnimationFrame(draw);
   }
   function poll(){if(_simStop[id])return;requestAnimationFrame(draw);}poll();
@@ -19547,17 +19940,23 @@ function simOptLaser(canvas){
     ctx.beginPath();ctx.roundRect(cavL,cavY,cavR-cavL,cavH,4);ctx.fill();
     ctx.strokeStyle='rgba('+lRGB[0]+','+lRGB[1]+','+lRGB[2]+',.5)';ctx.lineWidth=1.5;
     ctx.beginPath();ctx.roundRect(cavL,cavY,cavR-cavL,cavH,4);ctx.stroke();
+    // The mirrors' two-line labels sit wholly above the mirror bars (their
+    // second line used to cross the bar's top end), and the partial mirror's
+    // is measured and kept left of the inversion meter beside it.
+    var meterX=W<520?W-20:W*0.87;
     // Mirror left (total reflector)
     ctx.save();ctx.fillStyle='#e2e8f0';ctx.fillRect(cavL-5,cavY-6,6,cavH+12);
     ctx.fillStyle='#64748b';ctx.font='8px sans-serif';ctx.textAlign='center';
-    ctx.fillText(`Mirror`,cavL-2,cavY-12);ctx.fillText('100%',cavL-2,cavY-4);ctx.restore();
+    ctx.fillText(`Mirror`,cavL-2,cavY-19);ctx.fillText('100%',cavL-2,cavY-10);ctx.restore();
     // Mirror right (partial reflector)
     ctx.save();
     var mrGrad=ctx.createLinearGradient(cavR-3,0,cavR+3,0);
     mrGrad.addColorStop(0,'rgba(226,232,240,0.9)');mrGrad.addColorStop(1,'rgba(226,232,240,0.3)');
     ctx.fillStyle=mrGrad;ctx.fillRect(cavR-1,cavY-6,5,cavH+12);
     ctx.fillStyle='#64748b';ctx.font='8px sans-serif';ctx.textAlign='center';
-    ctx.fillText(`Partial mirror`,cavR+2,cavY-12);ctx.fillText(`Leaks a little`,cavR+2,cavY-4);ctx.restore();
+    var PM1=`Partial mirror`,PM2=`Leaks a little`;
+    var pmX=Math.min(cavR+2,meterX-20-Math.max(ctx.measureText(PM1).width,ctx.measureText(PM2).width)/2);
+    ctx.fillText(PM1,pmX,cavY-19);ctx.fillText(PM2,pmX,cavY-10);ctx.restore();
     // Pump arrows (top)
     var nPump=Math.round(pump*8);
     for(var pi=0;pi<nPump;pi++){
@@ -19627,7 +20026,7 @@ function simOptLaser(canvas){
       ctx.fillText(`Below threshold — spontaneous emission`,W/2,cavY+cavH+22);
     }
     // Population inversion meter
-    var meterX=W<520?W-20:W*0.87,meterY=cavY+cavH,meterH=cavH*1.2;
+    var meterY=cavY+cavH,meterH=cavH*1.2;
     ctx.fillStyle='rgba(30,41,59,.8)';ctx.beginPath();ctx.roundRect(meterX-14,meterY-meterH,28,meterH,4);ctx.fill();
     ctx.strokeStyle='#475569';ctx.lineWidth=1;ctx.beginPath();ctx.roundRect(meterX-14,meterY-meterH,28,meterH,4);ctx.stroke();
     var fillH=Math.max(4,inversion*meterH);
@@ -19640,8 +20039,9 @@ function simOptLaser(canvas){
     ctx.save();ctx.strokeStyle='#fbbf24';ctx.lineWidth=1;ctx.setLineDash([3,3]);
     ctx.beginPath();ctx.moveTo(meterX-14,meterY-threshold*meterH);ctx.lineTo(meterX+14,meterY-threshold*meterH);ctx.stroke();ctx.setLineDash([]);ctx.restore();
     // Info box
-    optInfoBox(ctx,W<520?10:20,H-86,W<520?W-20:W*0.82-20,[`Pump: ${Math.round(pump*100)}%   ·   ${wl} nm`,`Status: ${aboveThresh?`★ Lasing — inversion clamped at threshold; excess pump feeds the beam`:`Below threshold — gain is smaller than losses`}`,
-      `Output power: ${Math.round(outP*100)}% of maximum`,`All three are 4-level lasers: the lower level empties fast`]);
+    // (bottom edge at H-12; on the narrowest phones the status line breaks in two)
+    optInfoBox(ctx,W<520?10:20,H-12,W<520?W-20:W*0.82-20,[`Pump: ${Math.round(pump*100)}%   ·   ${wl} nm`,`Status: ${aboveThresh?`★ Lasing — inversion clamped at threshold; excess pump feeds the beam`:`Below threshold — gain is smaller than losses`}`,
+      `Output power: ${Math.round(outP*100)}% of maximum`,`All three are 4-level lasers: the lower level empties fast`],{wrap:true,bottom:true});
     requestAnimationFrame(draw);
   }
   function poll(){if(_simStop[id])return;requestAnimationFrame(draw);}poll();
@@ -19992,9 +20392,16 @@ function simOptTelescope(canvas){
     ctx.beginPath();ctx.roundRect(10,10,W-20,38,6);ctx.fill();ctx.stroke();
     ctx.restore();
     // two runs, each one direction, and shrunk to fit a phone (the joined
-    // Hebrew-and-maths line overflowed and reordered)
-    optLabel(ctx,`Angular magnification`,W/2+(W<520?60:110),29,'#34d399',W<520?10:12);
-    optLabel(ctx,'\u200e|M| = fₒ/fₑ = '+fo+'/'+fe+' = '+M.toFixed(1),W/2-(W<520?40:60),29,'#34d399',W<520?10:12);
+    // Hebrew-and-maths line overflowed and reordered). They are measured and
+    // set side by side as one centred line, in the page's reading order: the
+    // name first in a left-to-right language, on the right in Hebrew
+    var _mNm=`Angular magnification`, _mFx='\u200e|M| = fₒ/fₑ = '+fo+'/'+fe+' = '+M.toFixed(1), _mSz=W<520?10:12;
+    ctx.save();ctx.font=_mSz+'px Heebo,sans-serif';
+    var _wNm=ctx.measureText(_mNm).width, _wFx=ctx.measureText(_mFx).width, _gap=_mSz*1.4;
+    ctx.restore();
+    var _x0=W/2-(_wNm+_gap+_wFx)/2, _ltr=document.documentElement.dir==='ltr';
+    optLabel(ctx,_mNm,_ltr?_x0:_x0+_wFx+_gap,29,'#34d399',_mSz,'left');
+    optLabel(ctx,_mFx,_ltr?_x0+_wNm+_gap:_x0,29,'#34d399',_mSz,'left');
     // Length scale bar
     ctx.save();ctx.strokeStyle='#334155';ctx.lineWidth=1;
     var scaleBarLen=fe*scale;
@@ -20362,6 +20769,50 @@ function label(ctx,txt,x,y,col,sz,align){
   var fx=_fitLabel(ctx,txt,x,y,align,sz);
   if(fx!==null)ctx.fillText(txt,fx,_fitY(ctx,y,sz));
   ctx.restore();
+}
+// The width label() gives a text (its 9 px floor included), so that a layout
+// can make room for a label -- in whatever language it is -- before drawing it.
+function labelW(ctx,txt,sz){
+  if(sz===undefined)sz=11; if(sz<9)sz=9;
+  ctx.save();ctx.font=sz+'px Heebo';var w=ctx.measureText(_mathIso(_cvSub(String(txt)))).width;ctx.restore();
+  return w;
+}
+// Two labels on one row, each centred over its own object (a left of b) while
+// there is room; nearer than their widths allow, they move apart by equal
+// steps -- and never past an edge of the canvas. Returns the two centres.
+function _spread2(xa,wa,xb,wb,gap,W){
+  var need=(wa+wb)/2+gap,d=xb-xa;
+  if(d<need){xa-=(need-d)/2;xb+=(need-d)/2;}
+  if(xa<4+wa/2){xb+=4+wa/2-xa;xa=4+wa/2;}
+  if(xb>W-4-wb/2){xa-=xb-(W-4-wb/2);xb=W-4-wb/2;}
+  return [xa,xb];
+}
+function _boxOver(a,b,p){var ox=Math.min(a[2],b[2])-Math.max(a[0],b[0])+p,oy=Math.min(a[3],b[3])-Math.max(a[1],b[1])+p;return ox>0&&oy>0?ox*oy:0;}
+function _segHitsBox(g,b,p){
+  var n=Math.max(2,Math.ceil(Math.hypot(g[2]-g[0],g[3]-g[1])/2));
+  for(var i=0;i<=n;i++){var x=g[0]+(g[2]-g[0])*i/n,y=g[1]+(g[3]-g[1])*i/n;
+    if(x>b[0]-p&&x<b[2]+p&&y>b[1]-p&&y<b[3]+p)return true;}
+  return false;
+}
+// A label that moves with its drawing (a turning vector) goes, frame by frame,
+// to the first of its candidate spots whose box keeps clear of the boxes in
+// keep (other labels, panels), of the segments in segs ([x1,y1,x2,y2,cost]:
+// an arrow, a dashed line) and of the canvas edges -- or, where none does, to
+// the one that costs least: lying on a dashed line costs less than lying on
+// an arrow, and that less than lying on another text. A candidate is what
+// label() takes: {x, y (baseline), al}. Returns it, with its box [x0,y0,x1,y1].
+function labelSpot(ctx,txt,sz,cands,keep,segs,W,H){
+  var w=labelW(ctx,txt,sz),s=Math.max(9,sz||11),best=null,bs=1e9;
+  for(var i=0;i<cands.length;i++){
+    var c=cands[i],al=c.al||'center',x0=al==='left'?c.x:al==='right'?c.x-w:c.x-w/2;
+    var b=[x0,c.y-s*0.75,x0+w,c.y+s*0.25],sc=0;
+    if(b[0]<3||b[2]>W-3||b[1]<1||b[3]>H-1)sc+=5000;
+    (keep||[]).forEach(function(k){var o=_boxOver(b,k,3);if(o)sc+=300+o*5;});
+    (segs||[]).forEach(function(g){if(_segHitsBox(g,b,3))sc+=g[4]||200;});
+    if(sc===0)return {x:c.x,y:c.y,al:al,box:b};
+    if(sc<bs){bs=sc;best={x:c.x,y:c.y,al:al,box:b};}
+  }
+  return best;
 }
 function circle(ctx,x,y,r,fill,stroke,lw){
   if(stroke===undefined)stroke=''; if(lw===undefined)lw=2;
@@ -21784,14 +22235,20 @@ runAnim('anim-accel',(canvas,ctx,W,H,t)=>{
   for(let i=1;i<=5;i++){const ti=i/5*PERIOD;const xi=0.5*a*ti*ti;const spx=toXpx(xi);ctx.save();ctx.strokeStyle='rgba(139,92,246,.25)';ctx.lineWidth=1;ctx.setLineDash([2,3]);ctx.beginPath();ctx.moveTo(spx,ay-16);ctx.lineTo(spx,ay+6);ctx.stroke();ctx.setLineDash([]);ctx.restore();}
   // v arrow
   const arVLen=Math.min(vv*7,78);
-  if(arVLen>3){arrow(ctx,bx,ay-22,bx+arVLen,ay-22,'#34d399',2.5,10);label(ctx,'v = '+vv.toFixed(1)+' m/s',bx+arVLen+4,ay-18,'#34d399',9,'left');}
+  // each arrow is named past its head -- or, near the end of the run, where
+  // that would leave the canvas (the name was pushed back onto the arrow),
+  // behind the ball
+  const tipLbl=(txt,x,y,col)=>{if(x+labelW(ctx,txt,9)>R+12)label(ctx,txt,bx-16,y,col,9,'right');else label(ctx,txt,x,y,col,9,'left');};
+  if(arVLen>3){arrow(ctx,bx,ay-22,bx+arVLen,ay-22,'#34d399',2.5,10);tipLbl('v = '+vv.toFixed(1)+' m/s',bx+arVLen+4,ay-18,'#34d399');}
   // a arrow
   arrow(ctx,bx,ay+20,bx+a*7,ay+20,'#f59e0b',2.5,9);
-  label(ctx,'a = '+a+' m/s²',bx+a*7+4,ay+24,'#f59e0b',9,'left');
+  tipLbl('a = '+a+' m/s²',bx+a*7+4,ay+24,'#f59e0b');
   // Ball
   ctx.save(); ctx.shadowColor='rgba(99,102,241,.7)'; ctx.shadowBlur=12;
   circle(ctx,bx,ay,12,'#4f46e5','#a78bfa',2); ctx.restore();
-  label(ctx,'t = '+tt.toFixed(2)+' s',L+2,panH-4,'#94a3b8',9,'left');
+  // the clock reads at the top: at the panel's foot it was on the row of the
+  // a label, which rides with the ball and ran into it for the first second
+  label(ctx,'t = '+tt.toFixed(2)+' s',L+2,12,'#94a3b8',9,'left');
   // Dual graphs
   const grT=panH+6, grB=H-5, gW2=Math.floor((W-36)/2);
   // v(t)
@@ -21824,25 +22281,34 @@ runAnim('anim-fall',(canvas,ctx,W,H,t)=>{
   const yM=Math.max(0,v0f*phase-0.5*g*phase*phase);
   const hMax=v0f*v0f/(2*g);
   const groundY=H-18, ceilY=24;
-  const toY=ym=>groundY-(ym/hMax)*(groundY-ceilY)*0.9;
+  // The balls top out under a row kept for the captions (baseline LBL): the
+  // apex used to be at y = 40, so "a = g …" and h_max ran across the balls and
+  // "v = 0 …" across the middle one. The largest ball (r = 14) clears the row.
+  const LBL=34, apexY=LBL+20;
+  const toY=ym=>groundY-(ym/hMax)*(groundY-apexY);
   // Ground
   ctx.save(); ctx.strokeStyle='#2d5275'; ctx.lineWidth=2;
   ctx.beginPath(); ctx.moveTo(12,groundY); ctx.lineTo(W-12,groundY); ctx.stroke();
   for(let i=0;i<W-16;i+=16){ctx.strokeStyle='#0d1e30';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(12+i,groundY);ctx.lineTo(12+i+10,groundY+7);ctx.stroke();}
   ctx.restore();
-  // h_max dashed
-  ctx.save(); ctx.strokeStyle='rgba(52,211,153,.4)'; ctx.lineWidth=1.2; ctx.setLineDash([4,4]);
-  ctx.beginPath(); ctx.moveTo(28,toY(hMax)); ctx.lineTo(W-28,toY(hMax)); ctx.stroke(); ctx.setLineDash([]); ctx.restore();
-  label(ctx,'h_max = '+hMax.toFixed(1)+' m',W-32,toY(hMax)-5,'#34d399',9,'right');
-  // y axis
-  ctx.save(); ctx.strokeStyle='#2d5275'; ctx.lineWidth=1.5;
-  ctx.beginPath(); ctx.moveTo(26,groundY+3); ctx.lineTo(26,ceilY-2); ctx.stroke(); ctx.restore();
-  arrow(ctx,26,ceilY,26,ceilY-2,'#2d5275',1.5,5); label(ctx,'y',26,ceilY-6,'#7d8da6',8);
   const balls=[
     {col:'#3b82f6',bx:Math.floor(W*0.28),r:8,lbl:'0.05kg'},
     {col:'#f59e0b',bx:Math.floor(W*0.52),r:11,lbl:'2kg'},
     {col:'#ef4444',bx:Math.floor(W*0.76),r:14,lbl:'20kg'},
   ];
+  // h_max dashed
+  ctx.save(); ctx.strokeStyle='rgba(52,211,153,.4)'; ctx.lineWidth=1.2; ctx.setLineDash([4,4]);
+  ctx.beginPath(); ctx.moveTo(28,toY(hMax)); ctx.lineTo(W-28,toY(hMax)); ctx.stroke(); ctx.setLineDash([]); ctx.restore();
+  // h_max is named just above its line, at the right end -- or, where the
+  // heaviest ball and its mass reach under that spot (a phone), in the caption row
+  const hTx='h_max = '+hMax.toFixed(1)+' m', bR=balls[2];
+  ctx.save();ctx.font='9px Heebo';const hW=ctx.measureText(_cvSub(hTx)).width,mW=ctx.measureText(bR.lbl).width;ctx.restore();
+  label(ctx,hTx,W-32,(W-32-hW<bR.bx+bR.r+6+mW+6)?LBL:toY(hMax)-5,'#34d399',9,'right');
+  // y axis
+  ctx.save(); ctx.strokeStyle='#2d5275'; ctx.lineWidth=1.5;
+  ctx.beginPath(); ctx.moveTo(26,groundY+3); ctx.lineTo(26,ceilY-2); ctx.stroke(); ctx.restore();
+  // the axis letter beside its arrowhead, under the info bar (above the head, half of it was under the bar)
+  arrow(ctx,26,ceilY,26,ceilY-2,'#2d5275',1.5,5); label(ctx,'y',21,ceilY+4,'#7d8da6',8,'right');
   const vy=v0f-g*phase;
   balls.forEach(b=>{
     const by=toY(yM);
@@ -21853,14 +22319,14 @@ runAnim('anim-fall',(canvas,ctx,W,H,t)=>{
     label(ctx,b.lbl,b.bx+b.r+6,by+4,'#e2e8f0',9,'left');
     if(Math.abs(vy)>0.8){const arLen=Math.min(Math.abs(vy)*2.5,28);const yd=vy>0?-arLen:arLen;arrow(ctx,b.bx,by+(vy>0?-b.r-1:b.r+1),b.bx,by+(vy>0?-b.r-1:b.r+1)+yd,vy>0?'#34d399':'#f87171',1.8,6);}
   });
-  if(Math.abs(vy)<1.6){label(ctx,`v=0 at the top! All together`,W/2,toY(hMax)+14,'#fbbf24',10);}
+  if(Math.abs(vy)<1.6){label(ctx,`v=0 at the top! All together`,W/2,apexY+28,'#fbbf24',10);}   // under the balls, not across the middle one
   // Info bar top
   ctx.save(); ctx.fillStyle='rgba(8,18,36,.82)'; ctx.fillRect(0,0,W,18); ctx.restore();
   const rising=phase<Tpeak;
   label(ctx,'t = '+phase.toFixed(2)+' s     y = '+yM.toFixed(1)+' m     v = '+vy.toFixed(1)+' m/s '+(rising?'↑':'↓'),W/2,12,'#cbd5e1',9);
   // Symmetry banner
   if(tt>Ttotal+0.3&&tt<Ttotal+1.6){ctx.save();ctx.fillStyle='rgba(8,18,36,.92)';ctx.strokeStyle='#fbbf24';ctx.lineWidth=1.2;ctx.beginPath();ctx.roundRect(W/2-110,H/2-12,220,22,6);ctx.fill();ctx.stroke();ctx.restore();label(ctx,`Time up = time down = ${Tpeak.toFixed(2)} s`,W/2,H/2+2,'#fbbf24',10);}
-  label(ctx,`a = g = 9.8 m/s² for every mass`,34,34,'#94a3b8',9,'left');
+  label(ctx,`a = g = 9.8 m/s² for every mass`,34,LBL,'#94a3b8',9,'left');
 });
 
 runAnim('anim-inertia',(canvas,ctx,W,H,t)=>{
@@ -22361,14 +22827,17 @@ runAnim('anim-n3',(canvas,ctx,W,H,t)=>{
     label(ctx,'F(B→A) = −'+FMag+' N',xA-bWA/2-24,ay+34,'#93c5fd',8.5,'right');
   }
 
-  // Acceleration while touching; constant velocity once they part.
+  // Acceleration while touching; constant velocity once they part. Each is
+  // centred over its block while there is room; just after the push the two
+  // blocks are closer than the two labels are wide, and the labels used to be
+  // printed into each other -- they now stand apart, each over its own side.
+  const row=(tA,tB)=>{const p=_spread2(xA,labelW(ctx,tA,8),xB,labelW(ctx,tB,8),10,W);
+    label(ctx,tA,p[0],ay-bH/2-10,'#fca5a5',8);label(ctx,tB,p[1],ay-bH/2-10,'#93c5fd',8);};
   if(tt>1){
     if(inContact){
-      label(ctx,'a(A) = '+(FMag/mA).toFixed(1)+' m/s² ←',xA,ay-bH/2-10,'#fca5a5',8);
-      label(ctx,'a(B) = '+(FMag/mB).toFixed(1)+' m/s² →',xB,ay-bH/2-10,'#93c5fd',8);
+      row('a(A) = '+(FMag/mA).toFixed(1)+' m/s² ←','a(B) = '+(FMag/mB).toFixed(1)+' m/s² →');
     } else {
-      label(ctx,'v='+vA.toFixed(1)+' m/s ←  (a=0)',xA,ay-bH/2-10,'#fca5a5',8);
-      label(ctx,'v='+vB.toFixed(1)+' m/s →  (a=0)',xB,ay-bH/2-10,'#93c5fd',8);
+      row('v='+vA.toFixed(1)+' m/s ←  (a=0)','v='+vB.toFixed(1)+' m/s →  (a=0)');
       // equal and opposite impulses ⇒ the pair's momentum never left zero
       label(ctx,'\u200ep = '+(mA*vA).toFixed(1)+' + (−'+(mB*vB).toFixed(1)+') = 0 kg·m/s',
             W/2,ay+bH/2+24,'#fbbf24',8.5);
@@ -22388,11 +22857,25 @@ runAnim('anim-vecadd',(canvas,ctx,W,H,t)=>{
   // A = 3 units along +x, B = 2 units turning slowly; head to tail, R = A + B.
   // (Lengths and readouts used to be raw pixels -- "A = 62" -- and the boxed
   // labels piled on top of one another.)
-  const panelW=Math.min(W*0.3,190), U=Math.min((W-panelW-40)/6.2,(H-30)/4.6);
-  const cx=Math.max(20+2*U,(W-panelW)*0.36), cy=H*0.58;
   const theta=t*0.5, a=3, b=2;
   const Ax=a, Ay=0, Bx=b*Math.cos(theta), By=b*Math.sin(theta);
   const Rx=Ax+Bx, Ry=Ay+By, Rm=Math.hypot(Rx,Ry);
+  // The panel is as wide as its widest line (measured with the widest values
+  // it shows): on a phone its sums ran out of it to the left.
+  const f=v=>(v>=0?'+':'')+v.toFixed(2), tPan=`Adding by components`;
+  const pRows=[[tPan,24,'#94a3b8'],['Rx = Ax + Bx = '+f(Rx),46,'#34d399'],['Ry = Ay + By = '+f(Ry),66,'#34d399'],
+    ['|R| = √(Rx² + Ry²) = '+Rm.toFixed(2),90,'#22d3ee'],['|A| = 3,  |B| = 2',112,'#cbd5e1'],['1 ≤ |R| ≤ 5',132,'#fbbf24']];
+  const pMax=Math.max(...pRows.map((r,i)=>labelW(ctx,i===1||i===2?r[0].replace(/[-+]\d\.\d\d$/,'+5.00'):i===3?r[0].replace(/\d\.\d\d$/,'5.00'):r[0],9)));
+  const panelW=Math.min(Math.max(Math.min(W*0.3,190),pMax+14),W*0.45);
+  // R's name is centred over (or under) its head, and the head reaches
+  // Rx = 5 units, Ry = ±2: on a phone the diagram used to run on under the
+  // panel, and "R = A + B" was printed over its sums. Nothing lies left of the
+  // origin (Rx >= 1), so the origin moves left until the name clears the
+  // panel, and the scale leaves the name room under the canvas' bottom edge.
+  const PX=W-panelW-6, rW=labelW(ctx,'R = A + B',10);
+  let U=Math.min((W-panelW-40)/6.2,(H-30)/4.6,(H*0.5-22)/2);
+  U=Math.min(U,(PX-8-rW/2-14)/5);
+  const cx=Math.max(14,Math.min(Math.max(20+2*U,(W-panelW)*0.36),PX-8-rW/2-5*U)), cy=H*0.5;
   const P=(x,y)=>[cx+x*U, cy-y*U];
   ctx.save(); ctx.fillStyle='rgba(30,58,82,.4)';
   for(let gx=cx%U;gx<W-panelW-10;gx+=U) for(let gy=cy%U;gy<H;gy+=U){ ctx.beginPath(); ctx.arc(gx,gy,1.4,0,Math.PI*2); ctx.fill(); }
@@ -22404,21 +22887,25 @@ runAnim('anim-vecadd',(canvas,ctx,W,H,t)=>{
   arrow(ctx,...P(0,0),...P(Ax,Ay),'#3b82f6',3,12);
   label(ctx,'A',P(Ax/2,0)[0],P(0,0)[1]+(Ry>=0?14:-6),'#93c5fd',11);
   arrow(ctx,...P(Ax,Ay),...P(Ax+Bx,Ay+By),'#f59e0b',3,12);
-  label(ctx,'B',P(Ax+Bx/2,0)[0]+(Bx>=0?10:-10)*(Math.abs(By)>0.3?1:0),P(0,Ay+By/2)[1]+(Math.abs(By)>0.3?4:-10),'#fde68a',11);
+  // B is named beside its middle, outside the triangle (a fixed step right
+  // and down put the name on B's own arrow while B lay low). B lying along
+  // the axis is named on the side away from R's name (the two used to meet
+  // when B folds back over A), a little toward its tail, clear of A's.
+  const flat=Math.abs(By)<=0.3, bw=labelW(ctx,'B',11), nx=Math.abs(Math.sin(theta)), ny=(By>=0?1:-1)*Math.cos(theta);
+  const bd=6+bw/2*nx+5*Math.abs(ny), bm=P(Ax+Bx/2,Ay+By/2);
+  const bL=flat?[P(Ax+Bx/2+(Bx<0?0.6:0),0)[0],P(0,By/2)[1]+(Ry>=0?14:-10)]:[bm[0]+nx*bd,bm[1]+ny*bd+4];
+  label(ctx,'B',bL[0],bL[1],'#fde68a',11);
   ctx.save(); ctx.shadowColor='rgba(52,211,153,.6)'; ctx.shadowBlur=10;
   arrow(ctx,...P(0,0),...P(Rx,Ry),'#34d399',3.5,14); ctx.restore();
-  label(ctx,'R = A + B',P(Rx,Ry)[0]+(Rx>=0?10:-10),P(Rx,Ry)[1]+(Ry>=0?-6:14),'#34d399',10,Rx>=0?'left':'right');
+  // with B folded back, R is short and its name can reach B's: it then moves left
+  let rx=P(Rx,Ry)[0];const ry=P(Rx,Ry)[1]+(Ry>=0?-12:18);
+  if(rx+rW/2>bL[0]-bw/2-3&&rx-rW/2<bL[0]+bw/2+3&&ry-7.5<bL[1]+5.75&&ry+5.5>bL[1]-8.25)rx=Math.max(3+rW/2,bL[0]-bw/2-3-rW/2);
+  label(ctx,'R = A + B',rx,ry,'#34d399',10,'center');
   // panel
-  const PX=W-panelW-6;
   ctx.save(); ctx.fillStyle='rgba(6,14,28,.88)'; ctx.strokeStyle='#1e4060'; ctx.lineWidth=1;
   ctx.beginPath(); ctx.roundRect(PX,8,panelW,H-16,7); ctx.fill(); ctx.stroke(); ctx.restore();
-  const pc=PX+panelW/2, f=v=>(v>=0?'+':'')+v.toFixed(2);
-  label(ctx,`Adding by components`,pc,24,'#94a3b8',9);
-  label(ctx,'Rx = Ax + Bx = '+f(Rx),pc,46,'#34d399',9);
-  label(ctx,'Ry = Ay + By = '+f(Ry),pc,66,'#34d399',9);
-  label(ctx,'|R| = √(Rx² + Ry²) = '+Rm.toFixed(2),pc,90,'#22d3ee',9);
-  label(ctx,'|A| = 3,  |B| = 2',pc,112,'#cbd5e1',9);
-  label(ctx,'1 ≤ |R| ≤ 5',pc,132,'#fbbf24',9);
+  const pc=PX+panelW/2;
+  pRows.forEach(r=>label(ctx,r[0],pc,r[1],r[2],9));
 });
 
 // CH2 ANIM: רכיבי ווקטור
@@ -23093,31 +23580,29 @@ runAnim('anim-vec',(canvas,ctx,W,H,t)=>{
   const PW0=W*0.30, R=Math.max(24,Math.min(62,(W-PW0*2-20)/2-8,CY-16)), k=R/mag;
   const vx=R*Math.cos(angle), vy=R*Math.sin(angle);
 
-  // ── Left panel: Scalar examples
-  const PW=W*0.30, PH=H-14;
-  ctx.save();ctx.fillStyle='rgba(6,14,28,.75)';ctx.strokeStyle='rgba(30,64,96,.6)';ctx.lineWidth=1;
-  ctx.beginPath();ctx.roundRect(6,6,PW,PH-6,5);ctx.fill();ctx.stroke();ctx.restore();
-  label(ctx,`Scalar`,6+PW/2,18,'#7d8da6',8,'center');
+  // ── The two panels: scalar examples (left), vector examples (right). A name
+  // and its value share a row while both fit in it; on a phone "Acceleration"
+  // ran into "← 5 m/s²" and "Momentum" into "↗ 30 kg·m/s", so where any row of
+  // either panel is too narrow, every row of both puts its value under its name.
+  const PW=W*0.30, PH=H-14, RPX=W-6-PW, RPY=6;
   const scalars=[[`Mass`,'5 kg'],[`Time`,'3.2 s'],[`Temp.`,'37°C'],[`Distance`,'12 m']];
-  scalars.forEach(([name,val],i)=>{
-    const sy=30+i*22;
-    ctx.save();ctx.fillStyle='rgba(15,30,55,.6)';ctx.beginPath();ctx.roundRect(12,sy,PW-12,16,3);ctx.fill();ctx.restore();
-    label(ctx,name,22,sy+11,'#60a5fa',7.5,'left');
-    label(ctx,val,6+PW-6,sy+11,'#94a3b8',7.5,'right');
-  });
-
-  // ── Right panel: Vector examples
-  const RPX=W-6-PW, RPY=6;
-  ctx.save();ctx.fillStyle='rgba(6,14,28,.75)';ctx.strokeStyle='rgba(167,139,250,.4)';ctx.lineWidth=1;
-  ctx.beginPath();ctx.roundRect(RPX,RPY,PW,PH-6,5);ctx.fill();ctx.stroke();ctx.restore();
-  label(ctx,`Vector`,RPX+PW/2,RPY+12,'#a78bfa',8,'center');
   const vectors=[[`Velocity`,'→ 20 m/s'],[`Force`,'↑ 15 N'],[`Acceleration`,'← 5 m/s²'],[`Momentum`,'↗ 30 kg·m/s']];
-  vectors.forEach(([name,val],i)=>{
-    const sy=RPY+24+i*22;
-    ctx.save();ctx.fillStyle='rgba(15,30,55,.6)';ctx.beginPath();ctx.roundRect(RPX+6,sy,PW-12,16,3);ctx.fill();ctx.restore();
-    label(ctx,name,RPX+12,sy+11,'#a78bfa',7.5,'left');
-    label(ctx,val,RPX+PW-6,sy+11,'#c4b5fd',7.5,'right');
-  });
+  const fit=(list,nx)=>list.every(([n,v])=>labelW(ctx,n,7.5)+labelW(ctx,v,7.5)+5<=PW-6-nx);
+  const one=fit(scalars,16)&&fit(vectors,12);
+  const row0=one?30:26, rowS=one?22:27, rowH=one?16:24;
+  const panel=(px,stroke,title,tcol,list,nx,ncol,vcol)=>{
+    ctx.save();ctx.fillStyle='rgba(6,14,28,.75)';ctx.strokeStyle=stroke;ctx.lineWidth=1;
+    ctx.beginPath();ctx.roundRect(px,6,PW,PH-6,5);ctx.fill();ctx.stroke();ctx.restore();
+    label(ctx,title,px+PW/2,18,tcol,8,'center');
+    list.forEach(([name,val],i)=>{
+      const sy=row0+i*rowS;
+      ctx.save();ctx.fillStyle='rgba(15,30,55,.6)';ctx.beginPath();ctx.roundRect(px+6,sy,PW-12,rowH,3);ctx.fill();ctx.restore();
+      label(ctx,name,px+nx,sy+(one?11:10),ncol,7.5,'left');
+      label(ctx,val,px+PW-6,sy+(one?11:20.5),vcol,7.5,'right');
+    });
+  };
+  panel(6,'rgba(30,64,96,.6)',`Scalar`,'#7d8da6',scalars,16,'#60a5fa','#94a3b8');
+  panel(RPX,'rgba(167,139,250,.4)',`Vector`,'#a78bfa',vectors,12,'#a78bfa','#c4b5fd');
 
   // ── Center: animated vector demonstration
   const CCX=PW+10+(W-PW*2-20)/2, CCY=CY;
@@ -23126,26 +23611,54 @@ runAnim('anim-vec',(canvas,ctx,W,H,t)=>{
   ctx.save();ctx.strokeStyle='rgba(251,191,36,.5)';ctx.lineWidth=1.2;
   ctx.beginPath();ctx.arc(CCX,CCY,22,0,angle%(Math.PI*2),angle<0);ctx.stroke();ctx.restore();
   const aDisp=(((-angle)%(Math.PI*2))*180/Math.PI);
-  label(ctx,aDisp.toFixed(0)+'°',CCX+28,CCY-10,'#fbbf24',8);
 
   // Vector arrow
   arrow(ctx,CCX,CCY,CCX+vx,CCY+vy,'#34d399',2.5,10);
-  // Magnitude label on arrow
-  label(ctx,'|v|='+mag+' m/s',CCX+vx/2+8,CCY+vy/2-8,'#34d399',8);
 
   // Component dashed lines
   ctx.save();ctx.strokeStyle='rgba(96,165,250,.5)';ctx.lineWidth=1.2;ctx.setLineDash([4,5]);
   ctx.beginPath();ctx.moveTo(CCX+vx,CCY);ctx.lineTo(CCX+vx,CCY+vy);ctx.stroke();
   ctx.beginPath();ctx.moveTo(CCX,CCY+vy);ctx.lineTo(CCX+vx,CCY+vy);ctx.stroke();
   ctx.setLineDash([]);ctx.restore();
-  label(ctx,'vₓ='+(vx/k).toFixed(0),CCX+vx/2,CCY+8,'#60a5fa',7.5,'center');
-  // vy is a SCREEN component (canvas y grows downward). Negate for the label
-  // only — the draw calls above must keep using CCY+vy.
-  label(ctx,'vᵧ='+(-vy/k).toFixed(0),CCX+vx+(vx>0?5:-20),CCY+vy/2,'#f87171',7.5);
 
   // Origin dot
   circle(ctx,CCX,CCY,3,'#fff','#94a3b8',1.5);
-  label(ctx,`Origin`,CCX,CCY+20,'#7d8da6',7,'center');
+
+  // The labels of the turning vector used to sit at fixed offsets from it:
+  // |v| lay on the angle, on vₓ and on "origin", and on a phone vᵧ ran into
+  // the scalar panel's values. |v| -- the one number that never changes --
+  // now heads the picture; "origin" sits on the side of the origin away from
+  // the arrow, beyond the arc; the angle on the arc's bisector; and vₓ and vᵧ
+  // take, frame by frame, the first of their spots beside their own dashed
+  // line that keeps clear of the arrow, the dashed lines, the arc, the panels
+  // and the labels placed before them.
+  const ux=vx/R, uy=vy/R, up=vy<0, am=angle/2, sx=ux>0?1:-1;
+  const keep=[[6,6,6+PW,PH],[RPX,RPY,RPX+PW,PH]];
+  const segs=[[CCX,CCY,CCX+vx,CCY+vy,200],[CCX+vx,CCY,CCX+vx,CCY+vy,30],[CCX,CCY+vy,CCX+vx,CCY+vy,30]];
+  for(let i=0;i<12;i++){const a0=angle*i/12,a1=angle*(i+1)/12;
+    segs.push([CCX+22*Math.cos(a0),CCY+22*Math.sin(a0),CCX+22*Math.cos(a1),CCY+22*Math.sin(a1),30]);}
+  const put=(txt,sz,col,cands)=>{const s=labelSpot(ctx,txt,sz,cands,keep,segs,W,H);keep.push(s.box);label(ctx,txt,s.x,s.y,col,sz,s.al);};
+  // the baseline spot whose box (w by h) just clears the point (x,y) in the direction (dx,dy)
+  const off=(x,y,dx,dy,w,h,gap)=>{const d=gap+w/2*Math.abs(dx)+h/2*Math.abs(dy);return {x:x+dx*d,y:y+dy*d+h*0.3};};
+  const tv='|v|='+mag+' m/s';
+  put(tv,8,'#34d399',[{x:CCX,y:16}]);
+  const yO=up?11:-5, yI=up?-5:11, yF=CCY+vy+(up?-8:15);      // outside / inside the axis; beyond the far side
+  put('vₓ='+(vx/k).toFixed(0),7.5,'#60a5fa',[{x:CCX+vx/2,y:CCY+yO},{x:CCX+vx/2,y:yF},
+    {x:CCX+vx/2,y:CCY+yI},{x:CCX-sx*5,y:CCY+yO,al:ux>0?'right':'left'}]);
+  // vy is a SCREEN component (canvas y grows downward). Negate for the label
+  // only — the draw calls above must keep using CCY+vy.
+  put('vᵧ='+(-vy/k).toFixed(0),7.5,'#f87171',[{x:CCX+vx+sx*5,y:CCY+vy/2+3,al:ux>0?'left':'right'},
+    {x:CCX+vx,y:yF},{x:CCX-sx*5,y:CCY+vy/2+3,al:ux>0?'right':'left'},
+    {x:CCX+vx-sx*5,y:CCY+vy/2+3,al:ux>0?'right':'left'},{x:CCX+sx*5,y:CCY+vy/2+3,al:ux>0?'left':'right'}]);
+  const ta=aDisp.toFixed(0)+'°', wa=labelW(ctx,ta,8), ca=Math.cos(am), sa=Math.sin(am);
+  put(ta,8,'#fbbf24',[off(CCX,CCY,ca,sa,wa,9,26),off(CCX,CCY,ca,sa,wa,9,38),
+    {x:CCX+28,y:CCY-10},{x:CCX+28,y:CCY+14},{x:CCX-28,y:CCY+14},{x:CCX-28,y:CCY-10}]);
+  // "origin" in the part of the turn the arc has not swept, nearest its middle
+  // -- or, where the others leave no room there, at the nearest free spot round it
+  const to=`Origin`, wo=labelW(ctx,to,7), bo=Math.PI+am, co=[];
+  for(let j=0;j<14;j++){const d=(j%2?-1:1)*Math.ceil(j/2)*0.45;
+    [6,16].forEach(g=>co.push(off(CCX,CCY,Math.cos(bo+d),Math.sin(bo+d),wo,9,g)));}
+  put(to,7,'#7d8da6',co);
 });
 
 // ── CH3 ANIM: anim-tension — rope tension, T=m(g±a)
@@ -23696,22 +24209,42 @@ runAnim('anim-projectile-arc',(canvas,ctx,W,H,t)=>{
   const P=(f,tt)=>[ORIG_X+v0*Math.cos(f.th)*tt*scale, GND-(v0*Math.sin(f.th)*tt-0.5*g*tt*tt)*scale];
   ctx.save(); ctx.strokeStyle='#1e4060'; ctx.lineWidth=2;
   ctx.beginPath(); ctx.moveTo(ORIG_X-8,GND); ctx.lineTo(ORIG_X+Rmax*scale+20,GND); ctx.stroke(); ctx.restore();
-  // the flights already made in this cycle, faint, with their landing points
+  // the flights already made in this cycle, faint, with their landing points.
+  // 20° and 70° land on the same spot (so do 35° and 55°, next to 45°): each
+  // name takes the one of the two rows under the ground where it has to move
+  // least to clear the names already there -- they used to be printed on top
+  // of one another.
+  // The ball that has just landed keeps its velocity, whose vy arrow points
+  // down through the rows: its own name keeps clear of that arrow too.
+  const VS=2.0, rows=[[],[]], vyL=v0*Math.sin(cur.th)*VS;
   for(let j=0;j<=k;j++){
     const f=fl[j], cur2=(j===k);
     ctx.save(); ctx.strokeStyle=cur2?'rgba(96,165,250,.35)':'rgba(148,163,184,.22)'; ctx.lineWidth=1.6; ctx.setLineDash([5,6]);
     ctx.beginPath();
     for(let i=0;i<=60;i++){const q=P(f,f.T*i/60); i===0?ctx.moveTo(q[0],q[1]):ctx.lineTo(q[0],q[1]);}
     ctx.stroke(); ctx.restore();
-    if(!cur2||tc>cur.T){const R=v0*v0*Math.sin(2*f.th)/g, lx=ORIG_X+R*scale;
+    if(!cur2||tc>cur.T){const R=v0*v0*Math.sin(2*f.th)/g, lx=ORIG_X+R*scale, tx=f.d+'°', hw=labelW(ctx,tx,9)/2+2;
       ctx.save();ctx.fillStyle=cur2?'#60a5fa':'#64748b';ctx.beginPath();ctx.arc(lx,GND,3,0,6.2832);ctx.fill();ctx.restore();
-      label(ctx,f.d+'°',lx,GND+12+(j%2)*10,cur2?'#93c5fd':'#7d8da6',9);}
+      if(cur2)rows.forEach((rw,ri)=>{if(ri*10+5<vyL)rw.push([lx,2]);});
+      let best=null;
+      rows.forEach((rw,ri)=>{[lx].concat(rw.map(q=>q[0]-q[1]-hw),rw.map(q=>q[0]+q[1]+hw)).forEach(x=>{
+        if(rw.some(q=>Math.abs(x-q[0])<q[1]+hw-0.01))return;
+        const c=Math.abs(x-lx)+ri*0.5;if(!best||c<best.c)best={c:c,x:x,ri:ri};});});
+      rows[best.ri].push([best.x,hw]);
+      label(ctx,tx,best.x,GND+12+best.ri*10,cur2?'#93c5fd':'#7d8da6',9);}
   }
-  const b=P(cur,tNow), vx=v0*Math.cos(cur.th), vy=v0*Math.sin(cur.th)-g*tNow, VS=2.0;
+  const b=P(cur,tNow), vx=v0*Math.cos(cur.th), vy=v0*Math.sin(cur.th)-g*tNow;
   arrow(ctx,b[0],b[1],b[0]+vx*VS,b[1],'#60a5fa',1.8,7);
   if(Math.abs(vy)>0.5)arrow(ctx,b[0],b[1],b[0],b[1]-vy*VS,'#f87171',1.8,7);
-  label(ctx,'vx='+vx.toFixed(1),b[0]+vx*VS/2,b[1]+13,'#60a5fa',9);
-  if(Math.abs(vy)>0.5)label(ctx,'vy='+vy.toFixed(1),b[0]+8,b[1]-vy*VS/2,'#f87171',9,'left');
+  // Each component is named on the side of its arrow away from the other one:
+  // on the way down vy's arrow points under the ball, where vx's name was --
+  // the two were printed into each other -- so vx goes above its arrow, and vy
+  // to the left of its own, above the ground and the landing names. Where the
+  // canvas' right edge pushes vx's name back over the ball, it rises a row.
+  const down=vy<-0.5, txv='vx='+vx.toFixed(1), wxv=labelW(ctx,txv,9);
+  const xv=Math.min(b[0]+vx*VS/2,W-3-wxv/2);
+  label(ctx,txv,xv,down?(xv-wxv/2<b[0]+4?b[1]-17:b[1]-7):b[1]+13,'#60a5fa',9);
+  if(Math.abs(vy)>0.5)label(ctx,'vy='+vy.toFixed(1),down?b[0]-8:b[0]+8,down?Math.min(b[1]-vy*VS/2,GND-4):b[1]-vy*VS/2,'#f87171',9,down?'right':'left');
   circle(ctx,b[0],b[1],7,'#f59e0b','#fde68a',2);
   // launch angle, between the ground and the launch direction
   ctx.save(); ctx.strokeStyle='#fbbf24'; ctx.lineWidth=1.8;
@@ -23735,7 +24268,8 @@ runAnim('anim-projectile-range',(canvas,ctx,W,H,t)=>{
   arrow(ctx,marginL,marginT+GH,marginL+GW+8,marginT+GH,'#2d5275',1.5,7);
   arrow(ctx,marginL,marginT+GH,marginL,marginT-8,'#2d5275',1.5,7);
   label(ctx,'θ (°)',marginL+GW+4,marginT+GH+3,'#7d8da6',9,'left');
-  label(ctx,'R (m)',marginL-4,marginT-2,'#7d8da6',9,'right');
+  // beside the axis' arrowhead: right-aligned left of it, "R (m)" sat on the top tick's number
+  label(ctx,'R (m)',marginL+8,marginT-3,'#7d8da6',9,'left');
 
   // Grid
   ctx.save();ctx.strokeStyle='rgba(30,64,96,.35)';ctx.lineWidth=0.6;ctx.setLineDash([3,5]);
@@ -23766,6 +24300,10 @@ runAnim('anim-projectile-range',(canvas,ctx,W,H,t)=>{
   const PERIOD=6;
   const th1_deg=10+35*((t%PERIOD)/PERIOD);
   const th2_deg=90-th1_deg;
+  // as the pair closes on 45° the two dots meet, and so did their angles:
+  // the two names now stand apart, each on its own dot's side
+  const lx=_spread2(marginL+th1_deg/90*GW,labelW(ctx,th1_deg.toFixed(0)+'°',8.5),
+                    marginL+th2_deg/90*GW,labelW(ctx,th2_deg.toFixed(0)+'°',8.5),4,W);
   [th1_deg,th2_deg].forEach((deg,idx)=>{
     const th=deg*Math.PI/180;
     const R=v0*v0*Math.sin(2*th)/g;
@@ -23776,15 +24314,16 @@ runAnim('anim-projectile-range',(canvas,ctx,W,H,t)=>{
     ctx.save();ctx.strokeStyle=col+'80';ctx.lineWidth=1;ctx.setLineDash([3,4]);
     ctx.beginPath();ctx.moveTo(px,py);ctx.lineTo(px,marginT+GH);ctx.stroke();
     ctx.setLineDash([]);ctx.restore();
-    label(ctx,deg.toFixed(0)+'°',px,py-10,col,8.5);
+    label(ctx,deg.toFixed(0)+'°',lx[idx],py-10,col,8.5);
   });
 
-  // 45° marker
+  // 45° marker -- named at its foot: at the top the angle of the green dot
+  // ran across the name on every phone while that dot passed 59°-64°
   const px45=marginL+45/90*GW;
   ctx.save();ctx.strokeStyle='rgba(167,139,250,.6)';ctx.lineWidth=1.5;ctx.setLineDash([4,5]);
   ctx.beginPath();ctx.moveTo(px45,marginT);ctx.lineTo(px45,marginT+GH);ctx.stroke();
   ctx.setLineDash([]);ctx.restore();
-  label(ctx,'Rmax @ 45°',px45+4,marginT+12,'#a78bfa',8);
+  label(ctx,'Rmax @ 45°',px45+4,marginT+GH-6,'#a78bfa',8);
 
   // Title
   label(ctx,'R = v₀²·sin2θ / g',W/2,marginT+GH+22,'#7d8da6',8.5);
@@ -24468,10 +25007,10 @@ runAnim('anim-spring2',(canvas,ctx,W,H,t)=>{
   eqLine(RX); massBox(RX,mP,'rgba(59,130,246,.75)','#60a5fa'); force(RX,mP,xP,kP,1);
 
   // ── Captions ──
-  label(ctx,`In series: smaller equivalent constant`,LX,INFO+6,'#34d399',9.5);
+  label(ctx,`In series: smaller k`,LX,INFO+6,'#34d399',9.5);
   label(ctx,'k = k₁k₂/(k₁+k₂) = '+kS.toFixed(0)+' N/m',LX,INFO+21,'#34d399',9);
   label(ctx,'T = '+(2*Math.PI/omS).toFixed(2)+' s',LX,INFO+36,'#cbd5e1',9.5);
-  label(ctx,`In parallel: larger equivalent constant`,RX,INFO+6,'#f97316',9.5);
+  label(ctx,`In parallel: larger k`,RX,INFO+6,'#f97316',9.5);
   label(ctx,'k = k₁+k₂ = '+kP.toFixed(0)+' N/m',RX,INFO+21,'#f97316',9);
   label(ctx,'T = '+(2*Math.PI/omP).toFixed(2)+' s',RX,INFO+36,'#cbd5e1',9.5);
 
@@ -24734,7 +25273,10 @@ runAnim('anim-refr-speed',(canvas,ctx,W,H,t)=>{
     {name:`Glass`,n:1.5,col:'#a78bfa'},
     {name:`Diamond`,n:2.42,col:'#f472b6'},
   ];
-  var bx=44,bw=W-100,bH=16,gap=8,startY=18;
+  // the five bars end a clear line above the caption (the last bar used to
+  // run under it): the caption keeps the bottom 16 px, the bars start higher
+  var bx=44,bw=W-100,bH=16,gap=8,capY=H-8;
+  var startY=Math.max(6,Math.min(18,capY-10-(materials.length*(bH+gap)-gap)));
   materials.forEach(function(m,i){
     var y=startY+i*(bH+gap);
     var barLen=Math.round(bw/m.n);
@@ -24757,7 +25299,7 @@ runAnim('anim-refr-speed',(canvas,ctx,W,H,t)=>{
     oLbl(ctx,m.name,bx-22,y+bH/2,'#94a3b8',8);
     oLbl(ctx,'n = '+m.n,bx+bw+28,y+bH/2,m.col,8);
   });
-  oLbl(ctx,`Relative speed of light in different materials`,W/2,H-6,'#7d8da6',9);
+  oLbl(ctx,`Relative speed of light in different materials`,W/2,capY,'#7d8da6',9);
 });
 
 // ─── 3. Enhanced Reflection Law ──────────────────────────────────────────────
@@ -27072,7 +27614,8 @@ MAG_SIMS['mag-wire']=function(canvas){
     ctx.save();ctx.strokeStyle='#1e3a52';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(gx,gy+8);ctx.lineTo(gx,gy+gh);ctx.lineTo(gx+gw,gy+gh);ctx.stroke();ctx.restore();
     [0,200,400,600].forEach(function(v){simText(ctx,String(v),gx-5,Y(v*1e-6)+3,'#64748b',8.5,'right');});
     [0,5,10,15].forEach(function(v){simText(ctx,String(v),X(v/100),gy+gh+13,'#64748b',8.5,'center');});
-    simText(ctx,'μT',gx-22,gy+14,'#64748b',8.5,'center');simText(ctx,'r (cm)',X(0.125),gy+gh+13,'#64748b',8.5,'center');
+    // the unit heads the column of tick numbers, a row above the top one (it was on the "600")
+    simText(ctx,'μT',gx-5,Y(600e-6)-9,'#64748b',8.5,'right');simText(ctx,'r (cm)',X(0.125),gy+gh+13,'#64748b',8.5,'center');
     ctx.save();ctx.strokeStyle='rgba(52,211,153,.5)';ctx.setLineDash([4,4]);ctx.beginPath();ctx.moveTo(gx,Y(30e-6));ctx.lineTo(gx+gw,Y(30e-6));ctx.stroke();ctx.restore();
     simText(ctx,`Earth’s field`,gx+gw-4,Y(30e-6)-5,'#34d399',8.5,'right');
     var I1=Math.abs(Ls[0][2]),pts=[];for(var r=0.004;r<=rmax;r+=0.001){var B=2e-7*I1/r;if(B<=Bmax)pts.push([X(r),Y(B)]);}
@@ -27328,10 +27871,14 @@ MAG_SIMS['mag-circle']=function(canvas){
     magFieldMarks(ctx,X0,0,W,H,bz>0,38);
     ctx.save();ctx.strokeStyle='#475569';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(X0,0);ctx.lineTo(X0,H);ctx.stroke();ctx.restore();
     // ruler along the boundary, in real centimetres
-    if(shots.length){var span=(H-50)/sc,st=[0.005,0.01,0.02,0.05,0.1,0.2,0.5,1];var tk=st.find(function(x){return span/x<=10;})||1;
+    // (steps up to 50 m: a slow-turning ion at the sliders' ends has r of tens
+    // of metres, and 1 m steps stacked ~50 numbers into one column; a number
+    // that would run into the "cm" at the ruler's end is left out)
+    if(shots.length){var span=(H-50)/sc,st=[0.005,0.01,0.02,0.05,0.1,0.2,0.5,1,2,5,10,20,50];var tk=st.find(function(x){return span/x<=10;})||50;
+      var yCm=up?14:H-8;
       for(var d=0;d*sc<H-30;d+=tk){var yy=up?yE-d*sc:yE+d*sc;ctx.save();ctx.strokeStyle='#64748b';ctx.beginPath();ctx.moveTo(X0-8,yy);ctx.lineTo(X0,yy);ctx.stroke();ctx.restore();
-        simText(ctx,(d*100).toFixed(tk<0.01?1:0),X0-11,yy+3,'#64748b',8.5,'right');}
-      simText(ctx,'cm',X0-11,up?14:H-8,'#64748b',8.5,'right');}
+        if(Math.abs(yy+3-yCm)>=11)simText(ctx,(d*100).toFixed(tk<0.01?1:0),X0-11,yy+3,'#64748b',8.5,'right');}
+      simText(ctx,'cm',X0-11,yCm,'#64748b',8.5,'right');}
     // the gun
     ctx.save();ctx.fillStyle='#334155';ctx.fillRect(8,yE-9,X0*0.55,18);ctx.restore();
     simText(ctx,PARTS[pi].n,8+X0*0.27,yE+(up?-18:22),'#94a3b8',9.5,'center',true);
@@ -27351,13 +27898,20 @@ MAG_SIMS['mag-circle']=function(canvas){
       q0=s;});
     marks.forEach(function(m){ctx.save();ctx.strokeStyle=m.s.col;ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(X0-14,m.y);ctx.lineTo(X0+6,m.y);ctx.stroke();ctx.restore();
       simText(ctx,'2r = '+(2*m.s.r*100).toFixed(1)+' cm',X0+12,m.y+(up?14:-8),m.s.col,10,'left',true);});
-    var y0=up?8:H-68;ctx.save();ctx.fillStyle='rgba(2,8,16,.85)';ctx.fillRect(W-Math.min(W*0.62,420)-8,y0,Math.min(W*0.62,420),60);ctx.restore();
-    var bx=W-Math.min(W*0.62,420)/2-8;
+    // The panel is as wide as its widest line (on a phone the first line was
+    // ~240 px in a 226 px panel), never reaching left of the field's edge X0;
+    // a line that still does not fit is set smaller to the panel's width.
+    var y0=up?8:H-68,rows;
     if(q0){var tin2=Math.max(0,(tv-q0.t0-0.35)/(Tvis/(q0.T/2)));
-      simText(ctx,'r = mv/qB = '+(q0.r*100).toFixed(q0.r<1?2:0)+' cm   ·   T/2 = πm/qB = '+(q0.T/2*1e9).toFixed(1)+' ns',bx,y0+18,'#e2e8f0',10.5,'center',true);
-      simText(ctx,`Clock (slow motion): ${(Math.min(tin2,q0.T/2)*1e9).toFixed(1)} ns`,bx,y0+38,'#fbbf24',10.5,'center',true);
-      simText(ctx,shots.length>1?`2× the speed, 2× the radius — same exit instant`:`Change v and relaunch: r changes, T/2 does not`,bx,y0+54,'#94a3b8',9.5,'center');}
-    else simText(ctx,`Press “Launch” — or “Launch two” to compare`,bx,y0+30,'#94a3b8',10.5,'center');
+      rows=[['r = mv/qB = '+(q0.r*100).toFixed(q0.r<1?2:0)+' cm   ·   T/2 = πm/qB = '+(q0.T/2*1e9).toFixed(1)+' ns',18,'#e2e8f0',10.5,true],
+        [`Clock (slow motion): ${(Math.min(tin2,q0.T/2)*1e9).toFixed(1)} ns`,38,'#fbbf24',10.5,true],
+        [shots.length>1?`2× the speed, 2× the radius — same exit instant`:`Change v and relaunch: r changes, T/2 does not`,54,'#94a3b8',9.5,false]];}
+    else rows=[[`Press “Launch” — or “Launch two” to compare`,30,'#94a3b8',10.5,false]];
+    ctx.save();rows.forEach(function(r){ctx.font=(r[4]?'bold ':'')+r[3]+'px Heebo';r.push(ctx.measureText(_mathIso(r[0])).width);});ctx.restore();
+    var pw=Math.min(W-X0-12,Math.max(Math.min(W*0.62,420),Math.max.apply(null,rows.map(function(r){return r[5];}))+20));
+    ctx.save();ctx.fillStyle='rgba(2,8,16,.85)';ctx.fillRect(W-pw-8,y0,pw,60);ctx.restore();
+    var bx=W-pw/2-8;
+    rows.forEach(function(r){simText(ctx,r[0],bx,y0+r[1],r[2],r[3]*Math.min(1,(pw-12)/r[5]),'center',r[4]);});
     requestAnimationFrame(draw);
   }
   requestAnimationFrame(draw);
@@ -28920,8 +29474,12 @@ function simElcField(canvas){
       // force on the test charge and the arrow was proportional to nothing.
       var FLraw=0.6*Math.sqrt(Et.m), FL=Math.min(84,FLraw);
       simArrow(ctx,tx,ty,tx+Et.x/Et.m*FL,ty+Et.y/Et.m*FL,'#34d399',3,11);
-      optLabel(ctx,'F=q₀E'+(FLraw>84?` (arrow shortened)`:''),
-               tx+Et.x/Et.m*FL+16,ty+Et.y/Et.m*FL,'#34d399',9);
+      // named just past its head, along it (centred 16 px right of the head,
+      // "(arrow shortened)" lay back across the arrow whenever it pointed right)
+      var fT='F=q₀E'+(FLraw>84?` (arrow shortened)`:'');
+      ctx.save();ctx.font='9px Heebo,sans-serif';var fW=ctx.measureText(_mathIso(fT)).width;ctx.restore();
+      var fS=_tipSpot(tx,ty,tx+Et.x/Et.m*FL,ty+Et.y/Et.m*FL,fW,11,W,H,7);
+      optLabel(ctx,fT,fS.x,fS.y,'#34d399',9);
     }
     optLabel(ctx,`Test charge`,tx,ty+24,'#fbbf24',8.5);
     if(!touched&&animT<8)optLabel(ctx,`✋ Drag the charges and the test charge`,W/2,20,'#fbbf24',10);
@@ -29092,7 +29650,7 @@ function simElcPotential(canvas){
     if(markV!==null){
       var Wj=q0v*1e-9*(markV-V)*1e6;
       lines.push(`Point A: V(A) = ${(markV/1000).toFixed(1)} kV`);
-      lines.push('W = q₀(V(A)−V) = '+Wj.toFixed(2)+' μJ  '+(Wj>0?`← the field helps`:Wj<0?`← against the field`:''));
+      lines.push('W = q₀(V(A)−V) = '+Wj.toFixed(2)+' μJ  '+(Wj>0?`→ the field helps`:Wj<0?`→ against the field`:''));
     } else lines.push(`📌 Mark point A to measure W=q₀ΔV`);
     optInfoBox(ctx,8,H-26-lines.length*16,250,lines);
     requestAnimationFrame(draw);
@@ -30879,7 +31437,11 @@ function simElcPlane(canvas){
       ctx.beginPath();ctx.roundRect(tx-lw/2,ty+16,lw,18,5);ctx.fill();ctx.restore();
       simText(ctx,'E = E₁ + E₂ = '+(Et/1e5).toFixed(2)+'×10⁵ V/m',tx,ty+26,'#fbbf24',10,'center',true);
     } else simText(ctx,`E₁ + E₂ = 0 — no force`,tx,ty+26,'#94a3b8',10,'center',true);
-    if(!touched)simText(ctx,`Drag the test charge`,W-16,H*0.62-8,'#7d8da6',9.5,'right');
+    // the hint used to sit in the bottom corner, across the right plate and a
+    // row of arrows; it goes under the charge's own readout instead, in the
+    // gap before the next row of arrows (the charge has not moved yet)
+    if(!touched){var rowB=yTop+18+38*Math.ceil((ty+34-(yTop+18))/38);
+      simText(ctx,`Drag the test charge`,tx,(ty+34+rowB-4)/2+3.5,'#7d8da6',9.5,'center');}
     // ── the three regions, each with its own arithmetic ──
     var lbl=[[ (x1)/2, Etot(x1*0.5)],[ two?(x1+x2)/2:(x1+W)/2, Etot(two?(x1+x2)/2:(x1+W)/2)]];
     if(two)lbl.push([(x2+W)/2,Etot((x2+W)/2)]);
@@ -31027,6 +31589,11 @@ function simElcConductor(canvas){
       var rhoTip=R*0.16, Vsurf=Math.abs(ELC_K*Q/R);
       var Etip=Vsurf/rhoTip;
       var tipX=cx+pear(0)*1.1, tipY=cy;
+      // the highest point of the charges and sparks in the σ bars' column (see below)
+      var tipHi=1e9, colX=W*0.58-24;
+      for(var a=0;a<=72;a++){var th=a/72*Math.PI*2;
+        if(cx+Math.cos(th)*pear(th)*1.07>colX)tipHi=Math.min(tipHi,cy+Math.sin(th)*pear(th)*0.88-7);}
+      if(Etip>3e6&&tipX+43>colX)tipHi=Math.min(tipHi,tipY-Math.sin(0.4)*38-3);
       optLabel(ctx,`E at the tip ≈ V/ρ = ${(Etip/1e6).toFixed(1)}×10⁶ V/m`,cx,cy-rr*1.35,'#fbbf24',9.5);
       if(Etip>3e6){
         ctx.save();ctx.strokeStyle='rgba(34,211,238,'+(0.45+0.55*Math.abs(Math.sin(animT*7))).toFixed(2)+')';ctx.lineWidth=1.6;
@@ -31045,22 +31612,30 @@ function simElcConductor(canvas){
     // ── probe (sphere mode only: kQ/r² does not describe the pear) ──
     if(sharpMode){
       var PX0=W*0.58, PW=W*0.38;
-      optLabel(ctx,`Why does the charge crowd into the tip?`,PX0+PW/2,60,'#fbbf24',11);
+      // Where the pear, its charges or its sparks reach into the bars' column
+      // (a phone; at R = 70 the pear itself), the bars close up above them --
+      // first nearer each other, then higher: the sparks used to run onto the
+      // second σ bar. tipHi is the highest point drawn in that column.
+      var need=Math.max(0,100+74+22-(tipHi-8)),ySt=74-Math.min(24,need),yb0=Math.max(46,100-Math.max(0,need-24));
+      optLabel(ctx,`Why does the charge crowd into the tip?`,PX0+PW/2,Math.max(14,yb0-40),'#fbbf24',11);
       var rows=[[`Large radius of curvature (blunt side)`,0.34,'#38bdf8'],
                 [`Small radius of curvature (tip)`,1.0,'#f87171']];
       for(var ri=0;ri<2;ri++){
-        var yb=100+ri*74;
+        var yb=yb0+ri*ySt;
         optLabel(ctx,rows[ri][0],PX0+PW/2,yb-8,'#94a3b8',9);
         ctx.save();ctx.fillStyle='rgba(148,163,184,.12)';ctx.fillRect(PX0,yb,PW,22);
         ctx.fillStyle=rows[ri][2];ctx.fillRect(PX0,yb,PW*rows[ri][1],22);
         ctx.strokeStyle='rgba(148,163,184,.35)';ctx.lineWidth=1;ctx.strokeRect(PX0,yb,PW,22);ctx.restore();
         optLabel(ctx,'σ',PX0-12,yb+11,rows[ri][2],10);
       }
-      optInfoBox(ctx,W*0.58,H-190,W*0.38,[
-        `The surface is all at one potential`,
+      // as wide as its lines, kept flush with the bars' right edge; a box that
+      // has to reach left past the bars drops below the caption under the tip
+      var SL=[`The surface is all at one potential`,
         `V≈kq/r ⇒ small r needs less charge`,
         `so σ, and E=σ/ε₀, are large there`,
-        `The principle of the lightning rod`]);
+        `The principle of the lightning rod`];
+      var SW=Math.min(PX0+PW-8,Math.max(PW,optInfoBoxW(ctx,SL))),SX=PX0+PW-SW;
+      optInfoBox(ctx,SX,SX<PX0-1?Math.max(H-190,cy+rr*1.5+14):H-190,SW,SL,{wrap:true});
       requestAnimationFrame(draw);return;
     }
     var dxp=(pxp-cx)/PXM, dyp=(pyp-cy)/PXM;
@@ -31134,11 +31709,14 @@ function simElcConductor(canvas){
     ctx.beginPath();ctx.arc(xp,vY(Vp),4.5,0,Math.PI*2);ctx.fill();
     ctx.strokeStyle='rgba(251,191,36,.35)';ctx.lineWidth=1;ctx.setLineDash([2,3]);
     ctx.beginPath();ctx.moveTo(xp,gyE);ctx.lineTo(xp,gyV+GH);ctx.stroke();ctx.setLineDash([]);ctx.restore();
-    optInfoBox(ctx,8,H-92,Math.min(244,GX-16),[
+    // left of the graphs (and of the V graph's "0") there is no more width to
+    // give it: on a phone a long line is set smaller or broken in two, and the
+    // box grows upward
+    optInfoBox(ctx,8,H-18,Math.min(244,GX-22),[
       `At the probe (r=${(r_m*100).toFixed(0)} cm):`,
       '\u200eE = '+(Ep===0?`0 exactly`:sciTxt(Ep)+' V/m'),
       '\u200eV = '+(Vp/1000).toFixed(1)+' kV'+(inside?`  (constant everywhere inside)`:''),
-      inside?(Vp===0?`Inside: E=0 (and here V=0 too)`:`Inside: E=0 but V≠0`):(E0x?`Outside: external + induced, normal to the surface`:`Outside: like a point charge at the center`)]);
+      inside?(Vp===0?`Inside: E=0 (and here V=0 too)`:`Inside: E=0 but V≠0`):(E0x?`Outside: external + induced, normal to the surface`:`Outside: like a point charge at the center`)],{wrap:true,bottom:true});
     requestAnimationFrame(draw);
   }requestAnimationFrame(draw);
 }
@@ -32517,7 +33095,7 @@ var SL_IMPL={
     else if(r){
       slTxt(ctx,`Δx = ${(r.xc*100).toFixed(1)} cm   (raw ${(r.xr*100).toFixed(1)})`,W/2,y-13,tx,11.5,'center',true);
       var bad=r.tilt>2.5;
-      simText(ctx,bad?(`⚠ The phone tilted by ${r.tilt.toFixed(1)}° — gravity leaked into the axis; keep it flat and try again`)
+      simText(ctx,bad?(`⚠ Phone tilted ${r.tilt.toFixed(1)}° — gravity leaked into the axis; lay it flat, retry`)
                     :(`Drift ${Math.abs(r.drift).toFixed(3)} m/s over ${r.T.toFixed(1)} s — this is the measurement error`),
         W/2,y+5,bad?c3:mu,11,'center',bad);}
     if(st.ph!=='done'&&st.ph!=='cal'&&st.ph!=='armed'&&st.ph!=='run')
@@ -32685,10 +33263,10 @@ var SL_IMPL={
         ' s     Δx/Δt = '+C.va.toFixed(3)+' m/s',W/2,H-26,tx,11.5,'center',true);
       var d1=Math.abs(C.A.v-C.va),d2=Math.abs(C.B.v-C.va);
       simText(ctx,st.cap.tilt>2.5
-        ?(`⚠ The phone tilted by ${st.cap.tilt.toFixed(1)}° during the trial — gravity leaked into the axis`)
+        ?(`⚠ Phone tilted ${st.cap.tilt.toFixed(1)}° during the trial — gravity leaked into the axis`)
         :(d1>0.04||d2>0.04
-          ?`The secant’s slope differs from the tangents’ — average is not instantaneous`
-          :`Here the secant and the tangents are nearly parallel — over this interval the velocity is nearly constant`),
+          ?`Secant and tangent slopes differ — average is not instantaneous`
+          :`Secant and tangents nearly parallel — the velocity is nearly constant here`),
         W/2,H-8,st.cap.tilt>2.5?gd:mu,11,'center',st.cap.tilt>2.5);
     } else simText(ctx,`Drag the two markers to choose an interval`,W/2,H-14,mu,11.5,'center');}},
 
@@ -32882,8 +33460,8 @@ var SL_IMPL={
       slTxt(ctx,'Δv = '+(s2.B.v-s2.A.v).toFixed(2)+' m/s     Δt = '+(s2.B.t-s2.A.t).toFixed(3)+
         ' s     Δv/Δt = '+s2.g.toFixed(2)+' m/s²',W/2,H-26,tx,11.5,'center',true);
       simText(ctx,Math.abs(s2.g-st.g0)<0.6
-        ? `✓ The slope agrees with g measured at rest — the flight really is free, and the acceleration constant`
-        : `Drag both markers into the green section — that is where the motion is free`,
+        ? `✓ Slope matches g at rest — free flight, constant acceleration`
+        : `Drag both markers into the green part, where motion is free`,
         W/2,H-8,Math.abs(s2.g-st.g0)<0.6?gr:gd,11,'center',true);
     } else simText(ctx,`Drag the markers along the graph to measure a slope`,W/2,H-14,mu,11.5,'center');}},
 
@@ -32980,7 +33558,7 @@ var SL_IMPL={
     var c1=slCss('--accent','#3b82f6'),gr=slCss('--green','#10b981'),gd=slCss('--gold','#f59e0b'),
         mu=slCss('--muted','#889'),tx=slCss('--text','#dde'),bd=slCss('--border','#2a3d55');
     if(st.ph==='cal'){
-      simText(ctx,`⏳ Calibrating (${Math.round(st.calN/50*100)}%) — hold your hand steady while the elevator is stopped`,
+      simText(ctx,`⏳ Calibrating (${Math.round(st.calN/50*100)}%) — hand steady, elevator stopped`,
         W/2,H/2-8,gd,12.5,'center',true);
       simText(ctx,`Calibration sets what “normal weight” is for this phone`,W/2,H/2+16,mu,11.5,'center');
       return;}
@@ -32995,7 +33573,7 @@ var SL_IMPL={
     ctx.save();ctx.strokeStyle=bd;ctx.lineWidth=1;ctx.strokeRect(px+.5,py+.5,pw-1,ph2-1);ctx.restore();
     if(!C){
       simText(ctx,st.ph==='run'?(`🔴 Riding… ${(st.tw||1).toFixed(2)} × weight`)
-        :`Ride one floor — the recording ends automatically when the elevator stops`,
+        :`Ride one floor — recording stops when the elevator does`,
         px+pw/2,py+ph2/2,st.ph==='run'?gd:mu,12.5,'center',true);
     } else {
       var P=C.p,d=C.dur,i,hmn=0,hmx=0,vmn=0,vmx=0;
@@ -33046,9 +33624,9 @@ var SL_IMPL={
     if(C){
       var up=C.h>0;
       simText(ctx,Math.abs(C.drift)>0.35
-        ? `⚠ Large drift in the integral — your hand probably moved during the ride`
-        : (up?`Going up: heavy at the start, light at the end — and in the middle, just like standing still`
-             :`Going down: light at the start, heavy at the end — and in the middle, just like standing still`),
+        ? `⚠ Large integral drift — your hand probably moved during the ride`
+        : (up?`Going up: heavy at first, light at the end — in between, as if standing still`
+             :`Going down: light at first, heavy at the end — in between, as if standing still`),
         W/2,y,Math.abs(C.drift)>0.35?gd:mu,11,'center',Math.abs(C.drift)>0.35);
     } else simText(ctx,`Hold it flat on your palm and keep your hand still`,W/2,y,mu,11,'center');}},
 
@@ -33198,16 +33776,16 @@ var SL_IMPL={
     if(st.gyro<0.05&&st.pts.length===0&&st.ar<1.02)
       simText(ctx,`Pull aside and release — each half-swing is recorded separately`,W/2,y,mu,11.5,'center',true);
     else if(st.gyro<0.05)
-      simText(ctx,`⚠ This device gives no gyroscope reading — the release angle can’t be measured`,W/2,y,rd,11,'center',true);
+      simText(ctx,`⚠ No gyroscope on this device — the release angle can’t be measured`,W/2,y,rd,11,'center',true);
     else if(st.inSw)
       simText(ctx,`🔴 Swinging… ${(st.ang*180/Math.PI).toFixed(0)}° swept`,W/2,y,gd,11.5,'center',true);
     else if(st.last){
       var er=(st.last.r-st.last.pred)/(st.last.pred-1)*100;
       slTxt(ctx,`Measured ${st.last.r.toFixed(3)}   ·   predicted ${st.last.pred.toFixed(3)}   ·   deviation ${er>=0?'+':''}${er.toFixed(0)}%`,W/2,y-14,tx,11,'center',true);
       simText(ctx,Math.abs(er)<12
-        ? `✓ The point sits on the curve — energy was conserved in this swing`
-        : (er<0?`The point is below the curve — some energy was lost to friction and air drag`
-               :`The point is above the curve — it was probably pushed instead of released from rest`),
+        ? `✓ Point on the curve — energy was conserved in this swing`
+        : (er<0?`Point below the curve — some energy lost to friction and air drag`
+               :`Point above the curve — probably pushed, not released from rest`),
         W/2,y,Math.abs(er)<12?gr:gd,11,'center',true);
     } else simText(ctx,`Pull aside and release gently — no pushing`,W/2,y,mu,11.5,'center',true);}},
 
@@ -33329,18 +33907,18 @@ var SL_IMPL={
       slTxtSub(ctx,'x_cm = '+xcm.toFixed(2)+' cm     L/2 = '+(V.L/2).toFixed(2)+' cm',
         W/2,sy+sh+42,tx,11,'center',true);
       simText(ctx,Math.abs(dev)<0.15
-        ? `The center of mass came out at about the geometric center — the phone is close to uniform along its length`
-        : (`The center of mass is ${Math.abs(dev).toFixed(2)} cm from the middle — the phone is not uniform`),
+        ? `Center of mass near the geometric center — the phone is nearly uniform`
+        : (`Center of mass ${Math.abs(dev).toFixed(2)} cm from the middle — the phone is not uniform`),
         W/2,sy+sh+60,mu,10.5,'center');}
     // ── status ──
     var y=H-10;
     if(!st.win.length)simText(ctx,`Press ▶ and rest the phone on the pencil`,W/2,y,mu,12,'center',true);
     else if(!st.up)simText(ctx,`⚠ The phone is upside down — lay it screen up`,W/2,y,rd,11.5,'center',true);
     else if(st.ok&&st.sd<0.03)
-      simText(ctx,`✓ Balanced and perfectly still — make sure it rests only on the pencil, then record`,W/2,y,gr,11,'center',true);
-    else if(st.ok)simText(ctx,`✓ Balanced and steady — measure with the ruler, set the slider, and press “Record”`,W/2,y,gr,11.5,'center',true);
+      simText(ctx,`✓ Balanced and still — check it rests only on the pencil, then record`,W/2,y,gr,11,'center',true);
+    else if(st.ok)simText(ctx,`✓ Balanced and steady — measure, set the slider, press “Record”`,W/2,y,gr,11.5,'center',true);
     else if(Math.abs(st.mean)>=1.5)
-      simText(ctx,`One side drops — the center of mass is on that side: move the phone slightly toward the high side`,W/2,y,gd,11,'center',true);
+      simText(ctx,`One side drops — the center of mass is on it: move it toward the high side`,W/2,y,gd,11,'center',true);
     else simText(ctx,`Almost — wait for the wobbling to die down`,W/2,y,gd,11.5,'center',true);}},
 
 // The angle at which it lets go IS the coefficient: mu_s = tan(theta).
@@ -33450,8 +34028,8 @@ var SL_IMPL={
       ctx.beginPath();ctx.moveTo(14,ym);ctx.lineTo(W-14,ym);ctx.stroke();ctx.restore();
       slTxt(ctx,'μk = '+m.toFixed(3),W-16,ym-5,gd,11,'right',true);
     } else simText(ctx,`Push and let go — the free slide is measured automatically`,W/2,by+bh/2,mu,12,'center',true);
-    simText(ctx,st.flatOK?`Compare with μs from the previous section — μk should come out smaller`
-      :`⚠ The phone is tilted — a tilt leaks g·sinθ into the horizontal reading and mimics a friction coefficient of ${slFmt(st.tiltMu,2)}. Lay it flat.`,
+    simText(ctx,st.flatOK?`Compare with μs from the last section — μk should be smaller`
+      :`⚠ Tilted — g·sinθ leaks into the reading and fakes friction of ${slFmt(st.tiltMu,2)}. Lay it flat.`,
       W/2,H-10,st.flatOK?mu:gd,11,'center',!st.flatOK);}},
 
 // Same drop, different softness: delta-v is fixed, the time is not, so the
@@ -33670,7 +34248,7 @@ var SL_IMPL={
     var c1=slCss('--accent','#3b82f6'),c2=slCss('--green','#10b981'),c3=slCss('--red','#ef4444'),
         mu=slCss('--muted','#889'),gd=slCss('--gold','#f59e0b');
     if(st.flat){
-      simText(ctx,`📱 The phone is lying flat — gravity is perpendicular to the screen`,W/2,H/2-10,gd,13,'center',true);
+      simText(ctx,`📱 Phone lying flat — gravity is perpendicular to the screen`,W/2,H/2-10,gd,13,'center',true);
       simText(ctx,`Hold it upright and tilt it in the plane of the screen`,W/2,H/2+14,mu,11.5,'center');return;}
     var sc=Math.min(W*0.42,pv-14)/9.81,gL=(st.gp||9.8)*sc,dx=st.dc[0],dy=st.dc[1];
     var Gx=gL*dx,Gy=gL*dy;                      // the tip of g, from the centre
@@ -33702,11 +34280,11 @@ var SL_IMPL={
     slTxt(ctx,'g·sinθ = '+(st.gx||0).toFixed(2),12,37,c1,11,'left',true);
     slTxt(ctx,'θ = '+((th*180/Math.PI)||0).toFixed(1)+'°',12,54,mu,11,'left',true);
     var eq=Math.abs(Math.abs(st.gx-st.gy))<0.25;
-    if(eq)simText(ctx,`Here the components are equal — 45°`,W-12,20,gd,11,'right',true);
+    if(eq)simText(ctx,`Equal components — 45°`,W-12,20,gd,11,'right',true);
     // Only the part of g in the screen's plane is being taken apart. A phone
     // leaning back puts the rest along z, and the root below falls short of g.
     if(Math.abs(st.gz||0)>0.17*(st.gm||9.81))
-      simText(ctx,`⚠ The screen is leaning — part of g leaves its plane (g_z = ${Math.abs(st.gz).toFixed(1)}); hold it upright`,W/2,H-27,gd,10.5,'center',true);
+      simText(ctx,`⚠ Screen leaning — part of g leaves its plane (g_z = ${Math.abs(st.gz).toFixed(1)}); hold it upright`,W/2,H-27,gd,10.5,'center',true);
     slTxt(ctx,'√('+(st.gx||0).toFixed(2)+'² + '+(st.gy||0).toFixed(2)+'²) = '+
       Math.hypot(st.gx||0,st.gy||0).toFixed(2)+' m/s²',W/2,H-9,mu,10.5,'center');}},
 
@@ -33750,11 +34328,22 @@ var SL_IMPL={
     slTxt(ctx,'N = mg·cosθ = '+(st.N||0).toFixed(1)+' N',10,18,c2,11,'left',true);
     slTxt(ctx,'F∥ = mg·sinθ = '+(st.Fp||0).toFixed(1)+' N',10,35,c1,11,'left',true);
     slTxt(ctx,'mg = '+(st.W||0).toFixed(1)+' N',10,52,c3,11,'left',true);
-    if(st.moving)
-      simText(ctx,`⏸ Raising — the angle is frozen at the last steady reading. Hold still for a moment.`,
-        W-10,18,gd,10.5,'right',true);
-    else if(Math.abs((st.N||0)-(st.Fp||0))<0.4*(st.m||2))
-      simText(ctx,`⇦ The forces are equal — this is the 45° angle`,W-10,18,gd,11,'right',true);}},
+    // The status stands to the right of the three readouts, on their rows --
+    // in two lines where one does not fit beside them. Right-aligned on the N
+    // row in one line, it ran across "N = mg·cosθ" on every phone.
+    var msg=st.moving?`⏸ Raising — angle frozen at the last steady reading. Hold still.`
+      :Math.abs((st.N||0)-(st.Fp||0))<0.4*(st.m||2)?`⇦ Equal forces — the 45° angle`:'';
+    if(msg){
+      var ms=st.moving?10.5:11, rw=0;
+      ctx.save();ctx.font='bold 11px Heebo';
+      ['N = mg·cosθ = '+(st.N||0).toFixed(1)+' N','F∥ = mg·sinθ = '+(st.Fp||0).toFixed(1)+' N','mg = '+(st.W||0).toFixed(1)+' N']
+        .forEach(function(s){rw=Math.max(rw,ctx.measureText(s).width);});
+      var av=W-10-(10+rw+14);ctx.font='bold '+ms+'px Heebo';
+      var ln=ctx.measureText(_mathIso(msg)).width>av&&_splitBal(ctx,msg)||[msg];
+      var lw=Math.max.apply(null,ln.map(function(s){return ctx.measureText(_mathIso(s)).width;}));ctx.restore();
+      if(lw>av)ms=Math.max(9,ms*av/lw);
+      ln.forEach(function(s,i){simText(ctx,s,W-10,18+17*i,gd,ms,'right',true);});
+    }}},
 
 'measure-g':{
   init:function(st){st.tr=slTrace(200);st.h={v:.2};st.reset(st);},
@@ -33910,7 +34499,7 @@ var SL_IMPL={
     // spread of a careful measurement, so it has to be said out loud.
     var big=st.amp>0.35;
     if(big)
-      simText(ctx,`⚠ Amplitude ~${(st.amp*180/Math.PI).toFixed(0)}° — at this angle the period is ${(st.amp*st.amp/16*100).toFixed(1)}% longer than the formula gives. Make the swing smaller.`,
+      simText(ctx,`⚠ Amplitude ~${(st.amp*180/Math.PI).toFixed(0)}°: period ${(st.amp*st.amp/16*100).toFixed(1)}% longer than the formula. Make the swing smaller.`,
         W/2,H-9,gd,10.5,'center',true);
     else if(st.pts.length>1)
       simText(ctx,`Slope → g = ${st.g.toFixed(2)} m/s²   ·   R² = ${st.r2.toFixed(3)}`,
@@ -34128,7 +34717,7 @@ function buildSim(sim){
   else if(sim.type==='normal-force')extra=C(rng('nf-theta',0,70,0,1,`Angle θ`,'°')+rng('nf-mass',1,12,4,0.5,`Mass m`,' kg')+rng('nf-mu',0,0.7,0,0.05,`Friction μ`)+btn('nf-reset',`↺ Reset`,'btn-secondary'));
   else if(sim.type==='incline')extra=C(rng('inc-theta',5,75,30,1,`Angle θ`,'°')+rng('inc-mu',0,0.8,0,0.05,`Friction μ`)+rng('inc-m',0.5,10,3,0.5,`Mass m`,' kg')+rng('inc-m1',0.5,10,3,0.5,`Atwood m₁`,' kg')+rng('inc-m2',0.5,10,5,0.5,`Atwood m₂`,' kg')+btn('inc-atwood',`⚖️ Atwood machine`,'btn-secondary')+btn('inc-reset',`↺ Reset`,'btn-secondary'));
   else if(sim.type==='tension')extra=C(rng('ten-m1',0.5,12,3,0.5,`Atwood m₁`,' kg')+rng('ten-m2',0.5,12,5,0.5,`Atwood m₂`,' kg')+rng('ten-el',0.5,5,3,0.5,`Mass in the elevator`,' kg')+rng('ten-ea',-5,5,0,0.5,`Elevator acceleration`,' m/s²')+btn('ten-launch',`▶ Release!`)+btn('ten-reset',`↺ Reset`,'btn-secondary'));
-  else if(sim.type==='fbd')extra=C(rng('fbd-F',-10,25,0,0.5,`Extra force on the object (+ up)`,' N')+btn('fbd-reset',`↺ Clear all`,'btn-secondary'));
+  else if(sim.type==='fbd')extra=C(rng('fbd-F',-10,25,0,0.5,`Extra force on the object (+ up)`,' N')+btn('fbd-reset',`↺ Clear all`,'btn-secondary'));
   else if(sim.type==='momentum')extra=C(rng('mom-mass',0.5,8,2,0.5,`Mass`,' kg')+rng('mom-vel',-10,10,4,1,`Velocity`,' m/s'));
   else if(sim.type==='momentum-cons')extra=C(rng('mc-m1',1,8,3,0.5,'m₁',' kg','_fmtKg1')+rng('mc-m2',1,8,2,0.5,'m₂',' kg','_fmtKg1')+rng('mc-v1',-8,8,4,1,'v₁',' m/s','_fmtMs1')+rng('mc-v2',-8,8,-2,1,'v₂',' m/s','_fmtMs1')+btn('mc-reset',`↺ Reset`,'btn-secondary'));
   else if(sim.type==='collision')extra=C(rng('col-e',0,1,1,0.05,`Coefficient of restitution e (0: they stick together, 1: elastic)`)+rng('col-m1',1,8,3,0.5,'m₁',' kg')+rng('col-m2',1,8,2,0.5,'m₂',' kg')+rng('col-v1',0,8,4,0.5,`Initial v₁`,' m/s')+rng('col-v2',-8,0,-2,0.5,`Initial v₂`,' m/s')+btn('col-reset',`↺ Reset`,'btn-secondary'));
@@ -34327,7 +34916,10 @@ function buildProblem(prob){
       :`<div class="step-fb ok">✅ ${_ltSafe(st2.explain)}</div>`}
     </div>`;
   }).join('');
-  return`<div class="problem-card"><div class="problem-text"><b>${prob.title}:</b> ${prob.text}</div><div class="problem-steps">${steps}</div></div>`;
+  // a title that is already a question (or ends in its own mark) takes no
+  // colon: "…?:" read as a typo, in both languages
+  var _tEnd=/[?!:؟]\s*$/.test(String(prob.title||'').replace(/<[^>]*>/g,''))?'':':';
+  return`<div class="problem-card"><div class="problem-text"><b>${prob.title}${_tEnd}</b> ${prob.text}</div><div class="problem-steps">${steps}</div></div>`;
 }
 
 // ══════════════════════════════════════════════
@@ -35345,7 +35937,7 @@ window.finishQuiz=function(){
 var _onboardStep=0;
 var ONBOARD_STEPS=[
   {icon:'⚛️',title:`Welcome!`,text:`High-school physics in five subjects: mechanics, optics, electrostatics, DC circuits, and magnetism. Every topic has theory, an interactive simulation, a quiz, and a guided problem.`},
-  {icon:'📚',title:`Theory → Simulation → Quiz → Problem`,text:`Work through them in order: read the theory, try the simulation, answer the quiz, then solve the guided problem step by step. “✅ Got it” takes you to the next stage.`},
+  {icon:'📚',title:`Theory → Simulation → Quiz → Problem`,text:`Work through them in order: read the theory, try the simulation, answer the quiz, then solve the guided problem step by step. “✅ Got it” takes you to the next stage.`},
   {icon:'⭐',title:`Earn XP as you go`,text:`Every stage you finish earns XP, and your progress is saved automatically in this browser. The 📐 button opens the formula sheet; on a phone, ☰ opens the topic list.`},
 ];
 function showOnboarding(){

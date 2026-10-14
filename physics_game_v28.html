@@ -133,7 +133,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 .lang-item:hover,.lang-item:focus-visible{background:var(--panel2);outline:2px solid var(--accent);outline-offset:-2px;}
 .lang-item.cur{color:var(--t-accent);font-weight:700;}
 /* the header fits 320 px: on a narrow phone the globe alone says it */
-@media (max-width:400px){.lang-btn .lang-code{display:none;}}
+@media (max-width:450px){.lang-btn .lang-code{display:none;}}
 @media (max-width:360px){.header-progress{gap:4px !important;}.header .xp-badge{padding:3px 7px;font-size:.74rem;}.header .ver-badge{margin-inline-start:4px;}}
 @media (max-width:340px){.header .ver-badge{padding:3px 4px;font-size:.62rem;margin-inline-start:2px;}.header .xp-badge{padding:3px 5px;}.header-progress{gap:3px !important;}}
 .cl-ver{padding:14px 20px 4px;display:flex;align-items:baseline;gap:10px}
@@ -224,6 +224,24 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
   border-radius:8px;padding:9px 14px;margin:8px 0 14px;font-size:.9rem;color:var(--t-sum);line-height:1.9;}
 .sum-open b{color:var(--t-sumb);}
 .tex-fb{font-family:'Cambria Math','Times New Roman',serif;font-size:1.05em;white-space:nowrap;}
+/* a long offline chain breaks only between its pieces (_texFbInline) */
+.tex-fb.tf-br{white-space:normal;}
+.tf-s{white-space:nowrap;}
+/* the offline renderer's vector arrow, drawn over the letter */
+.tf-vec{position:relative;}
+.tf-vec::after{content:'\2192';position:absolute;left:50%;top:-.5em;transform:translateX(-50%) scaleX(.85);
+  font-size:.7em;line-height:1;pointer-events:none;}
+/* a formula and the mark touching it ("N=mg cos θ." or "(g=9.8 m/s²")
+   are one word: the line cannot break between them (_gluePunct). Only the
+   box's edge is held: everything inside it wraps as before, and the box
+   gives up the width of its marks (--gw, measured by _fitMath) so the pair
+   fits the line. */
+.mglue{white-space:nowrap;}
+.mglue>*{white-space:normal;}
+.mglue .math-ltr:not(.param-val){max-width:calc(100% - var(--gw,1.2em));}
+/* ...and one longer than its line flows on in it, so the mark follows its
+   last piece (_fitMath) */
+.mglue>.math-ltr.ml-flow{display:inline;unicode-bidi:isolate;vertical-align:baseline;overflow:visible;padding:0;}
 .enrich-formula{direction:ltr;}
 /* Responsive equation sizing */
 @media(max-width:600px){
@@ -822,6 +840,15 @@ input[type=range]{accent-color:var(--accent);cursor:pointer;}
   width: 90px; height: 6px; background:var(--chip);
   border-radius: 3px; overflow: hidden;
 }
+/* 561-620 px (a small tablet, an unfolded phone): with the title and the
+   print button back, the header ran up to 55 px past the screen. It takes the
+   phone's padding, gap and 60 px course bar there (the 560 px block above
+   sets those two, but the later rules here always won). */
+@media (min-width:561px) and (max-width:620px){
+  .header{ padding: 0 10px; }
+  .header-progress{ gap: 5px; }
+  .header .progress-bar-wrap{ width: 60px; }
+}
 .progress-bar-fill {
   height: 100%; background: linear-gradient(90deg, #34d399, #22d3ee);
   border-radius: 3px; transition: width .5s ease;
@@ -1023,9 +1050,11 @@ html{scroll-padding-top:72px;}
   /* room to scroll the last card clear of the screen edge */
   .main{padding-bottom:40px;}
 }
-@media (max-width:400px){
+@media (max-width:450px){
   /* 320 px: hamburger, version, XP and two buttons are all the header holds;
-     the course-progress bar was what pushed the page 28 px sideways */
+     the course-progress bar was what pushed the page 28 px sideways. Up to
+     450 px: at 401-445 (the 414-430 px of the larger iPhones) the bar and the
+     language code came back and the header ran 31 px past the screen. */
   .progress-bar-wrap{display:none;}
 }
 /* A touch screen of any width -- a phone on its side, a tablet: the floating
@@ -1061,9 +1090,12 @@ html{scroll-padding-top:72px;}
   .header-progress .theme-btn,.drawer-close button,.formula-panel-close{
     min-width:44px;min-height:44px;align-items:center;justify-content:center;}
   .header-progress .theme-btn:not(.print-btn),.drawer-close button,.formula-panel-close{display:inline-flex;}
-  /* the version pill keeps its size; its hit area grows invisibly */
+  /* the version pill keeps its size; its hit area grows invisibly -- up and
+     down: the pill is already wider than 44 px, and an area that also stuck
+     out at its end made the pill measure as overflowing its own box (54/50 px
+     at 390). On the narrowest phones (42 px) it grows 2 px at its left. */
   .ver-badge{position:relative;}
-  .ver-badge::after{content:'';position:absolute;inset:-12px -4px;}
+  .ver-badge::after{content:'';position:absolute;inset:-12px 0;}
   .tab,.sec-btn,.subject-tab,.btn,.hint-btn,.quiz-hint-btn,.fold-btn,.next-section-btn,
   .anim-ctrl button,.sl-ctrl button,.quiz-reset-link{min-height:44px;}
   .anim-ctrl{padding:4px 12px;}
@@ -1072,6 +1104,7 @@ html{scroll-padding-top:72px;}
   /* below 16 px iOS zooms the whole page into the field and leaves it there */
   input[type=text],input[type=number],input:not([type]),select,textarea{font-size:16px!important;}
 }
+@media (pointer:coarse) and (max-width:340px){.ver-badge::after{left:-2px;}}
 /* Keyboard: one visible focus ring, in both themes */
 :focus-visible{outline:2px solid var(--accent2);outline-offset:2px;}
 .step-inp:focus-visible{outline:2px solid var(--accent2);outline-offset:1px;}
@@ -1117,6 +1150,9 @@ html{scroll-padding-top:72px;}
      separators: they may break there rather than scroll (the enrichment
      box clipped "...=500 s ≈ 8.3 min" after "500 s") */
   .formula-box .tex-fb,.enrich-formula .tex-fb,.math-ltr .tex-fb{white-space:normal;}
+  /* ...and a long one keeps every break it had: its pieces only add breaks
+     after a relation written without spaces ("r=mv/qB=...") */
+  .math-ltr .tf-s{white-space:normal;}
   /* a chain typed as plain text in a quiz explanation has no space to
      break at: sinθ=mλ/a=1×500×10⁻⁹/(0.5×10⁻³)=10⁻³ ran out of its card */
   #app .ltr-run{overflow-wrap:anywhere;}
@@ -1166,8 +1202,34 @@ var APP_LANGS=[
   {code:'he',name:'עברית',file:'physics_game_v28.html'},
   {code:'en',name:'English',file:'physics_game_en.html'}
 ];
-var APP_VERSION='28.32';
+var APP_VERSION='28.36';
 var APP_CHANGELOG=[
+  {v:'28.36',d:'2026-10-14',notes:[
+    'נוסחאות בתוך הטקסט: נקודה, פסיק, נקודתיים, סימן שאלה או סוגר שאחרי נוסחה — וסוגר פותח, מקף, מירכאות או ״ב־״ / ״ל־״ שלפניה — כבר לא נשארים לבד בסוף שורה או בתחילתה; נוסחה ארוכה משורה ממשיכה בשורה הבאה, והפיסוק נשאר אחרי חלקה האחרון',
+    'פתרונות והסברים בטלפון: שרשרת חישוב ארוכה (״r=mv/qB′=…=0.249 m״, ״290 - 100(t-0.5) = …״) נשברת אחרי סימן השוויון, ולא חורגת מהמסגרת או נחתכת באמצע מספר',
+    'בלי KaTeX (בלי חיבור לרשת): ↔ במקום המילה ״rightarrow״, B′ במקום ״Bprime״, חץ מעל אות וקטורית במקום רווח ריק, ובלי רווח מיותר בתוך סוגריים',
+    'טבלת הספקטרום האלקטרומגנטי: הכותרת ״שימוש״ מיושרת לתחילת השורה, כמו העמודה שלה; השוואת הגאומטריות (חשמל סטטי): בטלפון הטבלה מראה שהיא נגללת הצידה — דהייה בקצה והערת ״החליקו״, כמו שאר הטבלאות הרחבות',
+    'הכותרת העליונה: אזור הלחיצה של תג הגרסה לא בולט מצדי התג; ברוחב 401–450 ו־561–620 פיקסלים הכותרת כבר לא רחבה מהמסך',
+    'בעיות: אחרי כותרת שמסתיימת בסימן שאלה אין עוד נקודתיים (״…צריך?:״); זריקה משופעת: לצד sin2θ מופיע ״—״ (גודל חסר יחידות) במקום ״°״'
+  ]},
+  {v:'28.35',d:'2026-10-13',notes:[
+    'וקטורים: באנימציית סקלר מול וקטור, כשאין מקום בשורה הערך יורד אל מתחת לשם, והכיתובים של הווקטור המסתובב — |v|, הזווית, הרכיבים ו״ראשית״ — כבר לא עולים זה על זה ולא על החץ; בחיבור וקטורים לוח החישוב רחב כמו השורות שלו, ו״R = A + B״ כבר לא נכתב על החישובים בטלפון',
+    'חוק שלישי: הקריאות של שני הגופים כבר לא נדבקות זו לזו מיד אחרי הדחיפה; תאוצה: השעון עבר לראש האנימציה ולא נוגע ב־״a = 4 m/s²״',
+    'זריקה משופעת: שמות זוויות הנחיתה (20° ו־70° נוחתות באותה נקודה) כבר לא נכתבים זה על זה, ו־vx ו־vy בצדדים שונים של החצים; בגרף הטווח ״R (m)״ לא על ה־״33״, ושתי הזוויות לא נדבקות ב־45°',
+    'שדה של תיל: היחידה μT מעל עמודת המספרים ולא על ה־600; ניסוי יאנג: ״I(y)״ לא מוסתר מתחת לחלון הנתונים כשהמסך קרוב לסדקים, שם המסך לא מתחת לחלון הגלאי, ו־r₁, r₂ לא על ״d=…mm״',
+    'מעבדת חיישן המדרון: הודעת המצב עומדת מימין לקריאות, בשתי שורות כשצריך, ולא על ״N = mg·cosθ״',
+    'חשמל סטטי: במצב חוד ופריקה בטלפון פסי σ מעל הניצוצות ומעל האגס (גם ב־R = 70); בשדה החשמלי ״F=q₀E (החץ מקוצר)״ ליד ראש החץ ולא עליו, וליד שפת הבד הוא כבר לא נעלם; נפילה חופשית: האות y של הציר כבר לא מוסתרת תחת פס המידע; מראה קעורה ב־dₒ = 2f: ״C״ לצד התמונה ולא עליה'
+  ]},
+  {v:'28.34',d:'2026-10-13',notes:[
+    'נפילה חופשית: באנימציה הכיתובים ״a = g לכל המסות״, h_max ו־״v=0 שיא!״ כבר לא עוברים על הכדורים בשיא; בסימולציה תג h_max כבר לא מוסתר מאחורי הכדור בטלפון',
+    'חשמל סטטי: ההנחיה ״גררו את מטען הבוחן״ עברה אל מתחת למטען, ולא על הלוח הימני; חלונות הנתונים של המוליך ברוחב השורות שלהם — בטלפון שורה ארוכה קטנה מעט או נשברת לשתיים במקום לחרוג מהמסגרת',
+    'תנועה מעגלית בשדה מגנטי: לוח הקריאה ״r = … · T/2 = …״ רחב כמו השורה שלו, והסרגל לאורך גבול השדה כבר לא נדחס לעמודת מספרים כשהרדיוס עשרות מטרים',
+    'אופטיקה: הכיתוב של מהירות האור בחומרים כבר לא נוגע בפס של היהלום; בלייזר שם המראה החלקית לא נוגע במד ההיפוך ולא בקצה המראה; בחוק סנל ״נורמל״ לא מוסתר מאחורי חלון הנתונים בטלפון; במראה קעורה, כשהעצם במוקד, ההודעה התחתונה בשורה משלה מתחת ל״מראה קעורה״, ושם העצם לא על ״F״',
+    'בסימולציות של אופטיקה ושל חשמל סטטי: שורה בחלון נתונים שרחבה מהחלון מוקטנת עד שהיא נכנסת בו, במקום לחרוג מהמסגרת'
+  ]},
+  {v:'28.33',d:'2026-10-13',notes:[
+    'טלסקופ: שם הגודל והנוסחה בראש הסימולציה מסודרים לפי כיוון הקריאה של השפה — בגרסה האנגלית הם נדבקו זה לזה בטלפון'
+  ]},
   {v:'28.32',d:'2026-10-13',notes:[
     'חידונים: מסיחים חזקים יותר — ״תאוצה רגעית״ מול שיפוע המשיק, ״טמפרטורה״ כגודל סקלרי, ״מתיחות בחוט״ — כדי שהתשובה הנכונה לא תבלוט באורכה גם בתרגום',
     'שאלות שנוסחו כנוסחה בלבד (״m=10 kg, g=9.8. W=?״) הן עכשיו משפט, כך שאפשר לתרגם אותן',
@@ -1493,6 +1555,7 @@ var _OPS={times:'×',cdot:'·',div:'÷',pm:'±',mp:'∓',approx:'≈',
   neq:'≠',ne:'≠',leq:'≤',le:'≤',geq:'≥',ge:'≥',ll:'≪',
   gg:'≫',propto:'∝',infty:'∞',partial:'∂',sum:'Σ',int:'∫',
   Rightarrow:'⇒',rightarrow:'→',to:'→',Leftarrow:'⇐',leftarrow:'←',
+  leftrightarrow:'↔',Leftrightarrow:'⇔',longrightarrow:'⟶',
   perp:'⊥',parallel:'∥',angle:'∠',circ:'°',degree:'°',
   ldots:'…',dots:'…',cong:'≅',equiv:'≡',in:'∈',
   implies:'⟹',Longrightarrow:'⟹',Longleftarrow:'⟸',sim:'~',
@@ -1546,6 +1609,11 @@ function _texFallback(s){
       return pr.length>1?(pr[0].trim()+' כאשר '+pr[1].trim()):row.trim();
     }).filter(function(x){return x;}).join('   ·   ');
   });
+  // a prime is a prime: B' and B^{\prime} are B′ -- the generic rule below
+  // printed the command's name, "Bprime" (an apostrophe in \text{} is text)
+  t=t.replace(/(\\(?:text|mathrm|textbf|mathbf|mathit|operatorname)\{[^{}]*\})|\^\{((?:\s*\\prime\s*)+)\}|\^\\prime|\\prime|''|'/g,function(m,txt,pp){
+    if(txt)return txt;
+    return (pp?pp.match(/\\prime/g).length>1:m==="''")?'″':'′';});
   // two commands back to back (\cdot\vec{d}) must stay two: converting the
   // second first left the first fused to a letter and printed as "cdotd"
   t=t.replace(/(\\[A-Za-z]+)(?=\\[A-Za-z])/g,'$1 ');
@@ -1553,7 +1621,12 @@ function _texFallback(s){
   // an explicit space (\, \; \quad) must survive: a Greek letter swallows an
   // ordinary space after it, which printed "4πrad/s"
   t=t.replace(/\\(,|;|:)/g,'\u2009').replace(/\\(quad|qquad)/g,'\u2003');
-  t=t.replace(/\\(left|right|!|\s|displaystyle|limits)/g,' ');
+  // \left and \right only size the bracket after them -- but as bare prefixes
+  // they were also cut off the front of \leftrightarrow ("1 kg rightarrow
+  // 9×10¹⁶ J") and \rightarrow ("arrow"), and each left a stray space
+  // inside its bracket: "arcsin (n₂/n₁ )". \left. is no bracket at all.
+  t=t.replace(/\\(left|right)\s*\.|\\(left|right)(?![A-Za-z])\s*|\\!/g,'');
+  t=t.replace(/\\(\s|displaystyle|limits)/g,' ');
   // font switches take no argument, so the generic rule below turned \rm into
   // the letters "rm" and glued them into the subscript that followed
   t=t.replace(/\\(rm|bf|it|sf|tt|scriptstyle|textstyle|boldsymbol)\b\s*/g,'');
@@ -1586,9 +1659,12 @@ function _texFallback(s){
   for(var q=t.indexOf('\\sqrt{');q>=0;q=t.indexOf('\\sqrt{',q)){var g=_texGrab(t,q+5);if(!g)break;
     t=t.slice(0,q)+'√('+g.body+')'+t.slice(g.end);}
   t=t.replace(/\\sqrt\s*(\w)/g,'√$1');           // \sqrt m, as \sqrt{m}
-  // a vector keeps its arrow: F⃗, not a bare F, and "\vec F" (with a space)
-  // used to fall through to the generic rule and print the word "vec"
-  t=t.replace(/\\vec\{([^{}]*)\}/g,'$1⃗').replace(/\\vec\s*(\w)/g,'$1⃗');
+  // a vector keeps its arrow, and "\vec F" (with a space) used to fall
+  // through to the generic rule and print the word "vec". The arrow is drawn
+  // by the stylesheet (.tf-vec) over the letter: the combining arrow U+20D7
+  // is missing from most text fonts, and printed "F  =q v  ×B" with gaps
+  // where the arrows should be.
+  t=t.replace(/\\vec\{([^{}]*)\}/g,'\u0006$1\u0007').replace(/\\vec\s*(\\[A-Za-z]+|\w)/g,'\u0006$1\u0007');
   t=t.replace(/\\hat\{([^{}]*)\}/g,'$1̂').replace(/\\hat\s*(\w)/g,'$1̂');
   t=t.replace(/\\bar\{([^{}]*)\}/g,'$1̄').replace(/\\bar\s*(\w)/g,'$1̄');
   t=t.replace(/\\overline\{([^{}]*)\}/g,'$1̄');
@@ -1599,7 +1675,7 @@ function _texFallback(s){
     // -> Delta-h), but a relation must keep it or it fuses with what follows
     if(_GREEK[w])return _GREEK[w];
     // ...on both sides: "500 s\approx 8.3 min" printed "500 s≈ 8.3 min"
-    if(_OPS[w]&&/[⟹⟸→←≈≠≤≥∝≡≅∈~]/.test(_OPS[w]))return (off&&!/[\s({\[]/.test(str.charAt(off-1))?' ':'')+_OPS[w]+' ';
+    if(_OPS[w]&&/[⟹⟸→←↔⇔⟶≈≠≤≥∝≡≅∈~]/.test(_OPS[w]))return (off&&!/[\s({\[]/.test(str.charAt(off-1))?' ':'')+_OPS[w]+' ';
     // a binary operator is spaced on both sides or on neither: the space that
     // only ended the command's name printed "g± a", "3× 10⁸", "a· b"
     if(_OPS[w]&&/[×·÷±∓]/.test(_OPS[w]))return _OPS[w]+(str.charAt(off-1)===' '?sp:'');
@@ -1626,12 +1702,45 @@ function _texFallback(s){
   t=t.replace(/[\u0001\u0003]([^\u0002\u0004]*)[\u0002\u0004]/g,function(m,x){
     var tag=m.charAt(0)==='\u0001'?'sub':'sup';
     return '<'+tag+'>'+x+'</'+tag+'>';});
+  t=t.replace(/\u0006([^\u0007]*)\u0007/g,'<span class="tf-vec">$1</span>');
   return t.replace(/\u0005/g,'_');
+}
+// The offline renderer's inline formula is one unbreakable run (the
+// stylesheet keeps "3 m" on one line), so a worked chain such as
+// "290 - 100(t-0.5) = 290 - 100t + 50 = 340 - 100t" ran up to 32 px out of a
+// phone's card. KaTeX breaks an inline formula after a relation or a binary
+// operator; so does this -- at the outer level only (never inside a bracket,
+// an index or a vector), and only in a chain long enough to need it. Each
+// piece stays whole; the line may break between pieces. Shorter formulas are
+// built exactly as before.
+function _texFbInline(h){
+  var plain='<span class="ltr-run tex-fb">'+h+'</span>';
+  if(h.replace(/<[^>]*>/g,'').replace(/&[a-z]+;/g,'x').length<28)return plain;
+  var tk=h.match(/<[^>]*>|&[a-z]+;|[\s\S]/g)||[],cuts=[],tag=0,par=0,i,j,k;
+  for(i=0;i<tk.length;i++){
+    k=tk[i];
+    if(k.length>1&&k.charAt(0)==='<'){tag+=k.charAt(1)==='/'?-1:1;continue;}
+    if(tag)continue;
+    if(k==='('||k==='[')par++;
+    else if(k===')'||k===']')par=Math.max(0,par-1);
+    if(par||!i)continue;
+    if(/^(=|≈|≠|≤|≥|⇒|⟹|→|←|↔|⇔|⟶|∝|≡|≅|&lt;|&gt;)$/.test(k)||
+       (/^[+\-−×·÷±]$/.test(k)&&tk[i-1]===' '&&tk[i+1]===' ')||(k===','&&tk[i+1]===' ')){
+      for(j=i+1;tk[j]===' ';j++);
+      if(j<tk.length)cuts.push([i+1,j]);
+    }
+  }
+  if(!cuts.length)return plain;
+  var out='',from=0;
+  cuts.forEach(function(c){
+    out+='<span class="tf-s">'+tk.slice(from,c[0]).join('')+'</span>'+(c[1]>c[0]?tk.slice(c[0],c[1]).join(''):'<wbr>');
+    from=c[1];});
+  return '<span class="ltr-run tex-fb tf-br">'+out+'<span class="tf-s">'+tk.slice(from).join('')+'</span></span>';
 }
 function tex(str, display){
   if(display===undefined)display=false;
   try{ return katex.renderToString(str,{throwOnError:false,displayMode:display,output:'html'}); }
-  catch(e){ return '<span class="ltr-run tex-fb">'+_texFallback(str)+'</span>'; }
+  catch(e){ var h=_texFallback(str); return display?'<span class="ltr-run tex-fb">'+h+'</span>':_texFbInline(h); }
 }
 // M() — inline math, always LTR, embeds correctly in RTL paragraphs
 function M(str){ return `<span class="math-ltr">${tex(str,false)}</span>`; }
@@ -1674,6 +1783,10 @@ function _siUnit(sym,nm,desc,unit){
   }
   // Greek and subscripted symbols, resolved from the RAW LaTeX before stripping
   var raw=(sym||'');
+  // a sine, cosine or tangent is a pure number whatever its argument: tested
+  // after the angle's own rule below, "\sin2\theta" took the angle's degree
+  // sign ("sin2θ — maximum at θ=45°" [°])
+  if(/\\sin|\\cos|\\tan/.test(raw))         return '—';
   if(/\\theta/.test(raw)||/^θ/.test(raw))   return '°';
   if(/\\omega/.test(raw)||/^ω/.test(raw))   return 'rad/s';
   if(/\\lambda/.test(raw)||/^λ/.test(raw))  return 'nm';
@@ -2086,7 +2199,131 @@ function fixInlineMath(root){
   });
   _mergeLtr(root);
   _subifyDom(root);
+  _chainBreaks(root);
+  _gluePunct(root);
   _fitMath(root);
+}
+// ── A worked chain typed as plain text ───────────────────────────────────
+// "r=mv/qB′=12·1.66×10⁻²⁷·4×10⁵/(1.6×10⁻¹⁹·0.2)=0.249 m=24.9 cm" offers the
+// line breaker nothing ("=" is a letter to it): on a left-to-right page it
+// ran up to 64 px past a phone's card, and in Hebrew overflow-wrap cut it
+// mid-number. A long chain -- 24 characters or more without a space -- may
+// break after "=", "≈" or "⇒" outside brackets, as a typeset formula would,
+// and a piece still that long after "·" as well. Shorter ones are untouched.
+var _CH_REL=/[=≈⇒]/,_CH_NEXT=/[^\s=≈⇒·.,;:!?)\]]/;
+function _chainCuts(word,at,re,out){
+  var par=0,i,c;
+  for(i=0;i<word.length-1;i++){c=word.charAt(i);
+    if(c==='('||c==='[')par++;
+    else if(c===')'||c===']')par=Math.max(0,par-1);
+    else if(!par&&re.test(c)&&_CH_NEXT.test(word.charAt(i+1)))out.push(at+i+1);}
+}
+function _chainBreaks(root){
+  if(!root||!document.createTreeWalker)return;
+  var w=document.createTreeWalker(root,NodeFilter.SHOW_TEXT,{acceptNode:function(n){
+    if(!/\S{24}/.test(n.nodeValue)||!_CH_REL.test(n.nodeValue))return NodeFilter.FILTER_REJECT;
+    var e=n.parentElement;
+    if(!e||e.closest('script,style,textarea,.katex,.tex-fb,.nb,.param-tip'))return NodeFilter.FILTER_REJECT;
+    return NodeFilter.FILTER_ACCEPT;}});
+  var ns=[],n;while((n=w.nextNode()))ns.push(n);
+  ns.forEach(function(node){
+    var s=node.nodeValue,cuts=[];
+    s.replace(/\S{24,}/g,function(word,at){
+      if(/[֐-׿]/.test(word)||!_CH_REL.test(word))return word;
+      var c=[];_chainCuts(word,at,_CH_REL,c);
+      var pts=[at].concat(c,[at+word.length]);
+      for(var k=0;k+1<pts.length;k++)if(pts[k+1]-pts[k]>=24)_chainCuts(s.slice(pts[k],pts[k+1]),pts[k],/·/,c);
+      c.sort(function(a,b){return a-b;});cuts=cuts.concat(c);
+      return word;});
+    if(!cuts.length)return;
+    var f=document.createDocumentFragment(),from=0;
+    cuts.forEach(function(c){f.appendChild(document.createTextNode(s.slice(from,c)));
+      f.appendChild(document.createElement('wbr'));from=c;});
+    f.appendChild(document.createTextNode(s.slice(from)));
+    node.parentNode.replaceChild(f,node);
+  });
+}
+// ── Punctuation stays with its formula ───────────────────────────────────
+// An inline formula is a box: M() an inline-flex, a bare KaTeX formula a
+// row of inline-blocks, a symbol chip an inline-block. A line may break
+// before and after any box, even where the characters around it forbid a
+// break (CSS Text 3, "for Web-compatibility"), so the full stop after
+// "N=mg cos θ" started the next line on its own, and an opening bracket, a
+// maqaf or a quotation mark hung at a line's end with its formula below it
+// (about 50 places in English and 100 in Hebrew at 390 px, more with
+// KaTeX). Whether a line may break at a box's edge follows the no-wrap
+// state around it, so the box and the marks touching it go into one
+// no-wrap span. A box inside another element (the last piece of a bare
+// KaTeX formula, an M() in <b>) cannot share a span with a mark outside
+// that element: there the box alone goes into one, which holds every mark
+// the line breaker would not break before anyway (. , ; : ? ! ) and the
+// rest). The box itself keeps white-space:normal, so a long formula still
+// wraps inside itself exactly where it did; only its edge is held.
+var _GLUE_R=/^[.,;:!?)\]}…%’”»״"'׳\-‐‑–]+/;
+var _GLUE_L=/[(\[{“‘«„"״'־\-‐‑–]+$/;
+// the formula box at el's last (or first) edge, or null when that edge is
+// text -- characters already keep their punctuation
+function _glueBox(el,last){
+  for(var g=0;g<40&&el&&el.nodeType===1;g++){
+    var cs=getComputedStyle(el);
+    if(/^inline-(block|flex|grid|table)$/.test(cs.display))
+      return (el.classList.contains('math-ltr')||el.classList.contains('param-wrap')||(el.closest&&el.closest('.katex')))?el:null;
+    if(cs.display!=='inline')return null;
+    var k=last?el.lastChild:el.firstChild;
+    // what takes no room in the line: empty text, KaTeX's hidden MathML, a tooltip
+    while(k&&(k.nodeType===8||(k.nodeType===3&&!k.nodeValue)||(k.nodeType===1&&(k.classList.contains('katex-mathml')||
+          getComputedStyle(k).display==='none'||/^(absolute|fixed)$/.test(getComputedStyle(k).position)))))
+      k=last?k.previousSibling:k.nextSibling;
+    el=k;
+  }
+  return null;
+}
+function _mglue(el){var g=document.createElement('span');g.className='mglue';el.parentNode.insertBefore(g,el);g.appendChild(el);return g;}
+function _gluePunct(root){
+  if(!root||!document.createTreeWalker)return;
+  var w=document.createTreeWalker(root,NodeFilter.SHOW_TEXT,{acceptNode:function(n){
+    var v=n.nodeValue;
+    if(!v||!((n.previousSibling&&_GLUE_R.test(v))||(n.nextSibling&&_GLUE_L.test(v))))return NodeFilter.FILTER_REJECT;
+    var e=n.parentElement;      // (a mark already glued sits in an .mglue)
+    if(!e||e.classList.contains('mglue')||e.closest('script,style,textarea,svg,.katex,.tex-fb,.param-tip'))return NodeFilter.FILTER_REJECT;
+    return NodeFilter.FILTER_ACCEPT;}});
+  var ns=[],n,todo=[];
+  while((n=w.nextNode()))ns.push(n);
+  // read everything first, then change the page once
+  var isG=function(x){return !!(x&&x.classList&&x.classList.contains('mglue'));};
+  ns.forEach(function(t){
+    if(getComputedStyle(t.parentElement).whiteSpace!=='normal')return;
+    var pv=t.previousSibling,nx=t.nextSibling,b,m,r=null;
+    if(pv&&pv.nodeType===1&&(m=_GLUE_R.exec(t.nodeValue))&&(b=_glueBox(pv,true))&&getComputedStyle(b.parentNode).whiteSpace==='normal'){
+      var top=b===pv||(isG(pv)&&pv.lastChild===b);
+      if(top||!isG(b.parentNode))todo.push(r={box:b,t:t,n:m[0].length,top:top});
+    }
+    if(nx&&nx.nodeType===1&&(m=_GLUE_L.exec(t.nodeValue))&&_glueBox(nx,false)){
+      // a dash between two formulas ("40–80 km") goes with the second
+      if(r)r.n=Math.min(r.n,m.index);
+      todo.push({t:t,k:m[0].length,el:nx});
+    }
+  });
+  todo.forEach(function(a){
+    if(a.box){
+      var bx=a.box,gb=isG(bx.parentNode)?bx.parentNode:_mglue(bx);
+      if(a.top&&a.n&&gb.lastChild===bx&&gb.nextSibling===a.t){
+        gb.appendChild(document.createTextNode(a.t.nodeValue.slice(0,a.n)));
+        a.t.nodeValue=a.t.nodeValue.slice(a.n);
+        if(!a.t.nodeValue)a.t.parentNode.removeChild(a.t);
+      }
+      return;
+    }
+    if(!a.t.parentNode)return;
+    var el=a.el,p=el.parentNode,g;
+    if(el.classList.contains('mglue'))g=el;
+    else if(p.classList&&p.classList.contains('mglue')&&p.firstChild===el)g=p;
+    else g=_mglue(el);
+    var v=a.t.nodeValue;
+    g.insertBefore(document.createTextNode(v.slice(v.length-a.k)),g.firstChild);
+    a.t.nodeValue=v.slice(0,v.length-a.k);
+    if(!a.t.nodeValue)a.t.parentNode.removeChild(a.t);
+  });
 }
 // A formula and its unit, or two halves of one chain, can arrive as separate
 // pieces -- a KaTeX span followed by " m/s", or "a = " then a bold result.
@@ -2184,6 +2421,26 @@ function _fitMath(root){
   if(!root||!root.querySelectorAll)return;
   var fitted=root.querySelectorAll('.katex[data-fit]');
   for(var i=0;i<fitted.length;i++){fitted[i].style.fontSize='';fitted[i].removeAttribute('data-fit');}
+  // every formula is measured as a box (see the end of this function)
+  var fl=root.querySelectorAll('.math-ltr.ml-flow');
+  for(i=0;i<fl.length;i++)fl[i].classList.remove('ml-flow');
+  // A formula glued to its marks (_gluePunct) leaves its line room for what
+  // can no longer be parted from it: the marks, the letters they touch
+  // outside the span (the ב of ב־, the s of 's) and its own margins.
+  var gl=root.querySelectorAll('.mglue'),gw=[];
+  var tw=function(n,a,b){var rg=document.createRange();rg.setStart(n,a);rg.setEnd(n,b);return rg.getBoundingClientRect().width;};
+  for(i=0;i<gl.length;i++){
+    var g=gl[i],bx=null,w=0,k,v,cs;
+    for(k=g.firstChild;k;k=k.nextSibling){
+      if(k.nodeType===3&&k.nodeValue)w+=tw(k,0,k.nodeValue.length);
+      else if(k.nodeType===1&&k.classList.contains('math-ltr'))bx=k;}
+    if(!bx)continue;
+    k=g.previousSibling;if(k&&k.nodeType===3){v=k.nodeValue;w+=tw(k,v.search(/\S*$/),v.length);}
+    k=g.nextSibling;if(k&&k.nodeType===3){v=k.nodeValue;w+=tw(k,0,v.search(/\s|$/));}
+    cs=getComputedStyle(bx);
+    gw.push([g,Math.ceil(w+parseFloat(cs.marginLeft)+parseFloat(cs.marginRight))+1]);
+  }
+  gw.forEach(function(x){x[0].style.setProperty('--gw',x[1]+'px');});
   // the boxes first, then a formula inside a line of text
   ['.formula-box,.enrich-formula','.math-ltr'].forEach(function(sel){
     root.querySelectorAll(sel).forEach(function(box){
@@ -2191,12 +2448,41 @@ function _fitMath(root){
       if(!kx||!box.clientWidth||box.scrollWidth<=box.clientWidth+1)return;
       var cs=getComputedStyle(box),pad=parseFloat(cs.paddingLeft)+parseFloat(cs.paddingRight);
       var r=(box.clientWidth-pad-2)/(box.scrollWidth-pad);
-      if(!(r>=0.74&&r<1))return;
+      // a glued one is judged by the width it would have had on its own
+      var gx=box.parentElement.classList.contains('mglue')?parseFloat(box.parentElement.style.getPropertyValue('--gw'))||0:0;
+      if(!((box.clientWidth+gx-pad-2)/(box.scrollWidth-pad)>=0.74&&r<1))return;
       kx.style.fontSize=(parseFloat(getComputedStyle(kx).fontSize)*r).toFixed(2)+'px';
       kx.setAttribute('data-fit','1');
     });
   });
+  // A formula with a mark glued to it (_gluePunct) that is wider than its
+  // line wraps inside its box, and the mark could only stand beside the box:
+  // halfway up its rows, or at the far end of a box as wide as the line.
+  // Such a formula flows on in the line instead, as KaTeX's own inline maths
+  // does, and its mark follows its last piece. One that scrolls stays a box.
+  var go=[];
+  root.querySelectorAll('.mglue>.math-ltr:not(.param-val)').forEach(function(b){
+    if(b.clientWidth&&b.scrollWidth<=b.clientWidth+1&&_mathRows(b)>1)go.push(b);});
+  go.forEach(function(b){
+    b.classList.add('ml-flow');
+    // its last piece now ends the box's edge: the mark after it needs that
+    // piece held, as a bare KaTeX formula's is
+    var kh=b.querySelector('.katex-html'),lb=kh&&kh.lastElementChild;
+    if(b.nextSibling&&lb&&!lb.classList.contains('mglue'))_mglue(lb);
+  });
   _markScroll(root);
+}
+// how many rows the content of a formula box takes
+function _mathRows(b){
+  var e=b.querySelector('.katex-html');
+  if(e)return [].filter.call(e.getClientRects(),function(q){return q.width>1;}).length;
+  e=b.querySelector('.tex-fb');if(!e)return 1;
+  var rg=document.createRange(),fs=parseFloat(getComputedStyle(e).fontSize)||16,ys=[],n=0,i;
+  rg.selectNodeContents(e);
+  [].forEach.call(rg.getClientRects(),function(q){if(q.width>1)ys.push(q.bottom);});
+  ys.sort(function(a,c){return a-c;});
+  for(i=0;i<ys.length;i++)if(!i||ys[i]-ys[i-1]>fs*0.8)n++;
+  return n||1;
 }
 // ── What is left to scroll ───────────────────────────────────────────────
 // A wide table or a long chain still scrolls inside its own box on a phone,
@@ -2219,21 +2505,29 @@ function _scrollEdges(el){
   el.classList.toggle('x-more-l',(rtl?atEnd:atStart)>6);
   el.classList.toggle('x-more-r',(rtl?atStart:atEnd)>6);
 }
+function _canScrollX(el){return el.clientWidth>0&&el.scrollWidth>el.clientWidth+1&&/auto|scroll/.test(getComputedStyle(el).overflowX);}
 function _markScroll(root){
   if(!root||!root.querySelectorAll)return;
   root.querySelectorAll('.theory-card table,.wx table,.formula-box,.enrich-formula,.math-ltr').forEach(function(el){
-    var can=el.clientWidth>0&&el.scrollWidth>el.clientWidth+1&&/auto|scroll/.test(getComputedStyle(el).overflowX);
-    el.classList.toggle('x-scroll',can);
-    if(!can){el.classList.remove('x-more-l','x-more-r');}
+    var box=el,can=_canScrollX(el),tbl=el.tagName==='TABLE',par=el.parentElement;
+    // a table with a minimum width of its own (elc-compare: 430 px) is not
+    // the box that scrolls on a phone -- the wrapper around it is, and that
+    // wrapper went without the fade and the swipe hint
+    if(tbl&&!can&&par&&par.children.length===1&&_canScrollX(par)){box=par;can=true;}
+    if(tbl)[el,par].forEach(function(x){if(x&&x!==box&&x.classList.contains('x-scroll'))x.classList.remove('x-scroll','x-more-l','x-more-r');});
+    box.classList.toggle('x-scroll',can);
+    if(!can){box.classList.remove('x-more-l','x-more-r');}
     else{
-      if(!el.dataset.xs){el.dataset.xs='1';el.addEventListener('scroll',function(){_scrollEdges(el);},{passive:true});}
-      _scrollEdges(el);
+      if(!box.dataset.xs){box.dataset.xs='1';box.addEventListener('scroll',function(){_scrollEdges(box);},{passive:true});}
+      _scrollEdges(box);
     }
-    if(el.tagName==='TABLE'){
-      var prev=el.previousElementSibling,has=prev&&prev.classList&&prev.classList.contains('x-scroll-hint');
-      if(can&&!has){var h=document.createElement('div');h.className='x-scroll-hint';h.setAttribute('aria-hidden','true');
-        h.textContent='⇆ הטבלה רחבה מהמסך — החליקו אותה הצידה כדי לראות את כולה';el.parentNode.insertBefore(h,el);}
-      else if(!can&&has)prev.remove();
+    if(tbl){
+      [el,par].forEach(function(x){
+        var prev=x&&x.previousElementSibling,has=prev&&prev.classList&&prev.classList.contains('x-scroll-hint');
+        if(x===box&&can&&!has){var h=document.createElement('div');h.className='x-scroll-hint';h.setAttribute('aria-hidden','true');
+          h.textContent='⇆ הטבלה רחבה מהמסך — החליקו אותה הצידה כדי לראות את כולה';x.parentNode.insertBefore(h,x);}
+        else if((x!==box||!can)&&has)prev.remove();
+      });
     }
   });
 }
@@ -6252,7 +6546,7 @@ const OPTICS_CONTENT={
       ${fBox('c = \\lambda f','קשר אורך גל-תדירות',[['c','מהירות האור','3×10⁸ m/s'],['\\lambda','אורך הגל','מטרים'],['f','תדירות','הרץ (Hz)'] ])}
       ${fBox('E = hf = \\dfrac{hc}{\\lambda}','אנרגיית פוטון',[['h','קבוע פלאנק','6.626×10⁻³⁴ J·s'],['f','תדירות','Hz'],['E','אנרגיית פוטון','ג\'ול'] ])}
       <div style="overflow-x:auto;margin:16px 0"><table style="width:100%;border-collapse:collapse;font-size:.82rem;margin:0">
-        <tr style="background:rgba(99,102,241,.18);color:#c7d2fe"><th style="padding:6px 8px;text-align:start">קטע</th><th dir="ltr" style="padding:6px 8px">λ</th><th dir="ltr" style="padding:6px 8px">f</th><th dir="ltr" style="padding:6px 8px">E (פוטון)</th><th style="padding:6px 8px;text-align:right">שימוש</th></tr>
+        <tr style="background:rgba(99,102,241,.18);color:#c7d2fe"><th style="padding:6px 8px;text-align:start">קטע</th><th dir="ltr" style="padding:6px 8px">λ</th><th dir="ltr" style="padding:6px 8px">f</th><th dir="ltr" style="padding:6px 8px">E (פוטון)</th><th style="padding:6px 8px;text-align:start">שימוש</th></tr>
         <tr style="border-bottom:1px solid rgba(99,102,241,.15)"><td style="padding:5px 8px;color:#e2e8f0">גלי רדיו</td><td dir="ltr" style="padding:5px 8px;color:#94a3b8">&gt;1 m</td><td dir="ltr" style="padding:5px 8px;color:#94a3b8">&lt;300 MHz</td><td dir="ltr" style="padding:5px 8px;color:#94a3b8">&lt;1.2 μeV</td><td style="padding:5px 8px;color:#94a3b8">שידורי רדיו וטלוויזיה</td></tr>
         <tr style="border-bottom:1px solid rgba(99,102,241,.15)"><td style="padding:5px 8px;color:#e2e8f0">מיקרוגל</td><td dir="ltr" style="padding:5px 8px;color:#94a3b8">1 mm–1 m</td><td dir="ltr" style="padding:5px 8px;color:#94a3b8">0.3–300 GHz</td><td dir="ltr" style="padding:5px 8px;color:#94a3b8">1.2 μeV–1.2 meV</td><td style="padding:5px 8px;color:#94a3b8">תנורי מיקרוגל, רדאר, סלולר, WiFi</td></tr>
         <tr style="border-bottom:1px solid rgba(99,102,241,.15)"><td style="padding:5px 8px;color:#fbbf24">אינפרא-אדום (IR)</td><td dir="ltr" style="padding:5px 8px;color:#94a3b8">700 nm–1 mm</td><td dir="ltr" style="padding:5px 8px;color:#94a3b8">0.3–430 THz</td><td dir="ltr" style="padding:5px 8px;color:#94a3b8">1.2 meV–1.8 eV</td><td style="padding:5px 8px;color:#94a3b8">חום, שלט רחוק, ראיית לילה</td></tr>
@@ -10732,9 +11026,14 @@ function simFreefall(canvas){
       var hmPy=toY(hm);
       ctx.save(); ctx.strokeStyle='rgba(52,211,153,.45)'; ctx.lineWidth=1.5; ctx.setLineDash([5,5]);
       ctx.beginPath(); ctx.moveTo(WALLX+9,hmPy); ctx.lineTo(W-18,hmPy); ctx.stroke(); ctx.setLineDash([]); ctx.restore();
+      // the tag stays left of the ball's column: on a phone the 124 px tag ran
+      // under the ball, which hid it at the very moment the ball reached h_max
+      var hTx='h_max = '+hm.toFixed(1)+' m';
+      ctx.save(); ctx.font='bold 10px Heebo'; var hTw=ctx.measureText(_cvSub(hTx)).width; ctx.restore();
+      var hbW=Math.max(40,Math.min(124,Math.floor(W/2)-26-(WALLX+12)));
       ctx.save(); ctx.fillStyle='rgba(8,20,38,.82)'; ctx.strokeStyle='rgba(52,211,153,.55)'; ctx.lineWidth=1;
-      ctx.beginPath(); ctx.roundRect(WALLX+12,hmPy-18,124,16,4); ctx.fill(); ctx.stroke();
-      simText(ctx,'h_max = '+hm.toFixed(1)+' m',WALLX+74,hmPy-7,'#34d399',10,'center',true); ctx.restore();
+      ctx.beginPath(); ctx.roundRect(WALLX+12,hmPy-18,hbW,16,4); ctx.fill(); ctx.stroke();
+      simText(ctx,hTx,WALLX+12+hbW/2,hmPy-7,'#34d399',10*Math.min(1,(hbW-8)/hTw),'center',true); ctx.restore();
     }
     // Ball
     if(ball){
@@ -17157,12 +17456,73 @@ function optLabel(ctx,txt,x,y,col,sz,align){
   if(fx!==null)ctx.fillText(txt,fx,_fitY(ctx,y,sz));
   ctx.restore();
 }
-function optInfoBox(ctx,x,y,w,lines){
-  ctx.save();ctx.fillStyle='rgba(4,9,20,.88)';ctx.strokeStyle='rgba(59,130,246,.35)';ctx.lineWidth=1;
-  var lh=16,pad=10,h=lines.length*lh+pad;
-  ctx.beginPath();ctx.roundRect(x,y,w,h,6);ctx.fill();ctx.stroke();
-  lines.forEach(function(l,i){optLabel(ctx,l,x+w/2,y+pad/2+lh/2+i*lh,l[0]==='='?'#22d3ee':'#94a3b8',9);});
+// A text cut in two at the separator nearest its middle (a dash, a semicolon,
+// a comma, a colon, else a space); every character is kept. null: no separator.
+function _splitHalf(t){
+  var mid=t.length/2,c1=-1,c2=-1,bs=1e9;
+  [' — ','; ',', ',': ',' '].forEach(function(sep,pri){var i=-1;
+    while((i=t.indexOf(sep,i+1))>=0){var sc=Math.abs(i-mid)+pri*6;
+      if(sc<bs){bs=sc;c1=sep===' '?i:i+sep.length-1;c2=i+sep.length;}}});
+  return c1<0?null:[t.slice(0,c1).trim(),t.slice(c2).trim()];
+}
+// The centre of an arrow's name (w by h, drawn centred as optLabel draws) at
+// the arrow's head: just beyond the head along the arrow, so no part of the
+// text lies on the shaft -- or, where the canvas has no room there, beside
+// the last stretch of the arrow on whichever side has room.
+function _tipSpot(x1,y1,x2,y2,w,h,W,H,gap){
+  var L=Math.hypot(x2-x1,y2-y1)||1,ux=(x2-x1)/L,uy=(y2-y1)/L,nx=-uy,ny=ux;gap=gap||6;
+  var ok=function(c){return c.x-w/2>=3&&c.x+w/2<=W-3&&c.y-h/2>=3&&c.y+h/2<=H-3;};
+  var d=gap+w/2*Math.abs(ux)+h/2*Math.abs(uy),c0={x:x2+ux*d,y:y2+uy*d};
+  if(ok(c0))return c0;
+  // beside it: pulled inside the canvas, and kept only if the shaft stays clear
+  var e=gap+w/2*Math.abs(nx)+h/2*Math.abs(ny),b=Math.min(L/2,w/2*Math.abs(ux)+h/2*Math.abs(uy));
+  var cl=function(c){return {x:Math.max(3+w/2,Math.min(W-3-w/2,c.x)),y:Math.max(3+h/2,Math.min(H-3-h/2,c.y))};};
+  var free=function(c){return !_segHitsBox([x1,y1,x2,y2],[c.x-w/2,c.y-h/2,c.x+w/2,c.y+h/2],2);};
+  var cs=[1,-1].map(function(s){return cl({x:x2+s*nx*e-ux*b,y:y2+s*ny*e-uy*b});}).filter(free)
+    .sort(function(p,q){return p.y-q.y;});                   // above the arrow, where both fit
+  return cs.length?cs[0]:cl(c0);
+}
+// A text cut in two lines at the space that makes the longer line the
+// shortest, measured in the context's current font; null for one word.
+function _splitBal(ctx,t){
+  var best=null,bw=1e9;
+  for(var i=t.indexOf(' ');i>0;i=t.indexOf(' ',i+1)){
+    var a=t.slice(0,i).trim(),b=t.slice(i+1).trim();if(!a||!b)continue;
+    var w=Math.max(ctx.measureText(_mathIso(a)).width,ctx.measureText(_mathIso(b)).width);
+    if(w<bw){bw=w;best=[a,b];}}
+  return best;
+}
+// The width an info box needs for its lines at their own size.
+function optInfoBoxW(ctx,lines){
+  ctx.save();ctx.font='9px Heebo,sans-serif';var m=0;
+  lines.forEach(function(l){m=Math.max(m,ctx.measureText(_mathIso(_cvSub(String(l)))).width);});
+  ctx.restore();return Math.ceil(m)+12;
+}
+// A line wider than its box used to run out across the border (the
+// conductor's readout on a phone, a translation longer than the Hebrew).
+// Each line is measured: one that does not fit is set smaller, down to 8 px;
+// past that, with o.wrap, it is broken in two near its middle and the box
+// grows by a line -- upward when o.bottom says that y is its bottom edge.
+// Returns the box, so a caller can keep its neighbours clear of it.
+function optInfoBox(ctx,x,y,w,lines,o){
+  o=o||{};
+  var lh=16,pad=10,inner=w-12,rows=[];
+  ctx.save();ctx.font='9px Heebo,sans-serif';
+  var wid=function(s){return ctx.measureText(_mathIso(_cvSub(String(s)))).width;};
+  var fit=function(lw){return lw>inner?Math.max(6.5,9*inner/lw):9;};
+  lines.forEach(function(l){
+    var col=String(l)[0]==='='?'#22d3ee':'#94a3b8',lw=wid(l),two=null;
+    if(o.wrap&&fit(lw)<8)two=_splitHalf(String(l));
+    if(two)two.forEach(function(s){rows.push([s,col,fit(wid(s))]);});
+    else rows.push([l,col,fit(lw)]);
+  });
   ctx.restore();
+  var h=rows.length*lh+pad;if(o.bottom)y-=h;
+  ctx.save();ctx.fillStyle='rgba(4,9,20,.88)';ctx.strokeStyle='rgba(59,130,246,.35)';ctx.lineWidth=1;
+  ctx.beginPath();ctx.roundRect(x,y,w,h,6);ctx.fill();ctx.stroke();
+  rows.forEach(function(r,i){optLabel(ctx,r[0],x+w/2,y+pad/2+lh/2+i*lh,r[1],r[2]);});
+  ctx.restore();
+  return {x:x,y:y,w:w,h:h};
 }
 function optAngleArc(ctx,cx,cy,r,a1,a2,col){
   ctx.save();ctx.strokeStyle=col;ctx.lineWidth=1.5;ctx.globalAlpha=0.8;
@@ -17653,14 +18013,20 @@ function _optMirrorSim(canvas,P){
     optNoGlow(ctx);ctx.strokeStyle='rgba(96,165,250,.35)';ctx.lineWidth=1;
     for(var yh=-AP;yh<=AP;yh+=12){var xh=hitX(cy+yh,R);ctx.beginPath();ctx.moveTo(xh+2,cy+yh);ctx.lineTo(xh+10,cy+yh-6);ctx.stroke();}
     ctx.restore();
-    optLabel(ctx,concave?'מראה קעורה':'מראה קמורה',mx+8,cy+AP+12,'#93c5fd',10);
+    var mLbl=concave?'מראה קעורה':'מראה קמורה',mLy=cy+AP+12;   // drawn once the bottom rows are known
     // F and C: in front for concave (real), behind for convex (virtual)
     var sgn=concave?-1:1, Fx=mx+sgn*fpx, Cx=mx+sgn*R;
+    var virt=isFinite(diV)&&diV<0, ix=mx-diV*k, iy=cy-mV*objH;
+    var imgOn=isFinite(diV)&&ix>8&&ix<W-8&&Math.abs(iy-cy)<cy-6;
     [{x:Fx,l:concave?'F':'F (מדומה)'},{x:Cx,l:concave?'C':'C (מדומה)'}].forEach(function(q,qi){
       if(q.x<6||q.x>W-6)return;
       ctx.save();ctx.strokeStyle=qi?'#94a3b8':'#f59e0b';ctx.lineWidth=2;if(!concave)ctx.setLineDash([3,3]);
       ctx.beginPath();ctx.moveTo(q.x,cy-8);ctx.lineTo(q.x,cy+8);ctx.stroke();ctx.restore();
-      optLabel(ctx,q.l,q.x,cy+20,qi?'#94a3b8':'#f59e0b',10);
+      // a name the image would stand on (C at dₒ = 2f: the image is on C,
+      // under the object) goes to the right of its tick
+      ctx.save();ctx.font='10px Heebo,sans-serif';var qW=ctx.measureText(_mathIso(q.l)).width;ctx.restore();
+      var onImg=imgOn&&Math.abs(ix-q.x)<qW/2+9&&Math.min(cy,iy)<cy+26&&Math.max(cy,iy)>cy+14;
+      optLabel(ctx,q.l,onImg?ix+9+qW/2:q.x,cy+20,qi?'#94a3b8':'#f59e0b',10);
     });
     // object
     var ox=mx-doV*k,ty=cy-objH;
@@ -17668,11 +18034,13 @@ function _optMirrorSim(canvas,P){
     ctx.beginPath();ctx.moveTo(ox,cy);ctx.lineTo(ox,ty);ctx.stroke();
     ctx.fillStyle='#93c5fd';ctx.beginPath();ctx.moveTo(ox,ty);ctx.lineTo(ox-8,ty+15);ctx.lineTo(ox+8,ty+15);ctx.closePath();ctx.fill();
     optNoGlow(ctx);ctx.restore();
-    optLabel(ctx,'עצם',ox,cy+14,'#60a5fa',10);
+    // At dₒ = f the object stands on F, and its name steps below F's; at 2f it
+    // stands on C, with the image right under it, so its name goes to its left.
+    var oTx='עצם';ctx.save();ctx.font='10px Heebo,sans-serif';var oW=ctx.measureText(oTx).width/2+10;ctx.restore();
+    if(concave&&Math.abs(ox-Cx)<oW)optLabel(ctx,oTx,ox-12,cy+14,'#60a5fa',10,'right');
+    else optLabel(ctx,oTx,ox,(concave&&Math.abs(ox-Fx)<oW)?cy+34:cy+14,'#60a5fa',10);
     if(!hasDragged&&animT<7)optLabel(ctx,'✋ גררו את העצם',ox,ty-22+Math.sin(animT*4)*3,'#fbbf24',10);
-    // image
-    var virt=isFinite(diV)&&diV<0, ix=mx-diV*k, iy=cy-mV*objH;
-    var imgOn=isFinite(diV)&&ix>8&&ix<W-8&&Math.abs(iy-cy)<cy-6;
+    // image (its place is worked out above, with F and C)
     var C1='rgba(251,191,36,.8)',C2='rgba(167,139,250,.8)',C3='rgba(52,211,153,.8)';
     var used=[];
     // ray A: parallel to the axis → reflects through F (or away from virtual F)
@@ -17717,11 +18085,16 @@ function _optMirrorSim(canvas,P){
       var dir=iy<cy?1:-1;ctx.fillStyle=col;ctx.beginPath();ctx.moveTo(ix,iy);ctx.lineTo(ix-7,iy+dir*14);ctx.lineTo(ix+7,iy+dir*14);ctx.closePath();ctx.fill();
       optNoGlow(ctx);ctx.restore();
       optLabel(ctx,virt?'תמונה מדומה':'תמונה ממשית',ix,iy<cy?iy-14:iy+14,col,10);
-    } else if(!isFinite(diV)){
-      optLabel(ctx,'העצם במוקד: הקרניים המוחזרות מקבילות — התמונה באינסוף',W/2,H-58,'#f59e0b',10);
     } else {
-      optLabel(ctx,'התמונה רחוקה מחוץ לתרשים — קרבו את העצם או הרחיקו אותו מ-F',W/2,H-58,'#f59e0b',10);
+      // The message spans the canvas, so it takes its own row just above the
+      // ray legend; it used to share H-58 with the mirror's name, which then
+      // moves to the mirror's top end if the rows below still reach it.
+      var msgY=H-12-(used.length-1)*15-16;
+      if(msgY-7<mLy+7)mLy=cy-AP-12;
+      optLabel(ctx,!isFinite(diV)?'העצם במוקד: הקרניים המוחזרות מקבילות — התמונה באינסוף'
+        :'התמונה רחוקה מחוץ לתרשים — קרבו את העצם או הרחיקו אותו מ-F',W/2,msgY,'#f59e0b',10);
     }
+    optLabel(ctx,mLbl,mx+8,mLy,'#93c5fd',10);
     // legend of the rays actually drawn
     if(!dragObj)used.forEach(function(u,i){optLabel(ctx,u[1],W-10,H-12-(used.length-1-i)*15,u[0],9,'right');});
     // numbers, in mm, with their signs
@@ -17735,9 +18108,11 @@ function _optMirrorSim(canvas,P){
     if(dragObj){
       var msg=concave?(atF?'dₒ = f — הקרניים יוצאות מקבילות: אין תמונה':Math.abs(doM-2)<0.06?'dₒ = 2f (במרכז העקמומיות) — תמונה ממשית, הפוכה, שווה גודל':doM<1?'dₒ < f — מראת איפור: מדומה, ישרה ומוגדלת':'')
                      :'בכל מרחק — מדומה, ישרה ומוקטנת';
-      if(msg){ctx.save();ctx.fillStyle='rgba(4,9,20,.9)';ctx.strokeStyle='#fbbf24';ctx.lineWidth=1;
-        ctx.beginPath();ctx.roundRect(W/2-170,H-30,340,22,6);ctx.fill();ctx.stroke();ctx.restore();
-        optLabel(ctx,msg,W/2,H-19,'#fbbf24',10);}
+      // the frame is as wide as the message (a fixed 340 px ran off a phone)
+      if(msg){ctx.save();ctx.font='10px Heebo,sans-serif';var mgW=ctx.measureText(_mathIso(msg)).width,mbW=Math.min(W-12,mgW+24);
+        ctx.fillStyle='rgba(4,9,20,.9)';ctx.strokeStyle='#fbbf24';ctx.lineWidth=1;
+        ctx.beginPath();ctx.roundRect(W/2-mbW/2,H-30,mbW,22,6);ctx.fill();ctx.stroke();ctx.restore();
+        optLabel(ctx,msg,W/2,H-19,'#fbbf24',10*Math.min(1,(mbW-16)/mgW));}
     }
     // a photon along the parallel ray, toward the mirror
     if(Math.abs(ty-cy)<=AP){var ph=(animT*0.35)%1;
@@ -17810,7 +18185,12 @@ function simOptSnell(canvas){
     optLabel(ctx,'\u200ev₂ = c/n₂ = '+(3e8/n2/1e8).toFixed(2)+'×10⁸ m/s',68,MY+34,'#7d8da6',8);
     // Normal
     optDash(ctx,cx,MY-170,cx,MY+130,'#334155',0.7);
-    optLabel(ctx,'נורמל',cx+22,MY-150,'#7d8da6',9);
+    // The normal is named by its top end -- unless the info box (top right,
+    // 150 px) reaches over that corner, as on a phone: then just under the box.
+    var IBX=W-160,IBB=8+3*16+10,nTx='נורמל',nY=MY-150;
+    ctx.save();ctx.font='9px Heebo,sans-serif';var nW=ctx.measureText(nTx).width;ctx.restore();
+    if(cx+22+nW/2>IBX-4&&nY-6<IBB+2)nY=IBB+10;
+    optLabel(ctx,nTx,cx+22,nY,'#7d8da6',9);
     var L=Math.min(175,W/2-14);
     // Incident beam (animated pulse)
     var ix=cx-L*Math.sin(th1),iy=MY-L*Math.cos(th1);
@@ -17859,7 +18239,7 @@ function simOptSnell(canvas){
       ctx.save();ctx.fillStyle='rgba(4,9,20,.8)';ctx.beginPath();ctx.roundRect(cx+34,MY+30,44,18,3);ctx.fill();ctx.restore();
       optLabel(ctx,'\u200eθ₂ = '+(th2*180/Math.PI).toFixed(1)+'°',cx+56,MY+39,wlHex,10);
     }
-    optInfoBox(ctx,W-160,8,150,['n₁·sinθ₁=n₂·sinθ₂',tir?'החזרה מלאה: θ₁ > θc':'\u200eθ₂ = '+(th2*180/Math.PI).toFixed(1)+'°','פיזור: n תלוי ב-λ']);
+    optInfoBox(ctx,IBX,8,150,['n₁·sinθ₁=n₂·sinθ₂',tir?'החזרה מלאה: θ₁ > θc':'\u200eθ₂ = '+(th2*180/Math.PI).toFixed(1)+'°','פיזור: n תלוי ב-λ']);
     requestAnimationFrame(draw);
   }
   function poll(){if(_simStop[id])return;requestAnimationFrame(draw);}poll();
@@ -18831,11 +19211,16 @@ function simOptYoungs(canvas){
       yy2===6?ctx.moveTo(xx,yy2):ctx.lineTo(xx,yy2);
     }
     ctx.stroke();ctx.restore();
-    optLabel(ctx,'I(y)',scrX-56,16,'#7d8da6',8);
     // Screen frame (draggable → L)
     ctx.save();ctx.strokeStyle='rgba(148,163,184,.5)';ctx.lineWidth=1.5;
     ctx.strokeRect(scrX-8,6,16,H-12);ctx.restore();
-    optLabel(ctx,'מסך ↔ L='+v.L.toFixed(2)+'m',scrX,H-10,'#94a3b8',9);
+    // The screen's name goes beside the verdict panel where the panel (drawn
+    // later) would cover it -- the screen near the slits, on a phone -- or,
+    // with no room there either, just above the panel.
+    var scT='מסך ↔ L='+v.L.toFixed(2)+'m';ctx.save();ctx.font='9px Heebo,sans-serif';var scW=ctx.measureText(_mathIso(scT)).width;ctx.restore();
+    var scX=scrX,scY=H-10;
+    if(scX-scW/2<246+4){scX=Math.min(Math.max(scX,252+scW/2),W-4-scW/2);if(scX-scW/2<250){scX=scrX;scY=H-88;}}
+    optLabel(ctx,scT,scX,scY,'#94a3b8',9);
     // Δy bracket
     if(DyPx>H*0.44){
       optLabel(ctx,'\u200eΔy = '+(c.Dy_m*1000).toFixed(2)+' mm — רחב מהמסך',scrX-92,cy-H*0.30,'#fbbf24',8.5);
@@ -18864,8 +19249,12 @@ function simOptYoungs(canvas){
     ctx.strokeStyle='rgba(34,211,238,.75)';
     ctx.beginPath();ctx.moveTo(slitX,s2y);ctx.lineTo(scrX-8,detY);ctx.stroke();
     ctx.setLineDash([]);ctx.restore();
-    optLabel(ctx,'r₁',slitX+(scrX-slitX)*0.45,s1y+(detY-s1y)*0.45-10,'#fbbf24',9);
-    optLabel(ctx,'r₂',slitX+(scrX-slitX)*0.45,s2y+(detY-s2y)*0.45+12,'#22d3ee',9);
+    // r₁ and r₂ are named a little way along their rays -- far enough to clear
+    // "d=…mm ↕" beside the slits, which r₂ ran into with the screen near them
+    ctx.save();ctx.font='9px Heebo,sans-serif';var dEnd=slitX+26+ctx.measureText(_mathIso('d='+v.d.toFixed(2)+'mm ↕')).width/2;ctx.restore();
+    var rf=Math.min(0.75,Math.max(0.45,(dEnd+10-slitX)/Math.max(1,scrX-slitX)));
+    optLabel(ctx,'r₁',slitX+(scrX-slitX)*rf,s1y+(detY-s1y)*rf-10,'#fbbf24',9);
+    optLabel(ctx,'r₂',slitX+(scrX-slitX)*rf,s2y+(detY-s2y)*rf+12,'#22d3ee',9);
     // detector marker
     ctx.save();ctx.fillStyle=kCol;optGlow(ctx,kCol,14);
     ctx.beginPath();ctx.arc(scrX+16,detY,8,0,Math.PI*2);ctx.fill();optNoGlow(ctx);
@@ -18879,7 +19268,11 @@ function simOptYoungs(canvas){
     optLabel(ctx,'גלאי: y = '+(y_m*1000).toFixed(2)+' mm',127,H-62,'#e2e8f0',10);
     optLabel(ctx,'Δ = r₂−r₁ = '+mVal.toFixed(2)+'λ',127,H-45,kCol,11);
     optLabel(ctx,kind==='max'?'התאבכות בונה — פס בהיר (m='+mR+')':kind==='min'?'התאבכות הורסת — פס כהה':'בין מקסימום למינימום',127,H-26,kCol,9.5);
-    optInfoBox(ctx,8,8,176,['λ='+v.lambda+'nm','d='+v.d.toFixed(2)+'mm  (גררו סדק)','L='+v.L.toFixed(2)+'m  (גררו מסך)','Δy=λL/d='+(c.Dy_m*1000).toFixed(2)+'mm']);
+    var ib=optInfoBox(ctx,8,8,176,['λ='+v.lambda+'nm','d='+v.d.toFixed(2)+'mm  (גררו סדק)','L='+v.L.toFixed(2)+'m  (גררו מסך)','Δy=λL/d='+(c.Dy_m*1000).toFixed(2)+'mm']);
+    // I(y) names its curve at the top -- or just under the info box, which
+    // covered that spot (and "λ=500nm") whenever the screen stood near the slits
+    ctx.save();ctx.font='8px Heebo,sans-serif';var iyW=ctx.measureText('I(y)').width;ctx.restore();
+    optLabel(ctx,'I(y)',scrX-56,scrX-56-iyW/2<ib.x+ib.w+3?ib.y+ib.h+10:16,'#7d8da6',8);
     requestAnimationFrame(draw);
   }
   function poll(){if(_simStop[id])return;requestAnimationFrame(draw);}poll();
@@ -19552,17 +19945,23 @@ function simOptLaser(canvas){
     ctx.beginPath();ctx.roundRect(cavL,cavY,cavR-cavL,cavH,4);ctx.fill();
     ctx.strokeStyle='rgba('+lRGB[0]+','+lRGB[1]+','+lRGB[2]+',.5)';ctx.lineWidth=1.5;
     ctx.beginPath();ctx.roundRect(cavL,cavY,cavR-cavL,cavH,4);ctx.stroke();
+    // The mirrors' two-line labels sit wholly above the mirror bars (their
+    // second line used to cross the bar's top end), and the partial mirror's
+    // is measured and kept left of the inversion meter beside it.
+    var meterX=W<520?W-20:W*0.87;
     // Mirror left (total reflector)
     ctx.save();ctx.fillStyle='#e2e8f0';ctx.fillRect(cavL-5,cavY-6,6,cavH+12);
     ctx.fillStyle='#64748b';ctx.font='8px sans-serif';ctx.textAlign='center';
-    ctx.fillText('מראה',cavL-2,cavY-12);ctx.fillText('100%',cavL-2,cavY-4);ctx.restore();
+    ctx.fillText('מראה',cavL-2,cavY-19);ctx.fillText('100%',cavL-2,cavY-10);ctx.restore();
     // Mirror right (partial reflector)
     ctx.save();
     var mrGrad=ctx.createLinearGradient(cavR-3,0,cavR+3,0);
     mrGrad.addColorStop(0,'rgba(226,232,240,0.9)');mrGrad.addColorStop(1,'rgba(226,232,240,0.3)');
     ctx.fillStyle=mrGrad;ctx.fillRect(cavR-1,cavY-6,5,cavH+12);
     ctx.fillStyle='#64748b';ctx.font='8px sans-serif';ctx.textAlign='center';
-    ctx.fillText('מראה חלקית',cavR+2,cavY-12);ctx.fillText('מעבירה מעט',cavR+2,cavY-4);ctx.restore();
+    var PM1='מראה חלקית',PM2='מעבירה מעט';
+    var pmX=Math.min(cavR+2,meterX-20-Math.max(ctx.measureText(PM1).width,ctx.measureText(PM2).width)/2);
+    ctx.fillText(PM1,pmX,cavY-19);ctx.fillText(PM2,pmX,cavY-10);ctx.restore();
     // Pump arrows (top)
     var nPump=Math.round(pump*8);
     for(var pi=0;pi<nPump;pi++){
@@ -19632,7 +20031,7 @@ function simOptLaser(canvas){
       ctx.fillText('מתחת לסף — פליטה ספונטנית',W/2,cavY+cavH+22);
     }
     // Population inversion meter
-    var meterX=W<520?W-20:W*0.87,meterY=cavY+cavH,meterH=cavH*1.2;
+    var meterY=cavY+cavH,meterH=cavH*1.2;
     ctx.fillStyle='rgba(30,41,59,.8)';ctx.beginPath();ctx.roundRect(meterX-14,meterY-meterH,28,meterH,4);ctx.fill();
     ctx.strokeStyle='#475569';ctx.lineWidth=1;ctx.beginPath();ctx.roundRect(meterX-14,meterY-meterH,28,meterH,4);ctx.stroke();
     var fillH=Math.max(4,inversion*meterH);
@@ -19645,8 +20044,9 @@ function simOptLaser(canvas){
     ctx.save();ctx.strokeStyle='#fbbf24';ctx.lineWidth=1;ctx.setLineDash([3,3]);
     ctx.beginPath();ctx.moveTo(meterX-14,meterY-threshold*meterH);ctx.lineTo(meterX+14,meterY-threshold*meterH);ctx.stroke();ctx.setLineDash([]);ctx.restore();
     // Info box
-    optInfoBox(ctx,W<520?10:20,H-86,W<520?W-20:W*0.82-20,['שאיבה: '+Math.round(pump*100)+'%   ·   '+wl+' nm','מצב: '+(aboveThresh?'★ לייזר פעיל — ההיפוך ננעל בערך הסף, ועודף השאיבה הופך לקרן':'מתחת לסף — ההגברה קטנה מההפסדים'),
-      'הספק יציאה: '+Math.round(outP*100)+'% מהמרבי','שלושתם לייזרי 4 רמות: הרמה התחתונה מתרוקנת מהר']);
+    // (bottom edge at H-12; on the narrowest phones the status line breaks in two)
+    optInfoBox(ctx,W<520?10:20,H-12,W<520?W-20:W*0.82-20,['שאיבה: '+Math.round(pump*100)+'%   ·   '+wl+' nm','מצב: '+(aboveThresh?'★ לייזר פעיל — ההיפוך ננעל בערך הסף, ועודף השאיבה הופך לקרן':'מתחת לסף — ההגברה קטנה מההפסדים'),
+      'הספק יציאה: '+Math.round(outP*100)+'% מהמרבי','שלושתם לייזרי 4 רמות: הרמה התחתונה מתרוקנת מהר'],{wrap:true,bottom:true});
     requestAnimationFrame(draw);
   }
   function poll(){if(_simStop[id])return;requestAnimationFrame(draw);}poll();
@@ -19997,9 +20397,16 @@ function simOptTelescope(canvas){
     ctx.beginPath();ctx.roundRect(10,10,W-20,38,6);ctx.fill();ctx.stroke();
     ctx.restore();
     // two runs, each one direction, and shrunk to fit a phone (the joined
-    // Hebrew-and-maths line overflowed and reordered)
-    optLabel(ctx,'הגדלה זוויתית',W/2+(W<520?60:110),29,'#34d399',W<520?10:12);
-    optLabel(ctx,'\u200e|M| = fₒ/fₑ = '+fo+'/'+fe+' = '+M.toFixed(1),W/2-(W<520?40:60),29,'#34d399',W<520?10:12);
+    // Hebrew-and-maths line overflowed and reordered). They are measured and
+    // set side by side as one centred line, in the page's reading order: the
+    // name first in a left-to-right language, on the right in Hebrew
+    var _mNm='הגדלה זוויתית', _mFx='\u200e|M| = fₒ/fₑ = '+fo+'/'+fe+' = '+M.toFixed(1), _mSz=W<520?10:12;
+    ctx.save();ctx.font=_mSz+'px Heebo,sans-serif';
+    var _wNm=ctx.measureText(_mNm).width, _wFx=ctx.measureText(_mFx).width, _gap=_mSz*1.4;
+    ctx.restore();
+    var _x0=W/2-(_wNm+_gap+_wFx)/2, _ltr=document.documentElement.dir==='ltr';
+    optLabel(ctx,_mNm,_ltr?_x0:_x0+_wFx+_gap,29,'#34d399',_mSz,'left');
+    optLabel(ctx,_mFx,_ltr?_x0+_wNm+_gap:_x0,29,'#34d399',_mSz,'left');
     // Length scale bar
     ctx.save();ctx.strokeStyle='#334155';ctx.lineWidth=1;
     var scaleBarLen=fe*scale;
@@ -20367,6 +20774,50 @@ function label(ctx,txt,x,y,col,sz,align){
   var fx=_fitLabel(ctx,txt,x,y,align,sz);
   if(fx!==null)ctx.fillText(txt,fx,_fitY(ctx,y,sz));
   ctx.restore();
+}
+// The width label() gives a text (its 9 px floor included), so that a layout
+// can make room for a label -- in whatever language it is -- before drawing it.
+function labelW(ctx,txt,sz){
+  if(sz===undefined)sz=11; if(sz<9)sz=9;
+  ctx.save();ctx.font=sz+'px Heebo';var w=ctx.measureText(_mathIso(_cvSub(String(txt)))).width;ctx.restore();
+  return w;
+}
+// Two labels on one row, each centred over its own object (a left of b) while
+// there is room; nearer than their widths allow, they move apart by equal
+// steps -- and never past an edge of the canvas. Returns the two centres.
+function _spread2(xa,wa,xb,wb,gap,W){
+  var need=(wa+wb)/2+gap,d=xb-xa;
+  if(d<need){xa-=(need-d)/2;xb+=(need-d)/2;}
+  if(xa<4+wa/2){xb+=4+wa/2-xa;xa=4+wa/2;}
+  if(xb>W-4-wb/2){xa-=xb-(W-4-wb/2);xb=W-4-wb/2;}
+  return [xa,xb];
+}
+function _boxOver(a,b,p){var ox=Math.min(a[2],b[2])-Math.max(a[0],b[0])+p,oy=Math.min(a[3],b[3])-Math.max(a[1],b[1])+p;return ox>0&&oy>0?ox*oy:0;}
+function _segHitsBox(g,b,p){
+  var n=Math.max(2,Math.ceil(Math.hypot(g[2]-g[0],g[3]-g[1])/2));
+  for(var i=0;i<=n;i++){var x=g[0]+(g[2]-g[0])*i/n,y=g[1]+(g[3]-g[1])*i/n;
+    if(x>b[0]-p&&x<b[2]+p&&y>b[1]-p&&y<b[3]+p)return true;}
+  return false;
+}
+// A label that moves with its drawing (a turning vector) goes, frame by frame,
+// to the first of its candidate spots whose box keeps clear of the boxes in
+// keep (other labels, panels), of the segments in segs ([x1,y1,x2,y2,cost]:
+// an arrow, a dashed line) and of the canvas edges -- or, where none does, to
+// the one that costs least: lying on a dashed line costs less than lying on
+// an arrow, and that less than lying on another text. A candidate is what
+// label() takes: {x, y (baseline), al}. Returns it, with its box [x0,y0,x1,y1].
+function labelSpot(ctx,txt,sz,cands,keep,segs,W,H){
+  var w=labelW(ctx,txt,sz),s=Math.max(9,sz||11),best=null,bs=1e9;
+  for(var i=0;i<cands.length;i++){
+    var c=cands[i],al=c.al||'center',x0=al==='left'?c.x:al==='right'?c.x-w:c.x-w/2;
+    var b=[x0,c.y-s*0.75,x0+w,c.y+s*0.25],sc=0;
+    if(b[0]<3||b[2]>W-3||b[1]<1||b[3]>H-1)sc+=5000;
+    (keep||[]).forEach(function(k){var o=_boxOver(b,k,3);if(o)sc+=300+o*5;});
+    (segs||[]).forEach(function(g){if(_segHitsBox(g,b,3))sc+=g[4]||200;});
+    if(sc===0)return {x:c.x,y:c.y,al:al,box:b};
+    if(sc<bs){bs=sc;best={x:c.x,y:c.y,al:al,box:b};}
+  }
+  return best;
 }
 function circle(ctx,x,y,r,fill,stroke,lw){
   if(stroke===undefined)stroke=''; if(lw===undefined)lw=2;
@@ -21789,14 +22240,20 @@ runAnim('anim-accel',(canvas,ctx,W,H,t)=>{
   for(let i=1;i<=5;i++){const ti=i/5*PERIOD;const xi=0.5*a*ti*ti;const spx=toXpx(xi);ctx.save();ctx.strokeStyle='rgba(139,92,246,.25)';ctx.lineWidth=1;ctx.setLineDash([2,3]);ctx.beginPath();ctx.moveTo(spx,ay-16);ctx.lineTo(spx,ay+6);ctx.stroke();ctx.setLineDash([]);ctx.restore();}
   // v arrow
   const arVLen=Math.min(vv*7,78);
-  if(arVLen>3){arrow(ctx,bx,ay-22,bx+arVLen,ay-22,'#34d399',2.5,10);label(ctx,'v = '+vv.toFixed(1)+' m/s',bx+arVLen+4,ay-18,'#34d399',9,'left');}
+  // each arrow is named past its head -- or, near the end of the run, where
+  // that would leave the canvas (the name was pushed back onto the arrow),
+  // behind the ball
+  const tipLbl=(txt,x,y,col)=>{if(x+labelW(ctx,txt,9)>R+12)label(ctx,txt,bx-16,y,col,9,'right');else label(ctx,txt,x,y,col,9,'left');};
+  if(arVLen>3){arrow(ctx,bx,ay-22,bx+arVLen,ay-22,'#34d399',2.5,10);tipLbl('v = '+vv.toFixed(1)+' m/s',bx+arVLen+4,ay-18,'#34d399');}
   // a arrow
   arrow(ctx,bx,ay+20,bx+a*7,ay+20,'#f59e0b',2.5,9);
-  label(ctx,'a = '+a+' m/s²',bx+a*7+4,ay+24,'#f59e0b',9,'left');
+  tipLbl('a = '+a+' m/s²',bx+a*7+4,ay+24,'#f59e0b');
   // Ball
   ctx.save(); ctx.shadowColor='rgba(99,102,241,.7)'; ctx.shadowBlur=12;
   circle(ctx,bx,ay,12,'#4f46e5','#a78bfa',2); ctx.restore();
-  label(ctx,'t = '+tt.toFixed(2)+' s',L+2,panH-4,'#94a3b8',9,'left');
+  // the clock reads at the top: at the panel's foot it was on the row of the
+  // a label, which rides with the ball and ran into it for the first second
+  label(ctx,'t = '+tt.toFixed(2)+' s',L+2,12,'#94a3b8',9,'left');
   // Dual graphs
   const grT=panH+6, grB=H-5, gW2=Math.floor((W-36)/2);
   // v(t)
@@ -21829,25 +22286,34 @@ runAnim('anim-fall',(canvas,ctx,W,H,t)=>{
   const yM=Math.max(0,v0f*phase-0.5*g*phase*phase);
   const hMax=v0f*v0f/(2*g);
   const groundY=H-18, ceilY=24;
-  const toY=ym=>groundY-(ym/hMax)*(groundY-ceilY)*0.9;
+  // The balls top out under a row kept for the captions (baseline LBL): the
+  // apex used to be at y = 40, so "a = g …" and h_max ran across the balls and
+  // "v = 0 …" across the middle one. The largest ball (r = 14) clears the row.
+  const LBL=34, apexY=LBL+20;
+  const toY=ym=>groundY-(ym/hMax)*(groundY-apexY);
   // Ground
   ctx.save(); ctx.strokeStyle='#2d5275'; ctx.lineWidth=2;
   ctx.beginPath(); ctx.moveTo(12,groundY); ctx.lineTo(W-12,groundY); ctx.stroke();
   for(let i=0;i<W-16;i+=16){ctx.strokeStyle='#0d1e30';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(12+i,groundY);ctx.lineTo(12+i+10,groundY+7);ctx.stroke();}
   ctx.restore();
-  // h_max dashed
-  ctx.save(); ctx.strokeStyle='rgba(52,211,153,.4)'; ctx.lineWidth=1.2; ctx.setLineDash([4,4]);
-  ctx.beginPath(); ctx.moveTo(28,toY(hMax)); ctx.lineTo(W-28,toY(hMax)); ctx.stroke(); ctx.setLineDash([]); ctx.restore();
-  label(ctx,'h_max = '+hMax.toFixed(1)+' m',W-32,toY(hMax)-5,'#34d399',9,'right');
-  // y axis
-  ctx.save(); ctx.strokeStyle='#2d5275'; ctx.lineWidth=1.5;
-  ctx.beginPath(); ctx.moveTo(26,groundY+3); ctx.lineTo(26,ceilY-2); ctx.stroke(); ctx.restore();
-  arrow(ctx,26,ceilY,26,ceilY-2,'#2d5275',1.5,5); label(ctx,'y',26,ceilY-6,'#7d8da6',8);
   const balls=[
     {col:'#3b82f6',bx:Math.floor(W*0.28),r:8,lbl:'0.05kg'},
     {col:'#f59e0b',bx:Math.floor(W*0.52),r:11,lbl:'2kg'},
     {col:'#ef4444',bx:Math.floor(W*0.76),r:14,lbl:'20kg'},
   ];
+  // h_max dashed
+  ctx.save(); ctx.strokeStyle='rgba(52,211,153,.4)'; ctx.lineWidth=1.2; ctx.setLineDash([4,4]);
+  ctx.beginPath(); ctx.moveTo(28,toY(hMax)); ctx.lineTo(W-28,toY(hMax)); ctx.stroke(); ctx.setLineDash([]); ctx.restore();
+  // h_max is named just above its line, at the right end -- or, where the
+  // heaviest ball and its mass reach under that spot (a phone), in the caption row
+  const hTx='h_max = '+hMax.toFixed(1)+' m', bR=balls[2];
+  ctx.save();ctx.font='9px Heebo';const hW=ctx.measureText(_cvSub(hTx)).width,mW=ctx.measureText(bR.lbl).width;ctx.restore();
+  label(ctx,hTx,W-32,(W-32-hW<bR.bx+bR.r+6+mW+6)?LBL:toY(hMax)-5,'#34d399',9,'right');
+  // y axis
+  ctx.save(); ctx.strokeStyle='#2d5275'; ctx.lineWidth=1.5;
+  ctx.beginPath(); ctx.moveTo(26,groundY+3); ctx.lineTo(26,ceilY-2); ctx.stroke(); ctx.restore();
+  // the axis letter beside its arrowhead, under the info bar (above the head, half of it was under the bar)
+  arrow(ctx,26,ceilY,26,ceilY-2,'#2d5275',1.5,5); label(ctx,'y',21,ceilY+4,'#7d8da6',8,'right');
   const vy=v0f-g*phase;
   balls.forEach(b=>{
     const by=toY(yM);
@@ -21858,14 +22324,14 @@ runAnim('anim-fall',(canvas,ctx,W,H,t)=>{
     label(ctx,b.lbl,b.bx+b.r+6,by+4,'#e2e8f0',9,'left');
     if(Math.abs(vy)>0.8){const arLen=Math.min(Math.abs(vy)*2.5,28);const yd=vy>0?-arLen:arLen;arrow(ctx,b.bx,by+(vy>0?-b.r-1:b.r+1),b.bx,by+(vy>0?-b.r-1:b.r+1)+yd,vy>0?'#34d399':'#f87171',1.8,6);}
   });
-  if(Math.abs(vy)<1.6){label(ctx,'v=0 שיא! כל המסות יחד',W/2,toY(hMax)+14,'#fbbf24',10);}
+  if(Math.abs(vy)<1.6){label(ctx,'v=0 שיא! כל המסות יחד',W/2,apexY+28,'#fbbf24',10);}   // under the balls, not across the middle one
   // Info bar top
   ctx.save(); ctx.fillStyle='rgba(8,18,36,.82)'; ctx.fillRect(0,0,W,18); ctx.restore();
   const rising=phase<Tpeak;
   label(ctx,'t = '+phase.toFixed(2)+' s     y = '+yM.toFixed(1)+' m     v = '+vy.toFixed(1)+' m/s '+(rising?'↑':'↓'),W/2,12,'#cbd5e1',9);
   // Symmetry banner
   if(tt>Ttotal+0.3&&tt<Ttotal+1.6){ctx.save();ctx.fillStyle='rgba(8,18,36,.92)';ctx.strokeStyle='#fbbf24';ctx.lineWidth=1.2;ctx.beginPath();ctx.roundRect(W/2-110,H/2-12,220,22,6);ctx.fill();ctx.stroke();ctx.restore();label(ctx,'זמן עלייה = זמן ירידה = '+Tpeak.toFixed(2)+' s',W/2,H/2+2,'#fbbf24',10);}
-  label(ctx,'a = g = 9.8 m/s² לכל המסות',34,34,'#94a3b8',9,'left');
+  label(ctx,'a = g = 9.8 m/s² לכל המסות',34,LBL,'#94a3b8',9,'left');
 });
 
 runAnim('anim-inertia',(canvas,ctx,W,H,t)=>{
@@ -22366,14 +22832,17 @@ runAnim('anim-n3',(canvas,ctx,W,H,t)=>{
     label(ctx,'F(B→A) = −'+FMag+' N',xA-bWA/2-24,ay+34,'#93c5fd',8.5,'right');
   }
 
-  // Acceleration while touching; constant velocity once they part.
+  // Acceleration while touching; constant velocity once they part. Each is
+  // centred over its block while there is room; just after the push the two
+  // blocks are closer than the two labels are wide, and the labels used to be
+  // printed into each other -- they now stand apart, each over its own side.
+  const row=(tA,tB)=>{const p=_spread2(xA,labelW(ctx,tA,8),xB,labelW(ctx,tB,8),10,W);
+    label(ctx,tA,p[0],ay-bH/2-10,'#fca5a5',8);label(ctx,tB,p[1],ay-bH/2-10,'#93c5fd',8);};
   if(tt>1){
     if(inContact){
-      label(ctx,'a(A) = '+(FMag/mA).toFixed(1)+' m/s² ←',xA,ay-bH/2-10,'#fca5a5',8);
-      label(ctx,'a(B) = '+(FMag/mB).toFixed(1)+' m/s² →',xB,ay-bH/2-10,'#93c5fd',8);
+      row('a(A) = '+(FMag/mA).toFixed(1)+' m/s² ←','a(B) = '+(FMag/mB).toFixed(1)+' m/s² →');
     } else {
-      label(ctx,'v='+vA.toFixed(1)+' m/s ←  (a=0)',xA,ay-bH/2-10,'#fca5a5',8);
-      label(ctx,'v='+vB.toFixed(1)+' m/s →  (a=0)',xB,ay-bH/2-10,'#93c5fd',8);
+      row('v='+vA.toFixed(1)+' m/s ←  (a=0)','v='+vB.toFixed(1)+' m/s →  (a=0)');
       // equal and opposite impulses ⇒ the pair's momentum never left zero
       label(ctx,'\u200ep = '+(mA*vA).toFixed(1)+' + (−'+(mB*vB).toFixed(1)+') = 0 kg·m/s',
             W/2,ay+bH/2+24,'#fbbf24',8.5);
@@ -22393,11 +22862,25 @@ runAnim('anim-vecadd',(canvas,ctx,W,H,t)=>{
   // A = 3 units along +x, B = 2 units turning slowly; head to tail, R = A + B.
   // (Lengths and readouts used to be raw pixels -- "A = 62" -- and the boxed
   // labels piled on top of one another.)
-  const panelW=Math.min(W*0.3,190), U=Math.min((W-panelW-40)/6.2,(H-30)/4.6);
-  const cx=Math.max(20+2*U,(W-panelW)*0.36), cy=H*0.58;
   const theta=t*0.5, a=3, b=2;
   const Ax=a, Ay=0, Bx=b*Math.cos(theta), By=b*Math.sin(theta);
   const Rx=Ax+Bx, Ry=Ay+By, Rm=Math.hypot(Rx,Ry);
+  // The panel is as wide as its widest line (measured with the widest values
+  // it shows): on a phone its sums ran out of it to the left.
+  const f=v=>(v>=0?'+':'')+v.toFixed(2), tPan='חיבור ברכיבים';
+  const pRows=[[tPan,24,'#94a3b8'],['Rx = Ax + Bx = '+f(Rx),46,'#34d399'],['Ry = Ay + By = '+f(Ry),66,'#34d399'],
+    ['|R| = √(Rx² + Ry²) = '+Rm.toFixed(2),90,'#22d3ee'],['|A| = 3,  |B| = 2',112,'#cbd5e1'],['1 ≤ |R| ≤ 5',132,'#fbbf24']];
+  const pMax=Math.max(...pRows.map((r,i)=>labelW(ctx,i===1||i===2?r[0].replace(/[-+]\d\.\d\d$/,'+5.00'):i===3?r[0].replace(/\d\.\d\d$/,'5.00'):r[0],9)));
+  const panelW=Math.min(Math.max(Math.min(W*0.3,190),pMax+14),W*0.45);
+  // R's name is centred over (or under) its head, and the head reaches
+  // Rx = 5 units, Ry = ±2: on a phone the diagram used to run on under the
+  // panel, and "R = A + B" was printed over its sums. Nothing lies left of the
+  // origin (Rx >= 1), so the origin moves left until the name clears the
+  // panel, and the scale leaves the name room under the canvas' bottom edge.
+  const PX=W-panelW-6, rW=labelW(ctx,'R = A + B',10);
+  let U=Math.min((W-panelW-40)/6.2,(H-30)/4.6,(H*0.5-22)/2);
+  U=Math.min(U,(PX-8-rW/2-14)/5);
+  const cx=Math.max(14,Math.min(Math.max(20+2*U,(W-panelW)*0.36),PX-8-rW/2-5*U)), cy=H*0.5;
   const P=(x,y)=>[cx+x*U, cy-y*U];
   ctx.save(); ctx.fillStyle='rgba(30,58,82,.4)';
   for(let gx=cx%U;gx<W-panelW-10;gx+=U) for(let gy=cy%U;gy<H;gy+=U){ ctx.beginPath(); ctx.arc(gx,gy,1.4,0,Math.PI*2); ctx.fill(); }
@@ -22409,21 +22892,25 @@ runAnim('anim-vecadd',(canvas,ctx,W,H,t)=>{
   arrow(ctx,...P(0,0),...P(Ax,Ay),'#3b82f6',3,12);
   label(ctx,'A',P(Ax/2,0)[0],P(0,0)[1]+(Ry>=0?14:-6),'#93c5fd',11);
   arrow(ctx,...P(Ax,Ay),...P(Ax+Bx,Ay+By),'#f59e0b',3,12);
-  label(ctx,'B',P(Ax+Bx/2,0)[0]+(Bx>=0?10:-10)*(Math.abs(By)>0.3?1:0),P(0,Ay+By/2)[1]+(Math.abs(By)>0.3?4:-10),'#fde68a',11);
+  // B is named beside its middle, outside the triangle (a fixed step right
+  // and down put the name on B's own arrow while B lay low). B lying along
+  // the axis is named on the side away from R's name (the two used to meet
+  // when B folds back over A), a little toward its tail, clear of A's.
+  const flat=Math.abs(By)<=0.3, bw=labelW(ctx,'B',11), nx=Math.abs(Math.sin(theta)), ny=(By>=0?1:-1)*Math.cos(theta);
+  const bd=6+bw/2*nx+5*Math.abs(ny), bm=P(Ax+Bx/2,Ay+By/2);
+  const bL=flat?[P(Ax+Bx/2+(Bx<0?0.6:0),0)[0],P(0,By/2)[1]+(Ry>=0?14:-10)]:[bm[0]+nx*bd,bm[1]+ny*bd+4];
+  label(ctx,'B',bL[0],bL[1],'#fde68a',11);
   ctx.save(); ctx.shadowColor='rgba(52,211,153,.6)'; ctx.shadowBlur=10;
   arrow(ctx,...P(0,0),...P(Rx,Ry),'#34d399',3.5,14); ctx.restore();
-  label(ctx,'R = A + B',P(Rx,Ry)[0]+(Rx>=0?10:-10),P(Rx,Ry)[1]+(Ry>=0?-6:14),'#34d399',10,Rx>=0?'left':'right');
+  // with B folded back, R is short and its name can reach B's: it then moves left
+  let rx=P(Rx,Ry)[0];const ry=P(Rx,Ry)[1]+(Ry>=0?-12:18);
+  if(rx+rW/2>bL[0]-bw/2-3&&rx-rW/2<bL[0]+bw/2+3&&ry-7.5<bL[1]+5.75&&ry+5.5>bL[1]-8.25)rx=Math.max(3+rW/2,bL[0]-bw/2-3-rW/2);
+  label(ctx,'R = A + B',rx,ry,'#34d399',10,'center');
   // panel
-  const PX=W-panelW-6;
   ctx.save(); ctx.fillStyle='rgba(6,14,28,.88)'; ctx.strokeStyle='#1e4060'; ctx.lineWidth=1;
   ctx.beginPath(); ctx.roundRect(PX,8,panelW,H-16,7); ctx.fill(); ctx.stroke(); ctx.restore();
-  const pc=PX+panelW/2, f=v=>(v>=0?'+':'')+v.toFixed(2);
-  label(ctx,'חיבור ברכיבים',pc,24,'#94a3b8',9);
-  label(ctx,'Rx = Ax + Bx = '+f(Rx),pc,46,'#34d399',9);
-  label(ctx,'Ry = Ay + By = '+f(Ry),pc,66,'#34d399',9);
-  label(ctx,'|R| = √(Rx² + Ry²) = '+Rm.toFixed(2),pc,90,'#22d3ee',9);
-  label(ctx,'|A| = 3,  |B| = 2',pc,112,'#cbd5e1',9);
-  label(ctx,'1 ≤ |R| ≤ 5',pc,132,'#fbbf24',9);
+  const pc=PX+panelW/2;
+  pRows.forEach(r=>label(ctx,r[0],pc,r[1],r[2],9));
 });
 
 // CH2 ANIM: רכיבי ווקטור
@@ -23098,31 +23585,29 @@ runAnim('anim-vec',(canvas,ctx,W,H,t)=>{
   const PW0=W*0.30, R=Math.max(24,Math.min(62,(W-PW0*2-20)/2-8,CY-16)), k=R/mag;
   const vx=R*Math.cos(angle), vy=R*Math.sin(angle);
 
-  // ── Left panel: Scalar examples
-  const PW=W*0.30, PH=H-14;
-  ctx.save();ctx.fillStyle='rgba(6,14,28,.75)';ctx.strokeStyle='rgba(30,64,96,.6)';ctx.lineWidth=1;
-  ctx.beginPath();ctx.roundRect(6,6,PW,PH-6,5);ctx.fill();ctx.stroke();ctx.restore();
-  label(ctx,'סקלרי',6+PW/2,18,'#7d8da6',8,'center');
+  // ── The two panels: scalar examples (left), vector examples (right). A name
+  // and its value share a row while both fit in it; on a phone "Acceleration"
+  // ran into "← 5 m/s²" and "Momentum" into "↗ 30 kg·m/s", so where any row of
+  // either panel is too narrow, every row of both puts its value under its name.
+  const PW=W*0.30, PH=H-14, RPX=W-6-PW, RPY=6;
   const scalars=[['מסה','5 kg'],['זמן','3.2 s'],['טמפ׳','37°C'],['מרחק','12 m']];
-  scalars.forEach(([name,val],i)=>{
-    const sy=30+i*22;
-    ctx.save();ctx.fillStyle='rgba(15,30,55,.6)';ctx.beginPath();ctx.roundRect(12,sy,PW-12,16,3);ctx.fill();ctx.restore();
-    label(ctx,name,22,sy+11,'#60a5fa',7.5,'left');
-    label(ctx,val,6+PW-6,sy+11,'#94a3b8',7.5,'right');
-  });
-
-  // ── Right panel: Vector examples
-  const RPX=W-6-PW, RPY=6;
-  ctx.save();ctx.fillStyle='rgba(6,14,28,.75)';ctx.strokeStyle='rgba(167,139,250,.4)';ctx.lineWidth=1;
-  ctx.beginPath();ctx.roundRect(RPX,RPY,PW,PH-6,5);ctx.fill();ctx.stroke();ctx.restore();
-  label(ctx,'וקטורי',RPX+PW/2,RPY+12,'#a78bfa',8,'center');
   const vectors=[['מהירות','→ 20 m/s'],['כוח','↑ 15 N'],['תאוצה','← 5 m/s²'],['תנע','↗ 30 kg·m/s']];
-  vectors.forEach(([name,val],i)=>{
-    const sy=RPY+24+i*22;
-    ctx.save();ctx.fillStyle='rgba(15,30,55,.6)';ctx.beginPath();ctx.roundRect(RPX+6,sy,PW-12,16,3);ctx.fill();ctx.restore();
-    label(ctx,name,RPX+12,sy+11,'#a78bfa',7.5,'left');
-    label(ctx,val,RPX+PW-6,sy+11,'#c4b5fd',7.5,'right');
-  });
+  const fit=(list,nx)=>list.every(([n,v])=>labelW(ctx,n,7.5)+labelW(ctx,v,7.5)+5<=PW-6-nx);
+  const one=fit(scalars,16)&&fit(vectors,12);
+  const row0=one?30:26, rowS=one?22:27, rowH=one?16:24;
+  const panel=(px,stroke,title,tcol,list,nx,ncol,vcol)=>{
+    ctx.save();ctx.fillStyle='rgba(6,14,28,.75)';ctx.strokeStyle=stroke;ctx.lineWidth=1;
+    ctx.beginPath();ctx.roundRect(px,6,PW,PH-6,5);ctx.fill();ctx.stroke();ctx.restore();
+    label(ctx,title,px+PW/2,18,tcol,8,'center');
+    list.forEach(([name,val],i)=>{
+      const sy=row0+i*rowS;
+      ctx.save();ctx.fillStyle='rgba(15,30,55,.6)';ctx.beginPath();ctx.roundRect(px+6,sy,PW-12,rowH,3);ctx.fill();ctx.restore();
+      label(ctx,name,px+nx,sy+(one?11:10),ncol,7.5,'left');
+      label(ctx,val,px+PW-6,sy+(one?11:20.5),vcol,7.5,'right');
+    });
+  };
+  panel(6,'rgba(30,64,96,.6)','סקלרי','#7d8da6',scalars,16,'#60a5fa','#94a3b8');
+  panel(RPX,'rgba(167,139,250,.4)','וקטורי','#a78bfa',vectors,12,'#a78bfa','#c4b5fd');
 
   // ── Center: animated vector demonstration
   const CCX=PW+10+(W-PW*2-20)/2, CCY=CY;
@@ -23131,26 +23616,54 @@ runAnim('anim-vec',(canvas,ctx,W,H,t)=>{
   ctx.save();ctx.strokeStyle='rgba(251,191,36,.5)';ctx.lineWidth=1.2;
   ctx.beginPath();ctx.arc(CCX,CCY,22,0,angle%(Math.PI*2),angle<0);ctx.stroke();ctx.restore();
   const aDisp=(((-angle)%(Math.PI*2))*180/Math.PI);
-  label(ctx,aDisp.toFixed(0)+'°',CCX+28,CCY-10,'#fbbf24',8);
 
   // Vector arrow
   arrow(ctx,CCX,CCY,CCX+vx,CCY+vy,'#34d399',2.5,10);
-  // Magnitude label on arrow
-  label(ctx,'|v|='+mag+' m/s',CCX+vx/2+8,CCY+vy/2-8,'#34d399',8);
 
   // Component dashed lines
   ctx.save();ctx.strokeStyle='rgba(96,165,250,.5)';ctx.lineWidth=1.2;ctx.setLineDash([4,5]);
   ctx.beginPath();ctx.moveTo(CCX+vx,CCY);ctx.lineTo(CCX+vx,CCY+vy);ctx.stroke();
   ctx.beginPath();ctx.moveTo(CCX,CCY+vy);ctx.lineTo(CCX+vx,CCY+vy);ctx.stroke();
   ctx.setLineDash([]);ctx.restore();
-  label(ctx,'vₓ='+(vx/k).toFixed(0),CCX+vx/2,CCY+8,'#60a5fa',7.5,'center');
-  // vy is a SCREEN component (canvas y grows downward). Negate for the label
-  // only — the draw calls above must keep using CCY+vy.
-  label(ctx,'vᵧ='+(-vy/k).toFixed(0),CCX+vx+(vx>0?5:-20),CCY+vy/2,'#f87171',7.5);
 
   // Origin dot
   circle(ctx,CCX,CCY,3,'#fff','#94a3b8',1.5);
-  label(ctx,'ראשית',CCX,CCY+20,'#7d8da6',7,'center');
+
+  // The labels of the turning vector used to sit at fixed offsets from it:
+  // |v| lay on the angle, on vₓ and on "origin", and on a phone vᵧ ran into
+  // the scalar panel's values. |v| -- the one number that never changes --
+  // now heads the picture; "origin" sits on the side of the origin away from
+  // the arrow, beyond the arc; the angle on the arc's bisector; and vₓ and vᵧ
+  // take, frame by frame, the first of their spots beside their own dashed
+  // line that keeps clear of the arrow, the dashed lines, the arc, the panels
+  // and the labels placed before them.
+  const ux=vx/R, uy=vy/R, up=vy<0, am=angle/2, sx=ux>0?1:-1;
+  const keep=[[6,6,6+PW,PH],[RPX,RPY,RPX+PW,PH]];
+  const segs=[[CCX,CCY,CCX+vx,CCY+vy,200],[CCX+vx,CCY,CCX+vx,CCY+vy,30],[CCX,CCY+vy,CCX+vx,CCY+vy,30]];
+  for(let i=0;i<12;i++){const a0=angle*i/12,a1=angle*(i+1)/12;
+    segs.push([CCX+22*Math.cos(a0),CCY+22*Math.sin(a0),CCX+22*Math.cos(a1),CCY+22*Math.sin(a1),30]);}
+  const put=(txt,sz,col,cands)=>{const s=labelSpot(ctx,txt,sz,cands,keep,segs,W,H);keep.push(s.box);label(ctx,txt,s.x,s.y,col,sz,s.al);};
+  // the baseline spot whose box (w by h) just clears the point (x,y) in the direction (dx,dy)
+  const off=(x,y,dx,dy,w,h,gap)=>{const d=gap+w/2*Math.abs(dx)+h/2*Math.abs(dy);return {x:x+dx*d,y:y+dy*d+h*0.3};};
+  const tv='|v|='+mag+' m/s';
+  put(tv,8,'#34d399',[{x:CCX,y:16}]);
+  const yO=up?11:-5, yI=up?-5:11, yF=CCY+vy+(up?-8:15);      // outside / inside the axis; beyond the far side
+  put('vₓ='+(vx/k).toFixed(0),7.5,'#60a5fa',[{x:CCX+vx/2,y:CCY+yO},{x:CCX+vx/2,y:yF},
+    {x:CCX+vx/2,y:CCY+yI},{x:CCX-sx*5,y:CCY+yO,al:ux>0?'right':'left'}]);
+  // vy is a SCREEN component (canvas y grows downward). Negate for the label
+  // only — the draw calls above must keep using CCY+vy.
+  put('vᵧ='+(-vy/k).toFixed(0),7.5,'#f87171',[{x:CCX+vx+sx*5,y:CCY+vy/2+3,al:ux>0?'left':'right'},
+    {x:CCX+vx,y:yF},{x:CCX-sx*5,y:CCY+vy/2+3,al:ux>0?'right':'left'},
+    {x:CCX+vx-sx*5,y:CCY+vy/2+3,al:ux>0?'right':'left'},{x:CCX+sx*5,y:CCY+vy/2+3,al:ux>0?'left':'right'}]);
+  const ta=aDisp.toFixed(0)+'°', wa=labelW(ctx,ta,8), ca=Math.cos(am), sa=Math.sin(am);
+  put(ta,8,'#fbbf24',[off(CCX,CCY,ca,sa,wa,9,26),off(CCX,CCY,ca,sa,wa,9,38),
+    {x:CCX+28,y:CCY-10},{x:CCX+28,y:CCY+14},{x:CCX-28,y:CCY+14},{x:CCX-28,y:CCY-10}]);
+  // "origin" in the part of the turn the arc has not swept, nearest its middle
+  // -- or, where the others leave no room there, at the nearest free spot round it
+  const to='ראשית', wo=labelW(ctx,to,7), bo=Math.PI+am, co=[];
+  for(let j=0;j<14;j++){const d=(j%2?-1:1)*Math.ceil(j/2)*0.45;
+    [6,16].forEach(g=>co.push(off(CCX,CCY,Math.cos(bo+d),Math.sin(bo+d),wo,9,g)));}
+  put(to,7,'#7d8da6',co);
 });
 
 // ── CH3 ANIM: anim-tension — rope tension, T=m(g±a)
@@ -23701,22 +24214,42 @@ runAnim('anim-projectile-arc',(canvas,ctx,W,H,t)=>{
   const P=(f,tt)=>[ORIG_X+v0*Math.cos(f.th)*tt*scale, GND-(v0*Math.sin(f.th)*tt-0.5*g*tt*tt)*scale];
   ctx.save(); ctx.strokeStyle='#1e4060'; ctx.lineWidth=2;
   ctx.beginPath(); ctx.moveTo(ORIG_X-8,GND); ctx.lineTo(ORIG_X+Rmax*scale+20,GND); ctx.stroke(); ctx.restore();
-  // the flights already made in this cycle, faint, with their landing points
+  // the flights already made in this cycle, faint, with their landing points.
+  // 20° and 70° land on the same spot (so do 35° and 55°, next to 45°): each
+  // name takes the one of the two rows under the ground where it has to move
+  // least to clear the names already there -- they used to be printed on top
+  // of one another.
+  // The ball that has just landed keeps its velocity, whose vy arrow points
+  // down through the rows: its own name keeps clear of that arrow too.
+  const VS=2.0, rows=[[],[]], vyL=v0*Math.sin(cur.th)*VS;
   for(let j=0;j<=k;j++){
     const f=fl[j], cur2=(j===k);
     ctx.save(); ctx.strokeStyle=cur2?'rgba(96,165,250,.35)':'rgba(148,163,184,.22)'; ctx.lineWidth=1.6; ctx.setLineDash([5,6]);
     ctx.beginPath();
     for(let i=0;i<=60;i++){const q=P(f,f.T*i/60); i===0?ctx.moveTo(q[0],q[1]):ctx.lineTo(q[0],q[1]);}
     ctx.stroke(); ctx.restore();
-    if(!cur2||tc>cur.T){const R=v0*v0*Math.sin(2*f.th)/g, lx=ORIG_X+R*scale;
+    if(!cur2||tc>cur.T){const R=v0*v0*Math.sin(2*f.th)/g, lx=ORIG_X+R*scale, tx=f.d+'°', hw=labelW(ctx,tx,9)/2+2;
       ctx.save();ctx.fillStyle=cur2?'#60a5fa':'#64748b';ctx.beginPath();ctx.arc(lx,GND,3,0,6.2832);ctx.fill();ctx.restore();
-      label(ctx,f.d+'°',lx,GND+12+(j%2)*10,cur2?'#93c5fd':'#7d8da6',9);}
+      if(cur2)rows.forEach((rw,ri)=>{if(ri*10+5<vyL)rw.push([lx,2]);});
+      let best=null;
+      rows.forEach((rw,ri)=>{[lx].concat(rw.map(q=>q[0]-q[1]-hw),rw.map(q=>q[0]+q[1]+hw)).forEach(x=>{
+        if(rw.some(q=>Math.abs(x-q[0])<q[1]+hw-0.01))return;
+        const c=Math.abs(x-lx)+ri*0.5;if(!best||c<best.c)best={c:c,x:x,ri:ri};});});
+      rows[best.ri].push([best.x,hw]);
+      label(ctx,tx,best.x,GND+12+best.ri*10,cur2?'#93c5fd':'#7d8da6',9);}
   }
-  const b=P(cur,tNow), vx=v0*Math.cos(cur.th), vy=v0*Math.sin(cur.th)-g*tNow, VS=2.0;
+  const b=P(cur,tNow), vx=v0*Math.cos(cur.th), vy=v0*Math.sin(cur.th)-g*tNow;
   arrow(ctx,b[0],b[1],b[0]+vx*VS,b[1],'#60a5fa',1.8,7);
   if(Math.abs(vy)>0.5)arrow(ctx,b[0],b[1],b[0],b[1]-vy*VS,'#f87171',1.8,7);
-  label(ctx,'vx='+vx.toFixed(1),b[0]+vx*VS/2,b[1]+13,'#60a5fa',9);
-  if(Math.abs(vy)>0.5)label(ctx,'vy='+vy.toFixed(1),b[0]+8,b[1]-vy*VS/2,'#f87171',9,'left');
+  // Each component is named on the side of its arrow away from the other one:
+  // on the way down vy's arrow points under the ball, where vx's name was --
+  // the two were printed into each other -- so vx goes above its arrow, and vy
+  // to the left of its own, above the ground and the landing names. Where the
+  // canvas' right edge pushes vx's name back over the ball, it rises a row.
+  const down=vy<-0.5, txv='vx='+vx.toFixed(1), wxv=labelW(ctx,txv,9);
+  const xv=Math.min(b[0]+vx*VS/2,W-3-wxv/2);
+  label(ctx,txv,xv,down?(xv-wxv/2<b[0]+4?b[1]-17:b[1]-7):b[1]+13,'#60a5fa',9);
+  if(Math.abs(vy)>0.5)label(ctx,'vy='+vy.toFixed(1),down?b[0]-8:b[0]+8,down?Math.min(b[1]-vy*VS/2,GND-4):b[1]-vy*VS/2,'#f87171',9,down?'right':'left');
   circle(ctx,b[0],b[1],7,'#f59e0b','#fde68a',2);
   // launch angle, between the ground and the launch direction
   ctx.save(); ctx.strokeStyle='#fbbf24'; ctx.lineWidth=1.8;
@@ -23740,7 +24273,8 @@ runAnim('anim-projectile-range',(canvas,ctx,W,H,t)=>{
   arrow(ctx,marginL,marginT+GH,marginL+GW+8,marginT+GH,'#2d5275',1.5,7);
   arrow(ctx,marginL,marginT+GH,marginL,marginT-8,'#2d5275',1.5,7);
   label(ctx,'θ (°)',marginL+GW+4,marginT+GH+3,'#7d8da6',9,'left');
-  label(ctx,'R (m)',marginL-4,marginT-2,'#7d8da6',9,'right');
+  // beside the axis' arrowhead: right-aligned left of it, "R (m)" sat on the top tick's number
+  label(ctx,'R (m)',marginL+8,marginT-3,'#7d8da6',9,'left');
 
   // Grid
   ctx.save();ctx.strokeStyle='rgba(30,64,96,.35)';ctx.lineWidth=0.6;ctx.setLineDash([3,5]);
@@ -23771,6 +24305,10 @@ runAnim('anim-projectile-range',(canvas,ctx,W,H,t)=>{
   const PERIOD=6;
   const th1_deg=10+35*((t%PERIOD)/PERIOD);
   const th2_deg=90-th1_deg;
+  // as the pair closes on 45° the two dots meet, and so did their angles:
+  // the two names now stand apart, each on its own dot's side
+  const lx=_spread2(marginL+th1_deg/90*GW,labelW(ctx,th1_deg.toFixed(0)+'°',8.5),
+                    marginL+th2_deg/90*GW,labelW(ctx,th2_deg.toFixed(0)+'°',8.5),4,W);
   [th1_deg,th2_deg].forEach((deg,idx)=>{
     const th=deg*Math.PI/180;
     const R=v0*v0*Math.sin(2*th)/g;
@@ -23781,15 +24319,16 @@ runAnim('anim-projectile-range',(canvas,ctx,W,H,t)=>{
     ctx.save();ctx.strokeStyle=col+'80';ctx.lineWidth=1;ctx.setLineDash([3,4]);
     ctx.beginPath();ctx.moveTo(px,py);ctx.lineTo(px,marginT+GH);ctx.stroke();
     ctx.setLineDash([]);ctx.restore();
-    label(ctx,deg.toFixed(0)+'°',px,py-10,col,8.5);
+    label(ctx,deg.toFixed(0)+'°',lx[idx],py-10,col,8.5);
   });
 
-  // 45° marker
+  // 45° marker -- named at its foot: at the top the angle of the green dot
+  // ran across the name on every phone while that dot passed 59°-64°
   const px45=marginL+45/90*GW;
   ctx.save();ctx.strokeStyle='rgba(167,139,250,.6)';ctx.lineWidth=1.5;ctx.setLineDash([4,5]);
   ctx.beginPath();ctx.moveTo(px45,marginT);ctx.lineTo(px45,marginT+GH);ctx.stroke();
   ctx.setLineDash([]);ctx.restore();
-  label(ctx,'Rmax @ 45°',px45+4,marginT+12,'#a78bfa',8);
+  label(ctx,'Rmax @ 45°',px45+4,marginT+GH-6,'#a78bfa',8);
 
   // Title
   label(ctx,'R = v₀²·sin2θ / g',W/2,marginT+GH+22,'#7d8da6',8.5);
@@ -24739,7 +25278,10 @@ runAnim('anim-refr-speed',(canvas,ctx,W,H,t)=>{
     {name:'זכוכית',n:1.5,col:'#a78bfa'},
     {name:'יהלום',n:2.42,col:'#f472b6'},
   ];
-  var bx=44,bw=W-100,bH=16,gap=8,startY=18;
+  // the five bars end a clear line above the caption (the last bar used to
+  // run under it): the caption keeps the bottom 16 px, the bars start higher
+  var bx=44,bw=W-100,bH=16,gap=8,capY=H-8;
+  var startY=Math.max(6,Math.min(18,capY-10-(materials.length*(bH+gap)-gap)));
   materials.forEach(function(m,i){
     var y=startY+i*(bH+gap);
     var barLen=Math.round(bw/m.n);
@@ -24762,7 +25304,7 @@ runAnim('anim-refr-speed',(canvas,ctx,W,H,t)=>{
     oLbl(ctx,m.name,bx-22,y+bH/2,'#94a3b8',8);
     oLbl(ctx,'n = '+m.n,bx+bw+28,y+bH/2,m.col,8);
   });
-  oLbl(ctx,'מהירות אור יחסית בחומרים שונים',W/2,H-6,'#7d8da6',9);
+  oLbl(ctx,'מהירות אור יחסית בחומרים שונים',W/2,capY,'#7d8da6',9);
 });
 
 // ─── 3. Enhanced Reflection Law ──────────────────────────────────────────────
@@ -27077,7 +27619,8 @@ MAG_SIMS['mag-wire']=function(canvas){
     ctx.save();ctx.strokeStyle='#1e3a52';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(gx,gy+8);ctx.lineTo(gx,gy+gh);ctx.lineTo(gx+gw,gy+gh);ctx.stroke();ctx.restore();
     [0,200,400,600].forEach(function(v){simText(ctx,String(v),gx-5,Y(v*1e-6)+3,'#64748b',8.5,'right');});
     [0,5,10,15].forEach(function(v){simText(ctx,String(v),X(v/100),gy+gh+13,'#64748b',8.5,'center');});
-    simText(ctx,'μT',gx-22,gy+14,'#64748b',8.5,'center');simText(ctx,'r (cm)',X(0.125),gy+gh+13,'#64748b',8.5,'center');
+    // the unit heads the column of tick numbers, a row above the top one (it was on the "600")
+    simText(ctx,'μT',gx-5,Y(600e-6)-9,'#64748b',8.5,'right');simText(ctx,'r (cm)',X(0.125),gy+gh+13,'#64748b',8.5,'center');
     ctx.save();ctx.strokeStyle='rgba(52,211,153,.5)';ctx.setLineDash([4,4]);ctx.beginPath();ctx.moveTo(gx,Y(30e-6));ctx.lineTo(gx+gw,Y(30e-6));ctx.stroke();ctx.restore();
     simText(ctx,'שדה כדור הארץ',gx+gw-4,Y(30e-6)-5,'#34d399',8.5,'right');
     var I1=Math.abs(Ls[0][2]),pts=[];for(var r=0.004;r<=rmax;r+=0.001){var B=2e-7*I1/r;if(B<=Bmax)pts.push([X(r),Y(B)]);}
@@ -27333,10 +27876,14 @@ MAG_SIMS['mag-circle']=function(canvas){
     magFieldMarks(ctx,X0,0,W,H,bz>0,38);
     ctx.save();ctx.strokeStyle='#475569';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(X0,0);ctx.lineTo(X0,H);ctx.stroke();ctx.restore();
     // ruler along the boundary, in real centimetres
-    if(shots.length){var span=(H-50)/sc,st=[0.005,0.01,0.02,0.05,0.1,0.2,0.5,1];var tk=st.find(function(x){return span/x<=10;})||1;
+    // (steps up to 50 m: a slow-turning ion at the sliders' ends has r of tens
+    // of metres, and 1 m steps stacked ~50 numbers into one column; a number
+    // that would run into the "cm" at the ruler's end is left out)
+    if(shots.length){var span=(H-50)/sc,st=[0.005,0.01,0.02,0.05,0.1,0.2,0.5,1,2,5,10,20,50];var tk=st.find(function(x){return span/x<=10;})||50;
+      var yCm=up?14:H-8;
       for(var d=0;d*sc<H-30;d+=tk){var yy=up?yE-d*sc:yE+d*sc;ctx.save();ctx.strokeStyle='#64748b';ctx.beginPath();ctx.moveTo(X0-8,yy);ctx.lineTo(X0,yy);ctx.stroke();ctx.restore();
-        simText(ctx,(d*100).toFixed(tk<0.01?1:0),X0-11,yy+3,'#64748b',8.5,'right');}
-      simText(ctx,'cm',X0-11,up?14:H-8,'#64748b',8.5,'right');}
+        if(Math.abs(yy+3-yCm)>=11)simText(ctx,(d*100).toFixed(tk<0.01?1:0),X0-11,yy+3,'#64748b',8.5,'right');}
+      simText(ctx,'cm',X0-11,yCm,'#64748b',8.5,'right');}
     // the gun
     ctx.save();ctx.fillStyle='#334155';ctx.fillRect(8,yE-9,X0*0.55,18);ctx.restore();
     simText(ctx,PARTS[pi].n,8+X0*0.27,yE+(up?-18:22),'#94a3b8',9.5,'center',true);
@@ -27356,13 +27903,20 @@ MAG_SIMS['mag-circle']=function(canvas){
       q0=s;});
     marks.forEach(function(m){ctx.save();ctx.strokeStyle=m.s.col;ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(X0-14,m.y);ctx.lineTo(X0+6,m.y);ctx.stroke();ctx.restore();
       simText(ctx,'2r = '+(2*m.s.r*100).toFixed(1)+' cm',X0+12,m.y+(up?14:-8),m.s.col,10,'left',true);});
-    var y0=up?8:H-68;ctx.save();ctx.fillStyle='rgba(2,8,16,.85)';ctx.fillRect(W-Math.min(W*0.62,420)-8,y0,Math.min(W*0.62,420),60);ctx.restore();
-    var bx=W-Math.min(W*0.62,420)/2-8;
+    // The panel is as wide as its widest line (on a phone the first line was
+    // ~240 px in a 226 px panel), never reaching left of the field's edge X0;
+    // a line that still does not fit is set smaller to the panel's width.
+    var y0=up?8:H-68,rows;
     if(q0){var tin2=Math.max(0,(tv-q0.t0-0.35)/(Tvis/(q0.T/2)));
-      simText(ctx,'r = mv/qB = '+(q0.r*100).toFixed(q0.r<1?2:0)+' cm   ·   T/2 = πm/qB = '+(q0.T/2*1e9).toFixed(1)+' ns',bx,y0+18,'#e2e8f0',10.5,'center',true);
-      simText(ctx,'שעון (הילוך איטי): '+(Math.min(tin2,q0.T/2)*1e9).toFixed(1)+' ns',bx,y0+38,'#fbbf24',10.5,'center',true);
-      simText(ctx,shots.length>1?'המהיר עושה מעגל כפול — ויוצא באותו רגע בדיוק':'שנו את v ושגרו שוב: הרדיוס משתנה, הזמן לא',bx,y0+54,'#94a3b8',9.5,'center');}
-    else simText(ctx,'לחצו ״שגרו״ — או ״שגרו שניים״ להשוואת זמנים',bx,y0+30,'#94a3b8',10.5,'center');
+      rows=[['r = mv/qB = '+(q0.r*100).toFixed(q0.r<1?2:0)+' cm   ·   T/2 = πm/qB = '+(q0.T/2*1e9).toFixed(1)+' ns',18,'#e2e8f0',10.5,true],
+        ['שעון (הילוך איטי): '+(Math.min(tin2,q0.T/2)*1e9).toFixed(1)+' ns',38,'#fbbf24',10.5,true],
+        [shots.length>1?'המהיר עושה מעגל כפול — ויוצא באותו רגע בדיוק':'שנו את v ושגרו שוב: הרדיוס משתנה, הזמן לא',54,'#94a3b8',9.5,false]];}
+    else rows=[['לחצו ״שגרו״ — או ״שגרו שניים״ להשוואת זמנים',30,'#94a3b8',10.5,false]];
+    ctx.save();rows.forEach(function(r){ctx.font=(r[4]?'bold ':'')+r[3]+'px Heebo';r.push(ctx.measureText(_mathIso(r[0])).width);});ctx.restore();
+    var pw=Math.min(W-X0-12,Math.max(Math.min(W*0.62,420),Math.max.apply(null,rows.map(function(r){return r[5];}))+20));
+    ctx.save();ctx.fillStyle='rgba(2,8,16,.85)';ctx.fillRect(W-pw-8,y0,pw,60);ctx.restore();
+    var bx=W-pw/2-8;
+    rows.forEach(function(r){simText(ctx,r[0],bx,y0+r[1],r[2],r[3]*Math.min(1,(pw-12)/r[5]),'center',r[4]);});
     requestAnimationFrame(draw);
   }
   requestAnimationFrame(draw);
@@ -28925,8 +29479,12 @@ function simElcField(canvas){
       // force on the test charge and the arrow was proportional to nothing.
       var FLraw=0.6*Math.sqrt(Et.m), FL=Math.min(84,FLraw);
       simArrow(ctx,tx,ty,tx+Et.x/Et.m*FL,ty+Et.y/Et.m*FL,'#34d399',3,11);
-      optLabel(ctx,'F=q₀E'+(FLraw>84?' (החץ מקוצר)':''),
-               tx+Et.x/Et.m*FL+16,ty+Et.y/Et.m*FL,'#34d399',9);
+      // named just past its head, along it (centred 16 px right of the head,
+      // "(arrow shortened)" lay back across the arrow whenever it pointed right)
+      var fT='F=q₀E'+(FLraw>84?' (החץ מקוצר)':'');
+      ctx.save();ctx.font='9px Heebo,sans-serif';var fW=ctx.measureText(_mathIso(fT)).width;ctx.restore();
+      var fS=_tipSpot(tx,ty,tx+Et.x/Et.m*FL,ty+Et.y/Et.m*FL,fW,11,W,H,7);
+      optLabel(ctx,fT,fS.x,fS.y,'#34d399',9);
     }
     optLabel(ctx,'מטען בוחן',tx,ty+24,'#fbbf24',8.5);
     if(!touched&&animT<8)optLabel(ctx,'✋ גררו את המטענים ואת מטען הבוחן',W/2,20,'#fbbf24',10);
@@ -30885,7 +31443,11 @@ function simElcPlane(canvas){
       ctx.beginPath();ctx.roundRect(tx-lw/2,ty+16,lw,18,5);ctx.fill();ctx.restore();
       simText(ctx,'E = E₁ + E₂ = '+(Et/1e5).toFixed(2)+'×10⁵ V/m',tx,ty+26,'#fbbf24',10,'center',true);
     } else simText(ctx,'E₁ + E₂ = 0 — אין כוח',tx,ty+26,'#94a3b8',10,'center',true);
-    if(!touched)simText(ctx,'גררו את מטען הבוחן',W-16,H*0.62-8,'#7d8da6',9.5,'right');
+    // the hint used to sit in the bottom corner, across the right plate and a
+    // row of arrows; it goes under the charge's own readout instead, in the
+    // gap before the next row of arrows (the charge has not moved yet)
+    if(!touched){var rowB=yTop+18+38*Math.ceil((ty+34-(yTop+18))/38);
+      simText(ctx,'גררו את מטען הבוחן',tx,(ty+34+rowB-4)/2+3.5,'#7d8da6',9.5,'center');}
     // ── the three regions, each with its own arithmetic ──
     var lbl=[[ (x1)/2, Etot(x1*0.5)],[ two?(x1+x2)/2:(x1+W)/2, Etot(two?(x1+x2)/2:(x1+W)/2)]];
     if(two)lbl.push([(x2+W)/2,Etot((x2+W)/2)]);
@@ -31033,6 +31595,11 @@ function simElcConductor(canvas){
       var rhoTip=R*0.16, Vsurf=Math.abs(ELC_K*Q/R);
       var Etip=Vsurf/rhoTip;
       var tipX=cx+pear(0)*1.1, tipY=cy;
+      // the highest point of the charges and sparks in the σ bars' column (see below)
+      var tipHi=1e9, colX=W*0.58-24;
+      for(var a=0;a<=72;a++){var th=a/72*Math.PI*2;
+        if(cx+Math.cos(th)*pear(th)*1.07>colX)tipHi=Math.min(tipHi,cy+Math.sin(th)*pear(th)*0.88-7);}
+      if(Etip>3e6&&tipX+43>colX)tipHi=Math.min(tipHi,tipY-Math.sin(0.4)*38-3);
       optLabel(ctx,'E בחוד ≈ V/ρ = '+(Etip/1e6).toFixed(1)+'×10⁶ V/m',cx,cy-rr*1.35,'#fbbf24',9.5);
       if(Etip>3e6){
         ctx.save();ctx.strokeStyle='rgba(34,211,238,'+(0.45+0.55*Math.abs(Math.sin(animT*7))).toFixed(2)+')';ctx.lineWidth=1.6;
@@ -31051,22 +31618,30 @@ function simElcConductor(canvas){
     // ── probe (sphere mode only: kQ/r² does not describe the pear) ──
     if(sharpMode){
       var PX0=W*0.58, PW=W*0.38;
-      optLabel(ctx,'למה המטען נדחס בחוד?',PX0+PW/2,60,'#fbbf24',11);
+      // Where the pear, its charges or its sparks reach into the bars' column
+      // (a phone; at R = 70 the pear itself), the bars close up above them --
+      // first nearer each other, then higher: the sparks used to run onto the
+      // second σ bar. tipHi is the highest point drawn in that column.
+      var need=Math.max(0,100+74+22-(tipHi-8)),ySt=74-Math.min(24,need),yb0=Math.max(46,100-Math.max(0,need-24));
+      optLabel(ctx,'למה המטען נדחס בחוד?',PX0+PW/2,Math.max(14,yb0-40),'#fbbf24',11);
       var rows=[['רדיוס עקמומיות גדול (צד קהה)',0.34,'#38bdf8'],
                 ['רדיוס עקמומיות קטן (חוד)',1.0,'#f87171']];
       for(var ri=0;ri<2;ri++){
-        var yb=100+ri*74;
+        var yb=yb0+ri*ySt;
         optLabel(ctx,rows[ri][0],PX0+PW/2,yb-8,'#94a3b8',9);
         ctx.save();ctx.fillStyle='rgba(148,163,184,.12)';ctx.fillRect(PX0,yb,PW,22);
         ctx.fillStyle=rows[ri][2];ctx.fillRect(PX0,yb,PW*rows[ri][1],22);
         ctx.strokeStyle='rgba(148,163,184,.35)';ctx.lineWidth=1;ctx.strokeRect(PX0,yb,PW,22);ctx.restore();
         optLabel(ctx,'σ',PX0-12,yb+11,rows[ri][2],10);
       }
-      optInfoBox(ctx,W*0.58,H-190,W*0.38,[
-        'כל פני השטח באותו פוטנציאל',
+      // as wide as its lines, kept flush with the bars' right edge; a box that
+      // has to reach left past the bars drops below the caption under the tip
+      var SL=['כל פני השטח באותו פוטנציאל',
         'V≈kq/r ⇒ ברדיוס קטן די בפחות מטען',
         'ולכן σ גדולה שם, ו-E=σ/ε₀ עצום',
-        'זהו העיקרון של כליא הברק']);
+        'זהו העיקרון של כליא הברק'];
+      var SW=Math.min(PX0+PW-8,Math.max(PW,optInfoBoxW(ctx,SL))),SX=PX0+PW-SW;
+      optInfoBox(ctx,SX,SX<PX0-1?Math.max(H-190,cy+rr*1.5+14):H-190,SW,SL,{wrap:true});
       requestAnimationFrame(draw);return;
     }
     var dxp=(pxp-cx)/PXM, dyp=(pyp-cy)/PXM;
@@ -31140,11 +31715,14 @@ function simElcConductor(canvas){
     ctx.beginPath();ctx.arc(xp,vY(Vp),4.5,0,Math.PI*2);ctx.fill();
     ctx.strokeStyle='rgba(251,191,36,.35)';ctx.lineWidth=1;ctx.setLineDash([2,3]);
     ctx.beginPath();ctx.moveTo(xp,gyE);ctx.lineTo(xp,gyV+GH);ctx.stroke();ctx.setLineDash([]);ctx.restore();
-    optInfoBox(ctx,8,H-92,Math.min(244,GX-16),[
+    // left of the graphs (and of the V graph's "0") there is no more width to
+    // give it: on a phone a long line is set smaller or broken in two, and the
+    // box grows upward
+    optInfoBox(ctx,8,H-18,Math.min(244,GX-22),[
       'בנקודת הגשוש (r='+(r_m*100).toFixed(0)+' cm):',
       '\u200eE = '+(Ep===0?'0 בדיוק':sciTxt(Ep)+' V/m'),
       '\u200eV = '+(Vp/1000).toFixed(1)+' kV'+(inside?'  (קבוע בכל הפנים)':''),
-      inside?(Vp===0?'בפנים: E=0 (וכאן גם V=0)':'בפנים: E=0 אבל V≠0'):(E0x?'בחוץ: חיצוני + מושרה; על פני הכדור — ניצב לו':'בחוץ: כמו מטען נקודתי במרכז')]);
+      inside?(Vp===0?'בפנים: E=0 (וכאן גם V=0)':'בפנים: E=0 אבל V≠0'):(E0x?'בחוץ: חיצוני + מושרה; על פני הכדור — ניצב לו':'בחוץ: כמו מטען נקודתי במרכז')],{wrap:true,bottom:true});
     requestAnimationFrame(draw);
   }requestAnimationFrame(draw);
 }
@@ -33774,11 +34352,22 @@ var SL_IMPL={
     slTxt(ctx,'N = mg·cosθ = '+(st.N||0).toFixed(1)+' N',10,18,c2,11,'left',true);
     slTxt(ctx,'F∥ = mg·sinθ = '+(st.Fp||0).toFixed(1)+' N',10,35,c1,11,'left',true);
     slTxt(ctx,'mg = '+(st.W||0).toFixed(1)+' N',10,52,c3,11,'left',true);
-    if(st.moving)
-      simText(ctx,'⏸ מרימים — הזווית מוקפאת על הקריאה היציבה האחרונה. עצרו לרגע.',
-        W-10,18,gd,10.5,'right',true);
-    else if(Math.abs((st.N||0)-(st.Fp||0))<0.4*(st.m||2))
-      simText(ctx,'⇦ הכוחות שווים — זו הזווית 45°',W-10,18,gd,11,'right',true);}},
+    // The status stands to the right of the three readouts, on their rows --
+    // in two lines where one does not fit beside them. Right-aligned on the N
+    // row in one line, it ran across "N = mg·cosθ" on every phone.
+    var msg=st.moving?'⏸ מרימים — הזווית מוקפאת על הקריאה היציבה האחרונה. עצרו לרגע.'
+      :Math.abs((st.N||0)-(st.Fp||0))<0.4*(st.m||2)?'⇦ הכוחות שווים — זו הזווית 45°':'';
+    if(msg){
+      var ms=st.moving?10.5:11, rw=0;
+      ctx.save();ctx.font='bold 11px Heebo';
+      ['N = mg·cosθ = '+(st.N||0).toFixed(1)+' N','F∥ = mg·sinθ = '+(st.Fp||0).toFixed(1)+' N','mg = '+(st.W||0).toFixed(1)+' N']
+        .forEach(function(s){rw=Math.max(rw,ctx.measureText(s).width);});
+      var av=W-10-(10+rw+14);ctx.font='bold '+ms+'px Heebo';
+      var ln=ctx.measureText(_mathIso(msg)).width>av&&_splitBal(ctx,msg)||[msg];
+      var lw=Math.max.apply(null,ln.map(function(s){return ctx.measureText(_mathIso(s)).width;}));ctx.restore();
+      if(lw>av)ms=Math.max(9,ms*av/lw);
+      ln.forEach(function(s,i){simText(ctx,s,W-10,18+17*i,gd,ms,'right',true);});
+    }}},
 
 'measure-g':{
   init:function(st){st.tr=slTrace(200);st.h={v:.2};st.reset(st);},
@@ -34361,7 +34950,10 @@ function buildProblem(prob){
       :`<div class="step-fb ok">✅ ${_ltSafe(st2.explain)}</div>`}
     </div>`;
   }).join('');
-  return`<div class="problem-card"><div class="problem-text"><b>${prob.title}:</b> ${prob.text}</div><div class="problem-steps">${steps}</div></div>`;
+  // a title that is already a question (or ends in its own mark) takes no
+  // colon: "…?:" read as a typo, in both languages
+  var _tEnd=/[?!:؟]\s*$/.test(String(prob.title||'').replace(/<[^>]*>/g,''))?'':':';
+  return`<div class="problem-card"><div class="problem-text"><b>${prob.title}${_tEnd}</b> ${prob.text}</div><div class="problem-steps">${steps}</div></div>`;
 }
 
 // ══════════════════════════════════════════════

@@ -158,7 +158,7 @@ can grow.
 
 These were decided while the first areas were translated; they bind every area.
 
-- **גוף** → *object* (never “body”, except in “free-body diagram”, “celestial body” and a living body — the human body, a bird’s body).
+- **גוף** → *object* (never “body”, except in “free-body diagram”, “celestial body”, “rigid body” (גוף קשיח) and a living body — the human body, a bird’s body).
 - **משותף** (series/parallel): “the same voltage across both” / “the same charge on both” — never “shared”, which reads as “divided”.
 - **כוח תגובה** of a surface → “constraint force” (or simply “normal force”), never “reaction force”: it is not the action–reaction partner of the weight.
 - **שווים** for forces of an action–reaction pair → “equal in magnitude” (and opposite in direction).
@@ -256,3 +256,34 @@ These were decided while the first areas were translated; they bind every area.
 | אנרגיה עצמית · מצב קשור · אנרגיית קשר | self-energy · bound state · binding energy |
 | גרר · צמיגות · ריחוף (מיליקן) | drag · viscosity · hovering |
 | מרווח (בין לוחות) · לוחות מסיטים | plate separation (gap) · deflection plates |
+
+## Style decisions of the language reviews
+
+Settled by the four scientific-language editors; they bind every later edit.
+
+- **Misconception boxes:** “⚠️ Common misconception:” + the belief in curly quotes, then the correction; a mistaken *action* opens with a lowercase gerund. The second box is “⚠️ And one more:”. Explanations listing the errors behind the distractors open “Common mistakes:”.
+- **Corrections:** ההפך → “The opposite is true:”; ולהיפך / מהכיוון ההפוך → “Conversely,”.
+- **Quiz stems** never start with a bare number or formula. A stem the options complete ends “… is:” when the options are nouns or values, and “The force:” when they are verb phrases. “What happens if …?”, not “What will happen if …?”. The Hebrew “X=?” stays “X=?” (the checker compares maths symbols), with the givens as a sentence.
+- **Problem statements and worked-example givens** are full sentences: “A ⟦0⟧ battery is connected to …”, “An object of mass m=5 kg …”, “Take g=10 m/s².”, “Use sin37°=0.6 and cos37°=0.8.”. נתונים → “the given values”, never “the data”.
+- **Nudges** are imperatives (“Apply Ohm’s law to …”); hints may be terse but are shorter than the step’s explanation (the tests enforce it). In explanations write “so by P=…, X …” rather than “so P=… — X”.
+- **Worked-example steps:** questions end with “?”, other headings take no period; checks are “Check: …?” or “Check with …”, never “A check:”. The inline-example labels are “Takeaway:” (then lowercase) and “Check”.
+- **Simulation descriptions:** “Change … and watch …”; a short noun-phrase caption may open them. “Tap” for things on the canvas, “press” for buttons; a button named in text is quoted with its exact label (no comma after a label ending in “!”); a control without one is described without quotes.
+- **Interface names, one per element:** Formula sheet · Changelog (panel) · What’s new (version badge) · Topics / topic list · Sensor lab · answer box. Tabs: Theory · Simulation · Quiz · Problem; running text says “guided problem”.
+- **Interface verbs:** navigation buttons name the destination (“🎯 Go to the quiz”, “🔬 Go to the simulation”, “📝 Go to the problem”); “🔄 Retake quiz”, “🔄 Solve again” (problem), “🔄 Start over” (simulation), “↺ Restart” (animation), “↺ Reset” (values); sensor labs “▶ Start sensor” / “⏹ Stop” / “⏸ Freeze”.
+- **Feedback:** “✅ Correct!” / “❌ Incorrect.”; numbers: “❌ Not quite (attempt n/3). Try again.”; completion: “Quiz complete!”, “Perfect!”, “Problem solved!”, “Chapter complete!”, “✅ Theory complete”.
+- **Changelog:** “Topic: what is true now”, in the present tense (“now …”, “no longer …”); the old bug in the simple past. A note about a Hebrew-only fix says so (“In the Hebrew edition, …”).
+- **Inclusive language:** generic people (a passenger, a child, a student) do not default to “he”; rephrase or use “they”. Named characters keep their pronouns.
+- **US forms:** “around” (not “round”), “eyeglasses”, “i.e.,” and “e.g.,” with a comma, “in a vacuum”, “household supply” (not “mains”), “rated limit”. Serial comma everywhere, titles included.
+- **Never** add a digit or a maths symbol the Hebrew lacks, and never make a canvas label longer (a label that does not fit is not drawn).
+
+| Hebrew | English |
+|---|---|
+| מעבדת חיישנים · השדה (תשובה) | sensor lab · answer box |
+| גוף קשיח · אלגוריתם פתרון | rigid body · problem-solving strategy |
+| רשת החשמל · זרם ראשי · מקור זרם · מתח חולף | household supply · total current · current source · transient voltage |
+| מעגל מעורב · צירוף / צמד מקבילי · נגד טורי · מכפלה חלקי סכום | combination circuit · parallel combination / pair · series resistor · product over sum |
+| כיוון ההליכה (חוק הלולאות) · נקודת האיזון (גשר) | walking direction · balance point |
+| צפיפות ליפופים · חד- / דו-מטעני · דיפול מגנטי | turn density (n = N/L) · singly / doubly charged · magnetic dipole |
+| כבלי התנעה · כרטיס רב-קו | jumper cables · contactless transit card |
+| מראת כיפה · מד מהירות (משטרתי) · מכ״ם מזג אוויר · מצביע לייזר | dome mirror · speed gun · weather radar · laser pointer |
+| סופר-קבל · בנק קבלים · מכונת ואן דה גראף · נקודת איפוס (שדה) | supercapacitor · capacitor bank · Van de Graaff generator · null point |
