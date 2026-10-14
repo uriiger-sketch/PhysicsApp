@@ -288,6 +288,54 @@ const EXPECT = {
   await drag(rr, [[x0px, 112], [x0px + 2 * VPX, 112], [x0px + 4 * VPX, 112]]);
   t('constant velocity: dragging from the ball sets v = +4 m/s', close(await val('cv-v'), 4, 0.51), await val('cv-v'));
 
+  // ── 3b. the rebuilt simulations: missions, predictions, model line ───
+  console.log('\n3b) rebuilt simulations: their physics, their missions and predictions');
+  const mission = (k, i) => p.evaluate(([k, i]) => !!((state.missions || {})[k] || {})[i], [k, i]);
+  const modelTxt = () => p.evaluate(() => { const m = document.querySelector('#app .sk-model'); return m && !m.hidden ? m.textContent.replace(/[⁦-⁩‎‏]/g, '') : ''; });
+  const predOpts = () => p.evaluate(() => [...document.querySelectorAll('#app .sk-opt')].map(b => b.textContent));
+  const tap = async (rr, x, y) => drag(rr, [[x, y], [x, y]]);
+
+  // free fall: the flight is v = v0 − gt, y = v0t − ½gt², and a = −g at EVERY instant
+  await open('kinematics.freefall');
+  t('free fall: a prediction is asked first — four options, "a at the top"', (await predOpts()).length === 4, (await predOpts()).join(' | '));
+  await set('v0', 18); await set('ff-g', 9.8); await fresh();
+  // read in short stretches: the label log keeps only the last few thousand texts
+  await click('btn-throw');
+  let ff = [];
+  for (let k = 0; k < 6; k++) { await p.waitForTimeout(650); ff = ff.concat((await all('^t = [\\d.]+ s +· ')).map(nums)); await fresh(); }   // t y v a
+  const inAir = ff.filter(r => r[0] > 0.02 && r[0] < 2 * 18 / 9.8 - 0.02);
+  // (t is printed to 0.01 s, y and v to 0.1: each frame is held to its own rounding)
+  t('free fall: every frame in the air obeys v = v0 − gt and y = v0t − ½gt²', inAir.length > 40 && inAir.every(r => close(r[2], 18 - 9.8 * r[0], 0.05 + 9.8 * 0.005 + 1e-9) && close(r[1], 18 * r[0] - 4.9 * r[0] ** 2, 0.05 + Math.abs(18 - 9.8 * r[0]) * 0.005 + 1e-9)), inAir.length + ' frames');
+  const nearTop = inAir.filter(r => Math.abs(r[2]) < 1.5);
+  t('... and a = −9.8 m/s² in every one of them, the frames around the top included', inAir.every(r => r[3] === -9.8) && nearTop.length > 0, nearTop.length + ' frames with |v| < 1.5 m/s');
+  const landed = ff[ff.length - 1];
+  t('... on the ground after landing it rests: v = 0, a = 0, t = 2v0/g', close(landed[0], 2 * 18 / 9.8, 0.006) && landed[2] === 0 && landed[3] === 0, landed.join(', '));
+  t('... the model line substitutes the numbers: v = v0 − g·t', /v = v₀ − g·t = 18 − 9\.8×3\.67 = −18\.0 m\/s/.test(await modelTxt()), await modelTxt());
+  // mission 2: drag the time cursor to the top
+  rr = await rect(); W = rr.w;
+  const ffSW = W < 600 ? Math.round(W * 0.42) : Math.min(320, Math.round(W * 0.38)), ffGX = ffSW + (W < 600 ? 28 : 40), ffGW = W - ffGX - 12;
+  await fresh(); await drag(rr, [[ffGX + ffGW * 0.3, 120], [ffGX + ffGW * 0.45, 120], [ffGX + ffGW * 0.5 + 3, 120]]);
+  await p.waitForTimeout(250);
+  const top = nums(await last('^t = [\\d.]+ s +· '));
+  t('free fall: dragging along the graph moves the ball in time — at the top v = 0 and still a = −g', close(top[0], 18 / 9.8, 0.006) && top[2] === 0 && top[3] === -9.8 && close(top[1], 18 * 18 / 19.6, 0.06), top.join(', '));
+  t('... which solves the mission "the acceleration at the top"', await mission('kinematics.freefall', 1));
+  // mission 1: pull v0 = 14 m/s straight off the ball, and the ball goes to 10 m
+  await click('btn-throw'); await p.waitForTimeout(3900);
+  rr = await rect(); W = rr.w;
+  const ffAX = 36, ffBX = Math.round(ffAX + (ffSW - ffAX) / 2 + 6), ffG = 460 - 40, ffAIM = (ffG - 34 - 44) / 30, ffR = 9 + 5 * Math.cbrt(0.5);
+  await fresh(); await drag(rr, [[ffBX, ffG - ffR], [ffBX, ffG - ffR - 7 * ffAIM], [ffBX, ffG - ffR - 14 * ffAIM]]);
+  t('free fall: pulling 14 m/s worth up from the ball sets v0 = 14 m/s', close(await val('v0'), 14, 0.01), await val('v0'));
+  await p.waitForTimeout(1700);
+  const hm14 = nums(await last('^hₘₐₓ = '))[0];
+  t('... and throws it: h_max = v0²/2g = 10.0 m, mission "reach 10 m" solved', close(hm14, 10, 0.051) && await mission('kinematics.freefall', 0), hm14);
+  // mission 3: the mass does not enter
+  const T6 = [];
+  for (const mm of [0.5, 5]) {
+    await p.waitForTimeout(1500); await set('v0', 6); await set('ff-m', mm); await click('btn-throw'); await p.waitForTimeout(1500);
+    T6.push(nums(await last('^t = [\\d.]+ s +· '))[0]);
+  }
+  t('free fall: a 0.5 kg and a 5 kg ball thrown at 6 m/s land at the same t = 2v0/g', T6.every(x => close(x, 12 / 9.8, 0.006)) && await mission('kinematics.freefall', 2), T6.join(' s, ') + ' s');
+
   // ── 4. the learning experience ──────────────────────────────────────
   console.log('\n4) misconception boxes, quiz keys, hints, units');
   await require('./mech_learning')(p, ['kinematics', 'vectors', 'forces', 'newton2', 'forces2'], t);
