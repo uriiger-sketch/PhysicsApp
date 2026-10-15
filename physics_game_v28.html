@@ -30163,7 +30163,11 @@ function dcFlow(ctx,pts,t,rate,col,n){
 // would drown the resistors in rounding. Those carry 1 μΩ, so two of them side
 // by side still split their current definitely, and every node leaks 1 pS to
 // the − terminal, so a part cut off by an open switch has a potential instead
-// of a singular matrix. The − terminal of the first cell is 0 V.
+// of a singular matrix. An ideal cell (r = 0) and a capacitor carry the same
+// 1 μΩ: two ideal sources side by side then still make a solvable system, and
+// if their voltages disagree the enormous current between them is a short
+// (B.short) instead of an equation silently dropped by the elimination.
+// The − terminal of the first cell is 0 V.
 var DC_RW=1e-6, DC_GMIN=1e-12;
 function _dcGauss(A,b,N){
   for(var c=0;c<N;c++){
@@ -30204,7 +30208,7 @@ function dcSolve(n,els){
   // a source-like element k: V_a − V_b − rs·I = −ε (a cell: V_b − V_a = ε − r·I)
   srcIx.forEach(function(ix,s){
     var e=els[ix],r=n-1+s,cell=(e.k==='bat'||e.k==='cap')&&!e.ghost;
-    var rs=e.k==='bat'&&cell?Math.max(0,e.r||0):e.k==='cap'?0:e.k==='amm'&&!e.ghost?Math.max(DC_RW,e.R||0):DC_RW;
+    var rs=e.k==='bat'&&cell?Math.max(DC_RW,e.r||0):e.k==='amm'&&!e.ghost?Math.max(DC_RW,e.R||0):DC_RW;
     if(e.a){A[e.a-1][r]+=1;A[r][e.a-1]+=1;}
     if(e.b){A[e.b-1][r]-=1;A[r][e.b-1]-=1;}
     A[r][r]-=rs;z[r]=cell?-((e.k==='cap'?e.vc:e.emf)||0):0;});

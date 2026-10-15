@@ -78,7 +78,8 @@ const t=(name,cond,detail)=>(cond?ok:bad).push(name+(detail?' — '+detail:''));
       const sum=new Array(n).fill(0);els.forEach((e,i)=>{sum[e.a]+=s.I[i];sum[e.b]-=s.I[i];});
       sum.forEach((q,i)=>{kcl=Math.max(kcl,Math.abs(q+(i?s.V[i]*1e-12:0))/sc);});
       // each element's voltage V_a − V_b from its own law and its current
-      const u=els.map((e,i)=>e.k==='bat'?-(e.emf-(e.r||0)*s.I[i]):e.k==='amm'?Math.max(1e-6,e.R)*s.I[i]:(e.k==='w'||(e.k==='sw'&&e.on))?1e-6*s.I[i]:(e.k==='sw')?s.I[i]/1e-12:s.I[i]*e.R);
+      // (an ideal cell, like a wire, carries the solver's 1 μΩ)
+      const u=els.map((e,i)=>e.k==='bat'?-(e.emf-Math.max(1e-6,e.r||0)*s.I[i]):e.k==='amm'?Math.max(1e-6,e.R)*s.I[i]:(e.k==='w'||(e.k==='sw'&&e.on))?1e-6*s.I[i]:(e.k==='sw')?s.I[i]/1e-12:s.I[i]*e.R);
       els.forEach((e,i)=>{law=Math.max(law,Math.abs((s.V[e.a]-s.V[e.b])-u[i])/Math.max(1,Math.abs(u[i])));});
       // a spanning tree over the closed elements, then every other element closes one loop
       const live=els.map((e,i)=>i).filter(i=>!(els[i].k==='sw'&&!els[i].on));
@@ -103,6 +104,35 @@ const t=(name,cond,detail)=>(cond?ok:bad).push(name+(detail?' — '+detail:''));
   t('engine: and no current flows anywhere',Math.abs(eng2.I0)<1e-9,eng2.I0+' A');
   t('engine: closed, I = ε/(R_A+R_B)',Math.abs(eng2.Ic-1)<1e-5&&Math.abs(eng2.VBc-8)<1e-4,eng2.Ic+' A, V_B '+eng2.VBc);
   t('engine: a shorted bulb has 0 V and 0 A, and the total current rises',Math.abs(eng2.VBsh)<1e-4&&Math.abs(eng2.IBsh)<1e-4&&Math.abs(eng2.Ish-3)<1e-4,`V_B ${eng2.VBsh}, I_B ${eng2.IBsh}, I ${eng2.Ish}`);
+  // adversarial circuits: what a learner could build if a sim let them. Every
+  // number stays finite; a dead short or two ideal sources that disagree side
+  // by side is flagged as a short (|I| ≥ 1 kA), never solved by quietly
+  // dropping one source's equation; a part cut off carries no current
+  const eng3=await p.evaluate(()=>{
+    const fin=s=>Array.from(s.V).concat(s.I).every(Number.isFinite);
+    const sh=s=>s.I.some(x=>!(Math.abs(x)<1e3));
+    const r={};let s;
+    s=dcSolve(2,[{k:'bat',a:0,b:1,emf:12,r:0},{k:'w',a:1,b:0}]);r.dead=[fin(s),sh(s)];
+    s=dcSolve(2,[{k:'bat',a:0,b:1,emf:12,r:0.5},{k:'w',a:1,b:0}]);r.real=[fin(s),sh(s),s.I[0],s.V[1]];
+    s=dcSolve(2,[{k:'bat',a:0,b:1,emf:12,r:0},{k:'bat',a:0,b:1,emf:6,r:0}]);r.two=[fin(s),sh(s)];
+    s=dcSolve(3,[{k:'bat',a:0,b:1,emf:12,r:0},{k:'bat',a:0,b:1,emf:12,r:0},{k:'res',a:1,b:0,R:6}]);r.twin=[fin(s),sh(s),s.V[1],s.I[0]+s.I[1]];
+    s=dcSolve(2,[{k:'bat',a:0,b:1,emf:12,r:0},{k:'cap',a:0,b:1,vc:5}]);r.cap=[fin(s),sh(s)];
+    s=dcSolve(2,[{k:'cap',a:0,b:1,vc:5},{k:'res',a:1,b:0,R:10}]);r.capR=[fin(s),sh(s),s.I[0],s.V[1]];
+    s=dcSolve(4,[{k:'bat',a:0,b:1,emf:12,r:0},{k:'res',a:1,b:0,R:6},{k:'res',a:2,b:3,R:5}]);r.island=[fin(s),Math.abs(s.I[2]),Math.abs(s.V[2]-s.V[3])];
+    s=dcSolve(3,[{k:'w',a:0,b:1},{k:'w',a:1,b:2},{k:'w',a:2,b:0}]);r.loop=[fin(s),Math.max(...s.I.map(Math.abs))];
+    s=dcSolve(2,[{k:'bat',a:0,b:1,emf:12,r:0},{k:'amm',a:1,b:0,R:0}]);r.amm=[fin(s),sh(s)];
+    s=dcSolve(2,[{k:'bat',a:0,b:1,emf:12,r:1},{k:'vm',a:1,b:0,R:1e7}]);r.vm=[fin(s),s.V[1]];
+    return r;});
+  t('engine: an ideal cell shorted by a wire is flagged as a short, with finite numbers',eng3.dead[0]&&eng3.dead[1],JSON.stringify(eng3.dead));
+  t('engine: a cell with r shorted by a wire gives I = ε/r and V = 0',eng3.real[0]&&!eng3.real[1]&&Math.abs(eng3.real[2]-24)<1e-4&&Math.abs(eng3.real[3])<1e-3,JSON.stringify(eng3.real));
+  t('engine: two ideal cells of 12 V and 6 V side by side are a short, not one cell ignored',eng3.two[0]&&eng3.two[1],JSON.stringify(eng3.two));
+  t('engine: two equal ideal cells side by side share the load: V = ε, I = ε/R',eng3.twin[0]&&!eng3.twin[1]&&Math.abs(eng3.twin[2]-12)<1e-4&&Math.abs(eng3.twin[3]-2)<1e-4,JSON.stringify(eng3.twin));
+  t('engine: a capacitor at 5 V across an ideal 12 V cell is a short',eng3.cap[0]&&eng3.cap[1],JSON.stringify(eng3.cap));
+  t('engine: a capacitor as a source: at 5 V it drives 0.5 A out of its + plate through 10 Ω',eng3.capR[0]&&!eng3.capR[1]&&Math.abs(eng3.capR[2]-0.5)<1e-6&&Math.abs(eng3.capR[3]-5)<1e-5,JSON.stringify(eng3.capR));
+  t('engine: a part cut off from every source carries no current and no voltage',eng3.island[0]&&eng3.island[1]<1e-9&&eng3.island[2]<1e-9,JSON.stringify(eng3.island));
+  t('engine: a loop of bare wire with no source carries nothing',eng3.loop[0]&&eng3.loop[1]<1e-9,JSON.stringify(eng3.loop));
+  t('engine: an ideal ammeter straight across an ideal cell is a short',eng3.amm[0]&&eng3.amm[1],JSON.stringify(eng3.amm));
+  t('engine: a 10 MΩ voltmeter alone on a cell reads its emf',eng3.vm[0]&&Math.abs(eng3.vm[1]-12)<1e-4,JSON.stringify(eng3.vm));
 
   // ── switches: the voltmeter finds the voltage between two points ──────
   await go('dc-network','dc-switch');
