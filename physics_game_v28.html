@@ -3691,7 +3691,7 @@ const CONTENT={
       <p>תהודה מועילה נמצאת בכל מקום: בכלי נגינה, במעגל הכוונון של מקלט רדיו ובמכשירי MRI.</p>`
     }
   },
-  sim:{type:'spring',title:'קפיץ-מסה',desc:'גררו את המסה להגדיר אמפליטודה. שנו k ו־m לראות את השפעתם על T.'},
+  sim:{type:'spring',title:'קפיץ-מסה',desc:'גררו את הגוש לאורך הסרגל כדי לבחור משרעת ושחררו: השעון מודד את זמן המחזור של התנועה עצמה. שנו את k, את m ואת המשרעת, וגלו מה משנה את המחזור ומה לא. הגרף מראה את x(t) ואת v(t) על ציר זמן אחד.'},
   example:{title:'קפיץ ומסה',text:`מסה ${M('m=1\\,\\text{kg}')} מחוברת לקפיץ שקבועו ${M('k=400\\,\\text{N/m}')}.`,steps:[
     {q:'מהו זמן המחזור?',a:`${M('T=2\\pi\\sqrt{\\dfrac{m}{k}}=2\\pi\\sqrt{\\dfrac{1}{400}}=2\\pi\\times0.05\\approx0.314\\,\\text{s}')}`},
     {q:'מהי התדירות?',a:`${M('f=\\dfrac1T\\approx3.18\\,\\text{Hz}')} — כשלוש תנודות בשנייה.`},
@@ -5014,7 +5014,7 @@ const CONTENT={
       <p>בביקוע גרעיני רק כאלפית מהמסה הופכת לאנרגיה — ועדיין ביקוע מלא של קילוגרם אורניום-235 משחרר כ־${M('8\\times10^{13}\\,\\text{J}')}, כמו שריפה של כ־3,000 טון פחם.</p>`
     }
   },
-  sim:{type:'energy-potential',title:'אנרגיה פוטנציאלית',desc:'גררו גוף למעלה ולמטה — ראו Eₚ=mgh, ואת עמודות Eₚ ו־Eₖ.'},
+  sim:{type:'energy-potential',title:'אנרגיה פוטנציאלית',desc:'הרימו את הכדור ושחררו: Eₚ = mgh הופכת ל־Eₖ, והסכום נשמר. גררו את קו הייחוס (h = 0) לכל גובה — Eₚ יכולה להיות גם שלילית — ובדקו מה משתנה ומה לא: המהירות שבה הכדור פוגע ברצפה תלויה רק בגובה הנפילה.'},
   example:{title:'אנרגיה פוטנציאלית כובדית',text:`מרימים גוש שמסתו ${M('5\\,\\text{kg}')} לגובה ${M('3\\,\\text{m}')}. (${M('g=9.8\\,\\text{m/s}^2')})`,steps:[
     {q:'בכמה גדלה האנרגיה הפוטנציאלית?',a:`${M('\\Delta E_p=mgh=5\\times9.8\\times3=147\\,\\text{J}')}`},
     {q:'מאין הגיעה האנרגיה הזאת?',a:'מהעבודה של מי שהרים את הגוש. היא ״נאגרת״ בגובה, ותחזור כאנרגיה קינטית אם הגוש ייפול.'},
@@ -12555,13 +12555,14 @@ function _mbVec(ctx,x1,y1,x2,y2,col,txt,W,H,o){
   simText(ctx,txt,c.x,c.y+sz*0.36,o.tcol||col,sz,'center',true);
   return [c.x-w/2,c.y-h/2,c.x+w/2,c.y+h/2];
 }
-// Keyboard learners: the canvas takes the focus, and keys act on it.
+// Keyboard learners: the canvas takes the focus, and keys act on it. A key
+// the sim uses stops here: the page's own arrow keys turn to the next section.
 function _mbKeys(canvas,map){
   canvas.setAttribute('tabindex','0');
   canvas.addEventListener('keydown',function(e){
     var f=map[e.key];
     if(!f||e.altKey||e.ctrlKey||e.metaKey)return;
-    f(e);e.preventDefault();
+    f(e);e.preventDefault();e.stopPropagation();
   });
 }
 // A signed number as maths prints it: the minus sign, not a hyphen.
@@ -13145,6 +13146,7 @@ function simEnergy(canvas){
       var KE=Emech-m*g*at(Hm,s);
       if(KE>1e-9) v=(v<0?-1:1)*Math.sqrt(2*KE/m);
       else v=-(v<0?-1:1)*1e-4;                  // turning point: reverse
+      if(run&&Math.abs(v)>run.vmax){run.vmax=Math.abs(v);run.hb=at(Hm,s);}   // this run's top speed, and where
     }
     // static friction holds a cart that has come to rest where it can
     var thr=at(TH,s);
@@ -13169,10 +13171,10 @@ function simEnergy(canvas){
     cartX=bx; cartY=by;
     // what this run did: its top speed and where, a hill crossed
     if(run&&Emech!==null&&!dragging&&dragK<0){
-      var sp=Math.abs(v); if(sp>run.vmax){run.vmax=sp;run.hb=h;}
       for(var kk=1;kk<NK-1;kk++){var xk=kk/(NK-1);if(KN[kk]>=3.4&&KN[kk]>=KN[kk-1]&&KN[kk]>=KN[kk+1]&&(xfPrev-xk)*(bxf-xk)<0)crossed=true;}
     }
-    if(run&&!sameBottom&&run.mu===0&&run.vmax>0.5){
+    // compared once the cart has climbed away from the bottom, when its top speed is final
+    if(run&&!sameBottom&&run.mu===0&&run.vmax>0.5&&Math.abs(v)<0.6*run.vmax){
       for(var ri=0;ri<runs.length;ri++){var o=runs[ri];if(o.mu!==0||o.vmax<0.5)continue;
         var dif=0;for(var q=0;q<NK;q++)dif=Math.max(dif,Math.abs(o.shape[q]-run.shape[q]));
         if(dif>0.3&&Math.abs(o.h0-run.h0)<0.05&&Math.abs(o.hb-run.hb)<0.05&&Math.abs(o.vmax-run.vmax)<0.02*run.vmax){sameBottom=true;sameV=[o.vmax,run.vmax];break;}}}
@@ -13290,232 +13292,190 @@ function simEnergy(canvas){
 // CH5 SIM 1: SPRING — SHM with draggable mass, k/m sliders, energy bars
 // ═══════════════════════════════════════════════════════════════
 function simSpring(canvas){
-  const H=520; const {ctx,W,dpr}=setupCanvas(canvas,H);
+  // SECTION: shm.shm-spring
+  // A block on a smooth floor, tied to a wall by a spring, with the numbers of
+  // the section's problem (k = 200 N/m, m = 2 kg, A = 0.1 m) within reach. The motion is
+  // advanced exactly — each step is the rotation of (x, v/ω) by ωΔt — so the
+  // energy ½mv² + ½kx² never drifts. A stopwatch times the motion itself from
+  // the exact instants the block passes x = 0 moving right; a ruler in metres
+  // reads the amplitude. Drag the block to set A; k and m restart the motion
+  // from rest at the same amplitude. A slow-motion switch makes a 0.6 s period
+  // watchable without changing a single number.
+  const H=500; const {ctx,W,dpr}=setupCanvas(canvas,H);
   const id=canvas.id;
-  // Layout constants — spring scene occupies top 55% of canvas
-  const WX=20;          // wall right edge
-  const MY=H*0.28;      // vertical centre of spring/mass
-  const EQ=W*0.62;      // equilibrium x position of mass centre
-  const MR=22;          // mass radius px
-  // k range 0.1–25, default 2 → T≈3s for m=0.5
-  let k=2, mass=0.5, theta=0, drag=false, pT=null;
-  let amp=90;           // amplitude in px (max 110, min 8)
-  let xHist=[], vHist=[], tHist=[], tSim=0;
-
-  function readSliders(){
-    const kS=document.getElementById('inp-spring-k');
-    const mS=document.getElementById('inp-spring-m');
-    if(kS){k=Math.max(0.1,parseFloat(kS.value));}
-    if(mS){mass=Math.max(0.05,parseFloat(mS.value));}
-  }
-  ['inp-spring-k','inp-spring-m'].forEach(function(id2){
-    const el=document.getElementById(id2);
-    if(el)el.addEventListener('input',function(){readSliders();theta=0;xHist=[];vHist=[];tHist=[];});
-  });
+  const AMAX=0.25;                         // m: the longest pull
+  const WX=22, BW=46, BH=44, FY=206;        // wall face, block size, floor (px)
+  const EQ=Math.round(WX+(W-WX)*0.52);     // the block's centre at x = 0
+  const L0=EQ-BW/2-WX;                     // the spring's natural length (px)
+  const PPM=Math.min((W-EQ-BW/2-12)/AMAX,(L0-36)/AMAX,800);   // px per metre
+  var k=50, m=1, x=0.15, v=0, A=0.15, clock=0, pT=null, slow=false, dragging=false, userA=false;
+  var cross=[], Tmeas=null, meas=[], hist=[];
+  function omega(){return Math.sqrt(k/m);}
+  function readSliders(){k=_mbV('spring-k',k);m=_mbV('spring-m',m);}
   readSliders();
+  var rel=0.15;                            // where the block was last released from
+  function restart(a){rel=a;A=Math.abs(a);x=a;v=0;cross=[];Tmeas=null;hist=[];}
+  ['inp-spring-k','inp-spring-m'].forEach(function(iid){var el=document.getElementById(iid);
+    if(el)el.addEventListener('input',function(){readSliders();restart(rel);});});
+  var resetBtn=document.getElementById('btn-spring-reset');
+  if(resetBtn)resetBtn.addEventListener('click',function(){userA=false;restart(0.15);});
+  var slowBtn=document.getElementById('btn-spring-slow');
+  function slowLbl(){_mbBtn('spring-slow',slow?'🐇 מהירות רגילה':'🐢 הילוך איטי ×¼');}
+  if(slowBtn)slowBtn.addEventListener('click',function(){slow=!slow;slowLbl();});
 
+  var kit=simKit(canvas,{missions:[
+    {text:'הראו שהמשרעת לא משנה את המחזור: מדדו T בשתי משרעות, אחת לפחות פי 2 מהשנייה',
+     hint:'חכו שהשעון ימדוד מחזור, גררו את הגוש למשרעת גדולה פי 2 — בלי לשנות את k ואת m — ומדדו שוב.',
+     why:'משרעת כפולה היא דרך כפולה, אבל גם הכוח המשחזר '+_skM('F = −kx')+' כפול בכל נקודה, ולכן המהירות כפולה — והזמן זהה. בנוסחה '+_skM('T = 2π√(m/k)')+' המשרעת כלל אינה מופיעה.',
+     done:function(s){return s.ampSame;}},
+    {text:'בנו מתנד שזמן המחזור שלו, לפי השעון, הוא '+_skM('1.00 s'),
+     hint:'מ־'+_skM('T = 2π√(m/k)')+' יוצא '+_skM('k = 4π²m/T²')+'. עם '+_skM('m = 2 kg')+' — איזה k צריך?',
+     why:_skM('k = 4π²m/T² = 4π² × 2 / 1² ≈ 79 N/m')+'. מסה גדולה פי 4 דורשת קפיץ קשיח פי 4 כדי לשמור על אותו מחזור — רק היחס '+_skM('m/k')+' קובע.',
+     done:function(s){return s.T1;}},
+    {text:'בנו את הבעיה, '+_skM('k = 200 N/m, m = 2 kg, A = 0.10 m')+' — ובדקו את התשובות',
+     hint:'כוונו את k ואת m, גררו את הגוש ל־'+_skM('0.10 m')+' על הסרגל, שחררו וחכו שהשעון ימדוד.',
+     why:_skM('T = 2π√(2/200) = 0.628 s')+', '+_skM('E = ½kA² = 1 J')+' ו־'+_skM('vₘₐₓ = Aω = 0.1 × 10 = 1 m/s')+' — אותם מספרים שבבעיה. המהירות מרבית במרכז, שם כל האנרגיה קינטית.',
+     done:function(s){return s.problem;}}]});
+  var model=_mbModel(kit);
+  kit.predict({q:'מושכים את הגוש רחוק פי 2 משיווי המשקל ומשחררים. זמן המחזור:',
+    opts:['גדל פי 2 — הדרך ארוכה יותר','לא משתנה','קטן — הכוח גדול יותר'],correct:1,
+    why:'הדרך כפולה, אבל גם הכוח המשחזר כפול בכל נקודה, ולכן גם המהירות כפולה: '+_skM('T = 2π√(m/k)')+' אינו תלוי במשרעת.'},function(){});
+  var ampSame=false, T1=false, problem=false;
+
+  // ── drag the block to set the amplitude (to the centimetre, as the ruler reads)
+  function bx(){return EQ+x*PPM;}
+  function onDown(e){var p=simPointerXY(canvas,dpr,e);
+    if(Math.abs(p.x-bx())<BW/2+14&&p.y>FY-BH-16&&p.y<FY+12){dragging=true;e.preventDefault();onMove(e);}}
+  function onMove(e){if(!dragging)return;e.preventDefault();var p=simPointerXY(canvas,dpr,e);
+    var q=Math.max(-AMAX,Math.min(AMAX,(p.x-EQ)/PPM));q=Math.round(q*100)/100;x=q;v=0;A=Math.abs(q);cross=[];Tmeas=null;hist=[];}
+  function onUp(){if(dragging){dragging=false;userA=true;restart(x);}}
+  canvas.addEventListener('mousedown',onDown);canvas.addEventListener('touchstart',onDown,{passive:false});
+  canvas.addEventListener('mousemove',onMove);canvas.addEventListener('touchmove',onMove,{passive:false});
+  canvas.addEventListener('mouseup',onUp);canvas.addEventListener('mouseleave',onUp);canvas.addEventListener('touchend',onUp);
+  _mbKeys(canvas,{'ArrowLeft':function(){userA=true;restart(Math.max(-AMAX,Math.round((rel-0.01)*100)/100));},
+    'ArrowRight':function(){userA=true;restart(Math.min(AMAX,Math.round((rel+0.01)*100)/100));}});
+  canvas._probe=function(){return {x:x,v:v,A:A,k:k,m:m,T:2*Math.PI/omega(),Tmeas:Tmeas,meas:meas.length,clock:clock,
+    rel:rel,bx:bx(),by:FY-BH/2,EQ:EQ,PPM:PPM,slow:slow,ampSame:ampSame,T1:T1,problem:problem};};
+
+  // exact step: (x, v/ω) turns by ωh; the stopwatch takes the instant x = 0 moving right
+  function step(h){
+    var w=omega(), c=Math.cos(w*h), s=Math.sin(w*h);
+    var x1=x*c+v/w*s, v1=-x*w*s+v*c;
+    if(x<0&&x1>=0&&v>0){var tc=clock+Math.atan2(-x*w,v)/w;cross.push(tc);
+      if(cross.length>1){Tmeas=cross[cross.length-1]-cross[cross.length-2];
+        meas.push({k:k,m:m,A:A,T:Tmeas});if(meas.length>40)meas.shift();
+        var last=meas[meas.length-1];
+        meas.forEach(function(o){if(o.k===last.k&&o.m===last.m&&Math.max(o.A,last.A)>=2*Math.min(o.A,last.A)-1e-9&&Math.min(o.A,last.A)>0.005&&Math.abs(o.T/last.T-1)<0.005)ampSame=true;});
+        if(Math.abs(Tmeas-1)<=0.01)T1=true;
+        if(userA&&k===200&&Math.abs(m-2)<1e-9&&Math.abs(A-0.1)<0.003)problem=true;}
+      if(cross.length>6)cross.shift();}
+    x=x1;v=v1;clock+=h;
+  }
+
+  function spring(x0,x1,y,col){
+    // a coil of fixed turns between x0 and x1, with short straight leads
+    var n=14, lead=8, len=x1-x0-2*lead, amp=10;
+    ctx.save();ctx.strokeStyle=col;ctx.lineWidth=2.4;ctx.lineJoin='round';ctx.lineCap='round';
+    ctx.beginPath();ctx.moveTo(x0,y);ctx.lineTo(x0+lead,y);
+    for(var i=0;i<n;i++)ctx.lineTo(x0+lead+(i+0.5)*len/n,y+(i%2?amp:-amp));
+    ctx.lineTo(x1-lead,y);ctx.lineTo(x1,y);ctx.stroke();ctx.restore();
+  }
 
   function draw(ts){
     if(_simStop[id])return;
     if(!pT)pT=ts;
-    const dt=Math.min((ts-pT)/1000,0.025); pT=ts;
-    readSliders();
-    const omega=Math.sqrt(k/mass);
-    if(!drag) theta+=omega*dt;
-    const x=amp*Math.cos(theta);           // px displacement from EQ
-    const vel=-amp*omega*Math.sin(theta);  // px/s
-    const x_m=x/100;                       // metres
-    const v_ms=vel/100;                    // m/s
-    const T=2*Math.PI/omega;
-    const mx=EQ+x;
-
-    // Samples carry their time: the plot's horizontal axis is real time over a
-    // fixed 2.5-period window. It used to be one pixel-slot per FRAME, squeezed
-    // to fit however many frames were stored, so the axis scale changed with
-    // frame rate and while the history filled — the period could not be read.
-    tSim+=dt;
-    xHist.push(x_m); vHist.push(v_ms); tHist.push(tSim);
-    const WIN=2.5*2*Math.PI/omega;
-    while(tHist.length&&tSim-tHist[0]>WIN){xHist.shift();vHist.shift();tHist.shift();}
+    var dt=Math.min((ts-pT)/1000,0.025);pT=ts;
+    if(!dragging&&A>0){var hh=dt*(slow?0.25:1), n=Math.max(1,Math.ceil(hh/0.004));for(var i=0;i<n;i++)step(hh/n);}
+    var w=omega(), T=2*Math.PI/w, F=-k*x, Ek=0.5*m*v*v, Ep=0.5*k*x*x, E=0.5*k*A*A, vmax=A*w;
+    var WIN=Math.max(3,2.5*T);
+    if(!dragging&&A>0){hist.push([clock,x,v]);while(hist.length&&clock-hist[0][0]>WIN)hist.shift();}
+    var _ltr=document.documentElement.dir==='ltr', c1=_ltr?W*0.27:W*0.73, c2=_ltr?W*0.73:W*0.27;
 
     simBg(ctx,W,H);
+    // ── readout card
+    _mbCard(ctx,8,6,W-16,52);
+    simText(ctx,'T = 2π√(m/k) = '+T.toFixed(3)+' s',c1,24,'#22d3ee',10,'center',true);
+    simText(ctx,Tmeas===null?'⏱ השעון מודד מחזור…':'⏱ T נמדד = '+Tmeas.toFixed(3)+' s',c2,24,'#e2e8f0',10,'center',true);
+    simText(ctx,'A = '+A.toFixed(3)+' m   ω = '+w.toFixed(2)+' rad/s',c1,44,'#a78bfa',9,'center');
+    simText(ctx,'v_max = Aω = '+vmax.toFixed(2)+' m/s',c2,44,'#34d399',9,'center');
 
-    // ── Wall
-    ctx.save();ctx.fillStyle='#162236';ctx.fillRect(0,MY-90,WX,180);
-    ctx.strokeStyle='#2d5275';ctx.lineWidth=1.5;
-    for(let y=MY-84;y<MY+85;y+=14){ctx.beginPath();ctx.moveTo(WX,y);ctx.lineTo(WX-9,y+8);ctx.stroke();}
+    // ── wall, floor, ruler
+    ctx.save();ctx.fillStyle='#162236';ctx.fillRect(0,FY-96,WX,96);
+    ctx.strokeStyle='#2d5275';ctx.lineWidth=1.4;
+    for(var yy=FY-92;yy<FY;yy+=12){ctx.beginPath();ctx.moveTo(WX,yy);ctx.lineTo(WX-9,yy+8);ctx.stroke();}
+    ctx.fillStyle='#1e293b';ctx.fillRect(WX,FY,W-WX-6,5);ctx.restore();
+    var RY=FY+22;
+    ctx.save();ctx.strokeStyle='#475569';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(EQ-AMAX*PPM,RY);ctx.lineTo(EQ+AMAX*PPM,RY);ctx.stroke();
+    for(var cm=-25;cm<=25;cm++){var X=EQ+cm/100*PPM, big=cm%5===0;
+      ctx.beginPath();ctx.moveTo(X,RY);ctx.lineTo(X,RY-(big?7:3.5));ctx.stroke();
+      if(cm%(PPM<550?10:5)===0)simText(ctx,(cm===0?'0':_mbS(cm/100,2)),X,RY+11,'#7d8da6',8,'center');}
     ctx.restore();
+    simText(ctx,'x (m)',EQ+AMAX*PPM+6,RY+4,'#7d8da6',8,'left');
+    // equilibrium
+    ctx.save();ctx.strokeStyle='rgba(255,255,255,.18)';ctx.setLineDash([4,5]);ctx.beginPath();ctx.moveTo(EQ,FY-BH-44);ctx.lineTo(EQ,RY);ctx.stroke();ctx.restore();
+    simText(ctx,'שיווי משקל',EQ,FY-BH-48,'#7d8da6',8,'center');
 
-    // ── Equilibrium dashed line
-    ctx.save();ctx.strokeStyle='rgba(255,255,255,.08)';ctx.lineWidth=1;ctx.setLineDash([4,5]);
-    ctx.beginPath();ctx.moveTo(EQ,MY-92);ctx.lineTo(EQ,MY+56);ctx.stroke();ctx.setLineDash([]);ctx.restore();
-    simText(ctx,'שיווי משקל (x=0)',EQ,MY-96,'#7d8da6',8,undefined,true);
+    // ── spring and block
+    var X0=bx(), sy=FY-BH/2;
+    var str=x/Math.max(A,1e-9);
+    spring(WX,X0-BW/2,sy,str>0.02?'rgba(248,113,113,'+(0.5+0.5*Math.abs(str))+')':str<-0.02?'rgba(52,211,153,'+(0.5+0.5*Math.abs(str))+')':'#94a3b8');
+    ctx.save();var gb=ctx.createLinearGradient(0,FY-BH,0,FY);gb.addColorStop(0,dragging?'#a78bfa':'#fbbf24');gb.addColorStop(1,dragging?'#6d28d9':'#b45309');
+    ctx.fillStyle=gb;ctx.strokeStyle=dragging?'#c4b5fd':'#fde68a';ctx.lineWidth=2;ctx.beginPath();ctx.roundRect(X0-BW/2,FY-BH,BW,BH,5);ctx.fill();ctx.stroke();ctx.restore();
+    simText(ctx,m.toFixed(1)+' kg',X0,FY-BH/2+4,'#1a0a00',9.5,'center',true);
+    // F (restoring, on the block) and v, each scaled to its own maximum
+    var fl=58*F/Math.max(1e-9,k*A), vl=58*v/Math.max(1e-9,vmax);
+    if(Math.abs(fl)>4)_mbVec(ctx,X0,FY-BH-12,X0+fl,FY-BH-12,F>0?'#34d399':'#f87171','F = −kx = '+_mbS(F,1)+' N',W,H,{sz:9,lw:2.6,hw:10});
+    if(Math.abs(vl)>4)_mbVec(ctx,X0,FY-BH-32,X0+vl,FY-BH-32,'#22d3ee','v = '+_mbS(v,2)+' m/s',W,H,{sz:9,lw:2.6,hw:10});
+    // displacement, on the ruler
+    if(Math.abs(x)>0.004){ctx.save();ctx.strokeStyle='#fbbf24';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(EQ,RY-2);ctx.lineTo(X0,RY-2);ctx.stroke();ctx.restore();
+      ctx.save();ctx.fillStyle='#fbbf24';ctx.beginPath();ctx.arc(X0,RY-2,3.5,0,6.2832);ctx.fill();ctx.restore();}
+    simText(ctx,'x = '+_mbS(x,3)+' m',X0,RY+24,'#fbbf24',9,'center',true);
+    if(dragging)simText(ctx,'A = '+A.toFixed(2)+' m — שחררו',X0,FY-BH-52,'#c4b5fd',9,'center',true);
+    else if(clock<0.01)simText(ctx,'✋ גררו את הגוש כדי לבחור משרעת',W/2,FY-BH-70,'#fbbf24',9.5,'center',true);
+    if(slow)simText(ctx,'🐢 ×¼',W-12,FY-BH-70,'#94a3b8',9,'right',true);
 
-    // ── Spring coil
-    const stretch=x/Math.max(amp,1);
-    const sc=stretch>0?'rgba(239,68,68,'+(0.45+0.55*Math.abs(stretch))+')':
-                       'rgba(52,211,153,'+(0.45+0.55*Math.abs(stretch))+')';
-    const segs=18, sLen=Math.max(10,mx-WX-MR-8), dxS=sLen/segs;
-    const coilH=Math.min(18,16);
-    ctx.save();ctx.strokeStyle=sc;ctx.lineWidth=3;ctx.lineCap='round';ctx.lineJoin='round';
-    ctx.beginPath();ctx.moveTo(WX,MY);
-    for(let i=0;i<segs;i++) ctx.lineTo(WX+(i+0.5)*dxS,MY+(i%2===0?coilH:-coilH));
-    ctx.lineTo(mx-MR,MY);ctx.stroke();ctx.restore();
+    // ── energy strip
+    var EY=RY+36;
+    _mbCard(ctx,8,EY,W-16,58);
+    var bX=96,bW=W-bX-20,Es=Math.max(E,1e-9);
+    ctx.save();ctx.fillStyle='rgba(34,211,238,.8)';ctx.fillRect(bX,EY+8,bW*Ek/Es,10);ctx.strokeStyle='#22d3ee';ctx.strokeRect(bX,EY+8,bW,10);
+    ctx.fillStyle='rgba(245,158,11,.85)';ctx.fillRect(bX,EY+24,bW*Ep/Es,10);ctx.strokeStyle='#f59e0b';ctx.strokeRect(bX,EY+24,bW,10);ctx.restore();
+    simText(ctx,'E_k = '+Ek.toFixed(3)+' J',bX-6,EY+17,'#22d3ee',8.5,'right');
+    simText(ctx,'E_p = '+Ep.toFixed(3)+' J',bX-6,EY+33,'#f59e0b',8.5,'right');
+    simText(ctx,'E_k + E_p = ½kA² = '+E.toFixed(3)+' J — קבוע',W/2,EY+50,'#94a3b8',8.5,'center',true);
 
-    // ── Mass
-    const mg2=ctx.createRadialGradient(mx-MR*0.3,MY-MR*0.3,MR*0.1,mx,MY,MR);
-    mg2.addColorStop(0,'#fde68a');mg2.addColorStop(0.6,'#d97706');mg2.addColorStop(1,'#92400e');
-    ctx.save();ctx.shadowColor='rgba(251,191,36,.5)';ctx.shadowBlur=14;
-    simCircle(ctx,mx,MY,MR,mg2,'#fbbf24',2.5);ctx.restore();
-    simText(ctx,mass.toFixed(2)+' kg',mx,MY+5,'#1a0a00',9.5,undefined,true);
+    // ── x(t) and v(t) on one time axis, the stopwatch's crossings marked
+    var GY=EY+64, GH=H-GY-6, gx0=40, gx1=W-14, gw=gx1-gx0, mid=GY+GH/2+4, half=GH/2-20;
+    _mbCard(ctx,8,GY,W-16,GH);
+    var lx=gx0;
+    [['x(t)','#f59e0b'],['v(t)','#22d3ee']].forEach(function(L){ctx.save();ctx.strokeStyle=L[1];ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(lx,GY+12);ctx.lineTo(lx+16,GY+12);ctx.stroke();ctx.restore();
+      simText(ctx,L[0],lx+20,GY+15,L[1],8.5,'left');lx+=20+labelW(ctx,L[0],8.5)+14;});
+    simText(ctx,'כל אחת ביחס לערך המרבי שלה',gx1,GY+15,'#7d8da6',8,'right');
+    ctx.save();ctx.strokeStyle='rgba(148,163,184,.3)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(gx0,mid);ctx.lineTo(gx1,mid);ctx.stroke();ctx.restore();
+    var t0=hist.length?Math.max(hist[0][0],clock-WIN):clock-WIN, tx=function(t){return gx0+(t-(clock-WIN))/WIN*gw;};
+    // second ticks
+    var stp=WIN>6?2:WIN>3.5?1:0.5;
+    for(var ts2=Math.ceil((clock-WIN)/stp)*stp;ts2<=clock+1e-9;ts2+=stp){var X2=tx(ts2);
+      ctx.save();ctx.strokeStyle='rgba(148,163,184,.18)';ctx.beginPath();ctx.moveTo(X2,mid-half);ctx.lineTo(X2,mid+half);ctx.stroke();ctx.restore();
+      simText(ctx,(Math.round(ts2*10)/10)+' s',X2,mid+half+12,'#7d8da6',8,'center');}
+    if(hist.length>2){
+      [[1,'#f59e0b',A],[2,'#22d3ee',vmax]].forEach(function(S){ctx.save();ctx.strokeStyle=S[1];ctx.lineWidth=2;ctx.beginPath();
+        hist.forEach(function(q,i){var X3=tx(q[0]),Y3=mid-q[S[0]]/Math.max(S[2],1e-9)*half;i?ctx.lineTo(X3,Y3):ctx.moveTo(X3,Y3);});ctx.stroke();ctx.restore();});
+      // the periods the stopwatch timed
+      for(var ci=1;ci<cross.length;ci++){var a1=tx(cross[ci-1]),a2=tx(cross[ci]);if(a1<gx0)continue;
+        ctx.save();ctx.strokeStyle='rgba(226,232,240,.55)';ctx.setLineDash([3,3]);[a1,a2].forEach(function(X4){ctx.beginPath();ctx.moveTo(X4,mid-half);ctx.lineTo(X4,mid+half);ctx.stroke();});ctx.restore();
+        if(ci===cross.length-1){simArrow(ctx,a1+2,mid-half+6,a2-2,mid-half+6,'#e2e8f0',1.4,6);simArrow(ctx,a2-2,mid-half+6,a1+2,mid-half+6,'#e2e8f0',1.4,6);
+          simText(ctx,'T',(a1+a2)/2,mid-half+2,'#e2e8f0',9,'center',true);}}
+    } else simText(ctx,'שחררו את הגוש — הגרף יתחיל',W/2,mid,'#7d8da6',9.5,'center',true);
 
-    // ── Force arrow (from mass edge)
-    const F_val=-k*x_m;
-    if(Math.abs(F_val)>0.001){
-      const fCol=F_val>0?'#34d399':'#fca5a5';
-      // Drawn relative to the largest force of THIS oscillation, kA: at 4 px
-      // per newton the default settings (k = 2 N/m, A = 0.9 m) gave a 7 px
-      // arrow that hid behind its own label.
-      const fLen=72*F_val/Math.max(1e-9,k*amp/100);
-      if(Math.abs(fLen)>4){
-        // the arrow leaves the side it points to: drawn from the right edge
-        // when it pointed left, it and its label ran across the mass itself
-        const fx0=fLen>0?mx+MR+3:mx-MR-3;
-        simArrow(ctx,fx0,MY,fx0+fLen,MY,fCol,2.5,10);
-        simText(ctx,'F = −kx = '+F_val.toFixed(2)+' N',fx0+fLen/2,MY-28,fCol,8.5,'center',true);
-      }
-    }
-
-    // ── x displacement arrow (below mass, only if space)
-    if(Math.abs(x)>4){
-      const col2=x>0?'#a78bfa':'#22d3ee';
-      simArrow(ctx,EQ,MY+MR+12,mx,MY+MR+12,col2,1.8,7);
-      simText(ctx,'x = '+x_m.toFixed(3)+' m',(EQ+mx)/2,MY+MR+24,col2,8,undefined,true);
-    }
-
-    // ── Info panel — BELOW the spring zone, above energy bars
-    const IP_Y=MY+MR+42;  // top of info panel
-    const IP_H=62;
-    ctx.save();ctx.fillStyle='rgba(6,14,28,.88)';ctx.strokeStyle='#1e4060';ctx.lineWidth=1;
-    ctx.beginPath();ctx.roundRect(8,IP_Y,W-16,IP_H,5);ctx.fill();ctx.stroke();ctx.restore();
-    // Two columns
-    const col1x=24, col2x=W*0.5+10;
-    simText(ctx,'T = 2π√(m/k) = '+T.toFixed(3)+' s',col1x,IP_Y+13,'#22d3ee',8.5,'left',true);
-    simText(ctx,'ω = '+omega.toFixed(3)+' rad/s',col1x,IP_Y+27,'#22d3ee',8,'left',true);
-    simText(ctx,'A = '+(amp/100).toFixed(3)+' m  (גררו את המסה)',col1x,IP_Y+41,'#a78bfa',8,'left',true);
-    simText(ctx,'x = '+x_m.toFixed(3)+' m',col2x,IP_Y+13,'#f59e0b',8.5,'left',true);
-    simText(ctx,'v = '+v_ms.toFixed(3)+' m/s',col2x,IP_Y+27,'#22d3ee',8,'left',true);
-    simText(ctx,'k='+k+' N/m  m='+mass.toFixed(2)+' kg',col2x,IP_Y+41,'#94a3b8',8,'left',true);
-
-    // ── Energy bars — compact horizontal strip below info panel
-    const Ek=0.5*mass*v_ms*v_ms;
-    const Ep=0.5*k*x_m*x_m;
-    const Etot=Math.max(0.5*k*Math.pow(amp/100,2),0.0001);
-    // The labels used to sit to the RIGHT of full-width bars, off the canvas.
-    const EB_Y=IP_Y+IP_H+8, EB_H=26;
-    ctx.save();ctx.fillStyle='rgba(6,14,28,.85)';ctx.strokeStyle='#1e4060';ctx.lineWidth=1;
-    ctx.beginPath();ctx.roundRect(8,EB_Y,W-16,EB_H+24,4);ctx.fill();ctx.stroke();ctx.restore();
-    const barX=104, barW=W-barX-18;
-    // Ek bar (green, top)
-    ctx.save();ctx.fillStyle='rgba(34,211,153,.8)';
-    ctx.beginPath();ctx.roundRect(barX,EB_Y+5,Math.max(0,barW*(Ek/Etot)),9,2);ctx.fill();ctx.restore();
-    ctx.save();ctx.strokeStyle='#22d3ee';ctx.lineWidth=1;
-    ctx.beginPath();ctx.roundRect(barX,EB_Y+5,barW,9,2);ctx.stroke();ctx.restore();
-    simText(ctx,'E_k = '+Ek.toFixed(3)+' J',barX-8,EB_Y+13,'#22d3ee',8,'right');
-    // Ep bar (yellow, bottom)
-    ctx.save();ctx.fillStyle='rgba(245,158,11,.8)';
-    ctx.beginPath();ctx.roundRect(barX,EB_Y+19,Math.max(0,barW*(Ep/Etot)),9,2);ctx.fill();ctx.restore();
-    ctx.save();ctx.strokeStyle='#f59e0b';ctx.lineWidth=1;
-    ctx.beginPath();ctx.roundRect(barX,EB_Y+19,barW,9,2);ctx.stroke();ctx.restore();
-    simText(ctx,'E_p = '+Ep.toFixed(3)+' J',barX-8,EB_Y+27,'#f59e0b',8,'right');
-    simText(ctx,'E_k + E_p = ½kA² = '+Etot.toFixed(3)+' J — קבוע',W/2,EB_Y+43,'#94a3b8',8.5,'center',true);
-
-    // ── Combined x(t)+v(t) graph — bottom section
-    const gL=8, gR=W-8, gTTop=EB_Y+EB_H+30, gBot=H-6;
-    const gH=gBot-gTTop, gW=gR-gL;
-    ctx.save();ctx.fillStyle='rgba(6,14,28,.88)';ctx.strokeStyle='#1e4060';ctx.lineWidth=1;
-    ctx.beginPath();ctx.roundRect(gL,gTTop,gW,gH,5);ctx.fill();ctx.stroke();ctx.restore();
-    const midG=gTTop+gH/2;
-    ctx.save();ctx.strokeStyle='rgba(255,255,255,.07)';ctx.lineWidth=0.8;ctx.setLineDash([2,4]);
-    ctx.beginPath();ctx.moveTo(gL+4,midG);ctx.lineTo(gR-4,midG);ctx.stroke();ctx.setLineDash([]);ctx.restore();
-    simText(ctx,'‏כתום — x(t) · כחול — v(t) · הפרש פאזה 90°: בשיא x המהירות אפס',gL+gW/2,gTTop+10,'#7d8da6',7.5,undefined,true);
-    simText(ctx,'t (s) →',gL+gW-6,gTTop+gH-4,'#7d8da6',7,'right');
-    simText(ctx,'x (m) / v (m/s) ↑',gL+6,gTTop+22,'#f59e0b',7,'left');
-
-    if(xHist.length>3){
-      const n=xHist.length;
-      const WINp=2.5*2*Math.PI/omega;
-      const tPx=i=>gL+4+(tHist[i]-tHist[0])/WINp*(gW-8);
-      const ampX=amp/100;
-      const ampV=Math.max(ampX*omega,0.0001);
-      // x(t) — orange
-      ctx.save();ctx.strokeStyle='#f59e0b';ctx.lineWidth=2;ctx.beginPath();
-      for(let i=0;i<n;i++){
-        const px=tPx(i);
-        const py=midG-xHist[i]/ampX*(gH*0.42);
-        i===0?ctx.moveTo(px,py):ctx.lineTo(px,py);
-      }
-      ctx.stroke();ctx.restore();
-      // v(t) — cyan
-      ctx.save();ctx.strokeStyle='#22d3ee';ctx.lineWidth=2;ctx.beginPath();
-      for(let i=0;i<n;i++){
-        const px=tPx(i);
-        const py=midG-vHist[i]/ampV*(gH*0.42);
-        i===0?ctx.moveTo(px,py):ctx.lineTo(px,py);
-      }
-      ctx.stroke();ctx.restore();
-      // Current dots
-      const curPx=tPx(n-1);
-      ctx.save();ctx.fillStyle='#f59e0b';ctx.strokeStyle='#fff';ctx.lineWidth=1.5;
-      ctx.beginPath();ctx.arc(curPx,midG-x_m/ampX*(gH*0.42),4.5,0,Math.PI*2);ctx.fill();ctx.stroke();ctx.restore();
-      ctx.save();ctx.fillStyle='#22d3ee';ctx.strokeStyle='#fff';ctx.lineWidth=1.5;
-      ctx.beginPath();ctx.arc(curPx,midG-v_ms/ampV*(gH*0.42),4.5,0,Math.PI*2);ctx.fill();ctx.stroke();ctx.restore();
-    } else {
-      simText(ctx,'גררו את המסה כדי להתחיל',gL+gW/2,gTTop+gH/2,'#7d8da6',9,undefined,true);
-    }
-
+    // the model line
+    var f1=kit.m('T = 2π√(m/k) = 2π√('+m.toFixed(1)+'/'+k.toFixed(0)+') = '+T.toFixed(3)+' s');
+    var f2=kit.m('vₘₐₓ = Aω = '+A.toFixed(2)+' × '+w.toFixed(2)+' = '+vmax.toFixed(2)+' m/s');
+    model(f1+(Tmeas!==null?', והשעון מדד '+kit.m('T = '+Tmeas.toFixed(3)+' s'):'')+'. במרכז: '+f2);
+    kit.check({ampSame:ampSame,T1:T1,problem:problem});
     requestAnimationFrame(draw);
   }
-
-  // Drag to set amplitude
-  // touchend carries changedTouches only: reading touches[0] there threw
-  function _pt(e){return (e.changedTouches&&e.changedTouches[0])||(e.touches&&e.touches[0])||e;}
-  function getCanvasX(e){
-    const r=canvas.getBoundingClientRect();
-    const scl=(canvas.width/dpr)/r.width;
-    return (_pt(e).clientX-r.left)*scl;
-  }
-  function getCanvasY(e){
-    const r=canvas.getBoundingClientRect();
-    const scl=(canvas.height/dpr)/r.height;
-    return (_pt(e).clientY-r.top)*scl;
-  }
-  canvas.addEventListener('mousedown',function(e){
-    const cx=getCanvasX(e), cy=getCanvasY(e);
-    const curMX=EQ+amp*Math.cos(theta);
-    if(Math.hypot(cx-curMX,cy-MY)<MR+8) drag=true;
-  });
-  // the mass follows the pointer to either side of equilibrium
-  function dragTo(e){const cx=getCanvasX(e);
-    amp=Math.max(8,Math.min(110,Math.abs(cx-EQ))); theta=cx<EQ?Math.PI:0;
-    xHist=[]; vHist=[]; tHist=[];}
-  canvas.addEventListener('mousemove',function(e){
-    if(!drag)return;
-    dragTo(e);
-  });
-  canvas.addEventListener('mouseup',function(){drag=false;});
-  canvas.addEventListener('mouseleave',function(){drag=false;});
-  canvas.addEventListener('touchstart',function(e){
-    const cx=getCanvasX(e), cy=getCanvasY(e);
-    const curMX=EQ+amp*Math.cos(theta);
-    if(Math.hypot(cx-curMX,cy-MY)<MR+12){drag=true;e.preventDefault();}
-  },{passive:false});
-  canvas.addEventListener('touchmove',function(e){
-    if(!drag)return;
-    dragTo(e); e.preventDefault();
-  },{passive:false});
-  canvas.addEventListener('touchend',function(){drag=false;});
-
+  slowLbl();
   requestAnimationFrame(draw);
 }
 
@@ -16835,239 +16795,182 @@ function simEnergyKinetic(canvas){
 }
 
 function simEnergyPotential(canvas){
+  // SECTION: energy.potential
+  // A ball lifted by hand and dropped onto an elastic floor, with a reference
+  // level the learner drags: h — and so E_p = mgh — is measured from that line
+  // (to the bottom of the ball), and is negative below it. Moving the line
+  // shifts E_p and E = E_p + E_k by the same amount and changes nothing else:
+  // the fall, ΔE_p and the speed at the floor stay as they were. The fall is
+  // integrated with the trapezoid rule (exact for constant g); the speed at the
+  // floor comes from the energy over the part of the step actually fallen, so
+  // the bounces neither gain nor lose height.
   const H=510; const {ctx,W,dpr}=setupCanvas(canvas,H);
   const id=canvas.id;
   let pT=null;
   var m=2, g=9.8;
-  var GROUND_Y=H-52;
-  var BALL_R=22;
-  var FLOOR_POS=GROUND_Y-BALL_R; // y of ball center when touching floor
-  var PX_PER_M=62;
-  var objY=H*0.22; // ball center Y
-  var vel=0;       // canvas pixels/s, downward = positive
-  var dragging=false;
-  // Show elastic PE bar toggle
-  var showElasticBar=false;
-  var _epScale=null;      // latched absolute joule scale for the bars
-  // Brief contact animation: when ball hits floor, compress for ~60ms visually
-  var contactTimer=0; // seconds since contact started, 0 = no contact
-  var contactVelOut=0; // velocity magnitude going back up
-  var CONTACT_DUR=0.06; // visual duration of elastic compression
+  var GROUND_Y=H-52, BALL_R=22, FLOOR_POS=GROUND_Y-BALL_R;   // y of the ball's centre resting on the floor
+  var PX=62;                                                 // px per metre
+  var TOP_Y=72+BALL_R;                                       // highest centre (below the formula card)
+  var HTOP=(FLOOR_POS-TOP_Y)/PX;                             // m
+  var SX1=Math.round(W*0.58), ballX=Math.round(W*0.33), RX=28;
+  var objY=FLOOR_POS-3.15*PX, vel=0, dragging=false, dragRef=false, ref=0;   // ref: the line's height above the floor (m)
+  var showElasticBar=false, contactTimer=0, contactVelOut=0, CONTACT_DUR=0.06, _scale=null;
+  var hRel=3.15, drops=[], lastImp=null, negEp=false, refMoved=false, refSame=false, v7=false, touched=false;
 
-  function getM(){var e=document.getElementById('inp-ep-m'); return e?parseFloat(e.value):m;}
-  function getG(){var e=document.getElementById('inp-ep-g'); return e?parseFloat(e.value):g;}
-
-  function getCanvasY(ev){
-    var r=canvas.getBoundingClientRect();
-    // touchend carries changedTouches only: reading touches[0] there threw
-    var pt=(ev.changedTouches&&ev.changedTouches[0])||(ev.touches&&ev.touches[0])||ev;
-    return (pt.clientY-r.top)*(canvas.height/dpr/r.height);
-  }
-  function onDown(ev){ev.preventDefault(); var cy=getCanvasY(ev); if(Math.abs(cy-objY)<BALL_R+10){dragging=true;vel=0;contactTimer=0;}}
-  function onMove(ev){if(!dragging)return;ev.preventDefault();objY=Math.max(BALL_R+8,Math.min(FLOOR_POS-2,getCanvasY(ev)));vel=0;}
-  function onUp(){dragging=false;}
+  function getM(){return _mbV('ep-m',m);} function getG(){return _mbV('ep-g',g);}
+  function hFloor(){return (FLOOR_POS-objY)/PX;}
+  function refY(){return GROUND_Y-ref*PX;}
+  function release(){hRel=hFloor();vel=0;contactTimer=0;}
+  function onDown(ev){var p=simPointerXY(canvas,dpr,ev); if(p.y>GROUND_Y+8||p.y<TOP_Y-BALL_R-14)return; touched=true;
+    // the ball's whole column grabs it (a falling ball is not easy to hit)
+    if(Math.abs(p.x-ballX)<BALL_R+18){dragging=true;vel=0;contactTimer=0;onMove(ev);ev.preventDefault();return;}
+    if(Math.abs(p.y-refY())<16&&p.x<SX1+8){dragRef=true;ev.preventDefault();}}
+  function onMove(ev){if(!dragging&&!dragRef)return;ev.preventDefault();var p=simPointerXY(canvas,dpr,ev);
+    if(dragging)objY=Math.max(TOP_Y,Math.min(FLOOR_POS,p.y));
+    else{ref=Math.max(0,Math.min(Math.floor(HTOP*10)/10,Math.round((GROUND_Y-p.y)/PX*10)/10));refMoved=true;}}
+  function onUp(){if(dragging){dragging=false;release();}dragRef=false;}
   canvas.addEventListener('mousedown',onDown);canvas.addEventListener('touchstart',onDown,{passive:false});
   canvas.addEventListener('mousemove',onMove);canvas.addEventListener('touchmove',onMove,{passive:false});
   canvas.addEventListener('mouseup',onUp);canvas.addEventListener('mouseleave',onUp);canvas.addEventListener('touchend',onUp);
+  _mbKeys(canvas,{'ArrowUp':function(){touched=true;objY=Math.max(TOP_Y,Math.min(FLOOR_POS,FLOOR_POS-(Math.round(hFloor()*10)/10+0.25)*PX));release();},
+    'ArrowDown':function(){touched=true;objY=Math.max(TOP_Y,Math.min(FLOOR_POS,FLOOR_POS-(Math.round(hFloor()*10)/10-0.25)*PX));release();},
+    'PageUp':function(){touched=true;ref=Math.min(Math.floor(HTOP*10)/10,Math.round(ref*10+5)/10);refMoved=true;},
+    'PageDown':function(){touched=true;ref=Math.max(0,Math.round(ref*10-5)/10);refMoved=true;}});
 
   var elasticBtn=document.getElementById('btn-ep-elastic');
-  if(elasticBtn){
-    elasticBtn.textContent='🟢 הציגו אנרגיה אלסטית';
-    elasticBtn.addEventListener('click',function(){
-      showElasticBar=!showElasticBar;
-      elasticBtn.textContent=showElasticBar?'🔴 הסתירו אנרגיה אלסטית':'🟢 הציגו אנרגיה אלסטית';
-    });
-  }
+  function elLbl(){_mbBtn('ep-elastic',showElasticBar?'🔴 הסתירו אנרגיה אלסטית':'🟢 הציגו אנרגיה אלסטית');}
+  if(elasticBtn)elasticBtn.addEventListener('click',function(){showElasticBar=!showElasticBar;elLbl();});
   var resetBtn=document.getElementById('btn-ep-reset');
-  if(resetBtn) resetBtn.addEventListener('click',function(){objY=H*0.22;vel=0;contactTimer=0;});
+  if(resetBtn)resetBtn.addEventListener('click',function(){objY=FLOOR_POS-3.15*PX;ref=0;release();});
+
+  var kit=simKit(canvas,{missions:[
+    {text:'הזיזו את רמת הייחוס מעל הכדור — וקבלו '+_skM('Eₚ')+' שלילית',
+     hint:'גררו את הקו המקווקו (h = 0) כלפי מעלה, אל מעל הכדור.',
+     why:'מתחת לרמת הייחוס '+_skM('h < 0')+', ולכן '+_skM('Eₚ = mgh < 0')+'. אין בזה שום בעיה: לערך של '+_skM('Eₚ')+' עצמו אין משמעות — רק לשינוי שלה, '+_skM('ΔEₚ')+', שאינו תלוי בבחירת הקו.',
+     done:function(s){return s.negEp;}},
+    {text:'הפילו את הכדור מאותו גובה פעמיים, עם רמות ייחוס שונות ב־'+_skM('1 m')+' לפחות — והשוו את המהירות ברצפה',
+     hint:'הפילו את הכדור, הזיזו את רמת הייחוס, והפילו אותו שוב מאותו גובה מעל הרצפה (החצים ↑↓ עוזרים לדייק).',
+     why:'הזזת הקו משנה את '+_skM('Eₚ')+' ואת '+_skM('E')+' באותו סכום, אבל הנפילה הופכת לאנרגיה קינטית את ההפרש '+_skM('ΔEₚ = mgΔh')+' — וההפרש לא השתנה. לכן גם '+_skM('v = √(2gΔh)')+' לא השתנתה.',
+     done:function(s){return s.refSame;}},
+    {text:'הפילו את הכדור כך שיפגע ברצפה במהירות '+_skM('7.0 m/s'),
+     hint:'כל ה־'+_skM('mgΔh')+' הופכת ל־'+_skM('½mv²')+'. מאיזה גובה מעל הרצפה צריך להפיל?',
+     why:_skM('mgΔh = ½mv²')+' ולכן '+_skM('Δh = v²/2g = 7² / (2 × 9.8) = 2.5 m')+'. המסה מצטמצמת: כדור כבד יותר מקבל יותר אנרגיה, אבל גם צריך יותר אנרגיה לכל '+_skM('m/s')+'.',
+     done:function(s){return s.v7;}}]});
+  var model=_mbModel(kit);
+  kit.predict({q:'מודדים את הגובה מראש השולחן במקום מהרצפה (רמת ייחוס אחרת). המהירות שבה הכדור יפגע ברצפה:',
+    opts:['גדלה','לא משתנה','קטנה'],correct:1,
+    why:'רמת הייחוס משנה את הערכים של '+_skM('Eₚ')+', אבל לא את ההפרש '+_skM('ΔEₚ')+' בין שתי נקודות — ורק ההפרש הופך לאנרגיה קינטית.'},function(){});
+  canvas._probe=function(){return {y:objY,hf:hFloor(),h:hFloor()-ref,v:vel/PX,ref:ref,refY:refY(),ballX:ballX,SX1:SX1,PX:PX,FLOOR_POS:FLOOR_POS,
+    GROUND_Y:GROUND_Y,TOP_Y:TOP_Y,drops:drops.length,last:drops.length?drops[drops.length-1]:null,negEp:negEp,refSame:refSame,v7:v7,dragging:dragging};};
 
   function draw(ts){
     if(_simStop[id])return;
     if(!pT)pT=ts;
     var dt=Math.min((ts-pT)/1000,0.025); pT=ts;
     m=getM(); g=getG();
-
     if(!dragging){
       if(contactTimer<=0){
-        // Free motion (gravity only)
-        // Trapezoid: exact for constant g. Advancing with the post-update
-        // velocity loses ½g²·dt² per step — ~6% of the energy of a 2 m drop
-        // every second at dt=0.025 — while the panel plots PE, KE and their sum
-        // for the learner to watch stay flat.
-        var _v0e=vel, _y0e=objY;
-        vel+=g*PX_PER_M*dt;
-        objY+=0.5*(_v0e+vel)*dt;
-        // Hit floor
+        var v0=vel, y0=objY;
+        vel+=g*PX*dt; objY+=0.5*(v0+vel)*dt;
         if(objY>=FLOOR_POS){
-          // The speed AT the floor, from energy over the part of the step that
-          // was actually fallen. Taking |vel| after the step overshot the floor
-          // handed the ball the extra m·g·δ of the overshoot on every bounce,
-          // so it climbed higher and higher — in the section on Ep = mgh.
-          contactVelOut=Math.sqrt(Math.max(0,_v0e*_v0e+2*g*PX_PER_M*(FLOOR_POS-_y0e)));
-          objY=FLOOR_POS;
-          vel=0;
-          contactTimer=dt; // start contact phase
+          contactVelOut=Math.sqrt(Math.max(0,v0*v0+2*g*PX*(FLOOR_POS-y0)));
+          objY=FLOOR_POS; vel=0; contactTimer=dt;
+          if(hRel!==null&&hRel>0.02){
+            lastImp={hd:hRel,ref:ref,m:m,g:g,v:contactVelOut/PX};drops.push(lastImp);if(drops.length>30)drops.shift();
+            drops.forEach(function(o){if(o!==lastImp&&Math.abs(o.hd-lastImp.hd)<0.05&&o.g===lastImp.g&&Math.abs(o.ref-lastImp.ref)>=1-1e-9&&Math.abs(o.v/lastImp.v-1)<0.01)refSame=true;});
+            if(Math.abs(lastImp.v-7)<=0.1)v7=true;
+            hRel=null;
+          }
         }
       } else {
-        // Contact phase: animate a quick compression + rebound
         contactTimer+=dt;
-        if(contactTimer>=CONTACT_DUR){
-          // Rebound: perfectly elastic, same speed upward
-          vel=-contactVelOut;
-          objY=FLOOR_POS;
-          contactTimer=0;
-        }
+        if(contactTimer>=CONTACT_DUR){vel=-contactVelOut;objY=FLOOR_POS;contactTimer=0;}
       }
       if(objY<BALL_R+4)objY=BALL_R+4;
     }
-
-    // Energies
-    var h_px=Math.max(0,FLOOR_POS-objY);
-    var h=h_px/PX_PER_M;
-    var vel_ms=vel/PX_PER_M;
-    var PE=m*g*h;
-    var KE=0.5*m*vel_ms*vel_ms;
-    // Elastic PE: during contact phase, treat as energy stored in floor spring
-    // E_elastic = total_E - PE - KE at contact start = total mechanical energy
-    // We fake it cleanly: contact fraction goes from 0→1→0 as a cosine
-    // (a second 'conserved total' from a fixed drop height used to be computed
-    //  here and never used; E_tot_display below is the one that is drawn)
-    // Better: E_elastic = kinetic energy transferred to floor spring (goes from KE_impact→0→KE_impact)
-    // The contact is half a cycle of a stiff spring: the ball's speed goes as
-    // cos and the compression as sin, so Ek falls as cos² while E_el rises as
-    // sin², and their sum is the impact energy at every instant. (Ek used to be
-    // forced to zero for the whole contact while E_el rose from zero, so the
-    // drawn total dropped to nothing at both ends of every bounce.)
-    var contactFrac=contactTimer>0?Math.sin(Math.PI*Math.min(1,contactTimer/CONTACT_DUR)):0;
-    var KE_imp=0.5*m*Math.pow(contactVelOut/PX_PER_M,2);
-    var E_elastic=contactTimer>0?KE_imp*contactFrac*contactFrac:0;
-    if(contactTimer>0)KE=KE_imp-E_elastic;
-    var E_tot_display=PE+KE+E_elastic;
+    var hf=Math.max(0,hFloor()), h=hf-ref, vms=vel/PX;
+    var PE=m*g*h, KE=0.5*m*vms*vms;
+    var cf=contactTimer>0?Math.sin(Math.PI*Math.min(1,contactTimer/CONTACT_DUR)):0;
+    var KEi=0.5*m*Math.pow(contactVelOut/PX,2), Eel=contactTimer>0?KEi*cf*cf:0;
+    if(contactTimer>0)KE=KEi-Eel;
+    var E=PE+KE+Eel;
+    if(touched&&refMoved&&PE<-0.5)negEp=true;
 
     simBg(ctx,W,H);
+    // ── formula card (full width)
+    _mbCard(ctx,8,6,W-16,58);
+    var spd=contactTimer>0?Math.sqrt(2*KE/m):Math.abs(vms);
+    simText(ctx,'E_p = mgh = '+m.toFixed(1)+'×'+g.toFixed(1)+'×'+_mbP(h,2)+' = '+_mbS(PE,2)+' J',W/2,21,'#fbbf24',9.5,'center',true);
+    simText(ctx,'E_k = ½mv² = ½×'+m.toFixed(1)+'×'+spd.toFixed(2)+'² = '+KE.toFixed(2)+' J',W/2,36,'#34d399',9.5,'center',true);
+    simText(ctx,showElasticBar?'E_el = '+Eel.toFixed(2)+' J  |  E = '+_mbS(E,2)+' J':'E = E_p + E_k = '+_mbS(E,2)+' J  (נשמרת)',W/2,52,'#cbd5e1',8.5,'center',true);
 
-    // Ground
-    ctx.save();ctx.fillStyle='#0f2035';ctx.fillRect(0,GROUND_Y,W,H-GROUND_Y);ctx.restore();
-    ctx.save();ctx.strokeStyle='#2d5275';ctx.lineWidth=2;
-    ctx.beginPath();ctx.moveTo(0,GROUND_Y);ctx.lineTo(W,GROUND_Y);ctx.stroke();ctx.restore();
-    simText(ctx,'h=0 — רמת הייחוס',W/2,GROUND_Y+12,'#7d8da6',8,undefined,true);
+    // ── floor
+    ctx.save();ctx.fillStyle='#0f2035';ctx.fillRect(0,GROUND_Y,W,H-GROUND_Y);
+    ctx.strokeStyle='#2d5275';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(0,GROUND_Y);ctx.lineTo(W,GROUND_Y);ctx.stroke();ctx.restore();
+    if(contactTimer>0){var cp=Math.round(6*cf);ctx.save();ctx.strokeStyle='#34d399';ctx.lineWidth=2;ctx.setLineDash([2,3]);
+      for(var xi=ballX-30;xi<ballX+30;xi+=12){ctx.beginPath();ctx.moveTo(xi,GROUND_Y);ctx.lineTo(xi+cp,GROUND_Y+cp+2);ctx.stroke();}ctx.restore();}
+    simText(ctx,'רצפה',SX1-6,GROUND_Y+14,'#7d8da6',8.5,'right');
+    if(lastImp)simText(ctx,'בפגיעה ברצפה: v = '+lastImp.v.toFixed(2)+' m/s (נפל '+lastImp.hd.toFixed(2)+' m)',W/2,GROUND_Y+34,'#22d3ee',9,'center',true);
 
-    // Visual floor compression during contact
-    if(contactTimer>0){
-      var comprPx=Math.round(6*contactFrac);
-      ctx.save();ctx.strokeStyle='#34d399';ctx.lineWidth=2;ctx.setLineDash([2,3]);
-      for(var xi3=W*0.25;xi3<W*0.55;xi3+=14){
-        ctx.beginPath();ctx.moveTo(xi3,GROUND_Y);ctx.lineTo(xi3+comprPx,GROUND_Y+comprPx+2);ctx.stroke();
-      }
-      ctx.setLineDash([]);ctx.restore();
+    // ── ruler: heights measured from the reference line
+    var rY=refY();
+    ctx.save();ctx.strokeStyle='#1e3a52';ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(RX,GROUND_Y);ctx.lineTo(RX,TOP_Y-BALL_R);ctx.stroke();ctx.restore();
+    for(var k=-Math.floor(ref);k<=Math.floor(HTOP-ref+BALL_R/PX);k++){var ty=rY-k*PX;if(ty<TOP_Y-BALL_R-2||ty>GROUND_Y+1)continue;
+      ctx.save();ctx.strokeStyle='#2d4a66';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(RX-5,ty);ctx.lineTo(RX+5,ty);ctx.stroke();ctx.restore();
+      simText(ctx,(k<0?'−':'')+Math.abs(k)+' m',RX-8,ty+3,k===0?'#67e8f9':'#7d8da6',8,'right');}
+    // the reference line, and its handle
+    ctx.save();ctx.strokeStyle=dragRef?'#fbbf24':'#22d3ee';ctx.lineWidth=1.6;ctx.setLineDash([7,5]);
+    ctx.beginPath();ctx.moveTo(RX,rY);ctx.lineTo(SX1,rY);ctx.stroke();ctx.restore();
+    simHandle(ctx,SX1-12,rY,dragRef?'#fbbf24':'#22d3ee',11);
+    simText(ctx,ref===0?'h = 0: רמת הייחוס (הרצפה)':'h = 0: רמת הייחוס',SX1-28,rY-6,'#67e8f9',8.5,'right',true);
+
+    // h, from the line to the bottom of the ball
+    var bY=objY+BALL_R;
+    if(Math.abs(h)>0.04){
+      ctx.save();ctx.strokeStyle='rgba(251,191,36,.35)';ctx.setLineDash([3,5]);ctx.beginPath();ctx.moveTo(RX+12,bY);ctx.lineTo(ballX,bY);ctx.stroke();ctx.restore();
+      simArrow(ctx,RX+14,rY,RX+14,bY,'#fbbf24',1.8,7);
+      simText(ctx,'h = '+_mbS(h,2)+' m',RX+22,(rY+bY)/2+3,'#fbbf24',9,'left',true);
     }
+    // the ball
+    var sY=contactTimer>0?(1-0.25*cf):1, sX=contactTimer>0?(1+0.18*cf):1, spd2=Math.abs(vms);
+    var col=contactTimer>0?'#34d399':dragging?'#a78bfa':spd2>1?'#ef4444':'#3b82f6';
+    ctx.save();ctx.translate(ballX,objY+BALL_R*(1-sY));ctx.scale(sX,sY);ctx.shadowColor=col;ctx.shadowBlur=dragging?18:6;
+    ctx.fillStyle=col+'cc';ctx.strokeStyle=col;ctx.lineWidth=2.5;ctx.beginPath();ctx.arc(0,0,BALL_R,0,Math.PI*2);ctx.fill();ctx.stroke();ctx.restore();
+    simText(ctx,m.toFixed(1)+' kg',ballX,objY+4,'#fff',9,'center',true);
+    if(spd2>0.1&&!dragging&&contactTimer<=0){var dv=vel>0?1:-1;simArrow(ctx,ballX+BALL_R+5,objY,ballX+BALL_R+5,objY+dv*Math.min(46,spd2*6),'#22d3ee',2,8);}
+    if(dragging)simText(ctx,'שחררו לנפילה',ballX,objY-BALL_R-10,'#fbbf24',9,'center',true);
+    else if(!touched)simText(ctx,'✋ הרימו את הכדור, או גררו את קו הייחוס',W/2,TOP_Y-BALL_R-4,'#fbbf24',9,'center',true);
 
-    // Height ruler
-    var RX=32;
-    ctx.save();ctx.strokeStyle='#1e3a52';ctx.lineWidth=1.5;
-    ctx.beginPath();ctx.moveTo(RX,GROUND_Y);ctx.lineTo(RX,44);ctx.stroke();ctx.restore();
-    for(var yi=0;yi<=5;yi++){
-      var ry=GROUND_Y-yi*PX_PER_M;
-      if(ry<42)break;
-      ctx.save();ctx.strokeStyle='#1e3a52';ctx.lineWidth=1;
-      ctx.beginPath();ctx.moveTo(RX-5,ry);ctx.lineTo(RX+5,ry);ctx.stroke();
-      simText(ctx,yi+'m',RX-10,ry+3,'#7d8da6',7.5,'right');ctx.restore();
-    }
+    // ── signed energy bars, one scale for all of them (latched, in joules)
+    var PX0=SX1+8, PW=W-8-PX0, PY0=74, PH=GROUND_Y-PY0-6;
+    _mbCard(ctx,PX0,PY0,PW,PH);
+    simText(ctx,'אנרגיה (J)',PX0+PW/2,PY0+14,'#22d3ee',9,'center',true);
+    var need=m*g*(HTOP+0.5);
+    if(_scale===null||need>_scale||need<0.35*_scale){var pw=Math.pow(10,Math.floor(Math.log10(need))),f=need/pw;_scale=(f<=1?1:f<=2?2:f<=5?5:10)*pw;}
+    var top=PY0+28, bot=PY0+PH-30, zY=(top+bot)/2, half=(bot-top)/2;
+    function ey(e){return zY-e/_scale*half;}
+    ctx.save();ctx.strokeStyle='rgba(148,163,184,.2)';ctx.lineWidth=1;
+    [-1,-0.5,0.5,1].forEach(function(q){ctx.beginPath();ctx.moveTo(PX0+30,ey(q*_scale));ctx.lineTo(PX0+PW-6,ey(q*_scale));ctx.stroke();
+      simText(ctx,_mbS(q*_scale,0),PX0+27,ey(q*_scale)+3,'#64748b',8,'right');});
+    ctx.strokeStyle='rgba(203,213,225,.6)';ctx.beginPath();ctx.moveTo(PX0+30,zY);ctx.lineTo(PX0+PW-6,zY);ctx.stroke();ctx.restore();
+    simText(ctx,'0',PX0+27,zY+3,'#94a3b8',8,'right');
+    var bars=[[PE,'#fbbf24','E_p'],[KE,'#34d399','E_k']];
+    if(showElasticBar)bars.push([Eel,'#a78bfa','E_el']);
+    bars.push([E,'#e2e8f0','E']);                    // the sum, which does not move while the ball falls
+    var nb=bars.length, gap=8, bw=Math.min(26,(PW-44-gap*(nb-1))/nb), bx0=PX0+34+((PW-40)-nb*bw-(nb-1)*gap)/2;
+    bars.forEach(function(B,i){var x=bx0+i*(bw+gap), y1=ey(Math.max(-_scale*1.05,Math.min(_scale*1.05,B[0])));
+      ctx.save();ctx.fillStyle=B[2]==='E'?'rgba(226,232,240,.25)':B[1]+'bb';ctx.strokeStyle=B[1];ctx.lineWidth=1.4;ctx.beginPath();ctx.rect(x,Math.min(zY,y1),bw,Math.abs(y1-zY));ctx.fill();ctx.stroke();ctx.restore();
+      simText(ctx,B[2],x+bw/2,bot+13,B[1],8.5,'center',true);
+      simText(ctx,_mbS(B[0],1),x+bw/2,bot+25,B[1],8,'center');});
 
-    // h arrow
-    if(h>0.04){
-      ctx.save();ctx.strokeStyle='rgba(251,191,36,.3)';ctx.lineWidth=1;ctx.setLineDash([3,5]);
-      ctx.beginPath();ctx.moveTo(RX+10,objY);ctx.lineTo(W*0.55,objY);ctx.stroke();ctx.setLineDash([]);ctx.restore();
-      simArrow(ctx,RX+10,FLOOR_POS,RX+10,objY,'rgba(251,191,36,.5)',1.5,6);
-      simText(ctx,'h='+h.toFixed(2)+'m',RX+20,(FLOOR_POS+objY)/2,'#fbbf24',8.5,'left');
-    }
-
-    // Ball — slightly squash during contact
-    var ballX=W*0.38;
-    var scaleY=contactTimer>0?(1-0.25*contactFrac):1;
-    var scaleX=contactTimer>0?(1+0.18*contactFrac):1;
-    var spd2=Math.abs(vel_ms);
-    var ballCol=contactTimer>0?'#34d399':dragging?'#a78bfa':spd2>1?'#ef4444':'#3b82f6';
-    ctx.save();ctx.translate(ballX,objY);ctx.scale(scaleX,scaleY);
-    ctx.shadowColor=ballCol;ctx.shadowBlur=dragging?18:6;
-    ctx.fillStyle=ballCol+'cc';ctx.strokeStyle=ballCol;ctx.lineWidth=2.5;
-    ctx.beginPath();ctx.arc(0,0,BALL_R,0,Math.PI*2);ctx.fill();ctx.stroke();
-    ctx.shadowBlur=0;ctx.restore();
-    simText(ctx,m.toFixed(1)+' kg',ballX,objY+4,'#fff',9,undefined,true);
-
-    // v arrow
-    if(spd2>0.1&&!dragging&&contactTimer<=0){
-      var vDir2=vel>0?1:-1;
-      simArrow(ctx,ballX+BALL_R+4,objY,ballX+BALL_R+4,objY+vDir2*Math.min(46,spd2*18),'#22d3ee',2,8);
-    }
-
-    // ── Energy bars
-    var BX=W*0.63, BY=58, BW=24, BH=190;
-    // determine how many bars
-    var numBars=showElasticBar?3:2;
-    var totalBarW=BW*numBars+(numBars-1)*10;
-    var panW=totalBarW+50;
-    ctx.save();ctx.fillStyle='rgba(6,14,28,.92)';ctx.strokeStyle='#1e4060';ctx.lineWidth=1.5;
-    ctx.beginPath();ctx.roundRect(BX-14,BY-32,panW,BH+72,7);ctx.fill();ctx.stroke();ctx.restore();
-    simText(ctx,'אנרגיה (J)',BX+panW/2-14,BY-18,'#22d3ee',9,undefined,true);
-
-    // The bars used to be normalised by Emax=m*g*h_max, in which the mass
-    // cancels exactly (PE/Emax = h/h_max), so the mass slider could not move a
-    // single pixel and the white E line sat at a fixed height by construction —
-    // conservation was a normalisation artefact rather than an observation.
-    // A latched "nice" absolute joule scale fixes both: doubling the mass now
-    // visibly doubles the bars while the motion stays pixel-identical, which is
-    // itself the lesson (the trajectory is mass-independent, the energy is not).
-    function _niceMax(E){
-      var p=Math.pow(10,Math.floor(Math.log10(Math.max(E,0.1))));
-      var f=E/p; return (f<=1?1:f<=2?2:f<=5?5:10)*p;
-    }
-    if(_epScale===null||E_tot_display>_epScale||E_tot_display<0.35*_epScale)
-      _epScale=_niceMax(Math.max(E_tot_display,0.1));
-    var Emax=_epScale;
-    // joule gridlines, so the bars carry readable absolute values
-    ctx.save();ctx.strokeStyle='rgba(148,163,184,.22)';ctx.lineWidth=1;
-    ctx.font='7px Heebo';ctx.fillStyle='#64748b';ctx.textAlign='right';
-    for(var _gi=1;_gi<=4;_gi++){
-      var _gy=BY+BH-(_gi/4)*BH;
-      ctx.beginPath();ctx.moveTo(BX-3,_gy);ctx.lineTo(BX+panW-28,_gy);ctx.stroke();
-      ctx.fillText((Emax*_gi/4).toFixed(Emax<4?1:0),BX-5,_gy+3);
-    }
-    ctx.restore();
-
-    function drawBar2(x,E,col,lbl){
-      var bh=Math.min(BH,Math.max(0,(E/Emax)*BH));
-      ctx.save();ctx.fillStyle=col+'aa';
-      ctx.beginPath();ctx.roundRect(x,BY+BH-bh,BW,bh,3);ctx.fill();
-      ctx.strokeStyle=col;ctx.lineWidth=1.5;
-      ctx.beginPath();ctx.roundRect(x,BY,BW,BH,3);ctx.stroke();ctx.restore();
-      simText(ctx,lbl,x+BW/2,BY+BH+14,col,8,undefined,true);
-      simText(ctx,E.toFixed(2),x+BW/2,BY+BH+26,col,7.5,undefined,true);
-    }
-
-    drawBar2(BX,PE,'#fbbf24','E_p');
-    drawBar2(BX+BW+10,KE,'#34d399','E_k');
-    if(showElasticBar) drawBar2(BX+(BW+10)*2,E_elastic,'#a78bfa','E_el');
-
-    // E_total line
-    var etH=Math.min(BH,(E_tot_display/Emax)*BH);
-    ctx.save();ctx.strokeStyle='#fff';ctx.lineWidth=1.5;ctx.setLineDash([3,3]);
-    ctx.beginPath();ctx.moveTo(BX-4,BY+BH-etH);ctx.lineTo(BX+panW-28,BY+BH-etH);ctx.stroke();
-    ctx.setLineDash([]);ctx.restore();
-    simText(ctx,'E='+E_tot_display.toFixed(2)+'J',BX+panW/2-14,BY+BH-etH-7,'#fff',7.5,undefined,true);
-
-    // Formula panel
-    ctx.save();ctx.fillStyle='rgba(6,14,28,.92)';ctx.strokeStyle='#1e4060';ctx.lineWidth=1.5;
-    ctx.beginPath();ctx.roundRect(8,6,W*0.55,54,6);ctx.fill();ctx.stroke();ctx.restore();
-    var spdShow=contactTimer>0?Math.sqrt(2*KE/m):spd2;
-    simText(ctx,'E_p = mgh = '+m.toFixed(1)+'×'+g.toFixed(1)+'×'+h.toFixed(2)+' = '+PE.toFixed(2)+' J',W*0.275,20,'#fbbf24',9.5,undefined,true);
-    simText(ctx,'E_k = ½mv² = ½×'+m.toFixed(1)+'×'+spdShow.toFixed(2)+'² = '+KE.toFixed(2)+' J',W*0.275,34,'#34d399',9.5,undefined,true);
-    simText(ctx,showElasticBar?'E_el = '+E_elastic.toFixed(2)+' J  |  E = '+E_tot_display.toFixed(2)+' J':'E = E_p + E_k = '+E_tot_display.toFixed(2)+' J  (נשמרת)',W*0.275,48,'#94a3b8',8,undefined,true);
-
-    if(dragging) simText(ctx,'שחררו לנפילה',ballX,objY-BALL_R-14,'#fbbf24',8.5,undefined,true);
-
+    // the model line
+    var f1=kit.m('Eₚ = mgh = '+m.toFixed(1)+' × '+g.toFixed(1)+' × '+_mbP(h,2)+' = '+_mbS(PE,1)+' J');
+    var f2=lastImp?kit.m('v = √(2gΔh) = √(2 × '+lastImp.g.toFixed(1)+' × '+lastImp.hd.toFixed(2)+') = '+lastImp.v.toFixed(2)+' m/s'):'';
+    model(f1+(ref>0?' — h נמדד מרמת הייחוס, '+kit.m(ref.toFixed(1)+' m')+' מעל הרצפה':' — h נמדד מהרצפה')+(f2?'. בפגיעה ברצפה: '+f2+', ללא תלות ברמת הייחוס.':''));
+    kit.check({negEp:negEp,refSame:refSame,v7:v7});
     requestAnimationFrame(draw);
   }
+  elLbl();
   requestAnimationFrame(draw);
 }
 
@@ -35011,12 +34914,12 @@ function buildSim(sim){
   else if(sim.type==='momentum-cons')extra=C(rng('mc-m1',1,8,3,0.5,'m₁',' kg','_fmtKg1')+rng('mc-m2',1,8,1.5,0.5,'m₂',' kg','_fmtKg1')+rng('mc-v1',-8,8,6,1,'v₁',' m/s','_fmtMs1')+rng('mc-v2',-8,8,-2,1,'v₂',' m/s','_fmtMs1')+rng('mc-E',2,40,12,1,'אנרגיית הקפיץ',' J')+btn('mc-run','💥 שחררו את הקפיץ','btn-primary')+btn('mc-mode','🧲 הצמדה','btn-secondary')+btn('mc-air','💨 אוויר: מופעל','btn-secondary'));
   else if(sim.type==='collision')extra=C(rng('col-e',0,1,1,0.05,'מקדם התקומה e (0 נצמדות, 1 אלסטית)')+rng('col-m1',1,8,3,0.5,'m₁',' kg')+rng('col-m2',1,8,2,0.5,'m₂',' kg')+rng('col-v1',-8,8,4,0.5,'v₁ התחלתית',' m/s')+rng('col-v2',-8,8,-2,0.5,'v₂ התחלתית',' m/s')+btn('col-run','▶ הפעילו','btn-primary')+btn('col-reset','↺ איפוס','btn-secondary'));
   else if(sim.type==='energy-kinetic')extra=C(rng('ek-F',2,50,10,1,'כוח F',' N')+rng('ek-m',0.5,10,2,0.5,'מסה m',' kg')+btn('ek-launch','▶ הפעילו!','btn-primary')+btn('ek-reset','↺ איפוס','btn-secondary'));
-  else if(sim.type==='energy-potential')extra=C(rng('ep-m',0.5,8,2,0.5,'מסה m',' kg')+rng('ep-g',1.6,25,9.8,0.2,'g',' m/s²')+btn('ep-elastic','⚡ אנרגיה אלסטית','btn-secondary')+btn('ep-reset','↺ איפוס','btn-secondary'));
+  else if(sim.type==='energy-potential')extra=C(rng('ep-m',0.5,8,2,0.5,'מסה m',' kg')+rng('ep-g',1.6,25,9.8,0.2,'g',' m/s²')+btn('ep-elastic','🟢 הציגו אנרגיה אלסטית','btn-secondary')+btn('ep-reset','↺ איפוס','btn-secondary'));
   else if(sim.type==='energy')extra=C(rng('energy-m',0.5,4,1,0.5,'מסה m',' kg')+rng('energy-mu',0,0.1,0,0.005,'מקדם חיכוך μ','')+btn('energy-reset','↺ איפוס','btn-secondary')+btn('energy-shape','〰 המסלול המקורי','btn-secondary'));
   else if(sim.type==='shm-def')extra=C(rng('shm-A',2,13,8,0.5,'אמפליטודה A',' cm')+rng('shm-T',0.5,5,2,0.1,'מחזור T',' s')+btn('shm-pause','⏸ עצרו','btn-primary')+btn('shm-reset','↺ איפוס','btn-secondary'));
   else if(sim.type==='vec-ops')extra=C(rng('vo-scalar',-3,3,2,0.1,'מכפיל c')+btn('vo-add','A+B')+btn('vo-sub','A−B','btn-secondary')+btn('vo-scalar','c·A','btn-secondary')+btn('vo-dot','A·B','btn-secondary')+btn('vo-reset','↺ איפוס','btn-secondary'));
   else if(sim.type==='vec-components')extra=C(rng('vc-mag',0.5,4,2.8,0.1,'גודל |A|')+rng('vc-ang',0,360,32,1,'זווית θ','°')+btn('vc-reset','↺ איפוס','btn-secondary'));
-  else if(sim.type==='spring')extra=C(rng('spring-k',0.1,25,2,0.1,'k (N/m)')+rng('spring-m',0.1,2,0.5,0.1,'מסה',' kg'));
+  else if(sim.type==='spring')extra=C(rng('spring-k',10,400,50,1,'קבוע הקפיץ k',' N/m')+rng('spring-m',0.5,8,1,0.1,'מסה m',' kg')+btn('spring-slow','🐢 הילוך איטי ×¼','btn-secondary')+btn('spring-reset','↺ איפוס','btn-secondary'));
   else if(sim.type==='gravity-force')extra=C(rng('gf-m',1,200,70,1,'מסה m',' kg'));
   else if(sim.type==='spring-force')extra=C(rng('sf-k',5,200,40,5,'k קשיחות',' N/m')+rng('sf-m',0.1,2,0.4,0.05,'מסה m',' kg')+rng('sf-damp',0,2,0.8,0.1,'ריסון b')+btn('sf-reset','↺ איפוס','btn-secondary')+btn('sf-fmode','📐 הציגו F = −kx (עם סימן)','btn-secondary'));
   else if(sim.type==='static-friction')extra=C(rng('sft-mu',0.1,0.9,0.55,0.05,'μ_s')+rng('sft-mass',1,15,3,0.5,'מסה m',' kg')+rng('sft-F',0,80,0,0.5,'דחיפה F',' N')+rng('sft-a',-6,6,0,0.1,'תאוצת המשאית a',' m/s²')+btn('sft-scene','🚚 ארגז על משאית','btn-secondary')+btn('sft-reset','↺ איפוס','btn-secondary'));

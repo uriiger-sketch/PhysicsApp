@@ -187,20 +187,19 @@ const EXPECT = {
   t('energy track: the cart is dragged to the 2.8 m hill', /×2\.[78]\d =/.test(eh), eh && eh.split('   ')[0]);
 
   await open('shm.shm-spring'); r = await rect(); W = r.w;
-  await p.waitForTimeout(150);
-  const xm = num((await last('^x = ')).replace('x = ', ''));
-  await drag(r, [[0.62 * W + xm * 100, 520 * 0.28], [0.62 * W + 40, 520 * 0.28], [0.62 * W + 80, 520 * 0.28]]);
+  await p.evaluate(() => document.getElementById('btn-spring-slow').click());   // a quarter of the speed: the finger lands on the block
+  const sq0 = await p.evaluate(() => document.querySelector('#app canvas')._probe());
+  await drag(r, [[sq0.bx, sq0.by], [sq0.EQ + 0.1 * sq0.PPM, sq0.by], [sq0.EQ + 0.2 * sq0.PPM, sq0.by]]);
   await p.waitForTimeout(300);
   const A = await last('^A = ');
-  t('spring: the mass is dragged to A = 0.80 m', /A = 0\.[78]\d\d m/.test(A), A);
+  t('spring: the block is dragged to A = 0.20 m on the ruler', /^A = 0\.200 m/.test(A), A);
 
   await open('energy.potential'); r = await rect(); W = r.w;
-  await p.waitForTimeout(150);
-  const h0 = num((await last('mgh = ')).split('×')[2]);
-  await drag(r, [[W * 0.38, 436 - h0 * 62], [W * 0.38, 260], [W * 0.38, 150]]);
+  const epq = await p.evaluate(() => document.querySelector('#app canvas')._probe());   // the ball's whole column takes the finger
+  await drag(r, [[epq.ballX, epq.y], [epq.ballX, 260], [epq.ballX, 150]]);
   await p.waitForTimeout(60);
   const hp = num((await last('mgh = ')).split('×')[2]);
-  t('falling ball: lifted by touch to about 4.6 m', hp > 4.2, hp + ' m');
+  t('falling ball: lifted by touch to about 4.6 m', hp > 4.2 && hp <= (epq.FLOOR_POS - 150) / epq.PX + 1e-9, hp + ' m');
 
   await open('planar.projectile'); r = await rect();
   let pq = await p.evaluate(() => document.querySelector('#app canvas')._probe());
@@ -458,7 +457,8 @@ const EXPECT = {
   spread = Math.max(...E) - Math.min(...E);
   t('... and Eₚ + Eₖ = 39.2 J on every frame (m = 1 kg, h₀ = 4 m)', E.length > 30 && spread === 0 && E[0] === 39.2, `${E.length} frames, spread ${spread}`);
   let eml = await model(), emm = eml.match(/\(([\d.]+) − ([\d.]+)\)\)\s*=\s*([\d.]+)\s*m\/s/);
-  t('... the model line computes v = √(2g(h₀ − h)) from the numbers it prints', !!emm && Math.abs(Math.sqrt(2 * 9.8 * (num(emm[1]) - num(emm[2]))) - num(emm[3])) < 0.006, eml.slice(-46));
+  // h₀ and h are printed to the centimetre: v may differ by (g/v)·0.01 m from the one they give, plus its own rounding
+  t('... the model line computes v = √(2g(h₀ − h)) from the numbers it prints', !!emm && Math.abs(Math.sqrt(2 * 9.8 * (num(emm[1]) - num(emm[2]))) - num(emm[3])) <= 9.8 * 0.01 / Math.max(1, num(emm[3])) + 0.005, eml.slice(-46));
   eq = await ep(); r = await rect();
   await drag(r, [[EX(eq, 0.625), EY(eq, eq.KN[5])], [EX(eq, 0.625), EY(eq, 2.0)], [EX(eq, 0.625), EY(eq, 2.6)]]);
   await toEnd();
@@ -479,6 +479,79 @@ const EXPECT = {
   const edm = await missionsDone();
   t('energy track missions: over a hill, the same speed on any shape, the heat', edm.length === 3 && edm.every(Boolean), JSON.stringify(edm));
   await set('energy-mu', 0);
+
+  console.log('\n3i) spring and block: the period is 2π√(m/k), whatever the amplitude; the section\'s problem rebuilt');
+  await open('shm.shm-spring');
+  const sp = () => p.evaluate(() => document.querySelector('#app canvas')._probe());
+  // waits on the sim's own clock for the stopwatch's next reading
+  const spMeasure = () => p.evaluate(async () => { const cv = document.querySelector('#app canvas'); let q = cv._probe(); const n0 = q.meas;
+    for (let i = 0; i < 800; i++) { await new Promise(r => setTimeout(r, 25)); q = cv._probe(); if (q.meas > n0 && q.Tmeas !== null) return q; } return q; });
+  const spTouch = async xm => { await p.evaluate(() => { const b = document.getElementById('btn-spring-slow'); if (!document.querySelector('#app canvas')._probe().slow) b.click(); });
+    const q = await sp(); r = await rect(); await drag(r, [[q.bx, q.by], [(q.bx + q.EQ + xm * q.PPM) / 2, q.by], [q.EQ + xm * q.PPM, q.by]]);
+    await p.evaluate(() => { const b = document.getElementById('btn-spring-slow'); if (document.querySelector('#app canvas')._probe().slow) b.click(); }); };
+  t('spring: a prediction is asked first (twice the pull: the period?)', await p.evaluate(() => { const q = document.querySelector('#app .sk-predict'); return !!q && !q.hidden && q.querySelectorAll('.sk-opt').length === 3; }));
+  let kq = await spMeasure();
+  t('k = 50 N/m, m = 1 kg, A = 0.15 m: the stopwatch measures 2π√(m/k) = 0.889 s', !!kq.Tmeas && Math.abs(kq.Tmeas - 2 * Math.PI * Math.sqrt(1 / 50)) < 1e-6, kq.Tmeas && kq.Tmeas.toFixed(6) + ' s');
+  const spE = await p.evaluate(async () => { const cv = document.querySelector('#app canvas'); let mx = 0;
+    for (let i = 0; i < 60; i++) { const q = cv._probe(); mx = Math.max(mx, Math.abs(0.5 * q.m * q.v * q.v + 0.5 * q.k * q.x * q.x - 0.5 * q.k * q.A * q.A)); await new Promise(r => setTimeout(r, 25)); } return mx; });
+  t('... and ½mv² + ½kx² = ½kA² on every frame (the exact step)', spE < 1e-9, spE.toExponential(1) + ' J');
+  await spTouch(0.07); kq = await sp();
+  t('the block is dragged by touch to x = 0.07 m: released from rest, A = 0.07 m', kq.A === 0.07 && kq.rel === 0.07, kq.A + ' m');
+  const T07 = (await spMeasure()).Tmeas;
+  kq = await sp();
+  t('... the same period at half the amplitude (mission 1)', Math.abs(T07 - 2 * Math.PI * Math.sqrt(1 / 50)) < 1e-6 && kq.ampSame, T07.toFixed(6) + ' s');
+  await p.evaluate(() => { const c = document.querySelector('#app canvas'); c.focus(); c.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true })); });
+  kq = await sp();
+  t('keyboard: → releases the block 1 cm further out', kq.rel === 0.08 && kq.A === 0.08, kq.rel + ' m');
+  await set('spring-m', 2); await set('spring-k', 79);
+  kq = await spMeasure();
+  t('k = 79 N/m, m = 2 kg: a period of 1.00 s by the stopwatch (mission 2)', Math.abs(kq.Tmeas - 2 * Math.PI * Math.sqrt(2 / 79)) < 1e-6 && Math.abs(kq.Tmeas - 1) < 0.01 && kq.T1, kq.Tmeas.toFixed(4) + ' s');
+  await set('spring-k', 200);
+  await spTouch(0.1);
+  await p.evaluate(() => document.getElementById('btn-spring-slow').click());
+  kq = await spMeasure();
+  t('the problem rebuilt (k = 200 N/m, m = 2 kg, A = 0.10 m), in slow motion: T = 0.628 s on the sim\'s clock (mission 3)', kq.slow && kq.A === 0.1 && Math.abs(kq.Tmeas - 0.2 * Math.PI) < 1e-6 && kq.problem, kq.Tmeas.toFixed(6) + ' s');
+  await p.evaluate(() => document.getElementById('btn-spring-slow').click());
+  const sml = await model();
+  t('... the model line: vₘₐₓ = Aω = 0.10 × 10.00 = 1.00 m/s', /vₘₐₓ = Aω = 0\.10 × 10\.00 = 1\.00\s*m\/s/.test(sml), sml.slice(-40));
+  const sE = await last('½kA² = ');
+  t('... and the energy strip: ½kA² = 1.000 J', !!sE && /½kA² = 1\.000 J/.test(sE), sE);
+  const sdm = await missionsDone();
+  t('spring missions: amplitude does not matter, a 1 s oscillator, the problem', sdm.length === 3 && sdm.every(Boolean), JSON.stringify(sdm));
+
+  console.log('\n3j) potential energy: a reference level the learner drags; E_p shifts, ΔE_p and the speed at the floor do not');
+  await open('energy.potential');
+  const epp = () => p.evaluate(() => document.querySelector('#app canvas')._probe());
+  const ep_dropFrom = async hf => { const q = await epp(); r = await rect(); const y = q.FLOOR_POS - hf * q.PX;
+    await drag(r, [[q.ballX, q.y], [q.ballX, (q.y + y) / 2], [q.ballX, y]]); };
+  const ep_nextDrop = n0 => p.evaluate(async n0 => { const cv = document.querySelector('#app canvas');
+    for (let i = 0; i < 400; i++) { const q = cv._probe(); if (q.drops > n0) return q; await new Promise(r => setTimeout(r, 25)); } return cv._probe(); }, n0);
+  t('potential: a prediction is asked first (another reference level: the speed at the floor?)', await p.evaluate(() => { const q = document.querySelector('#app .sk-predict'); return !!q && !q.hidden && q.querySelectorAll('.sk-opt').length === 3; }));
+  let epr = await epp();
+  await ep_dropFrom(2.5); await p.evaluate(() => { window.__T = []; });
+  epr = await ep_nextDrop(epr.drops);
+  t('the ball, lifted by touch to 2.5 m and dropped, hits the floor at √(2gΔh) = 7.00 m/s (mission 3)', Math.abs(epr.last.hd - 2.5) < 0.02 && Math.abs(epr.last.v - Math.sqrt(2 * 9.8 * epr.last.hd)) < 1e-9 && epr.v7, epr.last.hd.toFixed(3) + ' m → ' + epr.last.v.toFixed(4) + ' m/s');
+  E = (await all('^E = Eₚ \\+ Eₖ = ')).map(s => num(s.split('=')[2]));
+  t('... and E = Eₚ + Eₖ = mgΔh = 49.00 J on every frame of the fall (reference at the floor)', E.length > 20 && Math.max(...E) - Math.min(...E) < 0.011 && Math.abs(E[0] - 2 * 9.8 * epr.last.hd) < 0.006, `${E.length} frames, ${E[0]} J`);
+  const ep_hit1 = epr.last;
+  r = await rect();
+  await drag(r, [[epr.SX1 - 12, epr.refY], [epr.SX1 - 12, epr.GROUND_Y - 1.5 * epr.PX], [epr.SX1 - 12, epr.GROUND_Y - 3 * epr.PX]]);
+  epr = await epp();
+  t('the reference line is dragged by touch to 3.0 m above the floor', epr.ref === 3, epr.ref + ' m');
+  await ep_dropFrom(2.5); await p.evaluate(() => { window.__T = []; });
+  epr = await ep_nextDrop(epr.drops);
+  t('... dropped again from 2.5 m: the same speed at the floor (mission 2)', Math.abs(epr.last.hd - ep_hit1.hd) < 0.03 && Math.abs(epr.last.v - Math.sqrt(2 * 9.8 * epr.last.hd)) < 1e-9 && epr.refSame, epr.last.v.toFixed(4) + ' vs ' + ep_hit1.v.toFixed(4) + ' m/s');
+  E = (await all('^E = Eₚ \\+ Eₖ = ')).map(s => num(s.split('=')[2]));
+  const ep_Esh = 2 * 9.8 * (epr.last.hd - 3);
+  t('... while E = Eₚ + Eₖ is now mg(Δh − 3 m) = −9.80 J: shifted by −mg·3 m, and still constant', E.length > 20 && Math.max(...E) - Math.min(...E) < 0.011 && Math.abs(E[0] - ep_Esh) < 0.006, `${E.length} frames, ${E[0]} J`);
+  const ep_neg = await last('^Eₚ = mgh = ');   // h is printed to the centimetre: mg × 0.005 m of rounding
+  const ep_nm = ep_neg && ep_neg.match(/×\(−([\d.]+)\) = −([\d.]+) J/);
+  t('... below the line Eₚ = mgh is negative, mg × (−h) (mission 1)', !!ep_nm && Math.abs(2 * 9.8 * num(ep_nm[1]) - num(ep_nm[2])) <= 2 * 9.8 * 0.005 + 0.006 && epr.negEp, ep_neg);
+  await p.evaluate(() => { const c = document.querySelector('#app canvas'); c.focus(); c.dispatchEvent(new KeyboardEvent('keydown', { key: 'PageDown', bubbles: true })); });
+  epr = await epp();
+  t('keyboard: PageDown lowers the reference line by 0.5 m', epr.ref === 2.5, epr.ref + ' m');
+  const ep_pdm2 = await missionsDone();
+  t('potential missions: a negative Eₚ, the same speed with any reference, 7 m/s at the floor', ep_pdm2.length === 3 && ep_pdm2.every(Boolean), JSON.stringify(ep_pdm2));
 
   console.log('\n4) misconception boxes, quiz keys, hints, units');
   await require('./mech_learning')(p, ['statics', 'planar', 'momentum', 'energy', 'shm'], t);
