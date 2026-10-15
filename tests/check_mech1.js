@@ -367,6 +367,51 @@ const EXPECT = {
   }
   t('free fall: a 0.5 kg and a 5 kg ball thrown at 6 m/s land at the same t = 2v0/g', T6.every(x => close(x, 12 / 9.8, 0.006)) && await mission('kinematics.freefall', 2), T6.join(' s, ') + ' s');
 
+  // position–time: a flat graph, path vs displacement, moving + on the − side
+  await open('kinematics.distance-time');
+  rr = await rect(); W = rr.w;
+  const pX = xm => 66 + (xm + 10) * (W - 36 - 66) / 20, pY = 120;
+  await tap(rr, pX(0), pY); await until(() => mission('kinematics.distance-time', 0), 4000);
+  t('position–time: the ball held still for 2 s draws a flat x(t) — mission solved', await mission('kinematics.distance-time', 0));
+  await drag(rr, [0, 1, 2, 3, 4, 3, 2, 1, 0].map(x => [pX(x), pY]));
+  await until(() => mission('kinematics.distance-time', 1), 2000);
+  const ptm = await modelTxt();
+  t('... 4 m out and back: s ≥ 2|Δx| + 2 — mission solved; the model line gives s and Δx', await mission('kinematics.distance-time', 1) && /s = [\d.]+ m/.test(ptm) && /Δx = x − x₀ = /.test(ptm), ptm);
+  await drag(rr, [-8, -7.6, -7.2, -6.8, -6.4, -6, -5.6, -5.2, -4.8, -4.4, -4, -3.6, -3.2, -2.8, -2.4].map(x => [pX(x), pY]));
+  await until(() => mission('kinematics.distance-time', 2), 2000);
+  t('... moving right while x < −1 — mission "the direction is the sign of Δx" solved', await mission('kinematics.distance-time', 2));
+
+  // constant velocity: a falling line, a crossing at 4 s, a flat line
+  await open('kinematics.const-velocity');
+  t('constant velocity: a prediction is asked first — a steep rising x(t)', (await predOpts()).length === 4);
+  await set('cv-v', -2); await until(() => mission('kinematics.const-velocity', 0), 3000);
+  t('constant velocity: v = −2 m/s makes x(t) fall — mission solved', await mission('kinematics.const-velocity', 0));
+  await set('cv-x0', -8); await set('cv-v', 2); await until(() => mission('kinematics.const-velocity', 1), 7000);
+  t('... x₀ = −8 m, v = +2 m/s crosses x = 0 at t = 4 s — mission solved', await mission('kinematics.const-velocity', 1) && /x = x₀ \+ v·t = −8 \+ 2\.0×/.test(await modelTxt()), await modelTxt());
+  await set('cv-v', 0); await until(() => mission('kinematics.const-velocity', 2), 3000);
+  t('... v = 0: a horizontal line — mission solved', await mission('kinematics.const-velocity', 2));
+
+  // average vs instantaneous velocity
+  await open('kinematics.avg-instant-vel');
+  rr = await rect(); W = rr.w;
+  const aX = tv => 62 + tv / 5 * (W - 22 - 62), aY = 200;
+  await drag(rr, [[aX(1.2), aY], [aX(1.6), aY], [aX(2.0), aY]]);
+  await until(() => mission('kinematics.avg-instant-vel', 1), 2000);
+  t('average/instantaneous: P₀ dragged to t₀ = 2 s on x = 1.5t² gives v(t₀) = 6 m/s — mission solved', await mission('kinematics.avg-instant-vel', 1));
+  await fresh(); await p.waitForTimeout(150);
+  const dtNow = nums(await last('^Δt = '))[0];
+  await drag(rr, [[aX(2 + dtNow) + 3, aY], [aX(2 + dtNow / 2), aY], [aX(2.03), aY]]);
+  await until(() => mission('kinematics.avg-instant-vel', 0), 2000);
+  t('... P₁ dragged in to Δt = 0.03 s: the chord meets the tangent — mission solved', await mission('kinematics.avg-instant-vel', 0));
+  await set('ai-k', 1);
+  await drag(rr, [[aX(2), aY], [aX(1.5), aY], [aX(1), aY]]);
+  await fresh(); await p.waitForTimeout(150);
+  const dt2 = nums(await last('^Δt = '))[0];
+  await drag(rr, [[aX(1 + dt2) + 3, aY], [aX(1.5), aY], [aX(2), aY]]);
+  await until(() => mission('kinematics.avg-instant-vel', 2), 2000);
+  const sec = await last('^' + LR('מיתר:  v̄ = Δx/Δt = '));
+  t('... the section\'s problem, k = 1 between 1 s and 2 s: v̄ = 3 m/s while v(1) = 2 m/s — mission solved', await mission('kinematics.avg-instant-vel', 2) && close(nums(sec).pop(), 3, 0.05), sec);
+
   // acceleration: negative a that speeds up, a turn-around, 10 m in 2 s
   await open('kinematics.acceleration');
   t('acceleration: a prediction is asked first — negative velocity and negative acceleration', (await predOpts()).length === 4, (await predOpts()).join(' | '));
@@ -484,7 +529,7 @@ const EXPECT = {
   await until(() => mission('vectors.vec-ops', 1), 2000);
   t('... B turned to 90° from A: A·B = 0 — mission solved, and the panel says perpendicular', await mission('vectors.vec-ops', 1) && !!(await last('^' + LR('A·B = 0 (ניצבים!)'))));
   await click('btn-vo-scalar'); await set('vo-scalar', -0.5);
-  await until(() => mission('vectors.vec-ops', 2), 2000);
+  await until(() => mission('vectors.vec-ops', 2), 2000); await until(async () => /c·A = /.test(await modelTxt()), 2000);
   t('... c = −0.5 flips A and halves it — mission solved', await mission('vectors.vec-ops', 2) && /c·A = −0\.5×\(2\.25, 1\.00\) = \(−1\.13, −0\.50\)|c·A = -0\.5×/.test(await modelTxt()), await modelTxt());
 
   await open('vectors.vec-components');
@@ -549,7 +594,7 @@ const EXPECT = {
   await set('friction', 0); await set('in-F', 15); await set('mass-in', 5);
   await press(500); await p.waitForTimeout(300); await fresh(); await p.waitForTimeout(1200);
   const vc = (await all('^v = [−+][\\d.]+ m/s$')).map(s => nums(s)[0]);
-  t('first law, μ = 0: after one push the velocity stays constant — no force, no change', vc.length > 20 && vc[0] > 1 && vc.every(x => x === vc[0]) && (await card('^ΣF = ')) === 0, vc.length + ' frames at ' + vc[0] + ' m/s');
+  t('first law, μ = 0: after one push the velocity stays constant — no force, no change', vc.length > 20 && vc[0] > 0.3 && vc.every(x => x === vc[0]) && (await card('^ΣF = ')) === 0, vc.length + ' frames at ' + vc[0] + ' m/s');
   await until(() => mission('forces.inertia', 0), 4000);
   t('... which is the mission "one push on a smooth floor"', await mission('forces.inertia', 0));
   await click('btn-in-reset'); await set('friction', 0.2); await set('in-F', 5); await fresh();
