@@ -16,7 +16,7 @@
 // and no number glued to its unit.
 const { chromium } = require('playwright');
 const path = require('path');
-const { LR, WORD } = require('./_lang.js');   // the words of the page's language
+const { L, LR, WORD } = require('./_lang.js');   // the words of the page's language
 const F = 'file://' + (process.env.APP_FILE ? path.resolve(process.env.APP_FILE) : path.resolve(__dirname, '..', 'physics_game_v28.html'));   // APP_FILE: test a language build
 
 let fail = 0, n = 0;
@@ -488,6 +488,93 @@ const EXPECT = {
   { const g = await igeo(); await iTap(iAt(g, 1.5)); await iTap(iAt(g, 2)); }
   await setv('int-lambda', 700); await setv('int-d', 1);
   t('interference: every mission is reachable', await missions() === '111', await missions());
+
+  // ── the EM wave: f = c/λ and T = 1/f in the live line; λ drawn to one scale
+  // for every colour (the λ label sits at the middle of the bracket, X0 + 8 + λ/2) ──
+  await open('opt-light', 'light-nature');
+  await p.evaluate(() => { if (window.__PX) return; window.__PX = []; const o = CanvasRenderingContext2D.prototype.fillText;
+    CanvasRenderingContext2D.prototype.fillText = function (s, x) { if (typeof s === 'string' && this.canvas.id === 'sim-canvas' && /^λ=\d/.test(s.replace(/[⁦-⁩‎]/g, ''))) { window.__PX.push([s.replace(/[⁦-⁩‎]/g, ''), x]); if (window.__PX.length > 400) window.__PX.splice(0, 200); } return o.apply(this, arguments); }; });
+  const lamPx = async lam => { await p.waitForTimeout(120); return p.evaluate(lam => { const a = window.__PX.filter(q => q[0] === 'λ=' + lam + 'nm'); return a.length ? 2 * (a[a.length - 1][1] - 38) : null; }, lam); };
+  const wpx = {};
+  for (const lam of [380, 550, 700]) {
+    await setv('emw-wl', lam); const tx = await modelFor('/ ' + lam + '×10⁻⁹'), g = /= (\d\.\d\d)×10¹⁴ Hz/.exec(tx), T = /T = 1\/f = (\d\.\d\d) fs/.exec(tx);
+    t(`EM wave λ=${lam}: f = c/λ`, g && Math.abs(+g[1] - c / (lam * 1e-9) / 1e14) < 0.006, tx);
+    t(`EM wave λ=${lam}: T = 1/f`, T && Math.abs(+T[1] - lam * 1e-9 / c * 1e15) < 0.006, tx);
+    wpx[lam] = await lamPx(lam);
+  }
+  t('EM wave: the drawn wavelength is proportional to λ', wpx[380] && wpx[700] && Math.abs(wpx[700] / wpx[380] - 700 / 380) < 0.03 && Math.abs(wpx[550] / wpx[380] - 550 / 380) < 0.03, JSON.stringify(wpx));
+  await p.evaluate(() => { state.missions = {}; render(); }); await p.waitForTimeout(1100);
+  await p.evaluate(() => document.querySelector('#app .sim-container').dispatchEvent(new Event('click')));
+  await setv('emw-wl', 550); await setv('emw-wl', 400); await setv('emw-wl', 700); await setv('emw-wl', 400);
+  t('EM wave: every mission is reachable', await missions() === '111', await missions());
+
+  // ── the EM spectrum (log scale, f from 10³ to 10²² Hz): λ = c/f, E = hf, the
+  // band from λ (the lesson's table), and at 1 mW N = P/E photons a second ──
+  const unitM = { km: 1e3, m: 1, cm: 1e-2, mm: 1e-3, 'μm': 1e-6, nm: 1e-9, pm: 1e-12 }, unitE = { MeV: 1e6, keV: 1e3, eV: 1, meV: 1e-3, 'μeV': 1e-6, neV: 1e-9 };
+  const sup = s => +s.replace(/⁻/g, '-').replace(/[⁰¹²³⁴⁵⁶⁷⁸⁹]/g, ch => '⁰¹²³⁴⁵⁶⁷⁸⁹'.indexOf(ch));
+  const band = l => l > 1 ? 'גלי רדיו' : l > 1e-3 ? 'מיקרוגל' : l > 700e-9 ? 'IR' : l >= 380e-9 ? 'נראה' : l > 10e-9 ? 'UV' : l > 1e-11 ? 'רנטגן' : 'גמא';
+  const Lh = s => /[\u0590-\u05FF]/.test(s) ? L(s) : s;
+  const act = eV => eV >= 10 ? 'מייננת — תולשת אלקטרונים מאטומים' : eV >= 3 ? 'שוברת קשרים כימיים, אך אינה מייננת' : 'אינה שוברת קשרים — רק מחממת או מעוררת';
+  for (const [ch, se] of [['opt-light', 'em-spectrum'], ['opt-modern', 'em-spectrum-full']]) {
+    await open(ch, se);
+    for (const pos of [0, 10, 26.3, 33.6, 50, 61.4, 63.5, 65.2, 80, 98]) {
+      await setv('ems-pos', pos); await p.waitForTimeout(60);
+      const tx = await modelTx(), f = 10 ** (3 + pos / 100 * 19), lam = c / f, eV = h * f / e;
+      // each read to half a unit of its own last digit
+      const gf = /λ = c\/f = 3\.00×10⁸ \/ (\d\.\d\d)×10([⁰¹²³⁴⁵⁶⁷⁸⁹]+) Hz = (\d+\.(\d+))(?:×10([⁻⁰¹²³⁴⁵⁶⁷⁸⁹]+))? (\S+?)[.\s]/.exec(tx), gE = /E = hf = (\d+\.(\d+))(?:×10([⁻⁰¹²³⁴⁵⁶⁷⁸⁹]+))? (\S*eV)/.exec(tx);
+      const half = d => 0.51 * 10 ** -d.length, lu = gf ? (gf[5] ? 10 ** sup(gf[5]) : 1) * unitM[gf[6]] : 1;
+      t(`${se} at ${pos}%: f, and λ = c/f`, gf && Math.abs(+gf[1] - f / 10 ** sup(gf[2])) <= 0.0051 && Math.abs(+gf[3] - lam / lu) <= half(gf[4]) && lam / lu >= 0.99, tx);
+      const eu = gE ? (gE[3] ? 10 ** sup(gE[3]) : 1) * unitE[gE[4]] : 1;
+      t(`${se} at ${pos}%: E = hf`, gE && Math.abs(+gE[1] - eV / eu) <= half(gE[2]) && eV / eu >= 0.99, tx);
+      t(`${se} at ${pos}%: the band`, tx.includes(Lh(band(lam)) + '.'), tx + ' | ' + band(lam));
+      if (se === 'em-spectrum-full') {
+        const gN = /N = P\/E = (\d\.\d\d)×10([⁰¹²³⁴⁵⁶⁷⁸⁹]+)/.exec(tx);
+        t(`${se} at ${pos}%: N = P/E at 1 mW`, gN && Math.abs(+gN[1] * 10 ** sup(gN[2]) / (1e-3 / (h * f)) - 1) < 0.003, tx);
+        t(`${se} at ${pos}%: what the photon can do`, tx.includes(L(act(eV))), tx);
+      }
+    }
+    await p.evaluate(() => { state.missions = {}; render(); }); await p.waitForTimeout(1100);
+    await p.evaluate(() => document.querySelector('#app .sim-container').dispatchEvent(new Event('click')));
+    if (se === 'em-spectrum') { await setv('ems-pos', 33.6); await setv('ems-pos', 26.3); await setv('ems-pos', 62); }
+    else { await setv('ems-pos', 65.2); await setv('ems-pos', 63.5); await setv('ems-pos', 61.4); }
+    t(`${se}: every mission is reachable`, await missions() === '111', await missions());
+  }
+
+  // ── Doppler (relativistic, the source's clock slowed by γ): approaching
+  // λ₀√((1−β)/(1+β)), receding λ₀√((1+β)/(1−β)); moving right (+) approaches
+  // the right-hand observer; after the prediction, the classical λ₀(1 ∓ β) ──
+  await open('opt-modern', 'doppler');
+  await capT();
+  const rel = b => Math.sqrt((1 - b) / (1 + b));
+  for (const v of [30, -30, 1, 80]) {
+    await setv('dop-wl', 550); await setv('dop-v', v); await p.waitForTimeout(140);
+    // the line: λ = λ₀√((1 ∓ β)/(1 ± β)), then β, the approaching λ, the receding λ
+    const b = Math.abs(v) / 100, tx = await modelTx(), g = /λ₀√\(\(1 ∓ β\)\/\(1 ± β\)\)[^β]+β = (\d\.\d\d)[^\d]+(\d+) nm[^\d]+(\d+) nm/.exec(tx);
+    t(`Doppler v=${v}%: approaching and receding λ`, g && +g[1] === b && Math.abs(+g[2] - 550 * rel(b)) <= 0.51 && Math.abs(+g[3] - 550 / rel(b)) <= 0.51, tx);
+    const right = await lastT('^' + LR('ימין: λ = ')), want = v > 0 ? 550 * rel(b) : 550 / rel(b), gr = /= (\d+) nm/.exec(right || '');
+    t(`Doppler v=${v}%: the right-hand observer ${v > 0 ? 'approached' : 'receded from'}`, gr && Math.abs(+gr[1] - want) <= 0.51, String(right));
+  }
+  await p.evaluate(() => { const o = document.querySelectorAll('.sk-opt'); if (o[2]) o[2].click(); }); await setv('dop-v', 30); await p.waitForTimeout(140);
+  { const tx = await modelTx(), zr = 1 / rel(0.3) - 1, g = /(\d+) nm[^\d]+(\d+) nm[^\d]+(\d+\.\d)%/.exec(tx.slice(tx.indexOf('λ₀(1 ∓ β)')));
+    t('Doppler: the classical λ₀(1 ∓ β) and the gap in the redshift', g && +g[1] === 385 && +g[2] === 715 && Math.abs(+g[3] - (zr - 0.3) / zr * 100) < 0.051, tx); }
+  await p.evaluate(() => { state.missions = {}; render(); }); await p.waitForTimeout(1100);
+  await p.evaluate(() => document.querySelector('#app .sim-container').dispatchEvent(new Event('click')));
+  await setv('dop-wl', 550); await setv('dop-v', 30); await setv('dop-v', 1);
+  t('Doppler: every mission is reachable', await missions() === '111', await missions());
+
+  // ── lasers: E = hc/λ per photon; above threshold (45%) the output grows as P − P_th ──
+  await open('opt-modern', 'lasers');
+  const ltype = v => p.evaluate(v => { const s = document.getElementById('inp-laser-type'); s.value = v; s.dispatchEvent(new Event('change', { bubbles: true })); return new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))); }, String(v));
+  for (const wl of [633, 514, 1064]) for (const pump of [30, 60, 100]) {
+    await ltype(wl); await setv('laser-pump', pump); await p.waitForTimeout(60);
+    const tx = await modelTx(), g = /\/ (\d+) nm = (\d\.\d\d) eV/.exec(tx), on = pump > 45;
+    t(`laser ${wl} nm: E = hc/λ`, g && +g[1] === wl && Math.abs(+g[2] - h * c / (wl * 1e-9) / e) < 0.006, tx);
+    t(`laser ${wl} nm at ${pump}%: ${on ? 'output ∝ P − P_th' : 'below threshold, no beam'}`, on ? tx.includes(pump + '% − 45%') && tx.includes(Math.round((pump - 45) / 55 * 100) + '%') : !/Pₒᵤₜ/.test(tx), tx);
+  }
+  await p.evaluate(() => { state.missions = {}; render(); }); await p.waitForTimeout(1100);
+  await p.evaluate(() => document.querySelector('#app .sim-container').dispatchEvent(new Event('click')));
+  await setv('laser-pump', 50); await ltype(514); await ltype(1064);
+  t('lasers: every mission is reachable', await missions() === '111', await missions());
 
   console.log('   every draggable simulation by touch, on a phone');
   const tc = await b.newContext({ viewport: { width: 390, height: 1300 }, hasTouch: true, isMobile: true, deviceScaleFactor: 2 });
