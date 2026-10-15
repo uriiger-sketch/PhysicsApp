@@ -2117,11 +2117,11 @@
     "simDcCap.missions[0].text  L31944"
    ]
   },
-  "c8e096aea2bf": {
-   "he": "הקבל טעון: ⟦0⟧, ולכן אין ירידה ב־R₁ מעבר לזרם של R₂, והמתח עליו שווה למתח על R₂: ⟦1⟧. במצב מתמיד מוחקים את ענף הקבל ופותרים את מה שנשאר.",
-   "en": "The capacitor is charged: ⟦0⟧, so R₁ carries only R₂’s current, and the voltage across the capacitor equals the voltage across R₂: ⟦1⟧. In the steady state you delete the capacitor’s branch and solve what is left.",
+  "e614356ec11f": {
+   "he": "הקבל טעון: ⟦0⟧, ולכן ב־R₁ זורם רק הזרם של R₂ — מחלק מתח פשוט — והמתח על הקבל שווה למתח על R₂: ⟦1⟧. במצב מתמיד מוחקים את ענף הקבל ופותרים את מה שנשאר.",
+   "en": "The capacitor is charged: ⟦0⟧, so R₁ carries only R₂’s current — a plain voltage divider — and the voltage across the capacitor equals the voltage across R₂: ⟦1⟧. In the steady state you delete the capacitor’s branch and solve what is left.",
    "at": [
-    "simDcCap.missions[0].why  L31946"
+    "simDcCap.missions[0].why  L31952"
    ],
    "ph": [
     "dcM('I_C = 0')",
@@ -2322,11 +2322,14 @@
     "dcM('v_d = I/(nAe) = '+I.toFixed(1)+'/(8.5×10²⁸·'+Amm.toFixed(1)+'×10⁻⁶·1.6×10⁻¹⁹) = '+(vd"
    ]
   },
-  "41deca59b2e1": {
-   "he": "החלק הדק הוא 0.5 mm². מה עובר בכל חתך בשנייה?",
-   "en": "The thin part is 0.5 mm². What passes through each cross-section per second?",
+  "1d1bf3cfdbcc": {
+   "he": "החלק הדק הוא ⟦0⟧. מה עובר בכל חתך בשנייה?",
+   "en": "The thin part is ⟦0⟧. What passes through each cross-section per second?",
    "at": [
-    "simDcCurrent.missions[0].hint  L32109"
+    "simDcCurrent.missions[0].hint  L32115"
+   ],
+   "ph": [
+    "dcM('0.5 mm²')"
    ]
   },
   "cbde23a0d93d": {
@@ -2336,13 +2339,14 @@
     "simDcCurrent.missions[0].text  L32108"
    ]
   },
-  "4159c75f5dcf": {
-   "he": "אותו מטען בשנייה עובר עכשיו דרך שטח גדול פי ארבעה, ולכן ⟦0⟧ קטנה פי ארבעה שם: המטענים צפופים פחות ונעים לאט יותר — אבל הזרם, והמונים, זהים.",
-   "en": "The same charge per second now passes through an area four times larger, so ⟦0⟧ is four times smaller there: the charges are less crowded and move more slowly — but the current, and the counters, are the same.",
+  "48903e8cacad": {
+   "he": "אותו מטען בשנייה עובר דרך שטח גדול פי ארבעה. צפיפות האלקטרונים החופשיים ⟦0⟧ זהה בשני החלקים — זו אותה מתכת — ולכן בחלק העבה הם נעים לאט פי ארבעה מבחלק הדק: ⟦1⟧. יש שם יותר אלקטרונים בכל מטר של חוט, והם נעים לאט יותר — אבל הזרם, והמונים, זהים.",
+   "en": "The same charge per second passes through an area four times larger. The density of free electrons ⟦0⟧ is the same in both parts — it is the same metal — so in the thick part they move four times more slowly than in the thin part: ⟦1⟧. There are more electrons in each meter of wire there, and they move more slowly — but the current, and the counters, are the same.",
    "at": [
-    "simDcCurrent.missions[0].why  L32110"
+    "simDcCurrent.missions[0].why  L32116"
    ],
    "ph": [
+    "dcM('n')",
     "dcM('v_d = I/(nAe)')"
    ]
   },
@@ -2523,15 +2527,16 @@
     "dcM('V = ε − 0·r = ε = '+E.toFixed(1)+' V')"
    ]
   },
-  "8e8e419eed35": {
-   "he": "הזרם בלולאה: ⟦0⟧<br>מתח ההדקים: ⟦1⟧",
-   "en": "The current in the loop: ⟦0⟧<br>The terminal voltage: ⟦1⟧",
+  "044e16df8a2b": {
+   "he": "הזרם בלולאה: ⟦0⟧<br>מתח ההדקים: ⟦1⟧<br>ההספק בעומס: ⟦2⟧",
+   "en": "The current in the loop: ⟦0⟧<br>The terminal voltage: ⟦1⟧<br>The power in the load: ⟦2⟧",
    "at": [
-    "simDcEmf  L31905"
+    "simDcEmf  L31910"
    ],
    "ph": [
     "dcM('I = ε/(R+r) = '+E.toFixed(1)+'/('+Rl.toFixed(1)+'+'+r.toFixed(1)+') = '+f(I)+' A')",
-    "dcM('V = ε − I·r = '+E.toFixed(1)+' − '+f(I)+'·'+r.toFixed(1)+' = '+f(Vt)+' V')"
+    "dcM('V = ε − I·r = '+E.toFixed(1)+' − '+f(I)+'·'+r.toFixed(1)+' = '+f(Vt)+' V')",
+    "dcM('P = I²R = '+f(I)+'²·'+Rl.toFixed(1)+' = '+f(Pl)+' W')"
    ]
   },
   "6bb34c6e4cb8": {
@@ -2573,11 +2578,14 @@
     "dcM('V = ε')"
    ]
   },
-  "710fdcce7bbb": {
-   "he": "גררו לאורך הישר ועקבו אחרי החלק הכחול של פס האנרגיה.",
-   "en": "Drag along the line and watch the blue part of the energy bar.",
+  "1df5c469a553": {
+   "he": "גררו לאורך הישר ועקבו אחרי ההספק בעומס, ⟦0⟧, בשורת המודל: הוא גדל ואז קטן. (רוחב החלק הכחול של הפס הוא החלק היחסי, לא ההספק עצמו.)",
+   "en": "Drag along the line and follow the power in the load, ⟦0⟧, in the model line: it rises, then falls. (The width of the blue part of the bar is the share of the power, not the power itself.)",
    "at": [
-    "simDcEmf.missions[1].hint  L31826"
+    "simDcEmf.missions[1].hint  L31830"
+   ],
+   "ph": [
+    "dcM('P = I²R')"
    ]
   },
   "b37a9db1d29d": {
@@ -3029,11 +3037,11 @@
     "dcM('I = (ε₁'+sg+'ε₂)/(R₁+R₂) = ('+e1.toFixed(1)+sg+Math.abs(e2).toFixed(1)+')/('+r1.toFix"
    ]
   },
-  "d3bc42c2f795": {
-   "he": "הכפתור „סוללה 2” הופך את קטביה. מה צריך להיות היחס בין ε₁ ל־ε₂?",
-   "en": "The “battery 2” button turns it around. How must ε₁ and ε₂ compare?",
+  "9c443491f6bd": {
+   "he": "הכפתור ״סוללה 2״ הופך את קטביה. מה צריך להיות היחס בין ε₁ ל־ε₂?",
+   "en": "The “Battery 2” button turns it around. How must ε₁ and ε₂ compare?",
    "at": [
-    "simDcLoop.missions[0].hint  L30770"
+    "simDcLoop.missions[0].hint  L30774"
    ]
   },
   "2c127c011985": {
@@ -3043,11 +3051,11 @@
     "simDcLoop.missions[0].text  L30769"
    ]
   },
-  "171ab6de3090": {
-   "he": "כשהכא״מים שווים ומנוגדים, ⟦0⟧: סכום העליות בלולאה אפס, ואין מה שיניע זרם — ⟦1⟧, אף שבמעגל שתי סוללות.",
-   "en": "When the emfs are equal and opposite, ⟦0⟧: the rises around the loop add up to zero, and nothing drives a current — ⟦1⟧, even with two batteries in the circuit.",
+  "e638e31a89fe": {
+   "he": "כשהכא״מים שווים ומנוגדים, ⟦0⟧: הכא״מ נטו בלולאה אפס — העלייה בסוללה אחת מתבטלת בירידה בשנייה — ואין מה שיניע זרם: ⟦1⟧, אף שבמעגל שתי סוללות.",
+   "en": "When the emfs are equal and opposite, ⟦0⟧: the net emf around the loop is zero — the rise across one battery is canceled by the drop across the other — and nothing drives a current: ⟦1⟧, even with two batteries in the circuit.",
    "at": [
-    "simDcLoop.missions[0].why  L30771"
+    "simDcLoop.missions[0].why  L30775"
    ],
    "ph": [
     "dcM('ε₁ − ε₂ = 0')",
@@ -3403,11 +3411,11 @@
     "simDcMixed.missions[0].text  L31388"
    ]
   },
-  "79a45ff13ae8": {
-   "he": "לא: ⟦0⟧. הנגד הטורי לוקח את חלקו קודם, ורק מה שנשאר נמצא על הצמד — הטעות הנפוצה היא להציב בענף מקבילי את מתח הסוללה.",
-   "en": "No: ⟦0⟧. The series resistor takes its share first, and only what is left is across the pair — the common mistake is to put the battery’s voltage across a parallel branch.",
+  "06b1d95724e8": {
+   "he": "לא: ⟦0⟧. הנגד הטורי לוקח את חלקו מהכא״מ, ועל הצמד נשאר רק היתר — הטעות הנפוצה היא להציב בענף מקבילי את מתח הסוללה.",
+   "en": "No: ⟦0⟧. The series resistor takes its share of the emf, and only the rest is across the pair — the common mistake is to put the battery’s voltage across a parallel branch.",
    "at": [
-    "simDcMixed.missions[0].why  L31390"
+    "simDcMixed.missions[0].why  L31394"
    ],
    "ph": [
     "dcM('V_23 = ε − I·R₁')"
@@ -3691,11 +3699,11 @@
     "dcM('0.25 A')"
    ]
   },
-  "1755955b7498": {
-   "he": "⟦0⟧: לנגד של ⟦1⟧ צריך ⟦2⟧. על הגרף זו נקודה על ישר שעובר דרך הראשית, ושיפועו ⟦3⟧.",
-   "en": "⟦0⟧: a ⟦1⟧ resistor needs ⟦2⟧. On the graph this is a point on a straight line through the origin, with slope ⟦3⟧.",
+  "2cd8bd4b4483": {
+   "he": "⟦0⟧: למשל, לנגד של ⟦1⟧ צריך ⟦2⟧. על הגרף זו נקודה על ישר שעובר דרך הראשית, ושיפועו ⟦3⟧.",
+   "en": "⟦0⟧: for example, a ⟦1⟧ resistor needs ⟦2⟧. On the graph this is a point on a straight line through the origin, with slope ⟦3⟧.",
    "at": [
-    "simDcOhm.missions[0].why  L32215"
+    "simDcOhm.missions[0].why  L32221"
    ],
    "ph": [
     "dcM('V = I·R')",
@@ -3711,11 +3719,11 @@
     "simDcOhm.missions[1].hint  L32218"
    ]
   },
-  "6eff1d014140": {
-   "he": "הראו שלנגד האוהמי ⟦0⟧ אינו תלוי במתח: שנו את המתח לאורך ⟦1⟧ לפחות.",
-   "en": "Show that for the ohmic resistor ⟦0⟧ does not depend on the voltage: change the voltage over at least ⟦1⟧.",
+  "82529313fe6a": {
+   "he": "הראו שלנגד האוהמי ⟦0⟧ אינו תלוי במתח: שנו את המתח בטווח של ⟦1⟧ לפחות.",
+   "en": "Show that for the ohmic resistor ⟦0⟧ does not depend on the voltage: change the voltage over a range of at least ⟦1⟧.",
    "at": [
-    "simDcOhm.missions[1].text  L32217"
+    "simDcOhm.missions[1].text  L32225"
    ],
    "ph": [
     "dcM('R = V/I')",
@@ -3732,11 +3740,11 @@
     "dcM('R = V/I')"
    ]
   },
-  "cd8e33a49e3a": {
-   "he": "הסתכלו על R = V/I שמתחת לגרף.",
-   "en": "Look at R = V/I under the graph.",
+  "32aed09c6773": {
+   "he": "הסתכלו על R = V/I שמתחת לגרף. אם המתח אינו מספיק, הקטינו את R: חוט בעל התנגדות קרה קטנה מעביר זרם גדול יותר, ומתחמם יותר.",
+   "en": "Look at R = V/I under the graph. If the voltage is not enough, lower R: a filament with a smaller cold resistance carries more current and gets hotter.",
    "at": [
-    "simDcOhm.missions[2].hint  L32222"
+    "simDcOhm.missions[2].hint  L32230"
    ]
   },
   "c6bbdb3869f5": {
@@ -3746,11 +3754,11 @@
     "simDcOhm.missions[2].text  L32221"
    ]
   },
-  "0eb22e5c4527": {
-   "he": "הנורה מתחממת: ככל שהזרם גדל היא חמה יותר והתנגדותה גדלה, ולכן ⟦0⟧ אינו קבוע והעקום מתכופף מתחת לישר. חוק אוהם אינו חל על נורת להט.",
-   "en": "The bulb heats up: the larger the current, the hotter it gets and the larger its resistance, so ⟦0⟧ is not constant and the curve bends below the straight line. Ohm’s law does not hold for an incandescent bulb.",
+  "f28df93b3cd4": {
+   "he": "הנורה מתחממת: ככל שהזרם גדל היא חמה יותר והתנגדותה גדלה, ולכן ⟦0⟧ אינו קבוע והעקום מתכופף מתחת לישר. הנורה אינה אוהמית — וזו אינה הפרה של חוק אוהם: R קבוע רק בטמפרטורה קבועה, וטמפרטורת החוט עולה עם הזרם.",
+   "en": "The bulb heats up: the larger the current, the hotter it gets and the larger its resistance, so ⟦0⟧ is not constant and the curve bends below the straight line. The bulb is not ohmic — and that is no violation of Ohm’s law: R is constant only at a constant temperature, and the filament’s temperature rises with the current.",
    "at": [
-    "simDcOhm.missions[2].why  L32223"
+    "simDcOhm.missions[2].why  L32231"
    ],
    "ph": [
     "dcM('R = V/I')"
@@ -3895,14 +3903,15 @@
     "simDcParallel.q  L31300"
    ]
   },
-  "e8e93f260308": {
-   "he": "הענף החדש הוא מסלול נוסף: הזרם הכולל גדל בדיוק בזרם של הענף הזה, ⟦0⟧. הענפים האחרים אינם „מוותרים” על זרמם.",
-   "en": "The new branch is one more path: the total current grows by exactly this branch’s current, ⟦0⟧. The other branches do not “give up” their current.",
+  "615c0f6b0118": {
+   "he": "הענף החדש הוא מסלול נוסף: עם סוללה אידיאלית הזרם הכולל גדל בדיוק בזרם של הענף הזה, ⟦0⟧, והענפים האחרים אינם ״מוותרים״ על זרמם. (עם התנגדות פנימית הם מאבדים מעט — נסו עם ⟦1⟧.)",
+   "en": "The new branch is one more path: with an ideal battery the total current grows by exactly this branch’s current, ⟦0⟧, and the other branches do not “give up” their current. (With an internal resistance they lose a little — try it with ⟦1⟧.)",
    "at": [
-    "simDcParallel.why  L31302"
+    "simDcParallel.why  L31306"
    ],
    "ph": [
-    "dcM('I₃ = V/R₃')"
+    "dcM('I₃ = V/R₃')",
+    "dcM('r > 0')"
    ]
   },
   "e2564def28fe": {
@@ -3984,14 +3993,15 @@
     "dcM('P = V²/R')"
    ]
   },
-  "fce96f56feb3": {
-   "he": "בחרו התנגדות, ואז מצאו את המתח: ⟦0⟧.",
-   "en": "Choose a resistance, then find the voltage: ⟦0⟧.",
+  "0538b24f1622": {
+   "he": "בחרו התנגדות שעבורה ⟦0⟧ יוצא מתח שאפשר לכוון — למשל ⟦1⟧ — ואז כוונו את המתח.",
+   "en": "Choose a resistance for which ⟦0⟧ comes out as a voltage you can set — ⟦1⟧, for example — then set the voltage.",
    "at": [
-    "simDcPower.missions[1].hint  L32315"
+    "simDcPower.missions[1].hint  L32323"
    ],
    "ph": [
-    "dcM('V = √(P·R)')"
+    "dcM('V = √(P·R)')",
+    "dcM('9 Ω')"
    ]
   },
   "1688f9cf4216": {
@@ -4268,11 +4278,11 @@
     "simDcSeries.missions[0].text  L31181"
    ]
   },
-  "dc7461e0a510": {
-   "he": "אותה קריאה בכל מקום: הזרם אינו „נצרך” בנגד — כל מטען שנכנס לנגד יוצא ממנו, אחרת היה מצטבר שם. מה שהנגד לוקח מכל קולון הוא אנרגיה, כלומר מתח.",
-   "en": "The same reading everywhere: current is not “used up” in a resistor — every charge that enters a resistor leaves it, or charge would pile up there. What a resistor takes from each coulomb is energy, that is, voltage.",
+  "3da8a808dac6": {
+   "he": "אותה קריאה בכל מקום: הזרם אינו ״נצרך״ בנגד — כל מטען שנכנס לנגד יוצא ממנו, אחרת היה מצטבר שם. מה שהנגד לוקח מכל קולון הוא אנרגיה, והאנרגיה לקולון היא המתח עליו.",
+   "en": "The same reading everywhere: current is not “used up” in a resistor — every charge that enters a resistor leaves it, or charge would pile up there. What a resistor takes from each coulomb is energy, and the energy per coulomb is the voltage across it.",
    "at": [
-    "simDcSeries.missions[0].why  L31183"
+    "simDcSeries.missions[0].why  L31187"
    ]
   },
   "0bb0064f6435": {
@@ -4562,14 +4572,15 @@
     "simDcSwitch.q  L31520"
    ]
   },
-  "49043186d3ce": {
-   "he": "B יוצאת מהמסלול, וההתנגדות בלולאה קטנה ל־⟦0⟧. לכן הזרם גדל — וכולו עובר דרך A, שמקבלת עכשיו את כל הכא״מ. הסתכלו על הנורות.",
-   "en": "B leaves the path, and the resistance of the loop drops to ⟦0⟧. So the current increases — and all of it flows through A, which now gets the whole emf. Look at the bulbs.",
+  "5bfaaf40ba09": {
+   "he": "B יוצאת מהמסלול, וההתנגדות בלולאה קטנה ל־⟦0⟧. לכן הזרם גדל — וכולו עובר דרך A, שמקבלת עכשיו את כל הכא״מ (פחות הירידה ⟦1⟧ בתוך הסוללה, אם יש לה התנגדות פנימית). הסתכלו על הנורות.",
+   "en": "B leaves the path, and the resistance of the loop drops to ⟦0⟧. So the current increases — and all of it flows through A, which now gets the whole emf (less the drop ⟦1⟧ inside the battery, if it has an internal resistance). Look at the bulbs.",
    "at": [
-    "simDcSwitch.why  L31522"
+    "simDcSwitch.why  L31526"
    ],
    "ph": [
-    "dcM('R_A+r')"
+    "dcM('R_A+r')",
+    "dcM('I·r')"
    ]
   },
   "e0d84a4d9380": {
@@ -4744,11 +4755,11 @@
     "simDcTwoLoop.missions[0].text  L30925"
    ]
   },
-  "b162b104ba2d": {
-   "he": "כש־I₂ יוצא חיובי, הזרם יוצא מכל סוללה בקוטב ה־+: ⟦0⟧ וגם ⟦1⟧ — שתיהן מוסרות אנרגיה לנגדים.",
-   "en": "When I₂ comes out positive, current leaves each battery at its + terminal: ⟦0⟧ and ⟦1⟧ — both deliver energy to the resistors.",
+  "349d6e488bf2": {
+   "he": "כשהזרם יוצא מכל סוללה בקוטב ה־+ שלה, ⟦0⟧ וגם ⟦1⟧ — שתיהן מוסרות אנרגיה לנגדים. (כשהסוללה השנייה הפוכה, גם ε₂ וגם I₂ שליליים, והמכפלה עדיין חיובית.)",
+   "en": "When current leaves each battery at its own + terminal, ⟦0⟧ and ⟦1⟧ — both deliver energy to the resistors. (With the second battery turned around, ε₂ and I₂ are both negative, and their product is still positive.)",
    "at": [
-    "simDcTwoLoop.missions[0].why  L30927"
+    "simDcTwoLoop.missions[0].why  L30931"
    ],
    "ph": [
     "dcM('ε₁·I₁ > 0')",
@@ -5901,6 +5912,74 @@
   "de256bc0fa1b": {
    "he": "השאירו את הוולטמטר על 10 kΩ, ושנו את הנגדים כך שהשגיאה תרד מתחת ל־5%.",
    "en": "Keep the voltmeter at 10 kΩ, and change the resistors so that the error drops below 5%."
+  },
+  "c8e096aea2bf": {
+   "he": "הקבל טעון: ⟦0⟧, ולכן אין ירידה ב־R₁ מעבר לזרם של R₂, והמתח עליו שווה למתח על R₂: ⟦1⟧. במצב מתמיד מוחקים את ענף הקבל ופותרים את מה שנשאר.",
+   "en": "The capacitor is charged: ⟦0⟧, so R₁ carries only R₂’s current, and the voltage across the capacitor equals the voltage across R₂: ⟦1⟧. In the steady state you delete the capacitor’s branch and solve what is left."
+  },
+  "4159c75f5dcf": {
+   "he": "אותו מטען בשנייה עובר עכשיו דרך שטח גדול פי ארבעה, ולכן ⟦0⟧ קטנה פי ארבעה שם: המטענים צפופים פחות ונעים לאט יותר — אבל הזרם, והמונים, זהים.",
+   "en": "The same charge per second now passes through an area four times larger, so ⟦0⟧ is four times smaller there: the charges are less crowded and move more slowly — but the current, and the counters, are the same."
+  },
+  "8e8e419eed35": {
+   "he": "הזרם בלולאה: ⟦0⟧<br>מתח ההדקים: ⟦1⟧",
+   "en": "The current in the loop: ⟦0⟧<br>The terminal voltage: ⟦1⟧"
+  },
+  "710fdcce7bbb": {
+   "he": "גררו לאורך הישר ועקבו אחרי החלק הכחול של פס האנרגיה.",
+   "en": "Drag along the line and watch the blue part of the energy bar."
+  },
+  "79a45ff13ae8": {
+   "he": "לא: ⟦0⟧. הנגד הטורי לוקח את חלקו קודם, ורק מה שנשאר נמצא על הצמד — הטעות הנפוצה היא להציב בענף מקבילי את מתח הסוללה.",
+   "en": "No: ⟦0⟧. The series resistor takes its share first, and only what is left is across the pair — the common mistake is to put the battery’s voltage across a parallel branch."
+  },
+  "1755955b7498": {
+   "he": "⟦0⟧: לנגד של ⟦1⟧ צריך ⟦2⟧. על הגרף זו נקודה על ישר שעובר דרך הראשית, ושיפועו ⟦3⟧.",
+   "en": "⟦0⟧: a ⟦1⟧ resistor needs ⟦2⟧. On the graph this is a point on a straight line through the origin, with slope ⟦3⟧."
+  },
+  "cd8e33a49e3a": {
+   "he": "הסתכלו על R = V/I שמתחת לגרף.",
+   "en": "Look at R = V/I under the graph."
+  },
+  "0eb22e5c4527": {
+   "he": "הנורה מתחממת: ככל שהזרם גדל היא חמה יותר והתנגדותה גדלה, ולכן ⟦0⟧ אינו קבוע והעקום מתכופף מתחת לישר. חוק אוהם אינו חל על נורת להט.",
+   "en": "The bulb heats up: the larger the current, the hotter it gets and the larger its resistance, so ⟦0⟧ is not constant and the curve bends below the straight line. Ohm’s law does not hold for an incandescent bulb."
+  },
+  "e8e93f260308": {
+   "he": "הענף החדש הוא מסלול נוסף: הזרם הכולל גדל בדיוק בזרם של הענף הזה, ⟦0⟧. הענפים האחרים אינם „מוותרים” על זרמם.",
+   "en": "The new branch is one more path: the total current grows by exactly this branch’s current, ⟦0⟧. The other branches do not “give up” their current."
+  },
+  "fce96f56feb3": {
+   "he": "בחרו התנגדות, ואז מצאו את המתח: ⟦0⟧.",
+   "en": "Choose a resistance, then find the voltage: ⟦0⟧."
+  },
+  "dc7461e0a510": {
+   "he": "אותה קריאה בכל מקום: הזרם אינו „נצרך” בנגד — כל מטען שנכנס לנגד יוצא ממנו, אחרת היה מצטבר שם. מה שהנגד לוקח מכל קולון הוא אנרגיה, כלומר מתח.",
+   "en": "The same reading everywhere: current is not “used up” in a resistor — every charge that enters a resistor leaves it, or charge would pile up there. What a resistor takes from each coulomb is energy, that is, voltage."
+  },
+  "49043186d3ce": {
+   "he": "B יוצאת מהמסלול, וההתנגדות בלולאה קטנה ל־⟦0⟧. לכן הזרם גדל — וכולו עובר דרך A, שמקבלת עכשיו את כל הכא״מ. הסתכלו על הנורות.",
+   "en": "B leaves the path, and the resistance of the loop drops to ⟦0⟧. So the current increases — and all of it flows through A, which now gets the whole emf. Look at the bulbs."
+  },
+  "b162b104ba2d": {
+   "he": "כש־I₂ יוצא חיובי, הזרם יוצא מכל סוללה בקוטב ה־+: ⟦0⟧ וגם ⟦1⟧ — שתיהן מוסרות אנרגיה לנגדים.",
+   "en": "When I₂ comes out positive, current leaves each battery at its + terminal: ⟦0⟧ and ⟦1⟧ — both deliver energy to the resistors."
+  },
+  "171ab6de3090": {
+   "he": "כשהכא״מים שווים ומנוגדים, ⟦0⟧: סכום העליות בלולאה אפס, ואין מה שיניע זרם — ⟦1⟧, אף שבמעגל שתי סוללות.",
+   "en": "When the emfs are equal and opposite, ⟦0⟧: the rises around the loop add up to zero, and nothing drives a current — ⟦1⟧, even with two batteries in the circuit."
+  },
+  "41deca59b2e1": {
+   "he": "החלק הדק הוא 0.5 mm². מה עובר בכל חתך בשנייה?",
+   "en": "The thin part is 0.5 mm². What passes through each cross-section per second?"
+  },
+  "d3bc42c2f795": {
+   "he": "הכפתור „סוללה 2” הופך את קטביה. מה צריך להיות היחס בין ε₁ ל־ε₂?",
+   "en": "The “battery 2” button turns it around. How must ε₁ and ε₂ compare?"
+  },
+  "6eff1d014140": {
+   "he": "הראו שלנגד האוהמי ⟦0⟧ אינו תלוי במתח: שנו את המתח לאורך ⟦1⟧ לפחות.",
+   "en": "Show that for the ohmic resistor ⟦0⟧ does not depend on the voltage: change the voltage over at least ⟦1⟧."
   }
  }
 }

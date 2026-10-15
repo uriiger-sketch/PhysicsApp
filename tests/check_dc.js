@@ -540,8 +540,13 @@ const div=document.createElement('div');div.style.cssText='position:absolute;lef
    t('emf: the short waits for the prediction',!(await p.evaluate(()=>document.querySelector('#app canvas')._dc.el('K').on)));
    await p.click('#app .sk-predict .sk-opt >> nth=1');await p.waitForTimeout(250);q=await emfRead();
    t('emf: shorted, I = ε/r = 12.00 A and V = 0',q.I===12&&Math.abs(q.V)<0.006,JSON.stringify(q));
-   await tapEl('K');await setS('inp-emf-R',1);await p.waitForTimeout(120);q=await emfRead();
+   await tapEl('K');await setS('inp-emf-R',3);await p.waitForTimeout(120);
+   {const mm=await p.evaluate(()=>document.querySelector('#app .sk-model').textContent.replace(/ /g,' '));
+    t('emf: the model line gives the load’s power, P = I²R = 3.00²·3.0 = 27.00 W',mm.includes('P = I²R = 3.00²·3.0 = 27.00 W'),mm);}
+   await setS('inp-emf-R',1);await p.waitForTimeout(120);q=await emfRead();
    t('emf: R = r, half the emf on the terminals',q.I===6&&q.V===6,JSON.stringify(q));
+   {const mm=await p.evaluate(()=>document.querySelector('#app .sk-model').textContent.replace(/ /g,' '));
+    t('emf: at R = r the load gets the most, ε²/4r = 36.00 W',mm.includes('P = I²R = 6.00²·1.0 = 36.00 W'),mm);}
    await setS('inp-emf-R',9);await p.waitForTimeout(120);q=await emfRead();
    t('emf: R = 9r gives V = 0.9 ε',q.V===10.8,JSON.stringify(q));
    t('emf: all four missions solved by doing them',(await kitCount())==='4/4',await kitCount());}
@@ -629,10 +634,17 @@ const div=document.createElement('div');div.style.cssText='position:absolute;lef
   await sets({'inp-br-V':15});await sets({'inp-br-Rx':600,'inp-br-R3':200});
   t('bridge: all four missions solved (balanced, 0 V across G at the null, the balance survives a new voltage, Rₓ = 600 Ω)',(await kitCount())==='4/4',await kitCount());
   await go('dc-basics','dc-current');
+  // 10 C at 4 A is 2.5 s of the sim's clock (on a busy machine the clock runs
+  // slower: frames are capped at 50 ms), so wait for it rather than a fixed time
   await sets({'inp-dcc-A':2,'inp-dcc-I':4});await p.waitForTimeout(3200);
+  for(let k=0;k<20&&(await kitCount())!=='3/3';k++)await p.waitForTimeout(500);
   t('current: the model line gives v_d = I/(nAe)',(await model()).includes('vd = I/(nAe) = 4.0/(8.5×10²⁸·2.0×10⁻⁶·1.6×10⁻¹⁹) = 0.147 mm/s'),await model());
   t('current: all three missions solved (4× the area, 10 C counted, the current doubled)',(await kitCount())==='3/3',await kitCount());
   await go('dc-basics','dc-resistance');
+  // the voltage is set in tenths: with an odd R the nearest tenth to 0.25·R counts
+  {const m1=async()=>p.evaluate(()=>document.querySelector('#app .sk-m').classList.contains('done'));
+   const d0=await m1();await sets({'inp-ohm-R':13,'inp-ohm-V':3.2});
+   t('ohm: 0.25 A through 13 Ω is reached at the nearest setting, 3.2 V',!d0&&(await m1()),d0+' → '+(await m1()));}
   await sets({'inp-ohm-R':12,'inp-ohm-V':3});
   t('ohm: I = V/R = 0.250 A in the model line',(await model()).includes('I = V/R = 3.0/12 = 0.250 A'),await model());
   await sets({'inp-ohm-V':0});await sets({'inp-ohm-V':7});await p.click('#btn-ohm-mode');await sets({'inp-ohm-V':9});
