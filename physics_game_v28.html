@@ -12473,7 +12473,12 @@ function simFBD(canvas){
     var _fEl=document.getElementById('inp-fbd-F');
     var Fextra=_fEl?parseFloat(_fEl.value)||0:0;
     scaleTarget=activeObj?Math.max(0,activeObj.m*g-Fextra):0;
-    var liftedOff=!!activeObj&&Fextra>=activeObj.m*g;
+    // F > W: the string goes slack and the body ACCELERATES upward,
+    // a = (F − W)/m. (It used to be drawn at rest with ΣF = F − W > 0.) The
+    // rise is shown over 70 px and then starts again.
+    var liftedOff=!!activeObj&&Fextra>activeObj.m*g+1e-9;
+    if(liftedOff){var aUp=(Fextra-activeObj.m*g)/activeObj.m;liftV+=aUp*dt;lift+=liftV*dt;if(lift*40>70){lift=0;liftV=0;}}
+    else{lift=0;liftV=0;}
     scaleReading+=(scaleTarget-scaleReading)*Math.min(1,dt*5);
 
     simBg(ctx,W,H);
@@ -12538,7 +12543,7 @@ function simFBD(canvas){
     // ── Object on scale ────────────────────────────────────
     if(activeObj){
       activeObj.x=SCALE_X;
-      activeObj.y=wireBot+42;
+      activeObj.y=wireBot+42-lift*40;
       var bS=46;
       ctx.save(); ctx.shadowColor=activeObj.col; ctx.shadowBlur=16;
       ctx.fillStyle=activeObj.col+'cc'; ctx.strokeStyle=activeObj.col; ctx.lineWidth=2;
@@ -12593,7 +12598,7 @@ function simFBD(canvas){
       rows.push(['כוח נוסף F = '+(Fextra>=0?'+':'')+Fextra.toFixed(1)+' N (+ מעלה)','#4ade80',10]);
       rows.push(['המד מודד את המתיחות:  T = '+scaleReading.toFixed(2)+' N','#f87171',10]);
       rows.push(['ΣF = T + F − W = '+_sum.toFixed(1)+' N',Math.abs(_sum)<0.05?'#4ade80':'#fbbf24',10]);
-      rows.push([liftedOff?'הגוף התרומם — המד מראה אפס':'שיווי משקל:  T = W − F',liftedOff?'#f87171':'#4ade80',10]);
+      rows.push([liftedOff?'החוט רפוי: a = ΣF/m = '+(_sum/activeObj.m).toFixed(2)+' m/s² מעלה':'שיווי משקל:  T = W − F',liftedOff?'#f87171':'#4ade80',10]);
     } else {
       rows.push(['גררו גוף אל וו מד-הכוח','#fbbf24',10]);
     }
@@ -12609,8 +12614,32 @@ function simFBD(canvas){
       ctx.setLineDash([]); ctx.restore();
     }
 
+    if(activeObj){var Wo=activeObj.m*g;
+      if(liftedOff)model(_skM('ΣF = F − W = '+Fextra.toFixed(1)+' − '+Wo.toFixed(1)+' = '+(Fextra-Wo).toFixed(1)+' N')+' — '+_skM('T = 0')+', והגוף מאיץ מעלה: '+_skM('a = ΣF/m = '+((Fextra-Wo)/activeObj.m).toFixed(2)+' m/s²'));
+      else model('במנוחה '+_skM('T + F = W')+', ולכן המד מראה '+_skM('T = W − F = '+Wo.toFixed(1)+' '+(Fextra<0?'+ ':'− ')+Math.abs(Fextra).toFixed(1)+' = '+(Wo-Fextra).toFixed(1)+' N'));}
+    else model(_skM('W = mg')+' — גררו גוף אל וו המד');
+    kit.check({obj:activeObj?activeObj.m:0,F:Fextra,T:scaleTarget,rd:scaleReading,lifted:liftedOff});
     requestAnimationFrame(draw);
   }
+  var lift=0, liftV=0;
+  var kit=simKit(canvas,{missions:[
+    {text:'תלו גוף על מד-הכוח, בלי כוח נוסף. מה המד מראה, ולמה?',
+     hint:'גררו את אחד הגופים אל הוו שמתחת למד.',
+     why:'הגוף במנוחה, ולכן '+_skM('ΣF = 0')+': החוט מושך מעלה בדיוק כמו שכוח הכובד מושך מטה, '+_skM('T = W = mg')+'. המד מודד את T — הוא שווה למשקל רק במצב כזה.',
+     done:function(s){return s.obj>0&&Math.abs(s.F)<0.01&&Math.abs(s.rd-s.T)<0.02;}},
+    {text:'גרמו למד להראות אפס בזמן שהגוף עדיין תלוי עליו, במנוחה.',
+     hint:'הכוח הנוסף F פועל מעלה. כמה צריך F כדי ש־'+_skM('T = W − F')+' יתאפס?',
+     why:'כש־'+_skM('F = W')+' היד נושאת את כל המשקל, והחוט אינו צריך למשוך: '+_skM('T = 0')+'. עוד קצת — '+_skM('F > W')+' — והגוף כבר מאיץ מעלה.',
+     done:function(s){return s.obj>0&&!s.lifted&&s.T<0.05&&s.F>0;}},
+    {text:'דחפו את הגוף מטה כך שהמד יראה פי '+_skM('1.5')+' ממשקלו.',
+     hint:'דחיפה מטה היא F שלילי. מ־'+_skM('T = W − F')+', איזה F נותן '+_skM('T = 1.5W')+'?',
+     why:_skM('T = W − F = 1.5W')+' כש־'+_skM('F = −0.5W')+': החוט צריך לאזן גם את המשקל וגם את הדחיפה. לכן קריאת מד-כוח אינה תמיד ״המשקל״.',
+     done:function(s){return s.obj>0&&s.F<0&&Math.abs(s.T-1.5*s.obj*9.8)<=0.02*s.obj*9.8;}}
+  ]});
+  var model=_mkModel(kit);
+  kit.predict({q:'ספר של '+_skM('1 kg')+' תלוי על מד-כוח. דוחפים אותו מלמטה בעדינות בכוח של '+_skM('4 N')+', והוא נשאר במנוחה. מה מראה המד?',
+    opts:[_skM('9.8 N')+' — המשקל לא השתנה',_skM('5.8 N'),_skM('13.8 N'),_skM('4 N')],correct:1,
+    why:'הספר במנוחה, ולכן '+_skM('T + F = W')+': '+_skM('T = 9.8 − 4 = 5.8 N')+'. המשקל לא השתנה — השתנה רק מה שהחוט צריך להחזיק. נסו עם הספר.'});
   requestAnimationFrame(draw);
 }
 
@@ -34949,7 +34978,7 @@ function buildSim(sim){
   else if(sim.type==='normal-force')extra=C(rng('nf-theta',0,70,0,1,'זווית θ','°')+rng('nf-mass',1,12,4,0.5,'מסה m',' kg')+rng('nf-F',-20,40,0,1,'כוח היד F (+ לוחץ מטה)',' N')+rng('nf-mu',0,0.7,0,0.05,'חיכוך μ')+btn('nf-reset','↺ איפוס','btn-secondary'));
   else if(sim.type==='incline')extra=C(rng('inc-theta',5,60,30,1,'זווית θ','°')+rng('inc-mu',0,0.8,0.3,0.05,'חיכוך μ (μₛ = μₖ)')+rng('inc-m',0.5,10,3,0.5,'מסה m',' kg')+rng('inc-v0',0.5,10,5,0.1,'מהירות הדחיפה v₀',' m/s')+btn('inc-push','⬆ דחפו במעלה','btn-primary')+btn('inc-drop','⬇ שחררו מלמעלה','btn-secondary')+btn('inc-reset','↺ איפוס','btn-secondary'));
   else if(sim.type==='tension')extra=C(rng('ten-m1',0.5,12,3,0.5,'m₁ אטווד',' kg')+rng('ten-m2',0.5,12,5,0.5,'m₂ אטווד',' kg')+rng('ten-el',0.5,5,3,0.5,'מסת הגוף במעלית',' kg')+rng('ten-ea',-9.8,5,0,0.2,'תאוצת המעלית',' m/s²')+btn('ten-launch','▶ שחררו!')+btn('ten-reset','↺ איפוס','btn-secondary'));
-  else if(sim.type==='fbd')extra=C(rng('fbd-F',-10,25,0,0.5,'כוח נוסף על הגוף (+ מעלה)',' N')+btn('fbd-reset','↺ נקו הכול','btn-secondary'));
+  else if(sim.type==='fbd')extra=C(rng('fbd-F',-10,25,0,0.1,'כוח נוסף על הגוף (+ מעלה)',' N')+btn('fbd-reset','↺ נקו הכול','btn-secondary'));
   else if(sim.type==='momentum')extra=C(rng('mom-mass',0.5,8,2,0.5,'מסה',' kg')+rng('mom-vel',-10,10,4,1,'מהירות',' m/s'));
   else if(sim.type==='momentum-cons')extra=C(rng('mc-m1',1,8,3,0.5,'m₁',' kg','_fmtKg1')+rng('mc-m2',1,8,2,0.5,'m₂',' kg','_fmtKg1')+rng('mc-v1',-8,8,4,1,'v₁',' m/s','_fmtMs1')+rng('mc-v2',-8,8,-2,1,'v₂',' m/s','_fmtMs1')+btn('mc-reset','↺ איפוס','btn-secondary'));
   else if(sim.type==='collision')extra=C(rng('col-e',0,1,1,0.05,'מקדם התקומה e (0 נצמדים, 1 אלסטית)')+rng('col-m1',1,8,3,0.5,'m₁',' kg')+rng('col-m2',1,8,2,0.5,'m₂',' kg')+rng('col-v1',0,8,4,0.5,'v₁ התחלתית',' m/s')+rng('col-v2',-8,0,-2,0.5,'v₂ התחלתית',' m/s')+btn('col-reset','↺ איפוס','btn-secondary'));

@@ -427,6 +427,23 @@ const EXPECT = {
   await click('btn-ten-launch'); await until(() => mission('forces.tension', 2), 3000);
   t('... released, the Atwood T = 36.8 N lies between W₁ = 29.4 N and W₂ = 49 N — mission solved', await mission('forces.tension', 2) && !!(await last('^T = 36\\.8 N$')));
 
+  // force and its measurement: the spring scale reads the tension, not "the weight"
+  await open('forces.force-intro');
+  t('spring scale: a prediction is asked first — a book pushed up gently while it hangs', (await predOpts()).length === 4, (await predOpts()).join(' | '));
+  rr = await rect(); W = rr.w;
+  const fbPH = W < 480, fbOx = Math.max(32, W * 0.09), fbOy = fbPH ? 400 : 500 * 0.83, fbSX = fbPH ? W * 0.56 : W * 0.5;
+  await drag(rr, [[fbOx, fbOy], [fbSX - 40, 330], [fbSX, 300]]);
+  await until(() => mission('forces.force-intro', 0), 4000);
+  const rd = async () => nums(await last('^' + LR('המד מודד את המתיחות:  T = ') + '[\\d.]+'))[0];
+  t('spring scale: the 1 kg book at rest reads T = W = 9.80 N — mission solved', close(await rd(), 9.8, 0.011) && await mission('forces.force-intro', 0), await rd());
+  await set('fbd-F', 9.8); await until(() => mission('forces.force-intro', 1), 4000);
+  t('... pushing up with F = W = 9.8 N the scale reads 0 and the book still hangs at rest — mission solved', await mission('forces.force-intro', 1));
+  await set('fbd-F', -4.9); await until(() => mission('forces.force-intro', 2), 4000); await until(async () => close(await rd(), 14.7, 0.011), 5000);
+  t('... pushing down 4.9 N: T = W − F = 14.70 N, 1.5 times the weight — mission solved', close(await rd(), 14.7, 0.011) && await mission('forces.force-intro', 2), await rd());
+  await set('fbd-F', 15); await fresh(); await p.waitForTimeout(300);
+  const lift = await last('^' + LR('החוט רפוי: a = ΣF/m = ') + '[\\d.]+');
+  t('... F = 15 N > W: the string goes slack and the book accelerates up at (F − W)/m = 5.20 m/s²', !!lift && nums(lift)[0] === 5.2, lift);
+
   // the incline: friction flips with the sliding, the section's problem, the angle of repose
   await open('newton2.n2-apps');
   t('incline: a prediction is asked first — which way friction points while the block slides up', (await predOpts()).length === 4, (await predOpts()).join(' | '));
