@@ -3288,7 +3288,7 @@ const CONTENT={
       <p>המכפלה הסקלרית מודדת עד כמה שני וקטורים ״מצביעים לאותו כיוון״. תפגשו אותה שוב בהגדרת העבודה, ${M('W = \\vec{F}\\cdot\\vec{d}')}.</p>`
     }
   },
-  sim:{type:'vectors-basic',title:'וקטורים אינטראקטיביים',desc:'גררו את ראשי החצים לשנות גודל וכיוון. חיבור וקטורי (כלל המקבילית) בזמן אמת.'},
+  sim:{type:'vectors-basic',title:'וקטורים אינטראקטיביים',desc:'גררו את ראשי החצים כדי לשנות גודל וכיוון, וראו את הסכום A+B נבנה בכלל המקבילית. סובבו חץ בלי לשנות את אורכו, ונסו לקבל סכום קצר משני הווקטורים.'},
   example:{title:'גודל סקלרי או וקטורי?',text:`נתונים שני גדלים: כוח של ${M('5\\,\\text{N}')} בזווית ${M('37^\\circ')} מעל האופק, ומסה של ${M('5\\,\\text{kg}')}.`,steps:[
     {q:'האם הכוח הוא גודל וקטורי?',a:`כן — יש לו גודל (${M('5\\,\\text{N}')}) וגם כיוון (${M('37^\\circ')} מעל האופק). בלי הכיוון התיאור אינו שלם.`},
     {q:'ומה לגבי המסה?',a:'המסה היא סקלר: יש לה גודל בלבד. אין משמעות ל״מסה כלפי מעלה״.'},
@@ -4078,7 +4078,7 @@ const CONTENT={
       <p>במקום לפרק שני כוחות אלכסוניים — הנורמלי והחיכוך — נשאר וקטור אחד לפרק: המשקל.</p>`
     }
   },
-  sim:{type:'vec-components',title:'רכיבים',desc:'גררו את קצה הווקטור, או הקישו בנקודה כלשהי סביב הראשית והקצה יעבור אליה, וקראו את הרכיבים x ו־y.'},
+  sim:{type:'vec-components',title:'רכיבים',desc:'גררו את קצה הווקטור, או הקישו בנקודה כלשהי סביב הראשית והקצה יעבור אליה, וקראו את הרכיבים x ו־y. לחצו ״📐 הזווית נמדדת מציר x״ כדי למדוד אותה מציר y — וראו איזה רכיב מקבל את ה־cos.'},
   example:{title:'פירוק וקטור לרכיבים',text:`כוח ${M('F=50\\,\\text{N}')} פועל בזווית ${M('30^\\circ')} מעל האופק.`,steps:[
     {q:'מהו הרכיב האופקי?',a:`${M('F_x=F\\cos30^\\circ=50\\times0.866\\approx43.3\\,\\text{N}')}`},
     {q:'מהו הרכיב האנכי?',a:`${M('F_y=F\\sin30^\\circ=50\\times0.5=25\\,\\text{N}')}`},
@@ -11438,7 +11438,7 @@ function simVectors(canvas){
   const id=canvas.id;
   const U=40;                       // pixels per unit
   const CX=Math.round(W/2-U), CY=Math.round(H/2+16);
-  let vA={x:3*U,y:-1*U}, vB={x:1*U,y:2*U}, dragging=null;
+  let vA={x:3*U,y:-1*U}, vB={x:1*U,y:2*U}, dragging=null; var kitStepV=null;
   const COLORS={A:'#ef4444',B:'#3b82f6',R:'#34d399'};
   // a label just beyond the arrow head, along the arrow
   function tipLabel(v,txt,col){
@@ -11488,6 +11488,7 @@ function simVectors(canvas){
     var note=(lR<lA-0.05&&lR<lB-0.05)?'  ·  הסכום קצר משני הווקטורים!':(Math.abs(lR-(lA+lB))<0.05?'  ·  באותו כיוון: |A+B| = |A|+|B|':'');
     simText(ctx,'הזווית בין A ל-B:  θ = '+th.toFixed(0)+'°'+note,W/2,37,'#cbd5e1',10,'center');
     simText(ctx,'גררו את ראשי החצים האדום והכחול · נקודה לכל יחידה',W/2,H-10,'#94a3b8',10);
+    if(kitStepV)kitStepV(lA,lB,lR,th);
     requestAnimationFrame(draw);
   }
 
@@ -11496,7 +11497,8 @@ function simVectors(canvas){
     const p=simPointerXY(canvas,dpr,e);
     const tA=getTip(vA), tB=getTip(vB);
     const dA=Math.hypot(p.x-tA.x,p.y-tA.y), dB=Math.hypot(p.x-tB.x,p.y-tB.y);
-    if(Math.min(dA,dB)<28){dragging=dA<=dB?'A':'B';e.preventDefault();}
+    if(Math.min(dA,dB)<28){dragging=dA<=dB?'A':'B';e.preventDefault();
+      var v0=dragging==='A'?vA:vB;grab={L:Math.hypot(v0.x,v0.y)/U,ang:Math.atan2(v0.y,v0.x)};}
   }
   function _vMv(e){
     if(!dragging)return;
@@ -11505,13 +11507,38 @@ function simVectors(canvas){
     const x=Math.max(8,Math.min(W-8,p.x)), y=Math.max(52,Math.min(H-22,p.y));
     const v={x:Math.round((x-CX)/U*10)/10*U,y:Math.round((y-CY)/U*10)/10*U};
     if(dragging==='A')vA=v; else vB=v;
+    // turned through 30° or more with its length kept (within 0.15 of a unit)
+    if(grab&&Math.abs(Math.hypot(v.x,v.y)/U-grab.L)<=0.15){var dg=Math.abs(Math.atan2(v.y,v.x)-grab.ang);if(dg>Math.PI)dg=2*Math.PI-dg;if(dg>=Math.PI/6)rotated=true;}
     e.preventDefault();
   }
-  function _vUp(){dragging=null;}
+  function _vUp(){dragging=null;grab=null;}
+  var grab=null, rotated=false;
   canvas.addEventListener('mousedown',_vDn);canvas.addEventListener('touchstart',_vDn,{passive:false});
   canvas.addEventListener('mousemove',_vMv);canvas.addEventListener('touchmove',_vMv,{passive:false});
   canvas.addEventListener('mouseup',_vUp);canvas.addEventListener('touchend',_vUp);canvas.addEventListener('mouseleave',_vUp);
   canvas.style.touchAction='none';
+  var kit=simKit(canvas,{missions:[
+    {text:'סובבו את A בלי לשנות את אורכו, בזווית של '+_skM('30°')+' לפחות. האם זה אותו וקטור?',
+     hint:'גררו את ראש החץ האדום לאורך מעגל סביב הראשית; '+_skM('|A|')+' שבראש התרשים צריך להישאר כמעט קבוע.',
+     why:'לא. וקטור הוא גודל וגם כיוון: אותו אורך בכיוון אחר הוא וקטור אחר. כך מכונית שנכנסת לסיבוב במד מהירות קבוע — הגודל קבוע, אבל וקטור המהירות משתנה.',
+     done:function(s){return s.rot;}},
+    {text:'גרמו לסכום להיות קצר יותר משני הווקטורים, '+_skM('|A+B| < |A|')+' וגם '+_skM('|A+B| < |B|')+'.',
+     hint:'מה קורה לסכום כשהזווית בין A ל־B נפתחת מעבר ל־'+_skM('90°')+'?',
+     why:'כשהזווית קהה, הרכיבים של B נגד A ״מבטלים״ חלק ממנו: '+_skM('|A+B|² = A² + B² + 2AB·cosθ')+', ו־cosθ שלילי. בזווית של '+_skM('120°')+' בין שני וקטורים שווים, הסכום שווה לכל אחד מהם.',
+     done:function(s){return s.lA>0.5&&s.lB>0.5&&s.lR<s.lA-0.05&&s.lR<s.lB-0.05;}},
+    {text:'גרמו לסכום להתאפס: '+_skM('A + B = 0')+'.',
+     hint:'B צריך להיות '+_skM('−A')+': אותו אורך, כיוון הפוך.',
+     why:'שני וקטורים מתבטלים רק כשהם שווים בגודלם והפוכים בכיוונם, '+_skM('B = −A')+'. זה ״שיווי משקל״ של שני כוחות.',
+     done:function(s){return s.lA>1&&s.lR<0.15;}}
+  ]});
+  var model=_mkModel(kit);
+  kit.predict({q:'על גוף פועלים כוח של '+_skM('3 N')+' וכוח של '+_skM('4 N')+'. מה יכול להיות גודל הכוח השקול?',
+    opts:[_skM('7 N')+', תמיד',_skM('5 N')+', תמיד','כל ערך בין '+_skM('1 N')+' ל־'+_skM('7 N'),'כל ערך בין '+_skM('0')+' ל־'+_skM('7 N')],correct:2,
+    why:'הכול תלוי בזווית: באותו כיוון '+_skM('3 + 4 = 7 N')+', בכיוונים הפוכים '+_skM('4 − 3 = 1 N')+', ובניצב '+_skM('5 N')+'. מספרים מחברים רק כשהכיוונים זהים. גררו את B וראו.'});
+  kitStepV=function(lA,lB,lR,th){
+    model(_skM('|A+B| = √(A² + B² + 2AB·cosθ) = √('+lA.toFixed(1)+'² + '+lB.toFixed(1)+'² + 2×'+lA.toFixed(1)+'×'+lB.toFixed(1)+'×cos'+th.toFixed(0)+'°) = '+lR.toFixed(1)));
+    kit.check({rot:rotated,lA:lA,lB:lB,lR:lR});
+  };
   requestAnimationFrame(draw);
 }
 
@@ -17372,7 +17399,9 @@ function simVecOps(canvas){
       var angA2=Math.atan2(vA.y,vA.x), angB2=Math.atan2(vB.y,vB.x);
       var _d=angB2-angA2; while(_d>Math.PI)_d-=2*Math.PI; while(_d<-Math.PI)_d+=2*Math.PI;
       ctx.beginPath(); ctx.arc(CX,CY,38,angA2,angA2+_d,_d<0); ctx.stroke(); ctx.restore();
-      simText(ctx,angBetween.toFixed(0)+'°',CX+48*Math.cos((angA2+angB2)/2),CY+48*Math.sin((angA2+angB2)/2),'#fbbf24',9,undefined,true);
+      // at the middle of the arc actually drawn (half-way along _d), not at the
+      // plain average of the two angles, which is the opposite side across ±180°
+      simText(ctx,angBetween.toFixed(0)+'°',CX+48*Math.cos(angA2+_d/2),CY+48*Math.sin(angA2+_d/2),'#fbbf24',9,undefined,true);
       // Projection line
       if(magA>5&&magB>5){
         var projLen=dot_physics/magB;
@@ -17388,14 +17417,40 @@ function simVecOps(canvas){
       simText(ctx,'‏מכפלה סקלרית: A·B = |A|·|B|·cosθ',W/2,18,'#22d3ee',10.5,undefined,true);
       simText(ctx,'\u200e|A| = '+(magA/PPU).toFixed(2)+'    |B| = '+(magB/PPU).toFixed(2)+'    θ = '+angBetween.toFixed(1)+'°',W/2,32,'#94a3b8',9,undefined,true);
       simText(ctx,'\u200eA·B = '+(magA/PPU).toFixed(2)+' × '+(magB/PPU).toFixed(2)+' × cos'+angBetween.toFixed(0)+'° = '+(dot_physics/(PPU*PPU)).toFixed(2),W/2,46,'#fbbf24',10,undefined,true);
-      simText(ctx,dot_physics>0?'A·B > 0 (זווית חדה)':dot_physics<0?'A·B < 0 (זווית קהה)':'A·B = 0 (ניצבים!)',W/2,60,dot_physics===0?'#34d399':dot_physics>0?'#22d3ee':'#f87171',9,undefined,true);
+      // a drag never lands on an exact zero: "perpendicular" within 1° (|cosθ| < 0.0175)
+      var perp=Math.abs(cosAB)<0.0175;
+      simText(ctx,perp?'A·B = 0 (ניצבים!)':dot_physics>0?'A·B > 0 (זווית חדה)':'A·B < 0 (זווית קהה)',W/2,60,perp?'#34d399':dot_physics>0?'#22d3ee':'#f87171',9,undefined,true);
     }
 
     simHandle(ctx,CX+vA.x,CY+vA.y,'#ef4444');
     if(op!=='scalar')simHandle(ctx,CX+vB.x,CY+vB.y,'#3b82f6');
     simText(ctx,op==='scalar'?'גררו את ראש החץ A, ושנו את c במחוון':'גררו את ראשי החצים A ו-B',W/2,H-14,'#94a3b8',10,undefined,true);
+    var ax=vA.x/PPU, ay=-vA.y/PPU, bx=vB.x/PPU, by=-vB.y/PPU, cs=(ax*bx+ay*by)/((Math.hypot(ax,ay)*Math.hypot(bx,by))||1);
+    if(op==='add')model(_skM('A + B = ('+ax.toFixed(2)+' + '+bx.toFixed(2)+', '+ay.toFixed(2)+' + '+by.toFixed(2)+') = ('+(ax+bx).toFixed(2)+', '+(ay+by).toFixed(2)+')'));
+    else if(op==='sub')model(_skM('A − B = ('+ax.toFixed(2)+' − '+bx.toFixed(2)+', '+ay.toFixed(2)+' − '+by.toFixed(2)+') = ('+(ax-bx).toFixed(2)+', '+(ay-by).toFixed(2)+')'));
+    else if(op==='scalar')model(_skM('c·A = '+scalar.toFixed(1)+'×('+ax.toFixed(2)+', '+ay.toFixed(2)+') = ('+(scalar*ax).toFixed(2)+', '+(scalar*ay).toFixed(2)+')'));
+    else model(_skM('A·B = AxBx + AyBy = '+ax.toFixed(2)+'×'+bx.toFixed(2)+' + '+ay.toFixed(2)+'×'+by.toFixed(2)+' = '+(ax*bx+ay*by).toFixed(2)));
+    kit.check({op:op,dAB:Math.hypot(ax-bx,ay-by),lA:Math.hypot(ax,ay),lB:Math.hypot(bx,by),cs:cs,c:scalar});
     requestAnimationFrame(draw);
   }
+  var kit=simKit(canvas,{missions:[
+    {text:'גרמו לכך ש־'+_skM('A − B = 0')+'.',
+     hint:'בחרו ״A−B״ והניחו את ראש החץ של B על ראש החץ של A.',
+     why:_skM('A − B = 0')+' רק כש־'+_skM('A = B')+': אותו גודל ואותו כיוון. שני וקטורים שווים גם אם צוירו במקומות שונים — המקום אינו חלק מהווקטור.',
+     done:function(s){return s.lA>0.5&&s.dAB<0.1;}},
+    {text:'במצב ״A·B״, גרמו למכפלה הסקלרית להתאפס כששני הווקטורים ארוכים מיחידה אחת.',
+     hint:_skM('A·B = |A||B|cosθ')+'. מתי '+_skM('cosθ = 0')+'?',
+     why:'כש־'+_skM('θ = 90°')+', '+_skM('cosθ = 0')+' ולכן '+_skM('A·B = 0')+' בלי קשר לאורכים: לווקטור אחד אין שום רכיב בכיוון של השני. כך כוח הניצב לתנועה אינו עושה עבודה.',
+     done:function(s){return s.op==='dot'&&s.lA>1&&s.lB>1&&Math.abs(s.cs)<0.0175;}},
+    {text:'במצב ״c·A״, מצאו את המכפיל שהופך את A ומקצר אותו לחצי.',
+     hint:'מכפיל שלילי הופך כיוון; גודלו קובע פי כמה משתנה האורך.',
+     why:_skM('c = −0.5')+': הסימן השלילי הופך את הכיוון, ו־'+_skM('|c| = 0.5')+' מקצר לחצי. כפל בסקלר אינו מסובב וקטור — רק מותח, מכווץ או הופך אותו.',
+     done:function(s){return s.op==='scalar'&&Math.abs(s.c+0.5)<0.01;}}
+  ]});
+  var model=_mkModel(kit);
+  kit.predict({q:'A פונה מזרחה ו־B צפונה, שניהם באורך יחידה אחת. לאן פונה '+_skM('A − B')+'?',
+    opts:['צפון-מזרח','דרום-מזרח','צפון-מערב','דרום-מערב'],correct:1,
+    why:_skM('A − B = A + (−B)')+': ל־A (מזרחה) מוסיפים את '+_skM('−B')+' (דרומה), ומקבלים '+_skM('(1, −1)')+' — דרום-מזרח. בחרו ״A−B״ ובדקו.'});
   requestAnimationFrame(draw);
 }
 
@@ -17426,6 +17481,13 @@ function simVecComponents(canvas){
   }
   var _vcR=document.getElementById('btn-vc-reset');
   if(_vcR)_vcR.addEventListener('click',function(){vx=2.75*PPU_C;vy=-1.75*PPU_C;_vcLast=null;});
+  // The angle may be measured from the x-axis (θ) or from the y-axis (φ):
+  // the cosine goes with the side next to the angle, so measured from y the
+  // components swap -- Ax = A·sinφ, Ay = A·cosφ (the section's misconception).
+  var refY=false, refB=document.getElementById('btn-vc-ref');
+  function refLabel(){if(refB)refB.textContent=refY?'📐 הזווית נמדדת מציר y':'📐 הזווית נמדדת מציר x';}
+  if(refB)refB.addEventListener('click',function(){refY=!refY;refLabel();});
+  refLabel();
   var dragging=false;
 
   function getXY(evt){
@@ -17470,6 +17532,7 @@ function simVecComponents(canvas){
     var mag_phys=Math.sqrt(Ax*Ax+Ay*Ay);
     var theta=Math.atan2(Ay,Ax)*180/Math.PI;
     if(theta<0) theta+=360;
+    var phi=((90-theta)%360+360)%360;              // the same direction, measured from +y
     var cosT=Ax/mag_phys, sinT=Ay/mag_phys;
 
     simBg(ctx,W,H);
@@ -17524,8 +17587,15 @@ function simVecComponents(canvas){
       // θ is measured counter-clockwise from +x through 0..360°; the arc went
       // the other way round for every angle above 180°... and for 90°-180° too
       var thR=theta*Math.PI/180;
-      ctx.beginPath(); ctx.arc(CX,CY,44,0,-thR,true); ctx.stroke(); ctx.restore();
-      simText(ctx,'θ = '+theta.toFixed(0)+'°',CX+60*Math.cos(thR/2),CY-60*Math.sin(thR/2)+4,'#c4b5fd',10,'center',true);
+      if(!refY){
+        ctx.beginPath(); ctx.arc(CX,CY,44,0,-thR,true); ctx.stroke(); ctx.restore();
+        simText(ctx,'θ = '+theta.toFixed(0)+'°',CX+60*Math.cos(thR/2),CY-60*Math.sin(thR/2)+4,'#c4b5fd',10,'center',true);
+      } else {
+        // φ from +y, turning toward +x (clockwise on the screen)
+        var phR=phi*Math.PI/180;
+        ctx.beginPath(); ctx.arc(CX,CY,44,-Math.PI/2,-Math.PI/2+phR,false); ctx.stroke(); ctx.restore();
+        simText(ctx,'φ = '+phi.toFixed(0)+'°',CX+60*Math.cos(-Math.PI/2+phR/2),CY+60*Math.sin(-Math.PI/2+phR/2)+4,'#c4b5fd',10,'center',true);
+      }
     }
 
     // ── Right panel ───────────────────────────────────
@@ -17538,11 +17608,11 @@ function simVecComponents(canvas){
     ctx.save(); ctx.strokeStyle='#1e4060'; ctx.lineWidth=1;
     ctx.beginPath(); ctx.moveTo(PX+6,PY+20); ctx.lineTo(PX+PW-6,PY+20); ctx.stroke(); ctx.restore();
     simText(ctx,'|A| = '+mag_phys.toFixed(1),PC,PY+33,'#60a5fa',10,undefined,true);
-    simText(ctx,'θ = '+theta.toFixed(1)+'°',PC,PY+47,'#a78bfa',10,undefined,true);
+    simText(ctx,refY?'φ = '+phi.toFixed(1)+'° (מציר y)':'θ = '+theta.toFixed(1)+'°',PC,PY+47,'#a78bfa',10,undefined,true);
     ctx.save(); ctx.strokeStyle='#1e4060'; ctx.lineWidth=1;
     ctx.beginPath(); ctx.moveTo(PX+6,PY+54); ctx.lineTo(PX+PW-6,PY+54); ctx.stroke(); ctx.restore();
-    simText(ctx,'Ax = A·cosθ = '+Ax.toFixed(2),PC,PY+70,'#34d399',10,undefined,true);
-    simText(ctx,'Ay = A·sinθ = '+Ay.toFixed(2),PC,PY+90,'#fbbf24',10,undefined,true);
+    simText(ctx,refY?'Ax = A·sinφ = '+Ax.toFixed(2):'Ax = A·cosθ = '+Ax.toFixed(2),PC,PY+70,'#34d399',10,undefined,true);
+    simText(ctx,refY?'Ay = A·cosφ = '+Ay.toFixed(2):'Ay = A·sinθ = '+Ay.toFixed(2),PC,PY+90,'#fbbf24',10,undefined,true);
     ctx.save(); ctx.strokeStyle='#1e4060'; ctx.lineWidth=1;
     ctx.beginPath(); ctx.moveTo(PHV?PX+PW*0.46:PX+6,PY+104); ctx.lineTo(PX+PW-6,PY+104); ctx.stroke(); ctx.restore();
     simText(ctx,'בדיקה:  √(Ax² + Ay²) = '+Math.sqrt(Ax*Ax+Ay*Ay).toFixed(2),PC,PY+122,'#cbd5e1',9.5,undefined,true);
@@ -17570,10 +17640,31 @@ function simVecComponents(canvas){
     ctx.save(); ctx.fillStyle='rgba(6,14,28,.92)'; ctx.strokeStyle='#1e4060'; ctx.lineWidth=1.5;
     var BW=PHV?W-16:W*0.58;
     ctx.beginPath(); ctx.roundRect(8,6,BW,46,6); ctx.fill(); ctx.stroke(); ctx.restore();
-    simText(ctx,'רכיבים קרטזיים:  Ax = A·cosθ ,  Ay = A·sinθ',8+BW/2,20,'#22d3ee',10,undefined,true);
-    simText(ctx,'A = ('+Ax.toFixed(2)+', '+Ay.toFixed(2)+')     |A| = '+mag_phys.toFixed(2)+'     θ = '+theta.toFixed(1)+'°',8+BW/2,38,'#e2e8f0',10,undefined,true);
+    simText(ctx,refY?'זווית מציר y:  Ax = A·sinφ ,  Ay = A·cosφ':'רכיבים קרטזיים:  Ax = A·cosθ ,  Ay = A·sinθ',8+BW/2,20,'#22d3ee',10,undefined,true);
+    simText(ctx,'A = ('+Ax.toFixed(2)+', '+Ay.toFixed(2)+')     |A| = '+mag_phys.toFixed(2)+'     '+(refY?'φ = '+phi.toFixed(1):'θ = '+theta.toFixed(1))+'°',8+BW/2,38,'#e2e8f0',10,undefined,true);
+    if(refY)model(_skM('Ax = A·sinφ = '+mag_phys.toFixed(2)+'×sin'+phi.toFixed(0)+'° = '+Ax.toFixed(2))+' · '+_skM('Ay = A·cosφ = '+mag_phys.toFixed(2)+'×cos'+phi.toFixed(0)+'° = '+Ay.toFixed(2)));
+    else model(_skM('Ax = A·cosθ = '+mag_phys.toFixed(2)+'×cos'+theta.toFixed(0)+'° = '+Ax.toFixed(2))+' · '+_skM('Ay = A·sinθ = '+mag_phys.toFixed(2)+'×sin'+theta.toFixed(0)+'° = '+Ay.toFixed(2)));
+    kit.check({Ax:Ax,Ay:Ay,A:mag_phys,refY:refY});
     requestAnimationFrame(draw);
   }
+  var kit=simKit(canvas,{missions:[
+    {text:'בנו את הווקטור '+_skM('A = (−3, 2)')+'.',
+     hint:'רכיב x שלילי ורכיב y חיובי: לאיזה רביע זה שייך? גררו את הקצה לשם, וקראו את הרכיבים.',
+     why:'הרכיבים הם ההיטלים של הווקטור על הצירים, עם סימן: '+_skM('|A| = √(3² + 2²) ≈ 3.61')+' ו־'+_skM('θ ≈ 146°')+' — ברביע השני, שבו '+_skM('cosθ < 0')+' ו־'+_skM('sinθ > 0')+'.',
+     done:function(s){return Math.abs(s.Ax+3)<0.06&&Math.abs(s.Ay-2)<0.06;}},
+    {text:'מדדו את הזווית מציר y (לחצו ״📐 הזווית נמדדת מציר x״). איזה רכיב מקבל עכשיו את ה־'+_skM('cos')+'?',
+     hint:'הקוסינוס הולך עם הצלע שצמודה לזווית.',
+     why:'כשהזווית נמדדת מציר y, הצלע הצמודה לה היא רכיב y: '+_skM('Ay = A·cosφ')+' ו־'+_skM('Ax = A·sinφ')+'. בדיקה מהירה: ב־'+_skM('φ = 0')+' כל הווקטור צריך לשכב על ציר y.',
+     done:function(s){return s.refY;}},
+    {text:'גרמו לשני הרכיבים להיות שווים, '+_skM('Ax = Ay')+', כש־'+_skM('|A| ≥ 2')+'.',
+     hint:'באיזו זווית '+_skM('cosθ = sinθ')+'?',
+     why:'ב־'+_skM('θ = 45°')+' (או '+_skM('225°')+') '+_skM('cosθ = sinθ')+', ולכן '+_skM('Ax = Ay = A/√2')+'.',
+     done:function(s){return s.A>=2&&Math.abs(s.Ax-s.Ay)<0.03;}}
+  ]});
+  var model=_mkModel(kit);
+  kit.predict({q:'כוח של '+_skM('10 N')+' פועל בזווית '+_skM('30°')+' מעל האופק. מה הרכיב האופקי שלו?',
+    opts:[_skM('10·cos30° ≈ 8.7 N'),_skM('10·sin30° = 5 N'),_skM('10 N')+' — הכוח כולו',_skM('10·tan30° ≈ 5.8 N')],correct:0,
+    why:'הרכיב האופקי הוא ההיטל על ציר x — הצלע הצמודה לזווית שנמדדת מהאופק: '+_skM('Fx = F·cos30°')+'. אילו הזווית נמדדה מהאנך, היה '+_skM('Fx = F·sin')+'. נסו את שני המצבים בלחצן 📐.'});
   requestAnimationFrame(draw);
 }
 
@@ -35009,7 +35100,7 @@ function buildSim(sim){
   else if(sim.type==='energy')extra=C(rng('energy-m',0.5,4,1,0.5,'מסה m',' kg')+rng('energy-mu',0,0.1,0,0.005,'מקדם חיכוך μ','')+btn('energy-reset','↺ איפוס','btn-secondary'));
   else if(sim.type==='shm-def')extra=C(rng('shm-A',2,13,8,0.5,'אמפליטודה A',' cm')+rng('shm-T',0.5,5,2,0.1,'מחזור T',' s')+btn('shm-reset','↺ איפוס','btn-secondary'));
   else if(sim.type==='vec-ops')extra=C(rng('vo-scalar',-3,3,2,0.1,'מכפיל c')+btn('vo-add','A+B')+btn('vo-sub','A−B','btn-secondary')+btn('vo-scalar','c·A','btn-secondary')+btn('vo-dot','A·B','btn-secondary')+btn('vo-reset','↺ איפוס','btn-secondary'));
-  else if(sim.type==='vec-components')extra=C(rng('vc-mag',0.5,4,2.8,0.1,'גודל |A|')+rng('vc-ang',0,360,32,1,'זווית θ','°')+btn('vc-reset','↺ איפוס','btn-secondary'));
+  else if(sim.type==='vec-components')extra=C(rng('vc-mag',0.5,4,2.8,0.1,'גודל |A|')+rng('vc-ang',0,360,32,1,'זווית θ','°')+btn('vc-ref','📐 הזווית נמדדת מציר x','btn-secondary')+btn('vc-reset','↺ איפוס','btn-secondary'));
   else if(sim.type==='spring')extra=C(rng('spring-k',0.1,25,2,0.1,'k (N/m)')+rng('spring-m',0.1,2,0.5,0.1,'מסה',' kg'));
   else if(sim.type==='gravity-force')extra=C(rng('gf-m',1,200,70,1,'מסה m',' kg'));
   else if(sim.type==='spring-force')extra=C(rng('sf-k',5,200,40,5,'k קשיחות',' N/m')+rng('sf-m',0.1,2,0.4,0.05,'מסה m',' kg')+rng('sf-damp',0,2,0.8,0.1,'ריסון b')+btn('sf-reset','↺ איפוס','btn-secondary')+btn('sf-fmode','📐 הציגו F = −kx (עם סימן)','btn-secondary'));

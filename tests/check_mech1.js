@@ -337,6 +337,7 @@ const EXPECT = {
   t('... and a = −9.8 m/s² in every one of them, the frames around the top included', inAir.every(r => r[3] === -9.8) && nearTop.length > 0, nearTop.length + ' frames with |v| < 1.5 m/s');
   const landed = ff[ff.length - 1];
   t('... on the ground after landing it rests: v = 0, a = 0, t = 2v0/g', close(landed[0], 2 * 18 / 9.8, 0.006) && landed[2] === 0 && landed[3] === 0, landed.join(', '));
+  await until(async () => /= −18\.0 m\/s/.test(await modelTxt()), 2000);
   t('... the model line substitutes the numbers: v = v0 − g·t', /v = v₀ − g·t = 18 − 9\.8×3\.67 = −18\.0 m\/s/.test(await modelTxt()), await modelTxt());
   // mission 2: drag the time cursor to the top
   rr = await rect(); W = rr.w;
@@ -457,6 +458,45 @@ const EXPECT = {
   await tap(rr, ftR(3).x, ftR(3).y);    // the rope at 30°
   await until(() => mission('forces.force-types', 1), 3000); await until(async () => /T·sin30°/.test(await modelTxt()), 2000);
   t('... the rope at 30° carries T·sin30° = 10 N of the weight: N = 29.2 N < mg — mission solved', await mission('forces.force-types', 1) && /N = mg − T·sin30° = 29\.2 N/.test(await modelTxt()), await modelTxt());
+
+  // vectors: a turned arrow is another vector, a short sum, A + B = 0
+  await open('vectors.vec-intro');
+  t('vectors: a prediction is asked first — the resultant of 3 N and 4 N', (await predOpts()).length === 4, (await predOpts()).join(' | '));
+  rr = await rect(); W = rr.w;
+  const vU = 40, vCX = Math.round(W / 2 - vU), vCY = Math.round(320 / 2 + 16), vL = Math.hypot(3, 1) * vU, va0 = Math.atan2(-1, 3);
+  await drag(rr, [0, 10, 20, 30, 40].map(dg => [vCX + vL * Math.cos(va0 - dg * D), vCY + vL * Math.sin(va0 - dg * D)]));
+  await until(() => mission('vectors.vec-intro', 0), 2000);
+  t('vectors: turning A by 40° at the same length — mission "another vector" solved', await mission('vectors.vec-intro', 0));
+  await drag(rr, [[vCX + vU, vCY + 2 * vU], [vCX, vCY + 2.2 * vU], [vCX - 1.2 * vU, vCY + 2.2 * vU]]);
+  await until(() => mission('vectors.vec-intro', 1), 2000);
+  const vm = await modelTxt();
+  t('... B dragged to a wide angle: |A+B| shorter than both — mission solved; the model line is the law of cosines', await mission('vectors.vec-intro', 1) && /\|A\+B\| = √\(A² \+ B² \+ 2AB·cosθ\)/.test(vm), vm);
+
+  await open('vectors.vec-ops');
+  rr = await rect(); W = rr.w;
+  const oCX = W * 0.45, oCY = 490 * 0.54;
+  await click('btn-vo-sub');
+  await drag(rr, [[oCX + 50, oCY + 60], [oCX + 70, oCY + 10], [oCX + 90, oCY - 40]]);
+  await until(() => mission('vectors.vec-ops', 0), 2000);
+  t('vector operations: B laid on A gives A − B = 0 — mission solved', await mission('vectors.vec-ops', 0));
+  await click('btn-vo-reset'); await click('btn-vo-dot');
+  await drag(rr, [[oCX + 60, oCY + 50], [oCX + 50, oCY + 70], [oCX + 40, oCY + 90]]);
+  await until(() => mission('vectors.vec-ops', 1), 2000);
+  t('... B turned to 90° from A: A·B = 0 — mission solved, and the panel says perpendicular', await mission('vectors.vec-ops', 1) && !!(await last('^' + LR('A·B = 0 (ניצבים!)'))));
+  await click('btn-vo-scalar'); await set('vo-scalar', -0.5);
+  await until(() => mission('vectors.vec-ops', 2), 2000);
+  t('... c = −0.5 flips A and halves it — mission solved', await mission('vectors.vec-ops', 2) && /c·A = −0\.5×\(2\.25, 1\.00\) = \(−1\.13, −0\.50\)|c·A = -0\.5×/.test(await modelTxt()), await modelTxt());
+
+  await open('vectors.vec-components');
+  await set('vc-mag', 3.6); await set('vc-ang', 146);
+  await until(() => mission('vectors.vec-components', 0), 2000);
+  t('components: |A| = 3.6 at 146° is (−2.98, 2.01) ≈ (−3, 2) — mission solved', await mission('vectors.vec-components', 0));
+  await click('btn-vc-ref'); await set('vc-ang', 30); await fresh(); await p.waitForTimeout(300);
+  const ax2 = nums(await last('^Ax = A·sinφ = '))[0], ay2 = nums(await last('^Ay = A·cosφ = '))[0];
+  t('... measured from the y-axis the components swap: at θ = 30° (φ = 60°) Ax = A sinφ, Ay = A cosφ — mission solved', close(ax2, 3.6 * Math.sin(60 * D), 0.011) && close(ay2, 3.6 * Math.cos(60 * D), 0.011) && await mission('vectors.vec-components', 1), ax2 + ', ' + ay2);
+  await set('vc-mag', 3); await set('vc-ang', 45);
+  await until(() => mission('vectors.vec-components', 2), 2000);
+  t('... at 45° Ax = Ay — mission solved', await mission('vectors.vec-components', 2));
 
   // the incline: friction flips with the sliding, the section's problem, the angle of repose
   await open('newton2.n2-apps');
