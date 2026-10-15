@@ -15981,7 +15981,7 @@ function simElcMillikan(canvas){
     for(var k2=0;k2<=8;k2+=2){var xx=qX(k2*1e-19);
       ctx.save();ctx.strokeStyle='#64748b';ctx.beginPath();ctx.moveTo(xx,NLy+4);ctx.lineTo(xx,NLy+9);ctx.stroke();ctx.restore();
       simText(ctx,String(k2),xx,NLy+22,'#7d8da6',9.5,'center');}
-    simText(ctx,'q (×10⁻¹⁹ C)',LTR?NLx1:NLx0,NLy+36,'#7d8da6',9.5,LTR?'right':'left');
+    simText(ctx,'q (×10⁻¹⁹ C)',NLx1,NLy+36,'#7d8da6',9.5,'right');   // at the axis' high end, in both directions
     simText(ctx,'המטענים שנמדדו',LTR?NLx0:NLx1,NLy-54,'#cbd5e1',10.5,LTR?'left':'right',true);
     for(var kk=1;kk*comb<=QMAX*1.001;kk++){var tx=qX(kk*comb);
       ctx.save();ctx.strokeStyle=fitAll?'rgba(52,211,153,.85)':'rgba(251,191,36,.7)';ctx.lineWidth=kk===1?2.4:1.6;
@@ -32607,7 +32607,7 @@ function simElcNetwork(canvas){
       series?'המטען המשותף:':'המטען הכולל:',
       '‎Q = '+(series?Q1:(Q1+Q2)).toFixed(1)+' μC',
       '‎U = ½CV² = '+U.toFixed(1)+' μJ']);
-    if(animT<9)optLabel(ctx,'👆 הקישו על המעגל כדי לחבר אותו מחדש',W/2,H0*0.80-12,'#fbbf24',9.5);
+    if(animT<9)optLabel(ctx,'👆 הקישו על המעגל כדי לחבר אותו מחדש',W/2,38,'#fbbf24',9.5);
     // ── the lesson's numbers ──
     kit.model(series?'בטור, אותו מטען על שניהם: '+_skM('1/C = 1/C₁ + 1/C₂ ⇒ C = '+Ceq.toFixed(2)+' μF, Q = CV = '+Q1.toFixed(1)+' μC, V₁ = Q/C₁ = '+V1.toFixed(2)+' V, V₂ = Q/C₂ = '+V2.toFixed(2)+' V, U = ½CV² = '+U.toFixed(1)+' μJ')
       :'במקביל, אותו מתח על שניהם: '+_skM('C = C₁ + C₂ = '+Ceq.toFixed(1)+' μF, Q₁ = C₁V = '+Q1.toFixed(1)+' μC, Q₂ = C₂V = '+Q2.toFixed(1)+' μC, U = ½CV² = '+U.toFixed(1)+' μJ'));
