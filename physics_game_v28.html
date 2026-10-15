@@ -28182,7 +28182,7 @@ MAG_SIMS['mag-lorentz']=function(canvas){
     simText(ctx,'0',cx-R,cy+12,'#64748b',8.5,'center');simText(ctx,'5',cx+R,cy+12,'#64748b',8.5,'center');
     simText(ctx,'|v| = '+(v/1e6).toFixed(1)+'×10⁶ m/s',x+84,y+30,'#34d399',10,'left',true);
     simText(ctx,'Ek = ½mv² = '+sciTxt(KE)+' J',x+84,y+48,'#e2e8f0',9.5,'left');
-    simText(ctx,'מד מהירות',cx,y+14,'#94a3b8',9,'center');
+    simText(ctx,'מד המהירות',cx,y+14,'#94a3b8',9,'center');
     extra.forEach(function(t,i){simText(ctx,t,x+10,y+80+i*18,'#cbd5e1',9.5,'left');});
   }
   // F seen end-on: ⊙ out of the page, ⊗ into it, sized by |F|
@@ -28492,7 +28492,7 @@ MAG_SIMS['mag-spectro']=function(canvas){
     simText(ctx,"r = mv/qB′  ⇒  כבד יותר נוחת רחוק יותר",RC,ry[4],'#94a3b8',9,'center');
     if(!started)dcCap(ctx,'לחצו ״הפעילו את האלומה״',Xd+(W-Xd)/2,H*0.5,'#94a3b8',ph?10:11);
     var d2=function(a){return 2*a*MAG_U*vs/(MAG_E*B2);};
-    model(kit.m('v = E/B = '+(E/1e4).toFixed(1)+'×10⁴/'+B.toFixed(3)+' = '+(vs/1e5).toFixed(2)+'×10⁵ m/s')+' · '+kit.m('2r = 2mv/qB′')+': ¹²C '+kit.m((d2(12)*100).toFixed(1)+' cm')+', ¹⁴C '+kit.m((d2(14)*100).toFixed(1)+' cm'));
+    model(kit.m('v = E/B = '+(E/1e4).toFixed(1)+'×10⁴/'+B.toFixed(3)+' = '+(vs/1e5).toFixed(2)+'×10⁵ m/s')+' · '+kit.m('2r = 2mv/qB′: ¹²C → '+(d2(12)*100).toFixed(1)+' cm, ¹⁴C → '+(d2(14)*100).toFixed(1)+' cm'));
     kit.check({vs:vs,none:none,sep:d2(14)-d2(12)});
     requestAnimationFrame(draw);
   }
@@ -28566,7 +28566,7 @@ MAG_SIMS['mag-wireforce']=function(canvas){
     if(Math.abs(F)>1e-4)simArrow(ctx,wx,wy,wx+Math.sign(F)*sc(Math.abs(F)),wy,'#fb923c',3,11);
     simArrow(ctx,wx,wy,wx,wy+60,'#94a3b8',2.4,9);
     var T=Math.hypot(F,m*g);simArrow(ctx,wx,wy,wx+(PX-wx)/LP*sc(T),wy+(PY-wy)/LP*sc(T),'#22d3ee',2.4,9);
-    simText(ctx,'F',wx+Math.sign(F||1)*(sc(Math.abs(F))+12),wy-6,'#fb923c',12,'center',true);
+    if(Math.abs(F)>1e-4)simText(ctx,'F',wx+Math.sign(F)*(sc(Math.abs(F))+12),wy-6,'#fb923c',12,'center',true);
     simText(ctx,'mg',wx+16,wy+56,'#94a3b8',10.5,'left',true);simText(ctx,'T',wx+(PX-wx)/LP*(sc(T)+12),wy+(PY-wy)/LP*(sc(T)+12),'#22d3ee',11,'center',true);
     // the angle between wire and B, seen from the side
     // (on a phone: a narrower panel, to the right of the poles)
@@ -28586,7 +28586,7 @@ MAG_SIMS['mag-wireforce']=function(canvas){
       dcCap(ctx,vT,W/2,y0+68,pinned?'#fbbf24':'#94a3b8',10,pinned);}
     else{simText(ctx,fT+'   ·   '+tT,W/2,y0+20,'#e2e8f0',10.5,'center',true);
     simText(ctx,vT,W/2,y0+42,pinned?'#fbbf24':'#94a3b8',10,'center',pinned);}
-    if(!on)simText(ctx,'המעגל פתוח — אין זרם',wx,wy+30,'#94a3b8',10,'center',true);
+    if(!on)simText(ctx,'המעגל פתוח — אין זרם',wx+20,wy+4,'#94a3b8',10,'left',true);
     var phE=Math.atan(Math.abs(F)/(m*g))*180/Math.PI;
     model(kit.m('F = BIL·sinθ = '+B.toFixed(2)+' × '+magNum(I,1)+' × '+L.toFixed(2)+' × sin '+(th*180/Math.PI).toFixed(0)+'° = '+magNum(Math.abs(F),3)+' N')+' · '+kit.m('tanφ = F/mg = '+(Math.abs(F)/(m*g)).toFixed(2)+' ⇒ φ = '+phE.toFixed(1)+'°'));
     kit.check({on:on,F:F,phi:phi,I:I,B:B,sin:Math.sin(th),phEq:phE});
@@ -29279,7 +29279,7 @@ MAG_SIMS['mag-generator']=function(canvas){
     ctx.save();var gr=ctx.createRadialGradient(lx,ly,2,lx,ly,50);gr.addColorStop(0,'rgba(253,224,71,'+(0.1+0.85*br)+')');gr.addColorStop(1,'rgba(253,224,71,0)');
     ctx.fillStyle=gr;ctx.beginPath();ctx.arc(lx,ly,50,0,6.2832);ctx.fill();ctx.restore();
     simCircle(ctx,lx,ly,15,'rgba(253,224,71,'+(0.15+0.8*br)+')','#fde68a',2);
-    simText(ctx,rings?'מתח חילופין':'מתח פועם בכיוון אחד',lx,ly+34,'#94a3b8',9.5,'center');
+    simText(ctx,rings?'מתח חילופין':'מתח פועם בכיוון אחד',lx,W<600?CY+RP+10:ly+34,'#94a3b8',9.5,'center');   // on a phone, under the S pole
     var ry=CY+RP+18;ctx.save();ctx.fillStyle='rgba(2,8,16,.85)';ctx.fillRect(8,ry,W-16,58);ctx.restore();
     simText(ctx,'ε_max = NBAω = '+Em.toFixed(1)+' V   ·   ε_rms = '+(Em/Math.SQRT2).toFixed(1)+' V',W/2,ry+15,'#e2e8f0',10.5,'center',true);
     simText(ctx,'ε(t) = '+magFx(out,1)+' V   ·   ω = '+magFx(wNow,1)+' rad/s',W/2,ry+33,'#fbbf24',10,'center',true);
