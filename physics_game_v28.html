@@ -31879,7 +31879,8 @@ function simDcEmf(canvas){
     var Ic=Math.max(0,Math.min(Imax,I));
     ctx.save();ctx.strokeStyle='rgba(248,113,113,.8)';ctx.lineWidth=1.6;ctx.setLineDash([3,3]);
     ctx.beginPath();ctx.moveTo(X(Ic),Y(E));ctx.lineTo(X(Ic),Y(Math.max(0,Vt)));ctx.stroke();ctx.restore();
-    if(Ic>Imax*0.06)simText(ctx,'I·r',X(Ic)+(Ic>Imax*0.8?-15:15),(Y(E)+Y(Vt))/2+4,'#f87171',9.5,Ic>Imax*0.8?'right':'left',true);
+    // (near the short circuit the label rides higher, clear of "short circuit" below it)
+    if(Ic>Imax*0.06)simText(ctx,'I·r',X(Ic)+(Ic>Imax*0.8?-15:15),Ic>Imax*0.8?Y(E)+(Y(Math.max(0,Vt))-Y(E))*0.3+4:(Y(E)+Y(Vt))/2+4,'#f87171',9.5,Ic>Imax*0.8?'right':'left',true);
     simHandle(ctx,X(Ic),Y(Math.max(0,Vt)),'#fbbf24',12);
     simText(ctx,'ε',X(0)+9,Y(E)+13,'#34d399',11,'left',true);
     simText(ctx,E.toFixed(1),GX-4,Y(E)+4,'#34d399',8.5,'right');      // the intercept IS the emf
