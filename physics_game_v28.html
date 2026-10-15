@@ -14199,8 +14199,30 @@ function simForceTypes(canvas){
     simText(ctx,'ΣFx = '+SFx.toFixed(1)+' N   ·   ΣFy = '+SFy.toFixed(1)+' N   ·   a = '+a.toFixed(2)+' m/s²',W/2,40,'#fbbf24',10.5,undefined,true);
     simText(ctx,state||(Math.abs(SFx)<0.05?'שיווי משקל: ΣF = 0':''),W/2,60,'#cbd5e1',10,undefined,true);
     if(grav&&forces.tension.on) simText(ctx,'החבל נושא חלק מהמשקל, ולכן N = mg − T·sin30° קטן מ-mg',W/2,FLOOR_Y+34,'#a5b4fc',10,'center');
+    var kin=rough&&N>0&&Math.abs(Fx0)>muS*N;
+    model(_skM('ΣFx = '+_mkS(Fa,1)+(Tx?' '+_mkS(Tx,1):'')+(Fs?' − '+Fs.toFixed(1):'')+' '+(f<0?'− ':'+ ')+Math.abs(f).toFixed(1)+' = '+_mkS(SFx,1)+' N')+' · '+
+      (grav?_skM('N = mg'+(Ty?' − T·sin30°':'')+' = '+N.toFixed(1)+' N'):'')+(rough&&N>0?' · '+(kin?_skM('fₖ = μₖN = '+(muK*N).toFixed(1)+' N'):_skM('|fₛ| ≤ μₛN = '+(muS*N).toFixed(1)+' N')):''));
+    kit.check({f:f,N:N,W:Wg,grav:grav,kin:kin});
     requestAnimationFrame(draw);
   }
+  var kit=simKit(canvas,{missions:[
+    {text:'גרמו לכוח החיכוך לפנות ימינה.',
+     hint:'מה מושך את הגוש שמאלה? הפעילו את הקפיץ וכבו את הדחיפה.',
+     why:'החיכוך מתנגד לנטייה להחליק: הקפיץ מושך את הגוש שמאלה, ולכן החיכוך הסטטי פונה ימינה. את כיוון החיכוך קובעים שאר הכוחות — לא ״כיוון התנועה״.',
+     done:function(s){return s.f>0.05;}},
+    {text:'בלי לכבות את הכובד, גרמו ל־'+_skM('N')+' להיות קטן מ־'+_skM('mg')+'.',
+     hint:'איזה כוח יכול לשאת חלק מהמשקל?',
+     why:'החבל מושך בזווית, ורכיבו האנכי, '+_skM('T·sin30° = 10 N')+', נושא חלק מהמשקל: '+_skM('N = mg − T·sin30°')+'. N אינו תמיד mg — הוא מה שהרצפה צריכה להשלים.',
+     done:function(s){return s.grav&&s.N<s.W-0.5;}},
+    {text:'גרמו לגוש להתחיל להחליק — להתגבר על החיכוך הסטטי.',
+     hint:'החיכוך הסטטי גדל רק עד '+_skM('μₛN')+'. כמה דחיפה צריך כש־'+_skM('N = 39.2 N')+'?',
+     why:'החיכוך הסטטי גדל רק עד '+_skM('μₛN = 0.5×39.2 = 19.6 N')+'. מעבר לזה הגוש מחליק, ובמקומו פועל החיכוך הקינטי, '+_skM('μₖN = 15.7 N')+' — קטן יותר.',
+     done:function(s){return s.kin;}}
+  ]});
+  var model=_mkModel(kit);
+  kit.predict({q:'גוש נח על רצפה מחוספסת. קפיץ מתוח מושך אותו שמאלה, והוא אינו זז. לאן פונה כוח החיכוך עליו?',
+    opts:['שמאלה, עם הקפיץ','ימינה, נגד הקפיץ','אין חיכוך — הגוש אינו זז','מטה, לתוך הרצפה'],correct:1,
+    why:'הגוש במנוחה, ולכן '+_skM('ΣF = 0')+': משהו מאזן את משיכת הקפיץ שמאלה — החיכוך הסטטי, ימינה. חיכוך סטטי קיים גם בלי תנועה, כל עוד יש נטייה להחליק.'});
   requestAnimationFrame(draw);
 }
 

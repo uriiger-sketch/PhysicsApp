@@ -199,7 +199,7 @@ const EXPECT = {
   await set('inc-mu', 0.2); await click('btn-inc-drop'); await fresh(); await p.waitForTimeout(300);
   const ia = nums(await last('^a = [−+]?[\\d.]+ m/s²$'))[0], iN = nums(await last('^N = mg·cosθ = '))[0];
   t('incline 30°, μ = 0.2, 3 kg, let go at the top: N = mg cosθ and a = −g(sinθ − μ cosθ)', close(iN, 3 * 9.8 * Math.cos(30 * D), 0.06) && close(ia, -9.8 * (0.5 - 0.2 * Math.cos(30 * D)), 0.0006), iN + ' N, ' + ia);
-  await set('inc-v0', 5); await click('btn-inc-push'); await fresh(); await p.waitForTimeout(250);
+  await set('inc-v0', 5); await click('btn-inc-push'); await fresh(); await p.waitForTimeout(250); await until(async () => /\+ 0\.20×/.test(await modelTxt()), 1500);
   const iu = nums(await last('^a = [−+]?[\\d.]+ m/s²$'))[0], ifk = nums(await last('^fₖ = μN = '))[0];
   t('... pushed up it slides up with a = −g(sinθ + μ cosθ): friction μN now points down the slope', close(iu, -9.8 * (0.5 + 0.2 * Math.cos(30 * D)), 0.0006) && close(ifk, 0.2 * 3 * 9.8 * Math.cos(30 * D), 0.06) && /\+ 0\.20×0\.866\)/.test(await modelTxt()), iu + ', ' + ifk + ' N | ' + await modelTxt());
   await set('inc-theta', 10); await set('inc-mu', 0.3); await click('btn-inc-drop'); await fresh(); await p.waitForTimeout(400);
@@ -216,7 +216,7 @@ const EXPECT = {
   await set('atw-m1', 2); await set('atw-m2', 7); await fresh(); await p.waitForTimeout(300);
   const h1 = nums(await last('^T₁ = [\\d.]+ N$'))[0], h2 = nums(await last('^T₂ = [\\d.]+ N$'))[0];
   t('Atwood 2 kg and 7 kg, braked: each side of the string reads its own weight, T₁ = m₁g, T₂ = m₂g', close(h1, 19.6, 0.051) && close(h2, 68.6, 0.051), h1 + ' N, ' + h2 + ' N');
-  await click('btn-atw-launch'); await fresh(); await p.waitForTimeout(300);
+  await click('btn-atw-launch'); await fresh(); await p.waitForTimeout(300); await until(async () => /\(7\.0−2\.0\)/.test(await modelTxt()), 2000);
   const aw = nums(await last('^a = [\\d.]+ m/s²$'))[0], tw = nums(await last('^T = [\\d.]+ N'))[0];
   const s1 = nums(await last('^T₁ = [\\d.]+ N$'))[0], s2 = nums(await last('^T₂ = [\\d.]+ N$'))[0];
   t('... released: a = (m2−m1)g/(m1+m2), T = 2m1m2g/(m1+m2) on both scales, between m₁g and m₂g', close(aw, 5 * 9.8 / 9, 0.0006) && close(tw, 2 * 2 * 7 * 9.8 / 9, 0.006) && s1 === s2 && close(s1, tw, 0.051) && 19.6 < tw && tw < 68.6, aw + ', ' + tw + ' (' + s1 + ', ' + s2 + ')');
@@ -409,7 +409,7 @@ const EXPECT = {
   await until(() => mission('newton2.n2-law', 2), 3000);
   t('... 25 N on 5 kg with μ = 0.2: a = (25 − 9.8)/5 = 3.04 m/s² — mission solved', await mission('newton2.n2-law', 2) && nums(await last('^a {2}= '))[0] === 3.04);
   await p.waitForTimeout(600); await set('n2-F', 0); await fresh();
-  await until(() => mission('newton2.n2-law', 0), 3000);
+  await until(() => mission('newton2.n2-law', 0), 3000); await until(async () => /ΣF = F \+ f = 0\.0/.test(await modelTxt()), 2000);
   const sf0 = nums(await last('^ΣF = '))[0];
   t('... let go while it moves: ΣF = −μmg = −9.8 N with the block still moving right — mission solved', await mission('newton2.n2-law', 0) && sf0 === -9.8 && /ΣF = F \+ f = 0\.0 − 9\.8 = −9\.8 N/.test(await modelTxt()), sf0 + ' | ' + await modelTxt());
 
@@ -433,7 +433,7 @@ const EXPECT = {
   rr = await rect(); W = rr.w;
   const fbPH = W < 480, fbOx = Math.max(32, W * 0.09), fbOy = fbPH ? 400 : 500 * 0.83, fbSX = fbPH ? W * 0.56 : W * 0.5;
   await drag(rr, [[fbOx, fbOy], [fbSX - 40, 330], [fbSX, 300]]);
-  await until(() => mission('forces.force-intro', 0), 4000);
+  await until(() => mission('forces.force-intro', 0), 4000); await until(async () => close(nums(await last('^' + LR('המד מודד את המתיחות:  T = ') + '[\\d.]+'))[0], 9.8, 0.011), 4000);
   const rd = async () => nums(await last('^' + LR('המד מודד את המתיחות:  T = ') + '[\\d.]+'))[0];
   t('spring scale: the 1 kg book at rest reads T = W = 9.80 N — mission solved', close(await rd(), 9.8, 0.011) && await mission('forces.force-intro', 0), await rd());
   await set('fbd-F', 9.8); await until(() => mission('forces.force-intro', 1), 4000);
@@ -443,6 +443,20 @@ const EXPECT = {
   await set('fbd-F', 15); await fresh(); await p.waitForTimeout(300);
   const lift = await last('^' + LR('החוט רפוי: a = ΣF/m = ') + '[\\d.]+');
   t('... F = 15 N > W: the string goes slack and the book accelerates up at (F − W)/m = 5.20 m/s²', !!lift && nums(lift)[0] === 5.2, lift);
+
+  // force types: friction set by the other forces, N not always mg, static → kinetic
+  await open('forces.force-types');
+  t('force types: a prediction is asked first — friction under a spring that pulls left', (await predOpts()).length === 4, (await predOpts()).join(' | '));
+  await set('ft-x', 0.05); await until(() => mission('forces.force-types', 0), 3000);
+  t('force types: the spring pulls 10 N left, static friction points right (+10 N) — mission solved', await mission('forces.force-types', 0) && /fₛ = 10\.0 N/.test((await all('^fₛ = ')).pop() || ''), (await all('^fₛ = ')).pop());
+  await set('ft-F', 40); await until(() => mission('forces.force-types', 2), 3000); await until(async () => /fₖ/.test(await modelTxt()), 2000);
+  t('... a 40 N push beats μₛN = 19.6 N: the block slides and friction is μₖN = 15.7 N — mission solved', await mission('forces.force-types', 2) && /fₖ = μₖN = 15\.7 N/.test(await modelTxt()), await modelTxt());
+  rr = await rect(); W = rr.w;
+  const ftPer = W < 480 ? 2 : 3, ftBW = Math.min((W - 20) / ftPer - 6, 150), ftTot = ftPer * (ftBW + 6) - 6, ftY0 = 490 - Math.ceil(5 / ftPer) * 33 - 6;
+  const ftR = i => ({ x: (W - ftTot) / 2 + (i % ftPer) * (ftBW + 6) + ftBW / 2, y: ftY0 + Math.floor(i / ftPer) * 33 + 14 });
+  await tap(rr, ftR(3).x, ftR(3).y);    // the rope at 30°
+  await until(() => mission('forces.force-types', 1), 3000); await until(async () => /T·sin30°/.test(await modelTxt()), 2000);
+  t('... the rope at 30° carries T·sin30° = 10 N of the weight: N = 29.2 N < mg — mission solved', await mission('forces.force-types', 1) && /N = mg − T·sin30° = 29\.2 N/.test(await modelTxt()), await modelTxt());
 
   // the incline: friction flips with the sliding, the section's problem, the angle of repose
   await open('newton2.n2-apps');
