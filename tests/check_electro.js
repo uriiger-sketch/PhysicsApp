@@ -220,6 +220,19 @@ const sig2 = x => x === 0 ? 0 : Number(x.toPrecision(2));
   await drag(0.12, 0.62, 0.50, 0.27);
   const aNear = await ang();
   t('electroscope: an opposite rod closes a charged electroscope\'s leaves', aNear < aFar - 3, aFar + '° → ' + aNear + '°');
+  await drag(0.50, 0.27, 0.55, 0.25);
+  t('electroscope missions: charged by contact; the sign test (leaves close for an opposite rod)', (await solved(0)) && (await solved(2)));
+  // induction with the earth: rod near, ground, cut the ground, rod away
+  await open('elc-basics'); await p.waitForTimeout(300);
+  const sc = () => p.evaluate(() => document.querySelector('#app canvas').__scope);
+  await drag(0.22, 0.27, 0.55, 0.25);
+  await click('btn-scope-ground'); await p.waitForTimeout(1500);
+  let s1 = await sc();
+  t('electroscope grounded with the rod near: the leaves hang closed (the far end is at earth potential)', s1.grounded && s1.leaf < 1.5 && s1.q > 0.5, JSON.stringify(s1));
+  await click('btn-scope-ground'); await drag(0.55, 0.25, 0.12, 0.62); await p.waitForTimeout(300);
+  s1 = await sc();
+  t('electroscope charged by induction: opposite to the rod, the earth took the rest, the total conserved',
+    s1.q > 0.5 && s1.rod < 0 && Math.abs(s1.rod + s1.q + s1.earth - (-5)) < 1e-6 && s1.step >= 4 && (await solved(1)), JSON.stringify(s1));
 
   // conductor in an external field: neutral sphere, probe inside, E = 0
   await open('elc-conductor');
@@ -228,6 +241,10 @@ const sig2 = x => x === 0 ? 0 : Number(x.toPrecision(2));
   await drag(0.38, 0.32, 0.29, 0.40);
   const cnd = await txt();
   t('neutral conductor in an external field: E = 0 inside', new RegExp('E = ' + LR('0 בדיוק')).test(cnd), cnd.split('\n').filter(l => /^‎?E = /.test(l)).slice(-1)[0]);
+  t('conductor missions: E inside; a neutral conductor in an external field', (await solved(0)) && (await solved(1)));
+  await click('btn-cnd-mode'); await setR('inp-cnd-Q', 8); await setR('inp-cnd-R', 30); await p.waitForTimeout(200);
+  const cn = await p.evaluate(() => document.querySelector('#app canvas').__cnd);
+  t('conductor, sharp tip: E ≈ V/ρ = (kQ/R)/(0.16R) above 3×10⁶ V/m -- discharge mission', cn.sharp && Math.abs(cn.Etip - (k * 8e-6 / 0.15) / (0.15 * 0.16)) < 1e-6 * cn.Etip && cn.Etip > 3e6 && (await solved(2)), JSON.stringify(cn));
 
   // charged sphere with Q < 0: a real field outside, a negative potential
   await open('elc-sphere');
@@ -236,6 +253,13 @@ const sig2 = x => x === 0 ? 0 : Number(x.toPrecision(2));
   const sph = await txt();
   const eS = num(sph, /E = ([0-9.]+×10[⁻⁰-⁹¹²³⁴⁵⁶⁷⁸⁹]+) V\/m/), vS = num(sph, /V = ([-−]?[0-9.]+×10[⁻⁰¹²³⁴⁵⁶⁷⁸⁹]+) V/);
   t('negative sphere: |E| > 0 outside and V < 0', eS > 0 && vS < 0, 'E=' + eS + ' V=' + vS);
+  const sphm = () => p.evaluate(() => document.querySelector('#app canvas').__sph);
+  await drag(0.6, 0.5, 0.03, 0.5); await p.waitForTimeout(250); let sp1 = await sphm();
+  t('sphere: inside the metal E = 0 and V = kQ/R -- mission', sp1.inside && sp1.E === 0 && Math.abs(sp1.V - 8.988e9 * sp1.Q / sp1.R) < 1e-6 * Math.abs(sp1.V) && (await solved(0)), JSON.stringify(sp1));
+  await setR('inp-sph-Q', 3); await setR('inp-sph-R', 10); await p.waitForTimeout(250); sp1 = await sphm(); await setR('inp-sph-R', 20); await p.waitForTimeout(250); const sp2 = await sphm();
+  t('sphere: U = kQ²/2R, twice R half U -- mission', Math.abs(sp1.U - 8.988e9 * 9e-12 / 0.2) < 1e-9 && Math.abs(sp1.U / sp2.U - 2) < 1e-9 && (await solved(1)));
+  await setR('inp-sph-Q', 6); await setR('inp-sph-R', 2); await p.waitForTimeout(200);
+  t('sphere: 6 μC on 2 cm is beyond Qmax = (3×10⁶)R²/k -- mission', Math.abs((await sphm()).Qmax - 3e6 * 0.02 ** 2 / 8.988e9) < 1e-12 && (await solved(2)));
 
   // three geometries, potential view: inside the sphere V = kQ/R (not 0)
   await open('elc-compare');
@@ -244,6 +268,27 @@ const sig2 = x => x === 0 ? 0 : Number(x.toPrecision(2));
   const cmp = await txt();
   const vs = [...cmp.matchAll(/V = ([0-9.]+) kV/g)].map(m => parseFloat(m[1]));
   t('compare (V view): inside the sphere V = kQ/R', vs.some(v => Math.abs(v - 8.988e9 * 0.5e-6 / 0.05 / 1e3) < 1), vs.join(','));
+  t('compare mission: V view inside the sphere', await solved(2));
+  await click('btn-cmp-v');
+  const cm1 = await p.evaluate(() => document.querySelector('#app canvas').__cmp);
+  t('compare: the crossing r* = √(2kAε₀) for A = 1 m²', Math.abs(cm1.rc - Math.sqrt(2 * 8.988e9 * 8.854e-12)) < 1e-9, cm1.rc);
+  const cbb = await (await p.$('#app canvas')).boundingBox();
+  await drag(0.10, 0.5, (52 + (cbb.width - 68) * cm1.rc / 0.6) / cbb.width, 0.5); const cm2 = await p.evaluate(() => document.querySelector('#app canvas').__cmp);
+  t('compare: at r*, the point charge and the plane give the same field -- mission', Math.abs(cm2.Ept / cm2.Epl - 1) < 0.05 && (await solved(0)), (cm2.Ept / cm2.Epl).toFixed(3));
+  await setR('inp-cmp-Q', 0.5); await setR('inp-cmp-Q', 4); await p.waitForTimeout(200);
+  const cm3 = await p.evaluate(() => document.querySelector('#app canvas').__cmp);
+  t('compare: eight times the charge, the crossing stays put -- mission', cm3.rc === cm1.rc && (await solved(1)));
+
+  // infinite plane: the field does not fall off; two plates add or cancel
+  await open('elc-plane'); await p.waitForTimeout(300);
+  const pln = () => p.evaluate(() => document.querySelector('#app canvas').__pln);
+  await click('btn-pln-two');
+  await drag(0.5, 0.3, 0.33, 0.3); const pa = await pln(); await drag(0.33, 0.3, 0.95, 0.3); const pb2 = await pln();
+  t('one plane: E = σ/2ε₀ near it and far from it -- mission', Math.abs(Math.abs(pa.E) - 4e-6 / (2 * 8.854e-12)) < 1 && Math.abs(Math.abs(pb2.E) - Math.abs(pa.E)) < 1e-6 && (await solved(0)), pa.E + ' / ' + pb2.E);
+  await click('btn-pln-two'); await setR('inp-pln-s2', -4); await p.waitForTimeout(200);
+  t('two plates, +4 and −4 μC/m²: zero outside -- mission', await solved(1));
+  await setR('inp-pln-s2', 4); await p.waitForTimeout(200);
+  t('two plates, +4 and +4 μC/m²: zero between -- mission', await solved(2));
 
   // deflection: a particle that hits the plate reports the hit
   await open('elc-deflection');

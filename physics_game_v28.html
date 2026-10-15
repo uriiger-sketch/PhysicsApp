@@ -15532,7 +15532,7 @@ function simElcDielectric(canvas){
   ]});
   kit.predict({q:'הסוללה מנותקת, ומחליקים את הדיאלקטרי אל בין הלוחות. המתח בין הלוחות:',
     opts:['גדל','קטן','אינו משתנה'],correct:1,
-    why:'בלי הסוללה '+_skM('Q')+' אינו יכול להשתנות, ו־'+_skM('C = κC₀')+' גדל — ולכן '+_skM('V = Q/C')+' קטן פי '+_skM('κ')+'. נסו: נתקו את הסוללה והחליקו את הלוח פנימה.'});
+    why:'בלי הסוללה '+_skM('Q')+' אינו יכול להשתנות, ו־'+_skM('C = κC₀')+' גדל — ולכן '+_skM('V = Q/C')+' קטן פי '+_skM('κ')+'. נסו: נתקו את הסוללה והחליקו את הלוח פנימה.'});elcKitFix(kit);
   function draw(){
     if(_simStop[id])return;
     var k=gk(), f=gf();
@@ -15706,7 +15706,7 @@ function simElcDeflect(canvas){
   ]});
   kit.predict({q:'מכפילים את מהירות הכניסה '+_skM('v₀')+' (המתח והלוחות כמו קודם). הסטייה ביציאה מהלוחות:',
     opts:['גדלה פי 2','קטנה פי 2','קטנה פי 4'],correct:2,
-    why:'הזמן בין הלוחות, '+_skM('t = L/v₀')+', נחצה, והסטייה '+_skM('y = ½at²')+' תלויה בריבוע הזמן: פי 4 פחות. נסו: העבירו את '+_skM('v₀')+' מ־2 ל־4.'});
+    why:'הזמן בין הלוחות, '+_skM('t = L/v₀')+', נחצה, והסטייה '+_skM('y = ½at²')+' תלויה בריבוע הזמן: פי 4 פחות. נסו: העבירו את '+_skM('v₀')+' מ־2 ל־4.'});elcKitFix(kit);
   function draw(){
     if(_simGen[id]!==_g||_simStop[id])return;
     t0+=0.016;
@@ -15897,7 +15897,7 @@ function simElcMillikan(canvas){
   ]});
   kit.predict({q:'טיפה מרחפת בין הלוחות. מכפילים את המתח. מה תעשה הטיפה?',
     opts:['תאיץ כלפי מעלה עד שתפגע בלוח','תעלה במהירות קבועה','תישאר במקומה'],correct:1,
-    why:'תוך מיליוניות שנייה הגרר גדל עד שהוא מאזן את ההפרש '+_skM('qE − mg')+', והטיפה עולה במהירות סופית קבועה — ולכן מיליקן יכול היה למדוד אותה. נסו: הכפילו את המתח.'});
+    why:'תוך מיליוניות שנייה הגרר גדל עד שהוא מאזן את ההפרש '+_skM('qE − mg')+', והטיפה עולה במהירות סופית קבועה — ולכן מיליקן יכול היה למדוד אותה. נסו: הכפילו את המתח.'});elcKitFix(kit);
   canvas.__mk=function(){return {n:nEl,revealed:revealed,Vbal:Vbal,mMeas:mMeas,log:log.slice(),comb:comb,NLy:NLy,qX0:NLx0,qX1:NLx1,QMAX:QMAX};};
   function draw(){
     if(_simGen[id]!==_g||_simStop[id])return;
@@ -29379,7 +29379,7 @@ function simElcScope(canvas){
       var tot=rodQ+scopeQ;
       rodQ=tot/2; scopeQ=tot/2;
       lastSlider=getQ(); lastSign=rodSign;      // don't let syncRod undo the transfer
-      evt='conduct'; evtT=animT;
+      evt='conduct'; evtT=animT; conducted=true;
     } else { evt='far'; evtT=animT; }
   });
   // Grounding is a LATCH, not a momentary discharge. Order of operations is
@@ -29398,6 +29398,26 @@ function simElcScope(canvas){
     if(dragRod){rodX=Math.max(40,Math.min(W-40,p.x));rodY=Math.max(40,Math.min(H-80,p.y));e.preventDefault();}
     else canvas.style.cursor=Math.hypot(p.x-rodX,p.y-rodY)<52?'grab':'';}
   function _up(){dragRod=false;canvas.style.cursor='';}
+  var kb=elcKbd(canvas,{n:function(){return 1;},get:function(){return {x:rodX,y:rodY};},
+    set:function(i,x,y){touched=true;rodX=Math.max(40,Math.min(W-40,x));rodY=Math.max(40,Math.min(H-80,y));}});
+  var conducted=false,aFar=0,signTest=false;
+  var kit=simKit(canvas,{missions:[
+    {text:'טענו את האלקטרוסקופ במגע',
+     hint:'קרבו את המוט אל הכפתור ולחצו ״👆 געו — הולכה״.',
+     why:'במגע המטען מתחלק בין המוט לאלקטרוסקופ, והסכום נשמר — ראו את מאזן המטענים. העלים נשארים פרודים גם אחרי שהמוט מתרחק.',
+     done:function(s){return s.conducted&&Math.abs(s.q)>0.05;}},
+    {text:'טענו אותו בהשראה, בלי לגעת: בצעו את המתכון עד הסוף',
+     hint:'קרבו את המוט ← חברו הארקה ← נתקו את ההארקה ← ורק אז הרחיקו את המוט.',
+     why:'בזמן ההארקה אלקטרונים זורמים אל האדמה או ממנה, והמוט מחזיק את השאר במקומם. מנתקים קודם את ההארקה — והמטען ההפוך למוט נשאר כלוא. הרחקת המוט לפני הניתוק מחזירה הכול.',
+     done:function(s){return s.step>=4&&s.opp;}},
+    {text:'קרבו מוט בסימן הפוך לאלקטרוסקופ טעון. מה עושים העלים?',
+     hint:'טענו את האלקטרוסקופ, הרחיקו את המוט, לחצו ״↔ החליפו סימן״ וקרבו אותו לאט.',
+     why:'המוט ההפוך מושך את מטען העלים אל הכפתור, והעלים נסגרים לפני שייפתחו שוב — כך בודקים את סימן המטען של אלקטרוסקופ.',
+     done:function(s){return s.signTest;}}
+  ]});
+  kit.predict({q:'אלקטרוסקופ נייטרלי. מקרבים אליו מוט טעון בלי לגעת. העלים:',
+    opts:['נשארים סגורים — לא עבר מטען','נפתחים — המטענים בו נפרדים','נפתחים ונשארים פתוחים גם אחרי שהמוט מתרחק'],correct:1,
+    why:'השראה: המוט דוחה מטען מסימנו אל העלים ומושך את ההפוך אל הכפתור. המטען הכולל נשאר אפס, ולכן כשהמוט מתרחק העלים נסגרים שוב.'});elcKitFix(kit);
   canvas.addEventListener('mousedown',_dn);canvas.addEventListener('touchstart',_dn,{passive:false});
   canvas.addEventListener('mousemove',_mv);canvas.addEventListener('touchmove',_mv,{passive:false});
   canvas.addEventListener('mouseup',_up);canvas.addEventListener('touchend',_up);
@@ -29532,6 +29552,15 @@ function simElcScope(canvas){
       optLabel(ctx,opp?'✔ נטען בסימן ההפוך למוט — בלי מגע!':'האלקטרוסקופ נטען',rx0+RW/2,ry0+RSTEPS.length*16+40,'#4ade80',9);
     }
     if(grounded)optLabel(ctx,NAR?'⏚ מחובר לאדמה':'⏚ מחובר לאדמה — אלקטרונים חופשיים לזרום',NAR?KX:W/2,NAR?KY+42:H-72,'#22d3ee',9.5);
+    elcFocus(ctx,kb,0,rodX,rodY,48);
+    // ── the lesson's numbers: the charge is only ever moved ──
+    kit.model('מאזן המטען — מוט '+_skM(elcSg(rodQ,1))+' + אלקטרוסקופ '+_skM(elcSg(scopeQ,1))+' + אדמה '+_skM(elcSg(earthQ,1))+' = '+_skM(elcSg(rodQ+scopeQ+earthQ,1)+' nC')+', בכל רגע');
+    var charged=Math.abs(scopeQ)>0.3;
+    if(charged&&induced<1)aFar=leafAng;
+    if(charged&&sgnRod*scopeQ<0&&aFar>5&&leafAng<0.7*aFar)signTest=true;
+    if(!charged)aFar=0;
+    canvas.__scope={leaf:leafAng,q:scopeQ,rod:rodQ,earth:earthQ,step:step,grounded:grounded};   // for the tests
+    kit.check({conducted:conducted,q:scopeQ,step:step,opp:(rodQ<0&&scopeQ>0)||(rodQ>0&&scopeQ<0),signTest:signTest});
     requestAnimationFrame(draw);
   }requestAnimationFrame(draw);
 }
@@ -29604,7 +29633,7 @@ function simElcCoulomb(canvas){
   ]});
   kit.predict({q:'מציבים '+_skM('q₁ = +5 μC')+' ו־'+_skM('q₂ = +1 μC')+'. על איזה מהם פועל כוח גדול יותר?',
     opts:['על '+_skM('q₁')+' — המטען הגדול','על '+_skM('q₂')+' — המטען הקטן','על שניהם כוח שווה'],correct:2,
-    why:'הכוח של '+_skM('q₁')+' על '+_skM('q₂')+' והכוח של '+_skM('q₂')+' על '+_skM('q₁')+' הם זוג פעולה-תגובה: שווים בגודלם ומנוגדים בכיוונם (החוק השלישי של ניוטון). קבעו במחוונים 5 μC ו־1 μC והשוו את החצים.'});
+    why:'הכוח של '+_skM('q₁')+' על '+_skM('q₂')+' והכוח של '+_skM('q₂')+' על '+_skM('q₁')+' הם זוג פעולה-תגובה: שווים בגודלם ומנוגדים בכיוונם (החוק השלישי של ניוטון). קבעו במחוונים 5 μC ו־1 μC והשוו את החצים.'});elcKitFix(kit);
   // what the model holds, for the tests
   var last={};
   canvas.__clb=function(){return {x1:x1,x2:x2,x3:x3,cy:cy,PXC:PXC,W:W,H:H,on3:on3,r:(x2-x1)/PXC,F:last.F,L1:last.L1,L2:last.L2,Fn:last.Fn,tab:tab.slice()};};
@@ -29756,6 +29785,15 @@ function elcKbd(canvas,o){
     e.preventDefault();e.stopPropagation();   // the page's arrows change section
   });
   return k;
+}
+// Kit texts are set as HTML after the page's own pass that isolates maths
+// runs inside Hebrew ("10 cm" came out "cm 10"): run that pass over the
+// panel once it is built, and again after a click (a prediction's answer, a
+// hint), so a number and its unit read in order in either direction.
+function elcKitFix(kit){
+  if(!kit||!kit.el||typeof fixInlineMath!=='function')return;
+  fixInlineMath(kit.el);
+  kit.el.addEventListener('click',function(){setTimeout(function(){fixInlineMath(kit.el);},0);});
 }
 function elcFocus(ctx,k,i,x,y,r){
   if(!k.on||k.sel!==i)return;
@@ -30013,7 +30051,7 @@ function elcExplorer(canvas,mode){
       why:'התאוצה בכיוון השדה, אבל המהירות שכבר נצברה ממשיכה בכיוונה, ולכן היכן שהקו מתעקל המטען יוצא ממנו. הצבנו את מטען הבוחן ליד דיפול — לחצו ״🚀 שחררו ממנוחה״ וצפו.'},
     function(){setTwo(true);simSyncSlider(ids[0],4,1);simSyncSlider(ids[1],-4,1);
       ch[0].x=W*(NAR?0.28:0.36);ch[1].x=W*(NAR?0.72:0.64);ch[0].y=ch[1].y=H*0.56;
-      var sep=ch[1].x-ch[0].x;pr.x=ch[0].x+sep*0.30;pr.y=ch[0].y-sep*0.36;if(q0s<0&&bQ0)bQ0.click();fly=null;});
+      var sep=ch[1].x-ch[0].x;pr.x=ch[0].x+sep*0.30;pr.y=ch[0].y-sep*0.36;if(q0s<0&&bQ0)bQ0.click();fly=null;});elcKitFix(kit);
   // what the model holds, for the tests: the charges, the probe and what it
   // reads, the null point, and where every field line starts and ends
   canvas.__elc=function(){var A=act();return {A:A,W:W,H:H,PXM:PXM,probe:{x:pr.x,y:pr.y},E:Eat(pr.x,pr.y,A).m,V:Vat(pr.x,pr.y,A),
@@ -30162,6 +30200,26 @@ function simElcCompare(canvas){
     move:function(p){if(drag)set(p);},
     up:function(){drag=false;}});
   function set(p){rSel=Math.max(0.005,Math.min(RMAX,(p.x-GX)/Math.max(1,GW)*RMAX));}
+  var kb=elcKbd(canvas,{n:function(){return 1;},get:function(){return {x:GX+GW*rSel/RMAX,y:200};},
+    set:function(i,x){touched=true;set({x:x});}});
+  var qLo=1e9,qHi=0;
+  var kit=simKit(canvas,{missions:[
+    {text:'מצאו את המרחק שבו המטען הנקודתי והמישור נותנים אותו שדה',
+     hint:'בתצוגת השדה, גררו את הקו הצהוב עד שהעקומה האדומה פוגשת את הקו הירוק.',
+     why:_skM('kQ/r² = Q/(2Aε₀)')+' נותן '+_skM('r* = √(2kAε₀)')+' — כ־40 cm למשטח של 1 m². המטען מצטמצם מהמשוואה.',
+     done:function(s){return !s.V&&Math.abs(s.r-s.rc)<0.006;}},
+    {text:'שנו את המטען ובדקו: האם נקודת ההשתוות זזה?',
+     hint:'בתצוגת השדה, הזיזו את מחוון המטען מקצה לקצה ועקבו אחר הקו המקווקו.',
+     why:'שני השדות יחסיים ל־'+_skM('Q')+', ולכן גדלים וקטנים יחד: נקודת ההשתוות תלויה רק בשטח המשטח.',
+     done:function(s){return !s.V&&s.qSpan>=4;}},
+    {text:'בתצוגת הפוטנציאל, הביאו את הקו אל תוך הכדור',
+     hint:'לחצו ״🔋 הציגו פוטנציאל V״ וגררו לשמאל, אל פנים הכדור.',
+     why:'בתוך המתכת '+_skM('E = 0')+' אבל '+_skM('V = kQ/R')+' — כמו על פני השטח, ולא אפס.',
+     done:function(s){return s.V&&s.r<s.R;}}
+  ]});
+  kit.predict({q:'אותו מטען: פעם כמטען נקודתי ופעם פרוס על משטח גדול. מתרחקים פי 10. השדה של המשטח:',
+    opts:['נחלש פי 100','נחלש פי 10','אינו משתנה'],correct:2,
+    why:'משטח גדול נותן '+_skM('E = σ/2ε₀')+' בכל מרחק קטן ממידותיו, ואילו המטען הנקודתי נחלש כ־'+_skM('1/r²')+' — פי 100. גררו את הקו וראו את הקו הירוק נשאר ישר.'});elcKitFix(kit);
   function draw(){
     if(_simGen[id]!==_g)return;if(_simStop[id])return;
     var Q=Qv()*1e-6, R=Rv()/100;
@@ -30253,6 +30311,13 @@ function simElcCompare(canvas){
     simText(ctx,showV?'V של מישור יורד ליניארית ולעולם אינו מתאפס — ולכן נמדד כאן מקצה הציר'
       :(touched?'הנקודתי והכדור חופפים בדיוק מחוץ לכדור — ההבדל כולו בפנים'
         :'גררו כדי לבחור מרחק'),W/2,H-10,'#7d8da6',10,'center');
+    elcFocus(ctx,kb,0,px,gy+gh/2,14);
+    // ── the lesson's numbers ──
+    if(showV)kit.model('במרחק '+_skM((rSel*100).toFixed(1)+' cm')+' — נקודתי: '+_skM('V = kQ/r = '+sciTxt(Epoint(rSel))+' V')+', כדור: '+_skM((rSel<R?'V = kQ/R = ':'V = kQ/r = ')+sciTxt(Esph(rSel))+' V'));
+    else kit.model('במרחק '+_skM((rSel*100).toFixed(1)+' cm')+' — נקודתי: '+_skM('E = kQ/r² = '+sciTxt(Epoint(rSel))+' V/m')+', כדור: '+_skM(rSel<R?'E = 0':'E = kQ/r² = '+sciTxt(Esph(rSel))+' V/m')+', מישור: '+_skM('E = Q/(2Aε₀) = '+sciTxt(Eplane0)+' V/m'));
+    if(!showV){qLo=Math.min(qLo,Qv());qHi=Math.max(qHi,Qv());}
+    canvas.__cmp={r:rSel,rc:rCross,R:R,V:showV,Ept:Epoint(rSel),Esph:Esph(rSel),Epl:Eplane0};   // for the tests
+    kit.check({V:showV,r:rSel,rc:rCross,R:R,qSpan:qHi/Math.max(qLo,1e-9)});
     requestAnimationFrame(draw);
   }
   requestAnimationFrame(draw);
@@ -30274,6 +30339,25 @@ function simElcSphere(canvas){
     up:function(){drag=false;}});
   var GX=46,GW=0;
   function set(p){rProbe=Math.max(0.004,Math.min(RMAX,(p.x-GX)/Math.max(1,GW)*RMAX));}
+  var kb=elcKbd(canvas,{n:function(){return 1;},get:function(){return {x:GX+GW*rProbe/RMAX,y:46};},
+    set:function(i,x){touched=true;set({x:x});}});
+  var rLo={},kit=simKit(canvas,{missions:[
+    {text:'הכניסו את הגשוש אל תוך המתכת. מה '+_skM('E')+' שם, ומה '+_skM('V')+'?',
+     hint:'גררו לאורך הציר אל האזור המוצלל, משמאל לקו '+_skM('r = R')+'.',
+     why:'בתוך המתכת '+_skM('E = 0')+', אבל '+_skM('V = kQ/R')+' — כמו על פני השטח. שדה אפס פירושו ש־'+_skM('V')+' מפסיק להשתנות, לא שהוא אפס.',
+     done:function(s){return s.inside;}},
+    {text:'הכפילו את הרדיוס באותו מטען. מה קורה לאנרגיה האגורה?',
+     hint:'השאירו את '+_skM('Q')+' במקומו, והזיזו את מחוון הרדיוס למשל מ־10 cm ל־20 cm.',
+     why:_skM('U = kQ²/2R')+': רדיוס כפול — חצי אנרגיה. השדה מתחיל רחוק יותר מהמרכז, ויש פחות ממנו לאגור בו אנרגיה.',
+     done:function(s){return s.doubled;}},
+    {text:'טענו את הכדור במטען גדול ממה שהאוויר סביבו יכול להחזיק',
+     hint:'הקטינו את הרדיוס או הגדילו את '+_skM('Q')+' עד שהשדה על פני הכדור עובר את קו הפריצה.',
+     why:'על פני הכדור '+_skM('E = kQ/R² ≤ 3×10⁶ V/m')+': כדור קטן נפרץ כבר במטען קטן. לכן כיפת מכונת ואן דה גראף גדולה וחלקה.',
+     done:function(s){return s.over;}}
+  ]});
+  kit.predict({q:'מה נכון במרכזו של כדור מתכת טעון?',
+    opts:[_skM('E = 0')+' וגם '+_skM('V = 0'),_skM('E = 0')+' אבל '+_skM('V = kQ/R'),_skM('E')+' ו־'+_skM('V')+' בערכם הגדול ביותר'],correct:1,
+    why:'השדה בפנים אפס, ולכן הפוטנציאל אינו משתנה מפני השטח ועד המרכז: '+_skM('V = kQ/R')+' בכל נקודה בתוך המתכת. גררו את הגשוש פנימה ובדקו.'});elcKitFix(kit);
   function draw(){
     if(_simGen[id]!==_g)return;if(_simStop[id])return;
     var Q=Qv()*1e-6, R=Rv()/100;
@@ -30376,6 +30460,13 @@ function simElcSphere(canvas){
     simText(ctx,(Math.abs(Q)>Qmax?'⚠ האוויר ייפרץ — ':'')+'מטען מרבי לפני פריצה: '+(Qmax*1e6).toFixed(2)+' μC   ·   מתח מרבי: '+(EBD*R/1e3).toFixed(0)+' kV',
       W/2,uby+24,Math.abs(Q)>Qmax?'#ef4444':'#64748b',9.5,'center',Math.abs(Q)>Qmax);
     if(!touched)simText(ctx,'גררו לאורך הציר כדי להזיז את הגשוש',W/2,H-8,'#7d8da6',9.5,'center');
+    elcFocus(ctx,kb,0,px,sy,12);
+    // ── the lesson's numbers ──
+    kit.model(inside?'בתוך המתכת: '+_skM('E = 0, V = kQ/R = 8.99×10⁹ × ('+sciTxt(Q)+') / '+R.toFixed(2)+' = '+sciTxt(Vp)+' V')
+      :'מחוץ לכדור, כמו מטען נקודתי במרכז: '+_skM('E = kQ/r² = '+sciTxt(Math.abs(Ep))+' V/m, V = kQ/r = '+sciTxt(Vp)+' V'));
+    if(rLo.q!==Qv()){rLo={q:Qv(),R:Rv()};}rLo.R=Math.min(rLo.R,Rv());
+    canvas.__sph={E:Ep,V:Vp,U:U,R:R,Q:Q,inside:inside,Qmax:Qmax};   // for the tests
+    kit.check({inside:inside,doubled:Rv()>=2*rLo.R,over:Math.abs(Q)>Qmax});
     requestAnimationFrame(draw);
   }
   requestAnimationFrame(draw);
@@ -31845,6 +31936,27 @@ function simElcPlane(canvas){
   // field of one plate at a point: sigma/2eps0, pointing AWAY from it when positive
   function Ei(sig,px,plx){return (sig*1e-6/(2*EPS0))*(px>plx?1:-1);}
   function Etot(px){return Ei(s1(),px,x1)+(two?Ei(s2(),px,x2):0);}
+  var kb=elcKbd(canvas,{n:function(){return 1;},get:function(){return {x:tx,y:ty};},
+    set:function(i,x,y){touched=true;tx=Math.max(12,Math.min(W-12,x));ty=Math.max(28,Math.min(H*0.62,y));}});
+  // the single-plate mission: how far the test charge has been from the plate
+  var dNear=1e9,dFar=0;
+  var kit=simKit(canvas,{missions:[
+    {text:'לוח אחד בלבד: הרחיקו את מטען הבוחן מהלוח. האם השדה נחלש?',
+     hint:'לחצו ״➖ לוח אחד״ וגררו את מטען הבוחן מקרוב ללוח עד רחוק ממנו, באותו צד.',
+     why:_skM('E = σ/2ε₀')+' — אינו תלוי במרחק: כשמתרחקים, כל פיסת מטען תורמת פחות, אבל נכנסות לתמונה עוד ועוד פיסות, והשניים מתקזזים בדיוק.',
+     done:function(s){return s.one&&s.far>=4*s.near;}},
+    {text:'שני לוחות: אפסו את השדה מחוץ ללוחות, משני הצדדים',
+     hint:'תנו ללוחות צפיפויות שוות בגודלן ומנוגדות בסימן.',
+     why:'מחוץ ללוחות שתי התרומות, '+_skM('σ/2ε₀')+' כל אחת, מצביעות לכיוונים מנוגדים ומתבטלות; בפנים הן מצטרפות ל־'+_skM('σ/ε₀')+' — זהו קבל.',
+     done:function(s){return s.two&&s.s1!==0&&s.s1===-s.s2;}},
+    {text:'ועכשיו אפסו את השדה בין הלוחות',
+     hint:'צפיפויות שוות — ובאותו סימן.',
+     why:'במטענים זהים בין הלוחות התרומות מנוגדות ומתבטלות, ובחוץ הן מצטרפות ל־'+_skM('σ/ε₀')+'.',
+     done:function(s){return s.two&&s.s1!==0&&s.s1===s.s2;}}
+  ]});
+  kit.predict({q:'מטען בוחן נמצא במרחק 1 cm ממשטח טעון גדול, ואחר כך במרחק 10 cm. השדה במרחק 10 cm:',
+    opts:['חלש פי 100','חלש פי 10','שווה'],correct:2,
+    why:'ליד משטח גדול '+_skM('E = σ/2ε₀')+' בכל מרחק קטן ממידותיו — אין כאן '+_skM('1/r²')+'. גררו את מטען הבוחן וראו שהחץ אינו משתנה.'});elcKitFix(kit);
   function draw(){
     if(_simGen[id]!==_g)return;if(_simStop[id])return;
     var bg=ctx.createLinearGradient(0,0,0,H);bg.addColorStop(0,'#020810');bg.addColorStop(1,'#04101e');
@@ -31947,6 +32059,13 @@ function simElcPlane(canvas){
     // the graph's axes, named
     simText(ctx,'V',18,gy0+14,'#a78bfa',10,'left',true);
     simText(ctx,'x →',W-18,gy0+gh-8,'#7d8da6',9,'right');
+    elcFocus(ctx,kb,0,tx,ty,16);
+    // ── the lesson's numbers ──
+    kit.model(two?'השדה בנקודת הבוחן — סכום עם סימן, ימינה חיובי: '+_skM('E = E₁ + E₂ = ('+elcSg(E1/1e5,2)+'×10⁵) + ('+elcSg(E2/1e5,2)+'×10⁵) = '+elcSg(Et/1e5,2)+'×10⁵ V/m')
+      :'לוח בודד: '+_skM('E = |σ|/2ε₀ = '+Math.abs(S1).toFixed(1)+'×10⁻⁶ / (2 × 8.85×10⁻¹²) = '+elcSg(Math.abs(E1)/1e5,2)+'×10⁵ V/m')+' — בכל מרחק');
+    if(two){dNear=1e9;dFar=0;}else{var dd=Math.abs(tx-x1);dNear=Math.min(dNear,dd);dFar=Math.max(dFar,dd);}
+    canvas.__pln={E:Et,E1:E1,E2:E2,two:two};   // for the tests
+    kit.check({one:!two,near:Math.max(dNear,8),far:dFar,two:two,s1:S1,s2:two?s2():0});
     requestAnimationFrame(draw);
   }
   requestAnimationFrame(draw);
@@ -31977,6 +32096,25 @@ function simElcConductor(canvas){
   canvas.addEventListener('mousedown',_dn);canvas.addEventListener('touchstart',_dn,{passive:false});
   canvas.addEventListener('mousemove',_mv);canvas.addEventListener('touchmove',_mv,{passive:false});
   canvas.addEventListener('mouseup',_up);canvas.addEventListener('touchend',_up);
+  var kb=elcKbd(canvas,{n:function(){return sharpMode?0:1;},get:function(){return {x:pxp,y:pyp};},
+    set:function(i,x,y){touched=true;pxp=Math.max(14,Math.min(W*0.52,x));pyp=Math.max(20,Math.min(H-30,y));}});
+  var kit=simKit(canvas,{missions:[
+    {text:'גררו את הגשוש אל תוך המוליך. מה השדה שם?',
+     hint:'גררו את הנקודה הצהובה אל תוך העיגול.',
+     why:'בשיווי משקל '+_skM('E = 0')+' בתוך המתכת: אילו היה שם שדה, האלקטרונים החופשיים עוד היו נעים. ו־'+_skM('V')+' בפנים אינו אפס — הוא '+_skM('kQ/R')+', כמו על פני השטח.',
+     done:function(s){return s.inside&&!s.sharp;}},
+    {text:'הפעילו שדה חיצוני, הפכו את המוליך לנייטרלי, ומדדו את השדה בתוכו',
+     hint:'לחצו ״⚡ שדה חיצוני״, הביאו את מחוון המטען ל־0, והכניסו את הגשוש פנימה.',
+     why:'המטענים המושרים — שליליים היכן שהשדה נכנס וחיוביים היכן שהוא יוצא — מבטלים את השדה החיצוני בפנים בדיוק. זהו כלוב פאראדיי.',
+     done:function(s){return s.ext&&s.q0&&s.inside&&!s.sharp;}},
+    {text:'במצב ״חוד״, גרמו לפריקת חוד',
+     hint:'לחצו ״📐 חוד ופריקה״, ואז הגדילו את '+_skM('|Q|')+' או הקטינו את '+_skM('R')+'.',
+     why:'כל פני המוליך באותו פוטנציאל, ו־'+_skM('E ≈ V/ρ')+': היכן שרדיוס העקמומיות קטן, השדה עובר את חוזק הפריצה של האוויר, '+_skM('3×10⁶ V/m')+'.',
+     done:function(s){return s.sharp&&s.spark;}}
+  ]});
+  kit.predict({q:'מה הפוטנציאל בתוך כדור מתכת טעון?',
+    opts:['אפס, כי השדה בפנים אפס','כמו על פני השטח, '+_skM('kQ/R'),'הגדול ביותר — במרכז'],correct:1,
+    why:'השדה בפנים אפס, ולכן הפוטנציאל אינו משתנה מפני השטח פנימה: '+_skM('V = kQ/R')+' בכל הפנים. גררו את הגשוש פנימה וקראו '+_skM('V')+'.'});elcKitFix(kit);
   function draw(){
     if(_simStop[id])return;animT+=0.03;
     var Q=Qv()*1e-6, Rp=Rpx(), R=Rp/PXM;
@@ -32107,6 +32245,9 @@ function simElcConductor(canvas){
         'זהו העיקרון של כליא הברק'];
       var SW=Math.min(PX0+PW-8,Math.max(PW,optInfoBoxW(ctx,SL))),SX=PX0+PW-SW;
       optInfoBox(ctx,SX,SX<PX0-1?Math.max(H-190,cy+rr*1.5+14):H-190,SW,SL,{wrap:true});
+      kit.model('בחוד: '+_skM('E ≈ V/ρ = '+(Vsurf/1000).toFixed(0)+' kV / '+(rhoTip*100).toFixed(1)+' cm = '+(Etip/1e6).toFixed(1)+'×10⁶ V/m')+(Etip>3e6?' — מעל חוזק הפריצה של האוויר':''));
+      canvas.__cnd={sharp:true,Etip:Etip};
+      kit.check({sharp:true,spark:Etip>3e6});
       requestAnimationFrame(draw);return;
     }
     var dxp=(pxp-cx)/PXM, dyp=(pyp-cy)/PXM;
@@ -32188,6 +32329,12 @@ function simElcConductor(canvas){
       '\u200eE = '+(Ep===0?'0 בדיוק':sciTxt(Ep)+' V/m'),
       '\u200eV = '+(Vp/1000).toFixed(1)+' kV'+(inside?'  (קבוע בכל הפנים)':''),
       inside?(Vp===0?'בפנים: E=0 (וכאן גם V=0)':'בפנים: E=0 אבל V≠0'):(E0x?'בחוץ: חיצוני + מושרה; על פני הכדור — ניצב לו':'בחוץ: כמו מטען נקודתי במרכז')],{wrap:true,bottom:true});
+    elcFocus(ctx,kb,0,pxp,pyp,14);
+    // ── the lesson's numbers ──
+    kit.model(inside?'בתוך המוליך: '+_skM('E = 0, V = kQ/R = '+(Vp/1000).toFixed(1)+' kV')
+      :(E0x?'בחוץ, שדה חיצוני ועוד הדיפול המושרה: '+_skM('|E| = '+sciTxt(Ep)+' V/m'):'בחוץ: '+_skM('E = kQ/r² = '+sciTxt(Ep)+' V/m, V = kQ/r = '+(Vp/1000).toFixed(1)+' kV')));
+    canvas.__cnd={sharp:false,E:Ep,V:Vp,inside:inside};   // for the tests
+    kit.check({inside:inside,sharp:false,ext:!!E0x,q0:Math.abs(Qv())<1e-9});
     requestAnimationFrame(draw);
   }requestAnimationFrame(draw);
 }
@@ -32251,7 +32398,7 @@ function simElcUpair(canvas){
   ]});
   kit.predict({q:'שני מטענים במנוחה: '+_skM('q₁ = +2 μC')+' ו־'+_skM('q₂ = −3 μC')+'. משחררים אותם. הם:',
     opts:['נשארים במקום — ל־'+_skM('U < 0')+' אין אנרגיה לשחרר','נעים זה אל זה וצוברים אנרגיה קינטית','מתרחקים זה מזה'],correct:1,
-    why:'הם נמשכים, ולכן נעים זה אל זה. '+_skM('U')+' יורדת — נעשית שלילית יותר — וההפרש הופך לאנרגיה קינטית. '+_skM('U < 0')+' פירושו שצריך להשקיע עבודה כדי להפריד אותם, לא שהם אינם יכולים לנוע.'});
+    why:'הם נמשכים, ולכן נעים זה אל זה. '+_skM('U')+' יורדת — נעשית שלילית יותר — וההפרש הופך לאנרגיה קינטית. '+_skM('U < 0')+' פירושו שצריך להשקיע עבודה כדי להפריד אותם, לא שהם אינם יכולים לנוע.'});elcKitFix(kit);
   canvas.__up=function(){return {x1:x1,x2:x2,cy:cy,PXC:PXC,r:rOf(),U:Uof(rOf()),U0:U0,released:released,K:released||U0?Math.max(0,U0-Uof(rOf())):0};};
   function draw(){
     if(_simGen[id]!==_g||_simStop[id])return;t+=1/60;
@@ -32374,7 +32521,7 @@ function simElcNetwork(canvas){
   ]});
   kit.predict({q:'שני קבלים בטור: '+_skM('C₁ = 2 μF')+' ו־'+_skM('C₂ = 3 μF')+'. על איזה מהם יותר מטען?',
     opts:['על '+_skM('C₂')+' — הקבל הגדול','על '+_skM('C₁')+' — הקבל הקטן','על שניהם אותו מטען'],correct:2,
-    why:'בטור הלוחות הפנימיים הם זוג מבודד: כל אלקטרון שעוזב אחד מהם מגיע לשני — ולכן המטען זהה. מה שמתחלק הוא המתח, '+_skM('V = Q/C')+'. עברו לטור וראו.'});
+    why:'בטור הלוחות הפנימיים הם זוג מבודד: כל אלקטרון שעוזב אחד מהם מגיע לשני — ולכן המטען זהה. מה שמתחלק הוא המתח, '+_skM('V = Q/C')+'. עברו לטור וראו.'});elcKitFix(kit);
   function draw(){
     if(_simStop[id])return;animT+=0.03;
     var c1=C1(),c2=C2(),V=Vb();
@@ -32520,7 +32667,7 @@ function simElcPlates(canvas){
   ]});
   kit.predict({q:'מטען אחד נמצא בין הלוחות ממש ליד הלוח החיובי, ומטען זהה נמצא באמצע. הכוח על המטען שליד הלוח:',
     opts:['גדול יותר','קטן יותר','שווה בדיוק'],correct:2,
-    why:'בין לוחות גדולים השדה אחיד: '+_skM('E = V/d')+' בכל נקודה, ולכן גם '+_skM('F = qE')+' זהה בכל מקום — זו בדיוק הסיבה שהמסלול הוא פרבולה מושלמת. ראו את החצים: באותו אורך בכל המרווח.'});
+    why:'בין לוחות גדולים השדה אחיד: '+_skM('E = V/d')+' בכל נקודה, ולכן גם '+_skM('F = qE')+' זהה בכל מקום — זו בדיוק הסיבה שהמסלול הוא פרבולה מושלמת. ראו את החצים: באותו אורך בכל המרווח.'});elcKitFix(kit);
   var hitE=false,protonOut=false;
   function draw(){
     if(_simStop[id])return;animT+=0.03;
@@ -32689,7 +32836,7 @@ function simElcCap(canvas){
   ]});
   kit.predict({q:'הקבל מחובר לסוללה, ומכפילים את המתח. הקיבול '+_skM('C')+':',
     opts:['גדל פי 2','קטן פי 2','אינו משתנה'],correct:2,
-    why:'הכפלת המתח מכפילה את המטען, והיחס '+_skM('Q/V')+' — שנקבע מהשטח, מהמרווח ומהחומר — נשאר. נסו בעצמכם בעזרת מחוון המתח.'});
+    why:'הכפלת המתח מכפילה את המטען, והיחס '+_skM('Q/V')+' — שנקבע מהשטח, מהמרווח ומהחומר — נשאר. נסו בעצמכם בעזרת מחוון המתח.'});elcKitFix(kit);
   function draw(){
     if(_simStop[id])return;animT+=0.03;
     var Vx=Vv(),A=Acm()*1e-4,d=dmm()*1e-3;
@@ -35430,7 +35577,7 @@ function buildSim(sim){
   else if(sim.type==='dc-current')extra=C(rng('dcc-I',0.5,5,2,0.1,'זרם I',' A')+rng('dcc-A',0.5,4,1,0.1,'חתך החוט הימני',' mm²')+btn('dcc-run','⏸ עצרו','btn-secondary')+btn('dcc-reset','↺ איפוס מונים','btn-secondary'));
   else if(sim.type==='dc-ohm')extra=C(rng('ohm-V',0,12,6,0.1,'מתח V',' V')+rng('ohm-R',2,50,12,1,'התנגדות R',' Ω')+btn('ohm-mode','💡 נורת להט','btn-secondary'));
   else if(sim.type==='dc-power')extra=C(rng('pw-V',1,24,12,0.5,'מתח V',' V')+rng('pw-R',2,48,6,1,'התנגדות R',' Ω')+btn('pw-run','⏸ עצרו','btn-secondary')+btn('pw-reset','↺ איפוס אנרגיה','btn-secondary'));
-  else if(sim.type==='elc-plane')extra=C(rng('pln-s1',-6,6,4,0.5,'σ₁ של הלוח השמאלי',' μC/m²')+rng('pln-s2',-6,6,-4,0.5,'σ₂ של הלוח הימני',' μC/m²')+btn('pln-two','➖ לוח אחד','btn-secondary')+btn('pln-sign','🔴 מטען בוחן חיובי','btn-secondary'));
+  else if(sim.type==='elc-plane')extra=C(rng('pln-s1',-6,6,4,0.5,'σ₁ של הלוח השמאלי',' μC/m²')+rng('pln-s2',-6,6,-2,0.5,'σ₂ של הלוח הימני',' μC/m²')+btn('pln-two','➖ לוח אחד','btn-secondary')+btn('pln-sign','🔴 מטען בוחן חיובי','btn-secondary'));
   else if(sim.type==='elc-conductor')extra=C(rng('cnd-Q',-8,8,4,0.5,'מטען המוליך Q',' μC')+rng('cnd-R',30,70,50,2,'רדיוס R','','_fmtHalfCm')+btn('cnd-mode','📐 חוד ופריקה','btn-secondary')+btn('cnd-ext','⚡ שדה חיצוני','btn-secondary'));
   else if(sim.type==='elc-potential')extra=C(rng('elc-Vq',-8,8,2,0.5,'מטען Q₁',' μC')+rng('elc-Vq2',-8,8,-3,0.5,'מטען Q₂',' μC')+rng('elc-q0',-5,5,1,0.5,'מטען בוחן q₀',' nC')+btn('pot-two','⊕ הוסיפו מטען שני','btn-secondary')+btn('pot-mark','📌 סמנו נקודה A','btn-secondary'));
   else if(sim.type==='elc-plates')extra=C(rng('elc-V',50,400,200,10,'מתח V',' V')+rng('elc-d',2,8,4,0.5,'מרווח d',' cm')+rng('elc-v0',5,30,20,1,'v₀ כניסה',' ×10⁶ m/s')+btn('pl-launch','🚀 שגרו','btn-primary')+btn('pl-flip','± הפכו קוטביות','btn-secondary')+btn('pl-part','🔁 החליפו לפרוטון','btn-secondary'));
