@@ -433,6 +433,62 @@ const EXPECT = {
     if (P !== 0) { const g = /dᵢ = ([+−-]?\d+\.\d\d) m/.exec(tx); t(`eye ${mode} P=${P} d=${d}: the glasses' image dᵢ`, g && Math.abs(num(g[1]) - 1 / (P - (isFinite(d) ? 1 / d : 0))) < 0.011, tx); }
   }
 
+  // ── optical fibre: θc = arcsin(n₂/n₁), NA = √(n₁² − n₂²), θmax = arcsin NA;
+  // the ray is trapped exactly when sin θ ≤ NA (n₁ > n₂), whatever the sim draws ──
+  await open('opt-refraction', 'fiber-optics');
+  for (const [n1, n2, th] of [[1.5, 1.46, 12], [1.5, 1.46, 21], [1.62, 1.52, 34], [1.62, 1.52, 35], [1.8, 1.2, 40], [1.4, 1.5, 10]]) {
+    await setv('fib-n1', n1); await setv('fib-n2', n2); await setv('fib-ang', th); await p.waitForTimeout(100);
+    const tx = await modelTx();
+    if (n1 <= n2) { t(`fibre n₁=${n1} n₂=${n2}: no critical angle, leaks`, /n₁ ≤ n₂/.test(tx) && !/≥ θc/.test(tx), tx); continue; }
+    const NA = Math.sqrt(n1 * n1 - n2 * n2), tm = NA >= 1 ? 90 : asind(NA), trapped = sind(th) <= NA;
+    const gc = /θc = (\d+\.\d)°/.exec(tx), gn = /= (\d\.\d{3}) ⇒ θmax = (\d+\.\d)°/.exec(tx);
+    t(`fibre n₁=${n1} n₂=${n2}: θc = arcsin(n₂/n₁)`, gc && Math.abs(+gc[1] - asind(n2 / n1)) < 0.051, tx);
+    t(`fibre n₁=${n1} n₂=${n2}: NA and θmax`, gn && Math.abs(+gn[1] - NA) < 0.0006 && Math.abs(+gn[2] - tm) < 0.051, tx);
+    t(`fibre n₁=${n1} n₂=${n2} θ=${th}°: ${trapped ? 'trapped' : 'leaks'}`, trapped ? /≥ θc/.test(tx) : /< θc/.test(tx), tx);
+  }
+  await p.evaluate(() => { state.missions = {}; render(); }); await p.waitForTimeout(1100);
+  await p.evaluate(() => document.querySelector('#app .sim-container').dispatchEvent(new Event('click')));
+  await setv('fib-n1', 1.5); await setv('fib-n2', 1.46); await setv('fib-ang', 20); await setv('fib-n2', 1.6);
+  await setv('fib-n1', 1.62); await setv('fib-n2', 1.52); await setv('fib-ang', 34);
+  t('fibre: every mission is reachable', await missions() === '111', await missions());
+
+  // ── telescope (Kepler): M = −fₒ/fₑ, length fₒ + fₑ; missions ──
+  await open('opt-lenses', 'telescope');
+  for (const [fo, fe] of [[150, 25], [300, 5], [30, 60]]) {
+    await setv('tel-fo', fo); await setv('tel-fe', fe); const tx = await modelFor('= −' + fo + '/' + fe + ' ');
+    t(`telescope fₒ=${fo} fₑ=${fe}: M = −fₒ/fₑ and length`, tx.includes('M = −fₒ/fₑ = −' + fo + '/' + fe + ' = −' + (fo / fe).toFixed(2)) && tx.includes('fₒ + fₑ = ' + (fo + fe) + ' mm'), tx);
+  }
+  await p.evaluate(() => { state.missions = {}; render(); }); await p.waitForTimeout(1100);
+  await p.evaluate(() => document.querySelector('#app .sim-container').dispatchEvent(new Event('click')));
+  await setv('tel-fo', 150); await setv('tel-fe', 15); await setv('tel-fo', 200); await setv('tel-fe', 10); await setv('tel-fo', 30); await setv('tel-fe', 60);
+  t('telescope: every mission is reachable', await missions() === '111', await missions());
+
+  // ── two-source interference: a tap anywhere reads the exact path difference
+  // |r₂ − r₁|/λ (sources 60 px per µm apart); |m| ≤ d/λ; the missions are
+  // reached by tapping where the geometry puts Δ = 1.5λ and Δ = 2λ ──
+  await open('opt-waves', 'interference');
+  await p.evaluate(() => document.getElementById('sim-canvas').scrollIntoView({ block: 'center' })); await p.waitForTimeout(150);
+  const igeo = () => p.evaluate(() => { const cv = document.getElementById('sim-canvas'), b = cv.getBoundingClientRect();
+    return { x: b.left, y: b.top, W: cv.offsetWidth, H: cv.offsetHeight, lam: +document.getElementById('inp-int-lambda').value, d: +document.getElementById('inp-int-d').value }; });
+  const iD = (g, x, y) => { const sx = g.W * 0.22, s1 = g.H / 2 - g.d * 30, s2 = g.H / 2 + g.d * 30; return Math.abs(Math.hypot(x - sx, y - s2) - Math.hypot(x - sx, y - s1)) / (g.lam * 0.06); };
+  // a point 70 px past the barrier where Δ = want (Δ grows from 0 on the axis towards the top)
+  const iAt = (g, want) => { const x = g.W * 0.22 + 70; let lo = 14, hi = g.H / 2; for (let i = 0; i < 40; i++) { const m = (lo + hi) / 2; if (iD(g, x, m) > want) lo = m; else hi = m; } return { x, y: (lo + hi) / 2 }; };
+  // a mouse event carries whole client pixels: tap there and return the canvas point the sim receives
+  const iTap = async pt => { const g = await igeo(), cx = Math.round(g.x + pt.x), cy = Math.round(g.y + pt.y); await p.mouse.click(cx, cy); await p.waitForTimeout(160); return { x: cx - g.x, y: cy - g.y }; };
+  for (const [lam, d, want] of [[500, 2, 1.5], [500, 2, 2], [650, 3.4, 3], [400, 1.2, 0.5]]) {
+    await setv('int-lambda', lam); await setv('int-d', d); const g = await igeo(), pt = iAt(g, want);
+    const q0 = await iTap(pt), tx = await modelTx(), gD = /Δ = \|r₂ − r₁\| = (\d+\.\d\d)λ/.exec(tx), r = d * 1000 / lam;
+    t(`interference λ=${lam} d=${d}: Δ at the tapped point`, gD && Math.abs(+gD[1] - iD(g, q0.x, q0.y)) < 0.0051 && Math.abs(+gD[1] - want) < 0.05, tx + ' | ' + iD(g, q0.x, q0.y).toFixed(3));
+    t(`interference λ=${lam} d=${d}: ${Number.isInteger(want) ? 'constructive, m = ' + want : 'destructive'}`, Number.isInteger(want) ? tx.includes('(m = ' + want + ')') : !/\(m = /.test(tx), tx);
+    t(`interference λ=${lam} d=${d}: d/λ and |m| ≤ ⌊d/λ⌋`, tx.includes('= ' + r.toFixed(2) + 'λ') && tx.includes('|m| ≤ ' + Math.floor(r + 1e-9)), tx);
+  }
+  await p.evaluate(() => { state.missions = {}; render(); }); await p.waitForTimeout(1100);
+  await p.evaluate(() => document.getElementById('sim-canvas').scrollIntoView({ block: 'center' })); await p.waitForTimeout(150);
+  await setv('int-lambda', 500); await setv('int-d', 2);
+  { const g = await igeo(); await iTap(iAt(g, 1.5)); await iTap(iAt(g, 2)); }
+  await setv('int-lambda', 700); await setv('int-d', 1);
+  t('interference: every mission is reachable', await missions() === '111', await missions());
+
   console.log('   every draggable simulation by touch, on a phone');
   const tc = await b.newContext({ viewport: { width: 390, height: 1300 }, hasTouch: true, isMobile: true, deviceScaleFactor: 2 });
   const q = await tc.newPage(); q.on('pageerror', x => errs.push(x.message));
