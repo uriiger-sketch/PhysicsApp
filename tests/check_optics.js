@@ -477,7 +477,8 @@ const EXPECT = {
   const iTap = async pt => { const g = await igeo(), cx = Math.round(g.x + pt.x), cy = Math.round(g.y + pt.y); await p.mouse.click(cx, cy); await p.waitForTimeout(160); return { x: cx - g.x, y: cy - g.y }; };
   for (const [lam, d, want] of [[500, 2, 1.5], [500, 2, 2], [650, 3.4, 3], [400, 1.2, 0.5]]) {
     await setv('int-lambda', lam); await setv('int-d', d); const g = await igeo(), pt = iAt(g, want);
-    const q0 = await iTap(pt), tx = await modelTx(), gD = /Δ = \|r₂ − r₁\| = (\d+\.\d\d)λ/.exec(tx), r = d * 1000 / lam;
+    // the line once it shows the tapped point (a frame can be late on a busy machine)
+    const q0 = await iTap(pt), want0 = iD(g, q0.x, q0.y).toFixed(2) + 'λ', tx = await modelFor('= ' + want0), gD = /Δ = \|r₂ − r₁\| = (\d+\.\d\d)λ/.exec(tx), r = d * 1000 / lam;
     t(`interference λ=${lam} d=${d}: Δ at the tapped point`, gD && Math.abs(+gD[1] - iD(g, q0.x, q0.y)) < 0.0051 && Math.abs(+gD[1] - want) < 0.05, tx + ' | ' + iD(g, q0.x, q0.y).toFixed(3));
     t(`interference λ=${lam} d=${d}: ${Number.isInteger(want) ? 'constructive, m = ' + want : 'destructive'}`, Number.isInteger(want) ? tx.includes('(m = ' + want + ')') : !/\(m = /.test(tx), tx);
     t(`interference λ=${lam} d=${d}: d/λ and |m| ≤ ⌊d/λ⌋`, tx.includes('= ' + r.toFixed(2) + 'λ') && tx.includes('|m| ≤ ' + Math.floor(r + 1e-9)), tx);
