@@ -344,6 +344,20 @@ const sig2 = x => x === 0 ? 0 : Number(x.toPrecision(2));
   await click('btn-cap-disc'); const cc0 = await cap(); await setR('inp-elc-cd', 4); const cc1 = await cap();
   t('capacitor connected, gap halved: C, Q, U ×2 and E ×2, V fixed', Math.abs(cc1.C / cc0.C - 2) < 1e-9 && Math.abs(cc1.U / cc0.U - 2) < 1e-9 && Math.abs(cc1.E / cc0.E - 2) < 1e-9 && cc1.V === cc0.V && (await solved(2)));
 
+  // ── capacitors in series and in parallel ──
+  await open('elc-network'); await p.waitForTimeout(400);
+  const net = async () => { await p.waitForTimeout(200); return p.evaluate(() => document.querySelector('#app canvas').__net); };
+  let nw = await net();
+  t('parallel 2 and 3 μF at 12 V: C = 5 μF, Q₁ = 24 μC, Q₂ = 36 μC, U = 360 μJ', nw.C === 5 && nw.Q1 === 24 && nw.Q2 === 36 && Math.abs(nw.U - 360) < 1e-9, JSON.stringify(nw));
+  await click('btn-net-mode'); nw = await net();
+  t('series 2 and 3 μF at 12 V: C = 1.2 μF, the same Q = 14.4 μC on both, V₁ + V₂ = 12 V', Math.abs(nw.C - 1.2) < 1e-12 && nw.Q1 === nw.Q2 && Math.abs(nw.Q1 - 14.4) < 1e-9 && Math.abs(nw.V1 + nw.V2 - 12) < 1e-9, JSON.stringify(nw));
+  await setR('inp-net-c2', 6); nw = await net();
+  t('series 2 and 6 μF: V₁ = 3V₂ (the smaller capacitor takes the larger voltage) -- mission', Math.abs(nw.V1 / nw.V2 - 3) < 1e-9 && (await solved(0)));
+  await setR('inp-net-c1', 4); await setR('inp-net-c2', 4); nw = await net();
+  t('series 4 and 4 μF: C = 2 μF -- mission', Math.abs(nw.C - 2) < 1e-12 && (await solved(1)));
+  const Us = nw.U; await click('btn-net-mode'); nw = await net();
+  t('equal capacitors: parallel stores 4 times the series energy -- mission', Math.abs(nw.U / Us - 4) < 1e-9 && (await solved(2)));
+
   // ── dielectric: what is held fixed. Bars read C, Q, V, E, U against the empty capacitor ──
   await open('elc-dielectric'); await p.waitForTimeout(400);
   const ratios = async () => { const l = (await txt(300)).split('\n').filter(x => /^×[0-9.]+$/.test(x)).map(x => +x.slice(1)); return l.slice(-6, -1); };

@@ -7476,7 +7476,7 @@ const ELECTRO_CONTENT={
       </ul>
       <p>בכל תכנון מהנדסים מאזנים בין השניים: קיבול מול עמידות במתח.</p></div>`,
   },
-  sim:{type:'elc-network',desc:'החליפו בין טור למקביל וראו את המעגל מתחבר מחדש. השוו את הערכים שליד שני הקבלים: במקביל המתח זהה, בטור המטען. עקבו אחר C_eq, Q ו־V בכל קבל, ואחר האנרגיה האגורה.'},
+  sim:{type:'elc-network',desc:'הקישו על המעגל כדי לעבור בין טור למקביל, וראו אותו מתחבר מחדש. השוו את הערכים שליד שני הקבלים: במקביל המתח זהה, בטור המטען. עקבו אחר C_eq, Q ו־V בכל קבל, ואחר האנרגיה האגורה.'},
   example:{title:'קיבול שקול',text:`שני קבלים: ${M('C_1=6\\,\\mu\\text{F}')} ו־${M('C_2=3\\,\\mu\\text{F}')}.`,steps:[
     {q:'מה הקיבול השקול במקביל?',a:`${M('C=6+3=9\\,\\mu\\text{F}')} — גדול מהגדול שבהם.`},
     {q:'ומה בטור?',a:`${M('C=\\dfrac{6\\times3}{6+3}=2\\,\\mu\\text{F}')} — קטן מהקטן שבהם.`}]},
@@ -15619,7 +15619,7 @@ function simElcDielectric(canvas){
       ctx.beginPath();ctx.moveTo(BX,PT-5);ctx.lineTo(BX,by-12);ctx.moveTo(BX,by+12);ctx.lineTo(BX,PB+5);ctx.stroke();
       ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(BX-11,by-8);ctx.lineTo(BX+11,by-8);ctx.stroke();
       ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(BX-6,by+2);ctx.lineTo(BX+6,by+2);ctx.stroke();
-      slTxt(ctx,V0.toFixed(0)+' V',BX,by+22,'#94a3b8',11,'center');
+      slTxt(ctx,V0.toFixed(0)+' V',BX+9,by+22,'#94a3b8',11,'left');   // beside the wire, not on it
     } else {
       ctx.beginPath();ctx.moveTo(BX,PT-5);ctx.lineTo(BX,by-16);ctx.moveTo(BX,by+16);ctx.lineTo(BX,PB+5);ctx.stroke();
       ctx.beginPath();ctx.moveTo(BX,by-16);ctx.lineTo(BX+15,by-3);ctx.stroke();
@@ -32345,7 +32345,7 @@ function simElcUpair(canvas){
 function simElcNetwork(canvas){
   // On a phone the readout panel covered C2; there it moves under the bars.
   var NAR=((canvas.parentElement&&canvas.parentElement.clientWidth)||800)<560;
-  const H0=460, H=NAR?590:H0;const{ctx,W,dpr}=setupCanvas(canvas,H);
+  const H0=460, H=NAR?480:H0;const{ctx,W,dpr}=setupCanvas(canvas,H);
   const id=canvas.id;var animT=0;var series=false;
   function C1(){var e=document.getElementById('inp-net-c1');return e?parseFloat(e.value):2;}
   function C2(){var e=document.getElementById('inp-net-c2');return e?parseFloat(e.value):3;}
@@ -32353,6 +32353,28 @@ function simElcNetwork(canvas){
   var tb=document.getElementById('btn-net-mode');
   if(tb)tb.addEventListener('click',function(){series=!series;
     tb.textContent=series?'⇉ עברו למקביל':'⇶ עברו לטור';});
+  // a tap on the circuit rewires it, as the button does
+  canvas.addEventListener('click',function(e){var p=simPointerXY(canvas,dpr,e);if(p.y<H0*0.76&&tb)tb.click();});
+  canvas.tabIndex=0;
+  canvas.addEventListener('keydown',function(e){if((e.key===' '||e.key==='Enter')&&tb){tb.click();e.preventDefault();}});
+  var seen={};
+  var kit=simKit(canvas,{missions:[
+    {text:'בחיבור טור, הביאו את המתח על '+_skM('C₁')+' לפי 3 מהמתח על '+_skM('C₂'),
+     hint:'בטור המטען על שני הקבלים זהה, ו־'+_skM('V = Q/C')+'. איזה מהם צריך להיות הקטן?',
+     why:'בטור המטען משותף, ולכן '+_skM('V₁/V₂ = C₂/C₁')+': הקבל הקטן נושא את המתח הגדול — כאן '+_skM('C₂ = 3C₁')+'.',
+     done:function(s){return s.ser&&Math.abs(s.V1/s.V2-3)<0.03;}},
+    {text:'הרכיבו בטור קיבול שקול של '+_skM('2 μF')+' בדיוק',
+     hint:'בטור '+_skM('1/C = 1/C₁ + 1/C₂')+'. נסו שני קבלים שווים — איזה ערך צריך כל אחד?',
+     why:_skM('1/C = 1/C₁ + 1/C₂')+': למשל 4 ו־4, או 3 ו־6 μF. הקיבול השקול בטור קטן מכל אחד מהשניים.',
+     done:function(s){return s.ser&&Math.abs(s.C-2)<0.005;}},
+    {text:'עם אותם קבלים ואותה סוללה, השוו את האנרגיה האגורה במקביל ובטור',
+     hint:'קראו את '+_skM('U')+' במצב אחד, ועברו למצב השני בלי לשנות דבר אחר.',
+     why:'במקביל '+_skM('C = C₁ + C₂')+' גדול יותר, ובאותו מתח '+_skM('U = ½CV²')+' גדולה יותר. בשני קבלים שווים — פי 4 בדיוק.',
+     done:function(s){return s.both;}}
+  ]});
+  kit.predict({q:'שני קבלים בטור: '+_skM('C₁ = 2 μF')+' ו־'+_skM('C₂ = 3 μF')+'. על איזה מהם יותר מטען?',
+    opts:['על '+_skM('C₂')+' — הקבל הגדול','על '+_skM('C₁')+' — הקבל הקטן','על שניהם אותו מטען'],correct:2,
+    why:'בטור הלוחות הפנימיים הם זוג מבודד: כל אלקטרון שעוזב אחד מהם מגיע לשני — ולכן המטען זהה. מה שמתחלק הוא המתח, '+_skM('V = Q/C')+'. עברו לטור וראו.'});
   function draw(){
     if(_simStop[id])return;animT+=0.03;
     var c1=C1(),c2=C2(),V=Vb();
@@ -32367,7 +32389,7 @@ function simElcNetwork(canvas){
     ctx.save();ctx.strokeStyle='#fbbf24';ctx.lineWidth=3.5;
     ctx.beginPath();ctx.moveTo(bx-14,byC-10);ctx.lineTo(bx+14,byC-10);ctx.stroke();
     ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(bx-8,byC+10);ctx.lineTo(bx+8,byC+10);ctx.stroke();ctx.restore();
-    optLabel(ctx,'‎'+V.toFixed(0)+' V',bx,byC+30,'#fbbf24',10);
+    optLabel(ctx,'‎'+V.toFixed(0)+' V',bx+10,byC+30,'#fbbf24',10,'left');
     function capSym(x,y,lab,Cv,Qv,Vv,col){
       ctx.save();ctx.strokeStyle=col;ctx.lineWidth=4;optGlow(ctx,col,8);
       ctx.beginPath();ctx.moveTo(x-5,y-18);ctx.lineTo(x-5,y+18);ctx.stroke();
@@ -32430,13 +32452,21 @@ function simElcNetwork(canvas){
              BX+BW/2,BY+68,'#a78bfa',9.5);
     // Panel moved to the free right-hand column: at H-150 it sat on top of the
     // comparison bars. LTR marks keep "1/C_eq" from being reordered by bidi.
-    optInfoBox(ctx,NAR?8:W-232,NAR?H0+14:H0*0.30,NAR?W-16:224,[
+    // on a phone the equation line under the canvas carries these numbers
+    if(!NAR)optInfoBox(ctx,W-232,H0*0.30,224,[
       series?'הקיבול השקול:':'הקיבול השקול:',
       series?'‎1/C = 1/C₁ + 1/C₂':'‎C = C₁ + C₂',
       '‎C = '+Ceq.toFixed(2)+' μF',
       series?'המטען המשותף:':'המטען הכולל:',
       '‎Q = '+(series?Q1:(Q1+Q2)).toFixed(1)+' μC',
       '‎U = ½CV² = '+U.toFixed(1)+' μJ']);
+    if(animT<9)optLabel(ctx,'👆 הקישו על המעגל כדי לחבר אותו מחדש',W/2,H0*0.80-12,'#fbbf24',9.5);
+    // ── the lesson's numbers ──
+    kit.model(series?'בטור, אותו מטען על שניהם: '+_skM('1/C = 1/C₁ + 1/C₂ ⇒ C = '+Ceq.toFixed(2)+' μF, Q = CV = '+Q1.toFixed(1)+' μC, V₁ = Q/C₁ = '+V1.toFixed(2)+' V, V₂ = Q/C₂ = '+V2.toFixed(2)+' V, U = ½CV² = '+U.toFixed(1)+' μJ')
+      :'במקביל, אותו מתח על שניהם: '+_skM('C = C₁ + C₂ = '+Ceq.toFixed(1)+' μF, Q₁ = C₁V = '+Q1.toFixed(1)+' μC, Q₂ = C₂V = '+Q2.toFixed(1)+' μC, U = ½CV² = '+U.toFixed(1)+' μJ'));
+    var key=c1+'|'+c2+'|'+V;if(!seen[key])seen={};seen[key]=seen[key]||{};seen[key][series?'s':'p']=true;
+    canvas.__net={C:Ceq,Q1:Q1,Q2:Q2,V1:V1,V2:V2,U:U,series:series};   // for the tests
+    kit.check({ser:series,V1:V1,V2:V2,C:Ceq,both:!!(seen[key].s&&seen[key].p)});
     requestAnimationFrame(draw);
   }requestAnimationFrame(draw);
 }
