@@ -5094,7 +5094,7 @@ const CONTENT={
       <p>למרות כל התעלומות האלה, בכל מערכת סגורה שנבדקה עד היום — מהמעבדה ועד מערכת השמש — האנרגיה נשמרת.</p>`
     }
   },
-  sim:{type:'energy',title:'שימור אנרגיה',desc:'גררו את העגלה לנקודה כלשהי על המסלול ושחררו: Eₚ ו־Eₖ מתחלפות והסכום קבוע. הוסיפו חיכוך — והחום Q גדל בדיוק כפי שהאנרגיה המכנית קטנה.'},
+  sim:{type:'energy',title:'שימור אנרגיה',desc:'עצבו את המסלול בגרירת הידיות הירוקות, גררו את העגלה לנקודה כלשהי ושחררו: Eₚ ו־Eₖ מתחלפות והסכום קבוע — בכל צורה של המסלול. הוסיפו חיכוך, והחום Q גדל בדיוק כפי שהאנרגיה המכנית קטנה.'},
   example:{title:'שימור אנרגיה בנפילה',text:`כדור שמסתו ${M('1\\,\\text{kg}')} משוחרר ממנוחה מגובה ${M('5\\,\\text{m}')}, בלי חיכוך. (${M('g=9.8\\,\\text{m/s}^2')})`,steps:[
     {q:'מה האנרגיה המכנית הכוללת?',a:`בהתחלה כולה פוטנציאלית: ${M('E=mgh=1\\times9.8\\times5=49\\,\\text{J}')}`},
     {q:'מה מהירותו בתחתית?',a:`כל האנרגיה הפכה לקינטית: ${M('\\tfrac12mv^2=49\\Rightarrow v=\\sqrt{98}\\approx9.9\\,\\text{m/s}')}`},
@@ -13006,33 +13006,54 @@ function simCollision(canvas){
 // ENERGY: roller coaster track
 // ─────────────────────────────────────────────────────────────
 function simEnergy(canvas){
-  // A cart on a frictionless (or rough) track, driven by the track's own
-  // physics. The track is 12 m long, rises to 4.0 m at both ends and has a
-  // 2.8 m hill in the middle, so any release turns around on the track itself
-  // (its ends used to be at ground level, where the cart hit an invisible wall).
-  const H=560; const {ctx,W,dpr}=setupCanvas(canvas,H);
+  // A cart on a frictionless (or rough) track the learner shapes: seven
+  // heights between two fixed 4.0 m ends, joined by a smooth monotone cubic. The cart is driven by the track's
+  // own physics; any release turns around on the track itself, since no
+  // point of it is higher than its ends. E_p, E_k and the heat Q share one
+  // bar of fixed length; the E_p(x) diagram shows where the cart can go.
+  const H=580; const {ctx,W,dpr}=setupCanvas(canvas,H);
   const id=canvas.id;
   const g=9.8, LX=12;                 // m/s², track length in metres
   var m=1.0;
 
-  const FLOOR_Y=290, STRIP_BOT=374;
+  const FLOOR_Y=290, STRIP_BOT=394;
   const PXY=(FLOOR_Y-34)/4.0;         // vertical px per metre
-  function hOf(xf){return 2.4+1.6*Math.cos(4*Math.PI*xf)-1.2*Math.pow(Math.sin(Math.PI*xf),2);}
+  var NK=9, KN=[4.0,2.224,0.2,1.376,2.8,1.376,0.2,2.224,4.0];   // the heights at x = 0, 1.5, …, 12 m
+  var SP=[];                          // the slope at each height, per step
+  function spline(){
+    // a monotone cubic (Fritsch–Butland): it never overshoots, so every hill
+    // and valley is exactly where its handle is, the track never dips below
+    // the lowest handle or rises above the 4 m ends, and the hill tops are flat
+    var n=NK-1, dl=[], i;
+    for(i=0;i<n;i++)dl.push(KN[i+1]-KN[i]);
+    SP=[dl[0]];
+    for(i=1;i<n;i++)SP.push(dl[i-1]*dl[i]<=0?0:2*dl[i-1]*dl[i]/(dl[i-1]+dl[i]));
+    SP.push(dl[n-1]);
+  }
+  function hOf(xf){
+    var u=Math.max(0,Math.min(1,xf))*(NK-1), i=Math.min(NK-2,Math.floor(u)), t=u-i, t2=t*t, t3=t2*t;
+    return (2*t3-3*t2+1)*KN[i]+(t3-2*t2+t)*SP[i]+(-2*t3+3*t2)*KN[i+1]+(t3-t2)*SP[i+1];
+  }
   function TX(xf){return 14+xf*(W-28);}
   function TY(h){return FLOOR_Y-h*PXY;}
 
   // physical track table: arc length s, height h, slope angle th, curvature k
   const N=800;
-  var S=[0],Hm=[],TH=[],K=[];
-  for(var i=0;i<N;i++){
-    var xf=i/(N-1), d=1e-4;
-    var hp=(hOf(Math.min(1,xf+d))-hOf(Math.max(0,xf-d)))/((Math.min(1,xf+d)-Math.max(0,xf-d))*LX);
-    var hpp=(hOf(Math.min(1,xf+d))-2*hOf(xf)+hOf(Math.max(0,xf-d)))/Math.pow(d*LX,2);
-    if(i===0||i===N-1)hpp=K.length?K[K.length-1]*Math.pow(1+hp*hp,1.5):0;
-    Hm.push(hOf(xf)); TH.push(Math.atan(hp)); K.push(hpp/Math.pow(1+hp*hp,1.5));
-    if(i>0){var dx=LX/(N-1), dh=Hm[i]-Hm[i-1]; S.push(S[i-1]+Math.sqrt(dx*dx+dh*dh));}
+  var S,Hm,TH,K,SMAX;
+  function build(){
+    spline();
+    S=[0];Hm=[];TH=[];K=[];
+    for(var i=0;i<N;i++){
+      var xf=i/(N-1), d=1e-4;
+      var hp=(hOf(Math.min(1,xf+d))-hOf(Math.max(0,xf-d)))/((Math.min(1,xf+d)-Math.max(0,xf-d))*LX);
+      var hpp=(hOf(Math.min(1,xf+d))-2*hOf(xf)+hOf(Math.max(0,xf-d)))/Math.pow(d*LX,2);
+      if(i===0||i===N-1)hpp=K.length?K[K.length-1]*Math.pow(1+hp*hp,1.5):0;
+      Hm.push(hOf(xf)); TH.push(Math.atan(hp)); K.push(hpp/Math.pow(1+hp*hp,1.5));
+      if(i>0){var dx=LX/(N-1), dh=Hm[i]-Hm[i-1]; S.push(S[i-1]+Math.sqrt(dx*dx+dh*dh));}
+    }
+    SMAX=S[N-1];
   }
-  var SMAX=S[N-1];
+  build();
   function idxAt(s){
     var lo=0,hi=N-1; s=Math.max(0,Math.min(SMAX,s));
     while(hi-lo>1){var md=(lo+hi)>>1; if(S[md]<=s)lo=md; else hi=md;}
@@ -13040,30 +13061,64 @@ function simEnergy(canvas){
   }
   function at(arr,s){var q=idxAt(s);return arr[q.i]*(1-q.f)+arr[Math.min(N-1,q.i+1)]*q.f;}
   function xfAt(s){var q=idxAt(s);return (q.i+q.f)/(N-1);}
+  function sAtXf(xf){var j=Math.max(0,Math.min(N-1,xf*(N-1))),i=Math.floor(j),f=j-i;return S[i]*(1-f)+S[Math.min(N-1,i+1)]*f;}
 
   // state: arc position s (m), signed speed v (m/s, + toward the right end)
   var s0=S[Math.round(0.08*(N-1))];
-  var s=s0, v=0, Emech=null, Q=0, dragging=false, pT=null, atRest=false;
+  var s=s0, v=0, Emech=null, Q=0, dragging=false, dragK=-1, pT=null, atRest=false;
+  var run=null, runs=[], crossed=false, sameBottom=false, sameV=null, restQ=false, touched=false;
   function getMu(){var e=document.getElementById('inp-energy-mu');return e?Math.max(0,parseFloat(e.value)||0):0;}
   function getMass(){var e=document.getElementById('inp-energy-m');return e?Math.max(0.1,parseFloat(e.value)):m;}
-  function release(){m=getMass(); v=0; Q=0; atRest=false; Emech=m*g*at(Hm,s);}
+  function release(){m=getMass(); v=0; Q=0; atRest=false; Emech=m*g*at(Hm,s);
+    if(run)runs.push(run);if(runs.length>20)runs.shift();
+    run={h0:at(Hm,s),mu:getMu(),shape:KN.slice(),vmax:0,hb:9,xf0:xfAt(s)};}
   release();
 
-  // ── drag the cart along the track
+  var kit=simKit(canvas,{missions:[
+    {text:'הרימו גבעה לגובה של '+_skM('3.4 m')+' לפחות — וגרמו לעגלה לעבור אותה',
+     hint:'גררו את אחת הידיות של המסלול כלפי מעלה. מאיזה גובה צריך לשחרר את העגלה?',
+     why:'בלי חיכוך העגלה מגיעה בדיוק לגובה שממנו שוחררה: '+_skM('mgh₀ = ½mv² + mgh')+'. כדי לעבור גבעה צריך לשחרר אותה מגובה רב יותר — לעגלה אין ״תנופה״ נוספת מעבר לאנרגיה שלה.',
+     done:function(s){return s.crossed;}},
+    {text:'שנו את צורת המסלול, שחררו מאותו גובה — ובדקו שהמהירות בתחתית אותה מהירות',
+     hint:'בלי חיכוך: שחררו את העגלה מקצה המסלול, בגובה '+_skM('4 m')+', וקראו את המהירות המרבית. שנו גבעה (לא את העמקים) ושחררו שוב מהקצה.',
+     why:_skM('v = √(2gΔh)')+': רק הפרש הגבהים קובע את המהירות, לא צורת המסלול ולא אורכו. מה שהצורה משנה הוא הזמן.',
+     done:function(s){return s.sameBottom;}},
+    {text:'הוסיפו חיכוך ותנו לעגלה לעצור — לאן נעלמה האנרגיה?',
+     hint:'הזיזו את מקדם החיכוך מעל אפס, שחררו את העגלה וחכו.',
+     why:'האנרגיה לא ״נגמרה״: כל מה שחסר באנרגיה המכנית הפך לחום, '+_skM('Q = mgh₀ − mgh')+'. הסכום '+_skM('Eₚ + Eₖ + Q')+' נשאר קבוע כל הדרך.',
+     done:function(s){return s.restQ;}}]});
+  var model=_mbModel(kit);
+  kit.predict({q:'שתי עגלות יוצאות ממנוחה מאותו גובה: אחת במגלשה ישרה ותלולה, השנייה במגלשה ארוכה ומתפתלת, ושתיהן מגיעות לאותה רמה למטה. בלי חיכוך, מי מהירה יותר למטה?',
+    opts:['העגלה במגלשה התלולה','העגלה במגלשה המתפתלת','שתיהן באותה מהירות'],correct:2,
+    why:'עבודת הכובד תלויה רק בהפרש הגבהים, ולכן לשתיהן '+_skM('½mv² = mgΔh')+' — אותה מהירות. המגלשה המתפתלת ארוכה יותר, ולכן העגלה שבה מגיעה מאוחר יותר — אבל לא לאט יותר.'},function(){});
+
+  // ── drag a handle to shape the track, or the cart along it
   function closestS(px,py){
     var best=s,bd=Infinity;
     for(var j=0;j<N;j+=2){var d=Math.hypot(TX(j/(N-1))-px,TY(Hm[j])-py);if(d<bd){bd=d;best=S[j];}}
     return {s:best,d:bd};
   }
-  function onDown(ev){var p=simPointerXY(canvas,dpr,ev); if(p.y>FLOOR_Y+6)return;
+  var cartX=-99, cartY=-99;            // where the cart was last drawn
+  function knotAt(p){var kb=-1,db=18;for(var k=1;k<NK-1;k++){var d=Math.hypot(p.x-TX(k/(NK-1)),p.y-TY(KN[k]));if(d<db){db=d;kb=k;}}return {k:kb,d:db};}
+  function onDown(ev){var p=simPointerXY(canvas,dpr,ev); if(p.y>FLOOR_Y+6)return; touched=true;
+    var kn=knotAt(p), k=kn.k, dc=Math.hypot(p.x-cartX,p.y-cartY);
+    if(k>=0&&dc<16&&dc<kn.d)k=-1;      // the cart sits on a handle: the nearer one wins
+    if(k>=0){dragK=k;var xf0=xfAt(s);v=0;Emech=null;atRest=false;dragK=k;s=sAtXf(xf0);ev.preventDefault();return;}
     var c=closestS(p.x,p.y); if(c.d<40){dragging=true; s=c.s; v=0; Emech=null; Q=0; ev.preventDefault();}}
-  function onMove(ev){if(!dragging)return; ev.preventDefault(); var p=simPointerXY(canvas,dpr,ev); s=closestS(p.x,p.y).s;}
-  function onUp(){if(!dragging)return; dragging=false; release();}
+  function onMove(ev){var p=simPointerXY(canvas,dpr,ev);
+    if(dragK>=0){ev.preventDefault();var xf=xfAt(s);KN[dragK]=Math.max(0.2,Math.min(3.8,(FLOOR_Y-p.y)/PXY));build();s=sAtXf(xf);return;}
+    if(!dragging)return; ev.preventDefault(); s=closestS(p.x,p.y).s;}
+  function onUp(){if(dragK>=0){dragK=-1;release();return;} if(!dragging)return; dragging=false; release();}
   canvas.addEventListener('mousedown',onDown);canvas.addEventListener('touchstart',onDown,{passive:false});
   canvas.addEventListener('mousemove',onMove);canvas.addEventListener('touchmove',onMove,{passive:false});
   canvas.addEventListener('mouseup',onUp);canvas.addEventListener('mouseleave',onUp);canvas.addEventListener('touchend',onUp);
   var resetBtn=document.getElementById('btn-energy-reset');
   if(resetBtn)resetBtn.addEventListener('click',function(){s=s0;pT=null;release();});
+  var shapeBtn=document.getElementById('btn-energy-shape');
+  if(shapeBtn)shapeBtn.addEventListener('click',function(){KN=[4.0,2.224,0.2,1.376,2.8,1.376,0.2,2.224,4.0];build();s=s0;release();});
+  canvas._probe=function(){return {s:s,xf:xfAt(s),h:at(Hm,s),v:v,E:Emech,Q:Q,m:m,KN:KN.slice(),atRest:atRest,run:run,runs:runs.length,prev:runs.length?runs[runs.length-1]:null,
+    crossed:crossed,sameBottom:sameBottom,sameV:sameV,restQ:restQ,th:at(TH,s),hmin:Math.min.apply(null,Hm),hmax:Math.max.apply(null,Hm),
+    geo:{x0:14,xw:W-28,fy:FLOOR_Y,ppm:PXY},cx:cartX,cy:cartY};};
 
   // ── physics: tangential dynamics, then the speed is taken from the energy
   // budget, so E_p + E_k + Q is exact by construction and the integrator only
@@ -13093,7 +13148,7 @@ function simEnergy(canvas){
     }
     // static friction holds a cart that has come to rest where it can
     var thr=at(TH,s);
-    if(mu>0&&Math.abs(v)<0.02&&Math.abs(Math.tan(thr))<=mu){v=0;atRest=true;Emech=m*g*at(Hm,s);}
+    if(mu>0&&Math.abs(v)<0.02&&Math.abs(Math.tan(thr))<=mu){var pe=m*g*at(Hm,s);v=0;atRest=true;Q+=Math.max(0,Emech-pe);Emech=pe;}   // the last bit of E_k becomes heat too
   }
 
   function draw(ts){
@@ -13103,10 +13158,25 @@ function simEnergy(canvas){
     var mNew=getMass();
     if(Emech!==null&&Math.abs(mNew-m)>1e-9){Emech*=mNew/m;Q*=mNew/m;}
     m=mNew;
-    if(!dragging&&Emech!==null&&!atRest)step(dt);
+    var xfPrev=xfAt(s);
+    if(!dragging&&dragK<0&&Emech!==null&&!atRest)step(dt);
 
     var h=at(Hm,s), PE=m*g*h, E=Emech===null?PE:Emech, KE=Math.max(0,E-PE), E0=E+Q;
-    var bxf=xfAt(s), bx=TX(bxf), by=TY(h);
+    var bxf=xfAt(s), tx0=TX(bxf), ty0=TY(h);
+    var qn=idxAt(s), jn=Math.min(N-1,qn.i+1), jm=Math.max(0,Math.min(N-2,qn.i));
+    var nx=TY(Hm[jm+1])-TY(Hm[jm]), ny=-(TX((jm+1)/(N-1))-TX(jm/(N-1))), nl=Math.hypot(nx,ny)||1;
+    var bx=tx0+nx/nl*13, by=ty0+ny/nl*13;          // the cart's centre, one radius above the rail
+    cartX=bx; cartY=by;
+    // what this run did: its top speed and where, a hill crossed
+    if(run&&Emech!==null&&!dragging&&dragK<0){
+      var sp=Math.abs(v); if(sp>run.vmax){run.vmax=sp;run.hb=h;}
+      for(var kk=1;kk<NK-1;kk++){var xk=kk/(NK-1);if(KN[kk]>=3.4&&KN[kk]>=KN[kk-1]&&KN[kk]>=KN[kk+1]&&(xfPrev-xk)*(bxf-xk)<0)crossed=true;}
+    }
+    if(run&&!sameBottom&&run.mu===0&&run.vmax>0.5){
+      for(var ri=0;ri<runs.length;ri++){var o=runs[ri];if(o.mu!==0||o.vmax<0.5)continue;
+        var dif=0;for(var q=0;q<NK;q++)dif=Math.max(dif,Math.abs(o.shape[q]-run.shape[q]));
+        if(dif>0.3&&Math.abs(o.h0-run.h0)<0.05&&Math.abs(o.hb-run.hb)<0.05&&Math.abs(o.vmax-run.vmax)<0.02*run.vmax){sameBottom=true;sameV=[o.vmax,run.vmax];break;}}}
+    if(atRest&&getMu()>0&&Q>0.5)restQ=true;
 
     simBg(ctx,W,H);
     // ── track and ground
@@ -13121,17 +13191,23 @@ function simEnergy(canvas){
     ctx.save();ctx.strokeStyle='#166534';ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(0,FLOOR_Y);ctx.lineTo(W,FLOOR_Y);ctx.stroke();ctx.restore();
     // height ticks
     for(var hm=1;hm<=4;hm++){simText(ctx,hm+' m',W-4,TY(hm)+3,'#4b6a85',8,'right');
-      ctx.save();ctx.strokeStyle='rgba(75,106,133,.25)';ctx.setLineDash([2,6]);ctx.beginPath();ctx.moveTo(W*0.42,TY(hm));ctx.lineTo(W*0.58,TY(hm));ctx.stroke();ctx.restore();}
+      ctx.save();ctx.strokeStyle='rgba(75,106,133,.25)';ctx.setLineDash([2,6]);ctx.beginPath();ctx.moveTo(14,TY(hm));ctx.lineTo(W-30,TY(hm));ctx.stroke();ctx.restore();}
+    // the track's handles: drag them to reshape it
+    for(var kh=1;kh<NK-1;kh++)simHandle(ctx,TX(kh/(NK-1)),TY(KN[kh]),dragK===kh?'#fbbf24':'rgba(134,239,172,.9)',11);
     // the level the energy can reach: where the cart will turn round
-    if(Emech!==null&&!dragging){
+    if(Emech!==null&&!dragging&&dragK<0){
       var hTop=E/(m*g);
       ctx.save();ctx.strokeStyle='rgba(52,211,153,.55)';ctx.setLineDash([6,5]);ctx.lineWidth=1.3;
       ctx.beginPath();ctx.moveTo(14,TY(hTop));ctx.lineTo(W-14,TY(hTop));ctx.stroke();ctx.restore();
-      simText(ctx,'הגובה שהאנרגיה מאפשרת',W/2,TY(hTop)-5,'#34d399',8,'center');
+      // over the part of the track that lies lowest under the line, away from the cart
+      var lc=0.5,lb=-1e9;[0.25,0.375,0.5,0.625,0.75].forEach(function(c){var sc=Math.abs(c-bxf)<0.2?-1e9:hTop-hOf(c);if(sc>lb){lb=sc;lc=c;}});
+      if(lb>0.35)simText(ctx,'הגובה שהאנרגיה מאפשרת',TX(lc),TY(hTop)-5,'#34d399',8,'center');
     }
     // height line under the cart
-    ctx.save();ctx.strokeStyle='rgba(251,191,36,.4)';ctx.setLineDash([2,4]);ctx.beginPath();ctx.moveTo(bx,by);ctx.lineTo(bx,FLOOR_Y);ctx.stroke();ctx.restore();
-    simText(ctx,'h='+h.toFixed(2)+' m',bx<W*0.5?bx+18:bx-18,Math.min(FLOOR_Y-6,by+24),'#fbbf24',8.5,bx<W*0.5?'left':'right');
+    ctx.save();ctx.strokeStyle='rgba(251,191,36,.4)';ctx.setLineDash([2,4]);ctx.beginPath();ctx.moveTo(tx0,ty0);ctx.lineTo(tx0,FLOOR_Y);ctx.stroke();ctx.restore();
+    // the height label: beside its dashed line, or beside the cart when the line is too short
+    var hl=FLOOR_Y-ty0>40, hx=hl?tx0+(tx0<W*0.5?8:-8):bx+(bx<W*0.5?20:-20);
+    simText(ctx,'h = '+h.toFixed(2)+' m',hx,hl?ty0+(FLOOR_Y-ty0)/2+3:by+4,'#fbbf24',8.5,(hl?tx0:bx)<W*0.5?'left':'right');
     // cart
     var bg3=ctx.createRadialGradient(bx-5,by-6,2,bx,by,13);
     bg3.addColorStop(0,'#fde68a');bg3.addColorStop(1,dragging?'#7c3aed':'#d97706');
@@ -13140,12 +13216,14 @@ function simEnergy(canvas){
     if(dragging)simText(ctx,'גררו ושחררו',bx,by-28,'#a78bfa',8.5,undefined,true);
     // velocity arrow along the drawn tangent
     if(Math.abs(v)>0.05&&!dragging){
-      var q=idxAt(s),i2=Math.min(N-1,q.i+1);
-      var tx=TX(i2/(N-1))-TX(q.i/(N-1)), ty=TY(Hm[i2])-TY(Hm[q.i]), tl=Math.hypot(tx,ty)||1;
+      var q2=idxAt(s),i2=Math.min(N-1,q2.i+1);
+      var tx=TX(i2/(N-1))-TX(q2.i/(N-1)), ty=TY(Hm[i2])-TY(Hm[q2.i]), tl=Math.hypot(tx,ty)||1;
       var L=Math.min(56,Math.abs(v)*6)*(v>0?1:-1);
       simArrow(ctx,bx,by,bx+tx/tl*L,by+ty/tl*L,'#22d3ee',2.5,10);
-      simText(ctx,'v='+Math.abs(v).toFixed(1)+' m/s',bx,by-22,'#22d3ee',8.5,'center');
+      simText(ctx,'v = '+Math.abs(v).toFixed(1)+' m/s',Math.max(44,Math.min(W-64,bx)),by-22,'#22d3ee',8.5,'center');
     }
+    if(!touched)
+      simText(ctx,'✋ גררו את הידיות הירוקות כדי לעצב את המסלול, ואת העגלה כדי לשחרר',W/2,22,'#fbbf24',9.5,'center',true);
 
     // ── energy strip: one bar of fixed length E0, split E_p | E_k | Q
     var sy=FLOOR_Y+6;
@@ -13158,35 +13236,51 @@ function simEnergy(canvas){
     segs.forEach(function(sg){var w=bw*sg[0]/E0s; ctx.fillStyle=sg[1]; ctx.fillRect(bx0+acc,byy,Math.max(0,w),bh); acc+=w;});
     ctx.save();ctx.strokeStyle='rgba(203,213,225,.6)';ctx.lineWidth=1;ctx.strokeRect(bx0,byy,bw,bh);ctx.restore();
     simText(ctx,mu>0?'E_p + E_k + Q = '+E0.toFixed(1)+' J — קבוע; האנרגיה המכנית E_p + E_k יורדת':'E_p + E_k = '+E0.toFixed(1)+' J — קבוע',W/2,byy+bh+13,mu>0?'#fb923c':'#34d399',9,'center',true);
+    // this run and the one before: released from h₀, top speed v_max
+    var _ltr=document.documentElement.dir==='ltr', rA=_ltr?W*0.27:W*0.73, rB=_ltr?W*0.73:W*0.27;
+    if(run&&run.vmax>0.05)simText(ctx,'h₀ = '+run.h0.toFixed(2)+' m → v_max = '+run.vmax.toFixed(2)+' m/s',rA,byy+bh+30,'#fde68a',8.5,'center');
+    var prev=runs.length?runs[runs.length-1]:null;
+    if(prev&&prev.vmax>0.05)simText(ctx,'קודם: h₀ = '+prev.h0.toFixed(2)+' m → v_max = '+prev.vmax.toFixed(2)+' m/s',rB,byy+bh+30,'#94a3b8',8.5,'center');
 
     // ── energy diagram: E_p(x) for the whole track, and the energy the cart has
     var GX=6,GY=STRIP_BOT+2,GW=W-12,GH=H-GY-6;
     ctx.save();ctx.fillStyle='rgba(6,14,28,.9)';ctx.strokeStyle='#1e3a52';ctx.lineWidth=1;
     ctx.beginPath();ctx.roundRect(GX,GY,GW,GH,5);ctx.fill();ctx.stroke();ctx.restore();
-    var gAX=GX+30,gAY=GY+GH-14,gW=GW-40,gH=GH-34, Emax=m*g*4.0*1.08;
+    var gAX=GX+30,gAY=GY+GH-14,gW=GW-40,gH=GH-38, Emax=m*g*4.0*1.08;
     function ey(e){return gAY-e/Emax*gH;}
     ctx.save();ctx.strokeStyle='#2d4a66';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(gAX,gAY-gH);ctx.lineTo(gAX,gAY);ctx.lineTo(gAX+gW,gAY);ctx.stroke();ctx.restore();
     simText(ctx,'E (J)',gAX-4,GY+12,'#7d8da6',8,'right');
+    // legend, kept off the curves whatever shape the track has
+    var lg=[['E_p(x) = mgh(x)','#a5b4fc',[]],['E = E_p + E_k','#34d399',[6,4]]], lx=gAX+10;
+    if(Q>0.005)lg.push(['E₀ = E + Q','#94a3b8',[3,4]]);
+    ctx.save();ctx.font='8.5px sans-serif';
+    lg.forEach(function(L){ctx.save();ctx.strokeStyle=L[1];ctx.lineWidth=2;ctx.setLineDash(L[2]);ctx.beginPath();ctx.moveTo(lx,GY+9);ctx.lineTo(lx+16,GY+9);ctx.stroke();ctx.restore();
+      simText(ctx,L[0],lx+20,GY+12,L[1],8.5,'left'); lx+=20+labelW(ctx,L[0],8.5)+14;});
+    ctx.restore();
     simText(ctx,'מיקום לאורך המסלול →',gAX+gW,gAY+11,'#7d8da6',8,'right');
     ctx.save();ctx.strokeStyle='#818cf8';ctx.lineWidth=2;ctx.beginPath();
     for(var j3=0;j3<N;j3+=4){var X3=gAX+j3/(N-1)*gW,Y3=ey(m*g*Hm[j3]);j3===0?ctx.moveTo(X3,Y3):ctx.lineTo(X3,Y3);}
     ctx.stroke();ctx.restore();
-    simText(ctx,'E_p(x) = mgh(x)',gAX+gW*0.5,ey(m*g*2.8)+16,'#a5b4fc',8.5,'center');
-    if(Emech!==null&&!dragging){
+    if(Emech!==null&&!dragging&&dragK<0){
       if(Q>0.005){ctx.save();ctx.strokeStyle='rgba(148,163,184,.45)';ctx.setLineDash([3,4]);ctx.beginPath();ctx.moveTo(gAX,ey(E0));ctx.lineTo(gAX+gW,ey(E0));ctx.stroke();ctx.restore();
-        simText(ctx,'E₀',gAX-4,ey(E0)+3,'#94a3b8',8,'right');}
+        }
       ctx.save();ctx.strokeStyle='#34d399';ctx.lineWidth=1.8;ctx.setLineDash([6,4]);ctx.beginPath();ctx.moveTo(gAX,ey(E));ctx.lineTo(gAX+gW,ey(E));ctx.stroke();ctx.restore();
-      simText(ctx,'E = E_p + E_k',gAX+4,ey(E)-5,'#34d399',8.5,'left');
       var cx=gAX+bxf*gW;
       ctx.save();ctx.strokeStyle='#fbbf24';ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(cx,ey(PE));ctx.lineTo(cx,ey(E));ctx.stroke();ctx.restore();
       if(KE>0.02*E0)simText(ctx,'E_k',cx+(bxf<0.85?6:-6),(ey(PE)+ey(E))/2+3,'#fbbf24',9,bxf<0.85?'left':'right',true);
       ctx.save();ctx.fillStyle='#818cf8';ctx.beginPath();ctx.arc(cx,ey(PE),4.5,0,6.2832);ctx.fill();ctx.restore();
     } else simText(ctx,'גררו את העגלה לנקודה כלשהי על המסלול ושחררו',GX+GW/2,GY+GH/2,'#7d8da6',9.5,'center',true);
 
+    var h0r=run?run.h0:h;
+    // (a no-break space keeps each unit with its number when the line wraps)
+    if(mu>0)model(kit.m('Eₚ + Eₖ + Q = '+PE.toFixed(1)+' + '+KE.toFixed(1)+' + '+Q.toFixed(1)+' = '+E0.toFixed(1)+'\u00a0J')+' — קבוע; החיכוך הופך אנרגיה מכנית לחום, ולא ״מכלה״ אותה.');
+    else model('בלי חיכוך: '+kit.m('mgh + ½mv² = '+PE.toFixed(1)+' + '+KE.toFixed(1)+' = '+E0.toFixed(1)+'\u00a0J')+' — ולכן '+kit.m('v = √(2g(h₀ − h)) = √(2 × 9.8 × ('+h0r.toFixed(2)+' − '+h.toFixed(2)+')) = '+Math.sqrt(Math.max(0,2*g*(h0r-h))).toFixed(2)+'\u00a0m/s'));
+    kit.check({crossed:crossed,sameBottom:sameBottom,restQ:restQ});
     requestAnimationFrame(draw);
   }
   requestAnimationFrame(draw);
 }
+
 
 
 // ─────────────────────────────────────────────────────────────
@@ -34918,7 +35012,7 @@ function buildSim(sim){
   else if(sim.type==='collision')extra=C(rng('col-e',0,1,1,0.05,'מקדם התקומה e (0 נצמדות, 1 אלסטית)')+rng('col-m1',1,8,3,0.5,'m₁',' kg')+rng('col-m2',1,8,2,0.5,'m₂',' kg')+rng('col-v1',-8,8,4,0.5,'v₁ התחלתית',' m/s')+rng('col-v2',-8,8,-2,0.5,'v₂ התחלתית',' m/s')+btn('col-run','▶ הפעילו','btn-primary')+btn('col-reset','↺ איפוס','btn-secondary'));
   else if(sim.type==='energy-kinetic')extra=C(rng('ek-F',2,50,10,1,'כוח F',' N')+rng('ek-m',0.5,10,2,0.5,'מסה m',' kg')+btn('ek-launch','▶ הפעילו!','btn-primary')+btn('ek-reset','↺ איפוס','btn-secondary'));
   else if(sim.type==='energy-potential')extra=C(rng('ep-m',0.5,8,2,0.5,'מסה m',' kg')+rng('ep-g',1.6,25,9.8,0.2,'g',' m/s²')+btn('ep-elastic','⚡ אנרגיה אלסטית','btn-secondary')+btn('ep-reset','↺ איפוס','btn-secondary'));
-  else if(sim.type==='energy')extra=C(rng('energy-m',0.5,4,1,0.5,'מסה m',' kg')+rng('energy-mu',0,0.1,0,0.005,'מקדם חיכוך μ','')+btn('energy-reset','↺ איפוס','btn-secondary'));
+  else if(sim.type==='energy')extra=C(rng('energy-m',0.5,4,1,0.5,'מסה m',' kg')+rng('energy-mu',0,0.1,0,0.005,'מקדם חיכוך μ','')+btn('energy-reset','↺ איפוס','btn-secondary')+btn('energy-shape','〰 המסלול המקורי','btn-secondary'));
   else if(sim.type==='shm-def')extra=C(rng('shm-A',2,13,8,0.5,'אמפליטודה A',' cm')+rng('shm-T',0.5,5,2,0.1,'מחזור T',' s')+btn('shm-pause','⏸ עצרו','btn-primary')+btn('shm-reset','↺ איפוס','btn-secondary'));
   else if(sim.type==='vec-ops')extra=C(rng('vo-scalar',-3,3,2,0.1,'מכפיל c')+btn('vo-add','A+B')+btn('vo-sub','A−B','btn-secondary')+btn('vo-scalar','c·A','btn-secondary')+btn('vo-dot','A·B','btn-secondary')+btn('vo-reset','↺ איפוס','btn-secondary'));
   else if(sim.type==='vec-components')extra=C(rng('vc-mag',0.5,4,2.8,0.1,'גודל |A|')+rng('vc-ang',0,360,32,1,'זווית θ','°')+btn('vc-reset','↺ איפוס','btn-secondary'));
