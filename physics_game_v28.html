@@ -3775,7 +3775,7 @@ const CONTENT={
       <p>במהירות קבועה, בעלייה או בירידה, המאזניים מראים בדיוק ${M('mg')}.</p>`
     }
   },
-  sim:{type:'tension',title:'מתיחות — גוף בחוט',desc:'משמאל מכונת אטווד (לחצו ״שחררו!״); מימין גוף התלוי בחוט מתקרת מעלית מואצת. שנו מסות ותאוצה וראו ש־T = m(g+a), ושבאטווד W₁ < T < W₂.'},
+  sim:{type:'tension',title:'מתיחות — גוף בחוט',desc:'משמאל מכונת אטווד: לפני השחרור הגלגלת בלומה, ואחריו (לחצו ״▶ שחררו!״) W₁ < T < W₂. מימין גוף התלוי בחוט מתקרת מעלית מואצת: שנו את התאוצה וראו ש־T = m(g+a) — בלי קשר לכיוון הנסיעה.'},
   example:{title:'מתיחות בחוט',text:`גוף שמסתו ${M('5\\,\\text{kg}')} תלוי בחוט, והחוט מאיץ אותו כלפי מעלה בתאוצה ${M('2\\,\\text{m/s}^2')}. (${M('g=9.8\\,\\text{m/s}^2')})`,steps:[
     {q:'מהי המתיחות בחוט?',a:`החוק השני כלפי מעלה: ${M('T-mg=ma\\Rightarrow T=m(g+a)=5\\times11.8=59\\,\\text{N}')}`},
     {q:'למה המתיחות גדולה מהמשקל (49 N)?',a:'כדי שהגוף יאיץ כלפי מעלה, הכוח השקול חייב לפנות מעלה — ולכן החוט מושך חזק יותר מהכובד. בתנועה במהירות קבועה המתיחות הייתה שווה בדיוק למשקל.'},
@@ -12231,7 +12231,13 @@ function simTension(canvas){
 
     var a_atw=(m2-m1)/(m1+m2)*g;
     var T_atw=2*m1*m2/(m1+m2)*g;
-    var T_el=mEl*(g+aEl);
+    var T_el=Math.max(0,mEl*(g+aEl));
+    // held (before the release, and after a stop) the pulley is braked: each
+    // mass hangs at rest, so each side of the string carries its own weight.
+    // The free machine's T belonged only to the run; drawn on the held masses
+    // it made a body at rest with T ≠ W.
+    var T1d=running?T_atw:m1*g, T2d=running?T_atw:m2*g;
+    tRunT=running?tRunT+dt:0;
 
     simBg(ctx,W,H);
 
@@ -12276,7 +12282,7 @@ function simTension(canvas){
     // One scale for T, W1 and W2: W1 < T < W2 must be visible. (Every arrow
     // used to hit its length cap, so all four looked the same.)
     var kA=Math.min(1.5,58/(Math.max(m1,m2)*g));
-    var t1len=T_atw*kA;
+    var t1len=T1d*kA;
     simArrow(ctx,LEFT_X-7,m1Y,LEFT_X-7,m1Y-t1len,'#22d3ee',2.5,10);
     simArrow(ctx,LEFT_X,m1Y+bH,LEFT_X,m1Y+bH+m1*g*kA,'#fbbf24',2,8);
     simText(ctx,'W₁',LEFT_X-8,m1Y+bH+m1*g*kA*0.6,'#fbbf24',10,'right',true);
@@ -12289,13 +12295,13 @@ function simTension(canvas){
     ctx.beginPath(); ctx.roundRect(RIGHT_X-bW2/2,m2Y,bW2,bH,4); ctx.fill(); ctx.stroke();
     ctx.shadowBlur=0; ctx.restore();
     simText(ctx,'m₂='+m2+' kg',RIGHT_X,m2Y+bH/2+4,'#fca5a5',9.5,undefined,true);
-    var t2len=T_atw*kA;
+    var t2len=T2d*kA;
     simArrow(ctx,RIGHT_X+7,m2Y,RIGHT_X+7,m2Y-t2len,'#22d3ee',2.5,10);
     simArrow(ctx,RIGHT_X,m2Y+bH,RIGHT_X,m2Y+bH+m2*g*kA,'#fbbf24',2,8);
     simText(ctx,'W₂',RIGHT_X+8,m2Y+bH+m2*g*kA*0.6,'#fbbf24',10,'left',true);
 
     // T label between pulleys
-    simText(ctx,'T = '+T_atw.toFixed(1)+' N',PUL_X,PUL_Y+PUL_R+14,'#22d3ee',10,undefined,true);
+    simText(ctx,running?'T = '+T_atw.toFixed(1)+' N':'בלומה: T₁ = W₁, T₂ = W₂',PUL_X,PUL_Y+PUL_R+14,'#22d3ee',10,undefined,true);
 
     // ── RIGHT: A BODY HANGING IN AN ACCELERATING ELEVATOR ─────
     // The car moves; the body of mass m hangs from its ceiling by a string.
@@ -12340,8 +12346,29 @@ function simTension(canvas){
     var _as=(aEl>=0?'+ ':'− ')+Math.abs(aEl).toFixed(1);
     simText(ctx,'במעלית:  T = m(g + a) = '+mEl+'×(9.8 '+_as+') = '+T_el.toFixed(1)+' N',W/2,42,'#93c5fd',10,undefined,true);
 
+    model('במעלית: '+_skM('T = m(g + a) = '+mEl.toFixed(1)+'×(9.8 '+_as+') = '+T_el.toFixed(1)+' N')+(T_el<0.05?' — החוט רפוי: הגוף והמעלית נופלים יחד':T_el>mEl*g+0.05?' — יותר מהמשקל':T_el<mEl*g-0.05?' — פחות מהמשקל':' — בדיוק המשקל'));
+    kit.check({aEl:aEl,vEl:boxVel,T:T_el,run:running?tRunT:0,m1:m1,m2:m2});
     requestAnimationFrame(draw);
   }
+  var tRunT=0;
+  var kit=simKit(canvas,{missions:[
+    {text:'גרמו למעלית לנסוע מעלה בזמן שהמתיחות בחוט קטנה ממשקל הגוף.',
+     hint:'תנו למעלית תאוצה מעלה כדי שתצבור מהירות, ואז הפכו את התאוצה — בלימה בדרך למעלה.',
+     why:'כיוון הנסיעה אינו משנה דבר; קובעת רק התאוצה. מעלית שעולה ובולמת מאיצה כלפי מטה, ולכן '+_skM('T = m(g + a) < mg')+'.',
+     done:function(s){return s.vEl>0.2&&s.aEl<-0.1;}},
+    {text:'גרמו לחוט להתרפות: '+_skM('T = 0')+'.',
+     hint:'מתי '+_skM('g + a = 0')+'?',
+     why:'כש־'+_skM('a = −g')+' המעלית נופלת חופשית, והגוף נופל איתה באותה תאוצה — החוט אינו צריך למשוך: '+_skM('T = 0')+'. זהו ״חוסר המשקל״ שחווים אסטרונאוטים.',
+     done:function(s){return s.T<0.01;}},
+    {text:'שחררו את מכונת אטווד ובדקו: האם '+_skM('W₁ < T < W₂')+'?',
+     hint:'בחרו מסות שונות ולחצו ״▶ שחררו!״.',
+     why:'הכבדה מאיצה מטה, ולכן '+_skM('T < m₂g')+'; הקלה מאיצה מעלה, ולכן '+_skM('T > m₁g')+'. לפני השחרור הגלגלת בלומה, וכל צד נושא את משקל המסה שלו.',
+     done:function(s){return s.run>0.3&&Math.abs(s.m1-s.m2)>0.01;}}
+  ]});
+  var model=_mkModel(kit);
+  kit.predict({q:'מעלית נוסעת מטה ומאטה לפני הקומה. המתיחות בחוט שמחזיק גוף בתוכה היא:',
+    opts:['קטנה מ־'+_skM('mg')+' — המעלית יורדת','שווה ל־'+_skM('mg'),'גדולה מ־'+_skM('mg'),'אפס'],correct:2,
+    why:'מעלית שיורדת ומאטה מאיצה כלפי מעלה, ולכן '+_skM('T − mg = ma > 0')+': '+_skM('T > mg')+'. הכיוון שבו המעלית נוסעת אינו משנה — רק התאוצה.'});
   requestAnimationFrame(draw);
 }
 
@@ -34921,7 +34948,7 @@ function buildSim(sim){
   else if(sim.type==='newton3')extra=C(rng('n3-mA',20,90,60,5,'מסת A',' kg')+rng('n3-mB',20,90,30,5,'מסת B',' kg')+rng('n3-F',50,600,300,10,'כוח דחיפה',' N')+btn('n3-push','💥 דחפו!')+btn('n3-who','🔁 הדוחף: A','btn-secondary')+btn('n3-reset','↺ איפוס','btn-secondary'));
   else if(sim.type==='normal-force')extra=C(rng('nf-theta',0,70,0,1,'זווית θ','°')+rng('nf-mass',1,12,4,0.5,'מסה m',' kg')+rng('nf-F',-20,40,0,1,'כוח היד F (+ לוחץ מטה)',' N')+rng('nf-mu',0,0.7,0,0.05,'חיכוך μ')+btn('nf-reset','↺ איפוס','btn-secondary'));
   else if(sim.type==='incline')extra=C(rng('inc-theta',5,60,30,1,'זווית θ','°')+rng('inc-mu',0,0.8,0.3,0.05,'חיכוך μ (μₛ = μₖ)')+rng('inc-m',0.5,10,3,0.5,'מסה m',' kg')+rng('inc-v0',0.5,10,5,0.1,'מהירות הדחיפה v₀',' m/s')+btn('inc-push','⬆ דחפו במעלה','btn-primary')+btn('inc-drop','⬇ שחררו מלמעלה','btn-secondary')+btn('inc-reset','↺ איפוס','btn-secondary'));
-  else if(sim.type==='tension')extra=C(rng('ten-m1',0.5,12,3,0.5,'m₁ אטווד',' kg')+rng('ten-m2',0.5,12,5,0.5,'m₂ אטווד',' kg')+rng('ten-el',0.5,5,3,0.5,'מסת הגוף במעלית',' kg')+rng('ten-ea',-5,5,0,0.5,'תאוצת המעלית',' m/s²')+btn('ten-launch','▶ שחררו!')+btn('ten-reset','↺ איפוס','btn-secondary'));
+  else if(sim.type==='tension')extra=C(rng('ten-m1',0.5,12,3,0.5,'m₁ אטווד',' kg')+rng('ten-m2',0.5,12,5,0.5,'m₂ אטווד',' kg')+rng('ten-el',0.5,5,3,0.5,'מסת הגוף במעלית',' kg')+rng('ten-ea',-9.8,5,0,0.2,'תאוצת המעלית',' m/s²')+btn('ten-launch','▶ שחררו!')+btn('ten-reset','↺ איפוס','btn-secondary'));
   else if(sim.type==='fbd')extra=C(rng('fbd-F',-10,25,0,0.5,'כוח נוסף על הגוף (+ מעלה)',' N')+btn('fbd-reset','↺ נקו הכול','btn-secondary'));
   else if(sim.type==='momentum')extra=C(rng('mom-mass',0.5,8,2,0.5,'מסה',' kg')+rng('mom-vel',-10,10,4,1,'מהירות',' m/s'));
   else if(sim.type==='momentum-cons')extra=C(rng('mc-m1',1,8,3,0.5,'m₁',' kg','_fmtKg1')+rng('mc-m2',1,8,2,0.5,'m₂',' kg','_fmtKg1')+rng('mc-v1',-8,8,4,1,'v₁',' m/s','_fmtMs1')+rng('mc-v2',-8,8,-2,1,'v₂',' m/s','_fmtMs1')+btn('mc-reset','↺ איפוס','btn-secondary'));

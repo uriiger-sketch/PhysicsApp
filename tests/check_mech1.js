@@ -413,6 +413,20 @@ const EXPECT = {
   const sf0 = nums(await last('^ΣF = '))[0];
   t('... let go while it moves: ΣF = −μmg = −9.8 N with the block still moving right — mission solved', await mission('newton2.n2-law', 0) && sf0 === -9.8 && /ΣF = F \+ f = 0\.0 − 9\.8 = −9\.8 N/.test(await modelTxt()), sf0 + ' | ' + await modelTxt());
 
+  // tension: the elevator and the Atwood machine
+  await open('forces.tension');
+  t('tension: a prediction is asked first — an elevator going down and slowing', (await predOpts()).length === 4, (await predOpts()).join(' | '));
+  await set('ten-ea', 3); await p.waitForTimeout(700); await set('ten-ea', -2);
+  await until(() => mission('forces.tension', 0), 3000);
+  t('tension: an elevator moving up while braking (a < 0) gives T < mg — mission solved', await mission('forces.tension', 0));
+  await set('ten-ea', -9.8); await fresh(); await p.waitForTimeout(300);
+  const tFree = await last('^' + LR('במעלית:  T = m(g + a) = '));
+  t('... a = −g: the string goes slack, T = 0 — mission solved', nums(tFree).pop() === 0 && await mission('forces.tension', 1), tFree);
+  await set('ten-ea', 0); await fresh(); await p.waitForTimeout(200);
+  t('... before the release the Atwood pulley is braked: the drawing says T₁ = W₁, T₂ = W₂', !!(await last('^' + LR('בלומה: T₁ = W₁, T₂ = W₂'))));
+  await click('btn-ten-launch'); await until(() => mission('forces.tension', 2), 3000);
+  t('... released, the Atwood T = 36.8 N lies between W₁ = 29.4 N and W₂ = 49 N — mission solved', await mission('forces.tension', 2) && !!(await last('^T = 36\\.8 N$')));
+
   // the incline: friction flips with the sliding, the section's problem, the angle of repose
   await open('newton2.n2-apps');
   t('incline: a prediction is asked first — which way friction points while the block slides up', (await predOpts()).length === 4, (await predOpts()).join(' | '));
