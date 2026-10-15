@@ -344,6 +344,20 @@ const sig2 = x => x === 0 ? 0 : Number(x.toPrecision(2));
   await click('btn-cap-disc'); const cc0 = await cap(); await setR('inp-elc-cd', 4); const cc1 = await cap();
   t('capacitor connected, gap halved: C, Q, U ×2 and E ×2, V fixed', Math.abs(cc1.C / cc0.C - 2) < 1e-9 && Math.abs(cc1.U / cc0.U - 2) < 1e-9 && Math.abs(cc1.E / cc0.E - 2) < 1e-9 && cc1.V === cc0.V && (await solved(2)));
 
+  // ── uniform field between plates: E = V/d, a = eE/m, the proton barely moves ──
+  await open('elc-plates'); await p.waitForTimeout(400);
+  const pl = async () => { await p.waitForTimeout(200); return p.evaluate(() => document.querySelector('#app canvas').__pl); };
+  await setR('inp-elc-V', 200); await setR('inp-elc-d', 8); let pw = await pl();
+  t('plates: E = V/d = 200/0.08 = 2500 V/m, a = eE/m', pw.E === 2500 && Math.abs(pw.a - 1.6e-19 * 2500 / 9.11e-31) < 1e-6 * pw.a, JSON.stringify(pw));
+  await setR('inp-elc-d', 4); pw = await pl();
+  t('plates: half the gap at the same V, twice the field -- mission', pw.E === 5000 && (await solved(0)));
+  await setR('inp-elc-V', 400); await setR('inp-elc-d', 2); await setR('inp-elc-v0', 5);
+  await click('btn-pl-launch');
+  for (let i = 0; i < 40 && !(await pl()).hit; i++);
+  t('plates: a slow electron in a strong field hits a plate -- mission', (await pl()).hit === true && (await solved(1)));
+  await click('btn-pl-part'); await setR('inp-elc-v0', 20); await click('btn-pl-launch');
+  t('plates: a proton launched the same way leaves the plates -- mission', await solved(2) || await solved(2));
+
   // ── capacitors in series and in parallel ──
   await open('elc-network'); await p.waitForTimeout(400);
   const net = async () => { await p.waitForTimeout(200); return p.evaluate(() => document.querySelector('#app canvas').__net); };

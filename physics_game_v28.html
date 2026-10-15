@@ -32500,6 +32500,28 @@ function simElcPlates(canvas){
   canvas.addEventListener('mousedown',_plDn);canvas.addEventListener('touchstart',_plDn,{passive:false});
   canvas.addEventListener('mousemove',_plMv);canvas.addEventListener('touchmove',_plMv,{passive:false});
   canvas.addEventListener('mouseup',_plUp);canvas.addEventListener('touchend',_plUp);
+  // keyboard: Space/Enter launches
+  canvas.tabIndex=0;
+  canvas.addEventListener('keydown',function(e){if(e.key===' '||e.key==='Enter'){elec={x:0,y:0,vx:v06()*1e6,vy:0,t:0,hit:false};ghosts=[];e.preventDefault();}});
+  var dMaxV={},Vkey=null;
+  var kit=simKit(canvas,{missions:[
+    {text:'באותו מתח, הקטינו את המרווח בין הלוחות לחצי. מה קורה ל־'+_skM('E')+'?',
+     hint:'השאירו את מחוון המתח במקומו, והזיזו את מחוון המרווח מ־8 cm ל־4 cm (או מ־4 ל־2).',
+     why:_skM('E = V/d')+': אותו מתח על חצי המרחק נותן שדה כפול — וכפול גם הכוח '+_skM('F = qE')+' על כל מטען שביניהם.',
+     done:function(s){return s.halved;}},
+    {text:'שגרו אלקטרון שפוגע באחד הלוחות',
+     hint:'מהירות קטנה יותר משאירה אותו זמן רב יותר בין הלוחות; מתח גדול יותר או מרווח קטן יותר מגבירים את התאוצה.',
+     why:'בין הלוחות האלקטרון מואץ לעבר הלוח החיובי ב־'+_skM('a = eE/m')+'. אם '+_skM('y = ½at²')+' מגיע ל־'+_skM('d/2')+' לפני שהאלקטרון עבר את אורך הלוחות — הוא פוגע.',
+     done:function(s){return s.hitE;}},
+    {text:'החליפו לפרוטון ושגרו אותו: אותו כוח — וכמעט בלי סטייה',
+     hint:'לחצו ״🔁 החליפו לפרוטון״ ואז ״🚀 שגרו״.',
+     why:'לפרוטון אותו מטען בגודלו, ולכן אותו כוח '+_skM('F = eE')+'. אבל '+_skM('m_p ≈ 1836 m_e')+', ולכן התאוצה '+_skM('a = F/m')+' קטנה פי 1836.',
+     done:function(s){return s.protonOut;}}
+  ]});
+  kit.predict({q:'מטען אחד נמצא בין הלוחות ממש ליד הלוח החיובי, ומטען זהה נמצא באמצע. הכוח על המטען שליד הלוח:',
+    opts:['גדול יותר','קטן יותר','שווה בדיוק'],correct:2,
+    why:'בין לוחות גדולים השדה אחיד: '+_skM('E = V/d')+' בכל נקודה, ולכן גם '+_skM('F = qE')+' זהה בכל מקום — זו בדיוק הסיבה שהמסלול הוא פרבולה מושלמת. ראו את החצים: באותו אורך בכל המרווח.'});
+  var hitE=false,protonOut=false;
   function draw(){
     if(_simStop[id])return;animT+=0.03;
     var Vv=V(),d_m=dcm()/100,E=Vv/d_m;         // V/m
@@ -32601,6 +32623,14 @@ function simElcPlates(canvas){
       optLabel(ctx,'🚀 שגרו — או משכו שמאלה מנקודת הכניסה לקביעת v₀!',W/2,H-26,'#22d3ee',10);
     }
     if(W>=560||!elec)optInfoBox(ctx,8,8,192,['V='+Vv+' V,  d='+dcm()+' cm','E=V/d='+(E/1000).toFixed(1)+' kV/m','שדה אחיד: חצים מקבילים','a = qE/m — אותו כוח בכל נקודה']);
+    // ── the lesson's numbers ──
+    if(Vkey!==Vv){Vkey=Vv;dMaxV={};}
+    dMaxV.d=Math.max(dMaxV.d||0,dcm());
+    if(elec&&elec.hit&&part==='e')hitE=true;
+    if(elec&&part==='p'&&elec.x>LP_m&&!elec.hit)protonOut=true;
+    kit.model('שדה אחיד: '+_skM('E = V/d = '+Vv.toFixed(0)+' / '+d_m.toFixed(3)+' = '+E.toFixed(0)+' V/m ⇒ a = eE/m = '+sciTxt(Math.abs(a))+' m/s²'));
+    canvas.__pl={E:E,a:Math.abs(a),hit:!!(elec&&elec.hit),part:part};   // for the tests
+    kit.check({halved:dcm()<=0.5*dMaxV.d+1e-9,hitE:hitE,protonOut:protonOut});
     requestAnimationFrame(draw);
   }requestAnimationFrame(draw);
 }
