@@ -536,8 +536,11 @@ const EXPECT = {
     }
     await p.evaluate(() => { state.missions = {}; render(); }); await p.waitForTimeout(1100);
     await p.evaluate(() => document.querySelector('#app .sim-container').dispatchEvent(new Event('click')));
-    if (se === 'em-spectrum') { await setv('ems-pos', 33.6); await setv('ems-pos', 26.3); await setv('ems-pos', 62); }
-    else { await setv('ems-pos', 65.2); await setv('ems-pos', 63.5); await setv('ems-pos', 61.4); }
+    // a sweep across the whole bar passes every target without stopping: no mission
+    for (let x = 0; x <= 100; x += 0.3) await p.evaluate(x => { const el = document.getElementById('inp-ems-pos'); el.value = x.toFixed(1); el.dispatchEvent(new Event('input', { bubbles: true })); return new Promise(r => requestAnimationFrame(r)); }, x);
+    await setv('ems-pos', 100); await p.waitForTimeout(600);
+    t(`${se}: a sweep across the bar solves nothing`, await missions() === '000', await missions());
+    for (const x of se === 'em-spectrum' ? [33.6, 26.3, 62] : [65.2, 63.5, 61.4]) { await setv('ems-pos', x); await p.waitForTimeout(600); }
     t(`${se}: every mission is reachable`, await missions() === '111', await missions());
   }
 

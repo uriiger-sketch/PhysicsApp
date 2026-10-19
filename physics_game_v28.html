@@ -19420,6 +19420,7 @@ function simOptEMSpectrum(canvas){
     if(dragBar){_sSet(p);e.preventDefault();}
     else canvas.style.cursor=_barHit(p)?'ew-resize':'';}
   function _sUp(){dragBar=false;canvas.style.cursor='';}
+  var lastPos=null,stillT=0;
   canvas.addEventListener('mousedown',_sDn);canvas.addEventListener('touchstart',_sDn,{passive:false});
   canvas.addEventListener('mousemove',_sMv);canvas.addEventListener('touchmove',_sMv,{passive:false});
   canvas.addEventListener('mouseup',_sUp);canvas.addEventListener('touchend',_sUp);
@@ -19494,6 +19495,9 @@ function simOptEMSpectrum(canvas){
     if(_simStop[id])return;
     var dt=last?Math.min((ts-last)/1000,0.05):0.016;last=ts;animT+=dt;
     var pos=getPos(); // 0..1
+    // a mission counts where the learner STOPS, not where a sweep passes:
+    // the position must hold for 0.4 s with the finger off the bar
+    if(pos!==lastPos){lastPos=pos;stillT=0;}else stillT+=dt;
     // Map pos to log10(f): range 3Hz (radio AM) to 22Hz (ultra-gamma)
     var logF=3+pos*19; // log10 of freq in Hz
     var freq=Math.pow(10,logF);
@@ -19588,7 +19592,7 @@ function simOptEMSpectrum(canvas){
     ctx.restore();optLabel(ctx,'אור נראה',(visX1+visX2)/2,barY+barH+38,'#fbbf24',9);
     kit.model('תחום: '+curBand.name+'. '+_skM('λ = c/f = 3.00×10⁸ / '+_sci(freq)+' Hz = '+formatLambda(lambda))+'. אנרגיית פוטון: '+_skM('E = hf = '+formatEnergy(freq))+'.'+
       (full?' ב־1 mW: '+_skM('N = P/E = '+_sci(nPh))+' פוטונים בשנייה — '+act+'.':''));
-    kit.check({logF:logF,eV:eVnow,lam:lambda});
+    if(stillT>0.4&&!dragBar)kit.check({logF:logF,eV:eVnow,lam:lambda});
     requestAnimationFrame(draw);
   }
   function poll(){if(_simStop[id])return;requestAnimationFrame(draw);}poll();
@@ -19997,13 +20001,14 @@ function simOptLaser(canvas){
       optLabel(ctx,'מתחת לסף — פליטה ספונטנית',W/2,cavY+cavH+22,'#f87171',10);
     }
     // Population inversion meter
-    var meterY=cavY+cavH,meterH=cavH*1.2;
+    // the meter stands ABOVE the output beam (the beam used to run through it)
+    var meterY=cavY+cavH/2-14,meterH=cavH*1.05;
     ctx.fillStyle='rgba(30,41,59,.8)';ctx.beginPath();ctx.roundRect(meterX-14,meterY-meterH,28,meterH,4);ctx.fill();
     ctx.strokeStyle='#475569';ctx.lineWidth=1;ctx.beginPath();ctx.roundRect(meterX-14,meterY-meterH,28,meterH,4);ctx.stroke();
     var fillH=Math.max(4,inversion*meterH);
     var meterCol=aboveThresh?'#22c55e':'#ef4444';
     ctx.fillStyle=meterCol;ctx.beginPath();ctx.roundRect(meterX-12,meterY-fillH+2,24,fillH-4,3);ctx.fill();
-    optLabel(ctx,'היפוך',meterX,meterY+10,'#e2e8f0',9);
+    optLabel(ctx,'היפוך',meterX,meterY-meterH-24,'#e2e8f0',9);
     optLabel(ctx,aboveThresh?'✓':'✗',meterX,meterY-meterH-10,aboveThresh?'#22c55e':'#f87171',10);
     // Threshold line
     ctx.save();ctx.strokeStyle='#fbbf24';ctx.lineWidth=1;ctx.setLineDash([3,3]);
