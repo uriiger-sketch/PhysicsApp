@@ -15,7 +15,11 @@
 //     leaves as it approaches (the classic sign test);
 //   - conductor in an external field: E = 0 inside a neutral sphere;
 //   - charged sphere, Q < 0: |E| > 0 outside and V < 0;
-//   - three geometries, potential view: inside the sphere V = kQ/R;
+//   - three geometries, potential view: inside the sphere V = kQ/R; the
+//     1 m × 1 m sheet's field on its axis, summed over the sheet, and weaker
+//     than the point charge's at every distance (no "crossing");
+//   - field lines: on EACH charge of a pair 2.5 per μC; equipotentials at
+//     equal steps ΔV;
 //   - deflection: a particle that hits the plate reports the hit.
 // Last, every draggable simulation is driven by a finger on a 390 px phone:
 // what it drives must change, and the page must not scroll under the drag.
@@ -242,7 +246,15 @@ const sig2 = x => x === 0 ? 0 : Number(x.toPrecision(2));
   const cnd = await txt();
   t('neutral conductor in an external field: E = 0 inside', new RegExp('E = ' + LR('0 בדיוק')).test(cnd), cnd.split('\n').filter(l => /^‎?E = /.test(l)).slice(-1)[0]);
   t('conductor missions: E inside; a neutral conductor in an external field', (await solved(0)) && (await solved(1)));
-  await click('btn-cnd-mode'); await setR('inp-cnd-Q', 8); await setR('inp-cnd-R', 30); await p.waitForTimeout(200);
+  // the discharge mission asks for the threshold: at the defaults the tip
+  // already sparks, so switching the mode alone must not solve it
+  await setR('inp-cnd-Q', 4); await p.waitForTimeout(150); await click('btn-cnd-mode'); await p.waitForTimeout(300);
+  t('conductor, sharp tip at the defaults: sparking already, the discharge mission not yet solved',
+    (await p.evaluate(() => document.querySelector('#app canvas').__cnd)).Etip > 3e6 && (await done())[2] === false);
+  await setR('inp-cnd-Q', 2); await p.waitForTimeout(250);
+  t('conductor, sharp tip, 2 μC on R = 25 cm: E at the tip below 3×10⁶ V/m, no discharge',
+    (await p.evaluate(() => document.querySelector('#app canvas').__cnd)).Etip < 3e6);
+  await setR('inp-cnd-Q', 8); await setR('inp-cnd-R', 30); await p.waitForTimeout(200);
   const cn = await p.evaluate(() => document.querySelector('#app canvas').__cnd);
   t('conductor, sharp tip: E ≈ V/ρ = (kQ/R)/(0.16R) above 3×10⁶ V/m -- discharge mission', cn.sharp && Math.abs(cn.Etip - (k * 8e-6 / 0.15) / (0.15 * 0.16)) < 1e-6 * cn.Etip && cn.Etip > 3e6 && (await solved(2)), JSON.stringify(cn));
 
@@ -270,14 +282,31 @@ const sig2 = x => x === 0 ? 0 : Number(x.toPrecision(2));
   t('compare (V view): inside the sphere V = kQ/R', vs.some(v => Math.abs(v - 8.988e9 * 0.5e-6 / 0.05 / 1e3) < 1), vs.join(','));
   t('compare mission: V view inside the sphere', await solved(2));
   await click('btn-cmp-v');
-  const cm1 = await p.evaluate(() => document.querySelector('#app canvas').__cmp);
-  t('compare: the crossing r* = √(2kAε₀) for A = 1 m²', Math.abs(cm1.rc - Math.sqrt(2 * 8.988e9 * 8.854e-12)) < 1e-9, cm1.rc);
+  // the sheet is a real 1 m × 1 m square read on its axis: its field, summed
+  // here piece by piece (Coulomb's law over a 400 × 400 grid), against what
+  // the simulation draws and prints
+  const sheetE = (z, Qc) => { const Ng = 400, d = 1 / Ng, dq = Qc * d * d; let E = 0;
+    for (let i = 0; i < Ng; i++) for (let j = 0; j < Ng; j++) { const x = -0.5 + (i + 0.5) * d, y = -0.5 + (j + 0.5) * d, r2 = x * x + y * y + z * z; E += 8.988e9 * dq * z / (r2 * Math.sqrt(r2)); }
+    return E; };
   const cbb = await (await p.$('#app canvas')).boundingBox();
-  await drag(0.10, 0.5, (52 + (cbb.width - 68) * cm1.rc / 0.6) / cbb.width, 0.5); const cm2 = await p.evaluate(() => document.querySelector('#app canvas').__cmp);
-  t('compare: at r*, the point charge and the plane give the same field -- mission', Math.abs(cm2.Ept / cm2.Epl - 1) < 0.05 && (await solved(0)), (cm2.Ept / cm2.Epl).toFixed(3));
-  await setR('inp-cmp-Q', 0.5); await setR('inp-cmp-Q', 4); await p.waitForTimeout(200);
-  const cm3 = await p.evaluate(() => document.querySelector('#app canvas').__cmp);
-  t('compare: eight times the charge, the crossing stays put -- mission', cm3.rc === cm1.rc && (await solved(1)));
+  const cmpAt = async (r) => { await drag(0.5, 0.5, (52 + (cbb.width - 68) * r / 0.6) / cbb.width, 0.5); return p.evaluate(() => document.querySelector('#app canvas').__cmp); };
+  let cm = await cmpAt(0.10);
+  t('compare: the 1 m × 1 m sheet on its axis, 10 cm away: E as summed over the sheet, below σ/2ε₀',
+    Math.abs(cm.Esh / sheetE(cm.r, 0.5e-6) - 1) < 2e-3 && Math.abs(cm.Einf - 0.5e-6 / (2 * 8.854e-12)) < 1e-6 && cm.Esh < cm.Einf,
+    (cm.Esh / sheetE(cm.r, 0.5e-6)).toFixed(4));
+  t('missions about the sheet not solved at 10 cm', (await done())[0] === false && (await done())[1] === false);
+  cm = await cmpAt(0.0558);
+  t('compare: the sheet\'s field falls to 90 % of σ/2ε₀ at about 5.6 cm -- mission', Math.abs(cm.Esh / cm.Einf - 0.9) < 0.012 && (await solved(0)), (cm.Esh / cm.Einf).toFixed(3) + ' at ' + cm.r.toFixed(4));
+  t('missions: "more than half the point charge" not yet', (await done())[1] === false);
+  // on the axis the point charge is the stronger at every distance: there is
+  // no crossing (the infinite plane's σ/2ε₀ applied at 40 cm made one up)
+  const weaker = [];
+  for (const r of [0.01, 0.1, 0.25, 0.4, 0.58]) { cm = await cmpAt(r); weaker.push(cm.Esh < cm.Ept && cm.Esh < cm.Einf); }
+  t('compare: the sheet is weaker than the point charge at 1, 10, 25, 40 and 58 cm', weaker.every(Boolean), weaker.join(','));
+  cm = await cmpAt(0.55);
+  t('compare: 55 cm away the sheet gives more than half of kQ/r², and still less -- mission', cm.Esh / cm.Ept > 0.5 && cm.Esh / cm.Ept < 1 && (await solved(1)), (cm.Esh / cm.Ept).toFixed(3));
+  await setR('inp-cmp-Q', 4); await p.waitForTimeout(200); const cm4 = await p.evaluate(() => document.querySelector('#app canvas').__cmp);
+  t('compare: eight times the charge, every field eight times larger', Math.abs(cm4.Esh / cm.Esh - 8) < 1e-9 && Math.abs(cm4.Ept / cm.Ept - 8) < 1e-9);
 
   // infinite plane: the field does not fall off; two plates add or cancel
   await open('elc-plane'); await p.waitForTimeout(300);
@@ -311,9 +340,20 @@ const sig2 = x => x === 0 ? 0 : Number(x.toPrecision(2));
     m.lines.filter(l => l.from === 0).every(l => l.dir === 1) && m.lines.filter(l => l.end === 1).length >= 8 && perQ(m, 1) === 10,
     'ending on −: ' + m.lines.filter(l => l.end === 1).length + ', on −: ' + perQ(m, 1));
   await setR('inp-elc-Q', 1); await setR('inp-elc-Q2', -6); m = await elc();
-  t('field lines, +1 and −6 μC: every line from the small + ends on the −; the − carries ≈ 15',
-    m.lines.filter(l => l.from === 0).length === 3 && m.lines.filter(l => l.from === 0).every(l => l.end === 1) && Math.abs(perQ(m, 1) - 15) <= 2,
+  t('field lines, +1 and −6 μC: every line from the small + ends on the −; the − carries exactly 15',
+    m.lines.filter(l => l.from === 0).length === 3 && m.lines.filter(l => l.from === 0).every(l => l.end === 1) && perQ(m, 1) === 15,
     'from +: ' + m.lines.filter(l => l.from === 0).map(l => l.end).join(',') + '; on −: ' + perQ(m, 1));
+  // unequal unlike pairs: as many lines on EACH charge as 2.5 per μC asks
+  // (spacing the lines evenly round both charges put 4 on a −1 μC beside
+  // +4 μC, and 3 on a −0.5 μC beside +6 μC); none may stall short of a charge
+  // or end on the charge it started from
+  const nL = q => Math.max(Math.abs(q) > 0.05 ? 1 : 0, Math.round(2.5 * Math.abs(q)));
+  for (const [qa, qb] of [[4, -1], [6, -0.5], [-2, 5.5], [3, -6], [2, -2], [5, 1]]) {
+    await setR('inp-elc-Q', qa); await setR('inp-elc-Q2', qb); m = await elc();
+    t(`field lines, ${qa} and ${qb} μC: ${nL(qa)} and ${nL(qb)} lines meet the two charges`,
+      perQ(m, 0) === nL(qa) && perQ(m, 1) === nL(qb) && m.lines.every(l => l.end !== l.from),
+      'on them: ' + perQ(m, 0) + ', ' + perQ(m, 1));
+  }
   // like charges: drag the test charge to near the null point -- it settles there, E reads 0, the mission is solved
   await setR('inp-elc-Q', 4); await setR('inp-elc-Q2', 2); m = await elc();
   const nx = m.A[0].x + (m.A[1].x - m.A[0].x) * 2 / (2 + Math.SQRT2), ny = m.A[0].y;
@@ -355,6 +395,16 @@ const sig2 = x => x === 0 ? 0 : Number(x.toPrecision(2));
   await dragTo(m.probe.x, m.probe.y, m.nul.x + 5, m.nul.y + 4); m = await elc();
   t('potential: at the null point of two like charges E = 0 but V = kQ₁/r₁ + kQ₂/r₂ > 0',
     m.E < 1 && m.V > 1e4 && (await solved(1)), 'E = ' + m.E + ', V = ' + m.V);
+  // equipotentials at EQUAL steps of V (a 1-2-5 step, its value printed), so
+  // that their crowding shows the field's strength; with unlike charges V = 0
+  // is one of them
+  const eqSteps = mm => { const L = mm.levels.filter(v => v !== 0).map(v => v / mm.dV);
+    const pos = L.filter(v => v > 0).sort((a, b) => a - b);
+    return mm.dV > 0 && /^[125]0*$/.test(String(Math.round(mm.dV))) && L.every(v => Math.abs(v - Math.round(v)) < 1e-9) && pos.every((v, i) => v === i + 1) && pos.length >= 3; };
+  t('potential: the equipotentials of +2 and +3 μC are at equal steps ΔV', eqSteps(m), JSON.stringify([m.dV, m.levels]));
+  t('potential: the step ΔV is printed on the canvas', new RegExp('ΔV = ' + (m.dV >= 1000 ? +(m.dV / 1000).toPrecision(3) + ' kV' : m.dV + ' V')).test(await txt()), m.dV);
+  await setR('inp-elc-Vq2', -3); await p.waitForTimeout(250); m = await elc();   // the contours follow on the next frame
+  t('potential: +2 and −3 μC, equal steps and V = 0 among them', eqSteps(m) && m.levels.includes(0), JSON.stringify([m.dV, m.levels]));
 
   // ── Coulomb: equal arrows (Newton 3) on one linear scale, and the inverse square measured ──
   await open('elc-coulomb');
