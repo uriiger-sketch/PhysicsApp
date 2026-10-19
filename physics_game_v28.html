@@ -20974,6 +20974,9 @@ function simOptColorMix(canvas){
     if(lastS)kit.check(lastS);
     requestAnimationFrame(frame);
   }
+  // the first picture at once: a busy phone may be slow to give the first
+  // animation frame, and the panel below is already there
+  dirty=false;draw();
   requestAnimationFrame(frame);
 }
 
