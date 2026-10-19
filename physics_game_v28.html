@@ -14773,7 +14773,7 @@ function simKineticFriction(canvas){
     ctx.save(); ctx.fillStyle='rgba(6,14,28,.92)'; ctx.strokeStyle='#1e4060'; ctx.lineWidth=1.5;
     ctx.beginPath(); ctx.roundRect(8,6,W-16,52,6); ctx.fill(); ctx.stroke(); ctx.restore();
     simText(ctx,'חיכוך קינטי:  fₖ = μₖN = '+fk.toFixed(1)+' N — אותו כוח בכל מהירות',W/2,18,'#22d3ee',10.5,undefined,true);
-    simText(ctx,'a = −μₖg = '+a.toFixed(2)+' m/s²     d = v₀²/(2μₖg) = '+dTheory.toFixed(2)+' m',W/2,34,'#e2e8f0',10,undefined,true);
+    simText(ctx,'a = −μₖg = '+_mbS(a,2)+' m/s²     d = v₀²/(2μₖg) = '+dTheory.toFixed(2)+' m',W/2,34,'#e2e8f0',10,undefined,true);
     if(launched&&!running&&vel===0){
       simText(ctx,'נעצר אחרי '+dist.toFixed(2)+' m — בדיוק כמו בנוסחה',W/2,50,'#34d399',10,undefined,true);
     } else if(launched){
@@ -14841,7 +14841,7 @@ function simKineticFriction(canvas){
       simText(ctx,'יופיע לאחר שיגור',GX2+GW2/2,GY+GH/2+12,'#7d8da6',8,undefined,true);
     }
 
-    model(kit.m('fₖ = μₖmg = '+mu_k.toFixed(2)+' × '+m.toFixed(0)+' × 9.8 = '+fk.toFixed(1)+'\u00a0N')+' — בכל מהירות; '+kit.m('a = −μₖg = '+a.toFixed(2)+'\u00a0m/s²')+', '+kit.m('d = v₀²/(2μₖg) = '+v0.toFixed(0)+'² / (2 × '+mu_k.toFixed(2)+' × 9.8) = '+dTheory.toFixed(2)+'\u00a0m'));
+    model(kit.m('fₖ = μₖmg = '+mu_k.toFixed(2)+' × '+m.toFixed(0)+' × 9.8 = '+fk.toFixed(1)+'\u00a0N')+' — בכל מהירות; '+kit.m('a = −μₖg = '+_mbS(a,2)+'\u00a0m/s²')+', '+kit.m('d = v₀²/(2μₖg) = '+v0.toFixed(0)+'² / (2 × '+mu_k.toFixed(2)+' × 9.8) = '+dTheory.toFixed(2)+'\u00a0m'));
     kit.check({v4:v4,mSame:mSame});
     requestAnimationFrame(draw);
   }
@@ -17120,7 +17120,7 @@ function simEnergyPotential(canvas){
     ctx.strokeStyle='#2d5275';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(0,GROUND_Y);ctx.lineTo(W,GROUND_Y);ctx.stroke();ctx.restore();
     if(contactTimer>0){var cp=Math.round(6*cf);ctx.save();ctx.strokeStyle='#34d399';ctx.lineWidth=2;ctx.setLineDash([2,3]);
       for(var xi=ballX-30;xi<ballX+30;xi+=12){ctx.beginPath();ctx.moveTo(xi,GROUND_Y);ctx.lineTo(xi+cp,GROUND_Y+cp+2);ctx.stroke();}ctx.restore();}
-    simText(ctx,'רצפה',SX1-6,GROUND_Y+14,'#7d8da6',8.5,'right');
+    simText(ctx,'רצפה',RX+8,GROUND_Y+14,'#7d8da6',8.5,'left');
     if(lastImp)simText(ctx,'בפגיעה ברצפה: v = '+lastImp.v.toFixed(2)+' m/s (נפל '+lastImp.hd.toFixed(2)+' m)',W/2,GROUND_Y+34,'#22d3ee',9,'center',true);
 
     // ── ruler: heights measured from the reference line
@@ -17150,7 +17150,11 @@ function simEnergyPotential(canvas){
     simText(ctx,m.toFixed(1)+' kg',ballX,objY+4,'#fff',9,'center',true);
     if(spd2>0.1&&!dragging&&contactTimer<=0){var dv=vel>0?1:-1;simArrow(ctx,ballX+BALL_R+5,objY,ballX+BALL_R+5,objY+dv*Math.min(46,spd2*6),'#22d3ee',2,8);}
     if(dragging)simText(ctx,'שחררו לנפילה',ballX,objY-BALL_R-10,'#fbbf24',9,'center',true);
-    else if(!touched)simText(ctx,'✋ הרימו את הכדור, או גררו את קו הייחוס',W/2,TOP_Y-BALL_R-4,'#fbbf24',9,'center',true);
+    else if(!touched){
+      // over the scene, beside the bars: on a phone it takes two lines, split at its comma
+      var ht='✋ הרימו את הכדור, או גררו את קו הייחוס', hc=(RX+SX1)/2, hy=TOP_Y-BALL_R+12, ci=ht.indexOf(', ');
+      if(labelW(ctx,ht,9)>SX1-RX-10&&ci>0){simText(ctx,ht.slice(0,ci+1),hc,hy,'#fbbf24',9,'center',true);simText(ctx,ht.slice(ci+2),hc,hy+13,'#fbbf24',9,'center',true);}
+      else simText(ctx,ht,hc,hy,'#fbbf24',9,'center',true);}
 
     // ── signed energy bars, one scale for all of them (latched, in joules)
     var PX0=SX1+8, PW=W-8-PX0, PY0=74, PH=GROUND_Y-PY0-6;
