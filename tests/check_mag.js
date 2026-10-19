@@ -145,7 +145,9 @@ const EXPECT = {
   t('  on the axis beyond S the field points INTO S (0° ± 3°, toward the magnet): the needle\'s N end points at the S pole', (mr.dir <= 3 || mr.dir >= 357) && await mgDone(1), mr.dir + '°');
   const mgBars = () => p.evaluate(async () => { const cv = document.getElementById('sim-canvas'), o = window.magBar, b = [];
     window.magBar = function (c, x, y, len, th, ang) { if (c.canvas === cv) b.push([Math.round(len), ang || 0]); return o.apply(this, arguments); };
-    await new Promise(r => setTimeout(r, 150)); window.magBar = o; return b.slice(-4); });
+    // on a loaded machine a frame can stall for longer than 150 ms: wait for one (up to 3 s)
+    await new Promise(r => setTimeout(r, 150)); for (let k = 0; k < 60 && !b.length; k++) await new Promise(r => setTimeout(r, 50));
+    window.magBar = o; return b.slice(-4); });
   const mb0 = await mgBars();
   const mAsk = await p.evaluate(() => { document.getElementById('btn-mgm-cut').click(); const o = document.querySelectorAll('.sk-predict .sk-opt'); if (o.length) o[1].click(); return o.length; });
   const mb1 = await mgBars();
@@ -171,7 +173,8 @@ const EXPECT = {
   // reversing the current (a prediction first) turns the probe's field arrow round
   const wArrow = () => p.evaluate(async () => { const cv = document.getElementById('sim-canvas'), o = window.simArrow; let a = null;
     window.simArrow = function (c, x1, y1, x2, y2, col) { if (c.canvas === cv && col === '#34d399') a = [x2 - x1, y2 - y1]; return o.apply(this, arguments); };
-    await new Promise(r => setTimeout(r, 150)); window.simArrow = o; return a; });
+    await new Promise(r => setTimeout(r, 150)); for (let k = 0; k < 60 && !a; k++) await new Promise(r => setTimeout(r, 50));
+    window.simArrow = o; return a; });
   const wa0 = await wArrow();
   const wAsk = await p.evaluate(() => { document.getElementById('btn-mgw-dir').click(); const o = document.querySelectorAll('.sk-predict .sk-opt'); if (o.length) o[1].click(); return o.length; });
   const wa1 = await wArrow();
@@ -280,6 +283,8 @@ const EXPECT = {
   // the keyboard: twelve presses of → turn v 60° clockwise, onto the field: no force
   await p.focus('#sim-canvas'); for (let i = 0; i < 12; i++) await p.keyboard.press('ArrowRight');
   T = await read(); LM = await kmodel();
+  // the model line is redrawn at most ~8 times a second: on a loaded machine give it a few frames
+  for (let w = 0; w < 30 && !/sin 0° = 0 N/.test(LM); w++) { await p.waitForTimeout(100); LM = await kmodel(); }
   const still = await p.evaluate(() => state.section);
   t('  v turned onto B with the arrow keys (the page stays): θ = 0°, F = 0', still === 'mag-lorentz' && has(T, 'θ = 0°') && has(T, 'F = 0') && /sin 0° = 0 N/.test(LM), still + ' ' + LM.slice(0, 50));
   // the right-hand-rule challenge: what was dealt is read off the picture,
