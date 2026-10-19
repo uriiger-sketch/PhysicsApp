@@ -166,6 +166,40 @@ const t = (name, ok, info) => { n++; if (!ok) fail++; console.log(`   ${ok ? 'PA
     t('kit: no XP for a mission solved before', r.xpFinal === 20, r.xpFinal);
     await ctx.close();
   }
+  // the kit's texts get the page's inline-maths pass: a number and its unit
+  // stay one left-to-right run, a formula keeps the full stop touching it,
+  // and running the pass again (as some sims do) changes nothing
+  {
+    const ctx = await newCtx(), p = await page(ctx, 'a.html');
+    const r = await p.evaluate(async () => {
+      const wait = ms => new Promise(r => setTimeout(r, ms)), out = {};
+      state.chapter = 'kit'; state.section = '__bidi__';
+      const host = document.createElement('div'); host.className = 'sim-container';
+      host.innerHTML = '<div class="sim-canvas-wrap"><canvas width="300" height="100"></canvas></div>';
+      document.getElementById('app').appendChild(host);
+      const kit = simKit(host.querySelector('canvas'), { missions: [
+        { text: 'הזיזו את הגוף 10 cm, עד ' + M('x=2\\,\\text{m}') + '.', hint: 'המטען הוא 5 μC.', why: 'כי ' + M('F=ma') + '.', done: () => false }] });
+      kit.model('המהירות: ' + kit.m('v = 3.0 m/s') + '.');
+      kit.predict({ q: 'כמה אלקטרונים: 6×10¹⁹ או 10 cm?', opts: ['א', 'ב'], correct: 0, why: 'בערך 6×10¹⁹.' }, () => {});
+      await wait(50);
+      const P = kit.el, runs = [...P.querySelectorAll('.ltr-run')].map(e => e.textContent);
+      out.runs = runs.join(' | ');
+      out.mission = runs.includes('10 cm');
+      out.hint = !!P.querySelector('.sk-hint .ltr-run') || /5 μC/.test([...P.querySelectorAll('.sk-hint .math-ltr,.sk-hint .ltr-run')].map(e => e.textContent).join(''));
+      out.predict = /6×10¹⁹/.test([...P.querySelectorAll('.sk-pq .ltr-run,.sk-pq .math-ltr')].map(e => e.textContent).join(' '));
+      const g = P.querySelector('.sk-t .mglue');
+      out.glued = !!(g && g.querySelector('.math-ltr') && /\.$/.test(g.textContent));
+      const f = P.querySelector('.sk-model .sk-f');
+      out.modelInline = getComputedStyle(f).display === 'inline' && f.nextSibling && /^\./.test(f.nextSibling.textContent);
+      const h0 = P.innerHTML; fixInlineMath(P); fixInlineMath(P); out.idempotent = P.innerHTML === h0;
+      delete state.missions['kit.__bidi__']; host.remove();
+      return out;
+    });
+    t('kit texts: "10 cm" in a mission and the numbers of a hint and a prediction are left-to-right runs', r.mission && r.hint && r.predict, r.runs);
+    t('kit texts: a formula and the full stop after it are glued (_gluePunct); kit.m maths is inline, the stop follows it', r.glued && r.modelInline, JSON.stringify(r));
+    t('kit texts: the inline-maths pass run twice more changes nothing (sims that run it themselves stay harmless)', r.idempotent);
+    await ctx.close();
+  }
   // reduced motion: the success moment does not animate
   {
     const ctx = await newCtx({ reducedMotion: 'reduce' }), p = await page(ctx, 'a.html');

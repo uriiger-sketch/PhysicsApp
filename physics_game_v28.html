@@ -10098,9 +10098,13 @@ function simKit(canvas,spec){
   var mk=function(i){return ms[i].id!=null?String(ms[i].id):String(i);};
   var isDone=function(i){var g=state.missions[key];return !!(g&&g[mk(i)]);};
   var el=function(tag,cls,html){var e=document.createElement(tag);if(cls)e.className=cls;if(html!=null)e.innerHTML=html;return e;};
-  // built after render(): the page-wide pass that keeps "580 nm" one
-  // left-to-right run inside Hebrew has already been and gone
-  var fx=function(n){try{if(typeof fixInlineMath==='function')fixInlineMath(n);}catch(e){}};
+  // Built after render(), the kit's texts missed the page's inline-maths
+  // pass, which keeps "580 nm" or "6×10¹⁹" one left-to-right run inside
+  // Hebrew and glues a formula to the full stop or comma touching it
+  // (_gluePunct), so the mark never starts a line alone. It is run here on
+  // every text the kit shows, once the text is on the page (the glue measures
+  // the layout). It is idempotent: a sim that runs it again changes nothing.
+  var fx=function(n){try{if(n&&typeof fixInlineMath==='function')fixInlineMath(n);}catch(e){}};
   var P=el('div','sk-panel'),M=el('div','sk-model'),Q=el('div','sk-predict');
   M.hidden=true;Q.hidden=true;P.appendChild(M);P.appendChild(Q);
   var items=[],pips=[],box=null,head=null;
@@ -10121,15 +10125,15 @@ function simKit(canvas,spec){
       if(m.hint){
         var hb=el('button','sk-hint-b'),hd=el('div','sk-hint',m.hint);hb.type='button';hb.textContent='💡 רמז';
         hd.hidden=true;hd.id='sk-h'+uid+'-'+i;hb.setAttribute('aria-expanded','false');hb.setAttribute('aria-controls',hd.id);
-        hb.addEventListener('click',function(){hd.hidden=!hd.hidden;hb.setAttribute('aria-expanded',String(!hd.hidden));});
+        hb.addEventListener('click',function(){hd.hidden=!hd.hidden;hb.setAttribute('aria-expanded',String(!hd.hidden));if(!hd.hidden)fx(hd);});
         row.appendChild(hb);li.appendChild(hd);
       }
       var wy=el('div','sk-why',m.why||'');wy.hidden=true;li.appendChild(wy);
       ol.appendChild(li);items.push(li);
       var pi=el('i');hP.appendChild(pi);pips.push(pi);
     });
-    box.appendChild(head);box.appendChild(ol);P.appendChild(box);fx(ol);
-    head.addEventListener('click',function(){shut(!box.classList.contains('shut'));});
+    box.appendChild(head);box.appendChild(ol);P.appendChild(box);
+    head.addEventListener('click',function(){shut(!box.classList.contains('shut'));if(!box.classList.contains('shut'))fx(ol);});
   }
   var wrap=canvas.closest('.sim-canvas-wrap')||canvas;
   // under the canvas, its touch hint and its description; above the sliders
@@ -10146,7 +10150,7 @@ function simKit(canvas,spec){
       li.querySelector('.sk-st').textContent=d?'הושלמה: ':'';
       pips[i].classList.toggle('on',d);});
     items.forEach(function(li,i){li.classList.toggle('next',i===next);});
-    if(fresh!=null&&items[fresh]){var li=items[fresh],pi=pips[fresh];
+    if(fresh!=null&&items[fresh]){var li=items[fresh],pi=pips[fresh];fx(li.querySelector('.sk-why'));
       [li,pi,hX].forEach(function(x){x.classList.remove('sk-just');});void li.offsetWidth;
       [li,pi,hX].forEach(function(x){x.classList.add('sk-just');});
       setTimeout(function(){[li,pi,hX].forEach(function(x){x.classList.remove('sk-just');});},2700);}
@@ -10159,6 +10163,7 @@ function simKit(canvas,spec){
   paint();
   // came back with everything done: one line, open on request
   if(box&&ms.every(function(m,i){return isDone(i);}))shut(true);
+  fx(P);
   // armed by the learner's own hand on the sim -- not by a hint, a
   // prediction or the description's close button
   var TY=['pointerdown','mousedown','touchstart','keydown','input','change','click'];
