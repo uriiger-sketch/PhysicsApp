@@ -10524,7 +10524,8 @@ function _mkModel(kit){
   return function(html){
     var n=performance.now();
     if(html===last||n-t0<200)return;
-    t0=n;last=html;kit.model(html);
+    // a separator dot stays at the end of its formula's line, never alone on one
+    t0=n;last=html;kit.model(String(html).replace(/<\/span> · /g,'</span>\u00a0· '));
   };
 }
 // A signed reading with the typeset minus: +6.2, −6.2, and 0.0 unsigned.
@@ -15071,16 +15072,16 @@ function simNewton3(canvas){
   function whoLabel(){if(whoB)whoB.textContent=who==='A'?'🔁 הדוחף: A':'🔁 הדוחף: B';}
   function reset(){
     var c=W/2; xA=c-reach(mA())-2; xB=c+reach(mB())+2; vA=0; vB=0; phase=0; tP=0; gA=0; gB=0; wall=false; pushed=null;
-    if(pushB)pushB.textContent='💥 דחפו!';
   }
   function go(F){
     if(phase!==0)reset();
     pushed={F:F,who:who,mA:mA(),mB:mB(),vA:0,vB:0,aA:F/mA(),aB:F/mB()};
-    phase=1;tP=0;if(pushB)pushB.textContent='⏹ איפוס';
+    phase=1;tP=0;
   }
   reset();whoLabel();
   if(whoB)whoB.addEventListener('click',function(){who=who==='A'?'B':'A';whoLabel();if(phase!==1)reset();});
-  if(pushB)pushB.addEventListener('click',function(){if(phase===0)go(getF());else reset();});
+  // a second press is a new push from the start (go() resets) — "↺ Reset" is its own button
+  if(pushB)pushB.addEventListener('click',function(){go(getF());});
   var rb=document.getElementById('btn-n3-reset');if(rb)rb.addEventListener('click',reset);
   ['inp-n3-mA','inp-n3-mB'].forEach(function(q){var e=document.getElementById(q);if(e)e.addEventListener('input',function(){if(phase!==1)reset();});});
   // ── hands: tap a skater to make them the pusher; pull them away and let go ──
