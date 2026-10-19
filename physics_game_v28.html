@@ -27714,7 +27714,7 @@ MAG_SIMS['mag-magnets']=function(canvas){
      done:function(s){return s.atS&&Math.cos(s.dir)>0.95;}},
     {text:'הוסיפו את שדה כדור הארץ ומצאו נקודה ניטרלית — מקום שבו המחט אינה מתכוונת.',
      hint:'חפשו כ־17 cm ממרכז המגנט, באלכסון, היכן ששדה המגנט מצביע דרומה — נגד שדה כדור הארץ. מגנט חלש יותר מקרב את הנקודה.',
-     why:'השדות מתחברים כווקטורים: בנקודה הזאת שדה המגנט שווה בגודלו לשדה כדור הארץ והפוך לו בכיוון — והשדה הכולל אפס.',
+     why:'השדות מתחברים כווקטורים: בנקודה הזאת שדה המגנט שווה בגודלו לרכיב האופקי של שדה כדור הארץ והפוך לו בכיוון — והשדה הכולל במישור המצפן אפס.',
      done:function(s){return s.earth&&s.B<2e-6;}}]});
   var model=magModeler(kit), gate=magPredictor(kit,canvas);
   var askCut=gate({q:'אתם עומדים לחתוך את המגנט באמצע. מה תקבלו?',
@@ -27764,7 +27764,11 @@ MAG_SIMS['mag-magnets']=function(canvas){
     if(earth){simArrow(ctx,W-26,H*0.78,W-26,H*0.78-44,'#34d399',2.2,9);simText(ctx,'צפון',W-26,H*0.78-54,'#34d399',9.5,'center',true);}
     // compass and readout
     var c=toS(comp[0],comp[1]),b=F(comp[0],comp[1]),Bm=Math.hypot(b[0],b[1]);
-    var neutral=Bm<2e-6,dir=Math.atan2(b[1],b[0]);
+    // a neutral point is where fields CANCEL: the total far below the sum of
+    // the parts (each magnet's field, and the Earth's) — not merely a weak
+    // field far from one weak magnet
+    var parts=earth?30e-6:0;for(var ip=0;ip+1<P.length;ip+=2){var bp=Bf(comp[0],comp[1],[P[ip],P[ip+1]]);parts+=Math.hypot(bp[0],bp[1]-(earth?30e-6:0));}
+    var neutral=Bm<2e-6&&Bm<0.25*parts,dir=Math.atan2(b[1],b[0]);
     magNeedle(ctx,c[0],c[1],neutral?(Date.now()/700)%6.2832:dir,16,true);
     simHandle(ctx,c[0],c[1],'#fbbf24',24);
     var y0=H*0.83,ph=W<600;
@@ -27776,7 +27780,7 @@ MAG_SIMS['mag-magnets']=function(canvas){
       cB,y0+yA[1],neutral?'#fbbf24':'#94a3b8',ph?9.5:10.5,'center',neutral);
     simText(ctx,'בחוץ הקווים יוצאים מ-N ונכנסים ל-S; בתוך המגנט הם חוזרים מ-S ל-N',cB,y0+yA[2],'#64748b',9.5,'center');
     var bE=earth?[b[0],b[1]-30e-6]:b,Bmag=Math.hypot(bE[0],bE[1]);
-    if(earth)model('במצפן, כחיבור וקטורי: שדה המגנט '+kit.m((Bmag*1e6).toFixed(1)+' μT')+' ועוד שדה כדור הארץ '+kit.m('30.0 μT')+' צפונה ⇒ '+kit.m('|B| = '+(Bm*1e6).toFixed(1)+' μT'));
+    if(earth)model('במצפן, כחיבור וקטורי: שדה המגנט '+kit.m((Bmag*1e6).toFixed(1)+' μT')+' ועוד הרכיב האופקי של שדה כדור הארץ, '+kit.m('30.0 μT')+' צפונה ⇒ '+kit.m('|B| = '+(Bm*1e6).toFixed(1)+' μT'));
     else model('במצפן: '+kit.m('|B| = '+(Bm*1e6).toFixed(1)+' μT')+', בכיוון '+kit.m(((dir*180/Math.PI+360)%360).toFixed(0)+'°')+' נגד כיוון השעון מהכיוון ימינה — ולשם מצביע הקצה הצפוני של המחט');
     var bs=bars(),left=bs[0],xS=left[0]-left[1]/2;
     kit.check({cut:cut,earth:earth,B:Bm,dir:dir,atS:comp[0]<xS-0.004&&Math.abs(comp[1])<0.02&&comp[0]>xS-0.08});
@@ -27816,7 +27820,9 @@ MAG_SIMS['mag-wire']=function(canvas){
     {text:'הוסיפו תיל שני ומצאו נקודה שבה השדות של שני התילים מבטלים זה את זה.',
      hint:'כשהזרמים בכיוונים הפוכים ושווים, אין נקודה כזאת. הפכו את סימן I₂, וחפשו בין התילים.',
      why:'השדות מתחברים כווקטורים: בין שני זרמים באותו כיוון, השדה של כל תיל מצביע לצד הפוך — ובנקודה שבה גודליהם שווים, השדה הכולל אפס.',
-     done:function(s){return s.two&&s.mode===0&&s.B<2e-6;}}]});
+     // a real cancellation: each wire's own field there is at least 10 μT (two
+     // currents of 0 A give B = 0 everywhere, and that is no null point)
+     done:function(s){return s.two&&s.mode===0&&s.B<2e-6&&s.B1>=10e-6&&s.B2>=10e-6;}}]});
   var model=magModeler(kit), gate=magPredictor(kit,canvas);
   var askFlip=gate({q:'אתם עומדים להפוך את כיוון הזרם. מה יקרה למחטי המצפנים סביב התיל?',
     opts:['לא ישתנו — השדה תלוי רק בגודל הזרם','כולן יסתובבו לכיוון ההפוך','יצביעו אל התיל'],correct:1,
@@ -27928,7 +27934,7 @@ MAG_SIMS['mag-wire']=function(canvas){
     if(r1<=rmax){var Br=2e-7*I1/r1;if(Br<=Bmax)simCircle(ctx,X(r1),Y(Br),5,'#34d399','#fff',1.5);}
     if(two)model('חיבור וקטורי, '+kit.m('B = B₁ + B₂')+': '+kit.m('B₁ = '+(B1*1e6).toFixed(1)+' μT')+', '+kit.m('B₂ = '+(Math.hypot(Bi[1][0],Bi[1][1])*1e6).toFixed(1)+' μT')+' — ובסכום הווקטורי '+kit.m('|B| = '+(pn*1e6).toFixed(1)+' μT'));
     else model(kit.m('B = μ₀I/2πr = (4π×10⁻⁷ × '+I1.toFixed(0)+')/(2π × '+r1.toFixed(3)+') = '+(B1*1e6).toFixed(1)+' μT'));
-    kit.check({streak:streak,mode:mode,two:two,B:pn});
+    kit.check({streak:streak,mode:mode,two:two,B:pn,B1:B1,B2:two?Math.hypot(Bi[1][0],Bi[1][1]):0});
     requestAnimationFrame(draw);
   }
   requestAnimationFrame(draw);
@@ -28029,10 +28035,13 @@ MAG_SIMS['mag-solenoid']=function(canvas){
      hint:_skM('B ≈ μ₀nI')+', ו־'+_skM('n = N/L')+' — מספר הליפופים לכל מטר.',
      why:'B = μ₀nI: מה שקובע הוא צפיפות הליפופים n ולא מספרם. סליל ארוך פי 2 עם אותם ליפופים — שדה חלש פי 2.',
      done:function(s){return Math.abs(s.Bc-1e-3)<0.03e-3;}},
-    {text:'עשו את השדה בפנים אחיד: השדה במרכז יהיה לפחות 98% מ־μ₀nI.',
-     hint:'סליל ארוך וצר — אורך גדול בהרבה מהרדיוס (3 cm).',
-     why:'הנוסחה μ₀nI היא של סליל ארוך מאוד. בסליל קצר השדה של הקצוות ״חסר״ במרכז; כשהאורך גדול בהרבה מהרדיוס, הסליל מתנהג כאינסופי והשדה בפנים כמעט אחיד.',
-     done:function(s){return s.frac>0.98;}}]});
+    // uniform = near μ₀nI at the centre (the percentage shown, to 0.1 %) AND
+    // no ripple from turn to turn: a sparse coil with a turn at its centre
+    // reads well over 100 % there and far less between the turns
+    {text:'עשו את השדה בפנים אחיד: במרכז לפחות 97% מ־μ₀nI, וכמעט בלי שינוי מליפוף לליפוף.',
+     hint:'סליל ארוך וצפוף: אורך גדול בהרבה מהרדיוס (3 cm), וליפופים קרובים זה לזה.',
+     why:'הנוסחה μ₀nI היא של סליל ארוך מאוד ומלופף בצפיפות. בסליל קצר השדה של הקצוות ״חסר״ במרכז, ובסליל דליל השדה גדל מול כל ליפוף וקטן ביניהם; כשהאורך גדול בהרבה מהרדיוס והליפופים צפופים, הסליל מתנהג כאינסופי והשדה בפנים כמעט אחיד.',
+     done:function(s){return s.pct>=97&&s.ripple<=0.01;}}]});
   var model=magModeler(kit);
   kit.predict({q:'מותחים את הסליל לאורך כפול, עם אותם ליפופים ואותו זרם. השדה בפנים…',
     opts:['לא משתנה — אותם ליפופים','קטן פי 2','גדל פי 2'],correct:1,
@@ -28064,7 +28073,7 @@ MAG_SIMS['mag-solenoid']=function(canvas){
     var RW=W<600?W-16:W*0.56;
     ctx.save();ctx.fillStyle='rgba(2,8,16,.85)';ctx.fillRect(8,8,RW,64);ctx.restore();
     simText(ctx,'n = N/L = '+n.toFixed(0)+' m⁻¹   ·   μ₀nI = '+magFmtB(Bid),8+RW/2,24,'#e2e8f0',11,'center',true);
-    simText(ctx,'במרכז (סכום מדויק): '+magFmtB(Bax(0))+'  ('+(Bax(0)/Bid*100).toFixed(0)+'% מהאידיאלי)',8+RW/2,43,'#fbbf24',10,'center',true);
+    simText(ctx,'במרכז (סכום מדויק): '+magFmtB(Bax(0))+'  ('+(Bax(0)/Bid*100).toFixed(1)+'% מהאידיאלי)',8+RW/2,43,'#fbbf24',10,'center',true);
     simText(ctx,'בגשש: '+magFmtB(pn),8+RW/2,62,'#34d399',10,'center',true);
     // B on the axis against the long-solenoid value
     var gx=48,gy=TOP+8,gw=W-66,gh=H-TOP-36,Bm=Math.max(Bid,Bax(0))*1.15;
@@ -28080,8 +28089,10 @@ MAG_SIMS['mag-solenoid']=function(canvas){
     simText(ctx,'קצה: '+(Bax(Ln/2)/Bax(0)*100).toFixed(0)+'% מהמרכז',X(Ln/2)+6,Y(Bax(Ln/2))-8,'#f87171',9,'left');
     [-25,-15,-5,5,15,25].forEach(function(v){simText(ctx,String(v),X(v/100),gy+gh+12,'#64748b',8.5,'center');});
     simText(ctx,'x (cm)',gx+gw,gy+gh-6,'#64748b',8.5,'right');
-    model(kit.m('B = μ₀nI = 4π×10⁻⁷ × '+n.toFixed(0)+' × '+I.toFixed(1)+' = '+magFmtB(Bid))+' · במרכז, הסכום המדויק: '+kit.m(magFmtB(Bax(0))+' = '+(Bax(0)/Bid*100).toFixed(0)+'%'));
-    kit.check({Bc:Bax(0),frac:Bax(0)/Bid});
+    model(kit.m('B = μ₀nI = 4π×10⁻⁷ × '+n.toFixed(0)+' × '+I.toFixed(1)+' = '+magFmtB(Bid))+' · במרכז, הסכום המדויק: '+kit.m(magFmtB(Bax(0))+' = '+(Bax(0)/Bid*100).toFixed(1)+'%'));
+    // the ripple on the axis within one turn spacing of the centre
+    var sp=Ln/N,bLo=1e9,bHi=0;for(var j2=0;j2<=20;j2++){var bb=Bax(-sp+sp*j2/10);bLo=Math.min(bLo,bb);bHi=Math.max(bHi,bb);}
+    kit.check({Bc:Bax(0),pct:Math.round(Bax(0)/Bid*1000)/10,ripple:(bHi-bLo)/bHi});
     requestAnimationFrame(draw);
   }
   requestAnimationFrame(draw);
@@ -28418,7 +28429,10 @@ MAG_SIMS['mag-spectro']=function(canvas){
   var ISO=[{a:12,c:'#fbbf24',w:0.5},{a:13,c:'#f472b6',w:0.25},{a:14,c:'#22d3ee',w:0.25}];
   // on a phone the readout spans the top and the spectrometer starts below it
   var ph=W<600, Xd=ph?W*0.5:W*0.42, yE=H-44, xs0=18, xs1=Xd-44, LS=0.20, GAP=0.01, SLIT=0.001, DT=ph?100:24;
-  var sx=(xs1-xs0)/LS, sy=30/GAP, sS=(yE-DT-10)/0.62, V0=4e5;
+  // the detector shows 2r up to 86 cm: ¹⁴C at the fastest source speed (5.6×10⁵ m/s)
+  // and the weakest B′ (0.2 T) lands at 81 cm — and a 10 cm ¹²C–¹⁴C separation
+  // (the mission) needs 2r(¹⁴C) ≥ 70 cm, so it is always in view
+  var sx=(xs1-xs0)/LS, sy=30/GAP, sS=(yE-DT-10)/0.86, V0=4e5;
   var ions=[], hits=[], run=false, started=false, pT=null, acc=0, K1=1.2/5e-7, K2=2.0/2e-6;
   var kit=simKit(canvas,{missions:[
     {text:'כווננו את הבורר כך שיעברו בו רק יונים במהירות '+_skM('5.0×10⁵ m/s')+'.',
@@ -28872,6 +28886,9 @@ function magBarFluxDmax(m,l,a){var b=0;for(var z=-0.3;z<=0.3;z+=0.0005)b=Math.ma
 // nothing, however large Φ is. Positive ε drives the current whose own field
 // points along +x. On the NΦ(t) graph the tangent at "now" is drawn: ε is
 // minus its slope, which the ε(t) graph under it shows point by point.
+// The coil's self-inductance is neglected (I = ε/R): at most 500 turns, 2 cm
+// radius, 3 cm long, L ≈ 13 mH and L/R ≈ 1.3 ms, against ≈ 50 ms for a pole
+// to cross the coil.
 MAG_SIMS['mag-faraday']=function(canvas){
   var id=canvas.id,_g=_simGen[id];
   var PH=(canvas.offsetWidth||(canvas.parentElement&&canvas.parentElement.offsetWidth)||720)<600;
@@ -28997,6 +29014,10 @@ MAG_CTRL['mag-faraday']=function(){return rng('mgy-N',50,500,200,10,'ליפופ�
 // hundred times weaker, so drawn enlarged). They point against each other
 // while |Φ| grows and the SAME way while it shrinks: the ring opposes the
 // change in the flux, not the field.
+// The ring's self-inductance is neglected (I = ε/R), and rightly: for a 3 cm
+// loop of 3.6 mm wire L = μ₀r[ln(8r/a) − 2] ≈ 0.11 μH, so L/R ≈ 0.2 ms, while
+// the flux through it changes over ≈ 60 ms (a pole crossing 3 cm at 0.5 m/s):
+// the current follows ε/R to better than 1 %.
 MAG_SIMS['mag-lenz']=function(canvas){
   var id=canvas.id,_g=_simGen[id];
   var PH=(canvas.offsetWidth||(canvas.parentElement&&canvas.parentElement.offsetWidth)||720)<600;
@@ -29102,10 +29123,11 @@ MAG_SIMS['mag-lenz']=function(canvas){
     if(on)bArrow(yb2,Bi,MU0*IMX/(2*A),'#34d399');
     simText(ctx,'B המושרה (מוגדל)',lx,yb2+4,on?'#34d399':'#475569',10,'right',true);
     // what the flux is doing, and so what the ring does
-    var cap=cut?'טבעת חתוכה: יש כא״מ, אין זרם — ולכן אין כוח':
+    // the cut ring has an emf only while the flux changes
+    var cap=cut&&moving?'טבעת חתוכה: יש כא״מ, אין זרם — ולכן אין כוח':
       grow?'השטף גדל ⇒ השדה המושרה נגד שדה המגנט ⇒ הטבעת נדחית':
       shrink?'השטף קטן ⇒ השדה המושרה עם שדה המגנט ⇒ הטבעת נמשכת':'השטף אינו משתנה ⇒ אין זרם מושרה';
-    dcCap(ctx,cap,W/2,YR+rr+(PH?80:72),cut?'#fbbf24':grow?'#fb923c':shrink?'#34d399':'#94a3b8',PH?10.5:11,true);
+    dcCap(ctx,cap,W/2,YR+rr+(PH?80:72),cut&&moving?'#fbbf24':grow?'#fb923c':shrink?'#34d399':'#94a3b8',PH?10.5:11,true);
     simText(ctx,'חום בטבעת: '+(heat*1000).toFixed(2)+' mJ',10,18,'#94a3b8',9.5,'left');
     // Φ(t) and I(t): the current is minus the slope of the flux, over R
     var gy1=284,gh=PH?118:88,gy2=gy1+gh+6;
@@ -29233,7 +29255,7 @@ MAG_SIMS['mag-generator']=function(canvas){
     {text:'כווננו את הגנרטור כך שהכא״מ המרבי יהיה 10 V.',
      hint:_skM('εₘₐₓ = NBAω = NBA·2πf')+' — שנו את f, את B או את N.',
      why:'εₘₐₓ = NBAω: כל אחד מהגורמים מגדיל את המתח באותו יחס. בתחנת כוח f קבוע (50 Hz), ולכן משנים את השדה — את זרם העירור של האלקטרומגנט.',
-     done:function(s){return Math.abs(s.Em-10)<0.3;}}]});
+     done:function(s){return !s.hand&&Math.abs(s.Em-10)<0.3;}}]});
   var model=magModeler(kit), gate=magPredictor(kit,canvas);
   var askRing=gate({q:'מחליפים את טבעות ההחלקה במחליף כיוון. איך ייראה גרף המתח במוצא?',
     opts:['אותו גל סינוס','רק ״גבעות״ חיוביות — החצי השלילי מתהפך','קו ישר וקבוע'],correct:1,
@@ -29281,7 +29303,9 @@ MAG_SIMS['mag-generator']=function(canvas){
     simCircle(ctx,lx,ly,15,'rgba(253,224,71,'+(0.15+0.8*br)+')','#fde68a',2);
     simText(ctx,rings?'מתח חילופין':'מתח פועם בכיוון אחד',lx,W<600?CY+RP+10:ly+34,'#94a3b8',9.5,'center');   // on a phone, under the S pole
     var ry=CY+RP+18;ctx.save();ctx.fillStyle='rgba(2,8,16,.85)';ctx.fillRect(8,ry,W-16,58);ctx.restore();
-    simText(ctx,'ε_max = NBAω = '+Em.toFixed(1)+' V   ·   ε_rms = '+(Em/Math.SQRT2).toFixed(1)+' V',W/2,ry+15,'#e2e8f0',10.5,'center',true);
+    // turned by hand, the amplitude is the one of YOUR ω, not of the motor's f
+    var EmS=hand?Pm*Math.abs(wHand):Em;
+    simText(ctx,'ε_max = NBAω = '+EmS.toFixed(1)+' V   ·   ε_rms = '+(EmS/Math.SQRT2).toFixed(1)+' V',W/2,ry+15,'#e2e8f0',10.5,'center',true);
     simText(ctx,'ε(t) = '+magFx(out,1)+' V   ·   ω = '+magFx(wNow,1)+' rad/s',W/2,ry+33,'#fbbf24',10,'center',true);
     simText(ctx,hand?'אתם מסובבים: ω שלכם':run?(slow>1.01?'הדמיה בהילוך איטי ×'+slow.toFixed(0):'מהירות אמיתית'):'עצור — גררו את הכריכה כדי לסובב אותה ביד',W/2,ry+50,'#64748b',9,'center');
     // Φ(t) and ε(t): two periods in real milliseconds — or, by hand, the last 2 s

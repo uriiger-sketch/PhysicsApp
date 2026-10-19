@@ -155,6 +155,14 @@ const EXPECT = {
   let nb = [1, 0, 0]; for (let x = -0.2; x <= 0.2; x += 0.002) for (let y = 0.03; y <= 0.14; y += 0.002) { const b = mgB(x, y, BAR, true), n = Math.hypot(...b); if (n < nb[0]) nb = [n, x, y]; }
   await mgPut(nb[1], nb[2]); mr = await mgRead();
   t('  with Earth\'s field: a neutral point at (' + (nb[1] * 100).toFixed(1) + ', ' + (nb[2] * 100).toFixed(1) + ') cm — |B| < 2 μT, the warning, the mission', mr.B < 2 && mr.T.some(x => x.includes(L('⚠ נקודה ניטרלית — השדות מבטלים זה את זה, והמחט אינה מתכוונת'))) && await mgDone(2), mr.B + ' μT');
+  // the model line names what the 30 μT is: the HORIZONTAL component of Earth's field (the theory's point)
+  t('  the model line adds the horizontal component of Earth\'s field, 30.0 μT northward', mr.m.includes(L('ועוד הרכיב האופקי של שדה כדור הארץ,').trim()) && mr.m.includes('30.0 μT'), mr.m.slice(0, 90));
+  // one weak magnet (0.2 A·m²) and no Earth: far away |B| < 2 μT, but nothing cancels
+  // there — the field is just weak, and the compass must not call it a neutral point
+  await click('btn-mgm-earth'); await slide('mgm-m', 0.2); await p.waitForTimeout(200);
+  const BARw = [[0.04, 0.2 / 0.08], [-0.04, -0.2 / 0.08]], wkB = Math.hypot(...mgB(-0.27, 0.13, BARw)) * 1e6;
+  await mgPut(-0.27, 0.13); mr = await mgRead();
+  t('  one weak magnet, no Earth, far away: |B| = ' + wkB.toFixed(1) + ' μT < 2 μT, yet no "neutral point" warning (no fields cancel)', wkB < 2 && near(mr.B, wkB, 0.15) && !mr.T.some(x => x.includes(L('⚠ נקודה ניטרלית — השדות מבטלים זה את זה, והמחט אינה מתכוונת'))), mr.B + ' μT');
   await open('mag-field', 'mag-wire'); let T = await read();
   t('wire: B at the probe = μ₀I/2πr (20 A, 4.5 cm)', near(num(T, /B = ([\d.]+) μT/), 2e-7 * 20 / 0.045 * 1e6, 0.2), num(T, /B = ([\d.]+) μT/));
   const wmodel = () => p.evaluate(() => { const e = document.querySelector('.sk-model-tx'); return e ? e.textContent : ''; });
@@ -170,7 +178,11 @@ const EXPECT = {
   t('  current reversed (predicted first): the field at the probe turns round — up for ⊙ east of the wire, down for ⊗', wAsk === 3 && wa0[1] < -5 && wa1[1] > 5 && Math.abs(wa0[0]) < 2, JSON.stringify([wa0, wa1]));
   await click('btn-mgw-dir');
   // two wires with currents the same way (20 A, at −4 and +7 cm): the fields cancel half-way, at 1.5 cm
-  await click('btn-mgw-two'); await slide('mgw-I2', 20);
+  // both currents switched off: B = 0 everywhere — and that is not a null point of two fields
+  await click('btn-mgw-two'); await slide('mgw-I', 0); await slide('mgw-I2', 0); await p.waitForTimeout(400); T = await read();
+  const w00 = num(T, /B = ([\d.]+) μT/), w00done = await p.evaluate(() => document.querySelectorAll('.sk-m')[2].classList.contains('done'));
+  t('  two wires with no current: B = 0 at the probe, but the null-point mission is NOT done (no fields cancel)', w00 === 0 && !w00done, w00 + ' ' + w00done);
+  await slide('mgw-I', 20); await slide('mgw-I2', 20);
   await p.evaluate(() => { const cv = document.getElementById('sim-canvas'), R = cv.getBoundingClientRect(), W = cv.offsetWidth, s = W / 0.30, cy = 480 * 0.6 * 0.5;
     const ev = (t, x, y) => cv.dispatchEvent(new MouseEvent(t, { clientX: R.left + x, clientY: R.top + y, bubbles: true, cancelable: true }));
     ev('mousedown', W / 2 + 0.015 * s, cy - 0.02 * s); ev('mousemove', W / 2 + 0.015 * s, cy); ev('mouseup', W / 2 + 0.015 * s, cy); });
@@ -217,12 +229,19 @@ const EXPECT = {
   const lPct = +((LM2.match(/= (\d+)%/) || [])[1]);
   t('  at x = 0.77R on the axis the field is half the centre’s (B ∝ 1/(R²+x²)^3/2): 50 ± 1 % (a pixel of the probe), its mission', Math.abs(lPct - 50) <= 1 && await mdone(1), LM2.slice(-40));
   await open('mag-field', 'mag-solenoid'); await p.waitForTimeout(400); T = await read();
-  t('solenoid: μ₀nI = 0.38 mT and the centre is 94% of it', has(T, '0.38 mT') && has(T, '94%'));
+  // the exact sum of 12 loops (a = 3 cm) over 16 cm: 93.7 % of μ₀nI at the centre
+  t('solenoid: μ₀nI = 0.38 mT and the centre is 93.7% of it', has(T, '0.38 mT') && has(T, '93.7%'));
   LM2 = await md();
-  t('  the model line: B = μ₀nI = 4π×10⁻⁷ × 75 × 4.0 = 0.38 mT, the exact sum at the centre 94 %', LM2.includes('B = μ₀nI = 4π×10⁻⁷ × 75 × 4.0 = 0.38 mT') && LM2.includes('= 94%'), LM2.slice(0, 70));
+  t('  the model line: B = μ₀nI = 4π×10⁻⁷ × 75 × 4.0 = 0.38 mT, the exact sum at the centre 93.7 %', LM2.includes('B = μ₀nI = 4π×10⁻⁷ × 75 × 4.0 = 0.38 mT') && LM2.includes('= 93.7%'), LM2.slice(0, 70));
+  // a sparse coil (5 turns over 24 cm, one of them at the centre) reads 108 %
+  // there and 86 % between the turns: that is not a uniform field
+  const solRatio = (N, Ln, x) => { let b = 0; for (let k = 0; k < N; k++) { const z = x + Ln / 2 - (k + 0.5) * Ln / N; b += 0.03 * 0.03 / (2 * Math.pow(0.03 * 0.03 + z * z, 1.5)); } return b / (N / Ln); };
+  await slide('mgs-N', 5); await slide('mgs-L', 24); await p.waitForTimeout(600); LM2 = await md();
+  const sp5 = +((LM2.match(/= ([\d.]+)%/) || [])[1]);
+  t('  a sparse coil (N = 5, L = 24 cm): 108.1 % at the turn in the middle, 86 % between turns — NOT the uniform-field mission', near(sp5, solRatio(5, 0.24, 0) * 100, 0.06) && near(sp5, 108.1, 0.06) && solRatio(5, 0.24, 0.024) < 0.9 && !(await mdone(1)), sp5 + '% / between ' + (solRatio(5, 0.24, 0.024) * 100).toFixed(1) + '%');
   await slide('mgs-L', 30); await slide('mgs-N', 40); await p.waitForTimeout(600); LM2 = await md();
-  const sPct = +((LM2.match(/= (\d+)%/) || [])[1]);
-  t('  a long solenoid (L = 30 cm ≫ a = 3 cm): the centre is within 2 % of μ₀nI — the uniform-field mission', sPct >= 98 && await mdone(1), sPct + '%');
+  const sPct = +((LM2.match(/= ([\d.]+)%/) || [])[1]);
+  t('  a long, dense solenoid (L = 30 cm ≫ a = 3 cm, 40 turns): the centre 98.1 % of μ₀nI, no ripple — the uniform-field mission', near(sPct, solRatio(40, 0.30, 0) * 100, 0.06) && sPct >= 97 && await mdone(1), sPct + '%');
   await open('mag-force', 'mag-lorentz'); T = await read();
   const kmodel = () => p.evaluate(() => { const e = document.querySelector('.sk-model-tx'); return e ? e.textContent : ''; });
   let LM = await kmodel();
@@ -338,6 +357,12 @@ const EXPECT = {
   t('  the model line: v = E/B = 4.0×10⁴/0.100 = 4.00×10⁵ m/s, 2r = 49.8 and 58.1 cm', SPM.includes('v = E/B = 4.0×10⁴/0.100 = 4.00×10⁵ m/s') && SPM.includes('49.8 cm') && SPM.includes('58.1 cm'), SPM.slice(0, 60));
   await slide('mgp-E', 5); await p.waitForTimeout(400);
   t('  E = 5×10⁴ V/m: only 5.00×10⁵ m/s passes, and ¹²C and ¹⁴C land 10.4 cm apart — both missions', await mdone(0) && await mdone(1) && (await md()).includes('5.00×10⁵'));
+  // the separation the mission asks for is seen on the detector: ¹⁴C's landing
+  // mark (2r = 72.6 cm) is drawn, and so is the farthest possible (5.6×10⁵ m/s, 81.3 cm)
+  T = await read();
+  const sp14 = has(T, '2r = 72.6 cm'); await slide('mgp-E', 5.6); await p.waitForTimeout(400); T = await read();
+  t('  …and seen: the ¹⁴C mark at 2r = 72.6 cm is on the detector, as is the farthest one, 81.3 cm at 5.6×10⁵ m/s', sp14 && has(T, '2r = 81.3 cm'), sp14 + ' ' + T.filter(x => /2r =/.test(x)).slice(-3).join(' | '));
+  await slide('mgp-E', 4);
   await open('mag-force', 'mag-wireforce'); T = await read();
   const wfOpen = has(T, L('המעגל פתוח — אין זרם')) && (await md()).includes('= 0.000 N');
   const wfAsk = await p.evaluate(() => { document.getElementById('btn-mgf-on').click(); const o = document.querySelectorAll('.sk-predict .sk-opt'); if (o.length) o[2].click(); return o.length; });
@@ -469,9 +494,13 @@ const EXPECT = {
   t('  flux shrinking' + tag + ': the induced field points WITH the magnet\'s (it opposes the change, not the field)', st.sB[0] > 1 && st.sB[1] === 0, st.sB.join('/'));
   }
   await click('btn-mgn-reset'); await click('btn-mgn-cut'); await click('btn-mgn-push');
-  let lzI = [], lzF = 0;
-  for (let i = 0; i < 12; i++) { const r = await read(70); lzI.push(num(r, /^I = ([\d.]+) A/)); if (r.some(x => /^F = /.test(x))) lzF++; }
+  let lzI = [], lzF = 0, lzCut = 0; const CUTC = L('טבעת חתוכה: יש כא״מ, אין זרם — ולכן אין כוח');
+  for (let i = 0; i < 12; i++) { const r = await read(70); lzI.push(num(r, /^I = ([\d.]+) A/)); if (r.some(x => /^F = /.test(x))) lzF++; if (r.some(x => x.includes(CUTC))) lzCut++; }
   t('  a cut ring: no current, no force', lzI.every(v => v === 0) && lzF === 0, lzI.join(',') + ' / ' + lzF);
+  // its emf exists only while the flux changes: with the magnet at rest the caption says the flux is not changing
+  for (let w = 0; w < 20; w++) { const r = await read(100); if (!r.some(x => x.includes(CUTC))) break; }
+  T = await read(200);
+  t('  …"an emf, but no current" while the magnet moves; at rest "the flux is not changing" (no emf either)', lzCut > 0 && !T.some(x => x.includes(CUTC)) && T.some(x => x.includes(L('השטף אינו משתנה ⇒ אין זרם מושרה'))), lzCut + ' moving frames');
   await open('mag-induction', 'mag-motional'); await click('btn-mgv-go'); T = await read();
   t('motional: terminal speed FR/B²L² = 1.60 m/s', has(T, '1.60 m/s'));
   await p.waitForTimeout(1500); T = await read();
@@ -488,13 +517,18 @@ const EXPECT = {
   t('generator: ε_max = NBAω = 6.3 V, ε_rms = 4.4 V at 1 Hz', has(T, '6.3 V') && has(T, '4.4 V'));
   // turned by hand (an arrow key held: one turn a second): the model line is
   // ε = NBAω·sinθ with the hand's own ω and θ, every reading
+  // the motor's f is set to 2 Hz (ε_max 12.6 V) — by hand at one turn a second the
+  // amplitude shown must be the hand's, NBA·ω = 6.3 V
+  await slide('mgg-f', 2);
   await p.focus('#sim-canvas'); await p.keyboard.down('ArrowLeft'); await p.waitForTimeout(900);
   let gm = { n: 0, bad: [], w: [] };
   for (let i = 0; i < 16; i++) { await p.waitForTimeout(130); const m = await kmod();
     const a = m.match(/ε = NBAω·sinθ = 100 × 0\.20 × 0\.050 × ([−\d.]+) × sin (\d+)° = ([−\d.]+) V/);
     if (!a) { gm.bad.push(m.slice(0, 50)); continue; } gm.n++; const w = +a[1].replace('−', '-'), e = +a[3].replace('−', '-'); gm.w.push(w);
     if (Math.abs(e - 100 * 0.2 * 0.05 * w * Math.sin(+a[2] * Math.PI / 180)) > 0.2) gm.bad.push(m); }
+  T = await read(); const gEm = num(T, /NBAω = ([\d.]+) V\s+·/);
   await p.keyboard.up('ArrowLeft');
+  t('  by hand the amplitude shown is NBA·ω of the hand (6.3 V), not of the motor\'s 2 Hz (12.6 V)', near(gEm, 6.3, 0.3), gEm);
   t('  turned by hand at one turn a second: ω = 6.3 rad/s and ε = NBAω·sinθ in every reading', gm.n > 12 && gm.bad.length === 0 && gm.w.every(w => near(w, 6.3, 0.25)), gm.n + ' read; ω ' + gm.w.slice(0, 3).join(',') + '; ' + gm.bad.slice(0, 2).join(' | '));
   await open('mag-induction', 'mag-transformer'); T = await read();
   t('transformer: V₂ = 12.0 V, I₂ = 2.00 A, I₁ = 0.104 A, P₁ = P₂ = 24.0 W', has(T, '12.0 V') && has(T, '2.00 A') && has(T, '0.104 A') && has(T, '24.0 W'));
