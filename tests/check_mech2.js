@@ -553,6 +553,68 @@ const EXPECT = {
   const ep_pdm2 = await missionsDone();
   t('potential missions: a negative Eₚ, the same speed with any reference, 7 m/s at the floor', ep_pdm2.length === 3 && ep_pdm2.every(Boolean), JSON.stringify(ep_pdm2));
 
+  console.log('\n3k) torque, a beam on two supports, toppling, momentum and work: missions and model lines');
+  const k3_kp = () => p.evaluate(() => document.querySelector('#app canvas')._probe());
+  const k3_kpoll = (cond, ms) => p.evaluate(async ([c, ms]) => { const f = new Function('q', 'return ' + c), cv = document.querySelector('#app canvas');
+    for (let i = 0; i < ms / 25; i++) { const q = cv._probe(); if (f(q)) return q; await new Promise(r => setTimeout(r, 25)); } return cv._probe(); }, [cond, ms]);
+  await open('statics.torque');
+  await set('tq-th', 0); await p.waitForTimeout(120);
+  let k3_kq = await k3_kp();
+  t('torque: along the bar (θ = 0) the force does not turn it, τ = 0 (mission 1)', k3_kq.zeroT && Math.abs(k3_kq.tau) < 1e-12, k3_kq.tau.toExponential(1));
+  await set('tq-r', 0.3); await set('tq-F', 30); await set('tq-th', 90); await p.waitForTimeout(150);
+  await set('tq-r', 0.45); await set('tq-F', 20); await p.waitForTimeout(250);
+  k3_kq = await k3_kp();
+  let k3_kml = await model();
+  t('... 9.0 N·m with 30 N at 0.30 m and with 20 N at 0.45 m (mission 2), and the model line says so', k3_kq.t30 && k3_kq.t20 && k3_kml.includes('τ = r·F·sinθ = 0.45 × 20 × sin 90° = 9.00'), k3_kml.slice(0, 60));
+  let k3_kdm = await missionsDone();
+  t('torque missions done', k3_kdm.length === 2 && k3_kdm.every(Boolean), JSON.stringify(k3_kdm));
+
+  await open('statics.equilibrium');
+  await set('bm-P', 300); await set('bm-W', 200); await set('bm-xb', 4); await set('bm-xp', 2); await p.waitForTimeout(150);
+  k3_kq = await k3_kp();
+  t('beam: the load in the middle, N(A) = N(B) = (W + P)/2 = 250 N (mission 1)', k3_kq.mEq && Math.abs(k3_kq.NA - 250) < 1e-9 && Math.abs(k3_kq.NB - 250) < 1e-9, k3_kq.NA + ' / ' + k3_kq.NB);
+  await set('bm-xb', 2.5); await set('bm-xp', 4); await p.waitForTimeout(250);
+  k3_kq = await k3_kp(); k3_kml = await model();
+  t('... B moved to 2.5 m and the load beyond it: N(A) = 500 − (400 + 1200)/2.5 = −140 N, the beam lifts off A (mission 2)', k3_kq.mLift && Math.abs(k3_kq.NA + 140) < 1e-9 && k3_kml.includes('= 640.0') && k3_kml.includes('−140.0'), k3_kml.slice(-40));
+  k3_kdm = await missionsDone();
+  t('beam missions done', k3_kdm.length === 2 && k3_kdm.every(Boolean), JSON.stringify(k3_kdm));
+
+  await open('statics.center-mass');
+  await set('cm-w', 0.2); await set('cm-h', 1.0); await set('cm-mu', 0.8); await set('cm-th', 30);
+  k3_kq = await k3_kpoll('q.didTop', 6000);
+  t('a tall box (w/h = 0.2 < μₛ = 0.8) on a 30° ramp topples (mission 1)', k3_kq.didTop && k3_kq.tipA >= 0.99 && k3_kq.slide === 0);
+  await set('cm-w', 0.9); await set('cm-h', 0.3); await set('cm-mu', 0.2); await set('cm-th', 30);
+  k3_kq = await k3_kpoll('q.didSl', 8000);
+  t('... a low, wide one on a smooth ramp (μₛ = 0.2 < w/h = 3) slides (mission 2)', k3_kq.didSl && k3_kq.slide >= 0.99 && k3_kq.tipA === 0);
+  k3_kml = await model();
+  t('... the model line compares arctan(w/h) with arctan(μₛ)', k3_kml.includes('arctan(w/h) = 71.6°') && k3_kml.includes('arctan(μₛ) = 11.3°'), k3_kml.slice(0, 70));
+
+  await open('momentum.momentum-def');
+  await set('mom-mass', 2); await set('mom-vel', 6); await p.waitForTimeout(150);
+  await set('mom-mass', 4); await set('mom-vel', 3); await p.waitForTimeout(150);
+  k3_kq = await k3_kp();
+  t('momentum: 2 kg at 6 m/s and 4 kg at 3 m/s carry the same p = 12 kg·m/s (mission 1)', k3_kq.sameP);
+  await set('mom-vel', 5);
+  k3_kq = await k3_kpoll('q.kick40', 8000);
+  t('... 4 kg at 5 m/s: the wall\'s impulse is Δp = −2mv, 40 kg·m/s in size (mission 2)', k3_kq.kick40 && Math.abs(Math.abs(k3_kq.kick.dp) - 40) < 1e-12, k3_kq.kick && String(k3_kq.kick.dp));
+  k3_kdm = await missionsDone();
+  t('momentum missions done', k3_kdm.length === 2 && k3_kdm.every(Boolean), JSON.stringify(k3_kdm));
+
+  await open('energy.kinetic');
+  const k3_ekRun = async (m, v0, F, d) => { await set('ek-m', m); await set('ek-v0', v0); await set('ek-F', F); await set('ek-d', d);
+    const n0 = (await k3_kp()).runs; await p.evaluate(() => document.getElementById('btn-ek-launch').click()); return k3_kpoll('q.runs > ' + n0, 15000); };
+  k3_kq = await k3_ekRun(2, 3, 10, 5);
+  t('work and energy: the section\'s problem (2 kg, v₀ = 3 m/s, 10 N over 5 m) ends at v = √59 = 7.68 m/s (mission 3)', Math.abs(k3_kq.last.v - Math.sqrt(59)) < 1e-9 && k3_kq.probDone, k3_kq.last.v.toFixed(4) + ' m/s');
+  k3_kml = await model();
+  t('... and the model line: W = 50.0 J = ΔEₖ = 59.0 − 9.0', /W = F·d = 10 × 5\.00 = 50\.0/.test(k3_kml) && k3_kml.includes('= 59.0 − 9.0 = 50.0'), k3_kml.slice(-50));
+  k3_kq = await k3_ekRun(2, 0, 10, 4); const k3_ek2 = k3_kq.last.Ek;
+  k3_kq = await k3_ekRun(4, 0, 10, 4);
+  t('... from rest, 2 kg and 4 kg pushed alike end with the same Eₖ = F·d = 40 J (mission 1)', k3_kq.sameEk && Math.abs(k3_kq.last.Ek - 40) < 1e-9 && Math.abs(k3_ek2 - 40) < 1e-9, k3_kq.last.Ek.toFixed(6) + ' J');
+  k3_kq = await k3_ekRun(2, 0, 40, 4);
+  t('... 4 times the force: twice the speed (mission 2)', k3_kq.twiceV && Math.abs(k3_kq.last.v - 2 * Math.sqrt(40)) < 1e-9, k3_kq.last.v.toFixed(3) + ' m/s');
+  k3_kdm = await missionsDone();
+  t('work-energy missions done', k3_kdm.length === 3 && k3_kdm.every(Boolean), JSON.stringify(k3_kdm));
+
   console.log('\n4) misconception boxes, quiz keys, hints, units');
   await require('./mech_learning')(p, ['statics', 'planar', 'momentum', 'energy', 'shm'], t);
 
