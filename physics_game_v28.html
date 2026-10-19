@@ -10524,8 +10524,12 @@ function _mkModel(kit){
   return function(html){
     var n=performance.now();
     if(html===last||n-t0<200)return;
-    // a separator dot stays at the end of its formula's line, never alone on one
-    t0=n;last=html;kit.model(String(html).replace(/<\/span> · /g,'</span>\u00a0· '));
+    // A formula is one unbreakable box (.math-ltr is inline-flex), so a long
+    // one fills the line and the " · " after it wrapped onto a line of its own.
+    // The dot goes inside the formula before it, on the side that faces the
+    // next one: its end in a left-to-right page, its start in a right-to-left one.
+    var rtl=document.documentElement.getAttribute('dir')==='rtl';
+    t0=n;last=html;kit.model(String(html).replace(/(<span class="math-ltr sk-f" dir="ltr">)([^<]*)<\/span> · /g,rtl?'$1·\u00a0$2</span> ':'$1$2\u00a0·</span> '));
   };
 }
 // A signed reading with the typeset minus: +6.2, −6.2, and 0.0 unsigned.
