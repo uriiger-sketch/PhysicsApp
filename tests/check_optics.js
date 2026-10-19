@@ -425,12 +425,14 @@ const EXPECT = {
     async () => click('eye-hyper'), ['eye-dist', Math.log10(0.25)], ['eye-P', 3.35], async () => click('eye-normal'), ['eye-P', 0], ['eye-dist', Math.log10(0.26)]], '1111');
   const EYE = { normal: [0, 4], myopia: [2, 4], hyper: [-10 / 3, 4], presby: [0, 1] };
   for (let [mode, P, d] of [['myopia', 0, 0.6], ['myopia', 0, 0.3], ['myopia', -2, Infinity], ['myopia', -1.5, Infinity], ['hyper', 0, 0.5], ['hyper', 0, 2], ['hyper', 3.35, 0.251],
-    ['normal', 0, 0.2], ['presby', 0, 0.5], ['presby', 3, 0.3], ['presby', 3, 3]]) {
+    ['normal', 0, 0.2], ['presby', 0, 0.5], ['presby', 3, 0.3], ['presby', 3, 3], ['hyper', 3.35, 1], ['hyper', 6, 0.5], ['normal', 3, Infinity]]) {
     await click('eye-' + mode); await setv('eye-P', P); await setv('eye-dist', isFinite(d) ? Math.log10(d) : 1.1); await p.waitForTimeout(140);
     const v = +(await p.evaluate(() => document.getElementById('inp-eye-dist').value)); d = v > 1.0001 ? Infinity : 10 ** v;   // as the slider holds it
     const tx = await modelTx(), [far, A] = EYE[mode], Dp = (isFinite(d) ? 1 / d : 0) - P, sharp = Dp >= far - 0.03 && Dp <= far + A + 0.03;
     t(`eye ${mode} P=${P} d=${d}: ${sharp ? 'sharp' : 'blurred'}`, sharp ? /— (ולכן הוא )?חד|sharp\.?$|— sharp/.test(tx) && !/מטושטש|blurred/.test(tx) : /מטושטש|blurred/.test(tx), tx);
-    if (P !== 0) { const g = /dᵢ = ([+−-]?\d+\.\d\d) m/.exec(tx); t(`eye ${mode} P=${P} d=${d}: the glasses' image dᵢ`, g && Math.abs(num(g[1]) - 1 / (P - (isFinite(d) ? 1 / d : 0))) < 0.011, tx); }
+    if (P !== 0) { const g = /dᵢ = ([+−-]?\d+\.\d\d) m/.exec(tx); t(`eye ${mode} P=${P} d=${d}: the glasses' image dᵢ`, g && Math.abs(num(g[1]) - 1 / (P - (isFinite(d) ? 1 / d : 0))) < 0.011, tx);
+      // dᵢ > 0: the light enters the eye converging, toward a point behind it -- not an image "in range"
+      if (P - (isFinite(d) ? 1 / d : 0) > 1e-6) t(`eye ${mode} P=${P} d=${d}: converging light, said so`, /מתכנס|converging/.test(tx) && !/בטווח|in range/.test(tx), tx); }
   }
 
   // ── optical fibre: θc = arcsin(n₂/n₁), NA = √(n₁² − n₂²), θmax = arcsin NA;

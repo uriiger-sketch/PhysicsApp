@@ -18856,7 +18856,7 @@ function simOptEye(canvas){
   var kit=simKit(canvas,{missions:[
     {text:'קוצר ראייה: עד איזה מרחק העין רואה בחדות, בלי משקפיים?',
      hint:'בחרו ״קוצר ראייה״, הסירו את המשקפיים (P = 0) והרחיקו את העצם לאט — עד היכן הוא עוד חד?',
-     why:'העין קצרת הראייה חזקה מדי גם כשהיא רפויה: היא ממקדת בחדות עד הנקודה הרחוקה, '+_skM('1/2 D = 0.50 m')+', ומקרוב — טוב מאוד. השם מתאר את הטווח הקצר, לא ראייה גרועה מקרוב.',
+     why:'העין קצרת הראייה חזקה מדי גם כשהיא רפויה: היא ממקדת בחדות עד הנקודה הרחוקה, '+_skM('1/(2 D) = 0.50 m')+', ומקרוב — טוב מאוד. השם מתאר את הטווח הקצר, לא ראייה גרועה מקרוב.',
      done:function(s){return s.mode==='myopia'&&Math.abs(s.P)<0.01&&s.sharp&&s.d>=0.45;}},
     {text:'התאימו לקצר הראייה את המשקפיים החלשים ביותר שבהם יראה בחדות כוכב באינסוף',
      hint:'המשקפיים צריכים ליצור מהכוכב תמונה בנקודה הרחוקה: '+_skM('P = 1/dₒ + 1/dᵢ = 0 + 1/(−0.5 m)')+'.',
@@ -18868,7 +18868,7 @@ function simOptEye(canvas){
      done:function(s){return s.mode==='hyper'&&s.near>=0.235&&s.near<=0.265;}},
     {text:'עין תקינה: קרבו את העצם ככל שאפשר כשהוא עדיין חד',
      hint:'בחרו ״עין תקינה״, ובלי משקפיים קרבו את העצם עד שיתחיל להיטשטש.',
-     why:'העדשה מתעבה ומוסיפה עד '+_skM('A = 4 D')+'; העצם הקרוב ביותר שהיא ממקדת נמצא ב־'+_skM('1/4 D = 0.25 m')+' — הנקודה הקרובה. מקרוב יותר — טשטוש.',
+     why:'העדשה מתעבה ומוסיפה עד '+_skM('A = 4 D')+'; העצם הקרוב ביותר שהיא ממקדת נמצא ב־'+_skM('1/(4 D) = 0.25 m')+' — הנקודה הקרובה. מקרוב יותר — טשטוש.',
      done:function(s){return s.mode==='normal'&&Math.abs(s.P)<0.01&&s.sharp&&s.d<=0.27;}}]});
   function eyeOptics(){
     var E=EYES[mode],d=dObj(),P=pG(),D=isFinite(d)?1/d:0,Dp=D-P;
@@ -18974,7 +18974,14 @@ function simOptEye(canvas){
       var v=o.P-o.D,diS=Math.abs(v)<1e-6?'∞':(1/v).toFixed(2)+' m';
       var lens=_skM('1/dᵢ = P − 1/dₒ = '+_fmtEyeP(o.P).replace(' D','')+' − '+o.D.toFixed(2)+' = '+_optSgn(v,2)+' D')+' ⇒ '+_skM('dᵢ = '+(v<0?'':'+')+diS.replace('-','−'));
       var bare=_skM(fmtD(o.nearB))+' עד '+_skM(fmtD(o.farB));
-      if(o.sharp)kit.model('המשקפיים: '+lens+'. העין ממקדת מ־'+bare+', והתמונה בטווח — חד.');
+      // dᵢ > 0: the glasses make the light converge toward a point behind the
+      // eye -- there is no image in front of it to compare with the eye's range.
+      // Only an eye whose relaxed far point lies beyond infinity (hyperopia,
+      // D_far < 0) focuses such light, up to −D_far dioptres of convergence.
+      if(v>1e-6){var xS=_skM((1/v).toFixed(2)+' m');
+        if(o.sharp)kit.model('המשקפיים: '+lens+'. האור נכנס לעין מתכנס, אל נקודה '+xS+' מאחוריה; עין רחוקת ראייה ממקדת גם אור מתכנס, עד '+_skM((-o.E.far).toFixed(2)+' D')+' — חד.');
+        else kit.model('המשקפיים: '+lens+'. האור נכנס לעין מתכנס, אל נקודה '+xS+' מאחוריה, ועין זו אינה ממקדת אור מתכנס כזה — מטושטש.');}
+      else if(o.sharp)kit.model('המשקפיים: '+lens+'. העין ממקדת מ־'+bare+', והתמונה בטווח — חד.');
       else kit.model('המשקפיים: '+lens+'. העין ממקדת רק מ־'+bare+', והתמונה מחוץ לטווח — מטושטש.');
     }
     kit.check({mode:mode,P:o.P,d:o.d,sharp:o.sharp,near:o.near,far:o.far});
