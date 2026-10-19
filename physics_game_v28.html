@@ -17903,7 +17903,7 @@ function simOptRefrIndex(canvas){
     if(p.y>yA+40&&p.y<yB+50){touched=true;t0=null;}}});           // a tap on the lanes restarts the race
   canvas.tabIndex=0;
   canvas.addEventListener('keydown',function(e){if(e.key!=='ArrowUp'&&e.key!=='ArrowDown')return;e.preventDefault();touched=true;
-    simSyncSlider('ri-n',gv('ri-n',1.5)+(e.key==='ArrowUp'?0.01:-0.01),2);});
+    simSyncSlider('ri-n',gv('ri-n',1.33)+(e.key==='ArrowUp'?0.01:-0.01),2);});
   var kit=simKit(canvas,{missions:[
     {text:'אור עובר מאוויר לזכוכית. מה קורה לתדירות שלו — ולצבע?',
      hint:'ענו על השאלה שמתחת לתרשים, ואז הביטו בשני המונים: אחד לפני הבלוק ואחד בתוכו.',
@@ -17929,7 +17929,7 @@ function simOptRefrIndex(canvas){
   function draw(ts){
     if(_simStop[id])return;
     if(t0===null)t0=ts||0;var T=reduce?6:((ts||0)-t0)/1000;tNow=T;
-    var n=gv('ri-n',1.5),l0=gv('ri-wl',500),hex=wavelengthToHex(l0),rgb=wavelengthToRGB(l0).match(/\d+/g);
+    var n=gv('ri-n',1.33),l0=gv('ri-wl',500),hex=wavelengthToHex(l0),rgb=wavelengthToRGB(l0).match(/\d+/g);
     var lpx=l0*0.12,k=2*Math.PI/lpx,om=k*CPX;
     ctx.fillStyle='#030a16';ctx.fillRect(0,0,W,H);
     // the material chips: tap one
@@ -18246,12 +18246,12 @@ function _optBench(canvas,P){
   function sl(key,d){var e=document.getElementById('inp-'+ids[key]);return e?parseFloat(e.value):d;}
   function nOf(wl){return 1.5+4241*(1/(wl*wl)-1/(550*550));}
   // a lens refracts, so its focal length depends on the colour (Cauchy, crown
-  // glass: violet focuses ~2.5 % nearer than red); a mirror does not
+  // glass: violet focuses ~3.5 % nearer than red); a mirror does not
   function fAbs(){var f0=sl('f',95);return mirror?f0:f0*0.5/(nOf(sl('wl',550))-1);}
   function fNow(){return conv?fAbs():-fAbs();}
   function dNow(){return Math.max(15,Math.min(DOMAX,sl('do',209)));}
   function solve(dO,f){
-    if(Math.abs(dO-f)<0.4)return {di:Infinity,m:Infinity};
+    if(Math.abs(dO-f)<0.05)return {di:Infinity,m:Infinity};      // only dₒ = f itself: 1/95.3 − 1/95 is not 0
     var di=f*dO/(dO-f);return {di:di,m:-di/dO};
   }
   // ── the learner's hands ──
@@ -18566,15 +18566,18 @@ function _optInterface(canvas,P){
   canvas.tabIndex=0;
   canvas.addEventListener('keydown',function(e){if(e.key!=='ArrowLeft'&&e.key!=='ArrowRight')return;e.preventDefault();touched=true;
     simSyncSlider(ids.th,sl('th',30)+(e.key==='ArrowRight'?1:-1)*(tir?0.1:1),tir?1:0);});
+  // θc found: the first tenth of a degree at which the refracted ray is gone,
+  // or the last one before it (the ray then carries a few per cent at most)
+  function atC(s){return s.thc<90&&(s.tir?s.th-s.thc<0.15:s.thc-s.th<0.06);}
   var M=tir?[
     {text:'מצאו את הזווית הקריטית של זכוכית־אוויר: הזווית שבה הקרן השבורה נעלמת',
      hint:'קבעו n₁ = 1.50 ו־n₂ = 1.00, והגדילו את הזווית לאט, עשירית מעלה בכל פעם (גם במקשי החצים).',
      why:_skM('sin θc = n₂/n₁ = 1/1.5')+' ⇒ '+_skM('θc ≈ 41.8°')+': בזווית זו הקרן השבורה צמודה לגבול '+_skM('(θ₂ = 90°)')+' ואינה נושאת אנרגיה, וכל האור מוחזר.',
-     done:function(s){return Math.abs(s.n1-1.5)<0.011&&Math.abs(s.n2-1)<0.011&&Math.abs(s.th-s.thc)<0.5;}},
+     done:function(s){return Math.abs(s.n1-1.5)<0.011&&Math.abs(s.n2-1)<0.011&&atC(s);}},
     {text:'״מתחת לזווית הקריטית כל האור עובר״? מצאו זווית, עוד לפני θc, שבה רבע מהאור כבר מוחזר',
      hint:'עקבו אחרי R כשמתקרבים ל־θc מלמטה — והביטו בקרן המוחזרת.',
      why:'לפי פרנל, החלק המוחזר גדל בחדות לקראת '+_skM('θc')+'. ״מלאה״ פירושו שהקרן השבורה נעלמת — ההחזרה הייתה שם כל הזמן.',
-     done:function(s){return !s.tir&&s.R>=0.25;}},
+     done:function(s){return !s.tir&&s.thc<90&&s.R>=0.25;}},
     {text:'נסו לקבל החזרה פנימית מלאה במעבר מתווך דליל לצפוף',
      hint:'קבעו n₁ < n₂ והגדילו את הזווית עד הסוף.',
      why:'במעבר לתווך צפוף '+_skM('sin θ₂ = (n₁/n₂) sin θ₁ < 1')+' בכל זווית, ולכן תמיד יש קרן שבורה: '+_skM('sin θc = n₂/n₁')+' דורש '+_skM('n₁ > n₂')+'.',
@@ -18582,7 +18585,7 @@ function _optInterface(canvas,P){
     {text:'יהלום: מצאו את הזווית הקריטית שלו מול אוויר',
      hint:'מדד השבירה של יהלום 2.42.',
      why:_skM('sin θc = 1/2.42')+' ⇒ '+_skM('θc ≈ 24.4°')+': כמעט כל קרן בתוך יהלום פוגעת בפאה בזווית גדולה מזו ומוחזרת שוב ושוב — ומכאן הברק.',
-     done:function(s){return s.n1>=2.35&&Math.abs(s.n2-1)<0.011&&Math.abs(s.th-s.thc)<0.5;}}]
+     done:function(s){return s.n1>=2.35&&Math.abs(s.n2-1)<0.011&&atC(s);}}]
   :[
     {text:'בפגיעה ניצבת הקרן אינה נשברת. האם האור עדיין מאט?',
      hint:'הביאו את הזווית ל־0° (גררו את הקרן אל הנורמל), והשוו את המרווח בין הפסגות בשני התווכים.',
@@ -18670,7 +18673,7 @@ function _optInterface(canvas,P){
     if(!touched&&animT<10)optLabel(ctx,'✋ גררו את הקרן סביב נקודת הפגיעה',W-8,20,'#fbbf24',10,'right');
     // the law, in numbers
     var s1=n1*Math.sin(th);
-    if(F.tir)kit.model('חוק סנל: '+_skM('sin θ₂ = (n₁/n₂)·sin θ₁ = ('+n1.toFixed(3)+'/'+n2.toFixed(3)+')·sin '+thD.toFixed(tir?1:0)+'° = '+(s1/n2).toFixed(3)+' > 1')+' — אין זווית כזו: החזרה פנימית מלאה ('+_skM('θ₁ > θc = '+thc.toFixed(1)+'°')+').');
+    if(F.tir)kit.model('חוק סנל: '+_skM('sin θ₂ = (n₁/n₂)·sin θ₁ = ('+n1.toFixed(3)+'/'+n2.toFixed(3)+')·sin '+thD.toFixed(tir?1:0)+'° = '+((s1/n2)<1.0005?(s1/n2).toFixed(4):(s1/n2).toFixed(3))+' > 1')+' — אין זווית כזו: החזרה פנימית מלאה ('+_skM('θ₁ > θc = '+thc.toFixed(2)+'°')+').');
     else kit.model('חוק סנל: '+_skM('n₁ sin θ₁ = '+n1.toFixed(3)+' · sin '+thD.toFixed(tir?1:0)+'° = '+s1.toFixed(3)+' = n₂ sin θ₂')+' ⇒ '+_skM('θ₂ = '+(th2*180/Math.PI).toFixed(1)+'°')+'; מוחזר '+_skM(pct(F.R))+', עובר '+_skM(pct(1-F.R))+'.');
     kit.check({n1:sl('n1',1),n2:sl('n2',1),th:thD,th2:th2*180/Math.PI,tir:F.tir,R:F.R,thc:thc===null?999:thc});
     requestAnimationFrame(draw);
@@ -19645,7 +19648,7 @@ function simOptPolarization(canvas){
     {text:'הצליבו את המקטבים: גרמו לאור להיעלם לגמרי',
      hint:'סובבו את המנתח (גררו את הדיסקה הימנית) עד שהצירים ניצבים.',
      why:_skM('cos²90° = 0')+': למנתח הניצב לכיוון הקיטוב אין שום רכיב של השדה החשמלי להעביר.',
-     done:function(s){return !s.mid&&s.Iout<0.0005&&s.I0>0;}},
+     done:function(s){return !s.mid&&s.Iout<1e-9&&s.I0>0;}},      // only exactly crossed: cos²89° is not zero
     {text:'העבירו דרך המנתח רבע בדיוק מהאור המקוטב שמגיע אליו',
      hint:'רבע מהעוצמה אינו רבע מהזווית. מתי '+_skM('cos²θ = ¼')+'?',
      why:_skM('cos²60° = (½)² = ¼')+': חוק מאלוס מעלה את הקוסינוס בריבוע — המשרעת קטנה פי 2, והעוצמה פי 4. ב־45° עובר חצי, לא רבע.',
@@ -19703,13 +19706,13 @@ function simOptPolarization(canvas){
     ctx.beginPath();ctx.roundRect(X.det-14,by-rD,28,2*rD,6);ctx.fill();optNoGlow(ctx);ctx.strokeStyle='#64748b';ctx.lineWidth=1;ctx.stroke();ctx.restore();
     optLabel(ctx,'גלאי',X.det,by+rD+14,'#cbd5e1',10);
     // intensities, under each stretch of the beam
-    var pc=function(v){return v<0.0005?'0%':(v*100).toFixed(v<0.1?1:0)+'%';};
+    var pc=function(v){return v<1e-9?'0%':(v*100).toFixed(v<0.001?2:v<0.1?1:0)+'%';};
     var row=by+rD+48;
     optLabel(ctx,'I₀ = '+pc(I0),(X.src+X.p1)/2,row,'#fde68a',10);
     optLabel(ctx,'I₁ = '+pc(I1),mid?(X.p1+X.p2)/2:(X.p1+X.p3)/2,row,'#fde68a',10);
     if(mid)optLabel(ctx,'I₂ = '+pc(I2),(X.p2+X.p3)/2,row,'#fde68a',10);
     optLabel(ctx,'I = '+pc(I3),X.det,row,I3>0.0005?'#fde68a':'#f87171',10,X.det>W-30?'right':'center');
-    if(I3<=0.0005)optLabel(ctx,'חושך מוחלט',X.det,by-rD-12,'#f87171',10,'right');
+    if(I3<1e-9)optLabel(ctx,'חושך מוחלט',X.det,by-rD-12,'#f87171',10,'right');
     if(!touched&&animT<10)optLabel(ctx,'✋ סובבו את המנתח',X.p3,by-rD-14+Math.sin(animT*4)*3,'#fbbf24',10);
     if(asking)optLabel(ctx,'🤔 נבאו קודם — ענו על השאלה שמתחת לתרשים',W/2,22,'#fbbf24',10);
     // Malus's law at the analyzer: cos² of the angle between it and the light reaching it
@@ -20449,8 +20452,9 @@ function simOptTelescope(canvas){
 // colour is the eye's, not a guess: R(λ) under daylight (CIE D65) weighted by
 // the CIE 1931 colour-matching functions (Wyman–Sloan–Shirley fit) to XYZ,
 // then sRGB, brightened by one fixed factor so the brightest reflection this
-// film can give shows as white. A film thinner than ~20 nm with one reversal
-// is black -- as a soap film is just before it bursts.
+// film can give shows as white. A film thinner than ~10 nm with one reversal
+// is black (it reflects under 3 % of the brightest film; at 20 nm, 10 % -- a
+// dark grey) -- as a soap film is just before it bursts.
 var _OPT_D65=[49.98,54.65,82.75,91.49,93.43,86.68,104.86,117.01,117.81,114.86,115.92,108.81,109.35,107.80,104.79,107.69,104.41,104.05,100.00,96.33,95.79,88.69,90.01,89.60,87.70,83.29,83.70,80.03,80.21,82.28,78.28,69.72,71.61,74.35,61.60];   // 380…720 nm, every 10 nm
 function _optCMF(l){
   var g=function(m,s1,s2){var t=(l-m)/(l<m?s1:s2);return Math.exp(-0.5*t*t);};
@@ -20501,7 +20505,7 @@ function simOptThinFilm(canvas){
     {text:'קרום סבון מתנקז ונעשה דק. מצאו את העובי שבו הוא נראה שחור',
      hint:'בחרו ״קרום סבון״ וגררו את הסמן אל ראש הקרום, שם הוא הדק ביותר.',
      why:'כש־'+_skM('t → 0')+' הפרש הדרכים מתאפס — אבל אחת משתי ההחזרות הפוכה ב־π, ולכן הן מבטלות זו את זו בכל הצבעים: שחור. שבירה, כמו בפריזמה, לא הייתה מסבירה זאת.',
-     done:function(s){return s.sub==='soap'&&s.t<=22;}},
+     done:function(s){return s.sub==='soap'&&s.t<=10;}},      // 22 nm still reflects 11 % of the brightest film: dark grey, not black
     {text:'גרמו לקרום הסבון להחזיר הכי חזק בירוק, 530 nm, בסדר הראשון (m = 0)',
      hint:'היפוך אחד: בנייה כש־'+_skM('2nt = (m + ½)λ')+'. ל־'+_skM('m = 0')+': '+_skM('t = λ/4n')+'.',
      why:_skM('t = 530/(4 · 1.33) ≈ 100 nm')+'. בעובי כפול ומשולש החיזוק עובר לאורכי גל אחרים — ולכן הצבעים נודדים כשהקרום מתנקז.',
@@ -34720,7 +34724,7 @@ function buildSim(sim){
   else if(sim.type==='atwood')extra=C(rng('atw-m1',0.5,10,3,0.5,'m₁',' kg')+rng('atw-m2',0.5,10,5,0.5,'m₂',' kg')+btn('atw-launch','▶ שחררו!','btn-primary')+btn('atw-reset','↺ איפוס','btn-secondary'));
   // OPTICS CONTROLS
   else if(sim.type==='opt-em-wave')extra=C(rng('emw-wl',380,700,500,5,'אורך גל λ',' nm'));
-  else if(sim.type==='opt-refr-index')extra=C(rng('ri-n',1,2.5,1.5,0.01,'מדד שבירה n')+rng('ri-wl',380,700,500,5,'אורך גל בריק λ₀',' nm'));
+  else if(sim.type==='opt-refr-index')extra=C(rng('ri-n',1,2.5,1.33,0.01,'מדד שבירה n')+rng('ri-wl',380,700,500,5,'אורך גל בריק λ₀',' nm'));
   else if(sim.type==='opt-reflection')extra=C(rng('ref-angle',0,85,40,1,'זווית פגיעה θᵢ','°')+rng('ref-wl',380,700,550,5,'צבע אור λ',' nm'));
   else if(sim.type==='opt-plane-mirror')extra=C(rng('pm-dist',0.5,4,2,0.1,'מרחק מהמראה dₒ',' m')+rng('pm-top',0.5,2.2,1.4,0.01,'הקצה העליון של המראה',' m')+rng('pm-bot',0,1.6,0.6,0.01,'הקצה התחתון של המראה',' m'));
   else if(sim.type==='opt-concave-mirror')extra=C(rng('cm-do',15,400,213,1,'מרחק העצם dₒ',' mm')+rng('cm-f',45,140,85,1,'אורך מוקד f',' mm')+rng('cm-wl',380,700,550,5,'צבע אור λ',' nm'));

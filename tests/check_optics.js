@@ -201,6 +201,9 @@ const EXPECT = {
       const n4 = 1.5 + 4241 * (1 / 400 ** 2 - 1 / 550 ** 2), fv = 95 * 0.5 / (n4 - 1);
       const g = /1\/\(?−?(\d+\.\d)\)? − 1\/209/.exec(await modelTx());
       t(se + ': violet focuses nearer, f(400 nm) from n(λ)', g && Math.abs(+g[1] - fv) < 0.06, (g || [])[1] + ' vs ' + fv.toFixed(2));
+      // f(400 nm) = 92.7 mm: an object at 93 mm is just outside the focus, not at it (1/92.7 − 1/93 is not 0)
+      await setv(pre + '-do', 93); await p.waitForTimeout(140);
+      { const tx = await modelFor('− 1/93 '); t(se + ': dₒ = 93 mm beside f(400 nm) = 92.7 mm gives a finite dᵢ', !/= 0 —/.test(tx) && /dᵢ = [+−]\d+ mm/.test(tx), tx); }
       await setv(pre + '-wl', 550);
     }
   }
@@ -239,7 +242,8 @@ const EXPECT = {
     for (const [n1, n2, th] of cases) {
       await setv(pre + '-n1', n1); await setv(pre + '-n2', n2); await setv(pre + '-th', th); await p.waitForTimeout(140);
       const tx = await modelTx(), F = fres(n1, n2, th);
-      if (F.tir) t(`${se} n₁=${n1} n₂=${n2} θ=${th}: total internal reflection`, /> 1/.test(tx) && !/θ₂ = \d/.test(tx), tx);
+      if (F.tir) { t(`${se} n₁=${n1} n₂=${n2} θ=${th}: total internal reflection`, /> 1/.test(tx) && !/θ₂ = \d/.test(tx), tx);
+        const gs = /= (\d\.\d+) > 1/.exec(tx); t(`${se} n₁=${n1} n₂=${n2} θ=${th}: the printed sin θ₂ itself exceeds 1`, gs && +gs[1] > 1, tx); }
       else {
         const g = /θ₂ = (\d+\.\d)°/.exec(tx), r = /(\d+\.?\d*)%[^%]*?(\d+\.?\d*)%/.exec(tx);
         t(`${se} n₁=${n1} n₂=${n2} θ=${th}: θ₂ by Snell`, g && Math.abs(+g[1] - F.t2) < 0.06, tx);
@@ -248,6 +252,12 @@ const EXPECT = {
     }
   }
   await reach('opt-refraction', 'snell-law', [['snell-n1', 1], ['snell-n2', 1.5], ['snell-th', 0], ['snell-th', 56], ['snell-n1', 1.5], ['snell-n2', 1], ['snell-th', 30]], '111');
+  // θc is found where the refracted ray vanishes -- not 0.4° before it, where it still carries half of the light
+  await open('opt-refraction', 'tir');
+  await p.evaluate(() => { state.missions = {}; render(); }); await p.waitForTimeout(1100);
+  await p.evaluate(() => document.querySelector('#app .sim-container').dispatchEvent(new Event('click')));
+  await setv('tir-n1', 1.5); await setv('tir-n2', 1); await setv('tir-th', 41.4); await p.waitForTimeout(160);
+  t('TIR: 0.4° below θc the critical angle is not yet found', (await missions())[0] === '0', await missions());
   await reach('opt-refraction', 'tir', [['tir-n1', 1.5], ['tir-n2', 1], ['tir-th', 41.8], ['tir-th', 41.6], ['tir-n1', 2.42], ['tir-th', 24.4], ['tir-n1', 1.2], ['tir-n2', 1.5], ['tir-th', 89]], '1111');
 
   // ── polarization: I₁ = I₀/2, then cos² of each angle between axes ──
@@ -265,6 +275,11 @@ const EXPECT = {
     const g = /= (\d+\.?\d*)%, /.exec(await modelTx()), want = 40 * cosd(m) ** 2 * cosd(a - m) ** 2;
     t(`three polarizers: middle ${m}°, analyzer ${a}°`, g && Math.abs(+g[1] - want) <= (want < 10 ? 0.051 : 0.51), (g || [])[1] + ' vs ' + want.toFixed(2));
   }
+  // cos²89° is small but not zero: the light has not vanished, and the line says how much is left
+  await p.evaluate(() => { state.missions = {}; render(); }); await p.waitForTimeout(1100);
+  await p.evaluate(() => document.querySelector('#app .sim-container').dispatchEvent(new Event('click')));
+  await setv('pol-i0', 80); await setv('pol-angle', 89); await p.waitForTimeout(160);
+  { const tx = await modelTx(); t('Malus at 89°: not yet dark (0.01 %), the crossing mission not solved', (await missions())[0] === '0' && /= 0\.01%;/.test(tx), (await missions()) + ' | ' + tx); }
 
   // ── thin film: the orders reinforced in the visible follow the phase
   // reversals (one: 2nt = (m+½)λ; two: 2nt = mλ), a vanishing soap film is
@@ -284,6 +299,11 @@ const EXPECT = {
       const d = cv.getContext('2d').getImageData(Math.round(x * dpr), Math.round(36 * dpr), 1, 1).data; return d[0] + d[1] + d[2]; });
     t(`thin film ${pre}: the thinnest film is ${dark ? 'black' : 'not black'}`, dark ? px < 60 : px > 200, String(px));
   }
+  // a 22 nm soap film still reflects a tenth of the brightest film -- dark grey, not black
+  await p.evaluate(() => { state.missions = {}; render(); }); await p.waitForTimeout(1100);
+  await p.evaluate(() => { document.querySelector('#app .sim-container').dispatchEvent(new Event('click')); document.getElementById('btn-tf-soap').click(); });
+  await setv('tf-thick', 22); await p.waitForTimeout(160);
+  t('thin film: a 22 nm soap film does not count as black', (await missions())[0] === '0', await missions());
   await reach('opt-waves', 'thin-film', [async () => p.evaluate(() => document.getElementById('btn-tf-soap').click()), ['tf-thick', 10], ['tf-thick', 100],
     async () => p.evaluate(() => document.getElementById('btn-tf-ar').click()), ['tf-thick', 100]], '111');
 
@@ -581,6 +601,20 @@ const EXPECT = {
   await p.evaluate(() => document.querySelector('#app .sim-container').dispatchEvent(new Event('click')));
   await setv('laser-pump', 50); await ltype(514); await ltype(1064);
   t('lasers: every mission is reachable', await missions() === '111', await missions());
+
+  // ── no mission is solved by the state a simulation starts in: the first
+  // touch must not hand out a mission the learner did nothing for (colour
+  // mixing belongs to the kit team) ──
+  const secs = await p.evaluate(() => OPTICS_CHAPTERS.flatMap(c => c.sections.filter(s => s.id !== 'color-mixing').map(s => [c.id, s.id])));
+  const idle = [];
+  for (const [c2, s2] of secs) {
+    await open(c2, s2);
+    await p.evaluate(() => { state.missions = {}; render(); }); await p.waitForTimeout(900);
+    await p.evaluate(() => document.querySelector('#app .sim-container').dispatchEvent(new Event('click')));
+    await p.waitForTimeout(700);
+    const m = await missions(); if (/1/.test(m)) idle.push(s2 + ': ' + m);
+  }
+  t(secs.length + ' optics simulations: no mission is solved at the starting state', idle.length === 0, idle.join(' | '));
 
   console.log('   every draggable simulation by touch, on a phone');
   const tc = await b.newContext({ viewport: { width: 390, height: 1300 }, hasTouch: true, isMobile: true, deviceScaleFactor: 2 });
