@@ -412,7 +412,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
   font-variant-numeric:tabular-nums;margin:0 1px;font-size:.95em;white-space:normal;}
 /* an ordinary inline run, isolated by its dir: the app's inline maths is a
    flex box, which would drop the spaces around a subscript and never wrap */
-.sk-f.math-ltr{display:inline;unicode-bidi:isolate;vertical-align:baseline;max-width:none;overflow:visible;padding:0;margin:0 2px;font-size:.95em;}
+.sk-f.math-ltr{display:inline;unicode-bidi:isolate;vertical-align:baseline;max-width:none;overflow:visible;padding:0;margin:0 2px;font-size:.95em;}.sk-f.sk-nb{white-space:nowrap;}/* a short formula ("ΔE₀₀ < 3", "2.0 A") is never split over two lines, as the page keeps "580 nm" whole */
 /* the model line: the equation with the numbers of the screen in it */
 .sk-model{display:flex;align-items:flex-start;gap:9px;background:var(--panel2);border:1px solid var(--border);border-inline-start:3px solid var(--accent2);
   border-radius:10px;padding:7px 12px;font-size:.9rem;line-height:1.75;color:var(--text);min-height:2.65em;}
@@ -10255,7 +10255,7 @@ function simKit(canvas,spec){
 // x_0, T_C, I_{max} are set as subscripts (as the canvas labels set them) and
 // v^2, s^{-1} as superscripts
 function _skM(t){var br=function(b){return b.charAt(0)==='{'?b.slice(1,-1):b;};
-  return '<span class="math-ltr sk-f" dir="ltr">'+String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;')
+  return '<span class="math-ltr sk-f'+(String(t).length<=16?' sk-nb':'')+'" dir="ltr">'+String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;')
   .replace(/([A-Za-z\u0370-\u03FF\u2080-\u2089)])_(\{[^{}]{1,12}\}|[A-Za-z0-9\u0370-\u03FF]{1,6})/g,function(m,a,b){return a+'<sub>'+br(b)+'</sub>';})
   .replace(/([A-Za-z0-9\u0370-\u03FF)>])\^(\{[^{}]{1,12}\}|[\-\u2212]?[A-Za-z0-9]{1,3})/g,function(m,a,b){return a+'<sup>'+br(b)+'</sup>';})+'</span>';}
 
