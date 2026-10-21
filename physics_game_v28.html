@@ -412,7 +412,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
   font-variant-numeric:tabular-nums;margin:0 1px;font-size:.95em;white-space:normal;}
 /* an ordinary inline run, isolated by its dir: the app's inline maths is a
    flex box, which would drop the spaces around a subscript and never wrap */
-.sk-f.math-ltr{display:inline;unicode-bidi:isolate;vertical-align:baseline;max-width:none;overflow:visible;padding:0;margin:0 2px;font-size:.95em;}
+.sk-f.math-ltr{display:inline;unicode-bidi:isolate;vertical-align:baseline;max-width:none;overflow:visible;padding:0;margin:0 2px;font-size:.95em;}.sk-f.sk-nb{white-space:nowrap;}/* a short formula ("ΔE₀₀ < 3", "2.0 A") is never split over two lines, as the page keeps "580 nm" whole */
 /* the model line: the equation with the numbers of the screen in it */
 .sk-model{display:flex;align-items:flex-start;gap:9px;background:var(--panel2);border:1px solid var(--border);border-inline-start:3px solid var(--accent2);
   border-radius:10px;padding:7px 12px;font-size:.9rem;line-height:1.75;color:var(--text);min-height:2.65em;}
@@ -500,7 +500,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 @media (prefers-reduced-motion:reduce){.sk-m.sk-just,.sk-m.sk-just .sk-box,.sk-m.sk-just .sk-why,.sk-pa,.sk-pips i.sk-just{animation:none;}
   .sk-xp.sk-just{animation:none;opacity:1;}.sk-box,.sk-box svg,.sk-chev{transition:none!important;}}
 .sk-pips{flex-wrap:wrap;max-width:40%;}
-@media (max-width:360px){.sk-pips i{width:9px;}}
+@media (max-width:360px){.sk-pips i{width:9px;}}/* the title keeps its room on a phone: the +10 XP badge takes space only while it shows; all done, the green n/n says what the pips said */.sk-xp:not(.sk-just){display:none;}.sk-missions.all .sk-pips{display:none;}
 @media (max-width:480px){.sk-panel{padding:10px 12px 2px;}.sk-tabs{padding:7px 8px;gap:5px;}.sk-tab{font-size:.8rem;padding:4px 4px;}
   /* a phone gives the mission its whole width; the hint goes under it */
   .sk-row{flex-wrap:wrap;row-gap:0;}.sk-tx{flex:1 1 calc(100% - 30px);}.sk-hint-b{margin-inline-start:24px;}}
@@ -6963,7 +6963,7 @@ const OPTICS_CONTENT={
       <div class="mis-block"><b>⚠️ טעות נפוצה:</b> ״הצבע הוא תכונה של העצם בלבד — חולצה אדומה אדומה תמיד״. העצם רק <b>בוחר</b> אילו צבעים להחזיר מתוך האור שמגיע אליו. חולצה אדומה מחזירה אדום ובולעת ירוק וכחול, ולכן באור ירוק טהור היא נראית <b>שחורה</b>: אין שם אדום להחזיר. הצבע הנראה תלוי במקור האור, בעצם ובעין.</div>
       <div class="theory-anim">${animCanvas('anim-color-mix-t',148,'ערבוב צבעים חיבורי')}</div>`,
   },
-  sim:{type:'opt-color-mix',desc:'צבע הוא מה ששלושת סוגי המדוכים בעין מדווחים על האור שמגיע אליהם. הגשוש 👁 מראה בכל נקודה את הספקטרום, את אותות המדוכים S, M, L ואת הצבע הנראה. 💡 אורות: הספקטרומים של הפנסים מתחברים. 🎞 מסננים: כל מסנן מכפיל את האור בהעברה שלו. 👕 עצמים: עצם מחזיר את אור המנורה כפול ההחזרה שלו.'},
+  sim:{type:'opt-color-mix',desc:'צבע הוא מה ששלושת סוגי המדוכים בעין מדווחים על האור שמגיע אליהם. הגשוש 👁 מראה בכל נקודה את הספקטרום, את אותות המדוכים S, M, L ואת הצבע הנראה. 💡 אורות: הספקטרומים של הפנסים מתחברים. 🎞 מסננים: כל מסנן מכפיל את האור בהעברה שלו (T). 👕 עצמים: עצם מחזיר את אור המנורה כפול ההחזרה שלו (ρ).'},
   example:{title:'ערבוב צבעים במסך',text:`פיקסל במסך מדליק אדום בעוצמה מלאה, ירוק בחמישית מעוצמתו המלאה וכחול כבוי.`,
     steps:[
       {q:'איזה צבע נראה?',a:'כתום: אדום מלא ועוד מעט ירוק. (אדום וירוק בעוצמות שוות היו נותנים צהוב.)'},
@@ -10256,7 +10256,7 @@ function simKit(canvas,spec){
 // x_0, T_C, I_{max} are set as subscripts (as the canvas labels set them) and
 // v^2, s^{-1} as superscripts
 function _skM(t){var br=function(b){return b.charAt(0)==='{'?b.slice(1,-1):b;};
-  return '<span class="math-ltr sk-f" dir="ltr">'+String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;')
+  return '<span class="math-ltr sk-f'+(String(t).length<=16?' sk-nb':'')+'" dir="ltr">'+String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;')
   .replace(/([A-Za-z\u0370-\u03FF\u2080-\u2089)])_(\{[^{}]{1,12}\}|[A-Za-z0-9\u0370-\u03FF]{1,6})/g,function(m,a,b){return a+'<sub>'+br(b)+'</sub>';})
   .replace(/([A-Za-z0-9\u0370-\u03FF)>])\^(\{[^{}]{1,12}\}|[\-\u2212]?[A-Za-z0-9]{1,3})/g,function(m,a,b){return a+'<sup>'+br(b)+'</sup>';})+'</span>';}
 
@@ -21226,7 +21226,7 @@ function simOptColorMix(canvas){
      hint:'גררו את הגשוש (או הקישו על המסך) אל האזור שבו רק הפנס האדום והפנס הירוק חופפים.',
      why:'בספקטרום יש שתי פסגות, אדום (630 nm) וירוק (535 nm), ואין בו אור של 580 nm כלל. ובכל זאת שניהם יחד מגרים את מדוכי L ו־M כמו שאור צהוב מגרה אותם, ולכן המוח מדווח ״צהוב״. העין אינה מודדת ספקטרום — רק שלושה אותות.',
      done:function(s){return s.mode==='add'&&s.pk==='yellow'&&s.pmask===3;}},
-    {id:'cm-match',text:'🟡 הדליקו את <b>הצהוב הספקטרלי</b> (580 nm) והתאימו לו את חפיפת האדום והירוק: '+_skM('ΔE_{00} < 3')+'.',
+    {id:'cm-match',text:'🟡 הדליקו את <b>הצהוב הספקטרלי</b> (580 nm) והתאימו לו את חפיפת האדום והירוק: הפרש צבע '+_skM('ΔE_{00} < 3')+'.',
      hint:'הניחו את הגשוש בחפיפה של האדום והירוק, ושנו את R ואת G עד שעמודות המדוכים יגיעו לסימנים הלבנים. האור הצהוב עמום מהפנסים שלכם: הנמיכו את שניהם, ואת הירוק יותר.',
      why:'שני ספקטרומים שונים לגמרי — קו אחד מול שתי פסגות — נותנים כמעט אותם שלושה אותות מדוכים, ולכן כמעט אותו צבע: זהו <b>מטמריזם</b>. כך מסך בעל שלושה צבעי יסוד מציג את רוב הצבעים. נשאר הבדל קטן: אור של אורך גל אחד טהור יותר מכל תערובת, ולכן שום מסך אינו מציג אותו בדיוק.',
      done:function(s){return s.mode==='add'&&s.yelOn&&s.pmask===3&&s.de<3;}},
@@ -21242,7 +21242,7 @@ function simOptColorMix(canvas){
   var tabs=kit.tabs({label:'מצב הסימולציה',value:'cm-add',items:[
     {id:'cm-add',label:'💡 אורות<small>ערבוב חיבורי</small>'},
     {id:'cm-sub',label:'🎞 מסננים<small>ערבוב חיסורי</small>'},
-    {id:'cm-obj',label:'👕 עצמים<small>אור שחוזר מעצם</small>'}],
+    {id:'cm-obj',label:'👕 עצמים<small>אור מוחזר</small>'}],
     onChange:function(v){setMode(v.slice(3));}});
   // ── controls ──
   var SL=['cm-red','cm-green','cm-blue'];
