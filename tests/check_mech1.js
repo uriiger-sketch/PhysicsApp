@@ -230,7 +230,7 @@ const EXPECT = {
 
   await open('forces2.static-friction');
   await set('sft-mass', 5); await set('sft-mu', 0.7); await fresh(); await p.waitForTimeout(300);
-  const mu = await last('^μₛN = [\\d.]+×');
+  const mu = await last('^μₛN = [\\d.]+ N$');
   t('static friction ceiling μₛN = μₛ·mg', !!mu && close(nums(mu).pop(), 0.7 * 5 * 9.8, 0.06), mu);
 
   await open('forces2.kinetic-friction');
@@ -651,6 +651,131 @@ const EXPECT = {
   await fresh(); await click('btn-atw-launch');
   await until(async () => !!(await last('^' + LR('מסה הגיעה לקצה — ↺ איפוס') + '$')), 5000);
   t('... braked part-way and released again, the drop is no longer one run from rest: no "after a 2 m drop" speed is given', !!(await last('^' + LR('מסה הגיעה לקצה — ↺ איפוס') + '$')) && !(await last('^' + LR('בירידה של 2 m:  v = '))));
+  // ── 3b. static friction, rebuilt: a push you drag, and a crate on a truck
+  console.log('\n3b) static friction: f follows the push up to μₛN; on a truck it drives the crate forward');
+  const probe = () => p.evaluate(() => document.querySelector('#app canvas')._probe());
+  const model = () => p.evaluate(() => { const e = document.querySelector('#app .sk-model'); return e ? e.textContent : ''; });
+  const done = () => p.evaluate(() => [...document.querySelectorAll('#app .sk-m')].map(li => li.classList.contains('done')));
+  await open('forces2.static-friction'); rr = await rect();
+  // the prediction is about the crate on screen: with μₛN = 0.98 N a 6 N push would slide it, so the question
+  // (asked again while unanswered) pushes with 0.5 N, under the ceiling, and its answer leaves the crate at rest
+  await set('sft-mass', 1); await set('sft-mu', 0.1); await p.waitForTimeout(200);
+  const sfQ = await p.evaluate(() => document.querySelector('#app .sk-pq').textContent);
+  await p.evaluate(() => document.querySelectorAll('#app .sk-opt')[1].click()); await p.waitForTimeout(300);
+  let q0 = await probe();
+  t('static friction: the prediction follows the sliders (μₛN = 1.0 N → a 0.5 N push), and its answer leaves the crate at rest with fₛ = F', /μₛN = 1\.0 N/.test(sfQ) && /F = 0\.5 N/.test(sfQ) && q0.F === 0.5 && !q0.sliding && q0.f === 0.5, sfQ.replace(/\s+/g, ' ').slice(0, 90));
+  await set('sft-F', 0);
+  await set('sft-mass', 5); await set('sft-mu', 0.7); await p.waitForTimeout(200);
+  await drag(rr, [[90, 140], [115, 140], [140, 140]]);
+  t('static friction: dragging the hand 50 px to the right pushes with F = 20 N', close(await val('sft-F'), 20, 1.01), await val('sft-F'));
+  const N5 = 5 * 9.8, CS = 0.7 * N5, CK = 0.75 * CS, rows2 = [];
+  for (const F of [0, 6, 20, 34]) { await set('sft-F', F); await p.waitForTimeout(300); const q = await probe(); rows2.push([F, q.f, q.sliding, q.x, await model()]); }
+  t('below μₛN = 34.3 N the crate stays put and fₛ = F exactly (0, 6, 20, 34 N)', rows2.every(([F, f, sl, x, ml]) => !sl && Math.abs(f - F) < 1e-9 && x === 0 && ml.includes('fₛ = F = ' + F.toFixed(1) + ' N ≤ μₛN = 0.70 × 49.0 = 34.3 N')), rows2.map(r => r[0] + '→' + r[1]).join(', '));
+  await set('sft-F', 40); await p.waitForTimeout(500);
+  let q2 = await probe();
+  t('past μₛN it slides: friction drops to μₖN = 0.75 μₛN, a = (F − fₖ)/m', q2.sliding && Math.abs(q2.f - CK) < 1e-9 && Math.abs(q2.a - (40 - CK) / 5) < 1e-9 && q2.v > 0, `f ${q2.f.toFixed(2)} N, a ${q2.a.toFixed(3)} m/s²`);
+  const mlS = await model(), aM = mlS.match(/= ([\d.]+) m\/s²/);
+  t('... and the model line prints that a', !!aM && close(+aM[1], (40 - CK) / 5, 0.006), aM && aM[1]);
+  await set('sft-F', 30); await p.waitForTimeout(300); q2 = await probe();
+  t('a sliding crate does not re-check μₛN: at fₖ < F = 30 N < μₛN it still speeds up', q2.sliding && q2.a > 0.8, q2.a.toFixed(3));
+  // waits counted on the sim's own clock (a slow machine caps its frames, it does not skip them)
+  const simWait = (sec, until) => p.evaluate(async ([sec, until]) => { const cv = document.querySelector('#app canvas'), c0 = cv._probe().clock, f = until ? new Function('q', 'return ' + until) : null;
+    while (cv._probe().clock - c0 < sec && !(f && f(cv._probe()))) await new Promise(r => setTimeout(r, 30)); return cv._probe(); }, [sec, until || '']);
+  await set('sft-F', 25.5); await simWait(1.4);
+  const md1 = await done();
+  t('missions: the ceiling found, then constant velocity at F ≈ μₖN', md1[0] && md1[1], JSON.stringify(md1));
+  await set('sft-F', 10); q2 = await simWait(12, '!q.sliding');
+  t('below fₖ it slows and stops, and then static friction is the push again (10 N)', !q2.sliding && q2.v === 0 && Math.abs(q2.f - 10) < 1e-9, `v ${q2.v}, f ${q2.f}`);
+  // the truck: friction along the motion
+  await set('sft-mu', 0.4); await p.evaluate(() => document.getElementById('btn-sft-scene').click()); await p.waitForTimeout(250);
+  t('the truck asks first which way friction points', await p.evaluate(() => /🚚|truck|משאית/.test(document.querySelector('#app .sk-pq').textContent)));
+  await set('sft-a', 2); q2 = await simWait(0.7);
+  const ml2 = await model();
+  t('truck speeding up at 2 m/s²: the crate rides along, fₛ = ma = +10 N — forward', q2.stick && Math.abs(q2.f - 10) < 1e-9 && q2.vc === q2.vt && ml2.includes('fₛ = ma = 5.0 × 2.0 = 10.0 N ≤ μₛmg = 19.6 N'), q2.f + ' N');
+  await set('sft-a', 3.8); await simWait(0.5);
+  await set('sft-a', 5); q2 = await simWait(0.9);
+  t('at 5 m/s² > μₛg it slips back: kinetic friction μₖmg still points forward, a_crate = μₖg', !q2.stick && q2.vc < q2.vt && Math.abs(q2.f - 0.3 * N5) < 1e-9 && Math.abs(q2.ac - 0.3 * 9.8) < 1e-9, `f ${q2.f.toFixed(2)} N, a ${q2.ac.toFixed(2)}`);
+  await set('sft-a', -6); q2 = await simWait(1.2);
+  t('braking hard it slides forward and friction turns backward', !q2.stick && q2.vc > q2.vt && q2.f < 0, `f ${q2.f.toFixed(2)} N`);
+  const md2 = await done();
+  t('missions: largest acceleration without slipping (μₛg), and the forward slide when braking', md2[2] && md2[3], JSON.stringify(md2));
+
+  // ── 3c. springs, sliding, inclines and planets: what the missions ask, the sims do
+  console.log('\n3c) spring force, kinetic friction, a block on an incline, six planets: missions and model lines');
+  const f2_fpoll = (cond, ms) => p.evaluate(async ([c, ms]) => { const f = new Function('q', 'return ' + c), cv = document.querySelector('#app canvas');
+    for (let i = 0; i < ms / 25; i++) { const q = cv._probe(); if (f(q)) return q; await new Promise(r => setTimeout(r, 25)); } return cv._probe(); }, [cond, ms]);
+  const f2_touchHold = async (rr2, pts) => {   // a drag that stays down, then a lift
+    const P = q => ({ x: rr2.x + q[0], y: rr2.y + q[1] });
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [P(pts[0])] });
+    for (let i = 1; i < pts.length; i++) { await p.waitForTimeout(40); await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [P(pts[i])] }); }
+    await p.waitForTimeout(120);
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+    await p.waitForTimeout(80);
+  };
+  await open('forces2.spring-force'); rr = await rect();
+  // the mass is caught at rest at x = 0 (the reset), then pulled: a moving mass slips the finger
+  const f2_sfPull = async (xm, whileHeld) => { await click('btn-sf-reset'); await p.waitForTimeout(60); const q = await probe();
+    const P = z => ({ x: rr.x + q.EQ_X + z * q.PX, y: rr.y + q.SPRING_Y });
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [P(0)] });
+    for (const z of [xm / 2, xm]) { await p.waitForTimeout(40); await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [P(z)] }); }
+    await p.waitForTimeout(300); const got = whileHeld ? await whileHeld() : null;
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] }); await p.waitForTimeout(80); return got; };
+  let f2_fml = await f2_sfPull(0.1, model);   // read while the finger holds it there
+  t('spring force: the mass dragged by touch to +10 cm: F = −kx = −40 × 0.100 = −4.00 N, pulling back', /F = −kx = −40 × 0\.100 = −4\.00\s*N/.test(f2_fml), f2_fml.slice(0, 50));
+  await f2_sfPull(-0.1);
+  let f2_fq = await probe();
+  t('... and to −10 cm: the same size, the other way (mission 1)', f2_fq.heldPos && f2_fq.heldNeg, `${f2_fq.heldPos} ${f2_fq.heldNeg}`);
+  await set('sf-k', 150); await f2_sfPull(0.1);
+  f2_fq = await probe();
+  t('... k = 150 N/m: 15 N for a 10 cm stretch (mission 2)', f2_fq.k150, String(f2_fq.k150));
+  let f2_fdm = await done();
+  t('spring force missions done', f2_fdm.length === 2 && f2_fdm.every(Boolean), JSON.stringify(f2_fdm));
+  await set('sf-k', 200); await set('sf-m', 0.1); await set('sf-damp', 0); await f2_sfPull(0.1);
+  const f2_sfAmp = await p.evaluate(async () => { const cv = document.querySelector('#app canvas'); let mx = 0; const t0 = cv._probe().t;
+    while (cv._probe().t - t0 < 3) { mx = Math.max(mx, Math.abs(cv._probe().x)); await new Promise(r => setTimeout(r, 7)); } return mx; });
+  t('a stiff spring and a light mass (k = 200 N/m, m = 0.1 kg, b = 0): 3 s of oscillation, the amplitude holds at 10 cm', f2_sfAmp <= 0.1 * 1.015 && f2_sfAmp > 0.095, (f2_sfAmp * 100).toFixed(2) + ' cm');
+
+  await open('forces2.kinetic-friction');
+  const f2_kfRun = async (v0, m) => { await set('kf-v0', v0); await set('kf-mass', m); await click('btn-kf-launch'); return f2_fpoll('!q.running && q.launched', 30000); };
+  let f2_kq = await f2_kfRun(6, 5);
+  const f2_muK = await val('kf-mu');
+  t('kinetic friction: a 6 m/s slide stops at exactly v₀²/(2μₖg)', Math.abs(f2_kq.last.d - 36 / (2 * f2_muK * 9.8)) < 1e-9, f2_kq.last.d.toFixed(4) + ' m');
+  f2_kq = await f2_kfRun(12, 5);
+  t('... at 12 m/s: 4 times as far (mission 1)', Math.abs(f2_kq.last.d / (36 / (2 * f2_muK * 9.8)) - 4) < 1e-9 && f2_kq.v4, (f2_kq.last.d / (36 / (2 * f2_muK * 9.8))).toFixed(4) + '×');
+  f2_kq = await f2_kfRun(12, 10);
+  t('... twice the mass, the same speed: the same distance (mission 2)', f2_kq.mSame && Math.abs(f2_kq.last.d - 144 / (2 * f2_muK * 9.8)) < 1e-9, f2_kq.last.d.toFixed(3) + ' m');
+  f2_fml = await model();
+  t('... the model line: d = v₀²/(2μₖg) with the numbers', f2_fml.includes('d = v₀²/(2μₖg) = 12² / (2 × ' + f2_muK.toFixed(2) + ' × 9.8) = ' + (144 / (2 * f2_muK * 9.8)).toFixed(2)), f2_fml.slice(-50));
+  f2_fdm = await done();
+  t('kinetic friction missions done', f2_fdm.length === 2 && f2_fdm.every(Boolean), JSON.stringify(f2_fdm));
+  // the mass slider moves in half kilograms: the model line must multiply the mass it is given (4.5, not "5")
+  await set('kf-mass', 4.5); await p.waitForTimeout(400);
+  f2_fml = await model();
+  t('... at m = 4.5 kg the model line prints fₖ = μₖ × 4.5 × 9.8 and its true product', f2_fml.includes('fₖ = μₖmg = ' + f2_muK.toFixed(2) + ' × 4.5 × 9.8 = ' + (f2_muK * 4.5 * 9.8).toFixed(1)), f2_fml.slice(0, 44));
+
+  await open('forces2.friction-combined');
+  await set('fc-theta', 20); await set('fc-m', 5); await set('fc-mu', 0.45); await set('fc-F', 16); await p.waitForTimeout(150);
+  let f2_cq = await probe();
+  const f2_Wpar = 5 * 9.8 * Math.sin(20 * D);
+  t('incline 20°, 5 kg, F = 16 N: at rest with fₛ = mg·sinθ − F, up the slope (mission 2: |fₛ| < 1 N)', f2_cq.state === 'static' && Math.abs(f2_cq.f - (f2_Wpar - 16)) < 1e-9 && f2_cq.mZero, f2_cq.f.toFixed(3) + ' N');
+  await set('fc-F', 36); await p.waitForTimeout(150); f2_cq = await probe();
+  t('... F = 36 N: still at rest, friction now down the slope, the next 2 N would break it (mission 1)', f2_cq.state === 'static' && f2_cq.f < 0 && f2_cq.mMax && f2_cq.F0 + 2 > f2_cq.fsMax, `f ${f2_cq.f.toFixed(2)}, μₛN ${f2_cq.fsMax.toFixed(2)}`);
+  f2_fml = await model();
+  t('... the model line prints fₛ = mg·sinθ − F and the ceiling μₛN', f2_fml.includes('fₛ = mg·sinθ − F = ' + f2_Wpar.toFixed(1) + ' − 36 = −' + (36 - f2_Wpar).toFixed(1)), f2_fml.slice(0, 60));
+  await set('fc-F', 2); await set('fc-theta', 40); f2_cq = await f2_fpoll('q.mDown', 4000);
+  t('... at 40° with F = 2 N up the slope it slides down; kinetic friction points up, with F (mission 3)', f2_cq.mDown && f2_cq.state === 'down' && f2_cq.f > 0 && Math.abs(f2_cq.a - (2 - 5 * 9.8 * Math.sin(40 * D) + 0.75 * 0.45 * 5 * 9.8 * Math.cos(40 * D)) / 5) < 1e-9, `a ${f2_cq.a.toFixed(3)} m/s²`);
+  f2_fdm = await done();
+  t('incline missions done', f2_fdm.length === 3 && f2_fdm.every(Boolean), JSON.stringify(f2_fdm));
+
+  await open('forces2.gravity-force'); rr = await rect();
+  await f2_touchHold(rr, [[rr.w / 2, 24]]);
+  let f2_gq = await f2_fpoll('q.race', 6000);
+  const f2_gs = [3.7, 8.87, 9.81, 3.72, 24.8, 1.62];
+  t('six planets: one tap drops every ball; each lands at t = √(2h/g) (mission 1)', f2_gq.race && f2_gs.every((g2, i) => f2_gq.drops[i] && Math.abs(f2_gq.drops[i].land - Math.sqrt(4 / g2)) < 1e-12), f2_gq.drops[5] && f2_gq.drops[5].land.toFixed(3) + ' s on the Moon');
+  await set('gf-m', 61); await p.waitForTimeout(150); f2_gq = await probe();
+  t('... 61 kg on the Moon weighs what 10 kg does on Earth (mission 2)', f2_gq.moonBag && Math.abs(61 * 1.62 - 98.1) < 1, (61 * 1.62).toFixed(1) + ' N');
+  f2_fdm = await done();
+  t('gravity missions done', f2_fdm.length === 2 && f2_fdm.every(Boolean), JSON.stringify(f2_fdm));
 
   // ── 4. the learning experience ──────────────────────────────────────
   console.log('\n4) misconception boxes, quiz keys, hints, units');
