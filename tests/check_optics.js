@@ -186,10 +186,40 @@ const EXPECT = {
     o.match = best;
     const ms = C.addS(C.LED, [best[1] / 100, best[2] / 100, 0]); let mx = 0; for (let i = 0; i < C.N; i++) mx = Math.max(mx, ms[i]);
     o.at580 = ms[200] / mx;
-    // CIEDE2000: the reference pairs of Sharma, Wu & Dalal (2005)
-    o.sharma = [[[50, 2.6772, -79.7751], [50, 0, -82.7485], 2.0425], [[50, 0, 0], [50, -1, 2], 2.3669], [[50, 2.5, 0], [73, 25, -18], 27.1492],
-      [[60.2574, -34.0099, 36.2677], [60.4626, -34.1751, 39.4387], 1.2644], [[22.7233, 20.0904, -46.6940], [23.0331, 14.9730, -42.5619], 2.0373],
-      [[2.0776, 0.0795, -1.1350], [0.9033, -0.0636, -0.5514], 0.9082]].map(([A, B2, w]) => Math.abs(C.de00(A, B2) - w));
+    // the leaf mission's physics: beside the white paper (which shows the
+    // lamp is on) the leaf returns a twentieth of the paper's light in red,
+    // blue or magenta light, and is black; in white, yellow, cyan or green
+    // light it returns 30-40 % of it, at any power, and dimming such a lamp
+    // only makes everything darker
+    const rel = v => { const Lf = S(v, 1), Pp = S(v, 2); return Lf[1] / Pp[1]; };
+    o.leafNoGreen = [[1, 0, 0], [0, 0, 1], [1, 0, 1], [0, 0, 0.3]].map(v => nm(S(v, 1), 1) + ':' + (nm(S(v, 2), 1) !== 'black') + ':' + (rel(v) < 0.2)).join(',');
+    o.leafGreen = Math.min(...[[1, 1, 1], [0.05, 0.05, 0.05], [1, 1, 0], [0, 1, 1], [0, 1, 0], [0.04, 0.04, 0]].map(rel));
+    // CIEDE2000: all 34 reference pairs of Sharma, Wu & Dalal (2005), both
+    // ways round (the hue-angle averages across 0/360 and the zero-chroma pairs
+    // are the ones an implementation gets wrong)
+    o.sharma = [[[50, 2.6772, -79.7751], [50, 0, -82.7485], 2.0425], [[50, 3.1571, -77.2803], [50, 0, -82.7485], 2.8615],
+      [[50, 2.8361, -74.0200], [50, 0, -82.7485], 3.4412], [[50, -1.3802, -84.2814], [50, 0, -82.7485], 1.0000],
+      [[50, -1.1848, -84.8006], [50, 0, -82.7485], 1.0000], [[50, -0.9009, -85.5211], [50, 0, -82.7485], 1.0000],
+      [[50, 0, 0], [50, -1, 2], 2.3669], [[50, -1, 2], [50, 0, 0], 2.3669],
+      [[50, 2.49, -0.001], [50, -2.49, 0.0009], 7.1792], [[50, 2.49, -0.001], [50, -2.49, 0.0010], 7.1792],
+      [[50, 2.49, -0.001], [50, -2.49, 0.0011], 7.2195], [[50, 2.49, -0.001], [50, -2.49, 0.0012], 7.2195],
+      [[50, -0.001, 2.49], [50, 0.0009, -2.49], 4.8045], [[50, -0.001, 2.49], [50, 0.0010, -2.49], 4.8045],
+      [[50, -0.001, 2.49], [50, 0.0011, -2.49], 4.7461], [[50, 2.5, 0], [50, 0, -2.5], 4.3065],
+      [[50, 2.5, 0], [73, 25, -18], 27.1492], [[50, 2.5, 0], [61, -5, 29], 22.8977], [[50, 2.5, 0], [56, -27, -3], 31.9030],
+      [[50, 2.5, 0], [58, 24, 15], 19.4535], [[50, 2.5, 0], [50, 3.1736, 0.5854], 1.0000], [[50, 2.5, 0], [50, 3.2972, 0], 1.0000],
+      [[50, 2.5, 0], [50, 1.8634, 0.5757], 1.0000], [[50, 2.5, 0], [50, 3.2592, 0.3350], 1.0000],
+      [[60.2574, -34.0099, 36.2677], [60.4626, -34.1751, 39.4387], 1.2644], [[63.0109, -31.0961, -5.8663], [62.8187, -29.7946, -4.0864], 1.2630],
+      [[61.2901, 3.7196, -5.3901], [61.4292, 2.2480, -4.9620], 1.8731], [[35.0831, -44.1164, 3.7933], [35.0232, -40.0716, 1.5901], 1.8645],
+      [[22.7233, 20.0904, -46.6940], [23.0331, 14.9730, -42.5619], 2.0373], [[36.4612, 47.8580, 18.3852], [36.2715, 50.5065, 21.2231], 1.4146],
+      [[90.8027, -2.0831, 1.4410], [91.1528, -1.6435, 0.0447], 1.4441], [[90.9257, -0.5406, -0.9208], [88.6381, -0.8985, -0.7239], 1.5381],
+      [[6.7747, -0.2908, -2.4247], [5.8714, -0.0985, -2.2286], 0.6377], [[2.0776, 0.0795, -1.1350], [0.9033, -0.0636, -0.5514], 0.9082]]
+      .map(([A, B2, w]) => Math.max(Math.abs(C.de00(A, B2) - w), Math.abs(C.de00(B2, A) - w)));
+    // the worked example: a fifth of the green light is sRGB code 124 (#7C),
+    // as the section's example says, not 0.2 × 255 = 51
+    const g5 = Math.round(255 * C.enc(0.2)), exd = document.createElement('div');
+    exd.innerHTML = OPTICS_CONTENT['opt-light.color-mixing'].example.steps[1].a;
+    const ex = exd.textContent.replace(/[\s​-‏⁦-⁩]/g, '');
+    o.example = g5 + ' ' + (ex.includes('(255,' + g5 + ',0)') && ex.includes('#FF' + g5.toString(16).toUpperCase() + '00'));
     // a single wavelength's dominant wavelength is itself; the cones peak where they should
     o.dom = [460, 500, 530, 580, 610].map(w => Math.round(C.hue(C.xyz(C.band(w, 0.5))).wl)).join(',');
     o.peaks = [0, 1, 2].map(k => { let bi = 0; for (let i = 0; i < C.N; i++) if (C.CONE[i][k] > C.CONE[bi][k]) bi = i; return C.LAM[bi]; }).join(',');
@@ -207,9 +237,13 @@ const EXPECT = {
     cm.objects === 'red,red,black,black,green,black,black,white,green', cm.objects);
   t('colour model: red + green matches the 580 nm line (CIEDE2000 < 3 at some 1 % slider pair)', cm.match[0] < 3 && cm.match[0] > 0.5, JSON.stringify(cm.match));
   t('colour model: … with no 580 nm light in that mixture (< 2 % of its peak)', cm.at580 < 0.02, cm.at580);
-  t('colour model: CIEDE2000 reproduces the Sharma reference pairs to 1e-4', cm.sharma.every(d => d < 1e-4), cm.sharma.join(','));
+  t('colour model: in red, blue or magenta light the leaf is black beside a lit paper and returns < 20 % of its light',
+    cm.leafNoGreen === 'black:true:true,black:true:true,black:true:true,black:true:true', cm.leafNoGreen);
+  t('colour model: in light with green in it the leaf returns ≥ 30 % of the paper\'s light, however dim the lamp', cm.leafGreen > 0.29, cm.leafGreen);
+  t('colour model: CIEDE2000 reproduces all 34 Sharma reference pairs to 1e-4, both ways round', cm.sharma.length === 34 && cm.sharma.every(d => d < 1e-4), cm.sharma.map(d => d.toExponential(1)).join(','));
+  t('colour model: the worked example\'s green code is the sRGB encoding of a fifth of the light, (255, 124, 0) = #FF7C00', cm.example === '124 true', cm.example);
   t('colour model: a single wavelength has itself as dominant wavelength', cm.dom === '460,500,530,580,610', cm.dom);
-  t('colour model: cone sensitivities peak at S ≈ 448, M ≈ 543, L ≈ 567 nm (Smith–Pokorny)', cm.peaks === '567,543,448', cm.peaks);
+  t('colour model: cone sensitivities peak at S ≈ 448, M ≈ 543, L ≈ 567 nm (Smith–Pokorny transform of the CIE 1931 functions)', cm.peaks === '567,543,448', cm.peaks);
 
   // the simulation: what is on the screen and in the model line, and every mission reachable by the hand
   await p.evaluate(() => { window.__CT = []; const o = CanvasRenderingContext2D.prototype.fillText;
@@ -264,8 +298,12 @@ const EXPECT = {
   await p.click('.sk-opt >> nth=2'); await p.waitForTimeout(1400);
   const m4a = await cmModel(), right = await p.evaluate(() => document.querySelectorAll('.sk-opt')[2].classList.contains('right'));
   t('colour mixing: the prediction (red shirt under green light) is asked, marked, and the lamp turns green: the shirt is seen black', pq === 4 && right && m4a.includes('(1.00·G)·ρ') && m4a.includes(L('שחור')), m4a);
-  await p.click('#btn-cm-lr'); await p.waitForTimeout(1300);
-  t('colour mixing: in red light the green leaf is black -- the fourth mission solved, 40 XP in all', (await cmDone()) === '1111' && (await p.evaluate(() => state.xp)) - xp0 === 40, await cmDone());
+  // a white lamp turned almost off makes the leaf dark, not the lesson: not solved
+  await slide('cm-red', 5); await slide('cm-green', 5); await slide('cm-blue', 5); await p.waitForTimeout(300);
+  t('colour mixing: a white lamp at 5 % (leaf dark, paper grey) does not solve the leaf mission', (await cmDone()) === '1110', await cmDone());
+  // blue light has no green in it (and only 4 % of the white's luminance): the leaf is black
+  await p.click('#btn-cm-lb'); await p.waitForTimeout(1300);
+  t('colour mixing: in blue light the green leaf is black -- the fourth mission solved, 40 XP in all', (await cmDone()) === '1111' && (await p.evaluate(() => state.xp)) - xp0 === 40, await cmDone());
 
   console.log('   every draggable simulation by touch, on a phone');
   const tc = await b.newContext({ viewport: { width: 390, height: 1300 }, hasTouch: true, isMobile: true, deviceScaleFactor: 2 });

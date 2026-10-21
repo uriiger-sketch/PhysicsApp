@@ -6944,7 +6944,7 @@ const OPTICS_CONTENT={
           <div class="info-item"><div class="il">אדום + ירוק + כחול</div><div class="iv">= לבן</div></div>
         </div>
         <p>שימוש: מסכי LCD/OLED, פרויקטורים, תאורת LED. כל פיקסל = R+G+B בעוצמות שונות.</p>
-        <p><b>למה זה עובד?</b> ברשתית שלושה סוגי מדוכים, הרגישים בעיקר לאורכי גל קצרים (S), בינוניים (M) וארוכים (L), והעין מוסרת למוח רק את שלושת האותות שלהם. אור אדום ואור ירוק יחד מגרים את L ואת M כמו שאור צהוב מגרה אותם — ולכן נראים צהובים, אף שאין בהם אור צהוב כלל.</p>
+        <p><b>למה זה עובד?</b> ברשתית שלושה סוגי מדוכים, הרגישים בעיקר לאורכי גל קצרים (S), בינוניים (M) וארוכים (L), והעין מוסרת למוח רק את שלושת האותות שלהם. אור אדום ואור ירוק יחד מגרים את L ואת M כמו שאור צהוב מגרה אותם — ולכן התערובת נראית צהובה, אף שאין בה אור צהוב כלל.</p>
       </div>
       <div class="def-block"><div class="def-title">ערבוב חיסורי — פיגמנטים (Subtractive)</div>
         <p>צבעים <b>בולעים</b> חלק מהספקטרום ומשקפים את הנותר:</p>
@@ -6967,11 +6967,11 @@ const OPTICS_CONTENT={
   example:{title:'ערבוב צבעים במסך',text:`פיקסל במסך מדליק אדום בעוצמה מלאה, ירוק בחמישית מעוצמתו המלאה וכחול כבוי.`,
     steps:[
       {q:'איזה צבע נראה?',a:'כתום: אדום מלא ועוד מעט ירוק. (אדום וירוק בעוצמות שוות היו נותנים צהוב.)'},
-      {q:'איך מסמנים את הצבע בקוד של מחשב?',a:`כל רכיב בסולם 0–255: ${M('(255,\\,124,\\,0)')}, ובכתיב הקסדצימלי ${M('\\text{\\#FF7C00}')}. הירוק הוא 124 ולא ${M('0.2\\times255=51')}: המסך מקודד בהירות באופן לא ליניארי (״תיקון גמא״), כך שחמישית מהאור מקבלת קוד של כמחצית הסולם.`},
+      {q:'איך מסמנים את הצבע בקוד של מחשב?',a:`כל רכיב בסולם 0–255: ${M('(255,\\,124,\\,0)')}, ובכתיב הקסדצימלי ${M('\\text{\\#FF7C00}')}. הירוק הוא 124 ולא ${M('0.2\\times255=51')}: הקוד אינו יחסי לעוצמת האור (״תיקון גמא״), כך שחמישית מהאור מקבלת קוד של כמחצית הסולם.`},
     ]},
   quiz:[
     {q:'אור ירוק + אור כחול = ?',opts:['צהוב','ורוד','ציאן','לבן'],correct:2,explain:'ערבוב חיבורי: G+B=ציאן (כחול-ירקרק). R+G=צהוב, R+B=מגנטה.',formula:''},
-    {q:'מדוע עלה ירוק נראה ירוק?',opts:['פולט אור ירוק','בולע אדום+כחול, משקף ירוק','משקף את כל הצבעים חוץ מירוק','מכיל פיגמנט ניאון'],correct:1,explain:'ערבוב חיסורי: הכלורופיל בולע אדום וכחול (לפוטוסינתזה) ומשקף ירוק — לכן אנחנו רואים ירוק.',formula:''},
+    {q:'מדוע עלה ירוק נראה ירוק?',opts:['פולט אור ירוק','בולע אדום+כחול, משקף ירוק','משקף את כל הצבעים חוץ מירוק','מכיל פיגמנט ניאון'],correct:1,explain:'בליעה בררנית: הכלורופיל בולע אדום וכחול (לפוטוסינתזה) ומשקף ירוק — לכן אנחנו רואים ירוק.',formula:''},
     {q:'בדפוס CMYK, מה ה־K?',opts:['כחול (Blue)','כרום (Chrome)','שחור (Key)','קובלט (Kobalt)'],correct:2,explain:'K=Key=שחור. נוסף כי C+M+Y בפועל לא נותן שחור מושלם, ושחור שמורכב משלוש דיו יקר ומתייבש לאט. דיו שחור נפרד נותן שחור אחיד ועמוק.',formula:''},
     {q:'מסך טלוויזיה משתמש ב:',opts:['CMY','RGB חיבורי','פיגמנטים חיסוריים','קשת ניוטון'],correct:1,explain:'כל פיקסל: שלוש תתי-נקודות (R,G,B) מוארות. מרחוק — עין ממצעת ורואה צבע מעורב. זה ערבוב חיבורי.',formula:''},
     {q:'מדוע חולצה נראית אדומה באור לבן?',
@@ -6986,9 +6986,9 @@ const OPTICS_CONTENT={
       {q:'מהו בקירוב אורך הגל '+M('\\lambda')+' של צהוב <b>ספקטרלי</b> — הצהוב שמופיע בקשת עצמה? (בננומטרים; היעזרו בטבלת הצבעים בסעיף ״מהו אור?״)',unit:'nm',answer:'580',tolerance:12,
        explain:'צהוב ספקטרלי הוא אורך גל יחיד באזור 570–590 nm, כלומר כ־580 nm — בין הירוק (≈530) לאדום (≈700). זהו הצהוב של להבת נתרן (589 nm) — אור בעל תדירות אחת ממש.',
        nudge:'בקשת הצבעים מסודרים לפי אורך גל. הצהוב יושב בין הירוק (495–570 nm) לכתום (590–620 nm).',hint:'בטבלת הצבעים של הסעיף הראשון הצהוב תופס את התחום 570–590 nm; קחו את אמצעו.'},
-      {q:'המסך מדליק אדום וירוק יחד, ואנו רואים צהוב. את איזה אורך גל '+M('\\lambda')+' המוח ״מדווח״ שראה, אף שאף פוטון כזה לא נפלט?',unit:'nm',answer:'580',tolerance:25,
-       explain:'המוח מדווח צהוב — כ־580 nm — אף שהמסך פולט רק אדום וירוק, ואין בו פוטון אחד באורך הגל הזה. זהו <b>מטמריזם</b>: לעין שלושה סוגי קולטנים בלבד, ולכן שני ספקטרומים שונים שמעוררים אותם באותה מידה ייראו זהים. הצבע הוא מסקנה של מערכת הראייה, לא תכונה של האור.',
-       nudge:'העין אינה מודדת ספקטרום אלא משווה בין תגובות שלושה סוגי קולטנים. אם אדום וירוק יחד מעוררים אותם בדיוק כמו אור ספקטרלי אחד — איזה?',hint:'לעין שלושה סוגי מדוכים בלבד. אדום וירוק יחד מעוררים אותם כמו הצהוב הספקטרלי שמצאתם בשלב הקודם.'},
+      {q:'המסך מדליק אדום וירוק יחד, ואנו רואים צהוב. את איזה אורך גל '+M('\\lambda')+' המוח ״מדווח״ שראה, אף שהמסך כמעט אינו פולט אור באורך גל זה?',unit:'nm',answer:'580',tolerance:25,
+       explain:'המוח מדווח ״צהוב״: הגוון של אור ספקטרלי של כ־570–580 nm (בצהוב של מסך רגיל: כ־570 nm), אף שהמסך פולט אור אדום ואור ירוק, וכמעט אינו פולט אור באורך הגל הזה. זהו <b>מטמריזם</b>: לעין שלושה סוגי קולטנים בלבד, ולכן שני ספקטרומים שונים שמעוררים אותם באותה מידה ייראו זהים. הצבע הוא מסקנה של מערכת הראייה, לא תכונה של האור.',
+       nudge:'העין אינה מודדת ספקטרום אלא משווה בין תגובות שלושה סוגי קולטנים. אם אדום וירוק יחד מעוררים אותם באותו יחס כמו אור ספקטרלי אחד — איזה?',hint:'לעין שלושה סוגי מדוכים בלבד. אדום וירוק יחד מעוררים אותם כמו הצהוב הספקטרלי שמצאתם בשלב הקודם.'},
     ]}
 },
 
@@ -20380,10 +20380,11 @@ function simOptLaser(canvas){
 // ── Colour science of the colour-mixing simulation ──────────────────────
 // What the eye is told, from what reaches it. A light is a spectrum, sampled
 // every nanometre from 380 to 720 nm. The eye reduces it to three numbers:
-// the responses of its L, M and S cones (Smith–Pokorny fundamentals, a linear
-// transform of the CIE 1931 colour-matching functions; those are the
-// multi-lobe fit of Wyman, Sloan & Shirley, JCGT 2013, within a few percent of
-// the tables). Two different spectra with the same three numbers are the same
+// the responses of its L, M and S cones (the Smith–Pokorny transform applied
+// to the CIE 1931 colour-matching functions -- the fundamentals proper start
+// from Judd–Vos's correction of them, which differs below ~460 nm, so S peaks
+// at 448 nm here instead of ~440 nm; the functions are the multi-lobe fit of
+// Wyman, Sloan & Shirley, JCGT 2013, within a few percent of the tables). Two different spectra with the same three numbers are the same
 // colour (metamers). What the screen shows is that colour: CIE XYZ -> linear
 // sRGB -> clipped to what a screen can make -> gamma-encoded. Lights ADD their
 // spectra; a filter or a surface MULTIPLIES the light by its transmission or
@@ -20484,8 +20485,13 @@ var _cmx=(function(){
     if(!best)return {wl:null,pur:0,x:x,y:y};
     return {wl:best.wl,u:best.u,pur:Math.min(1,1/best.t),x:x,y:y};}
   // A name only when the colour really is that colour: by dominant
-  // wavelength (the bands of the lesson's table, with the borders between
-  // two colours named as both), purity and lightness. Lights in a dark room
+  // wavelength, purity and lightness. The bands follow the lesson's table
+  // where it can (violet < 450, blue < 485, green to 556, yellow 568-582 nm),
+  // the borders between two colours named as both, but a dominant wavelength
+  // is not the wavelength of a spectral light: a broad red such as the
+  // magenta and yellow filters leave has its dominant wavelength near 614 nm
+  // (the table's orange), and the lamps' red + green, seen yellow, 569 nm --
+  // so red starts at 605 nm and yellow at 568 nm here. Lights in a dark room
   // have no "grey" or "brown": a dim white light is still white.
   var NM={black:'שחור',white:'לבן',dimwhite:'לבן עמום',grey:'אפור',red:'אדום',orange:'כתום',ambr:'צהוב־כתום',yellow:'צהוב',
     ygreen:'ירוק־צהבהב',green:'ירוק',cyan:'ציאן',blue:'כחול',violet:'סגול',magenta:'מגנטה',rose:'ורוד עז',
@@ -20863,8 +20869,16 @@ function simOptColorMix(canvas){
       ctx.beginPath();ctx.arc(ripple.x,ripple.y,16+age*40,0,6.2832);ctx.stroke();ctx.restore();}}
     drawPanel(o);
     // what the missions read, the model line, what a screen reader is told
-    var lampY=lampXYZ(vals.obj)[1],leafK=C.nameKey(surfXYZ(1,vals.obj),true);
-    lastS={mode:mode,pk:o.key,pmask:o.mask,de:mode==='add'?o.de:99,yelOn:yelOn,lampY:lampY,leaf:leafK,shirt:C.nameKey(surfXYZ(0,vals.obj),true)};
+    // the leaf beside the white paper: the paper shows that the lamp is on,
+    // the ratio of their light that the lamp has (almost) no green in it.
+    // White, yellow, cyan or green light leave the ratio at 0.3-0.4 at any
+    // power (dimming the lamp is no answer); red or blue light, or both,
+    // bring it to 0.05, and the test at 0.2 lets a trace of green pass. The
+    // lamp's luminance is no test: full blue light has 4 % of the white's,
+    // and the leaf is black in it too.
+    var leafX=surfXYZ(1,vals.obj),papX=surfXYZ(2,vals.obj);
+    lastS={mode:mode,pk:o.key,pmask:o.mask,de:mode==='add'?o.de:99,yelOn:yelOn,leaf:C.nameKey(leafX,true),
+      paper:C.nameKey(papX,true),leafRel:papX[1]>1e-9?leafX[1]/papX[1]:1,shirt:C.nameKey(surfXYZ(0,vals.obj),true)};
     var cn='S '+Math.round(o.cones[0]*100)+'% · M '+Math.round(o.cones[1]*100)+'% · L '+Math.round(o.cones[2]*100)+'%';
     if(mode==='add'&&yelOn)kit.model(o.wh+': '+kit.m(o.eq)+' ← המדוכים '+kit.m(cn)+' ← הצבע הנראה: <b>'+o.name+'</b> · ההבדל מ־580 nm: '+kit.m('ΔE_{00} = '+o.de.toFixed(1)));
     else kit.model(o.wh+': '+kit.m(o.eq)+' ← המדוכים '+kit.m(cn)+' ← הצבע הנראה: <b>'+o.name+'</b>');
@@ -20882,7 +20896,7 @@ function simOptColorMix(canvas){
      done:function(s){return s.mode==='add'&&s.pk==='yellow'&&s.pmask===3;}},
     {id:'cm-match',text:'🟡 הדליקו את <b>הצהוב הספקטרלי</b> (580 nm) והתאימו לו את חפיפת האדום והירוק: '+_skM('ΔE_{00} < 3')+'.',
      hint:'הניחו את הגשוש בחפיפה של האדום והירוק, ושנו את R ואת G עד שעמודות המדוכים יגיעו לסימנים הלבנים. האור הצהוב עמום מהפנסים שלכם: הנמיכו את שניהם, ואת הירוק יותר.',
-     why:'שני ספקטרומים שונים לגמרי — קו אחד מול שתי פסגות — נותנים אותם שלושה אותות מדוכים, ולכן אותו צבע: זהו <b>מטמריזם</b>. כך מסך בעל שלושה צבעי יסוד מציג כמעט כל צבע. נשאר הבדל קטן: אור של אורך גל אחד טהור יותר מכל תערובת, ולכן שום מסך אינו מציג אותו בדיוק.',
+     why:'שני ספקטרומים שונים לגמרי — קו אחד מול שתי פסגות — נותנים כמעט אותם שלושה אותות מדוכים, ולכן כמעט אותו צבע: זהו <b>מטמריזם</b>. כך מסך בעל שלושה צבעי יסוד מציג את רוב הצבעים. נשאר הבדל קטן: אור של אורך גל אחד טהור יותר מכל תערובת, ולכן שום מסך אינו מציג אותו בדיוק.',
      done:function(s){return s.mode==='add'&&s.yelOn&&s.pmask===3&&s.de<3;}},
     {id:'cm-filters',text:'🎞 צרו אור <b>כחול</b> מאור לבן בעזרת שני מסננים, ובדקו אותו בגשוש.',
      hint:'כל מסנן בולע צבע אחד: ציאן בולע אדום, מגנטה בולעת ירוק, צהוב בולע כחול. איזה זוג משאיר רק כחול?',
@@ -20890,8 +20904,8 @@ function simOptColorMix(canvas){
      done:function(s){return s.mode==='sub'&&s.pmask===3&&s.pk==='blue';}},
     {id:'cm-leaf',text:'👕 גרמו ל<b>עלה הירוק</b> להיראות שחור — כשהמנורה דולקת.',
      hint:'העלה מחזיר כמעט רק ירוק. באיזה אור אין ירוק בכלל? נסו את כפתורי צבע המנורה או את המחוונים.',
-     why:'העלה בולע אדום וכחול ומחזיר בעיקר ירוק. באור שאין בו ירוק כמעט שום אור אינו חוזר ממנו אל העין, והוא נראה שחור. הצבע אינו תכונה של העצם לבדו: הוא תלוי באור, בעצם ובעין.',
-     done:function(s){return s.mode==='obj'&&s.leaf==='black'&&s.lampY>=0.15;}}
+     why:'העלה בולע אדום וכחול ומחזיר בעיקר ירוק. באור שאין בו ירוק, כמעט שום אור אינו חוזר ממנו אל העין, והוא נראה שחור. הצבע אינו תכונה של העצם לבדו: הוא תלוי באור, בעצם ובעין.',
+     done:function(s){return s.mode==='obj'&&s.leaf==='black'&&s.paper!=='black'&&s.leafRel<0.2;}}
   ],onSolve:function(i){if(RM)return;var p=i===3?{x:OBJ[1].cx,y:OBJ[1].cy}:probe[mode];ripple={x:p.x,y:p.y,t:performance.now()};}});
   var tabs=kit.tabs({label:'מצב הסימולציה',value:'cm-add',items:[
     {id:'cm-add',label:'💡 אורות<small>ערבוב חיבורי</small>'},
