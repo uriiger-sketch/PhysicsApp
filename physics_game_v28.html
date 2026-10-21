@@ -12757,7 +12757,7 @@ function simMomentumCons(canvas){
   const id=canvas.id, L=10, g=9.8, MU=0.06;
   var km=_skM;   // maths inside a kit text: one left-to-right run (= kit.m)
   var TX0=26, TX1=W-26, PPM=(TX1-TX0)/L, TY=PH?140:146;
-  var mode='boom', air=true, st='set', x1, x2, v1, v2, pT=null, t=0, tRun=0, hist=[], stuck=false, comp=0, p0=0, hitT=-1;
+  var mode='boom', air=true, st='set', x1, x2, v1, v2, pT=null, t=0, tRun=0, hist=[], stuck=false, comp=0, p0=0, hitT=-1, pDev=0;   // pDev: the largest |Σp − Σp₀| of this run
   var S0=0.30, D0=0.16;                          // the spring: 30 cm long, compressed by 16 cm
   var tau=0, sep=false, xc=0, rel0=0;            // the push, solved exactly: a quarter of an oscillation
   function M1(){return _mbV('mc-m1',3);} function M2(){return _mbV('mc-m2',1.5);}
@@ -12769,7 +12769,7 @@ function simMomentumCons(canvas){
     var w1=wOf(M1()),w2=wOf(M2());
     if(mode==='boom'){var g0=S0-D0;x1=L/2-w1/2-g0/2;x2=L/2+w2/2+g0/2;v1=0;v2=0;comp=D0;}
     else{x1=2.4;x2=7.6;v1=U1();v2=U2();comp=0;}
-    st='set';stuck=false;hist=[];tRun=0;hitT=-1;p0=M1()*v1+M2()*v2;
+    st='set';stuck=false;hist=[];tRun=0;hitT=-1;p0=M1()*v1+M2()*v2;pDev=0;
     tau=0;sep=false;xc=(M1()*x1+M2()*x2)/(M1()+M2());rel0=x2-x1;
     _mbBtn('mc-run',mode==='boom'?'💥 שחררו את הקפיץ':'▶ הפעילו');
   }
@@ -12874,7 +12874,13 @@ function simMomentumCons(canvas){
     simText(ctx,'Σp = '+_mbS(pN,2)+' kg·m/s',gr,GY+32,'#fbbf24',10,'right',true);
     var out=st!=='set'&&(mode==='boom'?comp===0:true), ratio=0;
     if(mode==='boom'&&out&&Math.abs(v1)>1e-6&&Math.abs(v2)>1e-6){var lt=m1<m2?v1:v2,hv=m1<m2?v2:v1;ratio=Math.abs(lt/hv);}
-    if(!air&&st!=='set')model('האוויר כבוי: החיכוך הוא כוח חיצוני על המערכת, ולכן Σp משתנה: '+kit.m('Σp = '+_mbS(p0,2)+' → '+_mbS(pN,2)+' kg·m/s'));
+    // with the air off friction acts on each moving cart -- an external force; but Σp changes only if their
+    // SUM is not zero (equal masses flying apart feel equal and opposite friction, and Σp stays 0)
+    var fOn=function(v,m){return v>0?-MU*m*g:v<0?MU*m*g:0;}, Fext=stuck?fOn(v1,m1+m2):fOn(v1,m1)+fOn(v2,m2);
+    if(st!=='set')pDev=Math.max(pDev,Math.abs(pN-p0));
+    if(!air&&st!=='set'&&Math.abs(Fext)>1e-9)model('האוויר כבוי: כוחות החיכוך הם כוחות חיצוניים ושקולם אינו אפס, '+kit.m('ΣFₑₓₜ = '+_mbS(Fext,2)+' N')+', ולכן Σp משתנה: '+kit.m('Σp = '+_mbS(p0,2)+' → '+_mbS(pN,2)+' kg·m/s'));
+    else if(!air&&st!=='set'&&pDev>0.01)model('האוויר כבוי: בזמן ההחלקה החיכוך, כוח חיצוני, שינה את Σp — עד '+kit.m('|ΔΣp| = '+pDev.toFixed(2)+' kg·m/s')+'; עכשיו '+kit.m('Σp = '+_mbS(pN,2)+' kg·m/s')+'.');
+    else if(!air&&st!=='set')model('האוויר כבוי: על כל עגלה פועל חיכוך, אבל שני כוחות החיכוך שווים והפוכים — '+kit.m('ΣFₑₓₜ = 0')+' — ולכן Σp אינו משתנה: '+kit.m('Σp = '+_mbS(p0,2)+' → '+_mbS(pN,2)+' kg·m/s'));
     else if(mode==='boom')model('מערכת מבודדת: '+kit.m('Σp = m₁v₁ + m₂v₂ = '+m1.toFixed(1)+' × '+_mbP(v1,2)+' + '+m2.toFixed(1)+' × '+_mbP(v2,2)+' = '+_mbS(pN,2)+' kg·m/s')+' — כמו לפני השחרור');
     else model('מערכת מבודדת: '+kit.m('Σp = '+m1.toFixed(1)+' × '+_mbP(v1,2)+' + '+m2.toFixed(1)+' × '+_mbP(v2,2)+' = '+_mbS(pN,2)+' kg·m/s')+(stuck?' — ואחרי ההיצמדות '+kit.m('v = Σp/(m₁+m₂) = '+_mbS(pN/(m1+m2),2)+' m/s'):''));
     kit.check({mode:mode,out:out,ratio:ratio,stuck:stuck,m1:m1,m2:m2,u1:U1(),u2:U2(),air:air,p0:p0,pN:pN});
@@ -14390,13 +14396,19 @@ function simStaticFriction(canvas){
      why:'עכשיו הארגז מחליק קדימה ביחס למשטח, ולכן החיכוך הקינטי מכוון אחורה. כיוון החיכוך נקבע לפי ההחלקה בין המשטחים — לא לפי כיוון התנועה: בהאצה הוא היה קדימה.',
      done:function(s){return s.scene==='truck'&&s.slipFwd>0.4;}}]});
   var model=_mbModel(kit);
+  // the question uses the crate on screen: a push of 6 N, or less when μₛN is below 12 N, so that the
+  // push really is under the ceiling (the question is asked again when μ or m changes before it is answered)
+  var pushAnswered=false;
   function predPush(){
-    var n=M()*g, c=mu()*n;
-    kit.predict({q:'הארגז במנוחה, ו־'+kit.m('μₛN = '+c.toFixed(1)+' N')+'. דוחפים אותו בכוח '+kit.m('F = 6 N')+' והוא אינו זז. מה גודל כוח החיכוך?',
-      opts:[kit.m('0 N'),kit.m('6 N'),kit.m(c.toFixed(1)+' N')],correct:1,
-      why:'הארגז במנוחה, ולכן השקול אפס: החיכוך מאזן בדיוק את הדחיפה, '+kit.m('fₛ = F = 6 N')+'. '+kit.m('μₛN')+' הוא רק התקרה — מה שהמשטח יכול לתת לכל היותר.'},
-      function(){if(scene==='push')simSyncSlider('sft-F',6,1);});
+    var n=M()*g, c=mu()*n, Fq=c>=12?6:Math.max(0.5,Math.floor(c)/2);
+    var fq=Fq%1?Fq.toFixed(1):Fq.toFixed(0);
+    kit.predict({q:'הארגז במנוחה, ו־'+kit.m('μₛN = '+c.toFixed(1)+' N')+'. דוחפים אותו בכוח '+kit.m('F = '+fq+' N')+' והוא אינו זז. מה גודל כוח החיכוך?',
+      opts:[kit.m('0 N'),kit.m(fq+' N'),kit.m(c.toFixed(1)+' N')],correct:1,
+      why:'הארגז במנוחה, ולכן השקול אפס: החיכוך מאזן בדיוק את הדחיפה, '+kit.m('fₛ = F = '+fq+' N')+'. '+kit.m('μₛN')+' הוא רק התקרה — מה שהמשטח יכול לתת לכל היותר.'},
+      function(){pushAnswered=true;if(scene==='push')simSyncSlider('sft-F',Fq,1);});
   }
+  ['sft-mu','sft-mass'].forEach(function(k){var e=document.getElementById('inp-'+k);
+    if(e)e.addEventListener('input',function(){if(!pushAnswered&&scene==='push')predPush();});});
   function predTruck(){
     kit.predict({q:'המשאית מאיצה קדימה, והארגז נוסע איתה בלי להחליק. לאן מכוון כוח החיכוך על הארגז?',
       opts:['אחורה — נגד כיוון התנועה','קדימה — בכיוון התנועה','אין חיכוך — הארגז אינו מחליק'],correct:1,

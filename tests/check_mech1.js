@@ -294,6 +294,14 @@ const EXPECT = {
   const model = () => p.evaluate(() => { const e = document.querySelector('#app .sk-model'); return e ? e.textContent : ''; });
   const done = () => p.evaluate(() => [...document.querySelectorAll('#app .sk-m')].map(li => li.classList.contains('done')));
   await open('forces2.static-friction'); rr = await rect();
+  // the prediction is about the crate on screen: with μₛN = 0.98 N a 6 N push would slide it, so the question
+  // (asked again while unanswered) pushes with 0.5 N, under the ceiling, and its answer leaves the crate at rest
+  await set('sft-mass', 1); await set('sft-mu', 0.1); await p.waitForTimeout(200);
+  const sfQ = await p.evaluate(() => document.querySelector('#app .sk-pq').textContent);
+  await p.evaluate(() => document.querySelectorAll('#app .sk-opt')[1].click()); await p.waitForTimeout(300);
+  let q0 = await probe();
+  t('static friction: the prediction follows the sliders (μₛN = 1.0 N → a 0.5 N push), and its answer leaves the crate at rest with fₛ = F', /μₛN = 1\.0 N/.test(sfQ) && /F = 0\.5 N/.test(sfQ) && q0.F === 0.5 && !q0.sliding && q0.f === 0.5, sfQ.replace(/\s+/g, ' ').slice(0, 90));
+  await set('sft-F', 0);
   await set('sft-mass', 5); await set('sft-mu', 0.7); await p.waitForTimeout(200);
   await drag(rr, [[90, 140], [115, 140], [140, 140]]);
   t('static friction: dragging the hand 50 px to the right pushes with F = 20 N', close(await val('sft-F'), 20, 1.01), await val('sft-F'));

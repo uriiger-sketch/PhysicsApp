@@ -373,12 +373,25 @@ const EXPECT = {
   // and climbs past 3 as the heavy cart stops first. That is not "3 times the speed from the spring": the mission must not count it.
   await p.evaluate(() => document.getElementById('btn-mc-air').click());
   await set('mc-m1', 2); await set('mc-m2', 1); await set('mc-E', 2); await p.waitForTimeout(100);
-  const mc0 = await p.evaluate(async () => { const cv = document.querySelector('#app canvas'); let rmax = 0, r0 = 0; document.getElementById('btn-mc-run').click();
+  const mc0 = await p.evaluate(async () => { const cv = document.querySelector('#app canvas'); let rmax = 0, r0 = 0, pmax = 0; document.getElementById('btn-mc-run').click();
     for (let i = 0; i < 400 && cv._probe().st !== 'done'; i++) { await new Promise(r => setTimeout(r, 25)); const q = cv._probe();
+      pmax = Math.max(pmax, Math.abs(q.m1 * q.v1 + q.m2 * q.v2));
       if (q.comp === 0 && Math.abs(q.v1) > 1e-6 && Math.abs(q.v2) > 1e-6) { const k = Math.abs(q.v2 / q.v1); if (!r0) r0 = k; rmax = Math.max(rmax, k); } }
-    return { air: cv._probe().air, r0, rmax }; });
+    return { air: cv._probe().air, r0, rmax, pmax }; });
   let mcm0 = await missionsDone();
   t('air off, 2 kg | 1 kg: the speed ratio drifts from 2 past 3 under friction — and the 3× mission is not counted', !mc0.air && mc0.rmax > 3.2 && !mcm0[0], `ratio ${mc0.r0.toFixed(2)} → ${mc0.rmax.toFixed(2)}, missions ${JSON.stringify(mcm0)}`);
+  await p.waitForTimeout(300);
+  let mcl = await model(), mq0 = await p.evaluate(() => document.querySelector('#app canvas')._probe());
+  // both carts end at rest, so Σp is 0 again at the end; on the way the unequal frictions (μ·2 kg·g against μ·1 kg·g)
+  // changed it: the heavy cart stops first, and then Σp = m₂v₂ alone
+  const dpM = mcl.match(/\|ΔΣp\| = ([\d.]+) kg·m\/s/);
+  t('... the friction forces did not cancel: the model line gives the largest change of Σp while the carts slid (as sampled, ≈ m₂(v₂ − v₁) when the heavy cart stops), and Σp = 0 again at rest', mq0.p0 === 0 && !!dpM && +dpM[1] >= mc0.pmax - 0.006 && +dpM[1] - mc0.pmax < 0.03 && mc0.pmax > 0.5 && /Σp = 0\.00 kg/.test(mcl) && !mcl.includes('ΣFₑₓₜ = 0'), (dpM ? dpM[1] : '?') + ' vs sampled ' + mc0.pmax.toFixed(3) + ' — ' + mcl.slice(-40));
+  // equal masses fly apart at equal speeds: the two friction forces are equal and opposite, ΣF_ext = 0, Σp stays 0
+  await set('mc-m2', 2); await p.waitForTimeout(100);
+  const mcEq = await p.evaluate(async () => { const cv = document.querySelector('#app canvas'); let pmax = 0; document.getElementById('btn-mc-run').click();
+    for (let i = 0; i < 400 && cv._probe().st !== 'done'; i++) { await new Promise(r => setTimeout(r, 25)); const q = cv._probe(); pmax = Math.max(pmax, Math.abs(q.m1 * q.v1 + q.m2 * q.v2)); }
+    await new Promise(r => setTimeout(r, 300)); const e = document.querySelector('#app .sk-model'); return { pmax, ml: e ? e.textContent : '' }; });
+  t('air off, 2 kg | 2 kg: friction on each cart, but ΣF_ext = 0 — Σp stays 0 all the way, and the model line says why', mcEq.pmax < 1e-9 && mcEq.ml.includes('ΣFₑₓₜ = 0') && /Σp = 0\.00 → 0\.00/.test(mcEq.ml), `max |Σp| ${mcEq.pmax.toExponential(1)}; ${mcEq.ml.slice(-40)}`);
   await p.evaluate(() => document.getElementById('btn-mc-air').click());
   await set('mc-E', 12); await p.waitForTimeout(100);
   await set('mc-m1', 3); await set('mc-m2', 1); await p.waitForTimeout(100);
@@ -493,9 +506,11 @@ const EXPECT = {
   t('"Original track" puts every handle back', JSON.stringify(eq.KN) === JSON.stringify(KN0));
   await set('energy-mu', 0.1);
   await p.evaluate(() => document.getElementById('btn-energy-reset').click());
-  const h0f = (await ep()).h;
+  const h0r = (await ep()).h;   // read just after the reset: on a loaded machine the cart may already have moved a frame
   eq = await epUntil('q.atRest', 40000);
-  const Ef = 9.8 * eq.m * h0f, Qf = 9.8 * eq.m * (h0f - eq.h);
+  // the release height is the one the sim recorded at the release (run.h0), within a frame of what was read after the click
+  const h0f = eq.run.h0, Ef = 9.8 * eq.m * h0f, Qf = 9.8 * eq.m * (h0f - eq.h);
+  t('... released by the reset from the height it was read at (to a frame of motion)', Math.abs(h0f - h0r) < 0.05 && h0f >= h0r, h0f.toFixed(3) + ' / ' + h0r.toFixed(3) + ' m');
   t('with μ = 0.1 the cart comes to rest where static friction can hold it: |tan θ| ≤ μ', eq.atRest && Math.abs(Math.tan(eq.th)) <= 0.1 + 1e-9, eq.atRest && `h ${eq.h.toFixed(3)} m, tan θ ${Math.tan(eq.th).toFixed(4)}`);
   t('... and the heat is exactly the lost Eₚ: Q = mg(h₀ − h) (mission 3)', eq.restQ && Math.abs(eq.Q - Qf) < 1e-9 && Math.abs(eq.E + eq.Q - Ef) < 1e-9, `Q ${eq.Q.toFixed(3)} J of ${Ef.toFixed(2)} J`);
   eml = await model(); emm = eml.match(/=\s*([\d.]+) \+ ([\d.]+) \+ ([\d.]+) = ([\d.]+)\s*J/);
