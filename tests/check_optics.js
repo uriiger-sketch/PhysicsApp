@@ -562,7 +562,15 @@ const EXPECT = {
     for (let x = 0; x <= 100; x += 0.3) await p.evaluate(x => { const el = document.getElementById('inp-ems-pos'); el.value = x.toFixed(1); el.dispatchEvent(new Event('input', { bubbles: true })); return new Promise(r => requestAnimationFrame(r)); }, x);
     await setv('ems-pos', 100); await p.waitForTimeout(600);
     t(`${se}: a sweep across the bar solves nothing`, await missions() === '000', await missions());
-    for (const x of se === 'em-spectrum' ? [33.6, 26.3, 62] : [65.2, 63.5, 61.4]) { await setv('ems-pos', x); await p.waitForTimeout(600); }
+    // a target counts after the bar rests on it for 0.4 s of the sim's own
+    // clock: wait for that mission, not for a fixed time (a loaded machine
+    // runs few frames in 600 ms)
+    const want3 = ['100', '110', '111']; let k3 = 0;
+    for (const x of se === 'em-spectrum' ? [33.6, 26.3, 62] : [65.2, 63.5, 61.4]) {
+      await setv('ems-pos', x);
+      for (let w = 0; w < 40 && (await missions()) !== want3[k3]; w++) await p.waitForTimeout(150);
+      k3++;
+    }
     t(`${se}: every mission is reachable`, await missions() === '111', await missions());
   }
 
