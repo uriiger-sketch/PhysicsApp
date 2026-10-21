@@ -376,7 +376,7 @@ const EXPECT = {
   await drag(rr, [0, 1, 2, 3, 4, 3, 2, 1, 0].map(x => [pX(x), pY]));
   await until(() => mission('kinematics.distance-time', 1), 2000);
   const ptm = await modelTxt();
-  t('... 4 m out and back: s ≥ 2|Δx| + 2 — mission solved; the model line gives s and Δx', await mission('kinematics.distance-time', 1) && /s = [\d.]+ m/.test(ptm) && /Δx = x − x₀ = /.test(ptm), ptm);
+  t('... 4 m out and back: s ≥ 2|Δx| — mission solved; the model line gives s and Δx', await mission('kinematics.distance-time', 1) && /s = [\d.]+ m/.test(ptm) && /Δx = x − x₀ = /.test(ptm), ptm);
   await drag(rr, [-8, -7.6, -7.2, -6.8, -6.4, -6, -5.6, -5.2, -4.8, -4.4, -4, -3.6, -3.2, -2.8, -2.4].map(x => [pX(x), pY]));
   await until(() => mission('kinematics.distance-time', 2), 2000);
   t('... moving right while x < −1 — mission "the direction is the sign of Δx" solved', await mission('kinematics.distance-time', 2));
@@ -430,6 +430,12 @@ const EXPECT = {
   t('... the model line is v = v₀ + at, and the area under v(t) is the x travelled', /v = v₀ \+ at = 0 \+ 5\.0×/.test(am) && !!ar && Math.abs(nums(ar)[0] - axs[1]) <= 0.1, am + ' | ' + ar + ' | x ' + axs[1]);
   await until(() => mission('kinematics.acceleration', 2), 4000);
   t('... from rest with a = 5 m/s² it reaches x = 10 m at t = 2.00 s — mission solved', await mission('kinematics.acceleration', 2));
+  // a changed mid-run: a new run from x = 0, so v = v₀ + at and x = v₀t + ½at² hold
+  // for the numbers on the screen (they used to multiply the new a by the whole t)
+  await set('acc-v0', 0); await set('acc-a', 3); await p.waitForTimeout(900); await set('acc-a', -2); await p.waitForTimeout(700);
+  const amc = await modelTxt(), mv = /v = v₀ \+ at = 0 − 2\.0×([\d.]+) = ([−+]?[\d.]+) m\/s/.exec(amc), mx = /x = v₀t \+ ½at² = 0×([\d.]+) − ½×2\.0×([\d.]+)² = ([−+]?[\d.]+) m/.exec(amc);
+  const mvT = mv && +mv[1], mvV = mv && +mv[2].replace('−', '-'), mxX = mx && +mx[3].replace('−', '-');
+  t('... changing a mid-run starts a new run: the model line v = v₀ + at and x = v₀t + ½at² add up for a = −2 m/s²', !!mv && !!mx && mvT < 1 && close(mvV, -2 * mvT, 0.016) && close(mxX, -mvT * mvT, 0.011 + 2 * mvT * 0.005), amc);
 
   // the normal force: a constraint, not mg
   await open('forces.normal-force');
@@ -441,8 +447,13 @@ const EXPECT = {
   const nfm = nums(await last('^N = \\(mg \\+ F\\)·cosθ = '))[0];
   t('... pulling up 15 N: N = mg − F = 24.2 N < mg — mission solved', close(nfm, 4 * 9.8 - 15, 0.051) && await mission('forces.normal-force', 1), nfm);
   await set('nf-mass', 1); await fresh(); await p.waitForTimeout(300);
-  t('... a 1 kg block pulled up with 15 N > mg: N cannot go negative — the hand carries the weight, N = 0', nums(await last('^N = \\(mg \\+ F\\)·cosθ = '))[0] === 0);
-  await set('nf-mass', 4); await set('nf-F', 0); await set('nf-theta', 60); await fresh(); await p.waitForTimeout(300);
+  // a pull beyond the weight would lift the block off; the slider stops at the weight
+  // (it used to stay at −15 N while the sim silently used −9.8 N and drew "F = 10 N")
+  const nf1 = nums(await last('^N = \\(mg \\+ F\\)·cosθ = '))[0], nfF1 = await last('^F = \\d+ N$');
+  t('... a 1 kg block: the hand can pull at most its weight — the slider stops at −9 N, the drawing says F = 9 N, N = 9.8 − 9 = 0.8 N', (await val('nf-F')) === -9 && nfF1 === 'F = 9 N' && close(nf1, 0.8, 0.051), (await val('nf-F')) + ' | ' + nfF1 + ' | N = ' + nf1);
+  await set('nf-mass', 4);
+  t('... and back at 4 kg the pull may again reach 20 N', await p.evaluate(() => document.getElementById('inp-nf-F').min) === '-20');
+  await set('nf-F', 0); await set('nf-theta', 60); await fresh(); await p.waitForTimeout(300);
   t('... no hand, 60°: N = mg cos60° = ½mg — mission solved', close(nums(await last('^N = mg·cosθ = '))[0], 19.6, 0.051) && await mission('forces.normal-force', 2));
 
   // the second law: the net force sets the change, not the motion
@@ -563,6 +574,17 @@ const EXPECT = {
   await set('inc-theta', 26); await click('btn-inc-push'); await fresh();
   await until(() => mission('newton2.n2-apps', 2), 6000);
   t('... at 26° (tan 26° < 0.5, within 2° of arctan μ) it stays put — mission "the angle of repose" solved', !!(await last('^fₛ = mg·sinθ = ')) && await mission('newton2.n2-apps', 2));
+  // pushed again from where it rests (drag 2 m/s up the slope): d is the new climb, not the distance from the foot
+  rr = await rect(); W = rr.w;
+  { const th = 26 * D, iH = W < 600 ? 500 : 460, iCX = W < 600 ? 56 : 76, iCY = iH - 48, iTOP = W < 600 ? 184 : 136;
+    const Lp = Math.min((W - iCX - 34) / Math.cos(th), (iCY - iTOP - 14) / Math.sin(th), 640), Pp = Lp / 5, sm = 17 / Pp + 0.02;
+    const d1 = 9 / (2 * 9.8 * (Math.sin(th) + 0.5 * Math.cos(th))), sb = (sm + d1) * Pp;
+    const bx = iCX + sb * Math.cos(th) - Math.sin(th) * 17, by = iCY - sb * Math.sin(th) - Math.cos(th) * 17;
+    await fresh();
+    await drag(rr, [0, 10, 20, 30].map(k => [bx + k * Math.cos(th), by - k * Math.sin(th)]));
+    await until(async () => !!(await last('^d = [\\d.]+ m$')), 4000); await p.waitForTimeout(200);
+    const d2 = nums(await last('^d = [\\d.]+ m$'))[0], want = 4 / (2 * 9.8 * (Math.sin(th) + 0.5 * Math.cos(th)));
+    t('... pushed again at 2 m/s from where it rests, d is its new climb, v0²/2g(sinθ + μcosθ) = ' + want.toFixed(2) + ' m', close(await val('inc-v0'), 2, 0.051) && close(d2, want, 0.011), (await val('inc-v0')) + ' m/s, d = ' + d2); }
 
   // the third law: missions
   await open('forces.n3-law');
@@ -625,6 +647,10 @@ const EXPECT = {
   await until(() => mission('newton2.n2-atwood', 2), 5000);
   const v2m = await last('^' + LR('בירידה של 2 m:  v = ') + '[\\d.]+');
   t('Atwood 4 kg and 6 kg: after a 2 m drop v = √(2ad) = 2.80 m/s — the section\'s problem, mission solved', !!v2m && close(nums(v2m)[1], Math.sqrt(2 * (2 * 9.8 / 10) * 2), 0.006) && await mission('newton2.n2-atwood', 2), v2m);
+  await click('btn-atw-reset'); await click('btn-atw-launch'); await p.waitForTimeout(600); await click('btn-atw-launch'); await p.waitForTimeout(200);
+  await fresh(); await click('btn-atw-launch');
+  await until(async () => !!(await last('^' + LR('מסה הגיעה לקצה — ↺ איפוס') + '$')), 5000);
+  t('... braked part-way and released again, the drop is no longer one run from rest: no "after a 2 m drop" speed is given', !!(await last('^' + LR('מסה הגיעה לקצה — ↺ איפוס') + '$')) && !(await last('^' + LR('בירידה של 2 m:  v = '))));
 
   // ── 4. the learning experience ──────────────────────────────────────
   console.log('\n4) misconception boxes, quiz keys, hints, units');

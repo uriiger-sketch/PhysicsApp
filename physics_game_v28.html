@@ -3140,7 +3140,7 @@ const CONTENT={
       <p>מכוניות פורמולה 1 עוקפות את הגבול בעזרת כנפיים שמצמידות אותן לכביש, ומגיעות לכ־5g בבלימה.</p>`
     }
   },
-  sim:{type:'acceleration',title:'תאוצה אינטראקטיבית',desc:'גררו בפס העליון (או במחוון) כדי לשנות את a, ובחרו v₀. בגרף v(t) השיפוע הוא a, והשטח שבין הקו לציר הוא Δx — שניהם כתובים עליו; לידו x(t). הריצה מתחילה מחדש כשהגוף מגיע ל־±10 m, או ב־״↺ איפוס״.'},
+  sim:{type:'acceleration',title:'תאוצה אינטראקטיבית',desc:'גררו בפס העליון (או במחוון) כדי לשנות את a, ובחרו v₀. בגרף v(t) השיפוע הוא a, והשטח שבין הקו לציר הוא Δx — שניהם כתובים עליו; לידו x(t). כל שינוי של a או של v₀ מתחיל ריצה חדשה מ־x = 0, וכך גם הגעה ל־±10 m ו־״↺ איפוס״.'},
   example:{title:'תאוצה קבועה מהמנוחה',text:`גוף יוצא ממנוחה ומגיע למהירות ${M('20\\,\\text{m/s}')} תוך ${M('4\\,\\text{s}')}.`,steps:[
     {q:'מה התאוצה?',a:`${M('a=\\dfrac{\\Delta v}{\\Delta t}=\\dfrac{20-0}{4}=5\\,\\text{m/s}^2')}`},
     {q:'איזה מרחק עבר בזמן הזה?',a:`${M('x=\\tfrac12at^2=\\tfrac12\\times5\\times4^2=40\\,\\text{m}')}`},
@@ -10749,7 +10749,9 @@ function simPositionTime(canvas){
     {text:'גרמו לדרך s להיות לפחות פי 2 מגודל ההעתק '+_skM('|Δx|')+'.',
      hint:'מה קורה ל־s ול־Δx כשהכדור הולך וחוזר?',
      why:'הדרך סופרת כל מטר שהכדור עבר, וההעתק רק את ההפרש בין הסוף להתחלה. בהלוך ושוב '+_skM('s')+' גדלה ו־'+_skM('|Δx|')+' קטן — '+_skM('s = |Δx|')+' רק בתנועה בכיוון אחד.',
-     done:function(s){return s.s>=2*s.dx+2;}},
+     // exactly what the text asks (s ≥ 2|Δx|, after at least a metre of path):
+     // "2|Δx| + 2" refused e.g. 3 m out and 1.5 m back, where s = 3|Δx|
+     done:function(s){return s.s>=1&&s.s>=2*s.dx;}},
     {text:'הזיזו את הכדור בכיוון החיובי בזמן שהוא כולו בצד השלילי של הציר.',
      hint:'גררו ימינה, אבל הישארו משמאל ל־'+_skM('x = −1 m')+'.',
      why:'שני המיקומים שליליים, ובכל זאת '+_skM('Δx > 0')+': את כיוון התנועה נותן סימן ההעתק, לא סימן המיקום. ״x < 0 — הגוף נע אחורה״ היא הטעות הנפוצה.',
@@ -11046,11 +11048,12 @@ function simAvgInstant(canvas){
     {text:'עם '+_skM('k = 1.5')+', מצאו את הרגע שבו המהירות הרגעית היא '+_skM('6 m/s')+'.',
      hint:_skM('v = 2k·t')+'. גררו את P₀ לאורך הגרף.',
      why:_skM('6 = 2×1.5×t₀')+', ולכן '+_skM('t₀ = 2 s')+'. ככל שהזמן עובר המשיק מתלול — הגוף מאיץ.',
-     done:function(s){return Math.abs(s.k-1.5)<1e-6&&Math.abs(s.vi-6)<0.05;}},
+     // within 0.1 m/s (t₀ within 0.03 s): the old 0.05 m/s was ±1 px of finger on a phone
+     done:function(s){return Math.abs(s.k-1.5)<1e-6&&Math.abs(s.vi-6)<0.1;}},
     {text:'כמו בבעיית הסעיף: עם '+_skM('k = 1')+', קראו את '+_skM('v̄')+' בין '+_skM('t₀ = 1 s')+' ל־'+_skM('t₁ = 2 s')+'.',
      hint:'שנו את k במחוון, וגררו את P₀ ל־'+_skM('1 s')+' ואת P₁ ל־'+_skM('2 s')+'.',
      why:_skM('v̄ = (x(2) − x(1))/(2 − 1) = (4 − 1)/1 = 3 m/s')+', אבל '+_skM('v(1) = 2 m/s')+': המיתר תלול מהמשיק בתחילתו, כי הגוף מאיץ.',
-     done:function(s){return Math.abs(s.k-1)<1e-6&&Math.abs(s.t0-1)<0.03&&Math.abs(s.t1-2)<0.03;}}
+     done:function(s){return Math.abs(s.k-1)<1e-6&&Math.abs(s.t0-1)<0.04&&Math.abs(s.t1-2)<0.04;}}
   ]});
   var model=_mkModel(kit);
   kit.predict({q:'מקטינים את Δt לאפס. מה קורה למהירות הממוצעת של המיתר?',
@@ -11233,6 +11236,10 @@ function simAcceleration(canvas){
   canvas.addEventListener('dblclick',function(){vel=getV0();xm=0;ballX=W/2;hist=[];t=0;runV0=getV0();});
   var rb=document.getElementById('btn-acc-reset'); if(rb)rb.addEventListener('click',function(){vel=getV0();xm=0;ballX=W/2;hist=[];t=0;runV0=getV0();});
   var v0e=document.getElementById('inp-acc-v0'); if(v0e)v0e.addEventListener('input',function(){vel=getV0();xm=0;ballX=W/2;hist=[];t=0;runV0=getV0();});
+  // a new a is a new run, like a new v₀: with a changed mid-run the model line
+  // v = v₀ + at (current a times the whole t) and x = v₀t + ½at² were false
+  // for the run on the screen, and "slope = a" named only its last piece
+  var ae=document.getElementById('inp-acc-a'); if(ae)ae.addEventListener('input',function(){vel=getV0();xm=0;ballX=W/2;hist=[];t=0;runV0=getV0();});
   _mkKeys(canvas,{'ArrowRight':function(){simSyncSlider('acc-a',getAcc()+0.5,1);},'ArrowLeft':function(){simSyncSlider('acc-a',getAcc()-0.5,1);}});
   var kit=simKit(canvas,{missions:[
     {text:'גרמו לגוף להגביר מהירות בזמן שהתאוצה שלו שלילית.',
@@ -11254,7 +11261,7 @@ function simAcceleration(canvas){
     why:'הסימן של '+_skM('a')+' הוא כיוון, לא ״האטה״. כש־'+_skM('v')+' ו־'+_skM('a')+' באותו סימן — כאן שניהם שליליים — גודל המהירות גדל. בחרו '+_skM('v₀ < 0')+' ו־'+_skM('a < 0')+' וראו.'});
   kitStep=function(){
     model(_skM('v = v₀ + at = '+_mkS(runV0,0)+' '+(acc<0?'− ':'+ ')+Math.abs(acc).toFixed(1)+'×'+t.toFixed(2)+' = '+_mkS(vel,2)+' m/s')+' · '+
-      _skM('x = v₀t + ½at² = '+_mkS(xm,2)+' m'));
+      _skM('x = v₀t + ½at² = '+_mkN(runV0,0)+'×'+t.toFixed(2)+' '+(acc<0?'− ':'+ ')+'½×'+Math.abs(acc).toFixed(1)+'×'+t.toFixed(2)+'² = '+_mkS(xm,2)+' m'));
     kit.check({negUp:negUp,turned:turned,end:lastEnd});
   };
   requestAnimationFrame(draw);
@@ -11593,8 +11600,8 @@ function simVectors(canvas){
      why:'לא. וקטור הוא גודל וגם כיוון: אותו אורך בכיוון אחר הוא וקטור אחר. כך מכונית שנכנסת לסיבוב במד מהירות קבוע — הגודל קבוע, אבל וקטור המהירות משתנה.',
      done:function(s){return s.rot;}},
     {text:'גרמו לסכום להיות קצר יותר משני הווקטורים, '+_skM('|A+B| < |A|')+' וגם '+_skM('|A+B| < |B|')+'.',
-     hint:'מה קורה לסכום כשהזווית בין A ל־B נפתחת מעבר ל־'+_skM('90°')+'?',
-     why:'כשהזווית קהה, הרכיבים של B נגד A ״מבטלים״ חלק ממנו: '+_skM('|A+B|² = A² + B² + 2AB·cosθ')+', ו־cosθ שלילי. בזווית של '+_skM('120°')+' בין שני וקטורים שווים, הסכום שווה לכל אחד מהם.',
+     hint:'פתחו את הזווית בין A ל־B הרבה מעבר ל־'+_skM('90°')+': לשני וקטורים שווים בגודלם, הסכום קצר משניהם רק מעבר ל־'+_skM('120°')+'.',
+     why:'לפי '+_skM('|A+B|² = A² + B² + 2AB·cosθ')+', בזווית קהה '+_skM('cosθ < 0')+': הרכיב של B שנגד A ״מבטל״ חלק ממנו. כדי שהסכום יהיה קצר משניהם, הזווית צריכה להיות גדולה עוד יותר — לשני וקטורים שווים, יותר מ־'+_skM('120°')+', שבה הסכום שווה לכל אחד מהם.',
      done:function(s){return s.lA>0.5&&s.lB>0.5&&s.lR<s.lA-0.05&&s.lR<s.lB-0.05;}},
     {text:'גרמו לסכום להתאפס: '+_skM('A + B = 0')+'.',
      hint:'B צריך להיות '+_skM('−A')+': אותו אורך, כיוון הפוך.',
@@ -11696,7 +11703,9 @@ function simInertia(canvas){
     step(dt); t+=dt;
     var q=forces(), m=q.m, mu=getMu(), a=q.S/m, moving=Math.abs(v)>1e-9;
     coast=dir()===0&&moving?coast+dt:0;
-    steady=dir()!==0&&mu>=0.1&&Math.abs(v)>0.3&&Math.abs(q.S)<=0.5?steady+dt:0;
+    // "constant velocity": |ΣF| ≤ 0.5 N was a = 0.5 m/s² on a 1 kg block -- a
+    // velocity that visibly changes by 1 m/s in the 2 s; |a| ≤ 0.1 m/s² as well
+    steady=dir()!==0&&mu>=0.1&&Math.abs(v)>0.3&&Math.abs(q.S)<=0.5&&Math.abs(q.S)/m<=0.1?steady+dt:0;
     cam+=(x-cam)*Math.min(1,dt*3.5);
     hist.push([t,v]);while(hist.length&&hist[0][0]<t-8)hist.shift();
     maxV=Math.max(maxV,Math.abs(v)*1.1);
@@ -12042,7 +12051,9 @@ function simIncline(canvas){
     return holds()?0:-g*(sn-mu*cs);
   }
   function newRun(kind,s0,v0){
-    run={kind:kind,v0:v0,theta:getTheta(),mu:getMu(),up:false,down:false,stopUp:null,tStop:null,held:false,bump:false};
+    // s0: where the push starts -- the foot, or wherever a resting block was
+    // dragged from; the climb d is measured from there, not from the foot
+    run={kind:kind,v0:v0,s0:s0,theta:getTheta(),mu:getMu(),up:false,down:false,stopUp:null,tStop:null,held:false,bump:false};
     hist=[];tRun=0;vFoot=null;bumped=false;
     // the time axis is fixed for the whole run, from the run's own prediction,
     // so the two slopes of v(t) can be compared by eye
@@ -12066,7 +12077,7 @@ function simIncline(canvas){
     while(dt>1e-6&&guard++<4){
       var a=accel(v);
       if(v>1e-9&&v+a*dt<0){var ts=-v/a;s+=v*ts+0.5*a*ts*ts;v=0;dt-=ts;
-        if(run&&run.stopUp===null){run.stopUp=s-sMin();run.tStop=tRun;}continue;}
+        if(run&&run.stopUp===null){run.stopUp=s-run.s0;run.tStop=tRun;}continue;}
       if(v<-1e-9&&a>0&&v+a*dt>0){var ts2=-v/a;s+=v*ts2+0.5*a*ts2*ts2;v=0;dt-=ts2;continue;}
       // an end of the ramp reached inside this step: stop the step at the
       // exact instant, so the speed at the foot is the true one, not the
@@ -12077,7 +12088,7 @@ function simIncline(canvas){
         v+=a*hi;s=end;dt=0;break;}
       s+=v*dt+0.5*a*dt*dt;v+=a*dt;dt=0;
     }
-    if(s>=sMax()-1e-9&&v>0){s=sMax();v=0;bumped=true;if(run){run.bump=true;if(run.stopUp===null)run.stopUp=s-sMin();}}
+    if(s>=sMax()-1e-9&&v>0){s=sMax();v=0;bumped=true;if(run){run.bump=true;if(run.stopUp===null)run.stopUp=s-run.s0;}}
     if(s<=sMin()+1e-9&&v<0){vFoot=v;toFloor();}
     if(run){if(v>0.02)run.up=true;if(v<-0.02&&run.up)run.down=true;
       run.held=!onFloor&&Math.abs(v)<1e-9&&holds()&&run.up&&!run.bump;}
@@ -12133,8 +12144,8 @@ function simIncline(canvas){
      why:'בעלייה '+_skM('|a| = g(sinθ + μcosθ) = 9.8×(0.60 + 0.2×0.80) ≈ 7.5 m/s²')+', ולכן '+_skM('d = v₀²/2|a| ≈ 3.9 m')+'. בבעיה, עם '+_skM('g = 10 m/s²')+', יוצא '+_skM('3.8 m')+'.',
      done:function(s){return s.run&&s.run.kind==='push'&&s.run.theta===37&&Math.abs(s.run.mu-0.2)<1e-6&&Math.abs(s.run.v0-7.6)<0.051&&s.run.stopUp!==null&&!s.run.bump;}},
     {text:'מצאו את הזווית התלולה ביותר שבה הגוש, אחרי שנדחף ונעצר, נשאר במקומו ואינו חוזר למטה (בדיוק של '+_skM('2°')+').',
-     hint:'הגוש נשאר כש־'+_skM('mg sinθ ≤ μ·mg cosθ')+'. מה זה אומר על '+_skM('tanθ')+'?',
-     why:'הגוש נשאר כל עוד '+_skM('tanθ ≤ μ')+': רכיב המשקל לאורך המדרון אינו גדול מהחיכוך הסטטי המרבי. הזווית הגבולית, '+_skM('θ = arctan μ')+', אינה תלויה במסה.',
+     hint:'הגוש נשאר כש־'+_skM('mg sinθ ≤ μₛ·mg cosθ')+'. מה זה אומר על '+_skM('tanθ')+'?',
+     why:'הגוש נשאר כל עוד '+_skM('tanθ ≤ μₛ')+': רכיב המשקל לאורך המדרון אינו גדול מהחיכוך הסטטי המרבי. הזווית הגבולית, '+_skM('θ = arctan μₛ')+', אינה תלויה במסה. את ההישארות במקום קובע המקדם הסטטי — בסימולציה '+_skM('μₛ = μₖ = μ')+'.',
      done:function(s){return s.run&&s.run.held&&s.run.mu>=0.15&&s.run.theta>=Math.atan(s.run.mu)*180/Math.PI-2;}}
   ]});
   var model=_mkModel(kit);
@@ -12232,14 +12243,15 @@ function simIncline(canvas){
       if(q&&q[1]<0)simText(ctx,_mkS(aD,1)+' m/s²',pl.X(q[0])-6,pl.Y(q[1])+15,'#22d3ee',9,'right',true);}
     // status under the ramp
     var st=null;
-    if(onFloor&&vFoot!==null)st=run&&run.kind==='push'&&mu>0.001?'חזר לתחתית במהירות '+Math.abs(vFoot).toFixed(2)+' m/s — פחות מ־v₀: החיכוך לקח אנרגיה':'הגיע לתחתית במהירות '+Math.abs(vFoot).toFixed(2)+' m/s';
+    // (after a bump against the stop the stop took energy too: no verdict on friction)
+    if(onFloor&&vFoot!==null)st=run&&run.kind==='push'&&mu>0.001&&!run.bump?'חזר לתחתית במהירות '+Math.abs(vFoot).toFixed(2)+' m/s — פחות מ־v₀: החיכוך לקח אנרגיה':'הגיע לתחתית במהירות '+Math.abs(vFoot).toFixed(2)+' m/s';
     else if(rest&&bumped)st='נעצר בבולם שבראש המדרון';
     else if(rest&&holds()&&run)st='במנוחה: tanθ ≤ μ, והחיכוך הסטטי מחזיק את הגוש';
     else if(sliding&&v>0)st='עולה: החיכוך פונה במורד, יחד עם mg sinθ';
     else if(sliding)st='יורד: החיכוך פונה במעלה, נגד mg sinθ';
     // where the push turned round: a mark on the ramp, and the distance climbed
     if(run&&run.stopUp!==null&&!run.bump&&run.kind==='push'){
-      var ds=(run.stopUp+sMin())*P, mx=CX+ds*cs, my=CY-ds*sn;
+      var ds=(run.stopUp+run.s0)*P, mx=CX+ds*cs, my=CY-ds*sn;
       ctx.save();ctx.strokeStyle='#fbbf24';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(mx+sn*4,my+cs*4);ctx.lineTo(mx-sn*14,my-cs*14);ctx.stroke();ctx.restore();
       simText(ctx,'d = '+run.stopUp.toFixed(2)+' m',mx-sn*22+4,my-cs*22-2,'#fbbf24',11,'left',true);}
     if(st)simText(ctx,st,W/2,H-12,'#cbd5e1',10,'center',true);
@@ -12248,7 +12260,7 @@ function simIncline(canvas){
     var sgn=function(x,d){return x.toFixed(d);};
     if(sliding&&v>0)model('בעלייה: '+_skM('a = −g(sinθ + μcosθ) = −9.8×('+sgn(sn,3)+' + '+mu.toFixed(2)+'×'+sgn(cs,3)+') = '+_mkS(a,2)+' m/s²'));
     else if(sliding)model('בירידה: '+_skM('a = −g(sinθ − μcosθ) = −9.8×('+sgn(sn,3)+' − '+mu.toFixed(2)+'×'+sgn(cs,3)+') = '+_mkS(a,2)+' m/s²'));
-    else if(rest&&holds())model('במנוחה: '+_skM('fₛ = mg sinθ = '+Wpar.toFixed(1)+' N ≤ μN = '+fK.toFixed(1)+' N')+' — ולכן '+_skM('a = 0'));
+    else if(rest&&holds())model('במנוחה: '+_skM('fₛ = mg sinθ = '+Wpar.toFixed(1)+' N ≤ μₛN = '+fK.toFixed(1)+' N')+' — ולכן '+_skM('a = 0'));
     else model('על המדרון: '+_skM('N = mg cosθ = '+(m*g*cs).toFixed(1)+' N')+' · בעלייה: '+_skM('a = −g(sinθ + μcosθ) = '+_mkS(-g*(sn+mu*cs),2)+' m/s²'));
     kit.check({run:run});
     requestAnimationFrame(draw);
@@ -12415,7 +12427,8 @@ function simTension(canvas){
     ctx.beginPath(); ctx.roundRect(EVX-eW/2,boxY-eH/2,eW,eH,6); ctx.fill(); ctx.stroke(); ctx.restore();
     // body hanging from the car's ceiling
     var sTop=boxY-eH/2, bY=boxY-6, bw=38, bh=26;
-    ctx.save(); ctx.strokeStyle='#94a3b8'; ctx.lineWidth=2;
+    // with T = 0 (a = −g) the string is slack: drawn faint and dashed, not taut
+    ctx.save(); ctx.strokeStyle=T_el<0.05?'rgba(148,163,184,.45)':'#94a3b8'; ctx.lineWidth=2; if(T_el<0.05)ctx.setLineDash([3,4]);
     ctx.beginPath(); ctx.moveTo(EVX,sTop); ctx.lineTo(EVX,bY-bh/2); ctx.stroke(); ctx.restore();
     ctx.save(); ctx.fillStyle='rgba(99,102,241,.9)'; ctx.strokeStyle='#a5b4fc'; ctx.lineWidth=2;
     ctx.beginPath(); ctx.roundRect(EVX-bw/2,bY-bh/2,bw,bh,4); ctx.fill(); ctx.stroke(); ctx.restore();
@@ -12722,7 +12735,7 @@ function simFBD(canvas){
   var kit=simKit(canvas,{missions:[
     {text:'תלו גוף על מד-הכוח, בלי כוח נוסף. מה המד מראה, ולמה?',
      hint:'גררו את אחד הגופים אל הוו שמתחת למד.',
-     why:'הגוף במנוחה, ולכן '+_skM('ΣF = 0')+': החוט מושך מעלה בדיוק כמו שכוח הכובד מושך מטה, '+_skM('T = W = mg')+'. המד מודד את T — הוא שווה למשקל רק במצב כזה.',
+     why:'הגוף במנוחה, ולכן '+_skM('ΣF = 0')+': החוט מושך מעלה בדיוק כמו שכוח הכובד מושך מטה, '+_skM('T = W = mg')+'. המד מודד את T — הוא שווה למשקל רק כשאין על הגוף כוח נוסף והגוף אינו מאיץ.',
      done:function(s){return s.obj>0&&Math.abs(s.F)<0.01&&Math.abs(s.rd-s.T)<0.02;}},
     {text:'גרמו למד להראות אפס בזמן שהגוף עדיין תלוי עליו, במנוחה.',
      hint:'הכוח הנוסף F פועל מעלה. כמה צריך F כדי ש־'+_skM('T = W − F')+' יתאפס?',
@@ -13930,6 +13943,21 @@ function simNormalForce(canvas){
   // a hand on the block, vertical: + presses down, − pulls up (at most the
   // whole weight: then the hand carries the block and N = 0)
   function getF(){var e=document.getElementById('inp-nf-F'); return e?parseFloat(e.value):0;}
+  // A hand that pulls up harder than the weight lifts the block off the
+  // surface (N = 0 and the block accelerates up), which this sim does not
+  // show. The pull used to be clamped silently: the slider read −20 N while
+  // the drawing said 10 N and N = (9.8 − 10)·cosθ = 0. The slider now stops
+  // at the weight, in whole newtons, for the mass that is set.
+  function limitHand(){
+    var e=document.getElementById('inp-nf-F');if(!e)return;
+    var lo=-Math.min(20,Math.floor(getMass()*g+1e-9));
+    // (read the value first: a range input clamps it to a new min by itself,
+    // without an input event, and the number beside the slider would not follow)
+    var was=parseFloat(e.value);
+    if(parseFloat(e.min)!==lo){e.min=lo;if(was<lo)simSyncSlider('nf-F',lo,0);}
+  }
+  limitHand();
+  var _nfM=document.getElementById('inp-nf-mass');if(_nfM)_nfM.addEventListener('input',limitHand);
 
   var resetBtn=document.getElementById('btn-nf-reset');
   if(resetBtn)resetBtn.addEventListener('click',function(){sPos=0;sVel=0;});
@@ -14138,7 +14166,7 @@ function simNormalForce(canvas){
      done:function(s){return s.theta<0.5&&Math.abs(s.F-20)<0.01;}},
     {text:'בלי להטות את המשטח, גרמו לכך ש־'+_skM('N')+' יהיה קטן מהמשקל.',
      hint:'מה יקרה אם היד תמשוך את הגוש מעלה, במקום ללחוץ?',
-     why:'כשהיד מושכת מעלה, היא נושאת חלק מהמשקל, והמשטח צריך לדחוף פחות: '+_skM('N = mg − F')+'. כש־F מגיע ל־mg, היד נושאת הכול ו־'+_skM('N = 0')+'.',
+     why:'כשהיד מושכת מעלה, היא נושאת חלק מהמשקל, והמשטח צריך לדחוף פחות: '+_skM('N = mg − |F|')+'. כש־|F| מגיע ל־mg, היד נושאת הכול ו־'+_skM('N = 0')+'.',
      done:function(s){return s.theta<0.5&&s.N<s.W-0.5;}},
     {text:'בלי היד, מצאו את הזווית שבה '+_skM('N')+' שווה בדיוק למחצית המשקל.',
      hint:'על מדרון '+_skM('N = mg·cosθ')+'. מתי '+_skM('cosθ = ½')+'?',
@@ -15057,7 +15085,7 @@ function simFrictionCombined(canvas){
 // force acts on a different skater: each one's acceleration is its own force
 // over its own mass. The learner picks the pusher (tap a skater, or the
 // button) and pushes by pulling that skater away from the other and letting
-// go (the pull sets F); the push lasts 0.3 s. Each gauge is measured from
+// go (the pull sets F); the push lasts 0.5 s (DUR, as in the section's problem). Each gauge is measured from
 // its own skater's momentum change, F = Δp/Δt, so their equality is a
 // measurement, not a construction. The ice is frictionless; the rink's edge
 // stops a skater (an external force: from then on Σp is no longer 0).
@@ -16563,7 +16591,9 @@ function simAtwood(canvas){
   const PX=PH?W*0.42:W*0.36, CEIL=28, PR=PH?36:44, PY0=CEIL+PR+8, PPM=PH?46:56;
   const TOPY=PY0+PR*0.4+60;                       // the highest a mass's top may rise
   const BOT=PH?H-166:H-40;                       // the lowest a mass may reach
-  var d=0, v=0, run=false, ended=false, pT=null, tRun=0, rec=null, vAt2=null;
+  // clean: the drop so far is one uninterrupted run from rest at d = 0 -- the
+  // speed after 2 m is that run's (braked part-way and released again, it was not)
+  var d=0, v=0, run=false, ended=false, pT=null, tRun=0, rec=null, vAt2=null, clean=true;
   function getM1(){var e=document.getElementById('inp-atw-m1');return e?parseFloat(e.value):3;}
   function getM2(){var e=document.getElementById('inp-atw-m2');return e?parseFloat(e.value):5;}
   function bh(m){return Math.max(30,Math.min(70,22+m*5));}
@@ -16573,11 +16603,11 @@ function simAtwood(canvas){
   function y0(){return (TOPY+BOT-Math.max(bh(getM1()),bh(getM2())))/2;}
   var launchB=document.getElementById('btn-atw-launch');
   function lbl(){if(launchB)launchB.textContent=run?'🔒 בלמו':'▶ שחררו!';}
-  function reset(){d=0;v=0;run=false;ended=false;tRun=0;rec=null;vAt2=null;lbl();}
+  function reset(){d=0;v=0;run=false;ended=false;tRun=0;rec=null;vAt2=null;clean=true;lbl();}
   // ▶ lets the brake go; 🔒 brakes again, which stops the masses where they are
   function release(){if(ended)reset();run=!run;
     if(run){var m1=getM1(),m2=getM2();rec={m1:m1,m2:m2,a:(m2-m1)*g/(m1+m2),T:2*m1*m2*g/(m1+m2),t:0};}
-    else v=0;
+    else{v=0;if(d!==0)clean=false;}
     lbl();}
   if(launchB)launchB.addEventListener('click',release);
   var rb=document.getElementById('btn-atw-reset');if(rb)rb.addEventListener('click',reset);
@@ -16592,7 +16622,7 @@ function simAtwood(canvas){
      done:function(s){return s.rec&&Math.abs(s.rec.m1-s.rec.m2)>0.01&&s.rec.t>0.3;}},
     {text:'בחרו מסות שנותנות למערכת תאוצה של '+_skM('g/2 = 4.9 m/s²')+'.',
      hint:'פתרו '+M('\\frac{m_2-m_1}{m_1+m_2}=\\frac12')+': מה היחס בין המסות?',
-     why:'מ־'+M('a=\\frac{m_2-m_1}{m_1+m_2}g=\\frac g2')+' יוצא '+M('m_2=3m_1')+'. כך ״מדללים״ את g — אטווד בנה את המכונה כדי למדוד את g בתנועה איטית מספיק לשעון.',
+     why:'מ־'+M('a=\\frac{m_2-m_1}{m_1+m_2}g=\\frac g2')+' יוצא '+M('m_2=3m_1')+'. כך ״מדללים״ את g: אטווד בנה את המכונה כדי לחקור תנועה בתאוצה קבועה שאיטית מספיק למדידה בסרגל ובשעון.',
      done:function(s){return s.rec&&s.rec.t>0.2&&Math.abs(Math.abs(s.rec.a)-g/2)<0.05;}},
     {text:'שחזרו את בעיית הסעיף: '+_skM('m₁ = 4 kg, m₂ = 6 kg')+'. מה מהירות '+_skM('m₂')+' אחרי שירדה '+_skM('2 m')+'?',
      hint:'שחררו ממנוחה וקראו את v ליד הסימון '+_skM('2 m')+' שבסרגל.',
@@ -16619,7 +16649,7 @@ function simAtwood(canvas){
     if(run&&!ended){
       var v0=v,d0=d;v+=a*dt;d+=0.5*(v0+v)*dt;tRun+=dt;rec.t=tRun;
       // the speed as the drop passes 2 m, read off this step (linear in t for constant a)
-      if(vAt2===null&&Math.abs(d)>=2&&Math.abs(d)>Math.abs(d0)){var tt=dt*0.5,lo=0,hi=dt;
+      if(clean&&vAt2===null&&Math.abs(d)>=2&&Math.abs(d)>Math.abs(d0)){var tt=dt*0.5,lo=0,hi=dt;
         for(var it=0;it<40;it++){tt=(lo+hi)/2;if(Math.abs(d0+v0*tt+0.5*a*tt*tt)<2)lo=tt;else hi=tt;}
         vAt2=Math.abs(v0+a*tt);}
       // a mass reaching the pulley or the floor ends the run
@@ -35155,10 +35185,10 @@ function buildSim(sim){
   else if(sim.type==='acceleration')extra=C(rng('acc-a',-10,10,3,0.5,'תאוצה a',' m/s²')+rng('acc-v0',-8,8,0,1,'v₀ ראשונית',' m/s')+btn('acc-reset','↺ איפוס','btn-secondary'));
   else if(sim.type==='freefall')extra=C(rng('v0',0,30,18,1,'v₀ ראשונית',' m/s')+rng('ff-g',1.6,25,9.8,0.2,'g כבידה',' m/s²')+rng('ff-m',0.1,10,0.5,0.1,'מסת הכדור m',' kg')+btn('throw','🎯 זרקו!','btn-primary')+btn('ff-pause','⏸ עצרו','btn-secondary'));
   else if(sim.type==='force-types')extra=C(rng('ft-F',0,40,12,1,'דחיפה F',' N')+rng('ft-x',0.01,0.15,0.05,0.01,'מתיחת הקפיץ x',' m'));
-  else if(sim.type==='inertia')extra=C(rng('friction',0,0.5,0.2,0.05,'חיכוך μ')+rng('in-F',0,40,15,0.5,'כוח הדחיפה F',' N')+rng('mass-in',1,15,5,0.5,'מסה m',' kg')+btn('in-hold','✋ דחיפה רציפה: כבויה','btn-secondary')+btn('in-reset','↺ איפוס','btn-secondary'));
-  else if(sim.type==='newton2')extra=C(rng('mass',1,20,5,0.5,'מסה m',' kg')+rng('n2-F',-60,60,20,1,'כוח F',' N')+rng('n2-mu',0,0.8,0,0.05,'חיכוך μ')+btn('n2-reset','↺ איפוס','btn-secondary'));
+  else if(sim.type==='inertia')extra=C(rng('friction',0,0.5,0.2,0.05,'חיכוך μ (μₛ = μₖ)')+rng('in-F',0,40,15,0.5,'כוח הדחיפה F',' N')+rng('mass-in',1,15,5,0.5,'מסה m',' kg')+btn('in-hold','✋ דחיפה רציפה: כבויה','btn-secondary')+btn('in-reset','↺ איפוס','btn-secondary'));
+  else if(sim.type==='newton2')extra=C(rng('mass',1,20,5,0.5,'מסה m',' kg')+rng('n2-F',-60,60,20,1,'כוח F',' N')+rng('n2-mu',0,0.8,0,0.05,'חיכוך μ (μₛ = μₖ)')+btn('n2-reset','↺ איפוס','btn-secondary'));
   else if(sim.type==='newton3')extra=C(rng('n3-mA',20,90,60,5,'מסת A',' kg')+rng('n3-mB',20,90,30,5,'מסת B',' kg')+rng('n3-F',50,600,300,10,'כוח דחיפה',' N')+btn('n3-push','💥 דחפו!')+btn('n3-who','🔁 הדוחף: A','btn-secondary')+btn('n3-reset','↺ איפוס','btn-secondary'));
-  else if(sim.type==='normal-force')extra=C(rng('nf-theta',0,70,0,1,'זווית θ','°')+rng('nf-mass',1,12,4,0.5,'מסה m',' kg')+rng('nf-F',-20,40,0,1,'כוח היד F (+ לוחץ מטה)',' N')+rng('nf-mu',0,0.7,0,0.05,'חיכוך μ')+btn('nf-reset','↺ איפוס','btn-secondary'));
+  else if(sim.type==='normal-force')extra=C(rng('nf-theta',0,70,0,1,'זווית θ','°')+rng('nf-mass',1,12,4,0.5,'מסה m',' kg')+rng('nf-F',-20,40,0,1,'כוח היד F (+ לוחץ מטה)',' N')+rng('nf-mu',0,0.7,0,0.05,'חיכוך μ (μₛ = μₖ)')+btn('nf-reset','↺ איפוס','btn-secondary'));
   else if(sim.type==='incline')extra=C(rng('inc-theta',5,60,30,1,'זווית θ','°')+rng('inc-mu',0,0.8,0.3,0.05,'חיכוך μ (μₛ = μₖ)')+rng('inc-m',0.5,10,3,0.5,'מסה m',' kg')+rng('inc-v0',0.5,10,5,0.1,'מהירות הדחיפה v₀',' m/s')+btn('inc-push','⬆ דחפו במעלה','btn-primary')+btn('inc-drop','⬇ שחררו מלמעלה','btn-secondary')+btn('inc-reset','↺ איפוס','btn-secondary'));
   else if(sim.type==='tension')extra=C(rng('ten-m1',0.5,12,3,0.5,'m₁ אטווד',' kg')+rng('ten-m2',0.5,12,5,0.5,'m₂ אטווד',' kg')+rng('ten-el',0.5,5,3,0.5,'מסת הגוף במעלית',' kg')+rng('ten-ea',-9.8,5,0,0.2,'תאוצת המעלית',' m/s²')+btn('ten-launch','▶ שחררו!')+btn('ten-reset','↺ איפוס','btn-secondary'));
   else if(sim.type==='fbd')extra=C(rng('fbd-F',-10,25,0,0.1,'כוח נוסף על הגוף (+ מעלה)',' N')+btn('fbd-reset','↺ נקו הכול','btn-secondary'));
