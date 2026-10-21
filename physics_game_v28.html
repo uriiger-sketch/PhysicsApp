@@ -398,44 +398,112 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 .sim-stat{background:var(--bg);border:1px solid var(--border);border-radius:9px;padding:9px 14px;min-width:100px;}
 .sim-stat .slab{font-size:.7rem;color:var(--muted);font-weight:700;letter-spacing:.4px;}
 .sim-stat .sval{font-size:1.05rem;font-weight:700;color:var(--accent2);font-family:'Courier New',monospace;}
-/* the sim kit: model line, prediction, missions -- between canvas and sliders */
-.sk-panel{display:flex;flex-direction:column;gap:10px;padding:12px 20px 0;}
+/* ── The sim kit: its look (one design for every simulation) ──────────────
+   Between the canvas (and its touch hint) and the sliders: the model line,
+   a prediction card, the missions. Above the canvas, when a sim has modes:
+   a segmented control. Logical properties only, so it mirrors itself for
+   right-to-left and left-to-right; colours from the theme tokens, so both
+   themes are right; no motion under prefers-reduced-motion. */
+:root,[data-theme='dark']{--sk-ok-soft:rgba(16,185,129,.13);--sk-ok-line:rgba(52,211,153,.45);--sk-next:rgba(59,130,246,.22);--sk-xp-bg:rgba(245,158,11,.16);}
+[data-theme='light']{--sk-ok-soft:rgba(4,120,87,.09);--sk-ok-line:rgba(4,120,87,.4);--sk-next:rgba(29,78,216,.16);--sk-xp-bg:rgba(146,64,14,.1);}
+.sk-panel{display:flex;flex-direction:column;gap:10px;padding:12px 20px 2px;}
 .sk-panel:empty{display:none;}
-.sk-model{display:flex;align-items:baseline;gap:8px;background:var(--panel2);border:1px solid var(--border);border-inline-start:3px solid var(--accent2);
-  border-radius:10px;padding:8px 12px;font-size:.92rem;line-height:1.7;color:var(--text);}
-.sk-model .sk-f{font-family:'Courier New',monospace;font-weight:700;color:var(--t-param);margin:0 2px;font-size:1em;white-space:normal;}
-.sk-predict{background:var(--wx-bg);border:1px solid var(--wx-border);border-radius:10px;padding:10px 12px;}
+.sk-f{font-family:ui-monospace,'Cascadia Mono','SF Mono',Menlo,Consolas,'Courier New',monospace;font-weight:600;color:var(--t-param);
+  font-variant-numeric:tabular-nums;margin:0 1px;font-size:.95em;white-space:normal;}
+/* an ordinary inline run, isolated by its dir: the app's inline maths is a
+   flex box, which would drop the spaces around a subscript and never wrap */
+.sk-f.math-ltr{display:inline;unicode-bidi:isolate;vertical-align:baseline;max-width:none;overflow:visible;padding:0;margin:0 2px;font-size:.95em;}
+/* the model line: the equation with the numbers of the screen in it */
+.sk-model{display:flex;align-items:flex-start;gap:9px;background:var(--panel2);border:1px solid var(--border);border-inline-start:3px solid var(--accent2);
+  border-radius:10px;padding:7px 12px;font-size:.9rem;line-height:1.75;color:var(--text);min-height:2.65em;}
+.sk-model-ic{flex:0 0 auto;font-size:.95em;line-height:1.85;opacity:.85;}
+.sk-model-tx{flex:1;min-width:0;overflow-wrap:break-word;}
+.sk-model-tx b{color:var(--text);font-weight:800;}
+/* predict first */
+.sk-predict{background:var(--wx-bg);border:1px solid var(--wx-border);border-radius:12px;padding:10px 12px 12px;}
+.sk-eyebrow{font-size:.72rem;font-weight:800;letter-spacing:.4px;color:var(--wx-accent);margin-bottom:2px;}
 .sk-pq{font-weight:700;color:var(--text);font-size:.92rem;line-height:1.6;}
-.sk-po{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;}
-.sk-opt{min-height:40px;padding:6px 14px;border-radius:9px;border:1px solid var(--border);background:var(--chip);color:var(--text);
-  font:inherit;font-size:.88rem;cursor:pointer;transition:border-color .15s,background .15s;}
-.sk-opt:hover:not(:disabled){border-color:var(--accent);}
-.sk-opt.right{border-color:var(--green);background:rgba(16,185,129,.16);}
-.sk-opt.wrong{border-color:var(--red);background:rgba(239,68,68,.14);}
-.sk-opt:disabled{cursor:default;}
-.sk-pa{margin-top:8px;font-size:.86rem;line-height:1.65;color:var(--t-body);}
+.sk-po{display:flex;flex-wrap:wrap;gap:8px;margin-top:9px;}
+.sk-opt{display:inline-flex;align-items:center;gap:6px;min-height:44px;padding:6px 14px;border-radius:10px;border:1px solid var(--border);background:var(--chip);color:var(--text);
+  font:inherit;font-size:.88rem;line-height:1.35;cursor:pointer;text-align:start;transition:border-color .15s,background .15s,opacity .2s;}
+.sk-opt:hover:not([aria-disabled=true]){border-color:var(--accent);}
+.sk-mk{display:none;font-weight:900;}
+.sk-opt.right{border-color:var(--green);background:var(--sk-ok-soft);}
+.sk-opt.right .sk-mk{display:inline;color:var(--t-green);}
+.sk-opt.wrong{border-color:var(--red);background:rgba(239,68,68,.12);}
+.sk-opt.wrong .sk-mk{display:inline;color:var(--t-err);}
+.sk-predict.answered .sk-opt:not(.right):not(.wrong){opacity:.55;}
+.sk-opt[aria-disabled=true]{cursor:default;}
+.sk-pa{margin-top:9px;font-size:.86rem;line-height:1.65;color:var(--t-body);animation:skin .35s ease-out;}
 .sk-ok{color:var(--t-green);} .sk-no{color:var(--t-err);}
-.sk-missions{border:1px solid var(--border);border-radius:10px;overflow:hidden;}
-.sk-head{display:flex;align-items:center;justify-content:space-between;padding:7px 12px;background:var(--panel2);font-weight:700;font-size:.88rem;color:var(--text);}
-.sk-count{font-family:'Courier New',monospace;color:var(--gold);font-size:.85rem;}
-.sk-missions.all .sk-head{background:rgba(16,185,129,.14);}
-.sk-missions ol{list-style:none;margin:0;padding:4px 0;}
-.sk-m{padding:6px 12px;border-top:1px solid var(--border);}
+/* missions: progress at a glance, the next one marked, the reason on success */
+.sk-missions{border:1px solid var(--border);border-radius:12px;overflow:hidden;background:var(--panel);transition:border-color .4s;}
+.sk-head{appearance:none;-webkit-appearance:none;display:flex;align-items:center;gap:10px;width:100%;min-height:44px;padding:7px 12px;border:0;margin:0;
+  background:var(--panel2);font:inherit;font-weight:700;font-size:.88rem;color:var(--text);text-align:start;cursor:pointer;transition:background .4s;}
+.sk-title{flex:1 1 auto;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.sk-pips{display:flex;gap:4px;flex:0 0 auto;}
+.sk-pips i{display:block;width:14px;height:6px;border-radius:3px;background:var(--border);transition:background .3s,transform .3s;}
+.sk-pips i.on{background:var(--green);}
+.sk-pips i.sk-just{animation:skpip .6s ease-out;}
+.sk-count{flex:0 0 auto;font-family:ui-monospace,Menlo,Consolas,'Courier New',monospace;color:var(--gold);font-size:.82rem;font-variant-numeric:tabular-nums;}
+.sk-chev{flex:0 0 auto;width:8px;height:8px;margin:0 2px 3px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:rotate(45deg);transition:transform .25s;}
+.sk-missions.shut .sk-chev{transform:rotate(-45deg);margin-bottom:0;}
+[dir=rtl] .sk-missions.shut .sk-chev{transform:rotate(135deg);}
+.sk-missions.all{border-color:var(--sk-ok-line);}
+.sk-missions.all .sk-head{background:var(--sk-ok-soft);}
+.sk-missions.all .sk-count{color:var(--t-green);}
+.sk-list{list-style:none;margin:0;padding:2px 0;}
+.sk-missions.shut .sk-list{display:none;}
+.sk-m{position:relative;padding:8px 12px;border-top:1px solid var(--border);}
 .sk-m:first-child{border-top:none;}
-.sk-row{display:flex;align-items:flex-start;gap:9px;}
-.sk-box{flex:0 0 18px;height:18px;margin-top:3px;border-radius:5px;border:2px solid var(--muted);transition:all .25s;}
-.sk-m.done .sk-box{border-color:var(--green);background:var(--green);box-shadow:0 0 0 3px rgba(16,185,129,.18);}
-.sk-m.done .sk-box::after{content:'✓';display:block;color:#fff;font-size:12px;line-height:14px;text-align:center;font-weight:900;}
-.sk-tx{flex:1;font-size:.88rem;line-height:1.6;color:var(--text);}
+.sk-row{display:flex;align-items:flex-start;gap:10px;}
+.sk-box{flex:0 0 20px;height:20px;margin-top:2px;border-radius:6px;border:2px solid var(--muted);display:flex;align-items:center;justify-content:center;
+  transition:background .25s,border-color .25s,box-shadow .25s;}
+.sk-box svg{width:12px;height:12px;fill:none;stroke:#fff;stroke-width:3;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:20;stroke-dashoffset:20;}
+.sk-m.next .sk-box{border-color:var(--accent);box-shadow:0 0 0 3px var(--sk-next);}
+.sk-m.done .sk-box{border-color:var(--green);background:var(--green);box-shadow:none;}
+.sk-m.done .sk-box svg{stroke-dashoffset:0;}
+.sk-tx{flex:1;min-width:0;font-size:.88rem;line-height:1.6;color:var(--text);}
 .sk-m.done .sk-tx{color:var(--muted);}
-.sk-hint-b{flex:0 0 auto;border:none;background:none;color:var(--t-hint);font:inherit;font-size:.8rem;cursor:pointer;padding:2px 4px;min-height:28px;}
-.sk-hint,.sk-why{margin-inline-start:27px;margin-top:4px;font-size:.83rem;line-height:1.6;}
+.sk-m.done .sk-hint-b,.sk-m.done .sk-hint{display:none;}
+.sk-xp{flex:0 0 auto;font-size:.72rem;font-weight:800;color:var(--gold);background:var(--sk-xp-bg);border-radius:99px;padding:1px 8px;
+  font-family:ui-monospace,Menlo,Consolas,'Courier New',monospace;opacity:0;pointer-events:none;}
+.sk-hint-b{flex:0 0 auto;border:none;background:none;color:var(--t-hint);font:inherit;font-size:.8rem;cursor:pointer;padding:2px 6px;min-height:32px;border-radius:7px;}
+.sk-hint-b:hover{background:var(--chip);}
+.sk-hint-b[aria-expanded=true]{background:var(--chip);}
+@media (pointer:coarse){.sk-hint-b{min-height:44px;}}
+.sk-hint,.sk-why{margin-inline-start:30px;margin-top:5px;font-size:.84rem;line-height:1.65;}
 .sk-hint{color:var(--t-hint);}
-.sk-why{color:var(--t-ok);}
-.sk-m.sk-just{animation:skjust 1.6s ease-out;}
-@keyframes skjust{0%{background:rgba(16,185,129,.35);}100%{background:transparent;}}
-@media (prefers-reduced-motion:reduce){.sk-m.sk-just{animation:none;}.sk-box{transition:none;}}
-@media (max-width:480px){.sk-panel{padding:10px 12px 0;}}
+.sk-why{color:var(--t-ok);border-inline-start:2px solid var(--sk-ok-line);padding-inline-start:9px;}
+/* the moment a mission is solved: a soft wash, the tick drawn, +10 XP */
+.sk-m.sk-just{animation:skjust 1.8s ease-out;}
+.sk-m.sk-just .sk-box{animation:skpop .5s cubic-bezier(.3,1.7,.5,1);}
+.sk-m.sk-just .sk-box svg{transition:stroke-dashoffset .4s .12s ease-out;}
+.sk-xp.sk-just{animation:skxp 2.6s ease-out;}
+.sk-m.sk-just .sk-why{animation:skin .5s .15s ease-out both;}
+@keyframes skjust{0%{background:var(--sk-ok-soft);}60%{background:var(--sk-ok-soft);}100%{background:transparent;}}
+@keyframes skpop{0%{transform:scale(.6);}100%{transform:scale(1);}}
+@keyframes skpip{0%{transform:scaleY(1);}40%{transform:scaleY(1.9);}100%{transform:scaleY(1);}}
+@keyframes skxp{0%{opacity:0;transform:translateY(5px);}15%{opacity:1;transform:none;}75%{opacity:1;}100%{opacity:0;}}
+@keyframes skin{0%{opacity:0;transform:translateY(-3px);}100%{opacity:1;transform:none;}}
+/* a sim's modes: a segmented control above the canvas */
+.sk-tabs{display:flex;gap:6px;padding:8px 10px;background:var(--panel2);border-bottom:1px solid var(--border);}
+.sk-tab{flex:1 1 0;min-width:0;min-height:44px;padding:5px 8px;border-radius:10px;border:1px solid var(--border);background:transparent;color:var(--text);
+  font:inherit;font-size:.86rem;font-weight:700;line-height:1.25;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;
+  transition:background .15s,border-color .15s,color .15s;}
+.sk-tab small{font-size:.72rem;font-weight:500;color:var(--muted);}
+.sk-tab:hover{border-color:var(--accent);}
+.sk-tab[aria-pressed=true]{background:var(--btn);border-color:var(--btn);color:#fff;}
+.sk-tab[aria-pressed=true] small{color:#fff;}
+/* a canvas that takes the keyboard says so when it has it */
+.sim-canvas-wrap canvas.sk-keys:focus-visible{outline:2px solid var(--accent2);outline-offset:-3px;}
+@media (prefers-reduced-motion:reduce){.sk-m.sk-just,.sk-m.sk-just .sk-box,.sk-m.sk-just .sk-why,.sk-pa,.sk-pips i.sk-just{animation:none;}
+  .sk-xp.sk-just{animation:none;opacity:1;}.sk-box,.sk-box svg,.sk-chev{transition:none!important;}}
+.sk-pips{flex-wrap:wrap;max-width:40%;}
+@media (max-width:360px){.sk-pips i{width:9px;}}
+@media (max-width:480px){.sk-panel{padding:10px 12px 2px;}.sk-tabs{padding:7px 8px;gap:5px;}.sk-tab{font-size:.8rem;padding:4px 4px;}
+  /* a phone gives the mission its whole width; the hint goes under it */
+  .sk-row{flex-wrap:wrap;row-gap:0;}.sk-tx{flex:1 1 calc(100% - 30px);}.sk-hint-b{margin-inline-start:24px;}}
 .range-wrap{display:flex;align-items:center;gap:8px;font-size:.85rem;}
 .range-wrap label{color:var(--muted);font-size:.8rem;white-space:nowrap;}
 .range-wrap span{color:var(--accent2);font-family:'Courier New',monospace;font-size:.85rem;min-width:38px;}
@@ -6876,6 +6944,7 @@ const OPTICS_CONTENT={
           <div class="info-item"><div class="il">אדום + ירוק + כחול</div><div class="iv">= לבן</div></div>
         </div>
         <p>שימוש: מסכי LCD/OLED, פרויקטורים, תאורת LED. כל פיקסל = R+G+B בעוצמות שונות.</p>
+        <p><b>למה זה עובד?</b> ברשתית שלושה סוגי מדוכים, הרגישים בעיקר לאורכי גל קצרים (S), בינוניים (M) וארוכים (L), והעין מוסרת למוח רק את שלושת האותות שלהם. אור אדום ואור ירוק יחד מגרים את L ואת M כמו שאור צהוב מגרה אותם — ולכן התערובת נראית צהובה, אף שאין בה אור צהוב כלל.</p>
       </div>
       <div class="def-block"><div class="def-title">ערבוב חיסורי — פיגמנטים (Subtractive)</div>
         <p>צבעים <b>בולעים</b> חלק מהספקטרום ומשקפים את הנותר:</p>
@@ -6894,15 +6963,15 @@ const OPTICS_CONTENT={
       <div class="mis-block"><b>⚠️ טעות נפוצה:</b> ״הצבע הוא תכונה של העצם בלבד — חולצה אדומה אדומה תמיד״. העצם רק <b>בוחר</b> אילו צבעים להחזיר מתוך האור שמגיע אליו. חולצה אדומה מחזירה אדום ובולעת ירוק וכחול, ולכן באור ירוק טהור היא נראית <b>שחורה</b>: אין שם אדום להחזיר. הצבע הנראה תלוי במקור האור, בעצם ובעין.</div>
       <div class="theory-anim">${animCanvas('anim-color-mix-t',148,'ערבוב צבעים חיבורי')}</div>`,
   },
-  sim:{type:'opt-color-mix',desc:'שנו עוצמות אדום/ירוק/כחול וראו ערבוב חיבורי. צהוב = R+G, ציאן = G+B, ורוד = R+B, לבן = R+G+B.'},
-  example:{title:'ערבוב צבעים במסך',text:`פיקסל במסך מדליק אדום בעוצמה מלאה, ירוק ב־60% וכחול כבוי.`,
+  sim:{type:'opt-color-mix',desc:'צבע הוא מה ששלושת סוגי המדוכים בעין מדווחים על האור שמגיע אליהם. הגשוש 👁 מראה בכל נקודה את הספקטרום, את אותות המדוכים S, M, L ואת הצבע הנראה. 💡 אורות: הספקטרומים של הפנסים מתחברים. 🎞 מסננים: כל מסנן מכפיל את האור בהעברה שלו. 👕 עצמים: עצם מחזיר את אור המנורה כפול ההחזרה שלו.'},
+  example:{title:'ערבוב צבעים במסך',text:`פיקסל במסך מדליק אדום בעוצמה מלאה, ירוק בחמישית מעוצמתו המלאה וכחול כבוי.`,
     steps:[
       {q:'איזה צבע נראה?',a:'כתום: אדום מלא ועוד מעט ירוק. (אדום וירוק בעוצמות שוות היו נותנים צהוב.)'},
-      {q:'איך מסמנים את הצבע בקוד של מחשב?',a:`כל רכיב בסולם 0–255: ${M('(255,\\,153,\\,0)')}, ובכתיב הקסדצימלי ${M('\\text{\\#FF9900}')}.`},
+      {q:'איך מסמנים את הצבע בקוד של מחשב?',a:`כל רכיב בסולם 0–255: ${M('(255,\\,124,\\,0)')}, ובכתיב הקסדצימלי ${M('\\text{\\#FF7C00}')}. הירוק הוא 124 ולא ${M('0.2\\times255=51')}: הקוד אינו יחסי לעוצמת האור (״תיקון גמא״), כך שחמישית מהאור מקבלת קוד של כמחצית הסולם.`},
     ]},
   quiz:[
     {q:'אור ירוק + אור כחול = ?',opts:['צהוב','ורוד','ציאן','לבן'],correct:2,explain:'ערבוב חיבורי: G+B=ציאן (כחול-ירקרק). R+G=צהוב, R+B=מגנטה.',formula:''},
-    {q:'מדוע עלה ירוק נראה ירוק?',opts:['פולט אור ירוק','בולע אדום+כחול, משקף ירוק','משקף את כל הצבעים חוץ מירוק','מכיל פיגמנט ניאון'],correct:1,explain:'ערבוב חיסורי: הכלורופיל בולע אדום וכחול (לפוטוסינתזה) ומשקף ירוק — לכן אנחנו רואים ירוק.',formula:''},
+    {q:'מדוע עלה ירוק נראה ירוק?',opts:['פולט אור ירוק','בולע אדום+כחול, משקף ירוק','משקף את כל הצבעים חוץ מירוק','מכיל פיגמנט ניאון'],correct:1,explain:'בליעה בררנית: הכלורופיל בולע אדום וכחול (לפוטוסינתזה) ומשקף ירוק — לכן אנחנו רואים ירוק.',formula:''},
     {q:'בדפוס CMYK, מה ה־K?',opts:['כחול (Blue)','כרום (Chrome)','שחור (Key)','קובלט (Kobalt)'],correct:2,explain:'K=Key=שחור. נוסף כי C+M+Y בפועל לא נותן שחור מושלם, ושחור שמורכב משלוש דיו יקר ומתייבש לאט. דיו שחור נפרד נותן שחור אחיד ועמוק.',formula:''},
     {q:'מסך טלוויזיה משתמש ב:',opts:['CMY','RGB חיבורי','פיגמנטים חיסוריים','קשת ניוטון'],correct:1,explain:'כל פיקסל: שלוש תתי-נקודות (R,G,B) מוארות. מרחוק — עין ממצעת ורואה צבע מעורב. זה ערבוב חיבורי.',formula:''},
     {q:'מדוע חולצה נראית אדומה באור לבן?',
@@ -6917,9 +6986,9 @@ const OPTICS_CONTENT={
       {q:'מהו בקירוב אורך הגל '+M('\\lambda')+' של צהוב <b>ספקטרלי</b> — הצהוב שמופיע בקשת עצמה? (בננומטרים; היעזרו בטבלת הצבעים בסעיף ״מהו אור?״)',unit:'nm',answer:'580',tolerance:12,
        explain:'צהוב ספקטרלי הוא אורך גל יחיד באזור 570–590 nm, כלומר כ־580 nm — בין הירוק (≈530) לאדום (≈700). זהו הצהוב של להבת נתרן (589 nm) — אור בעל תדירות אחת ממש.',
        nudge:'בקשת הצבעים מסודרים לפי אורך גל. הצהוב יושב בין הירוק (495–570 nm) לכתום (590–620 nm).',hint:'בטבלת הצבעים של הסעיף הראשון הצהוב תופס את התחום 570–590 nm; קחו את אמצעו.'},
-      {q:'המסך מדליק אדום וירוק יחד, ואנו רואים צהוב. את איזה אורך גל '+M('\\lambda')+' המוח ״מדווח״ שראה, אף שאף פוטון כזה לא נפלט?',unit:'nm',answer:'580',tolerance:25,
-       explain:'המוח מדווח צהוב — כ־580 nm — אף שהמסך פולט רק אדום וירוק, ואין בו פוטון אחד באורך הגל הזה. זהו <b>מטמריזם</b>: לעין שלושה סוגי קולטנים בלבד, ולכן שני ספקטרומים שונים שמעוררים אותם באותה מידה ייראו זהים. הצבע הוא מסקנה של מערכת הראייה, לא תכונה של האור.',
-       nudge:'העין אינה מודדת ספקטרום אלא משווה בין תגובות שלושה סוגי קולטנים. אם אדום וירוק יחד מעוררים אותם בדיוק כמו אור ספקטרלי אחד — איזה?',hint:'לעין שלושה סוגי מדוכים בלבד. אדום וירוק יחד מעוררים אותם כמו הצהוב הספקטרלי שמצאתם בשלב הקודם.'},
+      {q:'המסך מדליק אדום וירוק יחד, ואנו רואים צהוב. את איזה אורך גל '+M('\\lambda')+' המוח ״מדווח״ שראה, אף שהמסך כמעט אינו פולט אור באורך גל זה?',unit:'nm',answer:'580',tolerance:25,
+       explain:'המוח מדווח ״צהוב״: הגוון של אור ספקטרלי של כ־570–580 nm (בצהוב של מסך רגיל: כ־570 nm), אף שהמסך פולט אור אדום ואור ירוק, וכמעט אינו פולט אור באורך הגל הזה. זהו <b>מטמריזם</b>: לעין שלושה סוגי קולטנים בלבד, ולכן שני ספקטרומים שונים שמעוררים אותם באותה מידה ייראו זהים. הצבע הוא מסקנה של מערכת הראייה, לא תכונה של האור.',
+       nudge:'העין אינה מודדת ספקטרום אלא משווה בין תגובות שלושה סוגי קולטנים. אם אדום וירוק יחד מעוררים אותם באותו יחס כמו אור ספקטרלי אחד — איזה?',hint:'לעין שלושה סוגי מדוכים בלבד. אדום וירוק יחד מעוררים אותם כמו הצהוב הספקטרלי שמצאתם בשלב הקודם.'},
     ]}
 },
 
@@ -9990,99 +10059,206 @@ function simSyncSlider(id,val,dec){
 //     {text:'…', hint:'…', why:'…', done:function(s){return s.I>1;}}, …]});
 //   kit.check(s)        each frame: s is whatever the missions' done() read
 //   kit.model(html)     the live equation line; kit.m('I = 2.0 A') for maths
+//                       (x_0, T_{max} subscripts and v^2 superscripts are set)
 //   kit.predict({q:'…',opts:['…','…'],correct:1,why:'…'},function(i,ok){…})
 //
+// Added in v1 (all optional; v0 calls work unchanged):
+//   mission.id          a stable name to save it under (default: its index),
+//                       so missions can be reordered without losing progress
+//   spec.onSolve(i,m)   called once when mission i is solved (a sim can
+//                       celebrate on its own canvas)
+//   kit.solved(i)       whether mission i is solved
+//   kit.tabs({items:[{id,label}],value,label,onChange})
+//                       a segmented control above the canvas for a sim's
+//                       modes; returns {set(id),get(),el}. Its buttons are
+//                       btn-sk-<id>, so a phone turned mid-experiment comes
+//                       back in the same mode
+//   kit.keys(fn)        the canvas takes the keyboard: fn(keydown event)
+//                       returns true when it used the key
+//   kit.label(text)     what a screen reader says the canvas shows
+//   kit.say(text)       say something to a screen reader, once
+//
 // A mission is solved only after the learner has touched the sim (a state
-// that is true when it opens is not an achievement), is kept per section in
-// the saved state -- the same in every language -- and gives 10 XP once.
+// that is true when it opens is not an achievement) -- opening a hint or
+// answering a prediction is not touching it -- is kept per section in the
+// saved state, the same in every language, and gives 10 XP once. Solved, it
+// shows why it worked; when all are solved the list folds to one line.
+var _skN=0;
 function simKit(canvas,spec){
   spec=spec||{};
   var host=canvas.closest&&canvas.closest('.sim-container');
   var key=state.chapter+'.'+state.section, ms=spec.missions||[];
   if(!state.missions||typeof state.missions!=='object')state.missions={};
-  var got=state.missions[key]||{}, armed=false, lastModel=null;
-  var api={check:function(){},model:function(){},predict:function(){},m:_skM,el:null};
+  var armed=false,lastModel=null,uid=++_skN,sayT=null;
+  var noop=function(){};
+  var api={check:noop,model:noop,predict:noop,m:_skM,el:null,say:function(t){_say(t);},
+    solved:function(){return false;},tabs:function(){return {set:noop,get:noop,el:null};},keys:noop,label:noop};
   if(!host)return api;
-  [].forEach.call(host.querySelectorAll('.sk-panel'),function(o){o.remove();});
-  var P=document.createElement('div');P.className='sk-panel';
-  var M=document.createElement('div');M.className='sk-model';M.setAttribute('aria-live','polite');M.hidden=true;
-  var Q=document.createElement('div');Q.className='sk-predict';Q.hidden=true;
-  P.appendChild(M);P.appendChild(Q);
-  var items=[];
+  // a restart builds the sim again: one panel, one mode bar, one set of listeners
+  [].forEach.call(host.querySelectorAll('.sk-panel,.sk-tabs'),function(o){o.remove();});
+  var mk=function(i){return ms[i].id!=null?String(ms[i].id):String(i);};
+  var isDone=function(i){var g=state.missions[key];return !!(g&&g[mk(i)]);};
+  var el=function(tag,cls,html){var e=document.createElement(tag);if(cls)e.className=cls;if(html!=null)e.innerHTML=html;return e;};
+  // Built after render(), the kit's texts missed the page's inline-maths
+  // pass, which keeps "580 nm" or "6×10¹⁹" one left-to-right run inside
+  // Hebrew and glues a formula to the full stop or comma touching it
+  // (_gluePunct), so the mark never starts a line alone. It is run here on
+  // every text the kit shows, once the text is on the page (the glue measures
+  // the layout). It is idempotent: a sim that runs it again changes nothing.
+  var fx=function(n){try{if(n&&typeof fixInlineMath==='function')fixInlineMath(n);}catch(e){}};
+  var P=el('div','sk-panel'),M=el('div','sk-model'),Q=el('div','sk-predict');
+  M.hidden=true;Q.hidden=true;P.appendChild(M);P.appendChild(Q);
+  var items=[],pips=[],box=null,head=null;
   if(ms.length){
-    var box=document.createElement('div');box.className='sk-missions';
-    var head=document.createElement('div');head.className='sk-head';
-    head.innerHTML='<span class="sk-title">🎯 משימות</span><span class="sk-count"></span>';
-    var ol=document.createElement('ol');
+    box=el('section','sk-missions');
+    head=el('button','sk-head');head.type='button';
+    head.setAttribute('aria-expanded','true');head.setAttribute('aria-controls','sk-l'+uid);
+    var hT=el('span','sk-title'),hX=el('span','sk-xp','+10 XP'),hP=el('span','sk-pips'),hC=el('span','sk-count'),hV=el('span','sk-chev');
+    hP.setAttribute('aria-hidden','true');hV.setAttribute('aria-hidden','true');hX.setAttribute('aria-hidden','true');
+    [hT,hX,hP,hC,hV].forEach(function(x){head.appendChild(x);});
+    var ol=el('ol','sk-list');ol.id='sk-l'+uid;
     ms.forEach(function(m,i){
-      var li=document.createElement('li');li.className='sk-m';
-      li.innerHTML='<div class="sk-row"><span class="sk-box" aria-hidden="true"></span><span class="sk-tx"></span>'+
-        (m.hint?'<button type="button" class="sk-hint-b">💡 רמז</button>':'')+'</div>'+
-        (m.hint?'<div class="sk-hint" hidden></div>':'')+'<div class="sk-why" hidden></div>';
-      li.querySelector('.sk-tx').innerHTML=m.text;
-      if(m.hint){li.querySelector('.sk-hint').innerHTML=m.hint;
-        li.querySelector('.sk-hint-b').addEventListener('click',function(){var h=li.querySelector('.sk-hint');h.hidden=!h.hidden;});}
-      li.querySelector('.sk-why').innerHTML=m.why||'';
+      var li=el('li','sk-m'),row=el('div','sk-row'),bx=el('span','sk-box','<svg viewBox="0 0 12 12" focusable="false"><path d="M2.2 6.4l2.5 2.4 5.1-5.6"/></svg>');
+      bx.setAttribute('aria-hidden','true');
+      var tx=el('span','sk-tx'),st=el('span','visually-hidden sk-st'),tt=el('span','sk-t',m.text);
+      tx.appendChild(st);tx.appendChild(tt);
+      row.appendChild(bx);row.appendChild(tx);li.appendChild(row);
+      if(m.hint){
+        var hb=el('button','sk-hint-b'),hd=el('div','sk-hint',m.hint);hb.type='button';hb.textContent='💡 רמז';
+        hd.hidden=true;hd.id='sk-h'+uid+'-'+i;hb.setAttribute('aria-expanded','false');hb.setAttribute('aria-controls',hd.id);
+        hb.addEventListener('click',function(){hd.hidden=!hd.hidden;hb.setAttribute('aria-expanded',String(!hd.hidden));if(!hd.hidden)fx(hd);});
+        row.appendChild(hb);li.appendChild(hd);
+      }
+      var wy=el('div','sk-why',m.why||'');wy.hidden=true;li.appendChild(wy);
       ol.appendChild(li);items.push(li);
+      var pi=el('i');hP.appendChild(pi);pips.push(pi);
     });
     box.appendChild(head);box.appendChild(ol);P.appendChild(box);
+    head.addEventListener('click',function(){shut(!box.classList.contains('shut'));if(!box.classList.contains('shut'))fx(ol);});
   }
   var wrap=canvas.closest('.sim-canvas-wrap')||canvas;
-  // under the canvas and its touch hint, above the sliders
-  var after=wrap;while(after.nextSibling&&after.nextSibling.classList&&after.nextSibling.classList.contains('sim-hint'))after=after.nextSibling;
+  // under the canvas, its touch hint and its description; above the sliders
+  var after=wrap;
+  while(after.nextSibling&&after.nextSibling.classList&&(after.nextSibling.classList.contains('sim-hint')||after.nextSibling.classList.contains('sim-tip')))after=after.nextSibling;
   after.parentNode.insertBefore(P,after.nextSibling);
   api.el=P;
+  function shut(on){if(!box)return;box.classList.toggle('shut',on);head.setAttribute('aria-expanded',String(!on));}
   function paint(fresh){
-    var n=0;
-    items.forEach(function(li,i){var d=!!got[i];if(d)n++;
-      li.classList.toggle('done',d);li.querySelector('.sk-why').hidden=!d||!ms[i].why;
-      if(d&&fresh===i){li.classList.add('sk-just');setTimeout(function(){li.classList.remove('sk-just');},1600);}});
-    var c=P.querySelector('.sk-count');if(c)c.textContent=n+'/'+items.length;
-    var b=P.querySelector('.sk-missions');if(b)b.classList.toggle('all',n===items.length&&n>0);
+    var n=0,next=-1;
+    items.forEach(function(li,i){var d=isDone(i);if(d)n++;else if(next<0)next=i;
+      li.classList.toggle('done',d);
+      li.querySelector('.sk-why').hidden=!d||!ms[i].why;
+      li.querySelector('.sk-st').textContent=d?'הושלמה: ':'';
+      pips[i].classList.toggle('on',d);});
+    items.forEach(function(li,i){li.classList.toggle('next',i===next);});
+    if(fresh!=null&&items[fresh]){var li=items[fresh],pi=pips[fresh];fx(li.querySelector('.sk-why'));
+      [li,pi,hX].forEach(function(x){x.classList.remove('sk-just');});void li.offsetWidth;
+      [li,pi,hX].forEach(function(x){x.classList.add('sk-just');});
+      setTimeout(function(){[li,pi,hX].forEach(function(x){x.classList.remove('sk-just');});},2700);}
+    if(!box)return;
+    var all=n===items.length;
+    box.classList.toggle('all',all);
+    hT.textContent=all?'🎯 כל המשימות הושלמו':'🎯 משימות';
+    hC.textContent=n+'/'+items.length;
   }
   paint();
-  var arm=function(){armed=true;};
-  ['pointerdown','mousedown','touchstart','keydown','input','change','click'].forEach(function(t){host.addEventListener(t,arm,{capture:true,passive:true});});
+  // came back with everything done: one line, open on request
+  if(box&&ms.every(function(m,i){return isDone(i);}))shut(true);
+  fx(P);
+  // armed by the learner's own hand on the sim -- not by a hint, a
+  // prediction or the description's close button
+  var TY=['pointerdown','mousedown','touchstart','keydown','input','change','click'];
+  if(host._skArm)TY.forEach(function(t){host.removeEventListener(t,host._skArm,true);});
+  host._skArm=function(e){var t=e.target;if(t&&t.closest&&t.closest('.sk-panel,.sim-tip'))return;armed=true;};
+  TY.forEach(function(t){host.addEventListener(t,host._skArm,{capture:true,passive:true});});
   api.check=function(s){
     if(!armed||!items.length)return;
     for(var i=0;i<ms.length;i++){
-      if(got[i])continue;
+      if(isDone(i))continue;
       var ok=false;try{ok=!!ms[i].done(s);}catch(e){}
       if(!ok)continue;
-      got[i]=true;state.missions[key]=got;state.xp+=10;saveState();
+      var got=state.missions[key]||(state.missions[key]={});got[mk(i)]=true;
+      state.xp+=10;saveState();
       try{playXPSound();}catch(e){}
       var xb=document.getElementById('xp-badge-el');
       if(xb){xb.textContent='⭐ '+state.xp+' XP';xb.classList.remove('xp-pop');void xb.offsetWidth;xb.classList.add('xp-pop');}
+      if(box&&box.classList.contains('shut'))shut(false);
       paint(i);
+      _say('משימה הושלמה: '+ms[i].text+' '+(ms[i].why||''));
+      if(spec.onSolve)try{spec.onSolve(i,ms[i]);}catch(e){}
     }
   };
+  api.solved=function(i){return i>=0&&i<ms.length&&isDone(i);};
   api.model=function(html){
     if(html===lastModel)return;lastModel=html;
-    M.hidden=!html;M.innerHTML=html?'<span class="sk-model-ic" aria-hidden="true">📐</span><span class="sk-model-tx">'+html+'</span>':'';
+    M.hidden=!html;
+    if(!html){M.innerHTML='';return;}
+    if(!M.firstChild){var ic=el('span','sk-model-ic','📐');ic.setAttribute('aria-hidden','true');M.appendChild(ic);M.appendChild(el('span','sk-model-tx'));}
+    M.lastChild.innerHTML=html;fx(M.lastChild);
+    // it changes every frame of a drag: a screen reader hears it once it
+    // settles, and only while the learner is working this sim
+    clearTimeout(sayT);
+    sayT=setTimeout(function(){var a=document.activeElement;if(a&&a!==document.body&&host.contains(a)&&lastModel===html)_say(html);},1500);
   };
   api.predict=function(p,cb){
-    if(!p){Q.hidden=true;Q.innerHTML='';return;}
-    Q.hidden=false;
-    Q.innerHTML='<div class="sk-pq"><span aria-hidden="true">🤔</span> '+p.q+'</div><div class="sk-po"></div><div class="sk-pa" hidden></div>';
-    var o=Q.querySelector('.sk-po');
-    p.opts.forEach(function(t,i){
-      var b=document.createElement('button');b.type='button';b.className='sk-opt';b.innerHTML=t;
+    Q.innerHTML='';Q.classList.remove('answered');
+    if(!p){Q.hidden=true;Q.removeAttribute('role');return;}
+    Q.hidden=false;Q.setAttribute('role','group');Q.setAttribute('aria-labelledby','sk-q'+uid);
+    var eb=el('div','sk-eyebrow');eb.textContent='🤔 תחזית';
+    var qq=el('div','sk-pq',p.q);qq.id='sk-q'+uid;
+    var o=el('div','sk-po'),a=el('div','sk-pa');a.hidden=true;
+    Q.appendChild(eb);Q.appendChild(qq);Q.appendChild(o);Q.appendChild(a);
+    var bs=p.opts.map(function(t,i){
+      var b=el('button','sk-opt'),k=el('span','sk-mk');b.type='button';k.setAttribute('aria-hidden','true');
+      b.appendChild(k);b.appendChild(el('span','',t));
+      // answered options keep the focus (a disabled button would drop it on
+      // the page), so they are marked unavailable instead of disabled
       b.addEventListener('click',function(){
         if(Q.classList.contains('answered'))return;
         Q.classList.add('answered');var ok=i===p.correct;
-        [].forEach.call(o.children,function(x,j){x.classList.toggle('right',j===p.correct);x.classList.toggle('wrong',j===i&&!ok);x.disabled=true;});
-        var a=Q.querySelector('.sk-pa');a.hidden=false;
-        a.innerHTML=(ok?'<b class="sk-ok">✓ נכון.</b> ':'<b class="sk-no">✗ לא בדיוק.</b> ')+(p.why||'');
+        bs.forEach(function(x,j){var r=j===p.correct,w=j===i&&!ok;
+          x.classList.toggle('right',r);x.classList.toggle('wrong',w);
+          x.firstChild.textContent=r?'✓':w?'✗':'';x.setAttribute('aria-disabled','true');
+          if(j===i)x.setAttribute('aria-pressed','true');});
+        a.hidden=false;
+        a.innerHTML=(ok?'<b class="sk-ok">✓ נכון.</b> ':'<b class="sk-no">✗ לא בדיוק.</b> ')+(p.why||'');fx(a);_say(a.innerHTML);
         if(cb)cb(i,ok);
       });
-      o.appendChild(b);
+      o.appendChild(b);return b;
     });
-    Q.classList.remove('answered');
+    fx(qq);fx(o);
   };
+  api.tabs=function(o){
+    var bar=el('div','sk-tabs'),cur=o.value,bs={};
+    bar.setAttribute('role','group');if(o.label)bar.setAttribute('aria-label',o.label);
+    o.items.forEach(function(it){
+      var b=el('button','sk-tab',it.label);b.type='button';b.id='btn-sk-'+it.id;
+      b.setAttribute('aria-pressed',String(it.id===cur));
+      b.addEventListener('click',function(){set(it.id);});
+      bar.appendChild(b);bs[it.id]=b;
+    });
+    function set(v,quiet){if(!bs[v])return;var ch=v!==cur;cur=v;
+      for(var k in bs)bs[k].setAttribute('aria-pressed',String(k===v));
+      if(ch&&!quiet&&o.onChange)o.onChange(v);}
+    wrap.parentNode.insertBefore(bar,wrap);
+    return {set:set,get:function(){return cur;},el:bar};
+  };
+  api.keys=function(fn){
+    canvas.tabIndex=0;canvas.classList.add('sk-keys');
+    // a key the sim used is the sim's: the page's own arrows (the previous and
+    // next section) must not also act on it
+    canvas.addEventListener('keydown',function(e){if(e.altKey||e.ctrlKey||e.metaKey)return;if(fn(e)){e.preventDefault();e.stopPropagation();}});
+  };
+  api.label=function(t){if(t&&canvas.getAttribute('aria-label')!==t)canvas.setAttribute('aria-label',t);};
   return api;
 }
-// maths inside a kit text: one left-to-right run, whatever the page direction
-function _skM(t){return '<span class="math-ltr sk-f" dir="ltr">'+String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;')+'</span>';}
+// maths inside a kit text: one left-to-right run, whatever the page direction;
+// x_0, T_C, I_{max} are set as subscripts (as the canvas labels set them) and
+// v^2, s^{-1} as superscripts
+function _skM(t){var br=function(b){return b.charAt(0)==='{'?b.slice(1,-1):b;};
+  return '<span class="math-ltr sk-f" dir="ltr">'+String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;')
+  .replace(/([A-Za-z\u0370-\u03FF\u2080-\u2089)])_(\{[^{}]{1,12}\}|[A-Za-z0-9\u0370-\u03FF]{1,6})/g,function(m,a,b){return a+'<sub>'+br(b)+'</sub>';})
+  .replace(/([A-Za-z0-9\u0370-\u03FF)>])\^(\{[^{}]{1,12}\}|[\-\u2212]?[A-Za-z0-9]{1,3})/g,function(m,a,b){return a+'<sup>'+br(b)+'</sup>';})+'</span>';}
 
 // ── Shared drawing helpers ─────────────────────
 function simArrow(ctx, x1,y1, x2,y2, color, lw, hw){
@@ -20533,121 +20709,626 @@ function simOptLaser(canvas){
 }
 
 
+// ── Colour science of the colour-mixing simulation ──────────────────────
+// What the eye is told, from what reaches it. A light is a spectrum, sampled
+// every nanometre from 380 to 720 nm. The eye reduces it to three numbers:
+// the responses of its L, M and S cones (the Smith–Pokorny transform applied
+// to the CIE 1931 colour-matching functions -- the fundamentals proper start
+// from Judd–Vos's correction of them, which differs below ~460 nm, so S peaks
+// at 448 nm here instead of ~440 nm; the functions are the multi-lobe fit of
+// Wyman, Sloan & Shirley, JCGT 2013, within a few percent of the tables). Two different spectra with the same three numbers are the same
+// colour (metamers). What the screen shows is that colour: CIE XYZ -> linear
+// sRGB -> clipped to what a screen can make -> gamma-encoded. Lights ADD their
+// spectra; a filter or a surface MULTIPLIES the light by its transmission or
+// reflectance. Adding gamma-encoded RGB values instead (as the earlier
+// version of the simulation did) is right only at full power: there half a
+// lamp gave a fifth of its light, and unequal mixtures came out in the wrong
+// hue.
+var _cmx=(function(){
+  var L0=380,L1=720,N=L1-L0+1,LAM=new Float32Array(N),CX=new Float32Array(N),CY=new Float32Array(N),CZ=new Float32Array(N);
+  function g(x,mu,t1,t2){var t=(x-mu)*(x<mu?t1:t2);return Math.exp(-0.5*t*t);}
+  for(var i=0;i<N;i++){var l=L0+i;LAM[i]=l;
+    CX[i]=1.056*g(l,599.8,0.0264,0.0323)+0.362*g(l,442.0,0.0624,0.0374)-0.065*g(l,501.1,0.0490,0.0382);
+    CY[i]=0.821*g(l,568.8,0.0213,0.0247)+0.286*g(l,530.9,0.0613,0.0322);
+    CZ[i]=1.217*g(l,437.0,0.0845,0.0278)+0.681*g(l,459.0,0.0385,0.0725);}
+  function spec(f){var a=new Float32Array(N);for(var i=0;i<N;i++)a[i]=f(LAM[i]);return a;}
+  function band(mu,sg){return spec(function(l){var d=(l-mu)/sg;return Math.exp(-0.5*d*d);});}
+  function sig(x){return 1/(1+Math.exp(-x));}
+  function xyz(s){var x=0,y=0,z=0;for(var i=0;i<N;i++){var v=s[i];x+=v*CX[i];y+=v*CY[i];z+=v*CZ[i];}return [x,y,z];}
+  function mulS(){var a=new Float32Array(N),k,i;for(i=0;i<N;i++)a[i]=1;
+    for(k=0;k<arguments.length;k++){var s=arguments[k];if(typeof s==='number')for(i=0;i<N;i++)a[i]*=s;else for(i=0;i<N;i++)a[i]*=s[i];}return a;}
+  function addS(list,w){var a=new Float32Array(N);for(var k=0;k<list.length;k++)if(w[k])for(var i=0;i<N;i++)a[i]+=w[k]*list[k][i];return a;}
+  function mv(M,v){return [M[0]*v[0]+M[1]*v[1]+M[2]*v[2],M[3]*v[0]+M[4]*v[1]+M[5]*v[2],M[6]*v[0]+M[7]*v[1]+M[8]*v[2]];}
+  function inv(m){var a=m[0],b=m[1],c=m[2],d=m[3],e=m[4],f=m[5],g2=m[6],h=m[7],k=m[8];
+    var A=e*k-f*h,B=-(d*k-f*g2),C=d*h-e*g2,D=a*A+b*B+c*C;
+    return [A/D,-(b*k-c*h)/D,(b*f-c*e)/D,B/D,(a*k-c*g2)/D,-(a*f-c*d)/D,C/D,-(a*h-b*g2)/D,(a*e-b*d)/D];}
+  // XYZ -> cones (Smith & Pokorny 1975) and -> linear sRGB (IEC 61966-2-1, D65)
+  var SP=[0.15514,0.54312,-0.03286,-0.15514,0.45684,0.03286,0,0,0.00801],SPi=inv(SP);
+  var M709=[3.2404542,-1.5371385,-0.4985314,-0.9692660,1.8760108,0.0415560,0.0556434,-0.2040259,1.0572252];
+  var D65=[0.95047,1,1.08883],WX=0.3127,WY=0.3290;
+  // the three LED lamps: red 630 nm, green 535 nm, blue 460 nm (typical
+  // AlGaInP / InGaN bands, 19-31 nm wide), each scaled so that the three at
+  // full power make daylight white (D65) of luminance 1
+  var LED=[band(630,8),band(535,13),band(460,10)],LX=LED.map(xyz);
+  var Pw=mv(inv([LX[0][0],LX[1][0],LX[2][0],LX[0][1],LX[1][1],LX[2][1],LX[0][2],LX[1][2],LX[2][2]]),D65);
+  for(var k=0;k<3;k++){for(var i2=0;i2<N;i2++)LED[k][i2]*=Pw[k];LX[k]=xyz(LED[k]);}
+  // one wavelength only: a 580 nm line (the yellow of the lesson's table)
+  var YEL=band(580,1.2),yx=xyz(YEL);for(var i3=0;i3<N;i3++)YEL[i3]*=0.3/yx[1];
+  // white light with every wavelength in equal measure, luminance 1
+  var FLAT=spec(function(){return 1;}),fy=xyz(FLAT)[1];for(var i4=0;i4<N;i4++)FLAT[i4]/=fy;
+  // the eye adapts to the white of the light box: von Kries scaling of the cones
+  var lw=mv(SP,xyz(FLAT)),ld=mv(SP,D65),VK=[ld[0]/lw[0],ld[1]/lw[1],ld[2]/lw[2]];
+  // dye filters (soft edges): cyan absorbs red, magenta green, yellow blue
+  var tmin=0.006,tmax=0.92;
+  var FIL=[spec(function(l){return tmin+(tmax-tmin)*(1-sig((l-588)/6));}),
+           spec(function(l){return tmax-(tmax-tmin)*sig((l-480)/6)*(1-sig((l-604)/6));}),
+           spec(function(l){return tmin+(tmax-tmin)*sig((l-506)/6);})];
+  // reflectances: a red shirt (a dye that reflects only beyond ~600 nm), a
+  // green leaf (chlorophyll absorbs red and blue), white paper, a grey wall,
+  // a lighter grey table top
+  var REF=[spec(function(l){return 0.02+0.78*sig((l-600)/9);}),
+           spec(function(l){var d=(l-552)/27;return 0.035+0.40*Math.exp(-0.5*d*d);}),
+           spec(function(){return 0.88;}),spec(function(){return 0.30;}),spec(function(){return 0.42;})];
+  // cones of the reference whites, for "percent of white"
+  var CW=mv(SP,D65);
+  function cones(X,adapt){var c=mv(SP,X);if(adapt){c[0]*=VK[0];c[1]*=VK[1];c[2]*=VK[2];}return [c[0]/CW[0],c[1]/CW[1],c[2]/CW[2]];}
+  function adaptXYZ(X){var c=mv(SP,X);return mv(SPi,[c[0]*VK[0],c[1]*VK[1],c[2]*VK[2]]);}
+  // the screen: linear sRGB, negative parts clipped (a spectral colour is
+  // purer than any screen can show), then gamma-encoded
+  function enc(v){return v<=0.0031308?12.92*v:1.055*Math.pow(v,1/2.4)-0.055;}
+  var LUT=new Uint8ClampedArray(4097);for(var i5=0;i5<=4096;i5++)LUT[i5]=Math.round(255*enc(i5/4096));
+  function lin(X){return mv(M709,X);}
+  // A lamp alone is purer than the screen's own primary (red 1.6 times
+  // over), so what is brighter than the screen's white is rolled off softly
+  // instead of cut: 50 % and 100 % of a lamp still look different
+  function knee(m){return m<=0.8?1:(0.8+0.2*(1-Math.exp(-(m-0.8)/0.2)))/m;}
+  function disp(X){var c=lin(X),r=Math.max(0,c[0]),g3=Math.max(0,c[1]),b=Math.max(0,c[2]),k=knee(Math.max(r,g3,b));
+    r*=k;g3*=k;b*=k;return [LUT[Math.round(r*4096)],LUT[Math.round(g3*4096)],LUT[Math.round(b*4096)]];}
+  function hex(c){return '#'+c.map(function(v){return (v<16?'0':'')+v.toString(16);}).join('').toUpperCase();}
+  // CIELAB (reference white D65, Y=1) and CIEDE2000 (Sharma, Wu & Dalal 2005)
+  function lab(X){var f=function(t){return t>216/24389?Math.cbrt(t):(24389/27*t+16)/116;};
+    var fx=f(X[0]/D65[0]),fy2=f(X[1]),fz=f(X[2]/D65[2]);return [116*fy2-16,500*(fx-fy2),200*(fy2-fz)];}
+  function de00(A,B){var rad=Math.PI/180,l1=A[0],a1=A[1],b1=A[2],l2=B[0],a2=B[1],b2=B[2];
+    var C1=Math.hypot(a1,b1),C2=Math.hypot(a2,b2),Cb=(C1+C2)/2,c7=Math.pow(Cb,7),G=0.5*(1-Math.sqrt(c7/(c7+6103515625)));
+    var a1p=(1+G)*a1,a2p=(1+G)*a2,C1p=Math.hypot(a1p,b1),C2p=Math.hypot(a2p,b2);
+    var hf=function(b,a){if(!b&&!a)return 0;var v=Math.atan2(b,a)/rad;return v<0?v+360:v;},h1p=hf(b1,a1p),h2p=hf(b2,a2p);
+    var dL=l2-l1,dC=C2p-C1p,dh=0;if(C1p*C2p){dh=h2p-h1p;if(dh>180)dh-=360;else if(dh<-180)dh+=360;}
+    var dH=2*Math.sqrt(C1p*C2p)*Math.sin(dh/2*rad),Lb=(l1+l2)/2,Cbp=(C1p+C2p)/2,hb=h1p+h2p;
+    if(C1p*C2p){hb=Math.abs(h1p-h2p)>180?(h1p+h2p<360?(h1p+h2p+360)/2:(h1p+h2p-360)/2):(h1p+h2p)/2;}
+    var T=1-0.17*Math.cos((hb-30)*rad)+0.24*Math.cos(2*hb*rad)+0.32*Math.cos((3*hb+6)*rad)-0.20*Math.cos((4*hb-63)*rad);
+    var dth=30*Math.exp(-Math.pow((hb-275)/25,2)),c7p=Math.pow(Cbp,7),RC=2*Math.sqrt(c7p/(c7p+6103515625));
+    var SL=1+0.015*(Lb-50)*(Lb-50)/Math.sqrt(20+(Lb-50)*(Lb-50)),SC=1+0.045*Cbp,SH=1+0.015*Cbp*T,RT=-Math.sin(2*dth*rad)*RC;
+    return Math.sqrt(Math.pow(dL/SL,2)+Math.pow(dC/SC,2)+Math.pow(dH/SH,2)+RT*(dC/SC)*(dH/SH));}
+  // the spectral locus from 400 to 650 nm (beyond, the fit's tails are not
+  // reliable and the hue no longer changes) and the purple line closing it
+  var LOC=[];for(var w=400;w<=650;w++){var q=xyz(band(w,0.4)),s2=q[0]+q[1]+q[2];LOC.push([w,q[0]/s2,q[1]/s2]);}
+  // dominant wavelength: where the ray from white through the colour meets
+  // the locus; or, for a purple, how far along the purple line (0 at the red
+  // end, 1 at the violet end) -- and the excitation purity
+  function hue(X){var s3=X[0]+X[1]+X[2];if(!(s3>1e-9))return null;var x=X[0]/s3,y=X[1]/s3,dx=x-WX,dy=y-WY,d=Math.hypot(dx,dy);
+    if(d<1e-6)return {wl:null,pur:0,x:x,y:y};
+    var best=null;
+    function hit(ax,ay,bx,by){var ex=bx-ax,ey=by-ay,den=dx*ey-dy*ex;if(Math.abs(den)<1e-12)return null;
+      var t=((ax-WX)*ey-(ay-WY)*ex)/den,u=((ax-WX)*dy-(ay-WY)*dx)/den;return (t>0&&u>=-1e-9&&u<=1+1e-9)?[t,u]:null;}
+    for(var j=0;j<LOC.length-1;j++){var r=hit(LOC[j][1],LOC[j][2],LOC[j+1][1],LOC[j+1][2]);
+      if(r&&(!best||r[0]<best.t))best={t:r[0],wl:LOC[j][0]+r[1]};}
+    var P0=LOC[LOC.length-1],P1=LOC[0],rp=hit(P0[1],P0[2],P1[1],P1[2]);
+    if(rp&&(!best||rp[0]<best.t))best={t:rp[0],wl:null,u:rp[1]};
+    if(!best)return {wl:null,pur:0,x:x,y:y};
+    return {wl:best.wl,u:best.u,pur:Math.min(1,1/best.t),x:x,y:y};}
+  // A name only when the colour really is that colour: by dominant
+  // wavelength, purity and lightness. The bands follow the lesson's table
+  // where it can (violet < 450, blue < 485, green to 556, yellow 568-582 nm),
+  // the borders between two colours named as both, but a dominant wavelength
+  // is not the wavelength of a spectral light: a broad red such as the
+  // magenta and yellow filters leave has its dominant wavelength near 614 nm
+  // (the table's orange), and the lamps' red + green, seen yellow, 569 nm --
+  // so red starts at 605 nm and yellow at 568 nm here. Lights in a dark room
+  // have no "grey" or "brown": a dim white light is still white.
+  var NM={black:'שחור',white:'לבן',dimwhite:'לבן עמום',grey:'אפור',red:'אדום',orange:'כתום',ambr:'צהוב־כתום',yellow:'צהוב',
+    ygreen:'ירוק־צהבהב',green:'ירוק',cyan:'ציאן',blue:'כחול',violet:'סגול',magenta:'מגנטה',rose:'ורוד עז',
+    pink:'ורוד בהיר',pyellow:'צהוב חיוור',pgreen:'ירוק חיוור',pblue:'תכלת',lilac:'סגול חיוור',
+    brown:'חום',dred:'אדום כהה',dgreen:'ירוק כהה',dblue:'כחול כהה',dviolet:'סגול כהה'};
+  function hueKey(h){
+    if(h.wl===null){var u=h.u||0;return u<0.12?'red':u<0.36?'rose':u<0.8?'magenta':'violet';}
+    var l=h.wl;return l<450?'violet':l<485?'blue':l<500?'cyan':l<556?'green':l<568?'ygreen':l<582?'yellow':l<591?'ambr':l<605?'orange':'red';}
+  var PALE={red:'pink',rose:'pink',magenta:'pink',orange:'pink',ambr:'pyellow',yellow:'pyellow',ygreen:'pgreen',green:'pgreen',cyan:'pblue',blue:'pblue',violet:'lilac'};
+  var DARK={red:'dred',rose:'dred',magenta:'dviolet',violet:'dviolet',orange:'brown',ambr:'brown',yellow:'brown',ygreen:'dgreen',green:'dgreen',cyan:'dblue',blue:'dblue'};
+  // "dark" is relative to how light that hue can be at all: pure blue is
+  // never lighter than L* = 32, pure yellow reaches 97
+  var DT={yellow:45,ambr:42,orange:40,ygreen:40,green:35,cyan:35,red:28,rose:28,magenta:28,violet:18,blue:10};
+  // light: relative luminance of the lamps' white is 1; surface: of a perfect white
+  function nameKey(X,surface){var Y=X[1],Ls=lab(X)[0],h=hue(X);
+    var D=disp(X),dm=Math.max(D[0],D[1],D[2]);
+    if(surface?(Ls<15&&dm<=90):dm<20)return 'black';
+    if(!h||h.pur<0.1)return surface?(Ls>=85?'white':'grey'):(Y>=0.45?'white':'dimwhite');
+    var k=hueKey(h);
+    if(surface&&Ls<DT[k])return DARK[k];
+    if(h.pur<0.3)return PALE[k];
+    return k;}
+  function name(X,surface){return NM[nameKey(X,surface)];}
+  // for the spectrum plot: each wavelength in its own colour (as pure as the
+  // screen allows, fading towards the ends of the visible), and the three
+  // cone sensitivities, each scaled to a peak of 1
+  var WLC=[],CONE=[],cm=[0,0,0];
+  for(var i6=0;i6<N;i6++){var c6=mv(SP,[CX[i6],CY[i6],CZ[i6]]);CONE.push(c6);for(var j6=0;j6<3;j6++)cm[j6]=Math.max(cm[j6],c6[j6]);
+    var r6=lin([CX[i6],CY[i6],CZ[i6]]).map(function(v){return Math.max(0,v);}),m6=Math.max(r6[0],r6[1],r6[2])||1,
+        f6=Math.max(0.18,Math.min(1,(LAM[i6]-380)/45,(720-LAM[i6])/70));
+    WLC.push('rgb('+r6.map(function(v){return LUT[Math.round(v/m6*f6*4096)];}).join(',')+')');}
+  CONE.forEach(function(c){c[0]/=cm[0];c[1]/=cm[1];c[2]/=cm[2];});
+  return {N:N,L0:L0,LAM:LAM,CX:CX,CY:CY,CZ:CZ,SP:SP,LED:LED,LX:LX,YEL:YEL,YX:xyz(YEL),FLAT:FLAT,FIL:FIL,REF:REF,
+    xyz:xyz,band:band,mulS:mulS,addS:addS,cones:cones,adaptXYZ:adaptXYZ,lin:lin,disp:disp,knee:knee,hex:hex,lab:lab,de00:de00,hue:hue,
+    nameKey:nameKey,name:name,NM:NM,LUT:LUT,M709:M709,WLC:WLC,CONE:CONE,CW:CW,enc:enc};
+})();
+
 // ─────────────────────────────────────────────────────────────
-// COLOR MIXING sim — Additive RGB spotlights
+// COLOUR MIXING -- what reaches the eye, and what the eye makes of it
 // ─────────────────────────────────────────────────────────────
+// One idea: a colour is what the eye's three kinds of cones report about
+// the light that reaches it -- three numbers, not a wavelength. Three modes
+// share one instrument, the probe, whose panel shows the spectrum arriving
+// there, the S, M and L cone signals and the colour they are seen as:
+//  • lights: three LED spotlights on a white screen in a dark room. Their
+//    spectra ADD: red + green is seen as yellow with no 580 nm light in it,
+//    and a pure 580 nm lamp can be matched by red + green (metamers);
+//  • filters: cyan, magenta and yellow gels on a white light box. Each
+//    MULTIPLIES the light by its transmission: C·M leaves blue, M·Y red,
+//    C·Y green, all three almost nothing;
+//  • objects: a lamp of any R, G, B mix over a red shirt, a green leaf and
+//    white paper. A surface returns lamp × reflectance: the red shirt is
+//    black under green light.
+// Every colour drawn is computed from the spectra (_cmx) -- never by adding
+// screen RGB values.
 function simOptColorMix(canvas){
-  // initSim calls every simulation as (canvas, TYPE), so a parameter named
-  // `id` here held the type string while _simStop/_simGen are keyed by the
-  // canvas id -- the stop flag could never reach this loop.
-  var id=canvas.id, _g=_simGen[id];
-  var R=setupCanvas(canvas,460);var ctx=R.ctx,W=R.W,H=R.H;
-  function gR(){var e=document.getElementById('inp-cm-red');return e?parseFloat(e.value)/100:0.8;}
-  function gG(){var e=document.getElementById('inp-cm-green');return e?parseFloat(e.value)/100:0.8;}
-  function gB(){var e=document.getElementById('inp-cm-blue');return e?parseFloat(e.value)/100:0.8;}
-  // ── Direct manipulation: drag each spotlight around ──
-  var cOff={r:{x:0,y:0},g:{x:0,y:0},b:{x:0,y:0}},dragC=null,touchedC=false,cPos={};
-  function _cDn(e){var p=simPointerXY(canvas,R.dpr,e);
-    var hit=null;['r','g','b'].forEach(function(k){if(cPos[k]&&Math.hypot(p.x-cPos[k].x,p.y-cPos[k].y)<cPos[k].r*0.5)hit=k;});
-    if(hit){dragC=hit;touchedC=true;canvas.style.cursor='grabbing';e.preventDefault();}}
-  function _cMv(e){var p=simPointerXY(canvas,R.dpr,e);
-    if(dragC&&cPos[dragC]){
-      cOff[dragC].x=Math.max(-W*0.32,Math.min(W*0.32,cOff[dragC].x+p.x-cPos[dragC].x));
-      cOff[dragC].y=Math.max(-H*0.22,Math.min(H*0.3,cOff[dragC].y+p.y-cPos[dragC].y));
-      e.preventDefault();
-    } else {
-      var hov=false;['r','g','b'].forEach(function(k){if(cPos[k]&&Math.hypot(p.x-cPos[k].x,p.y-cPos[k].y)<cPos[k].r*0.5)hov=true;});
-      canvas.style.cursor=hov?'grab':'';
-    }}
-  function _cUp(){dragC=null;canvas.style.cursor='';}
-  canvas.addEventListener('mousedown',_cDn);canvas.addEventListener('touchstart',_cDn,{passive:false});
-  canvas.addEventListener('mousemove',_cMv);canvas.addEventListener('touchmove',_cMv,{passive:false});
-  canvas.addEventListener('mouseup',_cUp);canvas.addEventListener('touchend',_cUp);
-  // the clock starts when the sim opens: on page time the drag hint below
-  // (animT < 9) was gone for anyone who reached this sim after nine seconds
-  var t0=null;
-  function draw(ts){
-    if(_simGen[id]!==_g)return;if(_simStop[id])return;
-    if(t0===null)t0=ts||0;
-    var animT=((ts||0)-t0)/1000;
-    var pulse=1+0.07*Math.sin(animT*1.8);// gentle breathing ±7%
-    var drift=Math.sin(animT*0.65)*2.5;// slow 2.5px oscillation
-    var rv=gR(),gv=gG(),bv=gB();
-    ctx.fillStyle='#060c18';ctx.fillRect(0,0,W,H);
-    ctx.fillStyle='#475569';ctx.font='bold 10px Heebo';ctx.textAlign='center';
-    ctx.fillText(_mathIso('ערבוב חיבורי — אור (R+G+B)'),W/2,14);
-    // three overlapping beams, as on a stage: centres on a small triangle so
-    // every pair overlaps and all three meet in the middle (they used to sit
-    // so far apart that no colour ever mixed until the learner dragged them)
-    var cy=H*0.42,cr=Math.min(W*0.2,H*0.27),rho=cr*0.62;
-    var rX=W/2-0.866*rho+drift*0.4+cOff.r.x,rY=cy+0.5*rho+cOff.r.y;
-    var gX=W/2+0.866*rho-drift*0.4+cOff.g.x,gY=cy+0.5*rho+cOff.g.y;
-    var bX=W/2+cOff.b.x, bY=cy-rho+cOff.b.y;
-    cPos.r={x:rX,y:rY,r:cr};cPos.g={x:gX,y:gY,r:cr};cPos.b={x:bX,y:bY,r:cr};
-    if(!touchedC&&animT<9){
-      ctx.save();ctx.fillStyle='#fbbf24';ctx.font='bold 10px Heebo';ctx.textAlign='center';
-      ctx.fillText('✋ גררו את העיגולים — צרו חפיפות חדשות!',W/2,H*0.8);ctx.restore();
-    }
-    ctx.save();ctx.globalCompositeOperation='lighter';
-    // Red
-    var ri=Math.round(rv*255);
-    var gRed=ctx.createRadialGradient(rX,rY,0,rX,rY,cr);
-    gRed.addColorStop(0,'rgba('+ri+',0,0,'+Math.min(1,rv+0.1).toFixed(2)+')');
-    gRed.addColorStop(0.72,'rgba('+ri+',0,0,'+Math.min(1,rv+0.1).toFixed(2)+')');
-    gRed.addColorStop(1,'rgba('+ri+',0,0,0)');
-    ctx.beginPath();ctx.arc(rX,rY,cr,0,Math.PI*2);ctx.fillStyle=gRed;ctx.fill();
-    // Green
-    var gi=Math.round(gv*255);
-    var gGrn=ctx.createRadialGradient(gX,gY,0,gX,gY,cr);
-    gGrn.addColorStop(0,'rgba(0,'+gi+',0,'+Math.min(1,gv+0.1).toFixed(2)+')');
-    gGrn.addColorStop(0.72,'rgba(0,'+gi+',0,'+Math.min(1,gv+0.1).toFixed(2)+')');
-    gGrn.addColorStop(1,'rgba(0,'+gi+',0,0)');
-    ctx.beginPath();ctx.arc(gX,gY,cr,0,Math.PI*2);ctx.fillStyle=gGrn;ctx.fill();
-    // Blue
-    var bi=Math.round(bv*255);
-    var gBlu=ctx.createRadialGradient(bX,bY,0,bX,bY,cr);
-    gBlu.addColorStop(0,'rgba(0,0,'+bi+','+Math.min(1,bv+0.1).toFixed(2)+')');
-    gBlu.addColorStop(0.72,'rgba(0,0,'+bi+','+Math.min(1,bv+0.1).toFixed(2)+')');
-    gBlu.addColorStop(1,'rgba(0,0,'+bi+',0)');
-    ctx.beginPath();ctx.arc(bX,bY,cr,0,Math.PI*2);ctx.fillStyle=gBlu;ctx.fill();
-    ctx.restore();
-    // Spotlight source dots (above circles)
-    ctx.save();
-    var sY=H*0.09;
-    [[rX,'#ff4444','אדום'],[gX,'#44ff44','ירוק'],[bX,'#4488ff','כחול']].forEach(function(arr){
-      var sx=arr[0],col=arr[1],lbl=arr[2];
-      ctx.fillStyle=col;ctx.beginPath();ctx.arc(sx,sY,7*pulse,0,Math.PI*2);ctx.fill();
-      ctx.strokeStyle='#334155';ctx.lineWidth=0.5;
-      ctx.beginPath();ctx.moveTo(sx,sY+7);ctx.lineTo(sx,H*0.18);ctx.stroke();
-    });
-    ctx.restore();
-    // Overlap region labels
-    ctx.save();ctx.font='bold 9px Heebo';ctx.textAlign='center';
-    // name a mixture only where the two (or three) beams really overlap
-    function ov(ax,ay,bx,by){return Math.hypot(ax-bx,ay-by)<cr*1.45;}
-    var oRG=ov(rX,rY,gX,gY),oGB=ov(gX,gY,bX,bY),oRB=ov(rX,rY,bX,bY);
-    ctx.fillStyle='#0b1220';
-    if(oRG)ctx.fillText('צהוב',(rX+gX)/2,(rY+gY)/2+22);
-    if(oGB)ctx.fillText('ציאן',(gX+bX)/2+10,(gY+bY)/2);
-    if(oRB)ctx.fillText('מגנטה',(rX+bX)/2-10,(rY+bY)/2);
-    if(oRG&&oGB&&oRB)ctx.fillText('לבן',(rX+gX+bX)/3,(rY+gY+bY)/3+4);
-    ctx.restore();
-    // Info box
-    ctx.save();ctx.fillStyle='rgba(10,22,40,0.9)';ctx.strokeStyle='#1e293b';ctx.lineWidth=1;
-    ctx.beginPath();ctx.roundRect(10,H-74,W-20,60,6);ctx.fill();ctx.stroke();
-    ctx.textAlign='center';ctx.font='11px Heebo';
-    ctx.fillStyle='#ff6464';ctx.fillText('R: '+Math.round(rv*100)+'%',W*0.22,H-53);
-    ctx.fillStyle='#64ff64';ctx.fillText('G: '+Math.round(gv*100)+'%',W*0.5,H-53);
-    ctx.fillStyle='#6496ff';ctx.fillText('B: '+Math.round(bv*100)+'%',W*0.78,H-53);
-    var sumR=Math.min(255,ri),sumG=Math.min(255,gi),sumB=Math.min(255,bi);
-    ctx.fillStyle='rgb('+sumR+','+sumG+','+sumB+')';
-    ctx.fillText('צבע מרכז RGB('+sumR+','+sumG+','+sumB+')',W/2,H-33);
-    ctx.fillStyle='#64748b';ctx.font='9px Heebo';
-    ctx.fillText('צהוב = R+G   ·   ציאן = G+B   ·   מגנטה = R+B   ·   לבן = R+G+B',W/2,H-16);
-    ctx.restore();
-    requestAnimationFrame(draw);
+  // initSim calls every simulation as (canvas, TYPE): the stop flag and the
+  // generation are keyed by the canvas id
+  var id=canvas.id,_g=_simGen[id],C=_cmx;
+  var cw=canvas.offsetWidth||(canvas.parentElement&&canvas.parentElement.offsetWidth)||720,wide=cw>=640;
+  var R=setupCanvas(canvas,wide?470:590),ctx=R.ctx,W=R.W,H=R.H;
+  var rtl=document.documentElement.dir!=='ltr',RM=_reducedMotion();
+  // ── layout: the stage, and the eye's panel beside it (wide) or under it ──
+  var S,PN;
+  if(wide){var pw=Math.round(Math.max(300,Math.min(370,W*0.4))),sw=W-pw-30;
+    S={x:rtl?pw+20:10,y:10,w:sw,h:H-20};PN={x:rtl?10:sw+20,y:10,w:pw,h:H-20};}
+  else{var ph=236;S={x:8,y:8,w:W-16,h:H-ph-12};PN={x:8,y:H-ph,w:W-16,h:ph-8};}
+  var cx0=S.x+S.w/2,cy0=S.y+S.h*0.53;
+  var cr=Math.min(S.w*0.24,S.h*0.27),ys=cr*0.52;              // spot radii: lamps, the 580 nm lamp
+  var BOX={x:S.x+12,y:S.y+30,w:S.w-24,h:S.h-42},fr=Math.min(BOX.w*0.25,BOX.h*0.28);
+  var LN=['אדום','ירוק','כחול'],FN=['ציאן','מגנטה','צהוב'];
+  var LCOL=['#ff6b6b','#4ade80','#60a5fa'],FCOL=['#22d3ee','#f0abfc','#fde047'];
+  // ── state ──
+  var mode='add',vals={add:[0.8,0.8,0.8],obj:[1,1,1]},yelOn=false;
+  var spots,ysp,fils,probe={},tried={},drag=null,sel=0,predicted=false,anim=null,ripple=null,dirty=true;
+  function venn(r,cy){return [{x:cx0-0.866*r,y:cy+0.5*r},{x:cx0+0.866*r,y:cy+0.5*r},{x:cx0,y:cy-r}];}
+  function home(m){
+    if(m==='add'){spots=venn(cr*0.62,cy0);ysp={x:rtl?S.x+ys+14:S.x+S.w-ys-14,y:S.y+ys+14};probe.add={x:cx0,y:cy0};}
+    if(m==='sub'){var v=venn(fr*0.62,BOX.y+BOX.h*0.52);fils=[v[2],v[0],v[1]];probe.sub={x:cx0,y:BOX.y+BOX.h*0.52};}
+    if(m==='obj'){probe.obj={x:OBJ[0].cx,y:OBJ[0].cy};}
   }
-  function poll(){if(_simStop[id])return;requestAnimationFrame(draw);}poll();
+  // ── the room of the objects: a grey wall, a table, three things on it ──
+  var wallB=S.y+S.h*0.56,ow=Math.min(S.w*0.27,118),oh=ow*0.86,OBJ=[];
+  (function(){var gap=(S.w-3*ow)/4;for(var i=0;i<3;i++){var j=rtl?2-i:i,x=S.x+gap+j*(ow+gap),y=wallB+(S.y+S.h-wallB-oh)*0.42;
+    OBJ.push({x:x,y:y,cx:x+ow/2,cy:y+oh*0.55,k:i});}})();
+  var ONM=['חולצה אדומה','עלה ירוק','דף לבן'],OWH=['על החולצה','על העלה','על הדף'];
+  function objPath(i){var o=OBJ[i],p=new Path2D(),X=function(u){return o.x+u*ow;},Y=function(v){return o.y+v*oh;};
+    if(i===0){p.moveTo(X(.32),Y(.04));p.lineTo(X(.42),Y(0));p.quadraticCurveTo(X(.5),Y(.13),X(.58),Y(0));p.lineTo(X(.68),Y(.04));
+      p.lineTo(X(.97),Y(.24));p.lineTo(X(.87),Y(.44));p.lineTo(X(.76),Y(.37));p.lineTo(X(.76),Y(1));p.lineTo(X(.24),Y(1));
+      p.lineTo(X(.24),Y(.37));p.lineTo(X(.13),Y(.44));p.lineTo(X(.03),Y(.24));p.closePath();}
+    else if(i===1){p.moveTo(X(.1),Y(.92));p.bezierCurveTo(X(.12),Y(.35),X(.55),Y(.05),X(.95),Y(.06));
+      p.bezierCurveTo(X(.92),Y(.5),X(.55),Y(.97),X(.1),Y(.92));p.closePath();}
+    else{p.moveTo(X(.14),Y(.06));p.lineTo(X(.72),Y(.06));p.lineTo(X(.86),Y(.2));p.lineTo(X(.86),Y(.98));p.lineTo(X(.14),Y(.98));p.closePath();}
+    return p;}
+  var OP=[objPath(0),objPath(1),objPath(2)];
+  home('add');home('sub');home('obj');
+  // ── the light at a point: its spectrum, its colour, which sources made it ──
+  function sm(t){return t<=0?0:t>=1?1:t*t*(3-2*t);}
+  function wAt(c,rad,x,y){var d=Math.hypot(x-c.x,y-c.y),ri=rad*0.84;return d<=ri?1:d>=rad?0:sm((rad-d)/(rad-ri));}
+  function inBox(x,y){return x>=BOX.x&&x<=BOX.x+BOX.w&&y>=BOX.y&&y<=BOX.y+BOX.h;}
+  function filAt(x,y){var m=0;if(!inBox(x,y))return -1;for(var i=0;i<3;i++)if(Math.hypot(x-fils[i].x,y-fils[i].y)<=fr)m|=1<<i;return m;}
+  function surfAt(x,y){for(var i=0;i<3;i++)if(ctx.isPointInPath(OP[i],x*R.dpr,y*R.dpr))return i;return y<wallB?3:4;}
+  var FXYZ={},FDISP={};
+  function filXYZ(m){if(FXYZ[m])return FXYZ[m];var f=[C.FLAT];for(var i=0;i<3;i++)if(m&1<<i)f.push(C.FIL[i]);
+    return (FXYZ[m]=C.adaptXYZ(C.xyz(C.mulS.apply(null,f))));}
+  function css(X){var d=C.disp(X);return 'rgb('+d[0]+','+d[1]+','+d[2]+')';}
+  function filCss(m){return FDISP[m]||(FDISP[m]=css(filXYZ(m)));}
+  var ROX=[];                                   // XYZ of each surface under each LED at full power
+  for(var s0=0;s0<5;s0++){ROX.push([0,1,2].map(function(k){return C.xyz(C.mulS(C.LED[k],C.REF[s0]));}));}
+  function lampXYZ(v){return [0,1,2].reduce(function(a,k){return [a[0]+v[k]*C.LX[k][0],a[1]+v[k]*C.LX[k][1],a[2]+v[k]*C.LX[k][2]];},[0,0,0]);}
+  function surfXYZ(s,v){var a=[0,0,0];for(var k=0;k<3;k++)for(var j=0;j<3;j++)a[j]+=v[k]*ROX[s][k][j];return a;}
+  function F2(v){return v.toFixed(2);}
+  function sample(){
+    var p=probe[mode],o={X:[0,0,0],spec:null,ghost:null,mask:0,surf:false,eq:'',wh:'בגשוש'};
+    if(mode==='add'){
+      var v=vals.add,terms=[],ws=[0,0,0];
+      for(var k=0;k<3;k++){var w=wAt(spots[k],cr,p.x,p.y)*v[k];ws[k]=w;if(w>0.004){terms.push(F2(w)+'·'+'RGB'[k]);}if(w>0.5*v[k]&&v[k]>0.004)o.mask|=1<<k;}
+      var wy=yelOn?wAt(ysp,ys,p.x,p.y):0;if(wy>0.004)terms.push(F2(wy)+'·λ₅₈₀');if(wy>0.5)o.mask|=8;
+      o.spec=C.addS(C.LED.concat([C.YEL]),ws.concat([wy]));o.X=C.xyz(o.spec);o.eq='I = '+(terms.join(' + ')||'0');o.line=wy>0.004;
+    }else if(mode==='sub'){
+      var m=filAt(p.x,p.y);o.surf=true;o.mask=m;
+      if(m<0){o.spec=new Float32Array(C.N);o.eq='I = 0';}
+      else{var f=[C.FLAT],t='I = I₀';for(var i=0;i<3;i++)if(m&1<<i){f.push(C.FIL[i]);t+='·T'+'_'+'CMY'[i];}
+        o.spec=C.mulS.apply(null,f);o.ghost=C.FLAT;o.eq=t;}
+      o.X=m<0?[0,0,0]:filXYZ(m);
+    }else{
+      var vo=vals.obj,s=surfAt(p.x,p.y),L=C.addS(C.LED,vo),lt=[];o.surf=true;o.mask=s;
+      for(var k2=0;k2<3;k2++)if(vo[k2]>0.004)lt.push(F2(vo[k2])+'·'+'RGB'[k2]);
+      o.spec=C.mulS(L,C.REF[s]);o.ghost=L;o.X=surfXYZ(s,vo);
+      o.eq=lt.length?'I = ('+lt.join(' + ')+')·ρ':'I = 0';
+      o.wh=s<3?OWH[s]:s===3?'על הקיר':'על השולחן';
+    }
+    var c=C.SP,X=o.X;
+    o.cones=[(c[6]*X[0]+c[7]*X[1]+c[8]*X[2])/C.CW[2],(c[3]*X[0]+c[4]*X[1]+c[5]*X[2])/C.CW[1],(c[0]*X[0]+c[1]*X[1]+c[2]*X[2])/C.CW[0]];
+    o.key=C.nameKey(X,o.surf);o.name=C.NM[o.key];o.rgb=C.disp(X);
+    return o;
+  }
+  // ── the lights on the screen, pixel by pixel in linear light ──
+  var off=document.createElement('canvas'),ox=null,img=null,regA=[],regS=[];
+  off.width=Math.max(1,Math.round(S.w));off.height=Math.max(1,Math.round(S.h));
+  try{ox=off.getContext('2d');img=ox.createImageData(off.width,off.height);}catch(e){}
+  var BG=[0.0016,0.0024,0.0052],LUT=C.LUT,KNEE=C.knee;
+  function renderAdd(){
+    if(!img)return;
+    var d=img.data,iw=off.width,ih=off.height,L=[],k;
+    for(k=0;k<3;k++){var v=vals.add[k];if(v<=0.001)continue;var lv=C.lin(C.LX[k]);
+      L.push({x:spots[k].x-S.x,y:spots[k].y-S.y,r:cr,ri:cr*0.84,c:[lv[0]*v,lv[1]*v,lv[2]*v],bit:1<<k,X:C.LX[k].map(function(q){return q*v;})});}
+    if(yelOn){var yl=C.lin(C.YX);L.push({x:ysp.x-S.x,y:ysp.y-S.y,r:ys,ri:ys*0.84,c:yl,bit:8,X:C.YX});}
+    var best={};
+    for(var y=0;y<ih;y++)for(var x=0;x<iw;x++){
+      var r=BG[0],g=BG[1],b=BG[2],mask=0,sIn=1e9,sOut=1e9,rim=false;
+      for(k=0;k<L.length;k++){var q=L[k],dx=x-q.x,dy=y-q.y,d2=dx*dx+dy*dy;
+        if(d2>=q.r*q.r){if(!(y%3)&&!(x%3))sOut=Math.min(sOut,Math.sqrt(d2)-q.r);continue;}
+        var dd=Math.sqrt(d2),w=dd<=q.ri?1:sm((q.r-dd)/(q.r-q.ri));
+        r+=w*q.c[0];g+=w*q.c[1];b+=w*q.c[2];
+        if(dd<=q.ri){mask|=q.bit;sIn=Math.min(sIn,q.ri-dd);}else rim=true;}
+      if(r<0)r=0;if(g<0)g=0;if(b<0)b=0;var mx=r>g?(r>b?r:b):(g>b?g:b);if(mx>0.8){var kn=KNEE(mx);r*=kn;g*=kn;b*=kn;}
+      var i4=(y*iw+x)*4;d[i4]=LUT[(r*4096+0.5)|0];d[i4+1]=LUT[(g*4096+0.5)|0];d[i4+2]=LUT[(b*4096+0.5)|0];d[i4+3]=255;
+      // the innermost point of each overlap, for its name
+      if(!rim&&mask&&(mask&(mask-1))&&!(y%3)&&!(x%3)){var sc=Math.min(sIn,sOut,x,y,iw-x,ih-y);
+        if(!best[mask]||sc>best[mask].s)best[mask]={s:sc,x:x+S.x,y:y+S.y};}
+    }
+    ox.putImageData(img,0,0);
+    regA=[];
+    for(var mk in best){var X=[0,0,0];L.forEach(function(q){if(mk&q.bit){X[0]+=q.X[0];X[1]+=q.X[1];X[2]+=q.X[2];}});
+      regA.push({x:best[mk].x,y:best[mk].y,s:best[mk].s,X:X,mask:+mk});}
+  }
+  function subRegions(){
+    var best={};
+    for(var y=BOX.y+4;y<BOX.y+BOX.h-4;y+=4)for(var x=BOX.x+4;x<BOX.x+BOX.w-4;x+=4){
+      var m=0,sIn=1e9,sOut=Math.min(x-BOX.x,BOX.x+BOX.w-x,y-BOX.y,BOX.y+BOX.h-y);
+      for(var i=0;i<3;i++){var d=Math.hypot(x-fils[i].x,y-fils[i].y);if(d<=fr){m|=1<<i;sIn=Math.min(sIn,fr-d);}else sOut=Math.min(sOut,d-fr);}
+      if(m&&(m&(m-1))){var sc=Math.min(sIn,sOut);if(!best[m]||sc>best[m].s)best[m]={s:sc,x:x,y:y};}}
+    regS=[];for(var mk in best)regS.push({x:best[mk].x,y:best[mk].y,s:best[mk].s,X:filXYZ(+mk),mask:+mk,surf:true});
+  }
+  // ── drawing helpers ──
+  function rr(x,y,w,h,r){ctx.beginPath();ctx.roundRect(x,y,w,h,r);}
+  function halo(on,col){ctx.shadowColor=on?(col||'rgba(0,0,0,.85)'):'transparent';ctx.shadowBlur=on?4:0;}
+  function lum(c){return (0.2126*c[0]+0.7152*c[1]+0.0722*c[2])/255;}
+  function eye(x,y,s,col){ctx.save();ctx.strokeStyle=col;ctx.fillStyle=col;ctx.lineWidth=1.5;ctx.beginPath();
+    ctx.moveTo(x-s,y);ctx.quadraticCurveTo(x,y-s*0.95,x+s,y);ctx.quadraticCurveTo(x,y+s*0.95,x-s,y);ctx.closePath();ctx.stroke();
+    ctx.beginPath();ctx.arc(x,y,s*0.36,0,6.2832);ctx.fill();ctx.restore();}
+  // a name on a coloured patch: dark ink on light colours, light ink on dark
+  function patchLabel(t,x,y,rgb,sz){var light=lum(rgb)>0.42;
+    ctx.save();halo(true,light?'rgba(255,255,255,.55)':'rgba(0,0,0,.8)');
+    simText(ctx,t,x,y,light?'#0a0f1a':'#f8fafc',sz||11,'center',true);ctx.restore();}
+  // an overlap named where it is widest -- unless the probe sits there (the
+  // panel names it then) or the name would not fit inside it
+  function regionName(g,surf){var nm=C.name(g.X,surf),p=probe[mode];
+    if(g.s<9||labelW(ctx,nm,11)>2*g.s+10||Math.hypot(p.x-g.x,p.y-g.y)<34)return;patchLabel(nm,g.x,g.y+4,C.disp(g.X),11);}
+  function drawProbe(p,focus){
+    ctx.save();
+    ctx.lineWidth=4;ctx.strokeStyle='rgba(0,0,0,.6)';ctx.beginPath();ctx.arc(p.x,p.y,12,0,6.2832);ctx.stroke();
+    ctx.lineWidth=2;ctx.strokeStyle='#fff';ctx.beginPath();ctx.arc(p.x,p.y,12,0,6.2832);ctx.stroke();
+    ctx.beginPath();[[1,0],[-1,0],[0,1],[0,-1]].forEach(function(u){ctx.moveTo(p.x+u[0]*13,p.y+u[1]*13);ctx.lineTo(p.x+u[0]*18,p.y+u[1]*18);});
+    ctx.lineWidth=3.5;ctx.strokeStyle='rgba(0,0,0,.6)';ctx.stroke();ctx.lineWidth=1.6;ctx.strokeStyle='#fff';ctx.stroke();
+    ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(p.x,p.y,1.8,0,6.2832);ctx.fill();
+    var ey=p.y-27>S.y+8?p.y-27:p.y+27;
+    ctx.save();ctx.shadowColor='rgba(0,0,0,.9)';ctx.shadowBlur=4;eye(p.x,ey,8,'#fff');ctx.restore();
+    if(focus){ctx.setLineDash([3,3]);ctx.lineWidth=1.5;ctx.strokeStyle='#22d3ee';ctx.beginPath();ctx.arc(p.x,p.y,23,0,6.2832);ctx.stroke();ctx.setLineDash([]);}
+    ctx.restore();
+  }
+  function focusRing(x,y,r){ctx.save();ctx.setLineDash([4,3]);ctx.lineWidth=2;ctx.strokeStyle='#22d3ee';ctx.beginPath();ctx.arc(x,y,r,0,6.2832);ctx.stroke();ctx.restore();}
+  function caption(t){ctx.save();simText(ctx,t,rtl?S.x+S.w-12:S.x+12,S.y+20,'#94a3b8',10,rtl?'right':'left');ctx.restore();}
+  function stageHint(t){
+    // with the keyboard on the canvas: how the keys work, instead
+    if(hasFocus()&&kbd)t='חצים: הזזה · Enter: הפריט הבא · Shift: צעד גדול';
+    else if(tried[mode])return;
+    ctx.save();ctx.font='11px Heebo';var w=ctx.measureText(_mathIso(t)).width+22,y=mode==='obj'?S.y+66:mode==='sub'?BOX.y+BOX.h-18:S.y+S.h-16;
+    ctx.fillStyle='rgba(4,9,20,.78)';rr(cx0-w/2,y-12,w,22,11);ctx.fill();
+    simText(ctx,t,cx0,y+3,'#fde68a',11);ctx.restore();}
+  var hasFocus=function(){return document.activeElement===canvas;},kbd=false;
+  // ── the three stages ──
+  function drawAdd(sm0){
+    ctx.save();rr(S.x,S.y,S.w,S.h,12);ctx.clip();
+    if(img){ctx.imageSmoothingEnabled=true;try{ctx.imageSmoothingQuality='high';}catch(e){}ctx.drawImage(off,S.x,S.y,S.w,S.h);}
+    ctx.restore();
+    ctx.save();ctx.strokeStyle='rgba(148,163,184,.22)';ctx.lineWidth=1;rr(S.x+.5,S.y+.5,S.w-1,S.h-1,12);ctx.stroke();ctx.restore();
+    caption('מסך לבן בחדר חשוך');
+    // names of the overlaps -- what each mixture is seen as
+    regA.forEach(function(g){regionName(g,false);});
+    // the lamps: a handle and a name with its power
+    var gcx=(spots[0].x+spots[1].x+spots[2].x)/3,gcy=(spots[0].y+spots[1].y+spots[2].y)/3;
+    for(var k=0;k<3;k++){var sp=spots[k],v=vals.add[k],ux=sp.x-gcx,uy=sp.y-gcy,ul=Math.hypot(ux,uy);
+      if(ul<8){ux=0;uy=1;ul=1;}
+      var tx=sp.x+ux/ul*cr*0.5,ty=sp.y+uy/ul*cr*0.5+(uy>0?14:-2);
+      var lt=LN[k]+' '+Math.round(v*100)+'%',hw=labelW(ctx,lt,11)/2+6;
+      ty=Math.max(S.y+34,Math.min(S.y+S.h-34,ty));tx=Math.max(S.x+hw,Math.min(S.x+S.w-hw,tx));
+      simHandle(ctx,sp.x,sp.y,v>0.02?'#fff':'#64748b',13);
+      ctx.save();halo(true);simText(ctx,lt,tx,ty,v>0.02?'#fff':'#94a3b8',11,'center',true);ctx.restore();
+      if(hasFocus()&&sel===k+1)focusRing(sp.x,sp.y,20);}
+    if(yelOn){simHandle(ctx,ysp.x,ysp.y,'#fff',11);ctx.save();halo(true);simText(ctx,'580 nm',ysp.x,ysp.y+ys+14,'#fde68a',10,'center',true);ctx.restore();
+      if(hasFocus()&&sel===4)focusRing(ysp.x,ysp.y,18);}
+  }
+  function drawSub(){
+    ctx.save();ctx.fillStyle='#0b1220';rr(S.x,S.y,S.w,S.h,12);ctx.fill();ctx.strokeStyle='rgba(148,163,184,.22)';ctx.stroke();ctx.restore();
+    caption('שולחן אור לבן');
+    ctx.save();rr(BOX.x,BOX.y,BOX.w,BOX.h,10);ctx.clip();
+    ctx.fillStyle=filCss(0);ctx.fillRect(BOX.x,BOX.y,BOX.w,BOX.h);
+    var disc=function(i){ctx.beginPath();ctx.arc(fils[i].x,fils[i].y,fr,0,6.2832);};
+    for(var i=0;i<3;i++){disc(i);ctx.fillStyle=filCss(1<<i);ctx.fill();}
+    [[0,1],[0,2],[1,2]].forEach(function(pr){ctx.save();disc(pr[0]);ctx.clip();disc(pr[1]);ctx.fillStyle=filCss((1<<pr[0])|(1<<pr[1]));ctx.fill();ctx.restore();});
+    ctx.save();disc(0);ctx.clip();disc(1);ctx.clip();disc(2);ctx.fillStyle=filCss(7);ctx.fill();ctx.restore();
+    for(var j=0;j<3;j++){disc(j);ctx.strokeStyle='rgba(15,23,42,.28)';ctx.lineWidth=1;ctx.stroke();}
+    ctx.restore();
+    regS.forEach(function(g){regionName(g,true);});
+    for(var k=0;k<3;k++){var f=fils[k],tc=C.disp(filXYZ(1<<k));
+      // the filter's name on the filter, where only it lies
+      var dx=f.x-cx0,dy=f.y-(BOX.y+BOX.h*0.52),dl=Math.hypot(dx,dy)||1,lx=f.x+dx/dl*fr*0.45,ly=f.y+dy/dl*fr*0.45;
+      simHandle(ctx,f.x,f.y,lum(tc)>0.5?'#0f172a':'#fff',13);
+      var fw=labelW(ctx,FN[k],11)/2+6;lx=Math.max(BOX.x+fw,Math.min(BOX.x+BOX.w-fw,lx));ly=Math.max(BOX.y+16,Math.min(BOX.y+BOX.h-10,ly));
+      patchLabel(FN[k],lx,ly+4,tc,11);
+      if(hasFocus()&&sel===k+1)focusRing(f.x,f.y,20);}
+  }
+  function drawObj(){
+    var v=vals.obj,lx=lampXYZ(v),lrgb=C.disp(lx);
+    ctx.save();rr(S.x,S.y,S.w,S.h,12);ctx.clip();
+    ctx.fillStyle=css(surfXYZ(3,v));ctx.fillRect(S.x,S.y,S.w,wallB-S.y);
+    ctx.fillStyle=css(surfXYZ(4,v));ctx.fillRect(S.x,wallB,S.w,S.y+S.h-wallB);
+    ctx.fillStyle='rgba(0,0,0,.18)';ctx.fillRect(S.x,wallB,S.w,2);
+    ctx.restore();
+    ctx.save();ctx.strokeStyle='rgba(148,163,184,.22)';rr(S.x+.5,S.y+.5,S.w-1,S.h-1,12);ctx.stroke();ctx.restore();
+    // the lamp: a shade over a diffuser that glows in the lamp's own colour
+    var lw=Math.min(S.w*0.36,150),lxp=cx0-lw/2,ly=S.y+16;
+    ctx.save();ctx.strokeStyle='#475569';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(cx0,S.y);ctx.lineTo(cx0,ly);ctx.stroke();
+    ctx.fillStyle='#1e293b';ctx.beginPath();ctx.moveTo(lxp+lw*0.18,ly);ctx.lineTo(lxp+lw*0.82,ly);ctx.lineTo(lxp+lw,ly+20);ctx.lineTo(lxp,ly+20);ctx.closePath();ctx.fill();
+    var mx=Math.max(1,lrgb[0],lrgb[1],lrgb[2]),on=lx[1]>0.002;
+    ctx.fillStyle=on?'rgb('+lrgb.join(',')+')':'#334155';ctx.shadowColor=on?'rgb('+lrgb.join(',')+')':'transparent';ctx.shadowBlur=on?18:0;
+    rr(lxp+3,ly+19,lw-6,6,3);ctx.fill();ctx.restore();
+    for(var i=0;i<3;i++){var col=C.disp(surfXYZ(i,v));
+      ctx.save();ctx.fillStyle='rgba(0,0,0,.22)';ctx.beginPath();ctx.ellipse(OBJ[i].cx,OBJ[i].y+oh+3,ow*0.36,4,0,0,6.2832);ctx.fill();
+      ctx.fillStyle='rgb('+col.join(',')+')';ctx.fill(OP[i]);ctx.strokeStyle='rgba(15,23,42,.45)';ctx.lineWidth=1.2;ctx.stroke(OP[i]);
+      var o=OBJ[i];ctx.strokeStyle='rgba(15,23,42,.3)';ctx.beginPath();
+      if(i===0){ctx.moveTo(o.x+ow*.42,o.y);ctx.quadraticCurveTo(o.x+ow*.5,o.y+oh*.13,o.x+ow*.58,o.y);}
+      if(i===1){ctx.moveTo(o.x+ow*.14,o.y+oh*.9);ctx.quadraticCurveTo(o.x+ow*.5,o.y+oh*.5,o.x+ow*.9,o.y+oh*.1);ctx.moveTo(o.x+ow*.1,o.y+oh*.92);ctx.lineTo(o.x+ow*.02,o.y+oh*1.02);}
+      if(i===2){ctx.moveTo(o.x+ow*.72,o.y+oh*.06);ctx.lineTo(o.x+ow*.72,o.y+oh*.2);ctx.lineTo(o.x+ow*.86,o.y+oh*.2);}
+      ctx.stroke();ctx.restore();
+      // the name on a small dark tag: the table under it can be any colour
+      ctx.save();var nw2=labelW(ctx,ONM[i],11)*1.08+16;ctx.fillStyle='rgba(4,9,20,.72)';rr(o.cx-nw2/2,o.y+oh+8,nw2,18,9);ctx.fill();
+      simText(ctx,ONM[i],o.cx,o.y+oh+21,'#f1f5f9',11,'center',true);ctx.restore();}
+  }
+  // ── the eye's panel: swatch and name, the spectrum, the three cones ──
+  // the spectrum keeps one scale per mode, so a dimmer light draws lower:
+  // the lamps' white at full power, or the light box's flat white
+  var LSUM=C.addS(C.LED,[1,1,1]),lmax=0;for(var q0=0;q0<C.N;q0++)lmax=Math.max(lmax,LSUM[q0]);
+  var SCALE={add:lmax*1.1,obj:lmax*1.1,sub:C.FLAT[0]*1.18},WLH=[];
+  for(var q1=380;q1<=700;q1++)WLH.push(wavelengthToHex(q1));
+  function drawPanel(o){
+    var P=PN,pad=12,x0=P.x+pad,x1=P.x+P.w-pad;
+    ctx.save();ctx.fillStyle='rgba(15,23,42,.72)';ctx.strokeStyle='rgba(148,163,184,.22)';rr(P.x,P.y,P.w,P.h,12);ctx.fill();ctx.stroke();ctx.restore();
+    // header: 👁 at the probe: [swatch] name  #hex
+    var hy=P.y+24,sx=rtl?x1-26:x0;
+    eye(rtl?x1-9:x0+9,hy-4,8,'#cbd5e1');
+    ctx.save();ctx.font='11px Heebo';var lw0=ctx.measureText(_mathIso(o.wh+':')).width;ctx.restore();
+    simText(ctx,o.wh+':',rtl?x1-24:x0+24,hy,'#94a3b8',11,rtl?'right':'left');
+    var swx=rtl?x1-30-lw0-30:x0+30+lw0;
+    ctx.save();ctx.fillStyle='rgb('+o.rgb.join(',')+')';rr(swx,hy-17,26,26,6);ctx.fill();ctx.strokeStyle='rgba(255,255,255,.35)';ctx.lineWidth=1;ctx.stroke();ctx.restore();
+    var nx=rtl?swx-8:swx+34;
+    simText(ctx,o.name,nx,hy,'#f8fafc',14,rtl?'right':'left',true);
+    ctx.save();ctx.font='bold 14px Heebo';var nw=ctx.measureText(_mathIso(o.name)).width;ctx.restore();
+    var hx=C.hex(o.rgb);
+    if(labelW(ctx,hx,10)+nw+lw0+90<P.w-2*pad)simText(ctx,hx,rtl?x0:x1,hy,'#64748b',10,rtl?'left':'right');
+    // the match: the 580 nm lamp beside what the probe sees
+    var top=P.y+42;
+    if(mode==='add'&&yelOn){
+      var de=o.de,ok=de<3,ty=top+14,tx=rtl?x1:x0,yrgb=C.disp(C.YX);
+      ctx.save();ctx.fillStyle='rgb('+yrgb.join(',')+')';rr(rtl?tx-18:tx,ty-12,18,18,5);ctx.fill();ctx.strokeStyle='rgba(255,255,255,.35)';ctx.stroke();ctx.restore();
+      simText(ctx,'מול 580 nm:',rtl?tx-24:tx+24,ty+2,'#cbd5e1',11,rtl?'right':'left');
+      ctx.save();ctx.font='11px Heebo';var vw=ctx.measureText(_mathIso('מול 580 nm:')).width;ctx.restore();
+      simText(ctx,'ΔE₀₀ = '+de.toFixed(1)+(ok?'  ✓':''),rtl?tx-30-vw:tx+30+vw,ty+2,ok?'#34d399':de<6?'#fde68a':'#fca5a5',11,rtl?'right':'left',true);
+      top+=30;
+    }
+    // spectrum plot (and, narrow, the cones beside it)
+    var cW=wide?0:Math.round(P.w*0.34),gx0,gx1,gy0=top+16,gy1,cx,cy0b,cy1b;
+    if(wide){gx0=x0+4;gx1=x1-4;gy1=gy0+Math.min(200,P.h-(gy0-P.y)-150);cx=x0;cy0b=gy1+50;cy1b=P.y+P.h-28;}
+    else{var a0=rtl?x0+cW:x0,a1=rtl?x1:x1-cW;gx0=a0+4;gx1=a1-4;gy1=P.y+P.h-40;cx=rtl?x0:x1-cW+8;cy0b=top+16;cy1b=P.y+P.h-28;}
+    // the plot's title: in full where it fits over the plot, else one word
+    var stt='הספקטרום (עוצמה לפי אורך גל)';if(labelW(ctx,stt,10)>gx1-gx0)stt='הספקטרום';
+    simText(ctx,stt,rtl?gx1:gx0,gy0-6,'#94a3b8',10,rtl?'right':'left');
+    var lx=function(l){return gx0+(l-380)/(700-380)*(gx1-gx0);},gh=gy1-gy0;
+    ctx.save();ctx.strokeStyle='rgba(148,163,184,.14)';ctx.lineWidth=1;
+    for(var t=400;t<=700;t+=100){ctx.beginPath();ctx.moveTo(lx(t),gy0);ctx.lineTo(lx(t),gy1);ctx.stroke();}ctx.restore();
+    // the cones' sensitivities, faint, behind
+    [[2,'#60a5fa','S'],[1,'#4ade80','M'],[0,'#f87171','L']].forEach(function(cc){
+      ctx.save();ctx.strokeStyle=cc[1];ctx.globalAlpha=.5;ctx.lineWidth=1.2;ctx.setLineDash([4,3]);ctx.beginPath();var pk=0,pl=380;
+      for(var l=380;l<=700;l+=2){var vv=C.CONE[l-380][cc[0]],yy=gy1-vv*gh*0.92;if(vv>pk){pk=vv;pl=l;}if(l===380)ctx.moveTo(lx(l),yy);else ctx.lineTo(lx(l),yy);}
+      ctx.stroke();ctx.restore();
+      ctx.save();halo(true);simText(ctx,cc[2],lx(pl)+(cc[2]==='L'?9:cc[2]==='M'?-9:0),gy1-gh*0.92-4,cc[1],10,'center',true);ctx.restore();});
+    // the light: each wavelength drawn in its own colour; the light that fell
+    // on the filter or the object dashed behind it
+    var sp=o.spec,gs=o.ghost,specMax=SCALE[mode],i,l2;
+    var bw=Math.max(1,(gx1-gx0)/320);
+    for(l2=380;l2<=700;l2++){i=l2-380;var hgt=Math.min(1,sp[i]/specMax)*gh;if(hgt<0.4)continue;
+      ctx.fillStyle=WLH[i];ctx.globalAlpha=.92;ctx.fillRect(lx(l2)-bw/2,gy1-hgt,bw+0.6,hgt);}
+    ctx.globalAlpha=1;
+    if(gs){ctx.save();ctx.strokeStyle='rgba(226,232,240,.75)';ctx.lineWidth=1.3;ctx.setLineDash([4,3]);ctx.beginPath();
+      for(l2=380;l2<=700;l2+=2){var gy=gy1-Math.min(1,gs[l2-380]/specMax)*gh;if(l2===380)ctx.moveTo(lx(l2),gy);else ctx.lineTo(lx(l2),gy);}ctx.stroke();ctx.restore();
+      simText(ctx,mode==='sub'?'מקווקו: לפני המסננים':'מקווקו: אור המנורה',rtl?gx1-20:gx0,gy1+30,'#cbd5e1',9,rtl?'right':'left');}
+    // the axis, the wavelength scale under it
+    for(l2=380;l2<=700;l2++){ctx.fillStyle=WLH[l2-380];ctx.fillRect(lx(l2),gy1+1,bw+0.6,4);}
+    ctx.save();ctx.strokeStyle='rgba(148,163,184,.5)';ctx.beginPath();ctx.moveTo(gx0,gy1+.5);ctx.lineTo(gx1,gy1+.5);ctx.stroke();ctx.restore();
+    for(var t2=400;t2<=700;t2+=100)simText(ctx,String(t2),lx(t2),gy1+17,'#94a3b8',10);
+    simText(ctx,'nm',gx1,gy1+30,'#64748b',9,'right');
+    // the three cones: what the eye actually reports
+    var bx0,bx1,bH;
+    if(wide){bx0=x0+20;bx1=x1-20;}else{bx0=cx;bx1=cx+cW-12;}
+    var ctt='מדוכים (% מהלבן)';if(labelW(ctx,ctt,10)>bx1-bx0+16)ctt='מדוכים';
+    simText(ctx,ctt,(bx0+bx1)/2,cy0b-4,'#94a3b8',10);
+    var tgt=mode==='add'&&yelOn?o.tc:null,colw=(bx1-bx0)/3,barW=Math.min(30,colw*0.5),bt=cy0b+14,bb=cy1b-16;bH=bb-bt;
+    [[0,'S','#60a5fa'],[1,'M','#4ade80'],[2,'L','#f87171']].forEach(function(q,j){
+      var bxc=bx0+colw*(j+0.5),v=Math.max(0,o.cones[q[0]]),h=Math.min(1.25,v)/1.25*bH;
+      ctx.save();ctx.fillStyle='rgba(148,163,184,.12)';rr(bxc-barW/2,bt,barW,bH,4);ctx.fill();
+      var gr=ctx.createLinearGradient(0,bb-h,0,bb);gr.addColorStop(0,q[2]);gr.addColorStop(1,'rgba(15,23,42,.4)');
+      ctx.fillStyle=q[2];if(h>0.5){rr(bxc-barW/2,bb-h,barW,h,4);ctx.fill();}
+      // 100 % = the white of the lamps
+      ctx.strokeStyle='rgba(226,232,240,.35)';ctx.setLineDash([2,2]);ctx.beginPath();ctx.moveTo(bxc-barW/2-3,bb-bH/1.25);ctx.lineTo(bxc+barW/2+3,bb-bH/1.25);ctx.stroke();ctx.setLineDash([]);
+      if(tgt){var th=Math.min(1.25,tgt[q[0]])/1.25*bH;ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(bxc-barW/2-5,bb-th);ctx.lineTo(bxc+barW/2+5,bb-th);ctx.stroke();
+        ctx.fillStyle='#fff';ctx.beginPath();var ax=rtl?bxc-barW/2-5:bxc+barW/2+5,sg=rtl?-1:1;ctx.moveTo(ax,bb-th);ctx.lineTo(ax+sg*5,bb-th-4);ctx.lineTo(ax+sg*5,bb-th+4);ctx.closePath();ctx.fill();}
+      ctx.restore();
+      simText(ctx,Math.round(v*100)+'%',bxc,Math.max(bt+10,bb-h-5),'#e2e8f0',10,'center',true);
+      simText(ctx,q[1],bxc,bb+13,q[2],11,'center',true);});
+  }
+  // ── one frame ──
+  var lastS=null,lastLbl='';
+  function draw(){
+    ctx.clearRect(0,0,W,H);
+    ctx.fillStyle='#060b16';ctx.fillRect(0,0,W,H);
+    var o=sample();
+    if(mode==='add'){o.de=C.de00(C.lab(o.X),C.lab(C.YX));var ty=C.YX,c=C.SP;
+      o.tc=[(c[6]*ty[0]+c[7]*ty[1]+c[8]*ty[2])/C.CW[2],(c[3]*ty[0]+c[4]*ty[1]+c[5]*ty[2])/C.CW[1],(c[0]*ty[0]+c[1]*ty[1]+c[2]*ty[2])/C.CW[0]];}
+    if(mode==='add')drawAdd();else if(mode==='sub')drawSub();else drawObj();
+    stageHint(mode==='add'?'גררו את הפנסים · הקישו כדי להזיז את הגשוש':mode==='sub'?'גררו את המסננים · הקישו כדי להזיז את הגשוש':'הקישו על עצם כדי למדוד את האור שחוזר ממנו');
+    drawProbe(probe[mode],hasFocus()&&sel===0);
+    if(ripple){var age=(performance.now()-ripple.t)/900;if(age>=1)ripple=null;else{ctx.save();ctx.strokeStyle='rgba(52,211,153,'+(0.85*(1-age)).toFixed(3)+')';ctx.lineWidth=3;
+      ctx.beginPath();ctx.arc(ripple.x,ripple.y,16+age*40,0,6.2832);ctx.stroke();ctx.restore();}}
+    drawPanel(o);
+    // what the missions read, the model line, what a screen reader is told
+    // the leaf beside the white paper: the paper shows that the lamp is on,
+    // the ratio of their light that the lamp has (almost) no green in it.
+    // White, yellow, cyan or green light leave the ratio at 0.3-0.4 at any
+    // power (dimming the lamp is no answer); red or blue light, or both,
+    // bring it to 0.05, and the test at 0.2 lets a trace of green pass. The
+    // lamp's luminance is no test: full blue light has 4 % of the white's,
+    // and the leaf is black in it too.
+    var leafX=surfXYZ(1,vals.obj),papX=surfXYZ(2,vals.obj);
+    lastS={mode:mode,pk:o.key,pmask:o.mask,de:mode==='add'?o.de:99,yelOn:yelOn,leaf:C.nameKey(leafX,true),
+      paper:C.nameKey(papX,true),leafRel:papX[1]>1e-9?leafX[1]/papX[1]:1,shirt:C.nameKey(surfXYZ(0,vals.obj),true)};
+    var cn='S '+Math.round(o.cones[0]*100)+'% · M '+Math.round(o.cones[1]*100)+'% · L '+Math.round(o.cones[2]*100)+'%';
+    if(mode==='add'&&yelOn)kit.model(o.wh+': '+kit.m(o.eq)+' ← המדוכים '+kit.m(cn)+' ← הצבע הנראה: <b>'+o.name+'</b> · ההבדל מ־580 nm: '+kit.m('ΔE_{00} = '+o.de.toFixed(1)));
+    else kit.model(o.wh+': '+kit.m(o.eq)+' ← המדוכים '+kit.m(cn)+' ← הצבע הנראה: <b>'+o.name+'</b>');
+    var lbl='ערבוב צבעים. '+o.wh+': '+o.name+'. החצים מזיזים את '+selName()+'; Enter עובר לפריט הבא, Escape חוזר לגשוש.';
+    if(lbl!==lastLbl){lastLbl=lbl;kit.label(lbl);}
+  }
+  function selName(){if(sel===0)return 'הגשוש';if(mode==='add')return ['הפנס האדום','הפנס הירוק','הפנס הכחול','האור הצהוב'][sel-1];
+    if(mode==='sub')return ['מסנן הציאן','מסנן המגנטה','המסנן הצהוב'][sel-1];return 'הגשוש';}
+  function handles(){var h=[probe[mode]];if(mode==='add'){h=h.concat(spots);if(yelOn)h.push(ysp);}else if(mode==='sub')h=h.concat(fils);return h;}
+  // ── the missions, the prediction ──
+  var kit=simKit(canvas,{missions:[
+    {id:'cm-yellow',text:'💡 מצאו אור <b>צהוב</b> משני פנסים בלבד והניחו עליו את הגשוש. יש בו אור של 580 nm?',
+     hint:'גררו את הגשוש (או הקישו על המסך) אל האזור שבו רק הפנס האדום והפנס הירוק חופפים.',
+     why:'בספקטרום יש שתי פסגות, אדום (630 nm) וירוק (535 nm), ואין בו אור של 580 nm כלל. ובכל זאת שניהם יחד מגרים את מדוכי L ו־M כמו שאור צהוב מגרה אותם, ולכן המוח מדווח ״צהוב״. העין אינה מודדת ספקטרום — רק שלושה אותות.',
+     done:function(s){return s.mode==='add'&&s.pk==='yellow'&&s.pmask===3;}},
+    {id:'cm-match',text:'🟡 הדליקו את <b>הצהוב הספקטרלי</b> (580 nm) והתאימו לו את חפיפת האדום והירוק: '+_skM('ΔE_{00} < 3')+'.',
+     hint:'הניחו את הגשוש בחפיפה של האדום והירוק, ושנו את R ואת G עד שעמודות המדוכים יגיעו לסימנים הלבנים. האור הצהוב עמום מהפנסים שלכם: הנמיכו את שניהם, ואת הירוק יותר.',
+     why:'שני ספקטרומים שונים לגמרי — קו אחד מול שתי פסגות — נותנים כמעט אותם שלושה אותות מדוכים, ולכן כמעט אותו צבע: זהו <b>מטמריזם</b>. כך מסך בעל שלושה צבעי יסוד מציג את רוב הצבעים. נשאר הבדל קטן: אור של אורך גל אחד טהור יותר מכל תערובת, ולכן שום מסך אינו מציג אותו בדיוק.',
+     done:function(s){return s.mode==='add'&&s.yelOn&&s.pmask===3&&s.de<3;}},
+    {id:'cm-filters',text:'🎞 צרו אור <b>כחול</b> מאור לבן בעזרת שני מסננים, ובדקו אותו בגשוש.',
+     hint:'כל מסנן בולע צבע אחד: ציאן בולע אדום, מגנטה בולעת ירוק, צהוב בולע כחול. איזה זוג משאיר רק כחול?',
+     why:'הציאן בולע את האדום והמגנטה בולעת את הירוק, ורק הכחול עובר דרך שניהם. מסנן אינו מוסיף צבע אלא מחסיר: מה שעובר הוא מכפלת ההעברות, '+_skM('I = I₀·T_C·T_M')+'.',
+     done:function(s){return s.mode==='sub'&&s.pmask===3&&s.pk==='blue';}},
+    {id:'cm-leaf',text:'👕 גרמו ל<b>עלה הירוק</b> להיראות שחור — כשהמנורה דולקת.',
+     hint:'העלה מחזיר כמעט רק ירוק. באיזה אור אין ירוק בכלל? נסו את כפתורי צבע המנורה או את המחוונים.',
+     why:'העלה בולע אדום וכחול ומחזיר בעיקר ירוק. באור שאין בו ירוק, כמעט שום אור אינו חוזר ממנו אל העין, והוא נראה שחור. הצבע אינו תכונה של העצם לבדו: הוא תלוי באור, בעצם ובעין.',
+     done:function(s){return s.mode==='obj'&&s.leaf==='black'&&s.paper!=='black'&&s.leafRel<0.2;}}
+  ],onSolve:function(i){if(RM)return;var p=i===3?{x:OBJ[1].cx,y:OBJ[1].cy}:probe[mode];ripple={x:p.x,y:p.y,t:performance.now()};}});
+  var tabs=kit.tabs({label:'מצב הסימולציה',value:'cm-add',items:[
+    {id:'cm-add',label:'💡 אורות<small>ערבוב חיבורי</small>'},
+    {id:'cm-sub',label:'🎞 מסננים<small>ערבוב חיסורי</small>'},
+    {id:'cm-obj',label:'👕 עצמים<small>אור שחוזר מעצם</small>'}],
+    onChange:function(v){setMode(v.slice(3));}});
+  // ── controls ──
+  var SL=['cm-red','cm-green','cm-blue'];
+  function showVals(){var v=vals[mode==='obj'?'obj':'add'];SL.forEach(function(k,i){var e=document.getElementById('inp-'+k),t=document.getElementById('rv-'+k);
+    if(e)e.value=Math.round(v[i]*100);if(t)t.textContent=Math.round(v[i]*100)+'%';});}
+  SL.forEach(function(k,i){var e=document.getElementById('inp-'+k);if(!e)return;
+    e.addEventListener('input',function(){if(anim)anim=null;var m=mode==='obj'?'obj':'add';vals[m][i]=Math.max(0,Math.min(1,parseFloat(e.value)/100||0));if(mode==='add')renderAdd();dirty=true;});});
+  function grp(){[].forEach.call(document.querySelectorAll('#app .cm-grp'),function(gp){
+    var on=(' '+gp.getAttribute('data-cm')+' ').indexOf(' '+mode+' ')>=0;gp.style.display=on?'flex':'none';});}
+  function setMode(m){
+    if(m===mode)return;mode=m;sel=0;drag=null;anim=null;
+    if(m!=='sub')showVals();
+    grp();
+    if(m==='add')renderAdd();if(m==='sub')subRegions();
+    if(m==='obj'&&!predicted){vals.obj=[1,1,1];showVals();
+      kit.predict({q:'המנורה תאיר עכשיו באור <b>ירוק</b> טהור. איך תיראה החולצה האדומה?',
+        opts:['אדומה, כמו תמיד','ירוקה','שחורה','צהובה'],correct:2,
+        why:'החולצה מחזירה רק אור אדום, ובאור ירוק טהור אין אדום: כמעט שום אור אינו חוזר ממנה, והיא נראית שחורה. הדף הלבן מחזיר את הירוק, ולכן הוא נראה ירוק.'},
+        function(){predicted=true;probe.obj={x:OBJ[0].cx,y:OBJ[0].cy};lampTo([0,1,0]);});
+    }else if(m!=='obj')kit.predict(null);
+    dirty=true;
+  }
+  // the lamp changes colour smoothly (at once under reduced motion)
+  function lampTo(t){if(RM){vals.obj=t.slice();showVals();dirty=true;return;}anim={from:vals.obj.slice(),to:t,t0:performance.now(),dur:900};}
+  function stepAnim(now){var u=Math.min(1,(now-anim.t0)/anim.dur),e=u<.5?2*u*u:1-Math.pow(-2*u+2,2)/2;
+    vals.obj=anim.from.map(function(a,i){return a+(anim.to[i]-a)*e;});if(mode==='obj')showVals();if(u>=1)anim=null;dirty=true;}
+  function bind(idb,fn){var b=document.getElementById('btn-'+idb);if(b)b.addEventListener('click',fn);return b;}
+  var yb=bind('cm-yel',function(){yelOn=!yelOn;yb.setAttribute('aria-pressed',String(yelOn));if(!yelOn&&sel===4)sel=0;renderAdd();dirty=true;});
+  if(yb)yb.setAttribute('aria-pressed','false');
+  [['cm-lw',[1,1,1]],['cm-lr',[1,0,0]],['cm-lg',[0,1,0]],['cm-lb',[0,0,1]]].forEach(function(q){bind(q[0],function(){if(mode==='obj')lampTo(q[1]);});});
+  bind('cm-reset',function(){home(mode);if(mode==='add'){vals.add=[0.8,0.8,0.8];showVals();renderAdd();}if(mode==='sub')subRegions();
+    if(mode==='obj'){anim=null;vals.obj=[1,1,1];showVals();}dirty=true;});
+  // ── the hand on the canvas: lamps, filters and the probe ──
+  function clampP(p,m){var a=m||0;return {x:Math.max(S.x+a,Math.min(S.x+S.w-a,p.x)),y:Math.max(S.y+a,Math.min(S.y+S.h-a,p.y))};}
+  // what the hand takes: the probe; else a lamp's or filter's handle; else
+  // its body. A tap that does not move puts the probe there (measure here);
+  // a press that moves on a lamp or filter drags it
+  function pick(p){
+    var pr=probe[mode];if(Math.hypot(p.x-pr.x,p.y-pr.y)<24)return {k:'probe'};
+    var c=null,cd=1e9,tryC=function(h,q,r){var d=Math.hypot(p.x-q.x,p.y-q.y);if(d<r&&d<cd){cd=d;c=h;}};
+    if(mode==='add'){if(yelOn)tryC({k:'y'},ysp,ys);for(var i=0;i<3;i++)tryC({k:'s',i:i},spots[i],cr*0.92);}
+    if(mode==='sub')for(var j=0;j<3;j++)tryC({k:'f',i:j},fils[j],fr);
+    if(c)c.handle=cd<26;
+    return c;}
+  function target(h){return h.k==='probe'?probe[mode]:h.k==='y'?ysp:h.k==='s'?spots[h.i]:fils[h.i];}
+  function moved(){if(mode==='add')renderAdd();else if(mode==='sub')subRegions();dirty=true;}
+  function selOf(h){return h.k==='probe'?0:h.k==='y'?4:h.i+1;}
+  var pend=null;
+  simDrag(canvas,R.dpr,{
+    down:function(p){pend=null;drag=null;if(p.x<S.x||p.x>S.x+S.w||p.y<S.y||p.y>S.y+S.h)return;
+      tried[mode]=true;var h=pick(p);
+      if(!h){probe[mode]=clampP(p,4);h={k:'probe'};}
+      var t=target(h);
+      if(h.k==='probe'||h.handle){drag={h:h,dx:t.x-p.x,dy:t.y-p.y};sel=selOf(h);}
+      else pend={h:h,p0:p,dx:t.x-p.x,dy:t.y-p.y};
+      moved();},
+    move:function(p){
+      if(pend&&Math.hypot(p.x-pend.p0.x,p.y-pend.p0.y)>6){drag=pend;pend=null;sel=selOf(drag.h);}
+      if(!drag)return;var t=target(drag.h),q=clampP({x:p.x+drag.dx,y:p.y+drag.dy},drag.h.k==='probe'?4:0);t.x=q.x;t.y=q.y;moved();},
+    up:function(){if(pend){probe[mode]=clampP(pend.p0,4);sel=0;moved();}pend=null;drag=null;}});
+  canvas.addEventListener('mousemove',function(e){if(drag)return;var p=simPointerXY(canvas,R.dpr,e);
+    canvas.style.cursor=pick(p)?'grab':(p.x>=S.x&&p.x<=S.x+S.w&&p.y>=S.y&&p.y<=S.y+S.h?'crosshair':'default');});
+  kit.keys(function(e){
+    var hs=handles(),k=e.key;if(k!=='Tab'&&k!=='Shift'){if(!kbd)dirty=true;kbd=true;}
+    if(k==='Enter'||k===' '){sel=(sel+1)%hs.length;kit.say('נבחר: '+selName());dirty=true;return true;}
+    if(k==='Escape'){if(sel===0)return false;sel=0;kit.say('נבחר: '+selName());dirty=true;return true;}
+    var st=e.shiftKey?24:6,d={ArrowLeft:[-st,0],ArrowRight:[st,0],ArrowUp:[0,-st],ArrowDown:[0,st]}[k];
+    if(!d)return false;
+    var t=hs[Math.min(sel,hs.length-1)],q=clampP({x:t.x+d[0],y:t.y+d[1]},sel===0?4:0);t.x=q.x;t.y=q.y;tried[mode]=true;moved();return true;});
+  // the key hint is for a keyboard user: Tab onto the canvas shows it, a click does not
+  canvas.addEventListener('keyup',function(e){if(e.key==='Tab'&&!kbd){kbd=true;dirty=true;}});
+  canvas.addEventListener('mousedown',function(){if(kbd){kbd=false;dirty=true;}});
+  canvas.addEventListener('focus',function(){dirty=true;});canvas.addEventListener('blur',function(){dirty=true;});
+  grp();showVals();renderAdd();subRegions();
+  // ── the loop: drawn when something changed ──
+  function frame(ts){
+    if(_simGen[id]!==_g||_simStop[id])return;
+    if(anim)stepAnim(ts||performance.now());
+    if(dirty||ripple){dirty=false;draw();}
+    if(lastS)kit.check(lastS);
+    requestAnimationFrame(frame);
+  }
+  // the first picture at once: a busy phone may be slow to give the first
+  // animation frame, and the panel below is already there
+  dirty=false;draw();
+  requestAnimationFrame(frame);
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -26651,26 +27332,26 @@ runAnim('anim-laser-t',function(canvas,ctx,W,H,t){
 
 // ─── Color Mix theory anim ───────────────────────────────────
 runAnim('anim-color-mix-t',function(canvas,ctx,W,H,t){
+  // Three spotlights breathing together. Every region is painted in the
+  // colour its lights make in linear light (the simulation's own model,
+  // _cmx): adding screen RGB values instead is right only at full power.
+  // (the three used to sit at fixed fractions of the width: on a wide
+  // screen they never touched, and nothing mixed)
   oBg(ctx,W,H);
-  var cy=H*0.48,r=Math.min(W,H)*0.22;
-  var rX=W*0.35,rY=cy+r*0.38,gX=W*0.65,gY=cy+r*0.38,bX=W*0.5,bY=cy-r*0.5;
-  var cr=r*0.85;
-  var pulse=0.6+0.35*Math.sin(t*1.2);
-  ctx.save();ctx.globalCompositeOperation='lighter';
-  function spot(x,y,ri,gi,bi,a){
-    var g=ctx.createRadialGradient(x,y,0,x,y,cr);
-    g.addColorStop(0,'rgba('+ri+','+gi+','+bi+','+a.toFixed(2)+')');
-    g.addColorStop(0.6,'rgba('+ri+','+gi+','+bi+','+(a*0.2).toFixed(2)+')');
-    g.addColorStop(1,'rgba('+ri+','+gi+','+bi+',0)');
-    ctx.beginPath();ctx.arc(x,y,cr,0,Math.PI*2);ctx.fillStyle=g;ctx.fill();
-  }
-  spot(rX,rY,255,0,0,pulse);
-  spot(gX,gY,0,220,0,pulse);
-  spot(bX,bY,0,60,255,pulse);
+  var cy=H*0.47,cr=Math.min(H*0.24,W*0.16),rho=cr*0.62;
+  var P=[[W/2-0.866*rho,cy+0.5*rho],[W/2+0.866*rho,cy+0.5*rho],[W/2,cy-rho]];
+  var pulse=0.6+0.35*Math.sin(t*1.2),C=_cmx;
+  var col=function(m){var X=[0,0,0];for(var k=0;k<3;k++)if(m&1<<k)for(var j=0;j<3;j++)X[j]+=pulse*C.LX[k][j];
+    var d=C.disp(X);return 'rgb('+d[0]+','+d[1]+','+d[2]+')';};
+  var disc=function(k){ctx.beginPath();ctx.arc(P[k][0],P[k][1],cr,0,Math.PI*2);};
+  ctx.save();
+  for(var k=0;k<3;k++){disc(k);ctx.fillStyle=col(1<<k);ctx.fill();}
+  [[0,1],[0,2],[1,2]].forEach(function(q){ctx.save();disc(q[0]);ctx.clip();disc(q[1]);ctx.fillStyle=col((1<<q[0])|(1<<q[1]));ctx.fill();ctx.restore();});
+  ctx.save();disc(0);ctx.clip();disc(1);ctx.clip();disc(2);ctx.fillStyle=col(7);ctx.fill();ctx.restore();
   ctx.restore();
-  oLbl(ctx,'R',rX,rY+cr+12,'#ff6464',9);
-  oLbl(ctx,'G',gX,gY+cr+12,'#44ff44',9);
-  oLbl(ctx,'B',bX,bY-cr-6,'#6496ff',9);
+  oLbl(ctx,'R',P[0][0]-cr*1.25,P[0][1]+cr*0.55,'#ff6464',9);
+  oLbl(ctx,'G',P[1][0]+cr*1.25,P[1][1]+cr*0.55,'#44ff44',9);
+  oLbl(ctx,'B',P[2][0]+cr*1.2,P[2][1]-cr*0.45,'#6496ff',9);
   oLbl(ctx,'R+G+B=לבן',W/2,H-6,'#94a3b8',8);
 });
 
@@ -37242,7 +37923,14 @@ function buildSim(sim){
   else if(sim.type==='opt-polarization')extra=C(rng('pol-angle',0,180,45,1,'זווית המנתח','°')+rng('pol-mid',0,180,45,1,'זווית המקטב האמצעי','°')+rng('pol-i0',20,100,80,5,'עוצמה ראשונית I₀','%')+btn('pol-mid','➕ הכניסו מקטב באמצע','btn-secondary'));
   else if(sim.type==='opt-doppler')extra=C(rng('dop-v',-80,80,10,1,'מהירות המקור v/c (+ ימינה)','%')+rng('dop-wl',400,700,550,5,'אורך גל מקורי λ₀',' nm'));
   else if(sim.type==='opt-laser')extra=C(rng('laser-pump',0,100,60,5,'עוצמת שאיבה','%')+'<div class="range-wrap"><label>סוג לייזר:</label><select id="inp-laser-type" aria-label="סוג לייזר" style="background:var(--chip);color:var(--text);border:1px solid var(--border);border-radius:8px;min-height:44px;min-width:44px;padding:8px 12px;font-size:.9rem;font-family:inherit;cursor:pointer"><option value="633">He-Ne (633 nm)</option><option value="514">Ar⁺ (514 nm)</option><option value="1064">Nd:YAG (1064 nm)</option></select></div>');
-  else if(sim.type==='opt-color-mix')extra=C(rng('cm-red',0,100,80,5,'אדום R','%')+rng('cm-green',0,100,80,5,'ירוק G','%')+rng('cm-blue',0,100,80,5,'כחול B','%'));
+  // colour mixing: the lamps' R, G, B (the three spotlights, or the one lamp
+  // over the objects); a pure 580 nm lamp to match; the lamp's colour presets
+  else if(sim.type==='opt-color-mix')extra=C('<div class="cm-grp" data-cm="add obj" style="display:flex;flex-wrap:wrap;gap:10px 18px;width:100%">'+
+    rng('cm-red',0,100,80,1,'אדום R','%')+rng('cm-green',0,100,80,1,'ירוק G','%')+rng('cm-blue',0,100,80,1,'כחול B','%')+'</div>'+
+    '<div class="cm-grp" data-cm="add" style="display:flex;flex-wrap:wrap;gap:8px">'+btn('cm-yel','🟡 אור צהוב ספקטרלי (580 nm)','btn-secondary')+'</div>'+
+    '<div class="cm-grp" data-cm="obj" style="display:none;flex-wrap:wrap;gap:8px;align-items:center"><span style="color:var(--muted);font-size:.85rem">צבע המנורה:</span>'+
+    btn('cm-lw','⚪ לבן','btn-secondary')+btn('cm-lr','🔴 אדום','btn-secondary')+btn('cm-lg','🟢 ירוק','btn-secondary')+btn('cm-lb','🔵 כחול','btn-secondary')+'</div>'+
+    btn('cm-reset','↺ איפוס','btn-secondary'));
   else if(sim.type==='opt-fiber')extra=C(rng('fib-n1',1.30,1.80,1.50,0.01,'מדד שבירה ליבה n₁','')+rng('fib-n2',1.20,1.70,1.46,0.01,'מדד שבירה מעטה n₂','')+rng('fib-ang',2,40,12,1,'זווית כניסה','°'));
   else if(sim.type==='opt-telescope')extra=C(rng('tel-fo',30,300,150,5,'מוקד אובייקטיב fₒ',' mm')+rng('tel-fe',5,60,25,5,'מוקד עדשת עין fₑ',' mm'));
   else if(sim.type==='opt-thin-film')extra=C(rng('tf-thick',0,1000,300,1,'עובי קרום t',' nm')+rng('tf-n',1.10,2.00,1.33,0.01,'מדד השבירה של הקרום n','')+btn('tf-soap','🫧 קרום סבון','btn-primary')+btn('tf-oil','🛢 שמן על מים','btn-secondary')+btn('tf-ar','👓 MgF₂ על זכוכית','btn-secondary'));
@@ -38644,7 +39332,7 @@ function showSimTooltip(desc){
 window.resetAllProgress=function(){
   if(!confirm('למחוק את כל ההתקדמות — XP, חידונים, בעיות וסימוני הנושאים? אי אפשר לשחזר.')) return;
   state.xp=0; state.completed={}; state.quizState={};
-  state.problemState={}; state.visited={}; state.lastPos={}; _quizHints={};
+  state.problemState={}; state.visited={}; state.lastPos={}; state.missions={}; _quizHints={};
   _ls.del(SAVE_KEY);
   _lastChapterSummaryShown='';
   closeDrawer();
