@@ -13170,7 +13170,7 @@ function simEnergy(canvas){
     }
     // static friction holds a cart that has come to rest where it can
     var thr=at(TH,s);
-    if(mu>0&&Math.abs(v)<0.02&&Math.abs(Math.tan(thr))<=mu){var pe=m*g*at(Hm,s);v=0;atRest=true;Q+=Math.max(0,Emech-pe);Emech=pe;}   // the last bit of E_k becomes heat too
+    if(mu>0&&Math.abs(v)<0.02&&Math.abs(Math.tan(thr))<=mu){var pe=m*g*at(Hm,s);v=0;atRest=true;Q+=Emech-pe;Emech=pe;}   // the last bit of E_k becomes heat too (signed: the tiny step a turning point takes stays in the books)
   }
 
   function draw(ts){
@@ -13475,7 +13475,7 @@ function simSpring(canvas){
     var t0=hist.length?Math.max(hist[0][0],clock-WIN):clock-WIN, tx=function(t){return gx0+(t-(clock-WIN))/WIN*gw;};
     // second ticks
     var stp=WIN>6?2:WIN>3.5?1:0.5;
-    for(var ts2=Math.ceil((clock-WIN)/stp)*stp;ts2<=clock+1e-9;ts2+=stp){var X2=tx(ts2);
+    for(var ts2=Math.max(0,Math.ceil((clock-WIN)/stp)*stp);ts2<=clock+1e-9;ts2+=stp){var X2=tx(ts2);   // no ticks before the clock starts
       ctx.save();ctx.strokeStyle='rgba(148,163,184,.18)';ctx.beginPath();ctx.moveTo(X2,mid-half);ctx.lineTo(X2,mid+half);ctx.stroke();ctx.restore();
       simText(ctx,(Math.round(ts2*10)/10)+' s',X2,mid+half+12,'#7d8da6',8,'center');}
     if(hist.length>2){
