@@ -521,10 +521,12 @@ const EXPECT = {
   // the cart is held on the rail: where the track bends down and the cart is fast, N/m = g·cosθ + v²κ < 0 --
   // the rail pulls the cart DOWN, and a free cart would leave the track. The sim must say so then, and only then.
   await p.evaluate(() => document.getElementById('btn-energy-shape').click());
-  const pullWatch = ms => p.evaluate(async ms => { const cv = document.querySelector('#app canvas'), o = { neg: 0, negWarn: 0, minN: 1e9, warn: 0, model: '' }, t0 = performance.now();
+  // the N arrow and its label are drawn exactly while N/m < −0.1g at the cart (not a moment after: the cart may be in a valley by then)
+  const pullWatch = ms => p.evaluate(async ms => { const cv = document.querySelector('#app canvas'), o = { neg: 0, negWarn: 0, minN: 1e9, warn: 0, mism: 0, model: '' }, t0 = performance.now();
     while (performance.now() - t0 < ms) { await new Promise(r => requestAnimationFrame(r)); const q = cv._probe(); o.minN = Math.min(o.minN, q.n);
       if (q.n < -0.1 * 9.8) { o.neg++; if (q.pulling) o.negWarn++; }
       if (q.pulling) o.warn++;
+      if (q.pulling !== (q.n < -0.1 * 9.8)) o.mism++;
       const m = document.querySelector('#app .sk-model'); if (m && /⚠/.test(m.textContent)) o.model = m.textContent; }
     return o; }, ms);
   // grab the (moving) cart through the track itself, at a point far from every handle, and release it at (xf, h)
@@ -533,7 +535,7 @@ const EXPECT = {
   eq = await ep();
   t('... the cart is grabbed through the track and released from the 4 m end, the track untouched', eq.run.h0 === 4 && JSON.stringify(eq.KN) === JSON.stringify(KN0), eq.run.h0.toFixed(2) + ' m');
   let pw = await pullWatch(4000);
-  t('released from 4 m on the original track, the rail must pull the cart down somewhere (N < 0), and the canvas and the model line say so there', pw.neg > 0 && pw.negWarn >= 0.8 * pw.neg && /⚠/.test(pw.model) && /N < 0/.test(pw.model), `${pw.neg} frames with N/m < −0.1g (min ${pw.minN.toFixed(1)} m/s²), warned in ${pw.negWarn}`);
+  t('released from 4 m on the original track, the rail must pull the cart down somewhere (N < 0), and the canvas and the model line say so there', pw.neg > 0 && pw.negWarn === pw.neg && pw.mism === 0 && /⚠/.test(pw.model) && /N < 0/.test(pw.model), `${pw.neg} frames with N/m < −0.1g (min ${pw.minN.toFixed(1)} m/s²), arrow in ${pw.negWarn}, out of place in ${pw.mism}`);
   await grab(0.29, 0.35);
   eq = await ep();
   pw = await pullWatch(4000);

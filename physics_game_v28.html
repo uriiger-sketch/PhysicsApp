@@ -13094,10 +13094,11 @@ function simEnergy(canvas){
   var s0=S[Math.round(0.08*(N-1))];
   var s=s0, v=0, Emech=null, Q=0, dragging=false, dragK=-1, pT=null, atRest=false;
   var run=null, runs=[], crossed=false, sameBottom=false, sameV=null, restQ=false, touched=false;
-  var pullNow=false, pullT=-1e9, pulling=false;   // the rail had to pull the cart down (N < 0): when, last
+  // N < 0 -- the rail pulls the cart down: whether it does now, when it last did, and where (the stretch is marked a moment)
+  var pullNow=false, pullT=-1e9, pulling=false, pullS=[], pullPts=[];
   function getMu(){var e=document.getElementById('inp-energy-mu');return e?Math.max(0,parseFloat(e.value)||0):0;}
   function getMass(){var e=document.getElementById('inp-energy-m');return e?Math.max(0.1,parseFloat(e.value)):m;}
-  function release(){m=getMass(); v=0; Q=0; atRest=false; Emech=m*g*at(Hm,s); pullT=-1e9; pullNow=false;
+  function release(){m=getMass(); v=0; Q=0; atRest=false; Emech=m*g*at(Hm,s); pullT=-1e9; pullNow=false; pullS=[]; pullPts=[];
     if(run)runs.push(run);if(runs.length>20)runs.shift();
     run={h0:at(Hm,s),mu:getMu(),shape:KN.slice(),vmax:0,hb:9,xf0:xfAt(s)};}
   release();
@@ -13166,7 +13167,7 @@ function simEnergy(canvas){
       var h=dt/8;
       var th=at(TH,s), kap=at(K,s);
       var nRaw=g*Math.cos(th)+v*v*kap, nOverM=Math.abs(nRaw);
-      if(nRaw<-0.1*g)pullNow=true;      // (a pull under a tenth of the weight is not worth a warning)
+      if(nRaw<-0.1*g){pullNow=true;pullS.push(s);}      // (a pull under a tenth of the weight is not worth a warning)
       var a=-g*Math.sin(th)-(v!==0?Math.sign(v):0)*mu*nOverM;
       v+=a*h;
       var ds=v*h;
@@ -13197,8 +13198,14 @@ function simEnergy(canvas){
     m=mNew;
     var xfPrev=xfAt(s);
     if(!dragging&&dragK<0&&Emech!==null&&!atRest)step(dt);
-    if(pullNow)pullT=ts/1000; pullNow=false;
-    pulling=!dragging&&dragK<0&&Emech!==null&&ts/1000-pullT<1.8;
+    var tsec=ts/1000;
+    if(pullNow)pullT=tsec; pullNow=false;
+    pullS.forEach(function(q){pullPts.push({s:q,t:tsec});}); pullS=[];
+    while(pullPts.length&&(tsec-pullPts[0].t>1.8||pullPts.length>600))pullPts.shift();
+    var live=!dragging&&dragK<0&&Emech!==null;
+    // the arrow and the label: only while N < 0 at the cart itself; the model line remembers the stretch a moment longer
+    pulling=live&&!atRest&&g*Math.cos(at(TH,s))+v*v*at(K,s)<-0.1*g;
+    var pulled=live&&tsec-pullT<1.8;
 
     var h=at(Hm,s), PE=m*g*h, E=Emech===null?PE:Emech, KE=Math.max(0,E-PE), E0=E+Q;
     var bxf=xfAt(s), tx0=TX(bxf), ty0=TY(h);
@@ -13247,6 +13254,9 @@ function simEnergy(canvas){
     // the height label: beside its dashed line, or beside the cart when the line is too short
     var hl=FLOOR_Y-ty0>40, hx=hl?tx0+(tx0<W*0.5?8:-8):bx+(bx<W*0.5?20:-20);
     simText(ctx,'h = '+h.toFixed(2)+' m',hx,hl?ty0+(FLOOR_Y-ty0)/2+3:by+4,'#fbbf24',8.5,(hl?tx0:bx)<W*0.5?'left':'right');
+    // the stretch of rail where it had to pull the cart down, fading
+    if(pulled){ctx.save();ctx.fillStyle='#fb923c';pullPts.forEach(function(q){var xq=xfAt(q.s);ctx.globalAlpha=Math.max(0,1-(tsec-q.t)/1.8);
+      ctx.beginPath();ctx.arc(TX(xq),TY(at(Hm,q.s)),2.6,0,6.2832);ctx.fill();});ctx.restore();}
     // cart
     var bg3=ctx.createRadialGradient(bx-5,by-6,2,bx,by,13);
     bg3.addColorStop(0,'#fde68a');bg3.addColorStop(1,dragging?'#7c3aed':'#d97706');
@@ -13317,7 +13327,7 @@ function simEnergy(canvas){
     // (a no-break space keeps each unit with its number when the line wraps)
     if(mu>0)model(kit.m('Eₚ + Eₖ + Q = '+PE.toFixed(1)+' + '+KE.toFixed(1)+' + '+Q.toFixed(1)+' = '+E0.toFixed(1)+'\u00a0J')+' — קבוע; החיכוך הופך אנרגיה מכנית לחום, ולא ״מכלה״ אותה.');
     else model('בלי חיכוך: '+kit.m('mgh + ½mv² = '+PE.toFixed(1)+' + '+KE.toFixed(1)+' = '+E0.toFixed(1)+'\u00a0J')+' — ולכן '+kit.m('v = √(2g(h₀ − h)) = √(2 × 9.8 × ('+h0r.toFixed(2)+' − '+h.toFixed(2)+')) = '+Math.sqrt(Math.max(0,2*g*(h0r-h))).toFixed(2)+'\u00a0m/s')+
-      (pulling?'<br>⚠ כאן המסילה מושכת את העגלה כלפי מטה — '+kit.m('N < 0')+' — ועגלה שאינה אחוזה במסילה הייתה ניתקת ממנה.':''));
+      (pulled?'<br>⚠ בקטע המסומן בכתום המסילה משכה את העגלה כלפי מטה — '+kit.m('N < 0')+' — ועגלה שאינה אחוזה במסילה הייתה ניתקת ממנה שם.':''));
     kit.check({crossed:crossed,sameBottom:sameBottom,restQ:restQ});
     requestAnimationFrame(draw);
   }
