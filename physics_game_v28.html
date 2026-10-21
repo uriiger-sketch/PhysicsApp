@@ -3610,7 +3610,7 @@ const CONTENT={
       <div class="enrich-formula">${tex('\\eta_{\\max} = 1 - \\dfrac{T_C}{T_H}', true)}</div>`
     }
   },
-  sim:{type:'energy-kinetic',title:'משפט עבודה-אנרגיה',desc:'כוח קבוע דוחף גוש לאורך d מטרים, מהמהירות v₀: העבודה W = F·d שווה בכל רגע לשינוי באנרגיה הקינטית, ΔEₖ. שנו את המסה, את הכוח ואת המרחק, וגלו מה קובע את Eₖ ומה את המהירות.'},
+  sim:{type:'energy-kinetic',title:'משפט עבודה-אנרגיה',desc:'כוח קבוע דוחף גוש לאורך מרחק d, החל ממהירות v₀: העבודה W = F·d שווה בכל רגע לשינוי באנרגיה הקינטית, ΔEₖ. שנו את המסה, את הכוח ואת המרחק, וגלו מה קובע את Eₖ ומה את המהירות.'},
   example:{title:'משפט עבודה-אנרגיה',text:`גוש שמסתו ${M('3\\,\\text{kg}')} מואץ מ־${M('4\\,\\text{m/s}')} ל־${M('10\\,\\text{m/s}')} על ידי כוח שקול קבוע של ${M('18\\,\\text{N}')}.`,steps:[
     {q:'בכמה גדלה האנרגיה הקינטית?',a:`${M('\\Delta E_k=\\tfrac12m(v^2-v_0^2)=\\tfrac12\\times3\\times(100-16)=126\\,\\text{J}')}`},
     {q:'איזה מרחק עבר הגוש?',a:`העבודה שווה לשינוי באנרגיה: ${M('F\\,d=\\Delta E_k\\Rightarrow d=\\dfrac{126}{18}=7\\,\\text{m}')}`},
@@ -4534,7 +4534,7 @@ const CONTENT={
       <p>מהנדסים מתכננים קפיצים, קורות וגשרים כך שיעבדו תמיד הרחק מתחת לגבול הזה. קפיץ השיער בשעון מכני, שמתנודד מאות מיליוני פעמים, עובד רק בזכות זה.</p>`
     }
   },
-  sim:{type:'spring-force',title:'כוח אלסטי F=-kx',desc:'גררו את המסה ימינה (מתיחה) או שמאלה (דחיסה) וראו את F = −kx: גודל הכוח יחסי להארכה, וכיוונו תמיד אל x = 0. הגרף בונה את קו הוק תוך כדי גרירה; שחררו את המסה — והיא תתנודד.'},
+  sim:{type:'spring-force',title:'כוח אלסטי F=-kx',desc:'גררו את המסה ימינה (מתיחה) או שמאלה (דחיסה) וראו את F = −kx: גודל הכוח יחסי להתארכות, וכיוונו תמיד אל x = 0. הגרף בונה את קו הוק תוך כדי גרירה; שחררו את המסה — והיא תתנודד.'},
   example:{title:'חוק הוק',text:`קפיץ שקבועו ${M('k=200\\,\\text{N/m}')} נמתח ב־${M('0.15\\,\\text{m}')} מאורכו הרפוי.`,steps:[
     {q:'מה גודל הכוח שהקפיץ מפעיל?',a:`${M('|F|=k|x|=200\\times0.15=30\\,\\text{N}')}`},
     {q:'לאיזה כיוון?',a:'תמיד בחזרה לעבר מצב הרפיון — כוח משחזר. לכן בנוסחה יש סימן מינוס: F=−kx.'},
@@ -12657,7 +12657,7 @@ function simMomentumDisplay(canvas){
      why:'התנע הוא וקטור: מ־'+_skM('+mv')+' ל־'+_skM('−mv')+' השינוי הוא '+_skM('Δp = −2mv')+' — לא אפס. כדי ש־'+_skM('|Δp| = 40')+' צריך '+_skM('mv = 20 kg·m/s')+', למשל '+_skM('4 kg × 5 m/s')+'.',
      done:function(q){return q.kick40;}}]});
   var model=_mbModel(kit);
-  kit.predict({q:'כדור פוגע בקיר במהירות 4 m/s וחוזר ממנו במהירות 4 m/s. השינוי בתנע שלו:',
+  kit.predict({q:'כדור פוגע בקיר במהירות '+_skM('4 m/s')+' וחוזר ממנו במהירות '+_skM('4 m/s')+'. השינוי בתנע שלו:',
     opts:['אפס — המהירות לא השתנתה','2mv','mv'],correct:1,
     why:'התנע הוא וקטור. לפני הפגיעה '+_skM('p = +mv')+', אחריה '+_skM('p = −mv')+', ולכן '+_skM('Δp = −2mv')+' — הקיר הפעיל מתקף כפול.'},function(){});
   canvas._probe=function(){return {mass:mass,vel:vel,kick:kick,sameP:sameP,kick40:kick40};};
@@ -12783,7 +12783,7 @@ function simMomentumCons(canvas){
      why:km('Σp = 3×6 + 1×(−2) = 16 kg·m/s')+' לפני — ואותו תנע אחרי: '+km('(3+1)v = 16')+', ולכן '+km('v = 4 m/s')+'. האנרגיה הקינטית ירדה מ־'+km('56 J')+' ל־'+km('32 J')+': '+km('24 J')+' הפכו לחום, והתנע לא נפגע.',
      done:function(s){return s.mode==='stick'&&s.stuck&&s.m1===3&&s.m2===1&&s.u1===6&&s.u2===-2;}},
     {text:'כבו את האוויר במסילה וראו את '+km('Σp')+' משתנה',
-     hint:'״💨 אוויר״ — ואז הפעילו עגלות שמסותיהן שונות.',
+     hint:'כבו את ״💨 אוויר״ — ואז הפעילו עגלות שמסותיהן שונות.',
      why:'בלי אוויר המסילה מפעילה חיכוך על העגלות — כוח חיצוני למערכת, '+km('ΣFₑₓₜ ≠ 0')+' — ולכן '+km('Σp')+' משתנה. דחיפת הקפיץ וההיצמדות הן כוחות פנימיים: הן לעולם אינן משנות את '+km('Σp')+'.',
      done:function(s){return !s.air&&Math.abs(s.pN-s.p0)>0.3;}}]});
   var model=_mbModel(kit);
@@ -13100,12 +13100,12 @@ function simEnergy(canvas){
      hint:'גררו את אחת הידיות של המסלול כלפי מעלה. מאיזה גובה צריך לשחרר את העגלה?',
      why:'בלי חיכוך העגלה מגיעה בדיוק לגובה שממנו שוחררה: '+_skM('mgh₀ = ½mv² + mgh')+'. כדי לעבור גבעה צריך לשחרר אותה מגובה רב יותר — לעגלה אין ״תנופה״ נוספת מעבר לאנרגיה שלה.',
      done:function(s){return s.crossed;}},
-    {text:'שנו את צורת המסלול, שחררו מאותו גובה — ובדקו שהמהירות בתחתית אותה מהירות',
+    {text:'שנו את צורת המסלול, שחררו מאותו גובה — ובדקו שהמהירות בתחתית לא השתנתה',
      hint:'בלי חיכוך: שחררו את העגלה מקצה המסלול, בגובה '+_skM('4 m')+', וקראו את המהירות המרבית. שנו גבעה (לא את העמקים) ושחררו שוב מהקצה.',
      why:_skM('v = √(2gΔh)')+': רק הפרש הגבהים קובע את המהירות, לא צורת המסלול ולא אורכו. מה שהצורה משנה הוא הזמן.',
      done:function(s){return s.sameBottom;}},
     {text:'הוסיפו חיכוך ותנו לעגלה לעצור — לאן נעלמה האנרגיה?',
-     hint:'הזיזו את מקדם החיכוך מעל אפס, שחררו את העגלה וחכו.',
+     hint:'העלו את מקדם החיכוך מעל אפס, שחררו את העגלה וחכו.',
      why:'האנרגיה לא ״נגמרה״: כל מה שחסר באנרגיה המכנית הפך לחום, '+_skM('Q = mgh₀ − mgh')+'. הסכום '+_skM('Eₚ + Eₖ + Q')+' נשאר קבוע כל הדרך.',
      done:function(s){return s.restQ;}}]});
   var model=_mbModel(kit);
@@ -13352,7 +13352,7 @@ function simSpring(canvas){
      hint:'מ־'+_skM('T = 2π√(m/k)')+' יוצא '+_skM('k = 4π²m/T²')+'. עם '+_skM('m = 2 kg')+' — איזה k צריך?',
      why:_skM('k = 4π²m/T² = 4π² × 2 / 1² ≈ 79 N/m')+'. מסה גדולה פי 4 דורשת קפיץ קשיח פי 4 כדי לשמור על אותו מחזור — רק היחס '+_skM('m/k')+' קובע.',
      done:function(s){return s.T1;}},
-    {text:'בנו את הבעיה, '+_skM('k = 200 N/m, m = 2 kg, A = 0.10 m')+' — ובדקו את התשובות',
+    {text:'שחזרו את הבעיה של הסעיף: '+_skM('k = 200 N/m, m = 2 kg, A = 0.10 m')+' — ובדקו את התשובות',
      hint:'כוונו את k ואת m, גררו את הגוש ל־'+_skM('0.10 m')+' על הסרגל, שחררו וחכו שהשעון ימדוד.',
      why:_skM('T = 2π√(2/200) = 0.628 s')+', '+_skM('E = ½kA² = 1 J')+' ו־'+_skM('vₘₐₓ = Aω = 0.1 × 10 = 1 m/s')+' — אותם מספרים שבבעיה. המהירות מרבית במרכז, שם כל האנרגיה קינטית.',
      done:function(s){return s.problem;}}]});
@@ -13586,7 +13586,7 @@ function simSpringForce(canvas){
      why:_skM('k = F/x = 15 N / 0.10 m = 150 N/m')+'. קבוע הקפיץ הוא הכוח לכל מטר של הארכה — לא האורך של הקפיץ.',
      done:function(q){return q.k150;}}]});
   var model=_mbModel(kit);
-  kit.predict({q:'מותחים קפיץ פי 2 יותר מבתחילה. הכוח שהוא מפעיל:',
+  kit.predict({q:'מכפילים את ההתארכות של קפיץ. הכוח שהוא מפעיל:',
     opts:['אותו כוח','גדל פי 2','גדל פי 4'],correct:1,
     why:_skM('F = −kx')+': הכוח יחסי להארכה, ולכן הארכה פי 2 נותנת כוח פי 2. מה שגדל פי 4 הוא האנרגיה האגורה, '+_skM('½kx²')+'.'},function(){});
   canvas._probe=function(){return {x:x,vel:vel,k:k,m:m,b:b,F:-k*x,t:t,EQ_X:EQ_X,PX:PX_PER_M,SPRING_Y:SPRING_Y,dragging:dragging,heldPos:heldPos,heldNeg:heldNeg,k150:k150};};
@@ -14156,7 +14156,7 @@ function simGravityForce(canvas){
   function startDrop(i){drops[i]={y:0,v:0,t:0,land:0};}
   var race=false, moonBag=false, raceOn=false;
   var kit=simKit(canvas,{missions:[
-    {text:'הפילו את הכדורים בכל ששת המקומות יחד — ומצאו פי כמה לאט נופל הכדור על הירח מאשר על כדור הארץ',
+    {text:'הפילו את הכדורים בכל ששת המקומות יחד — ומצאו פי כמה ארוך זמן הנפילה על הירח מאשר על כדור הארץ',
      hint:'הקישו על הפס העליון: כל הכדורים נופלים מגובה '+_skM('2 m')+' באותו רגע. השוו את הזמנים.',
      why:_skM('h = ½gt²')+', ולכן '+_skM('t = √(2h/g)')+'. על הירח g קטן פי 6 בערך, והזמן ארוך פי '+_skM('√6 ≈ 2.5')+' — לא פי 6.',
      done:function(q){return q.race;}},
@@ -14472,7 +14472,7 @@ function simStaticFriction(canvas){
   }
   function graph(xv,fv,xMax,cs,ck,xName,slipping){
     _mbCard(ctx,GX,GY,GW,GH);
-    simText(ctx,scene==='push'?'כוח החיכוך f מול הדחיפה F':'כוח החיכוך f על הארגז מול m·a של המשאית',GX+GW/2,GY+15,'#cbd5e1',9.5,'center',true);
+    simText(ctx,scene==='push'?'כוח החיכוך f מול הדחיפה F':'כוח החיכוך f על הארגז מול m·a',GX+GW/2,GY+15,'#cbd5e1',9.5,'center',true);
     var ax=GX+34, ay=GY+GH-22, aw=GW-48, ah=GH-48, fMax=xMax;
     function X(q){return ax+Math.min(1,q/xMax)*aw;} function Y(q){return ay-Math.min(1,q/fMax)*ah;}
     ctx.save();ctx.strokeStyle='#2d4a66';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(ax,ay-ah);ctx.lineTo(ax,ay);ctx.lineTo(ax+aw,ay);ctx.stroke();ctx.restore();
@@ -14660,7 +14660,7 @@ function simKineticFriction(canvas){
      done:function(q){return q.mSame;}}]});
   var model=_mbModel(kit);
   kit.predict({q:'שני גושים זהים מחליקים על אותה רצפה. אחד שוגר במהירות כפולה מהשני. מרחק העצירה שלו:',
-    opts:['אותו מרחק','פי 2','פי 4'],correct:2,
+    opts:['אותו מרחק','ארוך פי 2','ארוך פי 4'],correct:2,
     why:'התאוטה זהה ('+_skM('a = −μₖg')+'), אבל '+_skM('d = v₀²/(2μₖg)')+': מהירות כפולה — זמן כפול ומהירות ממוצעת כפולה — מרחק פי 4.'},function(){});
   canvas._probe=function(){return {pos:pos,vel:vel,dist:dist,running:running,launched:launched,runs:runs.length,last:runs.length?runs[runs.length-1]:null,v4:v4,mSame:mSame};};
   function reset2(){vel=0;pos=80;dist=0;running=false;launched=false;runMu=null;runV0=null;vData=[];aData=[];tData=[];tClock=0;}
@@ -15397,7 +15397,7 @@ function simPendulum(canvas){
     if(t<4||dragging) simText(ctx,dragging?'שחררו!':'גררו את המשקולת לזווית כלשהי',bx,by-BR-12,'#fbbf24',9,'center',true);
 
     // ── the readouts: the two periods and the stopwatch
-    var nar=W<560, l1='T₀ = 2π√(L/g) = '+T0.toFixed(3)+' s', l2='משרעת θ₀ = '+(amp*180/Math.PI).toFixed(1)+'°  →  T אמיתי = '+Ttrue.toFixed(3)+' s ('+(dev>=0?'+':'')+dev.toFixed(1)+'%)';
+    var nar=W<560, l1='T₀ = 2π√(L/g) = '+T0.toFixed(3)+' s', l2='משרעת θ₀ = '+(amp*180/Math.PI).toFixed(1)+'°  ←  המחזור האמיתי T = '+Ttrue.toFixed(3)+' s ('+(dev>=0?'+':'')+dev.toFixed(1)+'%)';
     _mbCard(ctx,8,6,W-16,nar?66:50);
     if(nar){simText(ctx,l1,W/2,22,'#22d3ee',10,'center',true);simText(ctx,l2,W/2,38,dev>1.5?'#fbbf24':'#4ade80',9.5,'center',true);}
     else simText(ctx,l1+'   ·   '+l2,W/2,22,dev>1.5?'#fbbf24':'#4ade80',9.5,'center',true);
@@ -16068,7 +16068,7 @@ function simStaticsTorque(canvas){
      done:function(q){return q.t30&&q.t20;}}]});
   var model=_mbModel(kit);
   kit.predict({q:'דוחפים דלת בידית, אבל בזווית של 30° ללוח הדלת במקום בניצב. באותו כוח, המומנט:',
-    opts:['גדול יותר','זהה','קטן יותר — חצי'],correct:2,
+    opts:['גדל','אינו משתנה','קטן פי 2'],correct:2,
     why:'רק הרכיב הניצב של הכוח מסובב: '+_skM('τ = rF·sin30° = ½rF')+'. באותה מידה אפשר לומר שהזרוע — המרחק מהציר אל קו הפעולה — קטנה פי 2.'},function(){});
   canvas._probe=function(){var r=gr(),F=gF(),th=gth()*Math.PI/180;return {r:r,F:F,th:gth(),tau:F*r*Math.sin(th),zeroT:zeroT,t30:t30,t20:t20};};
   function draw(){
@@ -16808,7 +16808,7 @@ function simEnergyKinetic(canvas){
      hint:'הפעילו פעם אחת עם '+_skM('m = 2 kg')+' ופעם עם '+_skM('m = 4 kg')+', עם '+_skM('v₀ = 0')+' ובלי לשנות את F ואת d.',
      why:'לשניהם אותה '+_skM('Eₖ')+': הכוח עשה אותה עבודה, '+_skM('W = F·d')+', וזו כל האנרגיה שקיבלו. הגוש הכבד מגיע לאותה אנרגיה במהירות קטנה יותר — '+_skM('v = √(2W/m)')+'.',
      done:function(q){return q.sameEk;}},
-    {text:'הגיעו למהירות סופית כפולה, באותה מסה ומאותה מנוחה — כמה עבודה נדרשה?',
+    {text:'הגיעו למהירות סופית כפולה, באותה מסה וממנוחה — כמה עבודה נדרשה?',
      hint:'הפעילו פעם אחת, ואז שנו את F או את d עד שהמהירות בסוף הדחיפה כפולה.',
      why:_skM('Eₖ = ½mv²')+': מהירות כפולה היא אנרגיה פי 4, ולכן נדרשת עבודה פי 4 — למשל כוח פי 4 על אותו מרחק. זו הסיבה שמרחק הבלימה של מכונית גדל פי 4 כשמהירותה כפולה.',
      done:function(q){return q.twiceV;}},
@@ -35127,7 +35127,7 @@ function buildSim(sim){
   else if(sim.type==='fbd')extra=C(rng('fbd-F',-10,25,0,0.5,'כוח נוסף על הגוף (+ מעלה)',' N')+btn('fbd-reset','↺ נקו הכול','btn-secondary'));
   else if(sim.type==='momentum')extra=C(rng('mom-mass',0.5,8,2,0.5,'מסה',' kg')+rng('mom-vel',-10,10,4,1,'מהירות',' m/s'));
   else if(sim.type==='momentum-cons')extra=C(rng('mc-m1',1,8,3,0.5,'m₁',' kg','_fmtKg1')+rng('mc-m2',1,8,1.5,0.5,'m₂',' kg','_fmtKg1')+rng('mc-v1',-8,8,6,1,'v₁',' m/s','_fmtMs1')+rng('mc-v2',-8,8,-2,1,'v₂',' m/s','_fmtMs1')+rng('mc-E',2,40,12,1,'אנרגיית הקפיץ',' J')+btn('mc-run','💥 שחררו את הקפיץ','btn-primary')+btn('mc-mode','🧲 הצמדה','btn-secondary')+btn('mc-air','💨 אוויר: מופעל','btn-secondary'));
-  else if(sim.type==='collision')extra=C(rng('col-e',0,1,1,0.05,'מקדם התקומה e (0 נצמדות, 1 אלסטית)')+rng('col-m1',1,8,3,0.5,'m₁',' kg')+rng('col-m2',1,8,2,0.5,'m₂',' kg')+rng('col-v1',-8,8,4,0.5,'v₁ התחלתית',' m/s')+rng('col-v2',-8,8,-2,0.5,'v₂ התחלתית',' m/s')+btn('col-run','▶ הפעילו','btn-primary')+btn('col-reset','↺ איפוס','btn-secondary'));
+  else if(sim.type==='collision')extra=C(rng('col-e',0,1,1,0.05,'מקדם התקומה e — מ־0 (נצמדות) עד 1 (אלסטית)')+rng('col-m1',1,8,3,0.5,'m₁',' kg')+rng('col-m2',1,8,2,0.5,'m₂',' kg')+rng('col-v1',-8,8,4,0.5,'v₁ התחלתית',' m/s')+rng('col-v2',-8,8,-2,0.5,'v₂ התחלתית',' m/s')+btn('col-run','▶ הפעילו','btn-primary')+btn('col-reset','↺ איפוס','btn-secondary'));
   else if(sim.type==='energy-kinetic')extra=C(rng('ek-F',2,50,10,1,'כוח F',' N')+rng('ek-m',0.5,10,2,0.5,'מסה m',' kg')+rng('ek-v0',0,5,0,0.5,'מהירות התחלתית v₀',' m/s')+rng('ek-d',1,5,4,0.5,'מרחק הדחיפה d',' m')+btn('ek-launch','▶ הפעילו!','btn-primary')+btn('ek-reset','↺ איפוס','btn-secondary'));
   else if(sim.type==='energy-potential')extra=C(rng('ep-m',0.5,8,2,0.5,'מסה m',' kg')+rng('ep-g',1.6,25,9.8,0.2,'g',' m/s²')+btn('ep-elastic','🟢 הציגו אנרגיה אלסטית','btn-secondary')+btn('ep-reset','↺ איפוס','btn-secondary'));
   else if(sim.type==='energy')extra=C(rng('energy-m',0.5,4,1,0.5,'מסה m',' kg')+rng('energy-mu',0,0.1,0,0.005,'מקדם חיכוך μ','')+btn('energy-reset','↺ איפוס','btn-secondary')+btn('energy-shape','〰 המסלול המקורי','btn-secondary'));
