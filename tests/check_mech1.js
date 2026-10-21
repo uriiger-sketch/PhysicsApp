@@ -377,6 +377,10 @@ const EXPECT = {
   t('... the model line: d = v₀²/(2μₖg) with the numbers', f2_fml.includes('d = v₀²/(2μₖg) = 12² / (2 × ' + f2_muK.toFixed(2) + ' × 9.8) = ' + (144 / (2 * f2_muK * 9.8)).toFixed(2)), f2_fml.slice(-50));
   f2_fdm = await done();
   t('kinetic friction missions done', f2_fdm.length === 2 && f2_fdm.every(Boolean), JSON.stringify(f2_fdm));
+  // the mass slider moves in half kilograms: the model line must multiply the mass it is given (4.5, not "5")
+  await set('kf-mass', 4.5); await p.waitForTimeout(400);
+  f2_fml = await model();
+  t('... at m = 4.5 kg the model line prints fₖ = μₖ × 4.5 × 9.8 and its true product', f2_fml.includes('fₖ = μₖmg = ' + f2_muK.toFixed(2) + ' × 4.5 × 9.8 = ' + (f2_muK * 4.5 * 9.8).toFixed(1)), f2_fml.slice(0, 44));
 
   await open('forces2.friction-combined');
   await set('fc-theta', 20); await set('fc-m', 5); await set('fc-mu', 0.45); await set('fc-F', 16); await p.waitForTimeout(150);

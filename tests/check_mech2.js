@@ -217,6 +217,9 @@ const EXPECT = {
   const X0 = W * 0.13, PP = W * 0.74 / 4, BY = 470 * 0.44;
   await drag(r, [[X0 + 3 * PP, BY - 30], [X0 + 2 * PP, BY - 30], [X0 + 1 * PP, BY - 30]]);
   t('beam: the load is dragged to x = 1 m', Math.abs(num(await p.evaluate(() => document.getElementById('inp-bm-xp').value)) - 1) < 0.15);
+  const xb0 = num(await p.evaluate(() => document.getElementById('inp-bm-xb').value));
+  await drag(r, [[X0 + xb0 * PP, BY + 40], [X0 + (xb0 - 0.6) * PP, BY + 40], [X0 + 2.5 * PP, BY + 40]]);
+  t('beam: support B is dragged along the floor to x = 2.5 m (the description says it can be)', Math.abs(num(await p.evaluate(() => document.getElementById('inp-bm-xb').value)) - 2.5) < 0.15 && Math.abs(num(await p.evaluate(() => document.getElementById('inp-bm-xp').value)) - 1) < 0.15);
 
   await open('statics.center-mass'); r = await rect(); W = r.w;
   await drag(r, [[W * 0.6, 300], [W * 0.6, 250], [W * 0.6, 200]]);
@@ -307,6 +310,10 @@ const EXPECT = {
   await p.waitForTimeout(250);                       // the model line is refreshed eight times a second
   const mlL = await model(), mR = mlL.match(/R = v₀cosθ·t = [\d.]+ × [\d.]+ = ([\d.]+) m/);
   t('... and the model line prints that R', !!mR && Math.abs(+mR[1] - vx * tfW) < 0.051, mR && mR[1]);
+  // the top of the path is read above the GROUND (h + v₀²sin²θ/2g); the theory's H is above the launch point,
+  // so the readout must not call this number H
+  const rdL = await last('tₜₒₜ = '), mY = rdL && rdL.match(/yₘₐₓ = ([\d.]+) m/);
+  t('... the readout gives the top of the path above the ground, yₘₐₓ = h + (v₀sinθ)²/2g (not "H", which the theory measures from the launch point)', !!mY && Math.abs(+mY[1] - (20 + vy * vy / 19.6)) < 0.051 && !/ H = /.test(rdL), rdL && rdL.slice(-24));
   // missions: the target at two angles from the ground, then the horizontal shot beside the dropped ball
   await set('proj-h', 0); await p.waitForTimeout(150);
   const T0 = (await pjProbe()).target, v0m = Math.ceil(Math.sqrt(9.8 * T0 / 0.8)), th1 = Math.asin(9.8 * T0 / v0m ** 2) / 2 / D;
@@ -362,11 +369,28 @@ const EXPECT = {
 
   console.log('\n3e) momentum conservation: an isolated system, and what an external force does');
   await open('momentum.momentum-cons');
+  // with the air off, friction (μg on each cart) slows both: |v_light/v_heavy| of a 2 kg | 1 kg explosion starts at 2
+  // and climbs past 3 as the heavy cart stops first. That is not "3 times the speed from the spring": the mission must not count it.
+  await p.evaluate(() => document.getElementById('btn-mc-air').click());
+  await set('mc-m1', 2); await set('mc-m2', 1); await set('mc-E', 2); await p.waitForTimeout(100);
+  const mc0 = await p.evaluate(async () => { const cv = document.querySelector('#app canvas'); let rmax = 0, r0 = 0; document.getElementById('btn-mc-run').click();
+    for (let i = 0; i < 400 && cv._probe().st !== 'done'; i++) { await new Promise(r => setTimeout(r, 25)); const q = cv._probe();
+      if (q.comp === 0 && Math.abs(q.v1) > 1e-6 && Math.abs(q.v2) > 1e-6) { const k = Math.abs(q.v2 / q.v1); if (!r0) r0 = k; rmax = Math.max(rmax, k); } }
+    return { air: cv._probe().air, r0, rmax }; });
+  let mcm0 = await missionsDone();
+  t('air off, 2 kg | 1 kg: the speed ratio drifts from 2 past 3 under friction — and the 3× mission is not counted', !mc0.air && mc0.rmax > 3.2 && !mcm0[0], `ratio ${mc0.r0.toFixed(2)} → ${mc0.rmax.toFixed(2)}, missions ${JSON.stringify(mcm0)}`);
+  await p.evaluate(() => document.getElementById('btn-mc-air').click());
+  await set('mc-E', 12); await p.waitForTimeout(100);
   await set('mc-m1', 3); await set('mc-m2', 1); await p.waitForTimeout(100);
   mq = await mcRun();
   t('explosion 3 kg | 1 kg: the light cart flies off exactly 3 times as fast (m₁|v₁| = m₂|v₂|)', Math.abs(Math.abs(mq.v2 / mq.v1) - 3) < 1e-9 && Math.abs(3 * mq.v1 + 1 * mq.v2) < 1e-12, (mq.v2 / mq.v1).toFixed(6));
   await p.evaluate(() => document.getElementById('btn-mc-mode').click());
   await set('mc-m1', 3); await set('mc-m2', 1); await set('mc-v1', 6); await set('mc-v2', -2); await p.waitForTimeout(100);
+  // first with the air off: friction acts before and after the impact, so the carts do not end at 4 m/s — not the problem's answer
+  await p.evaluate(() => document.getElementById('btn-mc-air').click());
+  mq = await mcRun(); mcm0 = await missionsDone();
+  t('the section\'s problem with the air off (friction): v ≠ 4 m/s, and the problem mission is not counted', !mq.air && mq.stuck && Math.abs(mq.v1 - 4) > 0.05 && !mcm0[1], `v ${mq.v1.toFixed(2)} m/s, missions ${JSON.stringify(mcm0)}`);
+  await p.evaluate(() => document.getElementById('btn-mc-air').click());
   mq = await mcRun();
   t('the section\'s problem: 3 kg at +6 m/s sticks to 1 kg at −2 m/s → 4 m/s', mq.stuck && Math.abs(mq.v1 - 4) < 1e-9, mq.v1 + ' m/s');
   await p.evaluate(() => document.getElementById('btn-mc-air').click());
@@ -479,6 +503,26 @@ const EXPECT = {
   const edm = await missionsDone();
   t('energy track missions: over a hill, the same speed on any shape, the heat', edm.length === 3 && edm.every(Boolean), JSON.stringify(edm));
   await set('energy-mu', 0);
+  // the cart is held on the rail: where the track bends down and the cart is fast, N/m = g·cosθ + v²κ < 0 --
+  // the rail pulls the cart DOWN, and a free cart would leave the track. The sim must say so then, and only then.
+  await p.evaluate(() => document.getElementById('btn-energy-shape').click());
+  const pullWatch = ms => p.evaluate(async ms => { const cv = document.querySelector('#app canvas'), o = { neg: 0, negWarn: 0, minN: 1e9, warn: 0, model: '' }, t0 = performance.now();
+    while (performance.now() - t0 < ms) { await new Promise(r => requestAnimationFrame(r)); const q = cv._probe(); o.minN = Math.min(o.minN, q.n);
+      if (q.n < -0.1 * 9.8) { o.neg++; if (q.pulling) o.negWarn++; }
+      if (q.pulling) o.warn++;
+      const m = document.querySelector('#app .sk-model'); if (m && /⚠/.test(m.textContent)) o.model = m.textContent; }
+    return o; }, ms);
+  // grab the (moving) cart through the track itself, at a point far from every handle, and release it at (xf, h)
+  const grab = async (xf, h) => { const q = await ep(); r = await rect(); await drag(r, [[EX(q, 0.19), EY(q, 1.2)], [EX(q, (0.19 + xf) / 2), EY(q, (1.2 + h) / 2)], [EX(q, xf), EY(q, h)]]); };
+  await grab(0, 4.3);
+  eq = await ep();
+  t('... the cart is grabbed through the track and released from the 4 m end, the track untouched', eq.run.h0 === 4 && JSON.stringify(eq.KN) === JSON.stringify(KN0), eq.run.h0.toFixed(2) + ' m');
+  let pw = await pullWatch(4000);
+  t('released from 4 m on the original track, the rail must pull the cart down somewhere (N < 0), and the canvas and the model line say so there', pw.neg > 0 && pw.negWarn >= 0.8 * pw.neg && /⚠/.test(pw.model) && /N < 0/.test(pw.model), `${pw.neg} frames with N/m < −0.1g (min ${pw.minN.toFixed(1)} m/s²), warned in ${pw.negWarn}`);
+  await grab(0.29, 0.35);
+  eq = await ep();
+  pw = await pullWatch(4000);
+  t('... released low in a valley (h₀ = ' + eq.run.h0.toFixed(2) + ' m), N > 0 all the way and no warning', eq.run.h0 < 0.5 && JSON.stringify(eq.KN) === JSON.stringify(KN0) && pw.minN > 0 && pw.warn === 0 && pw.model === '', `min N/m ${pw.minN.toFixed(2)} m/s², ${pw.warn} warned frames`);
 
   console.log('\n3i) spring and block: the period is 2π√(m/k), whatever the amplitude; the section\'s problem rebuilt');
   await open('shm.shm-spring');
@@ -605,7 +649,9 @@ const EXPECT = {
     const n0 = (await k3_kp()).runs; await p.evaluate(() => document.getElementById('btn-ek-launch').click()); return k3_kpoll('q.runs > ' + n0, 15000); };
   k3_kq = await k3_ekRun(2, 3, 10, 5);
   t('work and energy: the section\'s problem (2 kg, v₀ = 3 m/s, 10 N over 5 m) ends at v = √59 = 7.68 m/s (mission 3)', Math.abs(k3_kq.last.v - Math.sqrt(59)) < 1e-9 && k3_kq.probDone, k3_kq.last.v.toFixed(4) + ' m/s');
-  k3_kml = await model();
+  // the model line is redrawn at most 8 times a second: give it two redraws to catch up with the end of the push
+  k3_kml = await p.evaluate(async () => { let s = ''; for (let i = 0; i < 40; i++) { const e = document.querySelector('#app .sk-model'); s = e ? e.textContent : '';
+    if (/= 59\.0 − 9\.0 = 50\.0/.test(s)) break; await new Promise(r => setTimeout(r, 25)); } return s; });
   t('... and the model line: W = 50.0 J = ΔEₖ = 59.0 − 9.0', /W = F·d = 10 × 5\.00 = 50\.0/.test(k3_kml) && k3_kml.includes('= 59.0 − 9.0 = 50.0'), k3_kml.slice(-50));
   k3_kq = await k3_ekRun(2, 0, 10, 4); const k3_ek2 = k3_kq.last.Ek;
   k3_kq = await k3_ekRun(4, 0, 10, 4);
