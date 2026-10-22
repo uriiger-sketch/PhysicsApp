@@ -21828,7 +21828,7 @@ function simOptThinFilm(canvas){
     seg(ax,sTop,ax+dx*2.4,zT+6,'#fde68a',2,true);                        // reflected at the top surface
     seg(ax,sTop,ax+dx,sBot,'#f8fafc',1.6,false);seg(ax+dx,sBot,ax+dx*2,sTop,'#f8fafc',1.6,false);
     seg(ax+dx*2,sTop,ax+dx*4.4,zT+6,'#fdba74',2,true);                   // reflected at the bottom surface
-    var badge=function(x,y,on){var tx=on?'π':'0';ctx.save();ctx.fillStyle=on?'rgba(244,114,182,.95)':'rgba(71,85,105,.9)';ctx.beginPath();ctx.arc(x,y,9,0,Math.PI*2);ctx.fill();ctx.restore();optLabel(ctx,tx,x,y,'#0b1220',10);};
+    var badge=function(x,y,on){var tx=on?'π':'0';ctx.save();ctx.fillStyle=on?'rgba(244,114,182,.95)':'rgba(71,85,105,.9)';ctx.beginPath();ctx.arc(x,y,9,0,Math.PI*2);ctx.fill();ctx.restore();optLabel(ctx,tx,x,y,on?'#0b1220':'#e2e8f0',10);};   // light on the slate disc (dark was 2.2:1)
     badge(ax-14,sTop-11,nf>1);badge(ax+dx+14,sBot+11,ns>nf);
     optLabel(ctx,'היפוכי פאזה: '+flips,zx+zw-4,zT+zh-8,'#f9a8d4',9.5,'right');
     optLabel(ctx,'2nt = '+Math.round(2*nf*t)+' nm',zx+zw-4,sBot+14,'#fdba74',9.5,'right');
