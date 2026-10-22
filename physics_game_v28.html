@@ -18607,6 +18607,20 @@ function optLabel(ctx,txt,x,y,col,sz,align){
   if(fx!==null)ctx.fillText(txt,fx,_fitY(ctx,y,sz));
   ctx.restore();
 }
+// optLabel on a dark rounded tag: a name or a hint that lies across rays, a
+// bright interference pattern or a colour strip stays readable on any of
+// them. The tag is laid where optLabel puts the text (pulled inside the
+// canvas). Returns the tag's box [x0,y0,x1,y1].
+function optTag(ctx,txt,x,y,col,sz,align){
+  sz=sz||11;align=align||'center';
+  var cv=ctx.canvas,m=ctx.getTransform(),W=cv.width/(m.a||1),w=labelW(ctx,txt,sz);
+  var x0=align==='left'?x:align==='right'?x-w:x-w/2;
+  x0=Math.max(3,Math.min(W-3-w,x0));
+  var b=[x0-5,y-sz*0.8,x0+w+5,y+sz*0.8];
+  ctx.save();ctx.fillStyle='rgba(4,9,20,.82)';ctx.beginPath();ctx.roundRect(b[0],b[1],b[2]-b[0],b[3]-b[1],Math.min(8,sz*0.8));ctx.fill();ctx.restore();
+  optLabel(ctx,txt,x0+w/2,y,col,sz);
+  return b;
+}
 // A text cut in two at the separator nearest its middle (a dash, a semicolon,
 // a comma, a colon, else a space); every character is kept. null: no separator.
 function _splitHalf(t){
@@ -19108,7 +19122,8 @@ function simOptReflection(canvas){
     optLabel(ctx,hitT?'פגיעה! ✓':'מטרה',tx,ty-24,hitT?'#34d399':'#fca5a5',10);
     // the angle from the mirror's surface, in grey: not the one in the law
     var gA=90-angle;
-    if(angle<84)optLabel(ctx,'מהמראה: '+gA+'°',cx-Math.min(150,W*0.3),MY-16,'#94a3b8',9.5,'center');
+    // on a tag: near grazing incidence the incoming beam runs through this row
+    if(angle<84)optTag(ctx,'מהמראה: '+gA+'°',cx-Math.min(150,W*0.3),MY-16,'#94a3b8',9.5,'center');
     kit.model('חוק ההחזרה: '+_skM('θᵣ = θᵢ = '+angle+'°')+' (מהנורמל); הזווית מפני המראה '+_skM('90° − '+angle+'° = '+gA+'°')+'.');
     kit.check({th:angle});
     requestAnimationFrame(draw);
@@ -19208,7 +19223,7 @@ function simOptPlaneMirror(canvas){
     var cw=Math.min(W-16,labelW(ctx,'רואים '+pct+'% מהגוף · גובה המראה '+(top-bot).toFixed(2)+' m',11)+24);
     ctx.save();ctx.fillStyle='rgba(4,9,20,.9)';ctx.strokeStyle=frac>0.995?'#34d399':'rgba(148,163,184,.6)';ctx.lineWidth=1.2;ctx.beginPath();ctx.roundRect(W/2-cw/2,8,cw,24,7);ctx.fill();ctx.stroke();ctx.restore();
     optLabel(ctx,'רואים '+pct+'% מהגוף · גובה המראה '+(top-bot).toFixed(2)+' m',W/2,20,frac>0.995?'#34d399':'#e2e8f0',11);
-    if(!touched&&animT<10)optLabel(ctx,'✋ גררו את האדם ואת קצות המראה',W/2,46,'#fbbf24',10);
+    if(!touched&&animT<10)optTag(ctx,'✋ גררו את האדם ואת קצות המראה',W/2,46,'#fbbf24',10);   // the wall runs through this row
     // the law, in numbers
     if(hi>lo)kit.model('מראה מישורית: '+_skM('dᵢ = −dₒ = −'+d.toFixed(1)+' m, m = +1')+'; נקודה בגובה h נראית בגובה '+_skM('(h + 1.68)/2')+' על המראה: רואים מ־'+_skM(lo.toFixed(2)+' m')+' עד '+_skM(hi.toFixed(2)+' m')+'.');
     else kit.model('מראה מישורית: '+_skM('dᵢ = −dₒ = −'+d.toFixed(1)+' m, m = +1')+'; נקודה בגובה h נראית בגובה '+_skM('(h + 1.68)/2')+' על המראה — ובמראה הזאת אף נקודה בגוף אינה נראית.');
@@ -19468,6 +19483,10 @@ function _optBench(canvas,P){
       legend.push([CC,conv?'דרך F ← מקבילה לציר':mirror?'אל F ← מקבילה לציר':'אל F שמעבר לעדשה ← מקבילה לציר']);}
     if(covered){ctx.save();ctx.fillStyle='rgba(30,41,59,.97)';ctx.strokeStyle='#64748b';ctx.lineWidth=1;
       ctx.beginPath();ctx.roundRect(X0-12,cy-AP-8,24,AP+8,4);ctx.fill();ctx.stroke();ctx.restore();}
+    // a photon along the parallel ray -- under the names drawn next, which it
+    // ran across (the image's name sits on that ray when the object is near)
+    if(!reduce&&hObj<=AP){var ph=(animT*0.45)%1;ctx.save();ctx.fillStyle=wlHex;optGlow(ctx,wlHex,12);
+      ctx.beginPath();ctx.arc(ox+(X0-ox)*ph,tipY,3.2,0,Math.PI*2);ctx.fill();optNoGlow(ctx);ctx.restore();}
     // the object
     arrowUp(ox,cy,tipY,'#60a5fa',false,1,3.5);
     simHandle(ctx,ox,tipY,'#93c5fd',14);
@@ -19503,8 +19522,10 @@ function _optBench(canvas,P){
       if(focus){arrowUp(scrX,cy,Math.max(sT,Math.min(sB,iyT)),'#f87171',false,0.3+0.7*bright,4);}
       simHandle(ctx,scrX,sB+6,'#cbd5e1',12);
       var sMsg=focus?'✓ תמונה חדה על המסך':real?'מטושטש — גררו את המסך':inf?'אין תמונה להקרין':'תמונה מדומה — אין מה להקרין';
+      // while the canvas asks for a prediction, that question has the row
+      // over the drawing to itself (the two lay one over the other)
       var sw=labelW(ctx,sMsg,9.5),sx=Math.min(W-6-sw/2,scrX);
-      optLabel(ctx,sMsg,sx,sT-10,focus?'#34d399':'#cbd5e1',9.5);
+      if(!askCover)optLabel(ctx,sMsg,sx,sT-10,focus?'#34d399':'#cbd5e1',9.5);
     }
     // dimension lines, below the drawing
     dim(ox,X0,DIM1,'dₒ = '+Math.round(dO)+' mm','#93c5fd');
@@ -19520,17 +19541,14 @@ function _optBench(canvas,P){
     ctx.save();ctx.fillStyle='rgba(4,9,20,.92)';ctx.strokeStyle=inf?'#f59e0b':virt?'#34d399':'#f87171';ctx.lineWidth=1.2;
     ctx.beginPath();ctx.roundRect(W/2-cw/2,7,cw,24,7);ctx.fill();ctx.stroke();ctx.restore();
     optLabel(ctx,chip,W/2,19,'#e2e8f0',11);
-    if(askCover)optLabel(ctx,'🤔 נבאו קודם — ענו על השאלה שמתחת לתרשים',W/2,BAND0+4,'#fbbf24',10);
+    if(askCover)optTag(ctx,'🤔 נבאו קודם — ענו על השאלה שמתחת לתרשים',W/2,BAND0+4,'#fbbf24',10);
     else if(!touched&&animT<10){
       // over the object's tip -- or, where the image's name already sits there
       // (an object close to the optic has its image close above it), a row
       // higher, or under the object's own name
       var HN='✋ גררו את העצם, את קצהו ואת F',hx=Math.max(110,Math.min(W-110,ox+30)),hw=labelW(ctx,HN,10)/2+4,hy=tipY-26;
       if(imgBox)[tipY-26,tipY-50,cy+52].some(function(y){hy=y;return y>12&&!_boxOver([hx-hw,y-10,hx+hw,y+10],imgBox,0);});
-      optLabel(ctx,HN,hx,hy+(reduce?0:Math.sin(animT*4)*3),'#fbbf24',10);}
-    // a photon along the parallel ray
-    if(!reduce&&hObj<=AP){var ph=(animT*0.45)%1;ctx.save();ctx.fillStyle=wlHex;optGlow(ctx,wlHex,12);
-      ctx.beginPath();ctx.arc(ox+(X0-ox)*ph,tipY,3.2,0,Math.PI*2);ctx.fill();optNoGlow(ctx);ctx.restore();}
+      optTag(ctx,HN,hx,hy+(reduce?0:Math.sin(animT*4)*3),'#fbbf24',10);}
     // the model, in numbers
     var fd=mirror||wl===550?0:1,fS=f<0?'(−'+Math.abs(f).toFixed(fd)+')':Math.abs(f).toFixed(fd);
     var sub=_skM('1/dᵢ = 1/f − 1/dₒ = 1/'+fS+' − 1/'+Math.round(dO));
@@ -19812,8 +19830,14 @@ function simOptPrism(canvas){
     optDash(ctx,ent.x-nin.x*60,ent.y-nin.y*60,ent.x+nin.x*40,ent.y+nin.y*40,'#64748b',0.8);
     ctx.save();ctx.strokeStyle='rgba(255,255,255,.85)';ctx.lineWidth=4;optGlow(ctx,'#ffffff',10);
     ctx.beginPath();ctx.moveTo(src.x,src.y);ctx.lineTo(ent.x,ent.y);ctx.stroke();optNoGlow(ctx);ctx.restore();
-    optLabel(ctx,'אור לבן',src.x+10,src.y-12,'#e2e8f0',10);
-    optLabel(ctx,'θ='+Math.round(th*180/Math.PI)+'°',ent.x-46,ent.y-6,'#fbbf24',10);
+    // the beam's name on the canvas (its far end is off the edge at most
+    // angles, and the name went with it), under the beam; θ between the beam
+    // and the normal, on a tag (beside the entry point it lay on the beam)
+    var tE=170;if(d0.x>1e-6)tE=Math.min(tE,(ent.x-10)/d0.x);if(d0.y>1e-6)tE=Math.min(tE,(ent.y-10)/d0.y);if(d0.y<-1e-6)tE=Math.min(tE,(H-30-ent.y)/-d0.y);
+    var wl0={x:ent.x-d0.x*Math.max(40,tE-34),y:ent.y-d0.y*Math.max(40,tE-34)};
+    optLabel(ctx,'אור לבן',wl0.x,wl0.y+14,'#e2e8f0',10);
+    var bx=-nin.x-d0.x,by=-nin.y-d0.y,bl=Math.hypot(bx,by)||1;
+    optTag(ctx,'θ = '+Math.round(th*180/Math.PI)+'°',ent.x+bx/bl*58,ent.y+by/bl*58,'#fbbf24',10);
     var res=cols.map(function(wl){return {wl:wl,r:trace(wl,th)};});
     res.forEach(function(o){
       var col=wavelengthToHex(o.wl),pts=o.r.pts;
@@ -20150,7 +20174,7 @@ function simOptInterference(canvas){
     ctx.save();ctx.fillStyle=pkCol;optGlow(ctx,pkCol,14);
     ctx.beginPath();ctx.arc(probeP.x,probeP.y,8,0,Math.PI*2);ctx.fill();optNoGlow(ctx);
     ctx.fillStyle='#0b1220';ctx.beginPath();ctx.arc(probeP.x,probeP.y,3.5,0,Math.PI*2);ctx.fill();ctx.restore();
-    if(!touchedI&&animT<12)optLabel(ctx,'✋ לחצו בכל מקום בשדה — או גררו מקור',probeP.x,probeP.y-20+Math.sin(animT)*3,'#fbbf24',10);
+    if(!touchedI&&animT<12)optTag(ctx,'✋ לחצו בכל מקום בשדה — או גררו מקור',probeP.x,probeP.y-22+Math.sin(animT)*3,'#fbbf24',10);
     ctx.save();ctx.fillStyle='rgba(4,9,20,.9)';ctx.strokeStyle=pkCol;ctx.lineWidth=1.5;
     ctx.beginPath();ctx.roundRect(W-232,H-64,224,56,7);ctx.fill();ctx.stroke();ctx.restore();
     optLabel(ctx,'Δ = |r₂−r₁| = '+pmVal.toFixed(2)+'λ',W-120,H-46,pkCol,10.5);
@@ -20326,7 +20350,6 @@ function simOptDiffraction(canvas){
     ctx.beginPath();ctx.roundRect(slitX-4,8,8,cy-slitHalf-8,2);ctx.fill();ctx.stroke();
     ctx.beginPath();ctx.roundRect(slitX-4,cy+slitHalf,8,H-cy-slitHalf-8,2);ctx.fill();ctx.stroke();
     ctx.restore();
-    optLabel(ctx,'a='+v.a+'mm',slitX+14,cy,col,9);
     // Incoming plane wave (animated wavefronts)
     var wavePhase=(animT*28)%40;
     for(var wi=0;wi<4;wi++){
@@ -20335,6 +20358,9 @@ function simOptDiffraction(canvas){
       ctx.beginPath();ctx.moveTo(wx,8);ctx.lineTo(wx,H-8);ctx.stroke();
       ctx.restore();
     }
+    // the slit's width beside the barrier, on a tag over the incoming fronts (in the gap it lay across
+    // the barrier's edges once the slit was narrow)
+    optTag(ctx,'a = '+v.a+' mm',slitX-9,cy,col,9,'right');
     // Huygens wavelets from slit
     var nWav=6;
     for(var w=1;w<=nWav;w++){
@@ -20417,7 +20443,7 @@ function simOptDiffraction(canvas){
     ctx.save();ctx.fillStyle=pCol;optGlow(ctx,pCol,12);
     ctx.beginPath();ctx.arc(scrX+10,probeY,7,0,Math.PI*2);ctx.fill();optNoGlow(ctx);
     ctx.fillStyle='#0b1220';ctx.beginPath();ctx.arc(scrX+10,probeY,3,0,Math.PI*2);ctx.fill();ctx.restore();
-    if(!probeTouched&&animT<9)optLabel(ctx,'✋ גררו את הגלאי',scrX-56,probeY-18+Math.sin(animT*4)*3,'#fbbf24',10);
+    if(!probeTouched&&animT<9)optTag(ctx,'✋ גררו את הגלאי',scrX-56,probeY-20+Math.sin(animT*4)*3,'#fbbf24',10,'right');
     ctx.save();ctx.fillStyle='rgba(4,9,20,.9)';ctx.strokeStyle=pCol;ctx.lineWidth=1.5;
     ctx.beginPath();ctx.roundRect(8,H-64,230,56,7);ctx.fill();ctx.stroke();ctx.restore();
     optLabel(ctx,'גלאי: a·sinθ = '+mP.toFixed(2)+'λ  (y = '+((probeY-cy)/PXMM).toFixed(1)+' mm)',123,H-46,pCol,9.5);
@@ -20868,7 +20894,9 @@ function simOptDoppler(canvas){
       ctx.save();ctx.strokeStyle='rgba('+srcRGB[0]+','+srcRGB[1]+','+srcRGB[2]+','+alpha.toFixed(2)+')';
       ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(em.x,em.y,r,0,Math.PI*2);ctx.stroke();ctx.restore();
     }
-    if(!touched&&animT<8)optLabel(ctx,'✋ גררו את הכוכב — מהירות היד קובעת את β!',srcX,srcY-46,'#fbbf24',10);
+    // the hint rides above the star, clear of the velocity arrow and of the
+    // observers' wavelengths (it lay on "183 nm UV" when the star was near one)
+    if(!touched&&animT<8)optTag(ctx,'✋ גררו את הכוכב — מהירות היד קובעת את β!',srcX,srcY-66,'#fbbf24',10);
     ctx.save();optGlow(ctx,srcCol,20);
     ctx.fillStyle=srcCol;ctx.beginPath();ctx.arc(srcX,srcY,12,0,Math.PI*2);ctx.fill();optNoGlow(ctx);
     for(var ci=0;ci<6;ci++){
@@ -22098,17 +22126,25 @@ function simOptThinFilm(canvas){
     var my=tToY(t);
     ctx.save();ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(fx-6,my);ctx.lineTo(fx+fw+6,my);ctx.stroke();ctx.restore();
     simHandle(ctx,fx+fw/2,my,'#ffffff',13);
-    if(!touched&&animT<10)optLabel(ctx,'✋ גררו לאורך הקרום',fx+fw/2,Math.min(fB-10,my+28)+(reduce?0:Math.sin(animT*4)*3),'#fbbf24',10);
+    // on a tag over the strip's colours; on two lines where one is wider than
+    // the strip (a phone: it ran over the thickness scale beside it)
+    if(!touched&&animT<10){var hN='✋ גררו לאורך הקרום',hY=Math.min(fB-24,my+28)+(reduce?0:Math.sin(animT*4)*3);
+      var hL=labelW(ctx,hN,10)>fw+8?(_splitBal(ctx,hN)||[hN]):[hN];
+      hL.forEach(function(t,i){optTag(ctx,t,fx+fw/2,hY+i*17,'#fbbf24',10);});}
     // ── the two reflections, magnified ──
     var zx=narrow?fx+fw+52:W*0.36,zw=narrow?W-zx-10:W*0.27,zT=narrow?30:60,zh=narrow?150:200;
     var sTop=zT+zh*0.42,sBot=zT+zh*0.70;
     ctx.save();ctx.fillStyle='rgba(125,211,252,.10)';ctx.fillRect(zx,sTop,zw,sBot-sTop);
     ctx.fillStyle=sub==='soap'?'rgba(7,13,25,0)':'rgba(56,189,248,.16)';ctx.fillRect(zx,sBot,zw,zT+zh-sBot);
     ctx.strokeStyle='rgba(125,211,252,.6)';ctx.lineWidth=1.2;ctx.beginPath();ctx.moveTo(zx,sTop);ctx.lineTo(zx+zw,sTop);ctx.moveTo(zx,sBot);ctx.lineTo(zx+zw,sBot);ctx.stroke();ctx.restore();
-    optLabel(ctx,'אוויר  n = 1.00',zx+4,sTop-10,'#94a3b8',9,'left');
+    var ax=zx+zw*0.42,dx=zw*0.10,inc0={x:ax-dx*2.4,y:zT+6};
+    // the air's name just over the film, unless it would run under the π
+    // badge at the first reflection (a phone, or the longer Hebrew): then over
+    // the start of the incoming ray, at the top of the drawing
+    var airN='אוויר  n = 1.00',airY=labelW(ctx,airN,9)>ax-14-9-4-(zx+4)?zT-6:sTop-10;
+    optLabel(ctx,airN,zx+4,airY,'#94a3b8',9,'left');
     optLabel(ctx,'קרום  n = '+nf.toFixed(2),zx+4,(sTop+sBot)/2,'#7dd3fc',9,'left');
     optLabel(ctx,(sub==='soap'?'אוויר':sub==='oil'?'מים':'זכוכית')+'  n = '+ns.toFixed(2),zx+4,zT+zh-8,'#94a3b8',9,'left');
-    var ax=zx+zw*0.42,dx=zw*0.10,inc0={x:ax-dx*2.4,y:zT+6};
     var seg=function(x1,y1,x2,y2,col,w,head){optRay(ctx,x1,y1,x2,y2,col,w,head);};
     seg(inc0.x,inc0.y,ax,sTop,'#f8fafc',2.4,false);
     seg(ax,sTop,ax+dx*2.4,zT+6,'#fde68a',2,true);                        // reflected at the top surface
@@ -22266,7 +22302,7 @@ function simOptGrating(canvas){
     ctx.save();ctx.strokeStyle='rgba(255,255,255,.35)';ctx.setLineDash([4,5]);ctx.beginPath();ctx.moveTo(gX,cy);ctx.lineTo(dp.x,dp.y);ctx.stroke();ctx.restore();
     simHandle(ctx,dp.x,dp.y,'#fbbf24',14);
     ctx.save();ctx.strokeStyle='#fbbf24';ctx.lineWidth=1.2;ctx.beginPath();ctx.arc(gX,cy,46,0,th,th<0);ctx.stroke();ctx.restore();
-    if(!touched&&animT<10)optLabel(ctx,'✋ גררו את הגלאי לאורך הקשת',Math.min(W-8,dp.x),dp.y-22+(reduce?0:Math.sin(animT*4)*3),'#fbbf24',10,'right');
+    if(!touched&&animT<10)optTag(ctx,'✋ גררו את הגלאי לאורך הקשת',Math.min(W-8,dp.x),dp.y-22+(reduce?0:Math.sin(animT*4)*3),'#fbbf24',10,'right');
     var bx=8,by=H-58,bw=Math.min(W-16,narrow?W-16:300);
     ctx.save();ctx.fillStyle='rgba(4,9,20,.9)';ctx.strokeStyle='rgba(251,191,36,.6)';ctx.lineWidth=1;ctx.beginPath();ctx.roundRect(bx,by,bw,50,7);ctx.fill();ctx.stroke();ctx.restore();
     var ltr=document.documentElement.dir==='ltr',tx=ltr?bx+8:bx+bw-8,al=ltr?'left':'right';
