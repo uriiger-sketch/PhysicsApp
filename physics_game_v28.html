@@ -16323,8 +16323,9 @@ function simElcDielectric(canvas){
     // a grab handle on the slab, and its label
     simHandle(ctx,sx+SLW-12,(PT+PB)/2,'#c4b5fd',13);
     simText(ctx,'κ = '+k.toFixed(1),sx+SLW/2,PB+22,'#8b5cf6',12,'center',true);
-    simText(ctx,f<0.04?'גררו את הלוח פנימה':(f>0.96?'הלוח בפנים לגמרי':'מוכנס חלקית'),
-      sx+SLW/2,PT-18,'#7d8da6',10,'center');
+    // over the slab, but clear of the plate's + sign at its left end
+    var stT=f<0.04?'גררו את הלוח פנימה':(f>0.96?'הלוח בפנים לגמרי':'מוכנס חלקית');
+    simText(ctx,stT,Math.max(sx+SLW/2,PL+18+labelW(ctx,stT,10)/2),PT-18,'#7d8da6',10,'center');
     // battery / open switch, on the left and out of the slab's way
     var by=(PT+PB)/2;
     ctx.strokeStyle='#64748b';ctx.lineWidth=2;
@@ -16484,7 +16485,8 @@ function simElcDeflect(canvas){
         ctx.beginPath();ctx.arc(exX,exY,R,sgn>0?-dA:0,sgn>0?0:dA);ctx.stroke();ctx.restore();
         simText(ctx,'α = '+(ang*180/Math.PI).toFixed(1)+'°',exX+8,exY+sgn*17+4,'#e2e8f0',10.5,'left',true);   // under the level ray, clear of the beam
       }
-      simText(ctx,'ישר — אין שדה',(exX+SX)/2,(exY+sY)/2-14,'#10b981',11,'center');
+      // under the beam: the particle's own name (e⁻, p⁺) rides above it
+      simText(ctx,'ישר — אין שדה',(exX+SX)/2,(exY+sY)/2+20,'#10b981',11,'center');
     }
     // the moving particle
     var per=1.6, ph=(t0%per)/per, xN=ph*(L+(SX-X0-L*PPMx)/PPMx);
@@ -32280,8 +32282,10 @@ function simElcCompare(canvas){
         bx+(W-32)/6,gy+gh+52,'#e2e8f0',10.5,'center',true);
     });
     if(!showV)simText(ctx,Math.round(100*Esh/Einf)+'% מ־σ/2ε₀',16+2*(W-32)/3+(W-32)/6,gy+gh+68,'#34d399',9.5,'center');
-    simText(ctx,'r = '+(rSel*100).toFixed(1)+' cm'+(rSel<R?'  (בתוך הכדור)':''),
-      W/2,gy-8,'#fbbf24',10.5,'center',true);
+    // centred, unless that runs into the axis' name on its left (a phone, in English)
+    var rT='r = '+(rSel*100).toFixed(1)+' cm'+(rSel<R?'  (בתוך הכדור)':''),rTw=labelW(ctx,rT,10.5)*1.08,
+        rTl=GX+4+labelW(ctx,showV?'V  (V)':'E  (V/m)',10)*1.08+10;
+    simText(ctx,rT,Math.max(W/2,Math.min(W-6-rTw/2,rTl+rTw/2)),gy-8,'#fbbf24',10.5,'center',true);
     simText(ctx,showV?'כל הפוטנציאלים נמדדים ביחס לאינסוף'
       :(touched?'על ציר המשטח המטען הנקודתי חזק יותר בכל מרחק':'גררו כדי לבחור מרחק'),W/2,H-10,'#7d8da6',10,'center');
     elcFocus(ctx,kb,0,px,gy+gh/2,14);
@@ -35145,7 +35149,7 @@ function simElcConductor(canvas){
     ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(pxp,pyp);ctx.stroke();ctx.setLineDash([]);ctx.restore();
     ctx.save();ctx.fillStyle='#fbbf24';optGlow(ctx,'#fbbf24',12);
     ctx.beginPath();ctx.arc(pxp,pyp,8,0,Math.PI*2);ctx.fill();optNoGlow(ctx);ctx.restore();
-    optLabel(ctx,'גשוש r='+(r_m*100).toFixed(0)+'cm',pxp,pyp-17,'#fbbf24',9);
+    optLabel(ctx,'גשוש r = '+(r_m*100).toFixed(0)+' cm',pxp,pyp-17,'#fbbf24',9);
     optLabel(ctx,inside?'בפנים':'בחוץ',pxp,pyp+19,inside?'#4ade80':'#94a3b8',8.5);
     if(!touched&&animT<9)optLabel(ctx,'✋ גררו את הגשוש פנימה והחוצה',cx,cy+Rp+36,'#fbbf24',10);
     // ── synchronised E(r) and V(r) graphs ──
@@ -35363,7 +35367,9 @@ function simElcUpair(canvas){
       bar(0,'U',U,'#f87171'); bar(1,'Eₖ',K2,'#4ade80'); bar(2,'סה״כ',U+K2,'#fbbf24');
       simText(ctx,'J · מואט פי '+SLOW,bx+(3*bw2+24)/2,BY+BH+24,'#7d8da6',8.5,'center');
     }
-    if(!touched&&t<8)optLabel(ctx,'✋ גררו את המטענים, ואז שחררו',W/2,cy+92,'#fbbf24',10);
+    // on a phone the energy bars' titles stand where the hint was: there it
+    // goes above the charges, between them and the title
+    if(!touched&&t<8)optLabel(ctx,'✋ גררו את המטענים, ואז שחררו',W/2,NAR?58:cy+92,'#fbbf24',10);
     if(!NAR)optInfoBox(ctx,W-236,10,228,[
       'U = k·q₁q₂/r',
       'U = '+(U>0?'+':'')+elcSg(U,3)+' J',
@@ -35785,7 +35791,8 @@ function simElcCap(canvas){
     ctx.beginPath();ctx.moveTo(xB-10,yB-11);ctx.lineTo(xB-10,yB+11);ctx.stroke();
     ctx.lineWidth=3.5;ctx.beginPath();ctx.moveTo(xB+10,yB-6);ctx.lineTo(xB+10,yB+6);ctx.stroke();ctx.restore();
     optLabel(ctx,disc?'מנותק ✂ (Q קבוע)':Vx+' V',xB,yB-22,disc?'#f87171':'#e2e8f0',10);
-    if(disc)optLabel(ctx,'Q נעול: הרחקת לוחות מעלה את V ו־U — ושימו לב ש־E לא משתנה!',W/2,H0-14,'#a78bfa',9.5);
+    // on a phone in two lines (on one it fell to 7 px)
+    if(disc)dcCap(ctx,'Q נעול: הרחקת לוחות מעלה את V ו־U — ושימו לב ש־E לא משתנה!',W/2,H0-14,'#a78bfa',9.5,false,true);
     // Readout bars
     var Cref=3*ELC_EPS0*200e-4/4e-3;             // 3× the default C → defaults sit at ⅓ bar
     var bars=[['C',C/Cref,(C*1e12).toFixed(1)+' pF','#22d3ee'],
