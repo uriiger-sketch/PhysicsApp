@@ -19735,7 +19735,7 @@ function _optInterface(canvas,P){
     // θc's name: at the end of its dashed line, or below that end, or on the
     // normal's side of it -- never under the incident ray's handle
     if(thc!==null&&tir){var tC='θc = '+thc.toFixed(1)+'°',cw=labelW(ctx,tC,10);
-      var cp=spot(cw,12,[[ex-4-cw/2,ey-10],[ex-8-cw/2,ey+12],[ex+12+cw/2,ey+6],[cx-L*0.62*Math.sin(tc)-10-cw/2,MY-L*0.62*Math.cos(tc)]]);
+      var cp=spot(cw,12,[[ex-4-cw/2,ey-10],[ex-8-cw/2,ey+12],[ex+12+cw/2,ey+6],[ex+14+cw/2,ey-16],[cx-L*0.62*Math.sin(tc)-10-cw/2,MY-L*0.62*Math.cos(tc)]]);
       optLabel(ctx,tC,cp[0],cp[1],'#f59e0b',10);}
     // R(θ) for these two media, with the current angle marked
     var gw=Math.min(170,W*0.40),gh=58,gx=W-gw-10,gy=H-gh-18;
@@ -19747,7 +19747,7 @@ function _optInterface(canvas,P){
     optLabel(ctx,'R(θ₁) — החלק המוחזר',gx+gw/2,gy-8,'#94a3b8',8.5);
     optLabel(ctx,'0°',gx,gy+gh+9,'#7d8da6',8);optLabel(ctx,'90°',gx+gw,gy+gh+9,'#7d8da6',8);
     if(thc!==null)optLabel(ctx,'θc',gx+thc/90*gw,gy+gh+9,'#f59e0b',8);
-    if(hint)optLabel(ctx,HINT,W-8,hintY,'#fbbf24',10,'right');
+    if(hint)optTag(ctx,HINT,W-8,hintY,'#fbbf24',10,'right');   // the normal runs up through its row
     // the law, in numbers
     var s1=n1*Math.sin(th);
     if(F.tir)kit.model('חוק סנל: '+_skM('sin θ₂ = (n₁/n₂)·sin θ₁ = ('+n1.toFixed(3)+'/'+n2.toFixed(3)+')·sin '+thD.toFixed(tir?1:0)+'° = '+((s1/n2)<1.0005?(s1/n2).toFixed(4):(s1/n2).toFixed(3))+' > 1')+' — אין זווית כזו: החזרה פנימית מלאה ('+_skM('θ₁ > θc = '+thc.toFixed(2)+'°')+').');
