@@ -39651,6 +39651,10 @@ document.addEventListener('keydown',function(e){
     if(ae&&ae.classList&&ae.classList.contains('param-wrap'))ae.blur();
     closeDrawer(); closeFormulaPanel(); closeChangelog(); return; }
   if(editable||e.altKey||e.ctrlKey||e.metaKey) return;
+  // A key a simulation took is the simulation's: an arrow that turns a ray on
+  // a focused canvas (the sim calls preventDefault) also took the learner to
+  // the next section, so the turn was never seen
+  if(e.defaultPrevented) return;
   // with a panel open, the page behind it does not take shortcuts
   if(typeof _openPanelEl==='function'&&_openPanelEl()) return;
   switch(e.key){
