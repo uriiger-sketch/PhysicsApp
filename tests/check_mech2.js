@@ -181,7 +181,9 @@ const EXPECT = {
   t('pendulum: the bob is dragged to 45°', /θ₀ = 4[45]\.\d°/.test(amp), amp && amp.match(/θ₀ = [\d.]+°/)[0]);
 
   await open('energy.energy-cons'); r = await rect(); W = r.w;
-  await drag(r, [[14 + 0.08 * (W - 28), 290 - 3.18 * 64], [14 + 0.3 * (W - 28), 200], [14 + 0.5 * (W - 28), 290 - 2.8 * 64]]);
+  // the track's own geometry (one scale for both axes since the polish wave)
+  const eg = (await p.evaluate(() => document.querySelector('#app canvas')._probe())).geo, egX = xf => eg.x0 + xf * eg.xw, egY = h => eg.fy - h * eg.ppm;
+  await drag(r, [[egX(0.08), egY(3.18)], [egX(0.3), egY(1.4)], [egX(0.5), egY(2.8)]]);
   await p.waitForTimeout(120);
   const eh = await last('mgh = ');
   t('energy track: the cart is dragged to the 2.8 m hill', /×2\.[78]\d =/.test(eh), eh && eh.split('   ')[0]);
@@ -197,9 +199,11 @@ const EXPECT = {
   await open('energy.potential'); r = await rect(); W = r.w;
   const epq = await p.evaluate(() => document.querySelector('#app canvas')._probe());   // the ball's whole column takes the finger
   await drag(r, [[epq.ballX, epq.y], [epq.ballX, 260], [epq.ballX, 150]]);
+  const epr0 = await p.evaluate(() => document.querySelector('#app canvas')._probe());   // the height it was let go from
   await p.waitForTimeout(60);
-  const hp = num((await last('mgh = ')).split('×')[2]);
-  t('falling ball: lifted by touch to about 4.6 m', hp > 4.2 && hp <= (epq.FLOOR_POS - 150) / epq.PX + 1e-9, hp + ' m');
+  const hp = num((await last('mgh = ')).split('×')[2]), hGrid = Math.round((epq.FLOOR_POS - 150) / epq.PX * 10) / 10;
+  // the ball is lifted on the 0.1 m grid of the readouts: to the finger's height, rounded (and it falls from there)
+  t('falling ball: lifted by touch to about 4.6 m, on the 0.1 m grid', hp > 4.2 && hp <= hGrid + 1e-9 && epr0.hRel !== null && Math.abs(epr0.hRel - hGrid) < 1e-9, hp + ' m, let go at ' + epr0.hRel + ' m');
 
   await open('planar.projectile'); r = await rect();
   let pq = await p.evaluate(() => document.querySelector('#app canvas')._probe());
@@ -209,8 +213,9 @@ const EXPECT = {
   t('projectile: a pull from the cannon aims (45°, v₀ = |pull|/4.5) and fires on release', !!pq.shot && pq.shot.th === 45 && pq.shot.v0 === Math.round(Math.hypot(100, 100) / 4.5), pq.shot && pq.shot.th + '°, ' + pq.shot.v0 + ' m/s');
 
   await open('statics.torque'); r = await rect(); W = r.w;
-  let PPM = W * 0.62 / 0.55;
-  await drag(r, [[W * 0.20 + 0.30 * PPM, 470 * 0.56], [W * 0.20 + 0.20 * PPM, 470 * 0.56], [W * 0.20 + 0.10 * PPM, 470 * 0.56]]);
+  const tqg = await p.evaluate(() => document.querySelector('#app canvas')._probe());   // the pivot and the scale, as drawn
+  let PPM = tqg.PPM;
+  await drag(r, [[tqg.PX + 0.30 * PPM, tqg.PY], [tqg.PX + 0.20 * PPM, tqg.PY], [tqg.PX + 0.10 * PPM, tqg.PY]]);
   t('torque: the application point slides along the bar', Math.abs(num(await p.evaluate(() => document.getElementById('inp-tq-r').value)) - 0.10) < 0.02);
 
   await open('statics.equilibrium'); r = await rect(); W = r.w;
@@ -626,7 +631,7 @@ const EXPECT = {
   await set('tq-r', 0.45); await set('tq-F', 20); await p.waitForTimeout(250);
   k3_kq = await k3_kp();
   let k3_kml = await model();
-  t('... 9.0 N·m with 30 N at 0.30 m and with 20 N at 0.45 m (mission 2), and the model line says so', k3_kq.t30 && k3_kq.t20 && k3_kml.includes('τ = r·F·sinθ = 0.45 × 20 × sin 90° = 9.00'), k3_kml.slice(0, 60));
+  t('... 9.0 N·m with 30 N at 0.30 m and with 20 N at 0.45 m (mission 2), and the model line says so', k3_kq.t30 && k3_kq.t20 && k3_kml.includes('τ = r·F·sinθ = 0.45 × 20 × sin90° = 9.00'), k3_kml.slice(0, 60));
   let k3_kdm = await missionsDone();
   t('torque missions done', k3_kdm.length === 2 && k3_kdm.every(Boolean), JSON.stringify(k3_kdm));
 
