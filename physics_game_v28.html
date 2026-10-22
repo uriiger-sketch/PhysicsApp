@@ -16689,24 +16689,24 @@ function simElcMillikan(canvas){
       W/2,by,'#94a3b8',11,'center');
     // a line too wide for the canvas at its own size takes two rows (a phone
     // has the row for it), cut where the text says: at a dash, or before ⇒
-    var rows=function(t,y,col,sz,bold,cut,f){f=f||simText;
+    var twoRows=function(t,y,col,sz,bold,cut,f){f=f||simText;
       ctx.save();ctx.font=(bold?'bold ':'')+sz+'px Heebo,sans-serif';var wide=ctx.measureText(_mathIso(_cvSub(t))).width>W-16;ctx.restore();
       var i=wide&&EX?t.indexOf(cut):-1;
       if(i<0){f(ctx,t,W/2,y,col,sz,'center',bold);return;}
       f(ctx,t.slice(0,i).trim(),W/2,y,col,sz,'center',bold);f(ctx,t.slice(i).replace(/^\s*—\s*/,'').trim(),W/2,y+EX,col,sz,'center',bold);};
     if(mMeas===null){
-      rows('שלב 1: הורידו את המתח ל־0 — מהירות הנפילה תיתן את מסת הטיפה',by+22,'#fbbf24',11.5,true,' — ');
+      twoRows('שלב 1: הורידו את המתח ל־0 — מהירות הנפילה תיתן את מסת הטיפה',by+22,'#fbbf24',11.5,true,' — ');
     } else {
       var rM2=Math.cbrt(3*mMeas/(4*Math.PI*RHO));
-      rows('v₀ = '+(vFall*1000).toFixed(3)+' mm/s  ⇒  r = √(9ηv₀/2ρg) = '+(rM2*1e6).toFixed(2)+' μm  ⇒  m = '+sciTxt(mMeas)+' kg',
+      twoRows('v₀ = '+(vFall*1000).toFixed(3)+' mm/s  ⇒  r = √(9ηv₀/2ρg) = '+(rM2*1e6).toFixed(2)+' μm  ⇒  m = '+sciTxt(mMeas)+' kg',
         by+22,'#dde6f0',11.5,true,'  ⇒  m',slTxt);
     }
     if(revealed){
       slTxt(ctx,'q = mgd/V = '+sciTxt(cur.q)+' C   (V = '+Vbal.toFixed(0)+' V)',W/2,by+44+EX,'#fbbf24',12.5,'center',true);
     } else if(mMeas!==null){
-      rows('שלב 2: העלו את המתח עד שהטיפה תעצור — ואז ייחשב המטען',by+44+EX,'#7d8da6',11.5,false,' — ');
+      twoRows('שלב 2: העלו את המתח עד שהטיפה תעצור — ואז ייחשב המטען',by+44+EX,'#7d8da6',11.5,false,' — ');
     } else if(bal){
-      rows('הטיפה מרחפת — אבל q = mgd/V דורש את m: התחילו בשלב 1',by+44+EX,'#f59e0b',11.5,true,' — ');
+      twoRows('הטיפה מרחפת — אבל q = mgd/V דורש את m: התחילו בשלב 1',by+44+EX,'#f59e0b',11.5,true,' — ');
     }
     // ── the number line of q, and the comb ──
     var fitAll=log.length>0&&log.every(function(m){return onTooth(m.q);});
