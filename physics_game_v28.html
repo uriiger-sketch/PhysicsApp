@@ -218,6 +218,8 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 #app sub{bottom:-.22em}
 #app sup{top:-.45em}
 .math-ltr{direction:ltr;display:inline-flex;align-items:center;vertical-align:middle;margin:0 3px;font-size:1.05em;}
+/* no margin on the side a full stop, comma or bracket touches (_mathMarks) */
+.math-ltr.m-l0,.sk-f.math-ltr.m-l0{margin-left:0;}.math-ltr.m-r0,.sk-f.math-ltr.m-r0{margin-right:0;}
 .ltr-run{direction:ltr;unicode-bidi:isolate;}
 .ltr-run.nb{white-space:nowrap;}
 .sum-open{background:rgba(96,165,250,.07);border-inline-start:3px solid rgba(96,165,250,.5);
@@ -2307,7 +2309,49 @@ function fixInlineMath(root){
   _subifyDom(root);
   _chainBreaks(root);
   _gluePunct(root);
+  _mathMarks(root);
   _fitMath(root);
+}
+// ── No gap between a formula and its punctuation ─────────────────────────
+// An inline formula keeps a few pixels of margin from the words around it
+// (3 px for M(), 2 px in the kit's texts) -- on the side of a full stop, a
+// comma or a bracket that touches it, that margin read as a space:
+// "a = F/m ." and "( g = 9.8 m/s²)". The side is physical: in a right-to-left
+// line the mark after a left-to-right formula stands on its left. Run after
+// _gluePunct and before _fitMath, which measures the margins it leaves.
+// A formula fused with its neighbours into one left-to-right run (_mergeLtr:
+// "x = 2 m ⇒ t = 1 s") is one unit: the mark after it in a right-to-left line
+// touches the run's FIRST formula, at its left end.
+var _MM_AFTER=/^[.,;:!?)\]}…%’”»״"'׳]/,_MM_BEFORE=/[(\[{“‘«„"״']$/;
+function _mathMarks(root){
+  if(!root||!root.querySelectorAll)return;
+  var cs=function(e){return getComputedStyle(e);};
+  // the text touching unit u on one side, past the ends of the inline
+  // wrappers (<b>, a glue span) it ends or starts, and the direction of the
+  // line that text is in
+  var touch=function(u,after){
+    for(var n=u,g=0;n&&g<6;g++){var s=after?n.nextSibling:n.previousSibling;
+      while(s&&s.nodeType===3&&!s.nodeValue)s=after?s.nextSibling:s.previousSibling;
+      if(s)return s.nodeType===3?{t:s.nodeValue,rtl:cs(n.parentElement).direction==='rtl'}:null;
+      n=n.parentElement;
+      if(!n||n===root||cs(n).display!=='inline')return null;}
+    return null;};
+  // the formula at one physical edge of unit u (u itself, or the first or
+  // last formula of a fused run), or null when text ends the run there
+  var edge=function(u,left){
+    if(u.classList.contains('math-ltr'))return u;
+    var k=left?u.firstChild:u.lastChild;
+    while(k&&k.nodeType===3&&!k.nodeValue)k=left?k.nextSibling:k.previousSibling;
+    return k&&k.nodeType===1&&k.classList.contains('math-ltr')?k:null;};
+  var fs=root.querySelectorAll('.math-ltr');
+  for(var i=0;i<fs.length;i++)fs[i].classList.remove('m-l0','m-r0');
+  root.querySelectorAll('.math-ltr,.ltr-run').forEach(function(u){
+    var p=u.parentElement;if(!p||(p.closest&&p.closest('.math-ltr,.ltr-run,.katex')))return;
+    if(!u.classList.contains('math-ltr')&&!u.querySelector('.math-ltr'))return;
+    var a=touch(u,true),b=touch(u,false),f;
+    if(a&&_MM_AFTER.test(a.t)&&(f=edge(u,a.rtl)))f.classList.add(a.rtl?'m-l0':'m-r0');
+    if(b&&_MM_BEFORE.test(b.t)&&(f=edge(u,!b.rtl)))f.classList.add(b.rtl?'m-r0':'m-l0');
+  });
 }
 // ── A worked chain typed as plain text ───────────────────────────────────
 // "r=mv/qB′=12·1.66×10⁻²⁷·4×10⁵/(1.6×10⁻¹⁹·0.2)=0.249 m=24.9 cm" offers the
