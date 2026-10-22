@@ -682,6 +682,11 @@ input[type=range]{accent-color:var(--accent);cursor:pointer;}
   width: 100% !important;
   max-width: 100%;
 }
+/* every sim canvas that takes the keyboard (the circuit boards, the field
+   explorers, the magnets) shows its ring when it has the focus: the page's
+   ring is drawn 2 px outside, where the wrap's overflow:hidden cut it off,
+   so a keyboard user tabbing into the canvas saw nothing at all */
+.sim-canvas-wrap canvas:focus-visible{outline:2px solid var(--accent2);outline-offset:-3px;}
 /* a phone on its side: the whole sim, scaled to the screen's height (_simFit) */
 .sim-canvas-wrap canvas.sim-fit{width:var(--fit-w) !important;margin:0 auto;}
 
@@ -866,7 +871,11 @@ input[type=range]{accent-color:var(--accent);cursor:pointer;}
 
   /* Range sliders: stack vertically */
   .sim-controls { flex-wrap: wrap; gap: 8px; }
-  .range-wrap { flex: 1 1 100%; }
+  /* min-width:0 -- a flex item is never narrower than its content by
+     default, so at 320 px a row whose value is long ("20 ×10⁶ m/s") stayed
+     wider than the card and the value was cut off at its edge; now the
+     label wraps instead */
+  .range-wrap { flex: 1 1 100%; min-width: 0; }
   /* a long label ("מקדם התקומה e (0 נצמדים, 1 אלסטית)") stayed on one
      line and pushed the slider and its value out of the card, which cut
      them off: the label wraps, the slider keeps a usable width */
