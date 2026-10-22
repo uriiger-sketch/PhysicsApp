@@ -29000,7 +29000,8 @@ function magBar(ctx,x,y,len,th,ang,lbl){
 function magPlotBox(ctx,x,y,w,h,title,col){
   ctx.save();ctx.fillStyle='rgba(6,14,28,.88)';ctx.strokeStyle='#1e3a52';ctx.lineWidth=1;
   ctx.beginPath();ctx.roundRect(x,y,w,h,5);ctx.fill();ctx.stroke();ctx.restore();
-  if(title)simText(ctx,title,x+w/2,y+11,col||'#94a3b8',9.5,'center',true);
+  // the title stays inside its box (simText only kept it inside the canvas)
+  if(title)magFitText(ctx,title,x+w/2,y+11,col||'#94a3b8',9.5,'center',true,w-12);
 }
 function magPoly(ctx,pts,col,lw,dash){
   if(pts.length<2)return;
@@ -29144,8 +29145,9 @@ MAG_SIMS['mag-magnets']=function(canvas){
     bars().forEach(function(b){if(Math.abs(comp[0]-b[0])<b[1]/2+0.012&&Math.abs(comp[1])<0.022)comp[1]=comp[1]<0?-0.022:0.022;});};
   simDrag(canvas,dpr,{
     down:function(p){var c=toS(comp[0],comp[1]);
+      // the second magnet answers a fingertip (44 px tall), not only its 14 px bar
       if(Math.hypot(p.x-c[0],p.y-c[1])<26)drag='c';
-      else if(mode&&Math.abs(p.x-toS(m2x,0)[0])<LEN*s/2+6&&Math.abs(p.y-Hc)<14)drag='m';
+      else if(mode&&Math.abs(p.x-toS(m2x,0)[0])<LEN*s/2+6&&Math.abs(p.y-Hc)<22)drag='m';
       else{drag='c';var w=toW(p.x,p.y);comp=[w[0],w[1]];}clampC();},
     move:function(p){var w=toW(p.x,p.y);
       if(drag==='c')comp=[w[0],w[1]];
@@ -29186,14 +29188,18 @@ MAG_SIMS['mag-magnets']=function(canvas){
     var neutral=Bm<2e-6&&Bm<0.25*parts,dir=Math.atan2(b[1],b[0]);
     magNeedle(ctx,c[0],c[1],neutral?(Date.now()/700)%6.2832:dir,16,true);
     simHandle(ctx,c[0],c[1],'#fbbf24',24);
-    var y0=H*0.83,ph=W<600;
+    // on a phone the last line takes two rows (on one it fell to 7 px and ran
+    // out of the box): the box starts where the field picture ends
+    var ph=W<600,y0=H*(ph?0.80:0.83);
     magPlotBox(ctx,10,y0,W-20,H-y0-8,'',null);
-    var cA=ph?W/2:W*0.27,cB=ph?W/2:W*0.70,yA=ph?[18,36,54]:[30,22,44];
+    var cA=ph?W/2:W*0.27,cB=ph?W/2:W*0.70,yA=ph?[18,35,51]:[30,22,44];
     simText(ctx,'|B| במצפן = '+(Bm*1e6).toFixed(1)+' μT',cA,y0+yA[0],'#e2e8f0',ph?12:13,'center',true);
     simText(ctx,neutral?'⚠ נקודה ניטרלית — השדות מבטלים זה את זה, והמחט אינה מתכוונת':
       earth?'המחט מראה את השדה הכולל: מגנט + כדור הארץ':'המחט האדומה (N) מצביעה בכיוון השדה',
       cB,y0+yA[1],neutral?'#fbbf24':'#94a3b8',ph?9.5:10.5,'center',neutral);
-    simText(ctx,'בחוץ הקווים יוצאים מ־N ונכנסים ל־S; בתוך המגנט הם חוזרים מ־S ל־N',cB,y0+yA[2],'#64748b',9.5,'center');
+    var tIO='בחוץ הקווים יוצאים מ־N ונכנסים ל־S; בתוך המגנט הם חוזרים מ־S ל־N',sIO=ph&&labelW(ctx,tIO,9.5)>W-36?_splitHalf(tIO):null;
+    if(sIO){simText(ctx,sIO[0],cB,y0+yA[2],'#64748b',9.5,'center');simText(ctx,sIO[1],cB,y0+yA[2]+14,'#64748b',9.5,'center');}
+    else simText(ctx,tIO,cB,y0+yA[2],'#64748b',9.5,'center');
     var bE=earth?[b[0],b[1]-30e-6]:b,Bmag=Math.hypot(bE[0],bE[1]);
     if(earth)model('במצפן, כחיבור וקטורי: שדה המגנט '+kit.m((Bmag*1e6).toFixed(1)+' μT')+' ועוד הרכיב האופקי של שדה כדור הארץ, '+kit.m('30.0 μT')+' צפונה ⇒ '+kit.m('|B| = '+(Bm*1e6).toFixed(1)+' μT'));
     else model('במצפן: '+kit.m('|B| = '+(Bm*1e6).toFixed(1)+' μT')+', בזווית '+kit.m(((dir*180/Math.PI+360)%360).toFixed(0)+'°')+' נגד כיוון השעון מהכיוון ימינה — ולשם מצביע הקצה הצפוני של המחט');
@@ -29285,7 +29291,8 @@ MAG_SIMS['mag-wire']=function(canvas){
       if(ch.pick<0){ctx.save();ctx.fillStyle='rgba(15,23,42,.85)';ctx.strokeStyle='#64748b';ctx.lineWidth=1.4;ctx.beginPath();ctx.arc(px,py,19,0,6.2832);ctx.fill();ctx.stroke();ctx.restore();
         simText(ctx,'?',px,py+5,'#fbbf24',15,'center',true);}
       else magNeedle(ctx,px,py,Math.atan2(ch.B[1],ch.B[0]),16,true);
-      simText(ctx,'P',px+(P[0]?P[0]*30:24),py-(P[1]?P[1]*30:0)+(P[0]?4:-22),'#e2e8f0',12,'center',true);
+      // P above the point ran into the question at the top: beside it then
+      simText(ctx,'P',px+(P[0]?P[0]*30:P[1]>0?30:24),py-(P[1]?P[1]*30:0)+(P[0]?4:P[1]>0?34:-22),'#e2e8f0',12,'center',true);
       magPlotBox(ctx,8,TOP+8,W-16,H-TOP-16,'',null);chips();
       if(ch.pick>=0){var ok=CHD[ch.pick]+''===ch.B+'';
         simText(ctx,ok?'✓ נכון! רצף: '+streak:'✗ לא בדיוק — המחט מראה את הכיוון הנכון',W/2,TOP+30,ok?'#34d399':'#f87171',PH?11:12,'center',true);
@@ -30087,8 +30094,11 @@ MAG_SIMS['mag-parallel']=function(canvas){
       simArrow(ctx,p1[0],p1[1]+24,p1[0]+(att?fl:-fl),p1[1]+24,'#f87171',3,10);}}
     magDot(ctx,p1[0],p1[1],12,I1>=0,'#fbbf24','#1e293b');magDot(ctx,p2[0],p2[1],12,I2>=0,'#f472b6','#1e293b');
     simHandle(ctx,p2[0],p2[1],'#f472b6',18);
-    simText(ctx,'I₁ = '+Math.abs(I1).toFixed(0)+' A',p1[0],p1[1]-26,'#fbbf24',10,'center',true);
-    simText(ctx,'I₂ = '+Math.abs(I2).toFixed(0)+' A',p2[0],p2[1]-26,'#f472b6',10,'center',true);
+    // two wires 2 cm apart on a phone: their names step apart instead of overlapping
+    var tI1='I₁ = '+Math.abs(I1).toFixed(0)+' A',tI2='I₂ = '+Math.abs(I2).toFixed(0)+' A',
+        spI=_spread2(p1[0],labelW(ctx,tI1,10)*1.08,p2[0],labelW(ctx,tI2,10)*1.08,8,W);
+    simText(ctx,tI1,spI[0],p1[1]-26,'#fbbf24',10,'center',true);
+    simText(ctx,tI2,spI[1],p2[1]-26,'#f472b6',10,'center',true);
     simText(ctx,'⇆ גררו',p2[0],p2[1]+48,'#64748b',9,'center');
     var y0=TOP+6;magPlotBox(ctx,8,y0,W-16,H-y0-6,'',null);
     if(!I1||!I2)simText(ctx,'אחד הזרמים אפס — אין כוח',W/2,y0+30,'#94a3b8',12,'center',true);
@@ -30182,7 +30192,9 @@ MAG_SIMS['mag-motor']=function(canvas){
     simText(ctx,Math.abs(om*60/6.2832).toFixed(0)+' סל״ד',kx,ky+64,'#94a3b8',10,'center');
     // τ(φ) over one turn
     var gx=40,gy=H*0.66,gw=W-60,gh=H*0.26,X=function(p){return gx+(p+Math.PI)/(2*Math.PI)*gw;},Y=function(t){return gy+gh/2-t*(gh/2-12);};
-    magPlotBox(ctx,gx-30,gy-18,gw+42,gh+36,'τ = NBIA·sinθ לאורך סיבוב — '+(comm?'המחליף שומר על τ ≥ 0':'τ מחליף סימן: הכריכה רק מתנדנדת'),null);
+    // on a phone the title is the verdict alone (the formula is in the model
+    // line): the whole sentence ran past both sides of its box at 8 px
+    magPlotBox(ctx,gx-30,gy-18,gw+42,gh+36,(W<600?'':'τ = NBIA·sinθ לאורך סיבוב — ')+(comm?'המחליף שומר על τ ≥ 0':'τ מחליף סימן: הכריכה רק מתנדנדת'),null);
     ctx.save();ctx.strokeStyle='#1e3a52';ctx.beginPath();ctx.moveTo(gx,Y(0));ctx.lineTo(gx+gw,Y(0));ctx.stroke();ctx.restore();
     if(predicted){var c=[];for(var p=-Math.PI;p<=Math.PI+1e-9;p+=0.03)c.push([X(p),Y(sgn(p)*Math.cos(p))]);magPoly(ctx,c,'#fb923c',2);}
     else dcCap(ctx,'ענו על השאלה שמתחת לסימולציה — והגרף יופיע כאן',W/2,gy+gh/2-16,'#94a3b8',W<600?10:11);
@@ -30193,7 +30205,7 @@ MAG_SIMS['mag-motor']=function(canvas){
     var rbW=W<600?W-16:W*0.5,rbY=W<600?H*0.66-68:8;
     ctx.save();ctx.fillStyle='rgba(2,8,16,.85)';ctx.fillRect(8,rbY,rbW,46);ctx.restore();
     simText(ctx,'τmax = NBIA = '+tmax.toFixed(4)+' N·m',8+rbW/2,rbY+16,'#e2e8f0',11.5,'center',true);
-    simText(ctx,'θ = '+th.toFixed(0)+'°   ·   τ = '+magFx(tau,4)+' N·m',8+rbW/2,rbY+35,'#fbbf24',10.5,'center',true);
+    simText(ctx,'θ = '+th.toFixed(0)+'°   ·   τ = '+magNum(tau,4)+' N·m',8+rbW/2,rbY+35,'#fbbf24',10.5,'center',true);
     // while it spins, θ changes too fast to read: then the peak torque
     if(drag||Math.abs(om)<0.5)model(kit.m('τ = NBIA·sinθ = '+N.toFixed(0)+' × '+B.toFixed(2)+' × '+I.toFixed(1)+' × 0.0020 × sin '+th.toFixed(0)+'° = '+magNum(Math.abs(tau),4)+' N·m'));
     else model(kit.m('τ = NBIA·sinθ')+', ובשיאו '+kit.m('τₘₐₓ = NBIA = '+N.toFixed(0)+' × '+B.toFixed(2)+' × '+I.toFixed(1)+' × 0.0020 = '+tmax.toFixed(4)+' N·m'));
