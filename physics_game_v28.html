@@ -21584,7 +21584,7 @@ function simOptColorMix(canvas){
     else{var a0=rtl?x0+cW:x0,a1=rtl?x1:x1-cW;gx0=a0+4;gx1=a1-4;gy1=P.y+P.h-40;cx=rtl?x0:x1-cW+8;cy0b=top+16;cy1b=P.y+P.h-28;}
     // the plot's title: in full where it fits over the plot, else one word
     var stt='הספקטרום (עוצמה לפי אורך גל)';if(labelW(ctx,stt,10)>gx1-gx0)stt='הספקטרום';
-    simText(ctx,stt,rtl?gx1:gx0,gy0-6,'#94a3b8',10,rtl?'right':'left');
+    simText(ctx,stt,rtl?gx1:gx0,gy0-9,'#94a3b8',10,rtl?'right':'left');   // clear of the S, M, L over the cone curves (they touched)
     var lx=function(l){return gx0+(l-380)/(700-380)*(gx1-gx0);},gh=gy1-gy0;
     ctx.save();ctx.strokeStyle='rgba(148,163,184,.14)';ctx.lineWidth=1;
     for(var t=400;t<=700;t+=100){ctx.beginPath();ctx.moveTo(lx(t),gy0);ctx.lineTo(lx(t),gy1);ctx.stroke();}ctx.restore();
