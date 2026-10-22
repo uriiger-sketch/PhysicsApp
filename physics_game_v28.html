@@ -19688,12 +19688,15 @@ function _optInterface(canvas,P){
     // the dashed critical line runs along the incident ray to its handle.
     var HINT='✋ גררו את הקרן סביב נקודת הפגיעה',hint=!touched&&animT<10,nb=Math.min(W*0.42,168);
     var keep=[[8,8,8+nb,44],[8,MY+8,8+nb,MY+44]];
-    if(hint){var hw=labelW(ctx,HINT,10);keep.push([W-8-hw,13,W-8,27]);}
+    // the hint beside the top box where the row has room, else under it (a
+    // phone in English: it ran over the box's readout)
+    var hintY=20;
+    if(hint){var hw=labelW(ctx,HINT,10);if(W-8-hw<8+nb+6)hintY=58;keep.push([W-8-hw,hintY-7,W-8,hintY+7]);}
     var segs=[[sx,sy,cx,MY,150],[cx,MY,rx,ry,F.R>=0.004?120:0]];
     var spot=function(w,h,cands){var best=null,bs=1e9;
       for(var i=0;i<cands.length;i++){var c=cands[i],b=[c[0]-w/2,c[1]-h/2,c[0]+w/2,c[1]+h/2];
         var sc=(b[0]<2||b[2]>W-2||b[1]<1||b[3]>H-1)?5000:0;
-        keep.forEach(function(k){var o=_boxOver(b,k,0);if(o)sc+=300+o*5;});
+        keep.forEach(function(k){var o=_boxOver(b,k,2);if(o)sc+=300+o*5;});   // 2 px apart: boxes that only touched let a descender meet the next name
         segs.forEach(function(g){if(g[4]&&_segHitsBox(g,b,1))sc+=g[4];});
         if(!sc){best=b;break;}if(sc<bs){bs=sc;best=b;}}
       keep.push(best);return [(best[0]+best[2])/2,(best[1]+best[3])/2];};
@@ -19736,7 +19739,7 @@ function _optInterface(canvas,P){
     optLabel(ctx,'R(θ₁) — החלק המוחזר',gx+gw/2,gy-8,'#94a3b8',8.5);
     optLabel(ctx,'0°',gx,gy+gh+9,'#7d8da6',8);optLabel(ctx,'90°',gx+gw,gy+gh+9,'#7d8da6',8);
     if(thc!==null)optLabel(ctx,'θc',gx+thc/90*gw,gy+gh+9,'#f59e0b',8);
-    if(hint)optLabel(ctx,HINT,W-8,20,'#fbbf24',10,'right');
+    if(hint)optLabel(ctx,HINT,W-8,hintY,'#fbbf24',10,'right');
     // the law, in numbers
     var s1=n1*Math.sin(th);
     if(F.tir)kit.model('חוק סנל: '+_skM('sin θ₂ = (n₁/n₂)·sin θ₁ = ('+n1.toFixed(3)+'/'+n2.toFixed(3)+')·sin '+thD.toFixed(tir?1:0)+'° = '+((s1/n2)<1.0005?(s1/n2).toFixed(4):(s1/n2).toFixed(3))+' > 1')+' — אין זווית כזו: החזרה פנימית מלאה ('+_skM('θ₁ > θc = '+thc.toFixed(2)+'°')+').');
@@ -20613,11 +20616,17 @@ function simOptEMSpectrum(canvas){
     ctx.fillStyle=grad;
     ctx.beginPath();ctx.roundRect(barX,barY,barW,barH,6);ctx.fill();
     // Band labels above — centered at each band's true log-f position (visible is too narrow; its gold bracket labels it below)
-    for(var bi=0;bi<bands.length;bi++){
-      if(bands[bi].hi-bands[bi].lo<0.6)continue;
-      var bx=barX+barW*l2p((bands[bi].lo+bands[bi].hi)/2);
-      optLabel(ctx,bands[bi].icon+' '+bands[bi].name,bx,barY-10,bands[bi].col,9);
-    }
+    // On a phone the short bands' names (UV, X-ray, gamma) ran into each
+    // other: without their icons where the row is tight, then nudged apart
+    // as little as needed and kept inside the canvas.
+    var bl=[];for(var bi=0;bi<bands.length;bi++){if(bands[bi].hi-bands[bi].lo<0.6)continue;
+      bl.push({b:bands[bi],x:barX+barW*l2p((bands[bi].lo+bands[bi].hi)/2)});}
+    var blFit=function(ic){bl.forEach(function(q){q.t=(ic?q.b.icon+' ':'')+q.b.name;q.w=labelW(ctx,q.t,9);});
+      for(var i=1;i<bl.length;i++)if(bl[i].x-bl[i-1].x<(bl[i].w+bl[i-1].w)/2+5)return false;return true;};
+    if(!blFit(true))blFit(false);
+    bl.forEach(function(q,i){q.c=Math.max(q.x,i?bl[i-1].c+(bl[i-1].w+q.w)/2+5:4+q.w/2);});
+    for(var bj=bl.length-1;bj>=0;bj--)bl[bj].c=Math.min(bl[bj].c,bj<bl.length-1?bl[bj+1].c-(bl[bj+1].w+bl[bj].w)/2-5:W-4-bl[bj].w/2);
+    bl.forEach(function(q){optLabel(ctx,q.t,q.c,barY-10,q.b.col,9);});
     // Cursor line
     var cx=barX+pos*barW;
     ctx.save();ctx.strokeStyle='#fff';ctx.lineWidth=2;
@@ -20773,7 +20782,10 @@ function simOptPolarization(canvas){
     for(var i=0;i<6;i++){var a=i*Math.PI/6+animT*1.2,x=(X.src+X.p1)/2,L=11*Math.sqrt(I0/0.8);
       ctx.save();ctx.strokeStyle='rgba(251,191,36,.7)';ctx.lineWidth=1.4;ctx.beginPath();ctx.moveTo(x-Math.cos(a)*L,by-Math.sin(a)*L);ctx.lineTo(x+Math.cos(a)*L,by+Math.sin(a)*L);ctx.stroke();ctx.restore();}
     ctx.save();ctx.fillStyle='#fbbf24';optGlow(ctx,'#fbbf24',14);ctx.beginPath();ctx.arc(X.src,by,9,0,Math.PI*2);ctx.fill();optNoGlow(ctx);ctx.restore();
-    optLabel(ctx,'אור טבעי',X.src+4,by+rD+14,'#cbd5e1',10,'left');
+    // under the source, ending before the first polarizer's name (on a phone
+    // the two ran together: "Light Polarizer", in Hebrew one over the other)
+    var sN='אור טבעי',sW=labelW(ctx,sN,10),sR=Math.min(X.src+4+sW,X.p1-labelW(ctx,'מקטב',10)/2-6);
+    optLabel(ctx,sN,Math.max(4+sW,sR),by+rD+14,'#cbd5e1',10,'right');
     var ph=animT*5,A=function(I){return 16*Math.sqrt(I/0.5);};
     field(X.p1+rD,mid?X.p2-rD:X.p3-rD,0,A(I1),ph);
     if(mid)field(X.p2+rD,X.p3-rD,th2,A(I2),ph);
