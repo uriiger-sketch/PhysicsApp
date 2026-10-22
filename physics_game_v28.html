@@ -21653,7 +21653,8 @@ function simOptColorMix(canvas){
     var leafX=surfXYZ(1,vals.obj),papX=surfXYZ(2,vals.obj);
     lastS={mode:mode,pk:o.key,pmask:o.mask,de:mode==='add'?o.de:99,yelOn:yelOn,leaf:C.nameKey(leafX,true),
       paper:C.nameKey(papX,true),leafRel:papX[1]>1e-9?leafX[1]/papX[1]:1,shirt:C.nameKey(surfXYZ(0,vals.obj),true)};
-    var cn='S '+Math.round(o.cones[0]*100)+'% · M '+Math.round(o.cones[1]*100)+'% · L '+Math.round(o.cones[2]*100)+'%';
+    // each cone and its signal one word (no-break space): "L | 80%" parted at a line end
+    var cn='S\u00a0'+Math.round(o.cones[0]*100)+'% · M\u00a0'+Math.round(o.cones[1]*100)+'% · L\u00a0'+Math.round(o.cones[2]*100)+'%';
     if(mode==='add'&&yelOn)kit.model(o.wh+': '+kit.m(o.eq)+' ← המדוכים '+kit.m(cn)+' ← הצבע הנראה: <b>'+o.name+'</b> · ההבדל מ־580 nm: '+kit.m('ΔE_{00} = '+o.de.toFixed(1)));
     else kit.model(o.wh+': '+kit.m(o.eq)+' ← המדוכים '+kit.m(cn)+' ← הצבע הנראה: <b>'+o.name+'</b>');
     var lbl='ערבוב צבעים. '+o.wh+': '+o.name+'. החצים מזיזים את '+selName()+'; Enter עובר לפריט הבא, Escape חוזר לגשוש.';
