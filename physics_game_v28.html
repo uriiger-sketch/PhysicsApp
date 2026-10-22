@@ -10142,7 +10142,7 @@ function simKit(canvas,spec){
   var host=canvas.closest&&canvas.closest('.sim-container');
   var key=state.chapter+'.'+state.section, ms=spec.missions||[];
   if(!state.missions||typeof state.missions!=='object')state.missions={};
-  var armed=false,lastModel=null,uid=++_skN,sayT=null;
+  var armed=false,lastModel=null,uid=++_skN,sayT=null,mShape=null,mWid=0,mTall=0;
   var noop=function(){};
   var api={check:noop,model:noop,predict:noop,m:_skM,el:null,say:function(t){_say(t);},
     solved:function(){return false;},tabs:function(){return {set:noop,get:noop,el:null};},keys:noop,label:noop};
@@ -10248,6 +10248,14 @@ function simKit(canvas,spec){
     if(!html){M.innerHTML='';return;}
     if(!M.firstChild){var ic=el('span','sk-model-ic','📐');ic.setAttribute('aria-hidden','true');M.appendChild(ic);M.appendChild(el('span','sk-model-tx'));}
     M.lastChild.innerHTML=html;fx(M.lastChild);
+    // A number that gains a digit while the sim runs (a moving magnet, a
+    // charging capacitor) can wrap the line onto one more row, and every
+    // control under the panel jumped by a line, back and forth, under the
+    // learner's finger. The line keeps the tallest height it has had while
+    // only its numbers change; new words, or a new width, start afresh.
+    var shape=html.replace(/ sk-nb/g,'').replace(/[0-9.,−+\-¹²³⁰-₟]+/g,'#'),mw=M.clientWidth;
+    if(shape!==mShape||mw!==mWid){mShape=shape;mWid=mw;mTall=0;M.style.minHeight='';}
+    var mh=M.offsetHeight;if(mh>mTall){mTall=mh;if(mShape===shape&&mTall)M.style.minHeight=mTall+'px';}
     // it changes every frame of a drag: a screen reader hears it once it
     // settles, and only while the learner is working this sim
     clearTimeout(sayT);
