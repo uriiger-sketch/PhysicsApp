@@ -31424,7 +31424,7 @@ function simElcScope(canvas){
     for(var i=0;i<gq;i++)ctx.fillText(rNeg?'−':'+',-50+i*20,5);
     ctx.restore();
     optLabel(ctx,rZero?'מוט נייטרלי':'מוט: q='+(rodQ>0?'+':'')+rodQ.toFixed(1)+' nC',rodX,rodY+42,rodCol,10);
-    if(!touched&&animT<8)optLabel(ctx,'✋ גררו את המוט אל הכפתור',rodX+10,rodY+62+Math.sin(animT*4)*3,'#fbbf24',10);
+    if(!touched&&animT<8)optLabel(ctx,'✋ גררו את המוט אל הכפתור',rodX+10,rodY+62+(_reducedMotion()?0:Math.sin(animT*4)*3),'#fbbf24',10);   // still, when motion is to be reduced
     // Status
     var fresh=animT-evtT<3.2;
     var msg = fresh&&evt==='conduct' ? '⚡ הולכה במגע: המטען התחלק בין המוט לאלקטרוסקופ — הסכום נשמר!' :
@@ -32548,6 +32548,9 @@ var _dcFlowQ=typeof WeakMap==='function'?new WeakMap():null;
 function dcFlowI(ctx,pts,t,I,col,k,open){
   var len=0,i,seg=[]; for(i=1;i<pts.length;i++){var d=Math.hypot(pts[i][0]-pts[i-1][0],pts[i][1]-pts[i-1][1]);seg.push(d);len+=d;}
   if(len<1||!(Math.abs(I)>1e-12))return;
+  // motion to be reduced: the charges stand still, evenly spaced, as on the
+  // circuit boards (dcBoard)
+  if(_reducedMotion())t=0;
   var kk=Math.min(k,240/Math.abs(I)),q=I*t;          // at most 240 px/s
   if(_dcFlowQ){var mp=_dcFlowQ.get(ctx);if(!mp){mp={n:0};_dcFlowQ.set(ctx,mp);}
     var key=pts.map(function(p){return Math.round(p[0])+','+Math.round(p[1]);}).join(';')+col,s=mp[key];
@@ -32568,6 +32571,7 @@ function dcFlow(ctx,pts,t,rate,col,n){
   var len=[],tot=0,i;
   for(i=1;i<pts.length;i++){var d=Math.hypot(pts[i][0]-pts[i-1][0],pts[i][1]-pts[i-1][1]);len.push(d);tot+=d;}
   if(tot<1)return;
+  if(_reducedMotion())t=0;          // motion to be reduced: still charges
   for(i=0;i<n;i++){
     var u=((t*rate)+i/n)%1, d2=u*tot, k=0;
     while(k<len.length&&d2>len[k]){d2-=len[k];k++;}
@@ -35125,7 +35129,8 @@ function simElcConductor(canvas){
       if(Etip>3e6&&tipX+43>colX)tipHi=Math.min(tipHi,tipY-Math.sin(0.4)*38-3);
       optLabel(ctx,'E בחוד ≈ V/ρ = '+(Etip/1e6).toFixed(1)+'×10⁶ V/m',cx,cy-rr*1.35,'#fbbf24',9.5);
       if(Etip>3e6){
-        ctx.save();ctx.strokeStyle='rgba(34,211,238,'+(0.45+0.55*Math.abs(Math.sin(animT*7))).toFixed(2)+')';ctx.lineWidth=1.6;
+        // the discharge flickers -- steady when motion is to be reduced
+        ctx.save();ctx.strokeStyle='rgba(34,211,238,'+(_reducedMotion()?0.85:0.45+0.55*Math.abs(Math.sin(animT*7))).toFixed(2)+')';ctx.lineWidth=1.6;
         for(var s2=0;s2<5;s2++){
           var ang=(s2-2)*0.2;
           ctx.beginPath();ctx.moveTo(tipX,tipY);
