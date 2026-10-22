@@ -397,6 +397,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 @keyframes simhint{0%,100%{opacity:.55}50%{opacity:1}}
 .sim-canvas-wrap canvas{display:block;width:100%;}
 .sim-controls{padding:16px 20px;display:flex;flex-wrap:wrap;gap:10px;align-items:center;}
+.sim-foot-btns{display:flex;flex-wrap:wrap;gap:10px;align-items:center;flex:0 0 auto;max-width:100%;}
 .sim-stat{background:var(--bg);border:1px solid var(--border);border-radius:9px;padding:9px 14px;min-width:100px;}
 .sim-stat .slab{font-size:.7rem;color:var(--muted);font-weight:700;letter-spacing:.4px;}
 .sim-stat .sval{font-size:1.05rem;font-weight:700;color:var(--accent2);font-family:'Courier New',monospace;}
@@ -38430,14 +38431,18 @@ function buildSim(sim){
   const simDone=isCompleted(state.chapter,state.section,'sim');
   // the description under the sim takes a line of its own when the two
   // buttons leave it less than 15em: at 360 px it was squeezed into a
-  // 90 px column beside them, one or two words a line, in every sim
+  // 90 px column beside them, one or two words a line, in every sim. The two
+  // buttons wrap as one group: one at a time, a longer description (English)
+  // kept "Start over" beside it and sent "Done" alone to the line below
   return `<div class="sim-container">
     <div class="sim-canvas-wrap"><canvas id="sim-canvas" height="280" role="img" aria-label="${String(sim.title||'סימולציה').replace(/"/g,'&quot;').replace(/<[^>]*>/g,'')}"></canvas></div>
     ${extra}
     <div class="sim-controls" style="border-top:1px solid var(--border);padding-top:12px">
       <p style="color:var(--muted);font-size:.85rem;line-height:1.6;flex:1 1 15em">${sim.desc}</p>
+      <div class="sim-foot-btns">
       <button class="btn btn-secondary" onclick="restartSim()" style="font-size:.82rem;padding:6px 12px">🔄 התחילו מחדש</button>
       ${!simDone?'<button class="btn btn-green" onclick="finishSim()">✅ סיימתי</button>':'<span style="color:var(--green);font-weight:700">✅ הושלמה</span>'}
+      </div>
     </div>
   </div>`;
 }
