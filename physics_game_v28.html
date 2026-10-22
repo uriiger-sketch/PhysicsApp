@@ -18980,7 +18980,9 @@ function simOptRefrIndex(canvas){
       ctx.beginPath();ctx.moveTo(xa,y);ctx.lineTo(xa+len,y);ctx.moveTo(xa,y-4);ctx.lineTo(xa,y+4);ctx.moveTo(xa+len,y-4);ctx.lineTo(xa+len,y+4);ctx.stroke();ctx.restore();
       optLabel(ctx,txt,xa+len/2,y+12,c,9.5);};
     br(xs+8,lpx,yA+40,'λ₀ = '+Math.round(l0)+' nm','#fde68a');
-    br(x0+12,lpx/n,yB+56,'λ = λ₀/n = '+Math.round(l0/n)+' nm','#fde68a');
+    // under the counters' rows (their names, then their f): between them it
+    // lay on counter 2's frequency
+    br(x0+12,lpx/n,yB+84,'λ = λ₀/n = '+Math.round(l0/n)+' nm','#fde68a');
     // two counters: before the block and inside it -- one flash per crest
     var cnt=function(x,y,lbl){var ph=x>x0?om*T-k*(x0-xs)-n*k*(x-x0):om*T-k*(x-xs),on=(x<=fB)&&Math.cos(ph)>0.92;
       ctx.save();ctx.fillStyle=on?'#fde68a':'rgba(100,116,139,.5)';if(on)optGlow(ctx,'#fde68a',14);ctx.beginPath();ctx.arc(x,y,7,0,Math.PI*2);ctx.fill();optNoGlow(ctx);ctx.restore();
@@ -18990,7 +18992,7 @@ function simOptRefrIndex(canvas){
     var xc1=Math.round((xs+x0)/2),lb=lpx/n,want=(x0+xe)/2,base=x0+((xc1-x0)%lpx+lpx)%lpx/n;
     var xc2=base+Math.round((want-base)/lb)*lb;
     cnt(xc1,yB+38,'מונה 1');cnt(xc2,yB+38,'מונה 2');
-    if(predicted){var f14=3e8/(l0*1e-9)/1e14;optLabel(ctx,'f = '+f14.toFixed(2)+'×10¹⁴ Hz',xc1,yB+66,'#34d399',9.5);optLabel(ctx,'f = '+f14.toFixed(2)+'×10¹⁴ Hz',xc2,yB+76,'#34d399',9.5);}
+    if(predicted){var f14=3e8/(l0*1e-9)/1e14;optLabel(ctx,'f = '+f14.toFixed(2)+'×10¹⁴ Hz',xc1,yB+68,'#34d399',9.5);optLabel(ctx,'f = '+f14.toFixed(2)+'×10¹⁴ Hz',xc2,yB+68,'#34d399',9.5);}
     // the delay for a real metre of the material
     var dtns=(n-1)/3e8*1e9;
     optLabel(ctx,'הפרש הזמנים אחרי 1 m: Δt = '+(dtns<0.01?dtns.toFixed(4):dtns.toFixed(2))+' ns',W/2,H-14,'#94a3b8',9.5);
@@ -19114,7 +19116,7 @@ function simOptReflection(canvas){
     ctx.save();ctx.fillStyle=wlHex;optGlow(ctx,wlHex,12);
     ctx.beginPath();ctx.arc(W-24,22,10,0,Math.PI*2);ctx.fill();optNoGlow(ctx);ctx.restore();
     var cn=optColorName(wl);
-    optLabel(ctx,cn+' '+Math.round(wl)+'nm',W-24,38,'#94a3b8',8);
+    optLabel(ctx,cn+' '+Math.round(wl)+' nm',W-24,38,'#94a3b8',8);
     // the target
     var Lt=Math.min(188,MY-30)*0.8,tx=cx+Lt*Math.sin(TH_T*Math.PI/180),ty=MY-Lt*Math.cos(TH_T*Math.PI/180),hitT=Math.abs(angle-TH_T)<1;
     if(hitT)hitOnce=true;
@@ -19144,7 +19146,10 @@ function simOptReflection(canvas){
 function simOptPlaneMirror(canvas){
   const H=420;const{ctx,W,dpr}=setupCanvas(canvas,H);
   const id=canvas.id;var animT=0,reduce=_reducedMotion(),touched=false,drag=null,predicted=false;
-  var HP=1.80,HE=1.68,floorY=H-46,kv=Math.min(150,(floorY-56)/2.0),MX=Math.round(W*0.55),kx=(MX-34)/4.2;
+  // the mirror in the middle: the image stands as far behind it as the person
+  // in front, so both halves need the same room (at 0.55·W the image of a
+  // person 4 m away was cut by the edge, and wholly off a wide canvas)
+  var HP=1.80,HE=1.68,floorY=H-46,kv=Math.min(150,(floorY-56)/2.0),MX=Math.round(W*0.5),kx=(MX-34)/4.2;
   var dMin=Infinity,dMax=-Infinity,mirKey='';
   function gv(k,d){var e=document.getElementById('inp-'+k);return e?parseFloat(e.value):d;}
   function Y(h){return floorY-h*kv;}
@@ -19435,10 +19440,14 @@ function _optBench(canvas,P){
     var ticks=[];
     if(mirror){var s0=conv?-1:1;ticks.push({x:X0+s0*fpx,l:'F',c:'#f59e0b'},{x:X0+s0*2*fpx,l:'C',c:'#94a3b8'});}
     else ticks.push({x:X0-fpx,l:'F',c:'#f59e0b'},{x:X0+fpx,l:'F',c:'#f59e0b'},{x:X0-2*fpx,l:'2F',c:'#94a3b8'},{x:X0+2*fpx,l:'2F',c:'#94a3b8'});
+    // a tick's name steps aside from an inverted image standing on it (the
+    // image at 2F, the lesson's case, hid its own "2F")
+    var downAt=isFinite(di)&&m<0?ix:null;
     ticks.forEach(function(t){if(t.x<6||t.x>W-6)return;
       ctx.save();ctx.strokeStyle=t.c;ctx.lineWidth=2;if(!conv)ctx.setLineDash([3,3]);
       ctx.beginPath();ctx.moveTo(t.x,cy-7);ctx.lineTo(t.x,cy+7);ctx.stroke();ctx.restore();
-      optLabel(ctx,t.l,t.x,cy+17,t.c,10);});
+      var tw=labelW(ctx,t.l,10),tx=downAt!==null&&Math.abs(t.x-downAt)<tw/2+8?downAt+(t.x>=downAt?1:-1)*(tw/2+9):t.x;
+      optLabel(ctx,t.l,tx,cy+17,t.c,10);});
     simHandle(ctx,X0-f*k,cy,'#f59e0b',12);
     drawOptic();
     // the light cone: every ray from the tip that the optic collects, and
@@ -19866,7 +19875,9 @@ function simOptPrism(canvas){
     // photon on the incident beam
     var ph=(animT*0.5)%1;ctx.save();ctx.fillStyle='#fff';optGlow(ctx,'#fff',14);
     ctx.beginPath();ctx.arc(src.x+(ent.x-src.x)*ph,src.y+(ent.y-src.y)*ph,3.5,0,Math.PI*2);ctx.fill();optNoGlow(ctx);ctx.restore();
-    optLabel(ctx,'פלינט: n(סגול) > n(אדום), ולכן הסגול סוטה יותר',W/2,H-10,'#94a3b8',9);
+    // the law in symbols the page keeps left to right ("n(סגול) > n(אדום)"
+    // came out in Hebrew as "(אדום)n < (סגול)n"); on a tag, under the rays
+    optTag(ctx,'פלינט: n(400 nm) > n(700 nm), ולכן הסגול סוטה יותר',W/2,H-11,'#94a3b8',9);
     requestAnimationFrame(draw);
   }
   requestAnimationFrame(draw);
@@ -20272,7 +20283,10 @@ function simOptYoungs(canvas){
     ctx.setLineDash([3,4]);ctx.globalAlpha=0.5;ctx.beginPath();
     for(var y3=top;y3<=bot;y3+=2){var ym=(cy-y3)/PXMM*1e-3,s=ym/Math.sqrt(ym*ym+v.L*v.L),x3=scrX-10-_optSinc2(Math.PI*v.a*s/v.lam)*amp;y3===top?ctx.moveTo(x3,y3):ctx.lineTo(x3,y3);}ctx.stroke();ctx.restore();
     simHandle(ctx,scrX,bot-14,'#94a3b8',11);
-    optLabel(ctx,'L = '+v.L.toFixed(2)+' m',scrX+12,H-14,'#cbd5e1',9.5,'left');
+    // beside the screen's handle where there is room, else a row above it (a
+    // far screen left no room at the edge, and the name was pushed onto the ring)
+    var Lt='L = '+v.L.toFixed(2)+' m',Lfit=scrX+12+labelW(ctx,Lt,9.5)<=W-3;
+    optLabel(ctx,Lt,scrX+12,Lfit?H-14:H-42,'#cbd5e1',Lfit?9.5:9,'left');
     // the ruler: two markers, each with its path difference
     var mk=function(ym,name,c){var py=yPx(ym),m=pathM(v,ym);
       ctx.save();ctx.strokeStyle='rgba(255,255,255,.35)';ctx.setLineDash([4,5]);
@@ -20664,7 +20678,10 @@ function simOptEMSpectrum(canvas){
     var visX2=barX+barW*l2p(14.9);
     ctx.save();ctx.strokeStyle='#fbbf24';ctx.lineWidth=1.5;
     ctx.beginPath();ctx.moveTo(visX1,barY+barH+22);ctx.lineTo(visX1,barY+barH+30);ctx.lineTo(visX2,barY+barH+30);ctx.lineTo(visX2,barY+barH+22);ctx.stroke();
-    ctx.restore();optLabel(ctx,'אור נראה',(visX1+visX2)/2,barY+barH+38,'#fbbf24',9);
+    // its name under the bracket, but clear of the ionisation line just to its
+    // right (centred, the line ran through the middle of the words)
+    var visL='אור נראה',visW=labelW(ctx,visL,9);
+    ctx.restore();optLabel(ctx,visL,Math.min((visX1+visX2)/2,ionX-6-visW/2),barY+barH+38,'#fbbf24',9);
     kit.model('תחום: '+curBand.name+'. '+_skM('λ = c/f = 3.00×10⁸ / '+_sci(freq)+' Hz = '+formatLambda(lambda))+'. אנרגיית פוטון: '+_skM('E = hf = '+formatEnergy(freq))+'.'+
       (full?' ב־1 mW: '+_skM('N = P/E = '+_sci(nPh))+' פוטונים בשנייה — '+act+'.':''));
     if(stillT>0.4&&!dragBar)kit.check({logF:logF,eV:eVnow,lam:lambda});
@@ -20861,6 +20878,8 @@ function simOptDoppler(canvas){
      why:'הנוסחה היחסותית כוללת את התארכות הזמן של שעון המקור: '+_skM('λ = γλ₀(1 ± β)')+'. ב־'+_skM('β ≈ 0.19')+' הפער כבר 10%, ובמהירויות קטנות שתי הנוסחאות כמעט זהות.',
      done:function(s){return s.err>0.10;}}]});
   var predicted=false;
+  // a negative number with a true minus sign, as the rest of the app writes it
+  function _dSg(v,d){var t=Math.abs(v).toFixed(d);return (v<0&&parseFloat(t)!==0?'−':'')+t;}
   kit.predict({q:'מקור אור מתקרב אליכם ב־30% ממהירות האור. לעומת הנוסחה הקלאסית '+_skM('λ₀(1 − β)')+', אורך הגל שתמדדו לפי תורת היחסות הוא…',
     opts:['קצר יותר — כחול יותר','זהה','ארוך יותר — פחות כחול'],correct:2,
     why:'שעון המקור הנע מאט פי '+_skM('γ')+', ולכן הוא פולט את הפסגות בהפרש זמן ארוך יותר: '+_skM('λ = γλ₀(1 − β) = λ₀√((1 − β)/(1 + β))')+'. ב־'+_skM('β = 0.3')+' ו־'+_skM('λ₀ = 550 nm')+': 404 nm במקום 385 nm.'},
@@ -20907,7 +20926,7 @@ function simOptDoppler(canvas){
     }
     ctx.restore();
     if(bA>0.005){ctx.save();arrow(ctx,srcX,srcY-24,srcX+beta*90,srcY-24,'#94a3b8',2,8);ctx.restore();
-      optLabel(ctx,'β = '+beta.toFixed(2),srcX,srcY+32,'#cbd5e1',9);}
+      optLabel(ctx,'β = '+_dSg(beta,2),srcX,srcY+32,'#cbd5e1',9);}
     // the two observers at rest, at the edges; right of the star is +x
     var leftX=22,rightX=W-22;
     ctx.save();ctx.strokeStyle='#cbd5e1';ctx.fillStyle='#cbd5e1';ctx.lineWidth=2;
@@ -20926,7 +20945,7 @@ function simOptDoppler(canvas){
     optLabel(ctx,tag(lLf),leftX-12,srcY-38,'#e2e8f0',9,'left');
     optLabel(ctx,tag(lR),rightX+12,srcY-38,'#e2e8f0',9,'right');
     var zL=(lLf-lambda0)/lambda0,zR=(lR-lambda0)/lambda0;
-    optInfoBox(ctx,20,H-84,W-40,['v = '+beta.toFixed(2)+'c (קבועה; + ימינה),  γ = '+gam.toFixed(3),'λ₀ = '+lambda0+' nm','שמאל: λ = '+lLf.toFixed(0)+' nm,  z = '+zL.toFixed(3),'ימין: λ = '+lR.toFixed(0)+' nm,  z = '+zR.toFixed(3)]);
+    optInfoBox(ctx,20,H-84,W-40,['v = '+_dSg(beta,2)+'c (קבועה; + ימינה),  γ = '+gam.toFixed(3),'λ₀ = '+lambda0+' nm','שמאל: λ = '+lLf.toFixed(0)+' nm,  z = '+_dSg(zL,3),'ימין: λ = '+lR.toFixed(0)+' nm,  z = '+_dSg(zR,3)]);
     // the share by which the classical z misses at the receding observer
     var zRel=(1/relA(bA))-1,err=bA>0?(zRel-bA)/zRel:0;
     var lA=lambda0*relA(bA),lRe=lambda0/relA(bA);
@@ -21750,7 +21769,9 @@ function simOptFiber(canvas){
   // A straight length of fibre drawn to scale in angle: the ray enters the end
   // face, refracts (Snell), and meets the core wall at 90° − θ_r from its normal.
   // It used to zigzag along a decorative S-curve without ever touching a wall.
-  var x0=W*0.14,x2=W*0.94,fy=H*0.40,a=Math.min(42,H*0.09),cl=16;
+  // the end face far enough in for the incoming ray and the cone's name
+  // (at 0.14·W a phone had 50 px there, and "Acceptance cone" ran into the fibre)
+  var x0=Math.max(W*0.14,Math.min(84,W*0.24)),x2=W*0.94,fy=H*0.40,a=Math.min(42,H*0.09),cl=16;
   simDrag(canvas,R.dpr,{down:setA,move:setA});
   function setA(p){if(p.x>x0+10)return;simSyncSlider('fib-ang',Math.atan2(Math.abs(p.y-fy),x0-p.x)*180/Math.PI,0);}
   canvas.tabIndex=0;
@@ -21791,7 +21812,10 @@ function simOptFiber(canvas){
     ctx.save();ctx.fillStyle='rgba(52,211,153,.08)';ctx.beginPath();ctx.moveTo(x0,fy);
     var cr=Math.min(x0-6,90);
     ctx.arc(x0,fy,cr,Math.PI-maxInAng,Math.PI+maxInAng);ctx.closePath();ctx.fill();ctx.restore();
-    optLabel(ctx,'חרוט קבלה',x0-cr*0.55,fy-cr*Math.sin(maxInAng)*0.5-12,'#34d399',8);
+    // its name left of the end face, on two lines where one does not fit
+    var acN='חרוט קבלה',acY=fy-cr*Math.sin(maxInAng)*0.5-12,acW=labelW(ctx,acN,8),acR=x0-5;
+    var acL=acW>acR-4?(_splitBal(ctx,acN)||[acN]):[acN];
+    acL.forEach(function(t,i){var w=labelW(ctx,t,8);optLabel(ctx,t,Math.max(4+w/2,Math.min(acR-w/2,x0-cr*0.55)),acY-(acL.length-1-i)*10,'#34d399',8);});
     // incoming ray (from below-left, aimed at the centre of the end face)
     var L0=Math.min(x0-6,110);
     var sx=x0-L0*Math.cos(inAng),sy=fy+L0*Math.sin(inAng);
@@ -21833,7 +21857,12 @@ function simOptFiber(canvas){
     // the angle at the first wall hit, against the critical angle
     if(segs.length>1){var h0=segs[0];
       optAngleArc(ctx,h0.x2,h0.y2,22,Math.PI/2,Math.PI-thR,'#e2e8f0');}
-    optLabel(ctx,'ליבה n₁ = '+n1.toFixed(2),(x0+x2)/2,fy-a-cl-12,'#93c5fd',10);
+    // the core's name over the fibre -- moved off the leaking ray, which
+    // leaves through this row
+    var coN='ליבה n₁ = '+n1.toFixed(2),coY=fy-a-cl-12,coW=labelW(ctx,coN,10),coX=(x0+x2)/2;
+    if(leak&&leak.ang!==null&&leak.dir<0){var lx=leak.x+(coY-leak.y)/(ey-leak.y)*(Math.min(W-6,ex)-leak.x);
+      if(Math.abs(lx-coX)<coW/2+8)coX=lx+coW/2+12<=x2?lx+coW/2+12:Math.max(x0+coW/2,lx-coW/2-12);}
+    optLabel(ctx,coN,coX,coY,'#93c5fd',10);
     optLabel(ctx,'מעטה n₂ = '+n2.toFixed(2),(x0+x2)/2,fy+a+cl+12,'#94a3b8',9);
     var tcDeg=(thetaC*180/Math.PI).toFixed(1),wDeg=(wallAng*180/Math.PI).toFixed(1),maxDeg=(maxInAng*180/Math.PI).toFixed(1);
     if(guided)kit.model('זווית קריטית: '+_skM('sin θc = n₂/n₁ = '+n2.toFixed(2)+'/'+n1.toFixed(2)+' ⇒ θc = '+tcDeg+'°')+'. זווית קבלה: '+_skM('NA = √(n₁² − n₂²) = '+NA.toFixed(3)+' ⇒ θmax = '+maxDeg+'°')+'. '+(tir?'בדופן '+_skM(wDeg+'° ≥ θc')+' — האור נלכד.':'בדופן '+_skM(wDeg+'° < θc')+' — האור דולף.'));
@@ -21926,18 +21955,23 @@ function simOptTelescope(canvas){
     // === OBJECTIVE LENS ===
     optLensShape(ctx,L1x,ax,8,70,'#3b82f6','rgba(59,130,246,0.08)');
     optLabel(ctx,'אובייקטיב',L1x,ax+44,'#93c5fd',8);
-    optLabel(ctx,'fₒ='+fo+'mm',L1x,ax+56,'#60a5fa',8);
+    optLabel(ctx,'fₒ = '+fo+' mm',L1x,ax+56,'#60a5fa',8);
     // === INTERMEDIATE IMAGE (inverted, at the shared focal plane) ===
     var imgTip=objH*0.6; // tip below axis = inverted
     ctx.save();ctx.strokeStyle='#f97316';ctx.lineWidth=1.5;ctx.setLineDash([4,3]);
     ctx.beginPath();ctx.moveTo(L2x,ax);ctx.lineTo(L2x,ax+imgTip);ctx.stroke();
     ctx.setLineDash([]);ctx.restore();
-    optLabel(ctx,'תמונת ביניים',L2x,ax+imgTip+12,'#f97316',8);
-    optLabel(ctx,'↕ הפוכה',L2x,ax+imgTip+23,'#f97316',8);
+    // under the eyepiece's lower tip when the eyepiece stands close (short fₑ)
+    var imY=L3x-L2x<labelW(ctx,'תמונת ביניים',8)/2+8?Math.max(ax+imgTip+12,ax+36):ax+imgTip+12;
+    optLabel(ctx,'תמונת ביניים',L2x,imY,'#f97316',8);
+    optLabel(ctx,'↕ הפוכה',L2x,imY+11,'#f97316',8);
     // === EYEPIECE LENS ===
     optLensShape(ctx,L3x,ax,6,52,'#7c3aed','rgba(124,58,237,0.08)');
-    optLabel(ctx,'עדשת עין',L3x,ax-36,'#a78bfa',8);
-    optLabel(ctx,'fₑ='+fe+'mm',L3x,ax-25,'#8b5cf6',8);
+    // its name over it -- or, when the rays leave it steeply (short fₑ) and
+    // run up through that spot, to its left, where the beam has not risen yet
+    var eSteep=imgTip/Math.max(1,L3x-L2x)>0.3,eX=eSteep?L3x-10:L3x,eAl=eSteep?'right':'center';
+    optLabel(ctx,'עדשת עין',eX,ax-36,'#a78bfa',8,eAl);
+    optLabel(ctx,'fₑ = '+fe+' mm',eX,ax-25,'#8b5cf6',8,eAl);
     // === EYE (output) ===
     var eyeX=Math.min(W-margin*0.5,L3x+fe*scale*0.8);
     ctx.save();ctx.strokeStyle='#e2e8f0';ctx.lineWidth=2;
@@ -22007,13 +22041,14 @@ function simOptTelescope(canvas){
     optLabel(ctx,_mNm,_ltr?_x0:_x0+_wFx+_gap,29,'#34d399',_mSz,'left');
     optLabel(ctx,_mFx,_ltr?_x0+_wNm+_gap:_x0,29,'#34d399',_mSz,'left');
     // Length scale bar
-    ctx.save();ctx.strokeStyle='#334155';ctx.lineWidth=1;
+    // (only where it is long enough to read as a length: a few pixels drew
+    // a stray "H" under the eyepiece, its name already says fₑ)
     var scaleBarLen=fe*scale;
+    if(scaleBarLen>=16){ctx.save();ctx.strokeStyle='#334155';ctx.lineWidth=1;
     ctx.beginPath();ctx.moveTo(L3x,ax+60);ctx.lineTo(L3x+scaleBarLen,ax+60);ctx.stroke();
     ctx.beginPath();ctx.moveTo(L3x,ax+55);ctx.lineTo(L3x,ax+65);ctx.stroke();
     ctx.beginPath();ctx.moveTo(L3x+scaleBarLen,ax+55);ctx.lineTo(L3x+scaleBarLen,ax+65);ctx.stroke();
-    ctx.fillStyle='#64748b';ctx.font='8px Heebo';ctx.textAlign='center';
-    ctx.fillText('fₑ='+fe+'mm',L3x+scaleBarLen/2,ax+74);ctx.restore();
+    ctx.restore();optLabel(ctx,'fₑ = '+fe+' mm',L3x+scaleBarLen/2,ax+74,'#64748b',8);}
     optInfoBox(ctx,10,H-80,W-20,['\u200efₒ = '+fo+' mm,  fₑ = '+fe+' mm','הגדלה |M| = '+M.toFixed(1)+' — התמונה הפוכה (M < 0)','אורך כולל: '+(fo+fe)+' mm','לטלסקופ: M גדולה = fₒ ארוך ו-fₑ קצר']);
     kit.model('הגדלה זוויתית: '+_skM('M = −fₒ/fₑ = −'+fo+'/'+fe+' = −'+M.toFixed(2))+' — התמונה הפוכה. אורך הטלסקופ: '+_skM('fₒ + fₑ = '+(fo+fe)+' mm')+'.');
     kit.check({M:M,L:fo+fe});
@@ -22153,7 +22188,9 @@ function simOptThinFilm(canvas){
     var badge=function(x,y,on){var tx=on?'π':'0';ctx.save();ctx.fillStyle=on?'rgba(244,114,182,.95)':'rgba(71,85,105,.9)';ctx.beginPath();ctx.arc(x,y,9,0,Math.PI*2);ctx.fill();ctx.restore();optLabel(ctx,tx,x,y,on?'#0b1220':'#e2e8f0',10);};   // light on the slate disc (dark was 2.2:1)
     badge(ax-14,sTop-11,nf>1);badge(ax+dx+14,sBot+11,ns>nf);
     optLabel(ctx,'היפוכי פאזה: '+flips,zx+zw-4,zT+zh-8,'#f9a8d4',9.5,'right');
-    optLabel(ctx,'2nt = '+Math.round(2*nf*t)+' nm',zx+zw-4,sBot+14,'#fdba74',9.5,'right');
+    // 2nt beside the second badge, on the side with room (a phone: the left)
+    var tnN='2nt = '+Math.round(2*nf*t)+' nm',tnRight=zx+zw-4-labelW(ctx,tnN,9.5)>ax+dx+14+9+4;
+    optLabel(ctx,tnN,tnRight?zx+zw-4:zx+4,sBot+14,'#fdba74',9.5,tnRight?'right':'left');
     // ── the reflected spectrum R(λ) and the colour it makes ──
     var gx=narrow?zx:W*0.67,gw=narrow?zw:W-gx-12,gy=narrow?zT+zh+50:60,gh=narrow?Math.min(110,H-gy-62):Math.min(170,H*0.4);
     var R550=_optFilmR(nf,ns,t,550),Rlo=Math.min(Math.pow((r1-r2)/(1-r1*r2),2),Math.pow((r1+r2)/(1+r1*r2),2));
@@ -22166,8 +22203,11 @@ function simOptThinFilm(canvas){
     // the constructive orders in the visible: odd reversals 2nt = (m+½)λ, even 2nt = mλ
     var peaks=[],lam0=odd?4*nf*t:Infinity;
     for(var m=0;m<12;m++){var lp=odd?2*nf*t/(m+0.5):(m>0?2*nf*t/m:Infinity);if(lp>=380&&lp<=700)peaks.push([m,lp]);}
+    // two peaks close together on a narrow plot: their numbers on two rows
+    var pkX=-1e9,pkRow=0;
     peaks.forEach(function(q){var x=gx+(q[1]-380)/320*gw;ctx.save();ctx.strokeStyle='rgba(251,191,36,.8)';ctx.setLineDash([3,3]);ctx.beginPath();ctx.moveTo(x,gy);ctx.lineTo(x,gy+gh);ctx.stroke();ctx.restore();
-      optLabel(ctx,Math.round(q[1])+'',x,gy+8,'#fbbf24',8.5);});
+      pkRow=Math.abs(x-pkX)<labelW(ctx,'000',8.5)+4?1-pkRow:0;pkX=x;
+      optLabel(ctx,Math.round(q[1])+'',x,gy+8+pkRow*11,'#fbbf24',8.5);});
     var rgb=_optSpecRGB(function(l){return _optFilmR(nf,ns,t,l);},gain),sw=narrow?Math.min(70,gw*0.4):70;
     ctx.save();ctx.fillStyle='rgb('+rgb.join(',')+')';ctx.strokeStyle='rgba(255,255,255,.3)';ctx.beginPath();ctx.roundRect(gx+gw-sw,gy+gh+24,sw,22,5);ctx.fill();ctx.stroke();ctx.restore();
     optLabel(ctx,'הצבע המוחזר',gx+gw-sw-8,gy+gh+35,'#cbd5e1',9.5,'right');

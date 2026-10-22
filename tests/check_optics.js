@@ -816,8 +816,8 @@ const EXPECT = {
     // the blue lamp's handle, at the top of the three spots (a phone: the stage above the eye's panel)
     ['optics', 'opt-light', 'color-mixing', (W, H) => { const sw = W - 16, sh = H - 248, cr = Math.min(sw * 0.24, sh * 0.27), y = 8 + sh * 0.53 - cr * 0.62; return [[W / 2, y], [W / 2, y - 20], [W / 2, y - 40]]; }, { gone: '^' + LR('גררו את הפנסים · הקישו כדי להזיז את הגשוש') }],
     ['optics', 'opt-reflection', 'refl-laws', W => [[W * 0.3, 120], [W * 0.2, 200], [W * 0.15, 260]], { slider: 'ref-angle' }],
-    // the person stands 2 m from the mirror (at 0.55 W); drag the person away
-    ['optics', 'opt-reflection', 'plane-mirror', W => { const MX = Math.round(W * 0.55), x = MX - 2 * (MX - 34) / 4.2; return [[x, 250], [x - 15, 250], [x - 30, 250]]; }, { slider: 'pm-dist' }],
+    // the person stands 2 m from the mirror (at 0.5 W); drag the person away
+    ['optics', 'opt-reflection', 'plane-mirror', W => { const MX = Math.round(W * 0.5), x = MX - 2 * (MX - 34) / 4.2; return [[x, 250], [x - 15, 250], [x - 30, 250]]; }, { slider: 'pm-dist' }],
     ['optics', 'opt-reflection', 'concave-mirror', W => mirrorObj(W, true), { slider: 'cm-do' }],
     ['optics', 'opt-reflection', 'convex-mirror', W => mirrorObj(W, false), { slider: 'cvm-do' }],
     ['optics', 'opt-refraction', 'snell-law', (W, H) => [[W / 2 - 60, H * 0.44 - 80], [W / 2 - 90, H * 0.44 - 50], [W / 2 - 110, H * 0.44 - 30]], { slider: 'snell-th' }],
