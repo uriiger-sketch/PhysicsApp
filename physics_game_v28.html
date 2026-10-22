@@ -18922,7 +18922,15 @@ function simOptRefrIndex(canvas){
     for(var i=0;i<chips.length;i++){var c=chips[i];if(p.x>=c.x&&p.x<=c.x+c.w&&p.y>=c.y&&p.y<=c.y+c.h){simSyncSlider('ri-n',c.n,2);touched=true;t0=null;return;}}
     if(p.y>yA+40&&p.y<yB+50){touched=true;t0=null;}}});           // a tap on the lanes restarts the race
   canvas.tabIndex=0;
-  canvas.addEventListener('keydown',function(e){if(e.key!=='ArrowUp'&&e.key!=='ArrowDown')return;e.preventDefault();touched=true;
+  // ↑/↓ fine-tune n; ←/→ step along the material chips, as a tap does (they
+  // went to the page, which left the section)
+  canvas.addEventListener('keydown',function(e){
+    if(e.key==='ArrowLeft'||e.key==='ArrowRight'){e.preventDefault();touched=true;t0=null;
+      // the next material whose n the slider shows differently (air's 1.0003 reads 1.00, as vacuum)
+      var n=+gv('ri-n',1.33).toFixed(2),up=e.key==='ArrowRight',nx=null;
+      media.forEach(function(m){var v=+m.n.toFixed(2);if(up?v>n&&(nx===null||v<nx):v<n&&(nx===null||v>nx))nx=v;});
+      if(nx!==null)simSyncSlider('ri-n',nx,2);return;}
+    if(e.key!=='ArrowUp'&&e.key!=='ArrowDown')return;e.preventDefault();touched=true;
     simSyncSlider('ri-n',gv('ri-n',1.33)+(e.key==='ArrowUp'?0.01:-0.01),2);});
   var kit=simKit(canvas,{missions:[
     {text:'אור עובר מאוויר לזכוכית. מה קורה לתדירות שלו — ולצבע?',
