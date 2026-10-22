@@ -2198,6 +2198,8 @@ function _subifyDom(root){
 // never ends in sentence punctuation (a full stop must stay with the Hebrew
 // sentence, or two sentences swap places), and a leading minus belongs to the
 // number unless a Hebrew letter precedes it (ב-45° is a prefix, not −45).
+// ± and ∓ are signs too, and never a prefix: without them ״ל־±10 m״ isolated
+// only ״10 m״, and the ± was set on the far side of the number (״10 m±״).
 // No lookbehind: older iOS Safari cannot parse it, and one bad regex would
 // stop the whole app.
 // ᵢ ᵣ ᵤ ᵥ and the Greek subscripts (U+1D62–1D6A) are letters of a symbol
@@ -2207,8 +2209,8 @@ function _subifyDom(root){
 var _MR_C='A-Za-z0-9⁰-₟²³¹¼-¾⅐-⅞Ͱ-Ͽ√∞∑ℓ\u1D62-\u1D6A\uE000-\uE0FF';
 var _MR_K='̀-ͯ⃐-⃿';
 var _MR_ATOM='['+_MR_C+'(\\[{|](?:['+_MR_C+_MR_K+'()\\[\\]{}.,^_|°%′″]*['+_MR_C+_MR_K+')\\]}°%′″|])?';
-var _MR_OP='[=≈≠<>≤≥±+\\-−×·*/^⇒→←⇔∝∥⊥–]';
-var _MR_RE=new RegExp('[\\-−+]?'+_MR_ATOM+'(?:(?:[ \\t]*'+_MR_OP+'[ \\t]*|[ \\t]+)[\\-−+]?'+_MR_ATOM+')*','g');
+var _MR_OP='[=≈≠<>≤≥±∓+\\-−×·*/^⇒→←⇔∝∥⊥–]';
+var _MR_RE=new RegExp('[\\-−+±∓]?'+_MR_ATOM+'(?:(?:[ \\t]*'+_MR_OP+'[ \\t]*|[ \\t]+)[\\-−+±∓]?'+_MR_ATOM+')*','g');
 // → [[start,end],…] of the runs worth isolating in s. With single=true a lone
 // atom counts too (the canvas wants every Latin token isolated).
 function _mathRuns(s,single){
@@ -2236,7 +2238,7 @@ function _mathRuns(s,single){
     // sentence's. Left out, the page drew "?=sinθ" (in 16 questions).
     var unk=/^[ \t]*[=≈][ \t]*\?/.exec(s.slice(a+run.length));
     if(unk&&!/[֐-׿]/.test(run)){run+=unk[0];_MR_RE.lastIndex=Math.max(_MR_RE.lastIndex,a+run.length);}
-    var joined=/[ \t=≈≠<>≤≥±+\-−×·*\/^⇒→←⇔∝∥⊥–]/.test(run.slice(1))||/^[\-−]/.test(run);
+    var joined=/[ \t=≈≠<>≤≥±∓+\-−×·*\/^⇒→←⇔∝∥⊥–]/.test(run.slice(1))||/^[\-−±∓]/.test(run);
     if(!joined&&!(single&&run.length>=2))continue;
     out.push([a,a+run.length]);
   }
@@ -2439,7 +2441,7 @@ function _gluePunct(root){
 function _mergeLtr(root){
   var isL=function(n){return !!n&&n.nodeType===1&&n.classList&&
     (n.classList.contains('ltr-run')||n.classList.contains('math-ltr'));};
-  var glue=function(n){return !!n&&n.nodeType===3&&/^[\s=≈≠<>≤≥±+\-−×·*\/^⇒→←⇔∝]*$/.test(n.nodeValue);};
+  var glue=function(n){return !!n&&n.nodeType===3&&/^[\s=≈≠<>≤≥±∓+\-−×·*\/^⇒→←⇔∝]*$/.test(n.nodeValue);};
   var nested=function(el){var p=el.parentNode;return !p||!p.closest||!!p.closest('.ltr-run,.math-ltr,.katex');};
   root.querySelectorAll('.ltr-run,.math-ltr').forEach(function(el){
     if(nested(el))return;
