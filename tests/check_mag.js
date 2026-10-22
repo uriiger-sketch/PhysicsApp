@@ -403,7 +403,8 @@ const EXPECT = {
   t('motor: τmax = NBIA = 0.0300 N·m', has(T, '0.0300 N·m'));
   // a 90 ms window with no frame in it (a loaded machine) reads nothing: such
   // windows are left out, and at least 3/4 of them must have read a torque
-  const taus = async n => { const a = []; for (let i = 0; i < n; i++) { const r = await read(90); a.push(num(r, /τ = ([−-]?[\d.]+) N·m/));   // the typeset minus (U+2212), as the canvas prints it }
+  // (τ is printed with the typeset minus, U+2212)
+  const taus = async n => { const a = []; for (let i = 0; i < n; i++) { const r = await read(90); a.push(num(r, /τ = ([−-]?[\d.]+) N·m/)); }
     const ok = a.filter(x => isFinite(x)); return ok.length >= 0.75 * n ? ok : [NaN]; };
   let tv = await taus(30);
   t('  with the commutator the torque never reverses', tv.every(x => x >= -1e-4), Math.min(...tv).toFixed(4));
