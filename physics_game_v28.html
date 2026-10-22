@@ -30181,7 +30181,8 @@ MAG_SIMS['mag-motor']=function(canvas){
     if(I>0){simArrow(ctx,ax,ay,ax,ay-s*fl,'#fb923c',3,10);simArrow(ctx,bx,by,bx,by+s*fl,'#fb923c',3,10);}
     simCircle(ctx,CX,CY,3,'#94a3b8');
     // commutator
-    var KW=W<600?118:172,kx=W-KW/2-6,ky=W<600?H*0.14:H*0.20,kr=W<600?18:26;
+    // the panel is narrower at 320 px: it covered the S pole's corner
+    var KW=W<360?104:W<600?118:172,kx=W-KW/2-6,ky=W<600?H*0.14:H*0.20,kr=W<600?18:26;
     ctx.save();ctx.fillStyle='rgba(2,8,16,.85)';ctx.fillRect(kx-KW/2,ky-58,KW,136);ctx.restore();
     simText(ctx,comm?(W<600?'מחליף כיוון':'מחליף כיוון (טבעת מפוצלת)'):(W<600?'בלי מחליף':'בלי מחליף — זרם קבוע'),kx,ky-44,'#94a3b8',9.5,'center',true);
     if(comm){for(var h2=0;h2<2;h2++){var a0=phi+Math.PI/2+h2*Math.PI+0.18,a1=a0+Math.PI-0.36;
