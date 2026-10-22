@@ -254,11 +254,17 @@ const t=(name,cond,detail)=>(cond?ok:bad).push(name+(detail?' — '+detail:''));
   await go('dc-real','dc-meters');
   const pill=async()=>(await grab()).filter(s2=>/^−?\d+\.\d+ (m?A|V)$/.test(s2));
   const mlab=async()=>p.evaluate(()=>document.getElementById('btn-mtr-mode').textContent);
-  t('meters: an ammeter in series reads I = ε/(R₁+R₂) = 1.00 A',(await pill()).join()==='1.00 A',(await pill()).join());
+  // the meter starts out of the circuit, so even the right wiring is the learner's doing
+  const slotXY=async(k0)=>p.evaluate(k0=>{const c=document.querySelector('#app canvas'),B=c._dc,r=c.getBoundingClientRect(),q=B.items.filter(i=>i.t==='tap')[k0].tp,k=r.width/(c.width/(window.devicePixelRatio||1));
+    return {x:r.x+q.x*k,y:r.y+q.y*k};},k0);
+  t('meters: the meter starts unconnected — no reading, and the button offers to connect it',(await pill()).length===0&&(await mlab()).includes(L('🔀 חברו את המכשיר')),(await pill()).join()+' | '+(await mlab()));
+  await setS('inp-mtr-V',12);await p.waitForTimeout(150);
+  t('meters: a touch that connects nothing solves no mission',(await kitCount())==='0/4',await kitCount());
+  {await inView();const q=await slotXY(0);await p.mouse.click(q.x,q.y);await p.waitForTimeout(200);}
+  t('meters: a tap on the empty place in the path wires an ammeter in series, reading I = ε/(R₁+R₂) = 1.00 A',(await pill()).join()==='1.00 A',(await pill()).join());
+  t('meters: …and that solves the first mission, by doing it',(await kitCount())==='1/4',await kitCount());
   const ml0=await mlab();
-  const slotXY=async()=>p.evaluate(()=>{const c=document.querySelector('#app canvas'),B=c._dc,r=c.getBoundingClientRect(),q=B.items.filter(i=>i.t==='tap')[1].tp,k=r.width/(c.width/(window.devicePixelRatio||1));
-    return {x:r.x+q.x*k,y:r.y+q.y*k};});
-  {await inView();const q=await slotXY();await p.mouse.click(q.x,q.y);await p.waitForTimeout(200);}
+  {await inView();const q=await slotXY(1);await p.mouse.click(q.x,q.y);await p.waitForTimeout(200);}
   t('meters: a tap on the empty place across R₂ moves the meter there, and relabels the button',ml0!==(await mlab()),ml0+' → '+(await mlab()));
   t('meters: an ammeter across R₂ shorts it — 3.00 A, and R₂ has 0 V',(await pill()).join()==='3.00 A'&&(await p.evaluate(()=>Math.abs(document.querySelector('#app canvas')._dc.dv('R2'))<1e-4)),(await pill()).join());
   await tapEl('mp');
@@ -633,6 +639,13 @@ const div=document.createElement('div');div.style.cssText='position:absolute;lef
   await dragProbe(0,'A');await dragProbe(1,'Bn');
   await sets({'inp-br-V':15});await sets({'inp-br-Rx':600,'inp-br-R3':200});
   t('bridge: all four missions solved (balanced, 0 V across G at the null, the balance survives a new voltage, Rₓ = 600 Ω)',(await kitCount())==='4/4',await kitCount());
+  // where the balance falls between two dial settings (R₃* = 50·50/400 = 6.25 Ω),
+  // the best null still leaves tens of mV across G: measuring them is mission 2 all the same
+  await p.evaluate(()=>{delete state.missions['dc-kirchhoff.dc-bridge'];});await go('dc-kirchhoff','dc-bridge');
+  await sets({'inp-br-V':18,'inp-br-R1':50,'inp-br-R2':400,'inp-br-Rx':50,'inp-br-R3':6});
+  await dragProbe(0,'A');await dragProbe(1,'Bn');
+  {const mv=await meter(),got=await p.evaluate(()=>!!(state.missions['dc-kirchhoff.dc-bridge']||{})[1]);
+   t('bridge: at the dial\'s best null between steps, the residual across G (≈ 0.04 V) counts as the null for mission 2',/^[+−]?0\.0[2-5] V$/.test(mv)&&got,mv+' | solved: '+got);}
   await go('dc-basics','dc-current');
   // 10 C at 4 A is 2.5 s of the sim's clock (on a busy machine the clock runs
   // slower: frames are capped at 50 ms), so wait for it rather than a fixed time
