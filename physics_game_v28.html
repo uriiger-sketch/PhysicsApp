@@ -2210,7 +2210,9 @@ function _subifyDom(root){
 // have no Unicode form (see _cvSubSplit); they never occur in page text.
 var _MR_C='A-Za-z0-9⁰-₟²³¹¼-¾⅐-⅞Ͱ-Ͽ√∞∑ℓ\u1D62-\u1D6A\uE000-\uE0FF';
 var _MR_K='̀-ͯ⃐-⃿';
-var _MR_ATOM='['+_MR_C+'(\\[{|](?:['+_MR_C+_MR_K+'()\\[\\]{}.,^_|°%′″]*['+_MR_C+_MR_K+')\\]}°%′″|])?';
+// A colon between two symbol characters is part of the symbol: "Nd:YAG (1064
+// nm)" split at it, and in Hebrew read "YAG (1064 nm):Nd".
+var _MR_ATOM='['+_MR_C+'(\\[{|](?:['+_MR_C+_MR_K+'()\\[\\]{}.,^_|°%′″:]*['+_MR_C+_MR_K+')\\]}°%′″|])?';
 var _MR_OP='[=≈≠<>≤≥±+\\-−×·*/^⇒→←⇔∝∥⊥–]';
 var _MR_RE=new RegExp('[\\-−+]?'+_MR_ATOM+'(?:(?:[ \\t]*'+_MR_OP+'[ \\t]*|[ \\t]+)[\\-−+]?'+_MR_ATOM+')*','g');
 // → [[start,end],…] of the runs worth isolating in s. With single=true a lone
@@ -2240,7 +2242,9 @@ function _mathRuns(s,single){
     // sentence's. Left out, the page drew "?=sinθ" (in 16 questions).
     var unk=/^[ \t]*[=≈][ \t]*\?/.exec(s.slice(a+run.length));
     if(unk&&!/[֐-׿]/.test(run)){run+=unk[0];_MR_RE.lastIndex=Math.max(_MR_RE.lastIndex,a+run.length);}
-    var joined=/[ \t=≈≠<>≤≥±+\-−×·*\/^⇒→←⇔∝∥⊥–]/.test(run.slice(1))||/^[\-−]/.test(run);
+    // an ion or a charge, "Ar⁺", "e⁻", is a run on its own: left loose in
+    // Hebrew its sign went to the other side of the letters ("⁺Ar")
+    var joined=/[ \t=≈≠<>≤≥±+\-−×·*\/^⇒→←⇔∝∥⊥–⁺⁻]/.test(run.slice(1))||/^[\-−]/.test(run);
     if(!joined&&!(single&&run.length>=2))continue;
     out.push([a,a+run.length]);
   }
