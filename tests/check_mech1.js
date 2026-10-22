@@ -468,6 +468,7 @@ const EXPECT = {
   t('... 25 N on 5 kg with μ = 0.2: a = (25 − 9.8)/5 = 3.04 m/s² — mission solved', await mission('newton2.n2-law', 2) && nums(await last('^a {2}= '))[0] === 3.04);
   await p.waitForTimeout(600); await set('n2-F', 0); await fresh();
   await until(() => mission('newton2.n2-law', 0), 3000); await until(async () => /ΣF = F \+ f = 0\.0/.test(await modelTxt()), 2000);
+  await until(async () => !!(await last('^ΣF = ')), 3000);   // a frame drawn since fresh()
   const sf0 = nums(await last('^ΣF = '))[0];
   t('... let go while it moves: ΣF = −μmg = −9.8 N with the block still moving right — mission solved', await mission('newton2.n2-law', 0) && sf0 === -9.8 && /ΣF = F \+ f = 0\.0 − 9\.8 = −9\.8 N/.test(await modelTxt()), sf0 + ' | ' + await modelTxt());
 
@@ -480,7 +481,9 @@ const EXPECT = {
   await set('ten-ea', -9.8); await fresh(); await p.waitForTimeout(300);
   const tFree = await last('^' + LR('במעלית:  T = m(g + a) = '));
   t('... a = −g: the string goes slack, T = 0 — mission solved', nums(tFree).pop() === 0 && await mission('forces.tension', 1), tFree);
-  await set('ten-ea', 0); await fresh(); await p.waitForTimeout(200);
+  await set('ten-ea', 0); await fresh();
+  // (waits for the frames that draw it: a loaded machine may draw none in 200 ms)
+  await until(async () => !!(await last('^' + LR('בלומה') + '$')) && !!(await last('^T₂ = W₂$')), 3000);
   t('... before the release the Atwood pulley is braked: the drawing says so, and T₁ = W₁, T₂ = W₂ beside the ropes', !!(await last('^' + LR('בלומה') + '$')) && !!(await last('^T₁ = W₁$')) && !!(await last('^T₂ = W₂$')));
   await click('btn-ten-launch'); await until(() => mission('forces.tension', 2), 3000);
   t('... released, the Atwood T = 36.8 N lies between W₁ = 29.4 N and W₂ = 49 N — mission solved', await mission('forces.tension', 2) && !!(await last('^T = 36\\.8 N$')));

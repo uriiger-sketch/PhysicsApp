@@ -199,10 +199,11 @@ const EXPECT = {
   await open('energy.potential'); r = await rect(); W = r.w;
   const epq = await p.evaluate(() => document.querySelector('#app canvas')._probe());   // the ball's whole column takes the finger
   await drag(r, [[epq.ballX, epq.y], [epq.ballX, 260], [epq.ballX, 150]]);
+  const epr0 = await p.evaluate(() => document.querySelector('#app canvas')._probe());   // the height it was let go from
   await p.waitForTimeout(60);
-  const hp = num((await last('mgh = ')).split('×')[2]);
-  // the ball is lifted on the 0.1 m grid of the readouts: to the finger's height, rounded
-  t('falling ball: lifted by touch to about 4.6 m, on the 0.1 m grid', hp > 4.2 && Math.abs(hp - Math.round((epq.FLOOR_POS - 150) / epq.PX * 10) / 10) < 1e-9, hp + ' m');
+  const hp = num((await last('mgh = ')).split('×')[2]), hGrid = Math.round((epq.FLOOR_POS - 150) / epq.PX * 10) / 10;
+  // the ball is lifted on the 0.1 m grid of the readouts: to the finger's height, rounded (and it falls from there)
+  t('falling ball: lifted by touch to about 4.6 m, on the 0.1 m grid', hp > 4.2 && hp <= hGrid + 1e-9 && epr0.hRel !== null && Math.abs(epr0.hRel - hGrid) < 1e-9, hp + ' m, let go at ' + epr0.hRel + ' m');
 
   await open('planar.projectile'); r = await rect();
   let pq = await p.evaluate(() => document.querySelector('#app canvas')._probe());
