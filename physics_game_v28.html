@@ -32041,12 +32041,21 @@ function elcExplorer(canvas,mode){
       ctx.save();ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.beginPath();ctx.arc(np.x,np.y,7,0,6.2832);ctx.stroke();ctx.restore();
       optLabel(ctx,'E = 0',np.x,np.y-16,'#fff',9.5);
     }
-    // the charges
+    // the charges (their names' boxes are kept: the probe's own labels keep off them)
+    var qBox=[];
     A.forEach(function(c,i){var r=rq(c.q);elcCharge(ctx,c.x,c.y,r,c.q);
       ctx.save();ctx.strokeStyle=c.q>0?'rgba(248,113,113,.5)':'rgba(96,165,250,.5)';ctx.lineWidth=1.2;ctx.setLineDash([3,4]);
       ctx.beginPath();ctx.arc(c.x,c.y,r+6,0,6.2832);ctx.stroke();ctx.restore();
       elcFocus(ctx,kb,i+1,c.x,c.y,r+10);
-      optLabel(ctx,(A.length>1?(i?'Q₂':'Q₁'):'Q')+' = '+(c.q>0?'+':c.q<0?'−':'')+Math.abs(c.q).toFixed(1)+' μC',c.x,c.y-r-15,c.q>0?'#fca5a5':c.q<0?'#93c5fd':'#94a3b8',10);});
+      var qt=(A.length>1?(i?'Q₂':'Q₁'):'Q')+' = '+(c.q>0?'+':c.q<0?'−':'')+Math.abs(c.q).toFixed(1)+' μC',qw=labelW(ctx,qt,10)/2+3;
+      qBox.push([c.x-qw,c.y-r-23,c.x+qw,c.y-r-7]);
+      optLabel(ctx,qt,c.x,c.y-r-15,c.q>0?'#fca5a5':c.q<0?'#93c5fd':'#94a3b8',10);});
+    // a label of the probe's (w × h, centred at s) that lands on a charge's
+    // name moves just above that name (below it, at the top of the canvas)
+    var offQ=function(s,w,h){var o={x:s.x,y:s.y};
+      qBox.forEach(function(b){if(o.x+w/2>b[0]&&o.x-w/2<b[2]&&o.y+h/2>b[1]&&o.y-h/2<b[3])
+        o.y=b[1]-h/2-2>=h/2+2?b[1]-h/2-2:b[3]+h/2+2;});
+      return o;};
     if(POT&&markA){ctx.save();ctx.fillStyle='#fbbf24';ctx.beginPath();ctx.arc(markA.x,markA.y,4,0,6.2832);ctx.fill();ctx.restore();
       optLabel(ctx,'A',markA.x+10,markA.y-10,'#fbbf24',11);}
     // the probe and what it reads
@@ -32055,11 +32064,11 @@ function elcExplorer(canvas,mode){
       var L=aLen(Ep.m),ux=Ep.x/Ep.m,uy=Ep.y/Ep.m;
       if(!POT&&qq){var fd=qq>0?1:-1,FL=L*0.86;
         simArrow(ctx,px,py,px+fd*ux*(FL+12),py+fd*uy*(FL+12),'#34d399',3.4,12);
-        var fw=labelW(ctx,'F = q₀E',10),fs=_tipSpot(px,py,px+fd*ux*(FL+12),py+fd*uy*(FL+12),fw,12,W,H,6);
+        var fw=labelW(ctx,'F = q₀E',10),fs=offQ(_tipSpot(px,py,px+fd*ux*(FL+12),py+fd*uy*(FL+12),fw,12,W,H,6),fw,12);
         optLabel(ctx,'F = q₀E',fs.x,fs.y,'#34d399',10);}
       simArrow(ctx,px,py,px+ux*L,py+uy*L,'#fbbf24',2,9);
-      if(!POT&&qq>0){optLabel(ctx,'E',px+ux*L*0.55-uy*11,py+uy*L*0.55+ux*11,'#fbbf24',10.5);}
-      else{var es=_tipSpot(px,py,px+ux*L,py+uy*L,12,12,W,H,5);optLabel(ctx,'E',es.x,es.y,'#fbbf24',10.5);}
+      if(!POT&&qq>0){var ep=offQ({x:px+ux*L*0.55-uy*11,y:py+uy*L*0.55+ux*11},10,12);optLabel(ctx,'E',ep.x,ep.y,'#fbbf24',10.5);}
+      else{var es=offQ(_tipSpot(px,py,px+ux*L,py+uy*L,12,12,W,H,5),10,12);optLabel(ctx,'E',es.x,es.y,'#fbbf24',10.5);}
     }
     var pcol=qq>0?'#fbbf24':qq<0?'#38bdf8':'#94a3b8';
     ctx.save();ctx.fillStyle=pcol;optGlow(ctx,pcol,12);ctx.beginPath();ctx.arc(px,py,9,0,6.2832);ctx.fill();optNoGlow(ctx);
@@ -32078,6 +32087,7 @@ function elcExplorer(canvas,mode){
     var lt=POT?'גשוש':'מטען בוחן',lhw=labelW(ctx,lt,9)/2+2,lhh=7,
         lAt=function(u){var d=18+Math.abs(u.x)*lhw+Math.abs(u.y)*lhh;return {x:px+u.x*d,y:py+u.y*d};},ls=lAt(lu);
     if(ls.x-lhw<3||ls.x+lhw>W-3)ls=lAt({x:-lu.x,y:lu.y});        // no room on that side: the other
+    ls=offQ(ls,2*lhw,2*lhh);
     optLabel(ctx,lt,ls.x,ls.y,pcol,9);
     // the readout, in the bottom corner where reading starts
     var lines2;
