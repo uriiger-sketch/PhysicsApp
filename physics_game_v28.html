@@ -16486,7 +16486,8 @@ function simElcDeflect(canvas){
         simText(ctx,'α = '+(ang*180/Math.PI).toFixed(1)+'°',exX+8,exY+sgn*17+4,'#e2e8f0',10.5,'left',true);   // under the level ray, clear of the beam
       }
       // under the beam: the particle's own name (e⁻, p⁺) rides above it
-      simText(ctx,'ישר — אין שדה',(exX+SX)/2,(exY+sY)/2+20,'#10b981',11,'center');
+      var stS='ישר — אין שדה';
+      simText(ctx,stS,Math.min((exX+SX)/2,SX-8-labelW(ctx,stS,11)/2),(exY+sY)/2+20,'#10b981',11,'center');   // and clear of the screen
     }
     // the moving particle
     var per=1.6, ph=(t0%per)/per, xN=ph*(L+(SX-X0-L*PPMx)/PPMx);
@@ -32519,9 +32520,10 @@ function dcCap(ctx,txt,x,y,col,sz,bold,down){
   // a dash at the break is dropped (the line break does its job); a comma,
   // semicolon or colon stays at the end of the first line
   var mid=txt.length/2,c1=-1,c2=-1,bs=1e9;
-  [' — ','; ',', ',': ',' '].forEach(function(sep,pri){var i=-1;
+  // (a middle dot between two statements is a break as good as a dash)
+  [' — ','; ',', ',': ',' ',' · '].forEach(function(sep,pri){var i=-1;if(sep===' · ')pri=0;
     while((i=txt.indexOf(sep,i+1))>=0){var sc=Math.abs(i-mid)+pri*6;
-      if(sc<bs){bs=sc;c1=(sep===' — '||sep===' ')?i:i+1;c2=i+sep.length;}}});
+      if(sc<bs){bs=sc;c1=(sep===' — '||sep===' '||sep===' · ')?i:i+1;c2=i+sep.length;}}});
   if(c1<0){simText(ctx,txt,x,y,col,sz,'center',bold);return;}
   var y1=down?y:y-sz-3;
   simText(ctx,txt.slice(0,c1).trim(),cw/2,y1,col,sz,'center',bold);
@@ -33403,10 +33405,14 @@ function simDcTwoLoop(canvas){
     simText(ctx,'I₂',Rt-(Rt-mid)*0.17,ya-8,'#38bdf8',10.5,'center',true);
     simArrow(ctx,mid-15,my+32,mid-15,my+54,'#a78bfa',2,8);
     simText(ctx,'I₃',mid-27,my+48,'#a78bfa',10.5,'center',true);
-    simText(ctx,'החצים — הכיוונים שנבחרו במשוואות · הנקודות — לאן הזרם זורם באמת',W/2,B+20,'#7d8da6',9.5,'center');
+    // too wide for one line at its size (a phone, in English: it fell to 7.7 px):
+    // two lines, and the readouts under it move down a little to make room
+    var lgT='החצים — הכיוונים שנבחרו במשוואות · הנקודות — לאן הזרם זורם באמת';
+    ctx.save();ctx.font='9.5px Heebo';var lg2=ctx.measureText(lgT).width>W-14;ctx.restore();
+    dcCap(ctx,lgT,W/2,B+(lg2?15:20),'#7d8da6',9.5,false,true);
     // the three answers, each with its own sign
     // readouts sit under the branch they belong to: I₁ left, I₃ the shared middle, I₂ right
-    var ry=B+58, cols=['#fbbf24','#a78bfa','#38bdf8'], vals=[i1,i3,i2], labs=['I₁','I₃','I₂'];
+    var ry=B+58+(lg2?5:0), cols=['#fbbf24','#a78bfa','#38bdf8'], vals=[i1,i3,i2], labs=['I₁','I₃','I₂'];
     for(var k=0;k<3;k++){
       var x=W*(0.22+0.28*k);
       simText(ctx,labs[k],x,ry-19,'#7d8da6',10,'center');
