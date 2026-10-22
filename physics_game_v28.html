@@ -690,6 +690,11 @@ input[type=range]{accent-color:var(--accent);cursor:pointer;}
   width: 100% !important;
   max-width: 100%;
 }
+/* every sim canvas that takes the keyboard (the circuit boards, the field
+   explorers, the magnets) shows its ring when it has the focus: the page's
+   ring is drawn 2 px outside, where the wrap's overflow:hidden cut it off,
+   so a keyboard user tabbing into the canvas saw nothing at all */
+.sim-canvas-wrap canvas:focus-visible{outline:2px solid var(--accent2);outline-offset:-3px;}
 /* a phone on its side: the whole sim, scaled to the screen's height (_simFit) */
 .sim-canvas-wrap canvas.sim-fit{width:var(--fit-w) !important;margin:0 auto;}
 
@@ -874,7 +879,11 @@ input[type=range]{accent-color:var(--accent);cursor:pointer;}
 
   /* Range sliders: stack vertically */
   .sim-controls { flex-wrap: wrap; gap: 8px; }
-  .range-wrap { flex: 1 1 100%; }
+  /* min-width:0 -- a flex item is never narrower than its content by
+     default, so at 320 px a row whose value is long ("20 ×10⁶ m/s") stayed
+     wider than the card and the value was cut off at its edge; now the
+     label wraps instead */
+  .range-wrap { flex: 1 1 100%; min-width: 0; }
   /* a long label ("מקדם התקומה e (0 נצמדים, 1 אלסטית)") stayed on one
      line and pushed the slider and its value out of the card, which cut
      them off: the label wraps, the slider keeps a usable width */
@@ -10148,7 +10157,7 @@ function simKit(canvas,spec){
   var host=canvas.closest&&canvas.closest('.sim-container');
   var key=state.chapter+'.'+state.section, ms=spec.missions||[];
   if(!state.missions||typeof state.missions!=='object')state.missions={};
-  var armed=false,lastModel=null,uid=++_skN,sayT=null;
+  var armed=false,lastModel=null,uid=++_skN,sayT=null,mShape=null,mWid=0,mTall=0;
   var noop=function(){};
   var api={check:noop,model:noop,predict:noop,m:_skM,el:null,say:function(t){_say(t);},
     solved:function(){return false;},tabs:function(){return {set:noop,get:noop,el:null};},keys:noop,label:noop};
@@ -10254,6 +10263,14 @@ function simKit(canvas,spec){
     if(!html){M.innerHTML='';return;}
     if(!M.firstChild){var ic=el('span','sk-model-ic','📐');ic.setAttribute('aria-hidden','true');M.appendChild(ic);M.appendChild(el('span','sk-model-tx'));}
     M.lastChild.innerHTML=html;fx(M.lastChild);
+    // A number that gains a digit while the sim runs (a moving magnet, a
+    // charging capacitor) can wrap the line onto one more row, and every
+    // control under the panel jumped by a line, back and forth, under the
+    // learner's finger. The line keeps the tallest height it has had while
+    // only its numbers change; new words, or a new width, start afresh.
+    var shape=html.replace(/ sk-nb/g,'').replace(/[0-9.,−+\-¹²³⁰-₟]+/g,'#'),mw=M.clientWidth;
+    if(shape!==mShape||mw!==mWid){mShape=shape;mWid=mw;mTall=0;M.style.minHeight='';}
+    var mh=M.offsetHeight;if(mh>mTall){mTall=mh;if(mShape===shape&&mTall)M.style.minHeight=mTall+'px';}
     // it changes every frame of a drag: a screen reader hears it once it
     // settles, and only while the learner is working this sim
     clearTimeout(sayT);
@@ -16427,8 +16444,9 @@ function simElcDielectric(canvas){
     // a grab handle on the slab, and its label
     simHandle(ctx,sx+SLW-12,(PT+PB)/2,'#c4b5fd',13);
     simText(ctx,'κ = '+k.toFixed(1),sx+SLW/2,PB+22,'#8b5cf6',12,'center',true);
-    simText(ctx,f<0.04?'גררו את הלוח פנימה':(f>0.96?'הלוח בפנים לגמרי':'מוכנס חלקית'),
-      sx+SLW/2,PT-18,'#7d8da6',10,'center');
+    // over the slab, but clear of the plate's + sign at its left end
+    var stT=f<0.04?'גררו את הלוח פנימה':(f>0.96?'הלוח בפנים לגמרי':'מוכנס חלקית');
+    simText(ctx,stT,Math.max(sx+SLW/2,PL+18+labelW(ctx,stT,10)/2),PT-18,'#7d8da6',10,'center');
     // battery / open switch, on the left and out of the slab's way
     var by=(PT+PB)/2;
     ctx.strokeStyle='#64748b';ctx.lineWidth=2;
@@ -16588,7 +16606,9 @@ function simElcDeflect(canvas){
         ctx.beginPath();ctx.arc(exX,exY,R,sgn>0?-dA:0,sgn>0?0:dA);ctx.stroke();ctx.restore();
         simText(ctx,'α = '+(ang*180/Math.PI).toFixed(1)+'°',exX+8,exY+sgn*17+4,'#e2e8f0',10.5,'left',true);   // under the level ray, clear of the beam
       }
-      simText(ctx,'ישר — אין שדה',(exX+SX)/2,(exY+sY)/2-14,'#10b981',11,'center');
+      // under the beam: the particle's own name (e⁻, p⁺) rides above it
+      var stS='ישר — אין שדה';
+      simText(ctx,stS,Math.min((exX+SX)/2,SX-8-labelW(ctx,stS,11)/2),(exY+sY)/2+20,'#10b981',11,'center');   // and clear of the screen
     }
     // the moving particle
     var per=1.6, ph=(t0%per)/per, xN=ph*(L+(SX-X0-L*PPMx)/PPMx);
@@ -16644,7 +16664,7 @@ function simElcMillikan(canvas){
   // simulation never divides by a value of e it already knew.
   var id=canvas.id,_g=_simGen[id];
   var NAR=((canvas.parentElement&&canvas.parentElement.clientWidth)||800)<560;
-  const H=NAR?660:540; const {ctx,W,dpr}=setupCanvas(canvas,H);
+  const H=NAR?690:540; const {ctx,W,dpr}=setupCanvas(canvas,H);
   const d_m=0.005, g=10, e_c=1.6e-19, ETA=1.8e-5, RHO=900;
   const TL=25;                 // on screen the motion runs 25 times faster than life
   var LTR=document.documentElement.dir==='ltr';
@@ -16674,7 +16694,11 @@ function simElcMillikan(canvas){
   function gV(){var e=document.getElementById('inp-mk-V');return e?parseFloat(e.value):300;}
   // geometry: the chamber, the number line of q, the log
   var PL=NAR?W*0.12:W*0.05, PR=NAR?W*0.80:W*0.50, PT=36, PB=NAR?236:246;
-  var NLx0=NAR?36:44, NLx1=W-(NAR?28:36), NLy=NAR?428:440, QMAX=9e-19;
+  // on a phone the measurement lines may need a second row each (set small
+  // enough to fit one row, the weighing line fell to 7 px): the number line
+  // and the log below it move down by two rows, once, for every drop alike
+  var EX=NAR?15:0;
+  var NLx0=NAR?36:44, NLx1=W-(NAR?28:36), NLy=NAR?428+2*EX:440, QMAX=9e-19;
   function qX(q){return NLx0+(NLx1-NLx0)*q/QMAX;}
   function xQ(x){return (x-NLx0)/(NLx1-NLx0)*QMAX;}
   function onTooth(q){var k=q/comb;return Math.round(k)>=1&&Math.abs(k-Math.round(k))<0.1;}
@@ -16759,11 +16783,13 @@ function simElcMillikan(canvas){
     ctx.strokeStyle='#f59e0b';ctx.lineWidth=1.5;ctx.stroke();
     // all three forces on one scale: at terminal speed they sum to zero
     var Fd=-Fnet, sc=52/Math.max(Fg,Fe,1e-30);
+    // each name beyond its arrow's head -- unless that is on a plate (a drop
+    // low in the chamber put "mg" on the blue plate): then beside the head
     simArrow(ctx,cx-30,dy,cx-30,dy+Fg*sc,'#ef4444',2.5,9);
-    slTxt(ctx,'mg',cx-36,dy+Fg*sc+13,'#ef4444',11,'right',true);
+    slTxt(ctx,'mg',cx-36,Math.min(dy+Fg*sc+13,PB-4),'#ef4444',11,'right',true);
     if(Fe>Fg*0.005){
       simArrow(ctx,cx+30,dy,cx+30,dy-Fe*sc,'#10b981',2.5,9);
-      slTxt(ctx,'qE',cx+36,dy-Fe*sc-6,'#10b981',11,'left',true);
+      slTxt(ctx,'qE',cx+36,Math.max(dy-Fe*sc-6,PT+12),'#10b981',11,'left',true);
     }
     if(Math.abs(Fd)*sc>5){
       simArrow(ctx,cx+62,dy,cx+62,dy-Fd*sc,'#94a3b8',2,8);
@@ -16773,25 +16799,35 @@ function simElcMillikan(canvas){
     simText(ctx,off?'השדה כבוי: נופלת במהירות קבועה — הגרר מאזן את המשקל'
       :bal?'⚖ מרחפת — qE = mg':(Fnet>0?'עולה במהירות קבועה — qE > mg, והגרר מאזן את ההפרש':'יורדת במהירות קבועה — mg > qE, והגרר מאזן את ההפרש'),
       (PL+PR)/2,sy,bal?'#10b981':'#94a3b8',12,'center',true);
-    simText(ctx,edge?(edge<0?'הטיפה בתחתית שדה הראייה — העלו את המתח כדי להחזיר אותה':'הטיפה בראש שדה הראייה — הורידו את המתח')
-      :'על המסך התנועה מואצת פי '+TL,(PL+PR)/2,sy+18,edge?'#f59e0b':'#7d8da6',10,'center');
+    var edT=edge?(edge<0?'הטיפה בתחתית שדה הראייה — העלו את המתח כדי להחזיר אותה':'הטיפה בראש שדה הראייה — הורידו את המתח')
+      :'על המסך התנועה מואצת פי '+TL;
+    // a phone has a free row under it (the measurements below start lower there)
+    if(EX)dcCap(ctx,edT,(PL+PR)/2,sy+18,edge?'#f59e0b':'#7d8da6',10,false,true);
+    else simText(ctx,edT,(PL+PR)/2,sy+18,edge?'#f59e0b':'#7d8da6',10,'center');
     // ── the two measurements on this drop ──
     var by=sy+46;
     slTxt(ctx,'E = V/d = '+E.toFixed(0)+' V/m      v = '+(Math.abs(vy)*1000).toFixed(3)+' mm/s '+(Math.abs(vy)<1e-7?'':(vy>0?'↑':'↓')),
       W/2,by,'#94a3b8',11,'center');
+    // a line too wide for the canvas at its own size takes two rows (a phone
+    // has the row for it), cut where the text says: at a dash, or before ⇒
+    var twoRows=function(t,y,col,sz,bold,cut,f){f=f||simText;
+      ctx.save();ctx.font=(bold?'bold ':'')+sz+'px Heebo,sans-serif';var wide=ctx.measureText(_mathIso(_cvSub(t))).width>W-16;ctx.restore();
+      var i=wide&&EX?t.indexOf(cut):-1;
+      if(i<0){f(ctx,t,W/2,y,col,sz,'center',bold);return;}
+      f(ctx,t.slice(0,i).trim(),W/2,y,col,sz,'center',bold);f(ctx,t.slice(i).replace(/^\s*—\s*/,'').trim(),W/2,y+EX,col,sz,'center',bold);};
     if(mMeas===null){
-      simText(ctx,'שלב 1: הורידו את המתח ל־0 — מהירות הנפילה תיתן את מסת הטיפה',W/2,by+22,'#fbbf24',11.5,'center',true);
+      twoRows('שלב 1: הורידו את המתח ל־0 — מהירות הנפילה תיתן את מסת הטיפה',by+22,'#fbbf24',11.5,true,' — ');
     } else {
       var rM2=Math.cbrt(3*mMeas/(4*Math.PI*RHO));
-      slTxt(ctx,'v₀ = '+(vFall*1000).toFixed(3)+' mm/s  ⇒  r = √(9ηv₀/2ρg) = '+(rM2*1e6).toFixed(2)+' μm  ⇒  m = '+sciTxt(mMeas)+' kg',
-        W/2,by+22,'#dde6f0',11.5,'center',true);
+      twoRows('v₀ = '+(vFall*1000).toFixed(3)+' mm/s  ⇒  r = √(9ηv₀/2ρg) = '+(rM2*1e6).toFixed(2)+' μm  ⇒  m = '+sciTxt(mMeas)+' kg',
+        by+22,'#dde6f0',11.5,true,'  ⇒  m',slTxt);
     }
     if(revealed){
-      slTxt(ctx,'q = mgd/V = '+sciTxt(cur.q)+' C   (V = '+Vbal.toFixed(0)+' V)',W/2,by+44,'#fbbf24',12.5,'center',true);
+      slTxt(ctx,'q = mgd/V = '+sciTxt(cur.q)+' C   (V = '+Vbal.toFixed(0)+' V)',W/2,by+44+EX,'#fbbf24',12.5,'center',true);
     } else if(mMeas!==null){
-      simText(ctx,'שלב 2: העלו את המתח עד שהטיפה תעצור — ואז ייחשב המטען',W/2,by+44,'#7d8da6',11.5,'center');
+      twoRows('שלב 2: העלו את המתח עד שהטיפה תעצור — ואז ייחשב המטען',by+44+EX,'#7d8da6',11.5,false,' — ');
     } else if(bal){
-      simText(ctx,'הטיפה מרחפת — אבל q = mgd/V דורש את m: התחילו בשלב 1',W/2,by+44,'#f59e0b',11.5,'center',true);
+      twoRows('הטיפה מרחפת — אבל q = mgd/V דורש את m: התחילו בשלב 1',by+44+EX,'#f59e0b',11.5,true,' — ');
     }
     // ── the number line of q, and the comb ──
     var fitAll=log.length>0&&log.every(function(m){return onTooth(m.q);});
@@ -29228,7 +29264,8 @@ function magBar(ctx,x,y,len,th,ang,lbl){
 function magPlotBox(ctx,x,y,w,h,title,col){
   ctx.save();ctx.fillStyle='rgba(6,14,28,.88)';ctx.strokeStyle='#1e3a52';ctx.lineWidth=1;
   ctx.beginPath();ctx.roundRect(x,y,w,h,5);ctx.fill();ctx.stroke();ctx.restore();
-  if(title)simText(ctx,title,x+w/2,y+11,col||'#94a3b8',9.5,'center',true);
+  // the title stays inside its box (simText only kept it inside the canvas)
+  if(title)magFitText(ctx,title,x+w/2,y+11,col||'#94a3b8',9.5,'center',true,w-12);
 }
 function magPoly(ctx,pts,col,lw,dash){
   if(pts.length<2)return;
@@ -29372,8 +29409,9 @@ MAG_SIMS['mag-magnets']=function(canvas){
     bars().forEach(function(b){if(Math.abs(comp[0]-b[0])<b[1]/2+0.012&&Math.abs(comp[1])<0.022)comp[1]=comp[1]<0?-0.022:0.022;});};
   simDrag(canvas,dpr,{
     down:function(p){var c=toS(comp[0],comp[1]);
+      // the second magnet answers a fingertip (44 px tall), not only its 14 px bar
       if(Math.hypot(p.x-c[0],p.y-c[1])<26)drag='c';
-      else if(mode&&Math.abs(p.x-toS(m2x,0)[0])<LEN*s/2+6&&Math.abs(p.y-Hc)<14)drag='m';
+      else if(mode&&Math.abs(p.x-toS(m2x,0)[0])<LEN*s/2+6&&Math.abs(p.y-Hc)<22)drag='m';
       else{drag='c';var w=toW(p.x,p.y);comp=[w[0],w[1]];}clampC();},
     move:function(p){var w=toW(p.x,p.y);
       if(drag==='c')comp=[w[0],w[1]];
@@ -29414,14 +29452,18 @@ MAG_SIMS['mag-magnets']=function(canvas){
     var neutral=Bm<2e-6&&Bm<0.25*parts,dir=Math.atan2(b[1],b[0]);
     magNeedle(ctx,c[0],c[1],neutral?(Date.now()/700)%6.2832:dir,16,true);
     simHandle(ctx,c[0],c[1],'#fbbf24',24);
-    var y0=H*0.83,ph=W<600;
+    // on a phone the last line takes two rows (on one it fell to 7 px and ran
+    // out of the box): the box starts where the field picture ends
+    var ph=W<600,y0=H*(ph?0.80:0.83);
     magPlotBox(ctx,10,y0,W-20,H-y0-8,'',null);
-    var cA=ph?W/2:W*0.27,cB=ph?W/2:W*0.70,yA=ph?[18,36,54]:[30,22,44];
+    var cA=ph?W/2:W*0.27,cB=ph?W/2:W*0.70,yA=ph?[18,35,51]:[30,22,44];
     simText(ctx,'|B| במצפן = '+(Bm*1e6).toFixed(1)+' μT',cA,y0+yA[0],'#e2e8f0',ph?12:13,'center',true);
     simText(ctx,neutral?'⚠ נקודה ניטרלית — השדות מבטלים זה את זה, והמחט אינה מתכוונת':
       earth?'המחט מראה את השדה הכולל: מגנט + כדור הארץ':'המחט האדומה (N) מצביעה בכיוון השדה',
       cB,y0+yA[1],neutral?'#fbbf24':'#94a3b8',ph?9.5:10.5,'center',neutral);
-    simText(ctx,'בחוץ הקווים יוצאים מ־N ונכנסים ל־S; בתוך המגנט הם חוזרים מ־S ל־N',cB,y0+yA[2],'#64748b',9.5,'center');
+    var tIO='בחוץ הקווים יוצאים מ־N ונכנסים ל־S; בתוך המגנט הם חוזרים מ־S ל־N',sIO=ph&&labelW(ctx,tIO,9.5)>W-36?_splitHalf(tIO):null;
+    if(sIO){simText(ctx,sIO[0],cB,y0+yA[2],'#64748b',9.5,'center');simText(ctx,sIO[1],cB,y0+yA[2]+14,'#64748b',9.5,'center');}
+    else simText(ctx,tIO,cB,y0+yA[2],'#64748b',9.5,'center');
     var bE=earth?[b[0],b[1]-30e-6]:b,Bmag=Math.hypot(bE[0],bE[1]);
     if(earth)model('במצפן, כחיבור וקטורי: שדה המגנט '+kit.m((Bmag*1e6).toFixed(1)+' μT')+' ועוד הרכיב האופקי של שדה כדור הארץ, '+kit.m('30.0 μT')+' צפונה ⇒ '+kit.m('|B| = '+(Bm*1e6).toFixed(1)+' μT'));
     else model('במצפן: '+kit.m('|B| = '+(Bm*1e6).toFixed(1)+' μT')+', בזווית '+kit.m(((dir*180/Math.PI+360)%360).toFixed(0)+'°')+' נגד כיוון השעון מהכיוון ימינה — ולשם מצביע הקצה הצפוני של המחט');
@@ -29513,7 +29555,8 @@ MAG_SIMS['mag-wire']=function(canvas){
       if(ch.pick<0){ctx.save();ctx.fillStyle='rgba(15,23,42,.85)';ctx.strokeStyle='#64748b';ctx.lineWidth=1.4;ctx.beginPath();ctx.arc(px,py,19,0,6.2832);ctx.fill();ctx.stroke();ctx.restore();
         simText(ctx,'?',px,py+5,'#fbbf24',15,'center',true);}
       else magNeedle(ctx,px,py,Math.atan2(ch.B[1],ch.B[0]),16,true);
-      simText(ctx,'P',px+(P[0]?P[0]*30:24),py-(P[1]?P[1]*30:0)+(P[0]?4:-22),'#e2e8f0',12,'center',true);
+      // P above the point ran into the question at the top: beside it then
+      simText(ctx,'P',px+(P[0]?P[0]*30:P[1]>0?30:24),py-(P[1]?P[1]*30:0)+(P[0]?4:P[1]>0?34:-22),'#e2e8f0',12,'center',true);
       magPlotBox(ctx,8,TOP+8,W-16,H-TOP-16,'',null);chips();
       if(ch.pick>=0){var ok=CHD[ch.pick]+''===ch.B+'';
         simText(ctx,ok?'✓ נכון! רצף: '+streak:'✗ לא בדיוק — המחט מראה את הכיוון הנכון',W/2,TOP+30,ok?'#34d399':'#f87171',PH?11:12,'center',true);
@@ -30315,8 +30358,11 @@ MAG_SIMS['mag-parallel']=function(canvas){
       simArrow(ctx,p1[0],p1[1]+24,p1[0]+(att?fl:-fl),p1[1]+24,'#f87171',3,10);}}
     magDot(ctx,p1[0],p1[1],12,I1>=0,'#fbbf24','#1e293b');magDot(ctx,p2[0],p2[1],12,I2>=0,'#f472b6','#1e293b');
     simHandle(ctx,p2[0],p2[1],'#f472b6',18);
-    simText(ctx,'I₁ = '+Math.abs(I1).toFixed(0)+' A',p1[0],p1[1]-26,'#fbbf24',10,'center',true);
-    simText(ctx,'I₂ = '+Math.abs(I2).toFixed(0)+' A',p2[0],p2[1]-26,'#f472b6',10,'center',true);
+    // two wires 2 cm apart on a phone: their names step apart instead of overlapping
+    var tI1='I₁ = '+Math.abs(I1).toFixed(0)+' A',tI2='I₂ = '+Math.abs(I2).toFixed(0)+' A',
+        spI=_spread2(p1[0],labelW(ctx,tI1,10)*1.08,p2[0],labelW(ctx,tI2,10)*1.08,8,W);
+    simText(ctx,tI1,spI[0],p1[1]-26,'#fbbf24',10,'center',true);
+    simText(ctx,tI2,spI[1],p2[1]-26,'#f472b6',10,'center',true);
     simText(ctx,'⇆ גררו',p2[0],p2[1]+48,'#64748b',9,'center');
     var y0=TOP+6;magPlotBox(ctx,8,y0,W-16,H-y0-6,'',null);
     if(!I1||!I2)simText(ctx,'אחד הזרמים אפס — אין כוח',W/2,y0+30,'#94a3b8',12,'center',true);
@@ -30398,7 +30444,8 @@ MAG_SIMS['mag-motor']=function(canvas){
     if(I>0){simArrow(ctx,ax,ay,ax,ay-s*fl,'#fb923c',3,10);simArrow(ctx,bx,by,bx,by+s*fl,'#fb923c',3,10);}
     simCircle(ctx,CX,CY,3,'#94a3b8');
     // commutator
-    var KW=W<600?118:172,kx=W-KW/2-6,ky=W<600?H*0.14:H*0.20,kr=W<600?18:26;
+    // the panel is narrower at 320 px: it covered the S pole's corner
+    var KW=W<360?104:W<600?118:172,kx=W-KW/2-6,ky=W<600?H*0.14:H*0.20,kr=W<600?18:26;
     ctx.save();ctx.fillStyle='rgba(2,8,16,.85)';ctx.fillRect(kx-KW/2,ky-58,KW,136);ctx.restore();
     simText(ctx,comm?(W<600?'מחליף כיוון':'מחליף כיוון (טבעת מפוצלת)'):(W<600?'בלי מחליף':'בלי מחליף — זרם קבוע'),kx,ky-44,'#94a3b8',9.5,'center',true);
     if(comm){for(var h2=0;h2<2;h2++){var a0=phi+Math.PI/2+h2*Math.PI+0.18,a1=a0+Math.PI-0.36;
@@ -30410,7 +30457,9 @@ MAG_SIMS['mag-motor']=function(canvas){
     simText(ctx,Math.abs(om*60/6.2832).toFixed(0)+' סל״ד',kx,ky+64,'#94a3b8',10,'center');
     // τ(φ) over one turn
     var gx=40,gy=H*0.66,gw=W-60,gh=H*0.26,X=function(p){return gx+(p+Math.PI)/(2*Math.PI)*gw;},Y=function(t){return gy+gh/2-t*(gh/2-12);};
-    magPlotBox(ctx,gx-30,gy-18,gw+42,gh+36,'τ = NBIA·sinθ לאורך סיבוב — '+(comm?'המחליף שומר על τ ≥ 0':'τ מחליף סימן: הכריכה רק מתנדנדת'),null);
+    // on a phone the title is the verdict alone (the formula is in the model
+    // line): the whole sentence ran past both sides of its box at 8 px
+    magPlotBox(ctx,gx-30,gy-18,gw+42,gh+36,(W<600?'':'τ = NBIA·sinθ לאורך סיבוב — ')+(comm?'המחליף שומר על τ ≥ 0':'τ מחליף סימן: הכריכה רק מתנדנדת'),null);
     ctx.save();ctx.strokeStyle='#1e3a52';ctx.beginPath();ctx.moveTo(gx,Y(0));ctx.lineTo(gx+gw,Y(0));ctx.stroke();ctx.restore();
     if(predicted){var c=[];for(var p=-Math.PI;p<=Math.PI+1e-9;p+=0.03)c.push([X(p),Y(sgn(p)*Math.cos(p))]);magPoly(ctx,c,'#fb923c',2);}
     else dcCap(ctx,'ענו על השאלה שמתחת לסימולציה — והגרף יופיע כאן',W/2,gy+gh/2-16,'#94a3b8',W<600?10:11);
@@ -30421,7 +30470,7 @@ MAG_SIMS['mag-motor']=function(canvas){
     var rbW=W<600?W-16:W*0.5,rbY=W<600?H*0.66-68:8;
     ctx.save();ctx.fillStyle='rgba(2,8,16,.85)';ctx.fillRect(8,rbY,rbW,46);ctx.restore();
     simText(ctx,'τmax = NBIA = '+tmax.toFixed(4)+' N·m',8+rbW/2,rbY+16,'#e2e8f0',11.5,'center',true);
-    simText(ctx,'θ = '+th.toFixed(0)+'°   ·   τ = '+magFx(tau,4)+' N·m',8+rbW/2,rbY+35,'#fbbf24',10.5,'center',true);
+    simText(ctx,'θ = '+th.toFixed(0)+'°   ·   τ = '+magNum(tau,4)+' N·m',8+rbW/2,rbY+35,'#fbbf24',10.5,'center',true);
     // while it spins, θ changes too fast to read: then the peak torque
     if(drag||Math.abs(om)<0.5)model(kit.m('τ = NBIA·sinθ = '+N.toFixed(0)+' × '+B.toFixed(2)+' × '+I.toFixed(1)+' × 0.0020 × sin '+th.toFixed(0)+'° = '+magNum(Math.abs(tau),4)+' N·m'));
     else model(kit.m('τ = NBIA·sinθ')+', ובשיאו '+kit.m('τₘₐₓ = NBIA = '+N.toFixed(0)+' × '+B.toFixed(2)+' × '+I.toFixed(1)+' × 0.0020 = '+tmax.toFixed(4)+' N·m'));
@@ -31640,7 +31689,7 @@ function simElcScope(canvas){
     for(var i=0;i<gq;i++)ctx.fillText(rNeg?'−':'+',-50+i*20,5);
     ctx.restore();
     optLabel(ctx,rZero?'מוט נייטרלי':'מוט: q='+(rodQ>0?'+':'')+rodQ.toFixed(1)+' nC',rodX,rodY+42,rodCol,10);
-    if(!touched&&animT<8)optLabel(ctx,'✋ גררו את המוט אל הכפתור',rodX+10,rodY+62+Math.sin(animT*4)*3,'#fbbf24',10);
+    if(!touched&&animT<8)optLabel(ctx,'✋ גררו את המוט אל הכפתור',rodX+10,rodY+62+(_reducedMotion()?0:Math.sin(animT*4)*3),'#fbbf24',10);   // still, when motion is to be reduced
     // Status
     var fresh=animT-evtT<3.2;
     var msg = fresh&&evt==='conduct' ? '⚡ הולכה במגע: המטען התחלק בין המוט לאלקטרוסקופ — הסכום נשמר!' :
@@ -31655,9 +31704,16 @@ function simElcScope(canvas){
               induced>3 ? 'השראה! הפרדת מטענים ללא מגע — העלים נפרדים, המטען הכולל עדיין אפס' :
               'קרבו את המוט כדי לראות השראה';
     var msgCol = fresh&&evt==='far' ? '#f87171' : fresh&&evt==='rod' ? '#fbbf24' : (fresh||induced>3||Math.abs(scopeQ)>0.05) ? '#34d399' : '#94a3b8';
-    var mbw=Math.min(476,W-16);
-    ctx.save();ctx.fillStyle='rgba(4,9,20,.88)';ctx.beginPath();ctx.roundRect(W/2-mbw/2,H-58,mbw,24,6);ctx.fill();ctx.restore();
-    optLabel(ctx,msg,W/2,H-43,msgCol,10);
+    // The banner sits under the jar, not across its foot, where it hid "gold
+    // leaves" on a wide screen; on a phone a message too long for one line
+    // at a readable size takes two (shrunk to fit, it fell to 7 px)
+    var mbw=Math.min(476,W-16),two=null;
+    ctx.save();ctx.font='10px Heebo,sans-serif';
+    if(ctx.measureText(_mathIso(msg)).width>mbw-12)two=_splitHalf(msg);ctx.restore();
+    var mbh=two?36:24,mby=NAR?H-10-mbh:Math.max(H-58,KY+84+240+3);
+    ctx.save();ctx.fillStyle='rgba(4,9,20,.88)';ctx.beginPath();ctx.roundRect(W/2-mbw/2,mby,mbw,mbh,6);ctx.fill();ctx.restore();
+    if(two){optLabel(ctx,two[0],W/2,mby+11,msgCol,10);optLabel(ctx,two[1],W/2,mby+25,msgCol,10);}
+    else optLabel(ctx,msg,W/2,mby+15,msgCol,10);
     // ── Charge ledger: conservation made visible ──
     var hasEarth=Math.abs(earthQ)>0.05;   // NOTE: distinct from `grounded` (the switch)
     var tot=rodQ+scopeQ+earthQ;
@@ -32280,12 +32336,21 @@ function elcExplorer(canvas,mode){
       ctx.save();ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.beginPath();ctx.arc(np.x,np.y,7,0,6.2832);ctx.stroke();ctx.restore();
       optLabel(ctx,'E = 0',np.x,np.y-16,'#fff',9.5);
     }
-    // the charges
+    // the charges (their names' boxes are kept: the probe's own labels keep off them)
+    var qBox=[];
     A.forEach(function(c,i){var r=rq(c.q);elcCharge(ctx,c.x,c.y,r,c.q);
       ctx.save();ctx.strokeStyle=c.q>0?'rgba(248,113,113,.5)':'rgba(96,165,250,.5)';ctx.lineWidth=1.2;ctx.setLineDash([3,4]);
       ctx.beginPath();ctx.arc(c.x,c.y,r+6,0,6.2832);ctx.stroke();ctx.restore();
       elcFocus(ctx,kb,i+1,c.x,c.y,r+10);
-      optLabel(ctx,(A.length>1?(i?'Q₂':'Q₁'):'Q')+' = '+(c.q>0?'+':c.q<0?'−':'')+Math.abs(c.q).toFixed(1)+' μC',c.x,c.y-r-15,c.q>0?'#fca5a5':c.q<0?'#93c5fd':'#94a3b8',10);});
+      var qt=(A.length>1?(i?'Q₂':'Q₁'):'Q')+' = '+(c.q>0?'+':c.q<0?'−':'')+Math.abs(c.q).toFixed(1)+' μC',qw=labelW(ctx,qt,10)/2+3;
+      qBox.push([c.x-qw,c.y-r-23,c.x+qw,c.y-r-7]);
+      optLabel(ctx,qt,c.x,c.y-r-15,c.q>0?'#fca5a5':c.q<0?'#93c5fd':'#94a3b8',10);});
+    // a label of the probe's (w × h, centred at s) that lands on a charge's
+    // name moves just above that name (below it, at the top of the canvas)
+    var offQ=function(s,w,h){var o={x:s.x,y:s.y};
+      qBox.forEach(function(b){if(o.x+w/2>b[0]&&o.x-w/2<b[2]&&o.y+h/2>b[1]&&o.y-h/2<b[3])
+        o.y=b[1]-h/2-2>=h/2+2?b[1]-h/2-2:b[3]+h/2+2;});
+      return o;};
     if(POT&&markA){ctx.save();ctx.fillStyle='#fbbf24';ctx.beginPath();ctx.arc(markA.x,markA.y,4,0,6.2832);ctx.fill();ctx.restore();
       optLabel(ctx,'A',markA.x+10,markA.y-10,'#fbbf24',11);}
     // the probe and what it reads
@@ -32294,11 +32359,11 @@ function elcExplorer(canvas,mode){
       var L=aLen(Ep.m),ux=Ep.x/Ep.m,uy=Ep.y/Ep.m;
       if(!POT&&qq){var fd=qq>0?1:-1,FL=L*0.86;
         simArrow(ctx,px,py,px+fd*ux*(FL+12),py+fd*uy*(FL+12),'#34d399',3.4,12);
-        var fw=labelW(ctx,'F = q₀E',10),fs=_tipSpot(px,py,px+fd*ux*(FL+12),py+fd*uy*(FL+12),fw,12,W,H,6);
+        var fw=labelW(ctx,'F = q₀E',10),fs=offQ(_tipSpot(px,py,px+fd*ux*(FL+12),py+fd*uy*(FL+12),fw,12,W,H,6),fw,12);
         optLabel(ctx,'F = q₀E',fs.x,fs.y,'#34d399',10);}
       simArrow(ctx,px,py,px+ux*L,py+uy*L,'#fbbf24',2,9);
-      if(!POT&&qq>0){optLabel(ctx,'E',px+ux*L*0.55-uy*11,py+uy*L*0.55+ux*11,'#fbbf24',10.5);}
-      else{var es=_tipSpot(px,py,px+ux*L,py+uy*L,12,12,W,H,5);optLabel(ctx,'E',es.x,es.y,'#fbbf24',10.5);}
+      if(!POT&&qq>0){var ep=offQ({x:px+ux*L*0.55-uy*11,y:py+uy*L*0.55+ux*11},10,12);optLabel(ctx,'E',ep.x,ep.y,'#fbbf24',10.5);}
+      else{var es=offQ(_tipSpot(px,py,px+ux*L,py+uy*L,12,12,W,H,5),10,12);optLabel(ctx,'E',es.x,es.y,'#fbbf24',10.5);}
     }
     var pcol=qq>0?'#fbbf24':qq<0?'#38bdf8':'#94a3b8';
     ctx.save();ctx.fillStyle=pcol;optGlow(ctx,pcol,12);ctx.beginPath();ctx.arc(px,py,9,0,6.2832);ctx.fill();optNoGlow(ctx);
@@ -32317,6 +32382,7 @@ function elcExplorer(canvas,mode){
     var lt=POT?'גשוש':'מטען בוחן',lhw=labelW(ctx,lt,9)/2+2,lhh=7,
         lAt=function(u){var d=18+Math.abs(u.x)*lhw+Math.abs(u.y)*lhh;return {x:px+u.x*d,y:py+u.y*d};},ls=lAt(lu);
     if(ls.x-lhw<3||ls.x+lhw>W-3)ls=lAt({x:-lu.x,y:lu.y});        // no room on that side: the other
+    ls=offQ(ls,2*lhw,2*lhh);
     optLabel(ctx,lt,ls.x,ls.y,pcol,9);
     // the readout, in the bottom corner where reading starts
     var lines2;
@@ -32493,8 +32559,10 @@ function simElcCompare(canvas){
         bx+(W-32)/6,gy+gh+52,'#e2e8f0',10.5,'center',true);
     });
     if(!showV)simText(ctx,Math.round(100*Esh/Einf)+'% מ־σ/2ε₀',16+2*(W-32)/3+(W-32)/6,gy+gh+68,'#34d399',9.5,'center');
-    simText(ctx,'r = '+(rSel*100).toFixed(1)+' cm'+(rSel<R?'  (בתוך הכדור)':''),
-      W/2,gy-8,'#fbbf24',10.5,'center',true);
+    // centred, unless that runs into the axis' name on its left (a phone, in English)
+    var rT='r = '+(rSel*100).toFixed(1)+' cm'+(rSel<R?'  (בתוך הכדור)':''),rTw=labelW(ctx,rT,10.5)*1.08,
+        rTl=GX+4+labelW(ctx,showV?'V  (V)':'E  (V/m)',10)*1.08+10;
+    simText(ctx,rT,Math.max(W/2,Math.min(W-6-rTw/2,rTl+rTw/2)),gy-8,'#fbbf24',10.5,'center',true);
     simText(ctx,showV?'כל הפוטנציאלים נמדדים ביחס לאינסוף'
       :(touched?'על ציר המשטח המטען הנקודתי חזק יותר בכל מרחק':'גררו כדי לבחור מרחק'),W/2,H-10,'#7d8da6',10,'center');
     elcFocus(ctx,kb,0,px,gy+gh/2,14);
@@ -32701,19 +32769,29 @@ function dcBatt(ctx,x,y,txt,pos){
 // A caption that does not fit the canvas (a phone is ~280 px wide here) is split
 // into two centred lines -- at a separator near the middle if there is one --
 // rather than shrunk to an unreadable size. The second line sits at y.
-function dcCap(ctx,txt,x,y,col,sz,bold){
+// "Predict first": the reminder on a card of its own, so it reads over
+// whatever the circuit has under it (on a phone it ran across the labels
+// printed below the circuit -- "the real battery", a meter's leads)
+function dcToast(ctx,W,y){var tt='קודם נחשו — השאלה מתחת לתרשים ↓',tw=Math.min(W-12,labelW(ctx,tt,10.5)*1.1+16);
+  ctx.save();ctx.fillStyle='rgba(2,8,16,.94)';ctx.strokeStyle='rgba(251,191,36,.5)';ctx.lineWidth=1;
+  ctx.beginPath();ctx.roundRect(W/2-tw/2,y-13,tw,18,6);ctx.fill();ctx.stroke();ctx.restore();
+  simText(ctx,tt,W/2,y,'#fbbf24',10.5,'center',true);}
+// down: the second line goes below y (where the line above is taken)
+function dcCap(ctx,txt,x,y,col,sz,bold,down){
   var cw=ctx.canvas.width/((ctx.getTransform&&ctx.getTransform().a)||1);
   ctx.save();ctx.font=(bold?'bold ':'')+sz+'px Heebo';var w=ctx.measureText(txt).width;ctx.restore();
   if(w<=cw-14){simText(ctx,txt,x,y,col,sz,'center',bold);return;}
   // a dash at the break is dropped (the line break does its job); a comma,
   // semicolon or colon stays at the end of the first line
   var mid=txt.length/2,c1=-1,c2=-1,bs=1e9;
-  [' — ','; ',', ',': ',' '].forEach(function(sep,pri){var i=-1;
+  // (a middle dot between two statements is a break as good as a dash)
+  [' — ','; ',', ',': ',' ',' · '].forEach(function(sep,pri){var i=-1;if(sep===' · ')pri=0;
     while((i=txt.indexOf(sep,i+1))>=0){var sc=Math.abs(i-mid)+pri*6;
-      if(sc<bs){bs=sc;c1=(sep===' — '||sep===' ')?i:i+1;c2=i+sep.length;}}});
+      if(sc<bs){bs=sc;c1=(sep===' — '||sep===' '||sep===' · ')?i:i+1;c2=i+sep.length;}}});
   if(c1<0){simText(ctx,txt,x,y,col,sz,'center',bold);return;}
-  simText(ctx,txt.slice(0,c1).trim(),cw/2,y-sz-3,col,sz,'center',bold);
-  simText(ctx,txt.slice(c2).trim(),cw/2,y,col,sz,'center',bold);
+  var y1=down?y:y-sz-3;
+  simText(ctx,txt.slice(0,c1).trim(),cw/2,y1,col,sz,'center',bold);
+  simText(ctx,txt.slice(c2).trim(),cw/2,y1+sz+3,col,sz,'center',bold);
 }
 // A signed readout with a real minus sign (U+2212), and no '−0.00'.
 function dcNum(v,d){var t=(Math.abs(v)<0.5*Math.pow(10,-d)?0:v).toFixed(d);return t.charAt(0)==='-'?'−'+t.slice(1):t;}
@@ -32736,6 +32814,9 @@ var _dcFlowQ=typeof WeakMap==='function'?new WeakMap():null;
 function dcFlowI(ctx,pts,t,I,col,k,open){
   var len=0,i,seg=[]; for(i=1;i<pts.length;i++){var d=Math.hypot(pts[i][0]-pts[i-1][0],pts[i][1]-pts[i-1][1]);seg.push(d);len+=d;}
   if(len<1||!(Math.abs(I)>1e-12))return;
+  // motion to be reduced: the charges stand still, evenly spaced, as on the
+  // circuit boards (dcBoard)
+  if(_reducedMotion())t=0;
   var kk=Math.min(k,240/Math.abs(I)),q=I*t;          // at most 240 px/s
   if(_dcFlowQ){var mp=_dcFlowQ.get(ctx);if(!mp){mp={n:0};_dcFlowQ.set(ctx,mp);}
     var key=pts.map(function(p){return Math.round(p[0])+','+Math.round(p[1]);}).join(';')+col,s=mp[key];
@@ -32756,6 +32837,7 @@ function dcFlow(ctx,pts,t,rate,col,n){
   var len=[],tot=0,i;
   for(i=1;i<pts.length;i++){var d=Math.hypot(pts[i][0]-pts[i-1][0],pts[i][1]-pts[i-1][1]);len.push(d);tot+=d;}
   if(tot<1)return;
+  if(_reducedMotion())t=0;          // motion to be reduced: still charges
   for(i=0;i<n;i++){
     var u=((t*rate)+i/n)%1, d2=u*tot, k=0;
     while(k<len.length&&d2>len[k]){d2-=len[k];k++;}
@@ -33358,7 +33440,7 @@ function simDcJunction(canvas){
     simText(ctx,'I₄ אינו מחוון — הוא מה שהחוק מחייב',W/2,y+28,'#94a3b8',10.5,'center',true);
     dcCap(ctx,i4>=0?'I₄ חיובי — הענף הרביעי מוציא זרם'
       :'I₄ שלילי — החץ הפוך: הענף הרביעי דווקא מכניס '+Math.abs(i4).toFixed(1)+' A',
-      W/2,y+50,i4>=0?'#64748b':'#ef4444',11,i4<0);
+      W/2,y+50,i4>=0?'#64748b':'#ef4444',11,i4<0,true);
     simText(ctx,'גררו לכיוון אחד הענפים כדי לשנות את הזרם בו',W/2,H-12,'#7d8da6',9.5,'center');
     kit.check({i1:i1,i2:i2,i4:i4});
     kit.model('חוק הצמתים, '+dcM('ΣI_in = ΣI_out')+':<br>'+dcM('I₄ = I₁ + I₂ − I₃ = '+i1.toFixed(1)+' + '+i2.toFixed(1)+' − '+i3.toFixed(1)+' = '+dcNum(i4,1)+' A'));
@@ -33587,10 +33669,14 @@ function simDcTwoLoop(canvas){
     simText(ctx,'I₂',Rt-(Rt-mid)*0.17,ya-8,'#38bdf8',10.5,'center',true);
     simArrow(ctx,mid-15,my+32,mid-15,my+54,'#a78bfa',2,8);
     simText(ctx,'I₃',mid-27,my+48,'#a78bfa',10.5,'center',true);
-    simText(ctx,'החצים — הכיוונים שנבחרו במשוואות · הנקודות — לאן הזרם זורם באמת',W/2,B+20,'#7d8da6',9.5,'center');
+    // too wide for one line at its size (a phone, in English: it fell to 7.7 px):
+    // two lines, and the readouts under it move down a little to make room
+    var lgT='החצים — הכיוונים שנבחרו במשוואות · הנקודות — לאן הזרם זורם באמת';
+    ctx.save();ctx.font='9.5px Heebo';var lg2=ctx.measureText(lgT).width>W-14;ctx.restore();
+    dcCap(ctx,lgT,W/2,B+(lg2?15:20),'#7d8da6',9.5,false,true);
     // the three answers, each with its own sign
     // readouts sit under the branch they belong to: I₁ left, I₃ the shared middle, I₂ right
-    var ry=B+58, cols=['#fbbf24','#a78bfa','#38bdf8'], vals=[i1,i3,i2], labs=['I₁','I₃','I₂'];
+    var ry=B+58+(lg2?5:0), cols=['#fbbf24','#a78bfa','#38bdf8'], vals=[i1,i3,i2], labs=['I₁','I₃','I₂'];
     for(var k=0;k<3;k++){
       var x=W*(0.22+0.28*k);
       simText(ctx,labs[k],x,ry-19,'#7d8da6',10,'center');
@@ -33847,7 +33933,7 @@ function simDcSeries(canvas){
     simText(ctx,'ε = '+e.toFixed(1)+' V',L+40,my+4,'#f87171',10.5,'left',true);
     bd.legend(m+4,22,88);
     bd.dotKey(m-8,H-9,'left');
-    if(toast>0){toast-=dt;simText(ctx,'קודם נחשו — השאלה מתחת לתרשים ↓',W/2,Bt+22,'#fbbf24',10.5,'center',true);}
+    if(toast>0){toast-=dt;dcToast(ctx,W,Bt+22);}
     else if(!bd.probeUsed)simText(ctx,'גררו את שני הגשושים אל נקודות במעגל',W/2,Bt+22,'#cbd5e1',10,'center');
     bd.drawMeter();
     bd.drawFocus();
@@ -33952,7 +34038,7 @@ function simDcParallel(canvas){
     if(r>0)simText(ctx,'r = '+r.toFixed(1)+' Ω',L-26,(P.pc[1]+P.ri[1])/2,'#fca5a5',10,'right',true);
     bd.legend(m+4,22,88);
     bd.dotKey(m-8,H-9,'left');
-    if(toast>0){toast-=dt;simText(ctx,'קודם נחשו — השאלה מתחת לתרשים ↓',W/2,Bt+28,'#fbbf24',10.5,'center',true);}
+    if(toast>0){toast-=dt;dcToast(ctx,W,Bt+28);}
     else if(!bd.probeUsed)simText(ctx,'גררו את שני הגשושים אל נקודות במעגל',W/2,Bt+28,'#cbd5e1',10,'center');
     bd.drawMeter();
     bd.drawFocus();
@@ -34057,7 +34143,7 @@ function simDcMixed(canvas){
     simText(ctx,'ε = '+e.toFixed(1)+' V',L+30,my+4,'#f87171',10.5,'left',true);
     bd.legend(W-m-96,22,88);
     bd.dotKey(m-8,H-9,'left');
-    if(toast>0){toast-=dt;simText(ctx,'קודם נחשו — השאלה מתחת לתרשים ↓',W/2,Bt+20,'#fbbf24',10.5,'center',true);}
+    if(toast>0){toast-=dt;dcToast(ctx,W,Bt+20);}
     else if(!bd.probeUsed)simText(ctx,'גררו את שני הגשושים אל נקודות במעגל',W/2,Bt+20,'#cbd5e1',10,'center');
     bd.drawMeter();
     bd.drawFocus();
@@ -34167,7 +34253,7 @@ function simDcSwitch(canvas){
     bd.dotKey(m-8,H-9,'left');
     if(!bd.probeUsed)simText(ctx,'גררו את שני הגשושים אל נקודות במעגל',W/2,Bt+22,'#cbd5e1',10,'center');
     if(toast>0){toast-=dt;
-      simText(ctx,'קודם נחשו — השאלה מתחת לתרשים ↓',W/2,Bt+22,'#fbbf24',10.5,'center',true);}
+      dcToast(ctx,W,Bt+22);}
     bd.drawMeter();
     bd.drawFocus();
     var s={open1:!S1.on,v:v===null?NaN:v,eps:e,I:I,PA:PA,
@@ -34288,7 +34374,7 @@ function simDcMeters(canvas){
     bd.legend(m+4,22,88);
     if(md<0)dcCap(ctx,'המכשיר עוד לא מחובר — הקישו על סימן שאלה כדי לחבר אותו שם',W/2,Bt+34,'#cbd5e1',11,true);
     else dcCap(ctx,VERD[md],W/2,Bt+34,md===0||md===2?'#34d399':'#f87171',11,true);
-    if(toast>0){toast-=dt;simText(ctx,'קודם נחשו — השאלה מתחת לתרשים ↓',W/2,Bt+60,'#fbbf24',10.5,'center',true);}
+    if(toast>0){toast-=dt;dcToast(ctx,W,Bt+60);}
     else simText(ctx,'הקישו על המכשיר כדי להחליף אמפרמטר ↔ וולטמטר, ועל ? כדי להעביר אותו',W/2,Bt+60,'#94a3b8',9.5,'center');
     bd.drawFocus();
     kit.check({t:type,p:pos});
@@ -34526,7 +34612,9 @@ function simDcEmf(canvas){
       if(fu>0.18)simText(ctx,Pl.toFixed(1)+' W',bx+bw*fu/2,by+12,'#04101e',10,'center',true);
       if(1-fu>0.18)simText(ctx,Pr.toFixed(1)+' W',bx+bw*fu+bw*(1-fu)/2,by+12,'#04101e',10,'center',true);
     }else simText(ctx,'אין זרם — הסוללה אינה מוסרת הספק',W/2,by+12,'#94a3b8',10,'center');
-    if(toast>0){toast-=dt;simText(ctx,'קודם נחשו — השאלה מתחת לתרשים ↓',W/2,Bt+14,'#fbbf24',10.5,'center',true);}
+    // the reminder is set on a card of its own: on a phone it ran across
+    // "the real battery" written under the circuit
+    if(toast>0){toast-=dt;dcToast(ctx,W,Bt+15);}
     bd.drawFocus();
     kit.check({open:!S.on&&!K.on,short:K.on,load:S.on&&!K.on,V:Vt,E:E,R:Rl,r:r});
     var f=function(x){return x.toFixed(2);};
@@ -34632,10 +34720,15 @@ function simDcCap(canvas){
     simText(ctx,dcNum(Math.abs(Ic)<5e-6?0:Ic*1000,2)+' mA',cols4[1],ry,'#f472b6',13,'center',true);
     simText(ctx,(0.5*C*Vc*Vc*1000).toFixed(1)+' mJ',cols4[2],ry,'#a78bfa',13,'center',true);
     simText(ctx,(tau<1?tau.toPrecision(2):tau.toFixed(2))+' s',cols4[3],ry,'#34d399',13,'center',true);
-    simText(ctx,'מתח הקבל',cols4[0],ry-18,'#7d8da6',9.5,'center');
-    simText(ctx,'זרם הקבל',cols4[1],ry-18,'#7d8da6',9.5,'center');
-    simText(ctx,'אנרגיה ½CV²',cols4[2],ry-18,'#7d8da6',9.5,'center');
-    simText(ctx,W<480?(discharging?'τ = R₂C':'τ = (R₁∥R₂)C'):(discharging?'פריקה: τ = R₂C':'טעינה: τ = (R₁∥R₂)C'),cols4[3],ry-18,'#7d8da6',9.5,'center');
+    // a heading wider than its quarter of the canvas takes two rows ("Capacitor
+    // voltage" ran into "Capacitor current" on a phone)
+    var head=function(t,x){var w=labelW(ctx,t,9.5),two=w>W*0.24-6&&/[A-Za-z\u0590-\u05FF]{3}/.test(t)?_splitHalf(t):null;   // words, never a formula
+      if(two){simText(ctx,two[0],x,ry-29,'#7d8da6',9.5,'center');simText(ctx,two[1],x,ry-18,'#7d8da6',9.5,'center');}
+      else simText(ctx,t,x,ry-18,'#7d8da6',9.5,'center');};
+    head('מתח הקבל',cols4[0]);
+    head('זרם הקבל',cols4[1]);
+    head('אנרגיה ½CV²',cols4[2]);
+    head(W<480?(discharging?'τ = R₂C':'τ = (R₁∥R₂)C'):(discharging?'פריקה: τ = R₂C':'טעינה: τ = (R₁∥R₂)C'),cols4[3]);
     // a scope in two strips that share the time axis: V_C above, and below it
     // the capacitor current about its own zero -- so the discharge current is
     // seen to run the other way (it was clipped to zero and vanished)
@@ -34885,7 +34978,8 @@ function simDcOhm(canvas){
     simText(ctx,V.toFixed(1)+' V',bx+20,cy+4,'#f87171',10.5,'left',true);
     simText(ctx,'I = '+I.toFixed(2)+' A',cmp,cy+44,'#fbbf24',12,'center',true);
     // the I–V graph
-    GY=H*0.30;GW=W-GX-20;GH=H-GY-72;
+    // a phone keeps a row under the graph for the caption's second line
+    GY=H*0.30;GW=W-GX-20;GH=H-GY-(W<480?86:72);
     var IMAX=Math.max(0.6,VMAX/Math.max(2,R0)*1.1);
     var X=function(v){return GX+GW*(v/VMAX);}, Y=function(i){return GY+GH-GH*(i/IMAX);};
     ctx.save();ctx.strokeStyle='#1e3a52';ctx.lineWidth=1;ctx.strokeRect(GX+.5,GY+.5,GW-1,GH-1);ctx.restore();
@@ -34906,9 +35000,9 @@ function simDcOhm(canvas){
     ctx.restore();
     ctx.save();ctx.fillStyle='#34d399';ctx.beginPath();ctx.arc(X(V),Y(I),6,0,6.2832);ctx.fill();ctx.restore();
     simText(ctx,'I (A)',GX+4,GY-6,'#94a3b8',10,'left',true);
-    simText(ctx,lamp?'נורת להט — ההתנגדות גדלה עם החום, והעקום מתיישר'
+    dcCap(ctx,lamp?'נורת להט — ההתנגדות גדלה עם החום, והעקום מתיישר'
       :'נגד אוהמי — ישר דרך הראשית, והשיפוע הוא 1/R',
-      W/2,H-44,lamp?'#fbbf24':'#38bdf8',11,'center',true);
+      W/2,H-44,lamp?'#fbbf24':'#38bdf8',11,true);
     simText(ctx,'R = V/I = '+(I>1e-6?(V/I).toFixed(1):'—')+' Ω',
       W/2,H-22,'#e2e8f0',13,'center',true);
     simText(ctx,lamp?'משתנה עם הזרם':'קבוע לכל מתח',W/2,H-6,lamp?'#fbbf24':'#34d399',9.5,'center');
@@ -35305,7 +35399,8 @@ function simElcConductor(canvas){
       if(Etip>3e6&&tipX+43>colX)tipHi=Math.min(tipHi,tipY-Math.sin(0.4)*38-3);
       optLabel(ctx,'E בחוד ≈ V/ρ = '+(Etip/1e6).toFixed(1)+'×10⁶ V/m',cx,cy-rr*1.35,'#fbbf24',9.5);
       if(Etip>3e6){
-        ctx.save();ctx.strokeStyle='rgba(34,211,238,'+(0.45+0.55*Math.abs(Math.sin(animT*7))).toFixed(2)+')';ctx.lineWidth=1.6;
+        // the discharge flickers -- steady when motion is to be reduced
+        ctx.save();ctx.strokeStyle='rgba(34,211,238,'+(_reducedMotion()?0.85:0.45+0.55*Math.abs(Math.sin(animT*7))).toFixed(2)+')';ctx.lineWidth=1.6;
         for(var s2=0;s2<5;s2++){
           var ang=(s2-2)*0.2;
           ctx.beginPath();ctx.moveTo(tipX,tipY);
@@ -35358,7 +35453,7 @@ function simElcConductor(canvas){
     ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(pxp,pyp);ctx.stroke();ctx.setLineDash([]);ctx.restore();
     ctx.save();ctx.fillStyle='#fbbf24';optGlow(ctx,'#fbbf24',12);
     ctx.beginPath();ctx.arc(pxp,pyp,8,0,Math.PI*2);ctx.fill();optNoGlow(ctx);ctx.restore();
-    optLabel(ctx,'גשוש r='+(r_m*100).toFixed(0)+'cm',pxp,pyp-17,'#fbbf24',9);
+    optLabel(ctx,'גשוש r = '+(r_m*100).toFixed(0)+' cm',pxp,pyp-17,'#fbbf24',9);
     optLabel(ctx,inside?'בפנים':'בחוץ',pxp,pyp+19,inside?'#4ade80':'#94a3b8',8.5);
     if(!touched&&animT<9)optLabel(ctx,'✋ גררו את הגשוש פנימה והחוצה',cx,cy+Rp+36,'#fbbf24',10);
     // ── synchronised E(r) and V(r) graphs ──
@@ -35576,7 +35671,9 @@ function simElcUpair(canvas){
       bar(0,'U',U,'#f87171'); bar(1,'Eₖ',K2,'#4ade80'); bar(2,'סה״כ',U+K2,'#fbbf24');
       simText(ctx,'J · מואט פי '+SLOW,bx+(3*bw2+24)/2,BY+BH+24,'#7d8da6',8.5,'center');
     }
-    if(!touched&&t<8)optLabel(ctx,'✋ גררו את המטענים, ואז שחררו',W/2,cy+92,'#fbbf24',10);
+    // on a phone the energy bars' titles stand where the hint was: there it
+    // goes above the charges, between them and the title
+    if(!touched&&t<8)optLabel(ctx,'✋ גררו את המטענים, ואז שחררו',W/2,NAR?58:cy+92,'#fbbf24',10);
     if(!NAR)optInfoBox(ctx,W-236,10,228,[
       'U = k·q₁q₂/r',
       'U = '+(U>0?'+':'')+elcSg(U,3)+' J',
@@ -35998,7 +36095,8 @@ function simElcCap(canvas){
     ctx.beginPath();ctx.moveTo(xB-10,yB-11);ctx.lineTo(xB-10,yB+11);ctx.stroke();
     ctx.lineWidth=3.5;ctx.beginPath();ctx.moveTo(xB+10,yB-6);ctx.lineTo(xB+10,yB+6);ctx.stroke();ctx.restore();
     optLabel(ctx,disc?'מנותק ✂ (Q קבוע)':Vx+' V',xB,yB-22,disc?'#f87171':'#e2e8f0',10);
-    if(disc)optLabel(ctx,'Q נעול: הרחקת לוחות מעלה את V ו־U — ושימו לב ש־E לא משתנה!',W/2,H0-14,'#a78bfa',9.5);
+    // on a phone in two lines (on one it fell to 7 px)
+    if(disc)dcCap(ctx,'Q נעול: הרחקת לוחות מעלה את V ו־U — ושימו לב ש־E לא משתנה!',W/2,H0-14,'#a78bfa',9.5,false,true);
     // Readout bars
     var Cref=3*ELC_EPS0*200e-4/4e-3;             // 3× the default C → defaults sit at ⅓ bar
     var bars=[['C',C/Cref,(C*1e12).toFixed(1)+' pF','#22d3ee'],

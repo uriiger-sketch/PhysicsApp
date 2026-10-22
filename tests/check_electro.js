@@ -567,7 +567,7 @@ const sig2 = x => x === 0 ? 0 : Number(x.toPrecision(2));
     ['electro', 'elc-charge', 'elc-coulomb', W => { const c = (W - 80) / (W < 560 ? 40 : 60), x = W / 2 - 10 * c; return [[x, 112], [x - 20, 112], [x - 40, 112]]; }, { text: '^r = ' }],
     ['electro', 'elc-charge', 'elc-field', (W, H) => [[W * 0.68, H * 0.3], [W * 0.62, H * 0.35], [W * 0.55, H * 0.4]], { text: '^\\|E\\| = ' }],
     ['electro', 'elc-charge', 'elc-plane', (W, H) => [[W * 0.5, H * 0.3], [W * 0.45, H * 0.3], [W * 0.1, H * 0.3]], { text: '^E = E₁ \\+ E₂|^E₁ \\+ E₂' }],
-    ['electro', 'elc-charge', 'elc-conductor', (W, H) => [[W * 0.27 + 95, H * 0.42 - 40], [W * 0.27 + 60, H * 0.42 - 30], [W * 0.27 + 30, H * 0.42 - 10]], { text: '^' + LR('גשוש r=') }],
+    ['electro', 'elc-charge', 'elc-conductor', (W, H) => [[W * 0.27 + 95, H * 0.42 - 40], [W * 0.27 + 60, H * 0.42 - 30], [W * 0.27 + 30, H * 0.42 - 10]], { text: '^' + LR('גשוש r = ') }],
     ['electro', 'elc-energy', 'elc-potential', (W, H) => [[W * 0.7, H * 0.26], [W * 0.65, H * 0.3], [W * 0.6, H * 0.34]], { text: '^V = ' }],
     ['electro', 'elc-energy', 'elc-upair', (W, H) => { const c = (W - 60) / (W < 560 ? 40 : 60), x = W / 2 + 15 * c; return [[x, H * 0.3], [x + 20, H * 0.3], [x + 40, H * 0.3]]; }, { text: '^r = ' }],
     ['electro', 'elc-energy', 'elc-sphere', W => [[46 + 0.2 * (W - 60), 300], [46 + 0.4 * (W - 60), 300], [46 + 0.6 * (W - 60), 300]], { text: '^r = [0-9]' }],
