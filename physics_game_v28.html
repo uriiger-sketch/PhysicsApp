@@ -32492,7 +32492,15 @@ function dcBatt(ctx,x,y,txt,pos){
 // A caption that does not fit the canvas (a phone is ~280 px wide here) is split
 // into two centred lines -- at a separator near the middle if there is one --
 // rather than shrunk to an unreadable size. The second line sits at y.
-function dcCap(ctx,txt,x,y,col,sz,bold){
+// "Predict first": the reminder on a card of its own, so it reads over
+// whatever the circuit has under it (on a phone it ran across the labels
+// printed below the circuit -- "the real battery", a meter's leads)
+function dcToast(ctx,W,y){var tt='קודם נחשו — השאלה מתחת לתרשים ↓',tw=Math.min(W-12,labelW(ctx,tt,10.5)*1.1+16);
+  ctx.save();ctx.fillStyle='rgba(2,8,16,.94)';ctx.strokeStyle='rgba(251,191,36,.5)';ctx.lineWidth=1;
+  ctx.beginPath();ctx.roundRect(W/2-tw/2,y-13,tw,18,6);ctx.fill();ctx.stroke();ctx.restore();
+  simText(ctx,tt,W/2,y,'#fbbf24',10.5,'center',true);}
+// down: the second line goes below y (where the line above is taken)
+function dcCap(ctx,txt,x,y,col,sz,bold,down){
   var cw=ctx.canvas.width/((ctx.getTransform&&ctx.getTransform().a)||1);
   ctx.save();ctx.font=(bold?'bold ':'')+sz+'px Heebo';var w=ctx.measureText(txt).width;ctx.restore();
   if(w<=cw-14){simText(ctx,txt,x,y,col,sz,'center',bold);return;}
@@ -32503,8 +32511,9 @@ function dcCap(ctx,txt,x,y,col,sz,bold){
     while((i=txt.indexOf(sep,i+1))>=0){var sc=Math.abs(i-mid)+pri*6;
       if(sc<bs){bs=sc;c1=(sep===' — '||sep===' ')?i:i+1;c2=i+sep.length;}}});
   if(c1<0){simText(ctx,txt,x,y,col,sz,'center',bold);return;}
-  simText(ctx,txt.slice(0,c1).trim(),cw/2,y-sz-3,col,sz,'center',bold);
-  simText(ctx,txt.slice(c2).trim(),cw/2,y,col,sz,'center',bold);
+  var y1=down?y:y-sz-3;
+  simText(ctx,txt.slice(0,c1).trim(),cw/2,y1,col,sz,'center',bold);
+  simText(ctx,txt.slice(c2).trim(),cw/2,y1+sz+3,col,sz,'center',bold);
 }
 // A signed readout with a real minus sign (U+2212), and no '−0.00'.
 function dcNum(v,d){var t=(Math.abs(v)<0.5*Math.pow(10,-d)?0:v).toFixed(d);return t.charAt(0)==='-'?'−'+t.slice(1):t;}
@@ -33149,7 +33158,7 @@ function simDcJunction(canvas){
     simText(ctx,'I₄ אינו מחוון — הוא מה שהחוק מחייב',W/2,y+28,'#94a3b8',10.5,'center',true);
     dcCap(ctx,i4>=0?'I₄ חיובי — הענף הרביעי מוציא זרם'
       :'I₄ שלילי — החץ הפוך: הענף הרביעי דווקא מכניס '+Math.abs(i4).toFixed(1)+' A',
-      W/2,y+50,i4>=0?'#64748b':'#ef4444',11,i4<0);
+      W/2,y+50,i4>=0?'#64748b':'#ef4444',11,i4<0,true);
     simText(ctx,'גררו לכיוון אחד הענפים כדי לשנות את הזרם בו',W/2,H-12,'#7d8da6',9.5,'center');
     kit.check({i1:i1,i2:i2,i4:i4});
     kit.model('חוק הצמתים, '+dcM('ΣI_in = ΣI_out')+':<br>'+dcM('I₄ = I₁ + I₂ − I₃ = '+i1.toFixed(1)+' + '+i2.toFixed(1)+' − '+i3.toFixed(1)+' = '+dcNum(i4,1)+' A'));
@@ -33638,7 +33647,7 @@ function simDcSeries(canvas){
     simText(ctx,'ε = '+e.toFixed(1)+' V',L+40,my+4,'#f87171',10.5,'left',true);
     bd.legend(m+4,22,88);
     bd.dotKey(m-8,H-9,'left');
-    if(toast>0){toast-=dt;simText(ctx,'קודם נחשו — השאלה מתחת לתרשים ↓',W/2,Bt+22,'#fbbf24',10.5,'center',true);}
+    if(toast>0){toast-=dt;dcToast(ctx,W,Bt+22);}
     else if(!bd.probeUsed)simText(ctx,'גררו את שני הגשושים אל נקודות במעגל',W/2,Bt+22,'#cbd5e1',10,'center');
     bd.drawMeter();
     bd.drawFocus();
@@ -33743,7 +33752,7 @@ function simDcParallel(canvas){
     if(r>0)simText(ctx,'r = '+r.toFixed(1)+' Ω',L-26,(P.pc[1]+P.ri[1])/2,'#fca5a5',10,'right',true);
     bd.legend(m+4,22,88);
     bd.dotKey(m-8,H-9,'left');
-    if(toast>0){toast-=dt;simText(ctx,'קודם נחשו — השאלה מתחת לתרשים ↓',W/2,Bt+28,'#fbbf24',10.5,'center',true);}
+    if(toast>0){toast-=dt;dcToast(ctx,W,Bt+28);}
     else if(!bd.probeUsed)simText(ctx,'גררו את שני הגשושים אל נקודות במעגל',W/2,Bt+28,'#cbd5e1',10,'center');
     bd.drawMeter();
     bd.drawFocus();
@@ -33848,7 +33857,7 @@ function simDcMixed(canvas){
     simText(ctx,'ε = '+e.toFixed(1)+' V',L+30,my+4,'#f87171',10.5,'left',true);
     bd.legend(W-m-96,22,88);
     bd.dotKey(m-8,H-9,'left');
-    if(toast>0){toast-=dt;simText(ctx,'קודם נחשו — השאלה מתחת לתרשים ↓',W/2,Bt+20,'#fbbf24',10.5,'center',true);}
+    if(toast>0){toast-=dt;dcToast(ctx,W,Bt+20);}
     else if(!bd.probeUsed)simText(ctx,'גררו את שני הגשושים אל נקודות במעגל',W/2,Bt+20,'#cbd5e1',10,'center');
     bd.drawMeter();
     bd.drawFocus();
@@ -33958,7 +33967,7 @@ function simDcSwitch(canvas){
     bd.dotKey(m-8,H-9,'left');
     if(!bd.probeUsed)simText(ctx,'גררו את שני הגשושים אל נקודות במעגל',W/2,Bt+22,'#cbd5e1',10,'center');
     if(toast>0){toast-=dt;
-      simText(ctx,'קודם נחשו — השאלה מתחת לתרשים ↓',W/2,Bt+22,'#fbbf24',10.5,'center',true);}
+      dcToast(ctx,W,Bt+22);}
     bd.drawMeter();
     bd.drawFocus();
     var s={open1:!S1.on,v:v===null?NaN:v,eps:e,I:I,PA:PA,
@@ -34079,7 +34088,7 @@ function simDcMeters(canvas){
     bd.legend(m+4,22,88);
     if(md<0)dcCap(ctx,'המכשיר עוד לא מחובר — הקישו על סימן שאלה כדי לחבר אותו שם',W/2,Bt+34,'#cbd5e1',11,true);
     else dcCap(ctx,VERD[md],W/2,Bt+34,md===0||md===2?'#34d399':'#f87171',11,true);
-    if(toast>0){toast-=dt;simText(ctx,'קודם נחשו — השאלה מתחת לתרשים ↓',W/2,Bt+60,'#fbbf24',10.5,'center',true);}
+    if(toast>0){toast-=dt;dcToast(ctx,W,Bt+60);}
     else simText(ctx,'הקישו על המכשיר כדי להחליף אמפרמטר ↔ וולטמטר, ועל ? כדי להעביר אותו',W/2,Bt+60,'#94a3b8',9.5,'center');
     bd.drawFocus();
     kit.check({t:type,p:pos});
@@ -34317,7 +34326,9 @@ function simDcEmf(canvas){
       if(fu>0.18)simText(ctx,Pl.toFixed(1)+' W',bx+bw*fu/2,by+12,'#04101e',10,'center',true);
       if(1-fu>0.18)simText(ctx,Pr.toFixed(1)+' W',bx+bw*fu+bw*(1-fu)/2,by+12,'#04101e',10,'center',true);
     }else simText(ctx,'אין זרם — הסוללה אינה מוסרת הספק',W/2,by+12,'#94a3b8',10,'center');
-    if(toast>0){toast-=dt;simText(ctx,'קודם נחשו — השאלה מתחת לתרשים ↓',W/2,Bt+14,'#fbbf24',10.5,'center',true);}
+    // the reminder is set on a card of its own: on a phone it ran across
+    // "the real battery" written under the circuit
+    if(toast>0){toast-=dt;dcToast(ctx,W,Bt+15);}
     bd.drawFocus();
     kit.check({open:!S.on&&!K.on,short:K.on,load:S.on&&!K.on,V:Vt,E:E,R:Rl,r:r});
     var f=function(x){return x.toFixed(2);};
