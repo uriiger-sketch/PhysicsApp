@@ -151,12 +151,13 @@ const EXPECT = {
   t('every mechanics slider starts at the value its label promises', grid.length === 0, grid.join(' | ') || 'all on grid');
 
   await open('kinematics.const-velocity');
-  await p.waitForTimeout(1500);
+  // waits for the frames themselves (a loaded machine draws fewer per second)
+  await until(async () => (await all('^x = .* · {3}t = ')).length > 30, 8000);
   let rows = (await all('^x = .* · {3}t = ')).map(nums);
   t('constant velocity: the printed x is x0 + v·t (v = 2.5 m/s)', rows.length > 30 && rows.every(r => close(r[0], 2.5 * r[1], 2.5 * 0.05 + 0.011)), rows.length + ' frames');
 
   await open('kinematics.acceleration');
-  await p.waitForTimeout(1500);
+  await until(async () => (await all('^t = .* · {3}x = ')).length > 20, 8000);
   rows = (await all('^t = .* · {3}x = ')).map(nums);   // t, x, v, a
   t('constant acceleration: v = a·t and x = ½at² from rest', rows.length > 20 && rows.every(r => close(r[2], r[3] * r[0], r[3] * 0.05 + 0.06) && close(r[1], 0.5 * r[3] * r[0] ** 2, r[3] * r[0] * 0.05 + 0.06)), rows.length + ' frames');
 
@@ -480,7 +481,7 @@ const EXPECT = {
   const tFree = await last('^' + LR('במעלית:  T = m(g + a) = '));
   t('... a = −g: the string goes slack, T = 0 — mission solved', nums(tFree).pop() === 0 && await mission('forces.tension', 1), tFree);
   await set('ten-ea', 0); await fresh(); await p.waitForTimeout(200);
-  t('... before the release the Atwood pulley is braked: the drawing says T₁ = W₁, T₂ = W₂', !!(await last('^' + LR('בלומה: T₁ = W₁, T₂ = W₂'))));
+  t('... before the release the Atwood pulley is braked: the drawing says so, and T₁ = W₁, T₂ = W₂ beside the ropes', !!(await last('^' + LR('בלומה') + '$')) && !!(await last('^T₁ = W₁$')) && !!(await last('^T₂ = W₂$')));
   await click('btn-ten-launch'); await until(() => mission('forces.tension', 2), 3000);
   t('... released, the Atwood T = 36.8 N lies between W₁ = 29.4 N and W₂ = 49 N — mission solved', await mission('forces.tension', 2) && !!(await last('^T = 36\\.8 N$')));
 
@@ -540,7 +541,8 @@ const EXPECT = {
   await until(() => mission('vectors.vec-ops', 1), 2000);
   t('... B turned to 90° from A: A·B = 0 — mission solved, and the panel says perpendicular', await mission('vectors.vec-ops', 1) && !!(await last('^' + LR('A·B = 0 (ניצבים!)'))));
   await click('btn-vo-scalar'); await set('vo-scalar', -0.5);
-  await until(() => mission('vectors.vec-ops', 2), 2000); await until(async () => /c·A = /.test(await modelTxt()), 2000);
+  // the model line is refreshed five times a second: wait for the one with c = −0.5
+  await until(() => mission('vectors.vec-ops', 2), 4000); await until(async () => /c·A = [−-]0\.5×/.test(await modelTxt()), 4000);
   t('... c = −0.5 flips A and halves it — mission solved', await mission('vectors.vec-ops', 2) && /c·A = −0\.5×\(2\.25, 1\.00\) = \(−1\.13, −0\.50\)|c·A = -0\.5×/.test(await modelTxt()), await modelTxt());
 
   await open('vectors.vec-components');
@@ -649,8 +651,8 @@ const EXPECT = {
   t('Atwood 4 kg and 6 kg: after a 2 m drop v = √(2ad) = 2.80 m/s — the section\'s problem, mission solved', !!v2m && close(nums(v2m)[1], Math.sqrt(2 * (2 * 9.8 / 10) * 2), 0.006) && await mission('newton2.n2-atwood', 2), v2m);
   await click('btn-atw-reset'); await click('btn-atw-launch'); await p.waitForTimeout(600); await click('btn-atw-launch'); await p.waitForTimeout(200);
   await fresh(); await click('btn-atw-launch');
-  await until(async () => !!(await last('^' + LR('מסה הגיעה לקצה — ↺ איפוס') + '$')), 5000);
-  t('... braked part-way and released again, the drop is no longer one run from rest: no "after a 2 m drop" speed is given', !!(await last('^' + LR('מסה הגיעה לקצה — ↺ איפוס') + '$')) && !(await last('^' + LR('בירידה של 2 m:  v = '))));
+  await until(async () => !!(await last('^' + LR('מסה הגיעה לקצה, והבלם עצר את הגלגלת') + '$')), 5000);
+  t('... braked part-way and released again, the drop is no longer one run from rest: no "after a 2 m drop" speed is given', !!(await last('^' + LR('מסה הגיעה לקצה, והבלם עצר את הגלגלת') + '$')) && !(await last('^' + LR('בירידה של 2 m:  v = '))));
   // ── 3b. static friction, rebuilt: a push you drag, and a crate on a truck
   console.log('\n3b) static friction: f follows the push up to μₛN; on a truck it drives the crate forward');
   const probe = () => p.evaluate(() => document.querySelector('#app canvas')._probe());
@@ -770,10 +772,10 @@ const EXPECT = {
   await open('forces2.gravity-force'); rr = await rect();
   await f2_touchHold(rr, [[rr.w / 2, 24]]);
   let f2_gq = await f2_fpoll('q.race', 6000);
-  const f2_gs = [3.7, 8.87, 9.81, 3.72, 24.8, 1.62];
+  const f2_gs = [3.7, 8.87, 9.8, 3.72, 24.8, 1.62];   // Earth's 9.8, as in the section's theory (70 kg → 686 N)
   t('six planets: one tap drops every ball; each lands at t = √(2h/g) (mission 1)', f2_gq.race && f2_gs.every((g2, i) => f2_gq.drops[i] && Math.abs(f2_gq.drops[i].land - Math.sqrt(4 / g2)) < 1e-12), f2_gq.drops[5] && f2_gq.drops[5].land.toFixed(3) + ' s on the Moon');
-  await set('gf-m', 61); await p.waitForTimeout(150); f2_gq = await probe();
-  t('... 61 kg on the Moon weighs what 10 kg does on Earth (mission 2)', f2_gq.moonBag && Math.abs(61 * 1.62 - 98.1) < 1, (61 * 1.62).toFixed(1) + ' N');
+  await set('gf-m', 60); await p.waitForTimeout(150); f2_gq = await probe();
+  t('... 60 kg on the Moon weighs what 10 kg does on Earth (mission 2)', f2_gq.moonBag && Math.abs(60 * 1.62 - 10 * 9.8) < 1, (60 * 1.62).toFixed(1) + ' N');
   f2_fdm = await done();
   t('gravity missions done', f2_fdm.length === 2 && f2_fdm.every(Boolean), JSON.stringify(f2_fdm));
 
