@@ -535,6 +535,19 @@ const EXPECT = {
   await p.keyboard.up('ArrowLeft');
   t('  by hand the amplitude shown is NBA·ω of the hand (6.3 V), not of the motor\'s 2 Hz (12.6 V)', near(gEm, 6.3, 0.3), gEm);
   t('  turned by hand at one turn a second: ω = 6.3 rad/s and ε = NBAω·sinθ in every reading', gm.n > 12 && gm.bad.length === 0 && gm.w.every(w => near(w, 6.3, 0.25)), gm.n + ' read; ω ' + gm.w.slice(0, 3).join(',') + '; ' + gm.bad.slice(0, 2).join(' | '));
+  // ⏸ is a freeze frame (mission 1 asks for the flux at the peak): back on the
+  // motor at 2 Hz, run, pause -- the graphs keep their history, and the instant
+  // is read off them: NΦ = NBA·cosθ and ε = NBAω·sinθ with the motor's ω, the
+  // same in the model line, on the graphs and in the readout, and still so later
+  await click('btn-mgg-go'); await p.waitForTimeout(1300); await click('btn-mgg-go'); await p.waitForTimeout(400);
+  const gPause = async () => { const T2 = await read(200), m = await kmod(),
+      a = m.match(/NΦ = NBA·cosθ = ([\d.]+) × cos (\d+)° = ([−\d.]+) Wb/), b = m.match(/ε = NBAω·sinθ = ([\d.]+) × sin (\d+)° = ([−\d.]+) V/);
+    return { m, a, b, T2, flux: num(T2, /^NΦ = ([−\d.]+) Wb$/), emf: num(T2, /^ε = ([−\d.]+) V$/), et: num(T2, /ε\(t\) = ([−\d.]+) V/), w: num(T2, /ω = ([\d.]+) rad\/s/) }; };
+  const gp1 = await gPause(); await p.waitForTimeout(600); const gp2 = await gPause();
+  const gpOK = g => g.a && g.b && +g.a[1] === 1 && +g.b[1] === 12.6 && g.a[2] === g.b[2] &&
+    near(+g.a[3].replace('−', '-'), Math.cos(+g.a[2] * Math.PI / 180), 0.015) && near(+g.b[3].replace('−', '-'), 12.57 * Math.sin(+g.b[2] * Math.PI / 180), 0.2) &&
+    g.flux === +g.a[3].replace('−', '-') && g.emf === +g.b[3].replace('−', '-') && g.et === g.emf && near(g.w, 12.6, 0.05);
+  t('  paused: the instant read off both graphs — NΦ = NBA·cosθ, ε = NBAω·sinθ at ω = 12.6 rad/s — as in the model line and the readout, and it stays', gpOK(gp1) && gp2.m === gp1.m && gp2.flux === gp1.flux, gp1.m.slice(-90) + ' | graphs ' + gp1.flux + ' Wb, ' + gp1.emf + ' V, ε(t) ' + gp1.et + ' | later ' + gp2.flux);
   await open('mag-induction', 'mag-transformer'); T = await read();
   t('transformer: V₂ = 12.0 V, I₂ = 2.00 A, I₁ = 0.104 A, P₁ = P₂ = 24.0 W', has(T, '12.0 V') && has(T, '2.00 A') && has(T, '0.104 A') && has(T, '24.0 W'));
   t('  and 10 MW at 20 kV loses 2.50 MW in a 10 Ω line', has(T, '2.50 MW'));
@@ -553,6 +566,11 @@ const EXPECT = {
   for (let w = 0; w < 40; w++) { await p.waitForTimeout(200); TM = await kmod(); if (w >= 10 && /V₂ = 0\.0 V/.test(TM)) break; }
   const tDone = await p.evaluate(() => document.querySelectorAll('.sk-m')[2].classList.contains('done'));
   t('  on DC (predicted first) the secondary falls to V₂ = 0.0 V once the flux stops changing — and the mission says why', tAsk === 3 && /V₂ = 0\.0 V/.test(TM) && tDone, tAsk + ' ' + TM.slice(0, 50));
+  // the switch-on flash stays readable after it has died away -- (N₂/N₁)V₁ = 12.0 V --
+  // and v₂ has its own scale on the scope (√2·V₂ + 5 % = 17.8, printed 18 V), not v₁'s 342 V,
+  // on which a 12 V flash was a flat line
+  T = await read(200); const tPk = num(T, new RegExp(LR('המתח במשני: ') + '([\\d.]+) V'));
+  t('  after the flash: the readout keeps the switch-on peak, 12.0 V, and v₂ is drawn on its own 18 V scale', tPk === 12 && T.includes('18 V') && T.includes('342 V'), tPk + ' ' + T.filter(x => / V$/.test(x)).slice(-6).join(' | '));
   await click('btn-mgt-dc');
 
   console.log('\n4) the bar magnet behind the coil and the ring');

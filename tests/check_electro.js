@@ -9,7 +9,8 @@
 // tolerance must accept the computed value rounded to two significant figures
 // -- the rounding a student will most often type. Then the simulations:
 //   - Millikan: weigh the drop by its fall (V = 0), balance it, and n = q/e
-//     must come out within 2 % of a whole number, for several random drops;
+//     must come out within 0.02 of the drop's own electron count, for three
+//     drops dealt from a seeded Math.random (the same three every run);
 //   - pair energy: released from rest, two like charges actually fly apart;
 //   - electroscope: a rod of the opposite sign CLOSES a charged electroscope's
 //     leaves as it approaches (the classic sign test);
@@ -155,27 +156,44 @@ const sig2 = x => x === 0 ? 0 : Number(x.toPrecision(2));
     for (let i = 1; i <= 12; i++) await p.mouse.move(o.x + x0 + (x1 - x0) * i / 12, o.y + y0 + (y1 - y0) * i / 12);
     await p.mouse.up(); await p.waitForTimeout(250); };
 
-  // Millikan: weigh, then balance -- n must be a whole number
+  // Millikan: weigh, then balance -- n must be the drop's own whole number.
+  // The drops are dealt by Math.random, seeded here for this block: every run
+  // measures the same three drops, n = 2, 3, 4 balancing near 450, 374 and
+  // 412 V, where a sweep in 1 V steps finds n to within n·0.5 V/V ≤ 0.005.
+  // (Unseeded, a drop of n = 5 balancing near 100 V can come up, and there
+  // the slider's own 1 V step allows an error of 0.025 in n.) Every step waits
+  // for a frame drawn at its voltage -- E = V/d is printed in that frame -- so
+  // a loaded machine slows the sweep down but cannot make it skip the balance
+  // (it used to wait a fixed 20 ms a step, and a drop came out at n = 1.975).
+  await p.evaluate(() => { let s = 23; window.__rnd = Math.random; Math.random = () => ((s = (s * 1664525 + 1013904223) >>> 0) / 4294967296); });
   await open('elc-millikan');
+  const atV = async (v) => {
+    await p.evaluate(() => { window.__txt = []; }); await setR('inp-mk-V', v);
+    const want = 'E = V/d = ' + (v / 0.005).toFixed(0) + ' V/m';
+    for (let k = 0; k < 500; k++) {
+      const s = bare(await p.evaluate(() => window.__txt.join('\n')));
+      if (s.includes(want)) return s;
+      await p.waitForTimeout(8);
+    }
+    return '';
+  };
   for (let drop = 0; drop < 3; drop++) {
     if (drop) await click('btn-mk-new');
-    await setR('inp-mk-V', 0);
-    const fall = await txt(400);
+    const fall = await atV(0);
     t(`Millikan drop ${drop}: the fall at V = 0 gives the mass`, /m = [0-9.]+×10⁻¹⁵ kg/.test(fall), fall.split('\n').find(l => /⇒/.test(l)));
-    // sweep the voltage up through the balance, 1 V at a time, as a learner
-    // fine-tuning would; the simulation keeps the best balance it saw
-    let nq = NaN, hit = 0;
-    for (let v = 20; v <= 1000; v += 1) {
-      await setR('inp-mk-V', v);
-      await p.waitForTimeout(20);
-      const s = bare(await p.evaluate(() => { const r = window.__txt.slice(-160).join('\n'); window.__txt = []; return r; }));
-      // the simulation prints the measured q only; n = q/e is computed here
-      const q = num(s, /q = mgd\/V = ([0-9.]+×10⁻[⁰¹²³⁴⁵⁶⁷⁸⁹]+) C/);
-      if (q > 0) { nq = q / e; if (!hit) hit = v; }
-      if (hit && v > hit * 1.04) break;
-    }
-    t(`Millikan drop ${drop}: n = q/e is a whole number`, Math.abs(nq - Math.round(nq)) < 0.02 && nq >= 0.98, 'n = ' + nq);
+    // sweep the voltage up to the balance as a learner would: in steps of 1 %
+    // (the balance window is ±1.5 %, so no step jumps it), then back over it
+    // 1 V at a time, fine-tuning; the simulation keeps the best balance it saw
+    // and prints the measured q only -- n = q/e is computed here
+    const qAt = async (v) => num(await atV(v), /q = mgd\/V = ([0-9.]+×10⁻[⁰¹²³⁴⁵⁶⁷⁸⁹]+) C/);
+    let hit = 0;
+    for (let v = 20; v <= 1000 && !hit; v += Math.max(1, Math.floor(v * 0.01))) if (await qAt(v) > 0) hit = v;
+    let nq = NaN;
+    for (let v = Math.floor(hit * 0.975); hit && v <= Math.ceil(hit * 1.04); v++) { const q = await qAt(v); if (q > 0) nq = q / e; }
+    const nTrue = (await p.evaluate(() => document.querySelector('#app canvas').__mk().log.slice(-1)[0] || {})).n;
+    t(`Millikan drop ${drop}: n = q/e is the drop's own whole number of electrons`, Math.abs(nq - nTrue) < 0.02 && nTrue >= 1, 'n = ' + nq + ', the drop carries ' + nTrue);
   }
+  await p.evaluate(() => { Math.random = window.__rnd; });
   // the comb: half of e fits every dot too, but is not the answer; the
   // largest spacing that fits settles on e itself, measured from the data
   const mk = () => p.evaluate(() => document.querySelector('#app canvas').__mk());
@@ -237,6 +255,12 @@ const sig2 = x => x === 0 ? 0 : Number(x.toPrecision(2));
   s1 = await sc();
   t('electroscope charged by induction: opposite to the rod, the earth took the rest, the total conserved',
     s1.q > 0.5 && s1.rod < 0 && Math.abs(s1.rod + s1.q + s1.earth - (-5)) < 1e-6 && s1.step >= 4 && (await solved(1)), JSON.stringify(s1));
+  // re-charging the rod (↔) brings charge from outside: the electroscope and the
+  // earth keep theirs, and the total changes by exactly what the rod gained,
+  // −5 → +5 nC (the earth's entry used to be wiped, so the total jumped by more)
+  const sb4 = s1; await click('btn-scope-flip'); await p.waitForTimeout(300); s1 = await sc();
+  t('electroscope: flipping the rod changes the total by the rod\'s change alone; the earth\'s entry stays',
+    s1.rod > 0 && s1.earth === sb4.earth && Math.abs(s1.q - sb4.q) < 1e-9 && Math.abs(s1.rod + s1.q + s1.earth - 5) < 1e-6, JSON.stringify(s1));
 
   // conductor in an external field: neutral sphere, probe inside, E = 0
   await open('elc-conductor');
@@ -469,7 +493,14 @@ const sig2 = x => x === 0 ? 0 : Number(x.toPrecision(2));
 
   // ── dielectric: what is held fixed. Bars read C, Q, V, E, U against the empty capacitor ──
   await open('elc-dielectric'); await p.waitForTimeout(400);
-  const ratios = async () => { const l = (await txt(300)).split('\n').filter(x => /^×[0-9.]+$/.test(x)).map(x => +x.slice(1)); return l.slice(-6, -1); };
+  // a frame drawn after the change prints five bars and the axis' ×1, in that
+  // order: wait for one whole frame (up to 6 s on a loaded machine) instead of
+  // a fixed 300 ms, after which the bars could read empty
+  const ratios = async () => { await p.evaluate(() => { window.__txt = []; });
+    for (let k = 0; k < 120; k++) { await p.waitForTimeout(50);
+      const l = bare(await p.evaluate(() => window.__txt.join('\n'))).split('\n').filter(x => /^×[0-9.]+$/.test(x));
+      if (l.length >= 6 && l[l.length - 1] === '×1') return l.slice(-6, -1).map(x => +x.slice(1)); }
+    return []; };
   await setR('inp-di-k', 4); await setR('inp-di-f', 1);
   let rt = await ratios();
   t('dielectric, battery connected, slab in: C, Q, U ×κ; V, E ×1', JSON.stringify(rt) === JSON.stringify([4, 4, 1, 1, 4]), rt.join(' '));

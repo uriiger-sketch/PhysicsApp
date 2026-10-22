@@ -7566,7 +7566,7 @@ const ELECTRO_CONTENT={
      nudge:'בטור הקיבול השקול יוצא קטן מהקטן שבקבלים — זו בדיקת השפיות. אל תשכחו בסוף להפוך את התוצאה בחזרה.',hint:'בטור מחברים את ההופכיים: '+M('1/C_{eq}=1/C_1+1/C_2')+'.'},
     {q:'בחיבור הטור, מה המתח '+M('V_1')+' הנופל על הקבל '+M('C_1')+', בוולט?',unit:'V',answer:'18',tolerance:0.5,
      explain:'בטור המטען <b>משותף</b> לשני הקבלים: Q=C_eq·V=3×24=72 μC, ולכן V₁=Q/C₁=72/4=18 V ו־V₂=72/12=6 V — יחד 24 V, כנדרש. שימו לב לתוצאה: הקבל ה<b>קטן</b> נושא את המתח הגבוה. זה מנוגד לאינטואיציה של רבים, ולכן ברשת טור הקבל בעל הקיבול הקטן הוא הראשון להיפרץ — גם אם כל הקבלים מדורגים לאותו מתח.',
-     nudge:'בטור אותו מטען עובר דרך שני הקבלים. חשבו קודם את המטען המשותף מהקיבול השקול והמתח הכולל, ורק אז חלקו בקיבול של '+M('C_1')+'.',hint:'המטען המשותף '+M('Q=C_{eq}V')+', ואז '+M('V_1=Q/C_1')+'.'},
+     nudge:'בטור יש על שני הקבלים אותו מטען. חשבו קודם את המטען המשותף מהקיבול השקול והמתח הכולל, ורק אז חלקו בקיבול של '+M('C_1')+'.',hint:'המטען המשותף '+M('Q=C_{eq}V')+', ואז '+M('V_1=Q/C_1')+'.'},
   ]},
 },
 'elc-energy.elc-potential':{
@@ -7930,14 +7930,14 @@ const ELECTRO_CONTENT={
       3. <b>המרחק גדול ביחס לגודל הגוף?</b> כל גוף טעון נראה אז כמטען נקודתי, תהיה צורתו אשר תהיה.</p>
     </div>
     ${animCanvas('anim-elc-compare-t',200,'אותו מטען, שלוש גאומטריות — וכך נראה השדה בכל אחת')}
-    <div class="mis-block"><b>⚠️ הטעות שחוזרת בכל מבחן:</b> ${M('kQ/r^2')} עבור לוח, או ${M('\\sigma/2\\varepsilon_0')} עבור כדור. שאלו קודם <b>מה יוצר את השדה</b>, ורק אז בחרו נוסחה — שתי הנוסחאות נכונות, כל אחת בעולם שלה.</div>
+    <div class="mis-block"><b>⚠️ טעות נפוצה:</b> להציב ${M('kQ/r^2')} עבור לוח, או ${M('\\sigma/2\\varepsilon_0')} עבור כדור. שאלו קודם <b>מה יוצר את השדה</b>, ורק אז בחרו נוסחה — שתי הנוסחאות נכונות, כל אחת בעולם שלה.</div>
     <div class="def-block"><div class="def-title">האם הלוח חזק אי־פעם מהמטען הנקודתי?</div>
       <p>מטען נקודתי חזק מכל דבר מקרוב ונחלש מהר, ומישור אינסופי שומר על עוצמתו. מפתה להשוות ${M('kQ/r^2=Q/2A\\varepsilon_0')} ולקבל ${M('r^*=\\sqrt{2kA\\varepsilon_0}')} — כ־40 cm ללוח של ${M('1\\,\\text{m}^2')}. אבל זו מלכודת: 40 cm אינם ״קרוב״ ללוח שצלעו מטר. במרחק כזה רואים את שולי הלוח בזווית, והשדה האמיתי על צירו קטן ממחצית ${M('\\sigma/2\\varepsilon_0')}.</p>
       <p>למעשה, על ציר הלוח המטען הנקודתי חזק יותר <b>בכל מרחק</b>: כל פיסת מטען על הלוח רחוקה מנקודת המדידה יותר מהמטען הנקודתי, ופועלת בזווית. קרוב ללוח שדהו ${M('\\approx\\sigma/2\\varepsilon_0')} וכמעט אינו משתנה; רחוק ממנו הלוח נראה כמטען נקודתי, ושדהו מתקרב ל־${M('kQ/r^2')} — מלמטה. אלה כללים 2 ו־3 שלמעלה, על עקומה אחת.</p>
     </div>
     <p><b>והחוט המקשר:</b> בכל הגאומטריות האנרגיה יושבת בשדה, בצפיפות ${M('u=\\tfrac12\\varepsilon_0E^2')}. סכימה עליה נותנת ${M('kQ^2/2R')} לכדור ו־${M('\\tfrac12CV^2')} לקבל — שתי תוצאות שנראות שונות, מאותו ביטוי אחד.</p>
     <div class="ex-block"><div class="ex-title">✏️ דוגמה — אותו מטען, שלוש צורות</div>
-    <p class="ex-given">מטען של ${M('0.5\\,\\mu\\text{C}')}. מה השדה במרחק ${M('10\\,\\text{cm}')} ממנו, כשהוא מפוזר בשלוש דרכים שונות?</p>
+    <p class="ex-given">מטען של ${M('0.5\\,\\mu\\text{C}')} מפוזר בשלוש דרכים שונות. מה השדה במרחק ${M('10\\,\\text{cm}')} ממנו בכל אחת מהן?</p>
     <ol class="ex-steps">
       <li><b>מטען נקודתי:</b> ${M('E=\\dfrac{kQ}{r^2}=4.5\\times10^{5}\\,\\text{V/m}')}</li>
       <li><b>כדור מוליך ברדיוס 5 cm:</b> בדיוק אותו ערך — הנקודה מחוץ לכדור.</li>
@@ -7945,7 +7945,7 @@ const ELECTRO_CONTENT={
     </ol>
     <p class="ex-lesson"><b>הלקח:</b> אותו מטען נותן שדות שונים לגמרי — מה שקובע הוא איך הוא <b>מפוזר</b>.</p></div>`,
   },
-  sim:{type:'elc-compare',desc:'גררו את קו המרחק וצפו בשלושת השדות יחד, בסולם לוגריתמי: הנקודתי והכדור צונחים כ־1/r². שדה המשטח, 1 m × 1 m, מתחיל ב־σ/2ε₀ וכמעט אינו יורד — עד שהמרחק מתקרב לגודל המשטח; משם הוא מתקרב לעקומה של המטען הנקודתי, ותמיד נשאר מתחתיה. שנו את המטען ואת רדיוס הכדור.'},
+  sim:{type:'elc-compare',desc:'גררו את קו המרחק וצפו בשלושת השדות יחד, בסולם לוגריתמי: השדות של המטען הנקודתי ושל הכדור צונחים כ־1/r². שדה המשטח, 1 m × 1 m, מתחיל ב־σ/2ε₀ וכמעט אינו יורד — עד שהמרחק מתקרב לגודל המשטח; משם הוא נצמד בהדרגה לעקומה של המטען הנקודתי, ותמיד נשאר מתחתיה. שנו את המטען ואת רדיוס הכדור.'},
   example:{title:'שלוש גאומטריות',text:`מטען של ${M('2\\,\\mu\\text{C}')}; מחשבים את השדה במרחק ${M('30\\,\\text{cm}')} ממנו.`,steps:[
     {q:'אם זה מטען נקודתי?',a:`${M('E=\\dfrac{kQ}{r^2}=\\dfrac{9\\times10^{9}\\times2\\times10^{-6}}{0.09}=2\\times10^{5}\\,\\text{V/m}')}`},
     {q:'אם זה כדור מוליך ברדיוס 10 cm?',a:`הנקודה מחוץ לכדור, ולכן אותה תשובה בדיוק: ${M('2\\times10^{5}\\,\\text{V/m}')}`},
@@ -7966,7 +7966,7 @@ const ELECTRO_CONTENT={
      explain:'אותה תשובה בדיוק — 4.8×10⁵ V/m: הנקודה (15 cm) מחוץ לכדור (8 cm), ומבחוץ כדור מוליך שקול למטען נקודתי במרכזו. הפיזור על פני הכדור אינו משנה דבר כל עוד נשארים בחוץ.',
      nudge:'השוו את מרחק הנקודה לרדיוס הכדור. בחוץ או בפנים?',hint:'הנקודה מחוץ לכדור, ושם כדור מוליך פועל כמו מטען נקודתי במרכזו.'},
     {q:'ולבסוף אותו מטען מרוח אחיד על משטח בשטח 2 m². מה '+M('E')+' לידו, ב־V/m?',unit:'V/m',answer:'3.39e4',tolerance:1500,
-     explain:'σ=Q/A=6×10⁻⁷ C/m², ולכן E=σ/2ε₀=6×10⁻⁷/(2·8.85×10⁻¹²)=3.39×10⁴ V/m — קטן פי 14 מהמקרה הנקודתי. כל עוד נשארים קרובים למשטח — הרבה פחות ממידותיו — השדה כמעט אינו משתנה עם המרחק.',
+     explain:'σ=Q/A=6×10⁻⁷ C/m², ולכן E=σ/2ε₀=6×10⁻⁷/(2·8.85×10⁻¹²)=3.39×10⁴ V/m — קטן פי 14 מהמקרה הנקודתי. כל עוד המרחק מהמשטח קטן בהרבה ממידותיו, השדה כמעט אינו משתנה עם המרחק.',
      nudge:'קודם צפיפות המטען, ואז הנוסחה של מישור אחד.',hint:'צפיפות המטען '+M('\\sigma=Q/A')+', ושדה של מישור אחד '+M('E=\\sigma/2\\varepsilon_0')+'.'},
   ]},
 },
@@ -9290,8 +9290,8 @@ const MAG_CONTENT={
     {q:'בבורר מהירויות עוברים ישר היונים שמהירותם:',opts:['E·B','E/B','B/E','תלויה במסה'],correct:1,explain:'qE=qvB, ולכן v=E/B. המטען והמסה מצטמצמים — רק המהירות קובעת.'},
     {q:'יון מהיר מ־E/B נכנס לבורר. מה יקרה לו?',opts:['יעבור ישר','יסטה לכיוון הכוח המגנטי','יסטה לכיוון הכוח החשמלי','יאט'],correct:1,explain:'הכוח המגנטי qvB גדל עם המהירות, והחשמלי qE לא. למהיר מדי המגנטי גובר.'},
     {q:'בבורר עברו יונים חיוביים. אם נשלח אותה מהירות של יונים שליליים:',opts:['לא יעברו','יעברו גם הם','יסטו תמיד','יאטו'],correct:1,explain:'לשלילי שני הכוחות מתהפכים יחד — הם עדיין מנוגדים ושווים. הבורר אינו מבחין בסימן.'},
-    {q:'בספקטרומטר, שני יונים בעלי אותה מהירות ומטען. לכבד יותר:',opts:['רדיוס גדול יותר','רדיוס קטן יותר','אותו רדיוס','זמן מחזור קצר יותר'],correct:0,explain:'r=mv/qB′ — יחסי למסה. והוא גם משלים את חצי המעגל לאט יותר (T∝m).'},
-    {q:'בספקטרומטר מכפילים את B′. המרחק בין הכתמים של שני איזוטופים:',opts:['גדל פי 2','קטן פי 2','לא משתנה','גדל פי 4'],correct:1,explain:'כל הרדיוסים קטנים פי 2, וגם ההפרש ביניהם. להפרדה טובה יותר רוצים דווקא שדה חלש יותר — על חשבון גודל המכשיר.'},
+    {q:'בספקטרומטר, שני יונים בעלי אותה מהירות ומטען. לכבד יותר:',opts:['רדיוס גדול יותר','רדיוס קטן יותר','אותו רדיוס','זמן מחזור קצר יותר'],correct:0,explain:'r=mv/qB′‎ — יחסי למסה. והוא גם משלים את חצי המעגל לאט יותר (T∝m).'},
+    {q:'בספקטרומטר מכפילים את B′‎. המרחק בין הכתמים של שני איזוטופים:',opts:['גדל פי 2','קטן פי 2','לא משתנה','גדל פי 4'],correct:1,explain:'כל הרדיוסים קטנים פי 2, וגם ההפרש ביניהם. להפרדה טובה יותר רוצים דווקא שדה חלש יותר — על חשבון גודל המכשיר.'},
     {q:'יון דו-מטעני (2e) ויון חד-מטעני, באותה מסה ובאותה מהירות. הרדיוס של הדו-מטעני:',opts:['כפול','חצי','זהה','פי 4'],correct:1,explain:'r=mv/qB — מטען כפול, רדיוס חצי. לכן ספקטרומטר מודד בעצם את היחס m/q.'},
   ],
   problem:{title:'הפרדת איזוטופים של פחמן',text:'בבורר המהירויות E=4×10⁴ V/m ו־B=0.1 T. בספקטרומטר B′=0.2 T. יוני פחמן חד-מטעניים; מסת ¹²C היא 12 u ומסת ¹⁴C היא 14 u (1 u=1.66×10⁻²⁷ kg).',steps:[
@@ -16615,7 +16615,7 @@ function simElcMillikan(canvas){
     slTxt(ctx,'E = V/d = '+E.toFixed(0)+' V/m      v = '+(Math.abs(vy)*1000).toFixed(3)+' mm/s '+(Math.abs(vy)<1e-7?'':(vy>0?'↑':'↓')),
       W/2,by,'#94a3b8',11,'center');
     if(mMeas===null){
-      simText(ctx,'שלב 1: הורידו את המתח ל-0 — מהירות הנפילה תיתן את מסת הטיפה',W/2,by+22,'#fbbf24',11.5,'center',true);
+      simText(ctx,'שלב 1: הורידו את המתח ל־0 — מהירות הנפילה תיתן את מסת הטיפה',W/2,by+22,'#fbbf24',11.5,'center',true);
     } else {
       var rM2=Math.cbrt(3*mMeas/(4*Math.PI*RHO));
       slTxt(ctx,'v₀ = '+(vFall*1000).toFixed(3)+' mm/s  ⇒  r = √(9ηv₀/2ρg) = '+(rM2*1e6).toFixed(2)+' μm  ⇒  m = '+sciTxt(mMeas)+' kg',
@@ -16669,7 +16669,7 @@ function simElcMillikan(canvas){
     slTxt(ctx,'η = 1.8×10⁻⁵ Pa·s    ρ = 900 kg/m³    g = 10 m/s²',W/2,H-6,'#7d8da6',9.5,'center');
     // ── the lesson's numbers ──
     if(off)kit.model('שלב 1, שקילה: '+_skM('6πηrv₀ = (4/3)πr³ρg ⇒ r = √(9ηv₀/2ρg) = '+(Math.cbrt(3*mMeas/(4*Math.PI*RHO))*1e6).toFixed(2)+' μm ⇒ m = '+sciTxt(mMeas)+' kg'));
-    else if(mMeas===null)kit.model('שלב 1: הורידו את המתח ל־0 כדי לשקול את הטיפה — '+_skM('6πηrv₀ = mg'));
+    else if(mMeas===null)kit.model('שלב 1, שקילה: בלי שדה, הגרר מאזן את המשקל — '+_skM('6πηrv₀ = mg'));   // the canvas says what to do
     else if(revealed)kit.model('שלב 2, ריחוף: '+_skM('qE = mg ⇒ q = mgd/V = ('+sciTxt(cur.m)+')(10)(0.005) / '+Vbal.toFixed(0)+' = '+sciTxt(cur.q)+' C'));
     else kit.model('שלב 2: כוונו את המתח עד ש־'+_skM('qE = mg')+'. עכשיו '+_skM(Fnet>0?'qE > mg':'qE < mg'));
     kit.check({n:log.length,g:G,fit:fitAll&&!combDrag,comb:comb});   // a comb still in the hand is not an answer
@@ -22408,7 +22408,7 @@ runAnim('anim-elc-compare-t',(canvas,ctx,W,H,t)=>{
     const len=(i===2)?20:36*(17/d)*(17/d);
     simArrow(ctx,tx+5,cy,tx+5+len,cy,'rgba(251,191,36,.9)',2,7);
     // the arrow length IS the field strength, so name what it is doing
-    label(ctx,(i===2)?'קבוע — σ/2ε₀':'נחלש כ-1/r²',cx,H*0.84,(i===2)?'#34d399':'#94a3b8',9.5);
+    label(ctx,(i===2)?'קבוע — σ/2ε₀':'נחלש כ־1/r²',cx,H*0.84,(i===2)?'#34d399':'#94a3b8',9.5);
   });
   label(ctx,'אותו מטען — ושלוש התנהגויות שונות; עקבו אחרי אורך החץ',W*0.5,H-9,'#e2e8f0',10.5);
 });
@@ -23140,7 +23140,7 @@ runAnim('anim-elc-sphere-t',(canvas,ctx,W,H,t)=>{
   });
   label(ctx,'r',pxp,cy-14,'#34d399',9);
   label(ctx,'R',cx+R*0.72,cy+R*0.72,'#94a3b8',9);
-  label(ctx,inside?'בתוך המתכת: E=0 אבל V מרבי':'בחוץ: E כמו מטען נקודתי, V יורד כ-1/r',
+  label(ctx,inside?'בתוך המתכת: E=0 אבל V מרבי':'בחוץ: E כמו מטען נקודתי, V יורד כ־1/r',
     W*0.5,H-10,inside?'#38bdf8':'#94a3b8',10.5);
 });
 
@@ -28472,7 +28472,7 @@ runAnim('anim-elc-diel-t',(cv,ctx,W,H,t)=>{
             cyc<4.2? 'מנמיכים לוח דיאלקטרי לתוך הרווח — המולקולות עדיין מבולגנות' :
             cyc<6  ? 'השדה מסובב כל מולקולה: הקוטב + פונה אל הלוח השלילי' :
             cyc<8  ? 'בפנים הכול מתקזז — נשאר מטען כבול על שני הפָּנים בלבד' :
-                     'שדה המטען הכבול מחסר מ-E₀:  E = E₀/κ  ⇒  V=E·d קטן פי κ  ⇒  C=Q/V גדל פי κ';
+                     'שדה המטען הכבול מחסר מ־E₀:  E = E₀/κ  ⇒  V=E·d קטן פי κ  ⇒  C=Q/V גדל פי κ';
   ctx.clearRect(0,0,W,27);                       // the slab slides in from under the caption, not across it
   oLbl(ctx,msg,W/2,14,cyc<8?'#94a3b8':'#4ade80',10.5);
 });
@@ -29039,7 +29039,7 @@ MAG_SIMS['mag-magnets']=function(canvas){
     simText(ctx,neutral?'⚠ נקודה ניטרלית — השדות מבטלים זה את זה, והמחט אינה מתכוונת':
       earth?'המחט מראה את השדה הכולל: מגנט + כדור הארץ':'המחט האדומה (N) מצביעה בכיוון השדה',
       cB,y0+yA[1],neutral?'#fbbf24':'#94a3b8',ph?9.5:10.5,'center',neutral);
-    simText(ctx,'בחוץ הקווים יוצאים מ-N ונכנסים ל-S; בתוך המגנט הם חוזרים מ-S ל-N',cB,y0+yA[2],'#64748b',9.5,'center');
+    simText(ctx,'בחוץ הקווים יוצאים מ־N ונכנסים ל־S; בתוך המגנט הם חוזרים מ־S ל־N',cB,y0+yA[2],'#64748b',9.5,'center');
     var bE=earth?[b[0],b[1]-30e-6]:b,Bmag=Math.hypot(bE[0],bE[1]);
     if(earth)model('במצפן, כחיבור וקטורי: שדה המגנט '+kit.m((Bmag*1e6).toFixed(1)+' μT')+' ועוד הרכיב האופקי של שדה כדור הארץ, '+kit.m('30.0 μT')+' צפונה ⇒ '+kit.m('|B| = '+(Bm*1e6).toFixed(1)+' μT'));
     else model('במצפן: '+kit.m('|B| = '+(Bm*1e6).toFixed(1)+' μT')+', בזווית '+kit.m(((dir*180/Math.PI+360)%360).toFixed(0)+'°')+' נגד כיוון השעון מהכיוון ימינה — ולשם מצביע הקצה הצפוני של המחט');
@@ -29263,7 +29263,7 @@ MAG_SIMS['mag-loop']=function(canvas){
     // B along the axis, and the far-field dipole law
     var gx=50,gy=TOP+8,gw=W-70,gh=H-TOP-36,X=function(x){return gx+(x+0.15)/0.30*gw;},Y=function(B){return gy+gh-B/Bx(0)*(gh-18);};
     magPlotBox(ctx,gx-42,gy-4,gw+54,gh+30,'',null);
-    simText(ctx,'B על הציר — שיא במרכז; רחוק ממנו כ-1/x³ (קו מקווקו), כמו מגנט',gx+gw/2,gy+8,'#94a3b8',9.5,'center',true);
+    simText(ctx,'B על הציר — שיא במרכז; רחוק ממנו כ־1/x³ (קו מקווקו), כמו מגנט',gx+gw/2,gy+8,'#94a3b8',9.5,'center',true);
     ctx.save();ctx.strokeStyle='#1e3a52';ctx.beginPath();ctx.moveTo(gx,gy+gh);ctx.lineTo(gx+gw,gy+gh);ctx.moveTo(X(0),gy+10);ctx.lineTo(X(0),gy+gh);ctx.stroke();ctx.restore();
     var c=[],d1=[],d2=[];for(var x=-0.15;x<=0.1501;x+=0.002){c.push([X(x),Y(Bx(x))]);
       if(Math.abs(x)>R){var Bd=MU0*N*I*R*R/(2*Math.pow(Math.abs(x),3));if(Bd<Bx(0)*1.02)(x<0?d1:d2).push([X(x),Y(Bd)]);}}
@@ -29301,7 +29301,7 @@ MAG_SIMS['mag-solenoid']=function(canvas){
     // reads well over 100 % there and far less between the turns
     {text:'עשו את השדה בפנים אחיד: במרכז לפחות 97% מ־μ₀nI, וכמעט בלי שינוי מליפוף לליפוף.',
      hint:'סליל ארוך וצפוף: אורך גדול בהרבה מהרדיוס (3 cm), וליפופים קרובים זה לזה.',
-     why:'הנוסחה μ₀nI היא של סליל ארוך מאוד ומלופף בצפיפות. בסליל קצר השדה של הקצוות ״חסר״ במרכז, ובסליל דליל השדה גדל מול כל ליפוף וקטן ביניהם; כשהאורך גדול בהרבה מהרדיוס והליפופים צפופים, הסליל מתנהג כאינסופי והשדה בפנים כמעט אחיד.',
+     why:'הנוסחה μ₀nI היא של סליל ארוך מאוד ומלופף בצפיפות. בסליל קצר חסרה במרכז התרומה של ליפופים שמעבר לקצוות, ובסליל דליל השדה גדל מול כל ליפוף וקטן ביניהם; כשהאורך גדול בהרבה מהרדיוס והליפופים צפופים, הסליל מתנהג כאינסופי והשדה בפנים כמעט אחיד.',
      done:function(s){return s.pct>=97&&s.ripple<=0.01;}}]});
   var model=magModeler(kit);
   kit.predict({q:'מותחים את הסליל לאורך כפול, עם אותם ליפופים ואותו זרם. השדה בפנים…',
@@ -29498,7 +29498,9 @@ MAG_SIMS['mag-lorentz']=function(canvas){
       charge(P[0],P[1],qs);
       if(!fly)simHandle(ctx,P[0]+ux*aLen(),P[1]+uy*aLen(),'#34d399',13);
       simText(ctx,'v',P[0]+ux*(aLen()+14),P[1]+uy*(aLen()+14)+4,'#34d399',12,'center',true);
-      simText(ctx,'F',P[0]+fx*(fl+13),P[1]+fy*(fl+13)+4,'#f87171',12,'center',true);
+      // F is named beside its head, on the side the charge is heading: beyond
+      // the head it sat on the dot of the circle's centre (r is on the other side)
+      simText(ctx,'F',P[0]+fx*(fl-5)+ux*13,P[1]+fy*(fl-5)+uy*13+4,'#f87171',12,'center',true);
       var cw=PH?Math.min(W-16,236):236;
       speedo(W-cw-8,8,cw,v,KE,['r = mv/qB = '+(r*100).toFixed(1)+' cm','T = 2πm/qB = '+Tns.toFixed(0)+' ns']);
       if(!fly)dcCap(ctx,'גררו את קצה החץ v — ולחצו ״שגרו״',W/2,H-12,'#94a3b8',PH?10:10.5);
@@ -29590,7 +29592,7 @@ MAG_SIMS['mag-circle']=function(canvas){
   var kit=simKit(canvas,{missions:[
     {text:'כוונו את הפרוטון אל הגלאי: בחרו שדה B שבו הוא נוחת בדיוק במטרה.',
      hint:'נקודת הנחיתה במרחק '+_skM('2r = 2mv/qB')+' מהכניסה. גלאי רחוק — דרוש שדה חלש יותר.',
-     why:'r = mv/qB: שדה חזק יותר מכופף חזק יותר והמעגל קטן. כש־m, v ו־q קבועים, לכל B יש נקודת נחיתה אחת; ובכיוון ההפוך — כש־v ו־B ידועים, נקודת הנחיתה נותנת את m/q. כך פועל ספקטרומטר מסות.',
+     why:'r = mv/qB: שדה חזק יותר מכופף את המסלול יותר, והמעגל קטן יותר. כש־m, v ו־q קבועים, לכל B יש נקודת נחיתה אחת; ולהפך — כש־v ו־B ידועים, נקודת הנחיתה נותנת את m/q. כך פועל ספקטרומטר מסות.',
      done:function(s){return !!s.hits[0];}},
     {text:'שגרו שני פרוטונים, במהירות v ו־2v. מי מהם יוצא מהשדה ראשון?',
      hint:'לחצו ״שגרו שניים״ וצפו בשעון.',
@@ -29677,7 +29679,7 @@ MAG_SIMS['mag-circle']=function(canvas){
   }
   requestAnimationFrame(draw);
 };
-MAG_CTRL['mag-circle']=function(){return rng('mgr-v',1,10,3,0.5,'מהירות v',' ×10⁶ m/s')+rng('mgr-B',0.05,1,0.2,0.005,'שדה B',' T')+btn('mgr-fire','🚀 שגרו','btn-primary')+btn('mgr-pair','⚡ שגרו שניים: v ו-2v','btn-secondary')+btn('mgr-p','⚛ פרוטון','btn-secondary')+btn('mgr-target','🎯 גלאי במקום חדש','btn-secondary')+btn('mgr-Bdir','⊗ השדה נכנס לדף','btn-secondary');};
+MAG_CTRL['mag-circle']=function(){return rng('mgr-v',1,10,3,0.5,'מהירות v',' ×10⁶ m/s')+rng('mgr-B',0.05,1,0.2,0.005,'שדה B',' T')+btn('mgr-fire','🚀 שגרו','btn-primary')+btn('mgr-pair','⚡ שגרו שניים: v ו־2v','btn-secondary')+btn('mgr-p','⚛ פרוטון','btn-secondary')+btn('mgr-target','🎯 גלאי במקום חדש','btn-secondary')+btn('mgr-Bdir','⊗ השדה נכנס לדף','btn-secondary');};
 
 // ── mag-force.mag-spectro ─────────────────────────────────────────────────
 // Every ion is integrated through the crossed fields with the full force
@@ -29734,7 +29736,7 @@ MAG_SIMS['mag-spectro']=function(canvas){
     simText(ctx,'+',xs0-8,yE-33,'#ef4444',12,'center',true);simText(ctx,'−',xs0-8,yE+35,'#3b82f6',12,'center',true);
     for(var x=xs0+24;x<xs1;x+=46){simArrow(ctx,x,yE-24,x,yE-8,'rgba(248,113,113,.55)',1.4,6);magDot(ctx,x+23,yE+16,4,false,'rgba(129,140,248,.45)');}
     if(ph){simText(ctx,'בורר: E ↓, B ⊗',(xs0+xs1)/2,yE-50,'#94a3b8',9.5,'center',true);simText(ctx,'(הגדלה אנכית ×'+Math.round(sy/sx)+')',(xs0+xs1)/2,yE-66,'#64748b',9,'center');}
-    else simText(ctx,'בורר מהירויות: E ↓ ו-B ⊗   (הגדלה אנכית ×'+Math.round(sy/sx)+')',(xs0+xs1)/2,yE-50,'#94a3b8',9.5,'center',true);
+    else simText(ctx,'בורר מהירויות: E ↓ ו־B ⊗   (הגדלה אנכית ×'+Math.round(sy/sx)+')',(xs0+xs1)/2,yE-50,'#94a3b8',9.5,'center',true);
     ctx.save();ctx.fillStyle='#64748b';ctx.fillRect(xs1+14,yE-40,5,40-4);ctx.fillRect(xs1+14,yE+4,5,40);ctx.restore();
     simText(ctx,'סדק',xs1+16,yE-48,'#64748b',9,'center');
     // spectrometer
@@ -29847,7 +29849,7 @@ MAG_SIMS['mag-wireforce']=function(canvas){
     // (on a phone: a narrower panel, to the right of the poles)
     var ph=PH,iw=ph?Math.min(220,W-16):196,k=iw/196,ix=ph?W/2:W-iw/2-6,iy=ph?py1+34+64:70;
     ctx.save();ctx.fillStyle='rgba(2,8,16,.88)';ctx.fillRect(ix-iw/2,iy-56,iw,140);ctx.restore();
-    simText(ctx,'מבט מהצד: התיל ו-B',ix,iy-42,'#94a3b8',9.5,'center',true);
+    simText(ctx,'מבט מהצד: התיל ו־B',ix,iy-42,'#94a3b8',9.5,'center',true);
     ctx.save();ctx.strokeStyle='#fbbf24';ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(ix-70*k,iy+10);ctx.lineTo(ix+70*k,iy+10);ctx.stroke();ctx.restore();
     var sI=I<0?-1:1;simArrow(ctx,ix+51*k-sI*11,iy+10,ix+51*k+sI*11,iy+10,'#fbbf24',2,7);simText(ctx,'I',ix+51*k,iy,'#fbbf24',10,'center',true);
     var bxv=Math.cos(th),byv=Math.sin(th),bo=ix-20*k;simArrow(ctx,bo,iy+10,bo+bxv*46*k,iy+10+byv*flip*46*k,'#818cf8',2.6,9);
@@ -29975,7 +29977,7 @@ MAG_SIMS['mag-motor']=function(canvas){
      done:function(s){return !s.comm&&s.rest>1.2&&s.th<8;}},
     {text:'האיצו את המנוע ל־300 סל״ד לפחות.',
      hint:'הגדילו את הזרם, את השדה או את מספר הליפופים: '+_skM('τ = NBIA·sinθ'),
-     why:'מומנט גדול יותר מאיץ את הכריכה עד שהחיכוך, שגדל עם המהירות, משתווה לו בממוצע: τ ∝ NBIA, ולכן כל אחד מהגורמים מעלה את המהירות הסופית.',
+     why:'מומנט גדול יותר מאיץ את הכריכה עד שהחיכוך, שגדל עם המהירות, משתווה לו בממוצע: '+_skM('τ ∝ NBIA')+', ולכן כל אחד מהגורמים מעלה את המהירות הסופית. (בסימולציה הזרם נשמר קבוע. במנוע אמיתי, המחובר לסוללה, המהירות מוגבלת בעיקר בכא״מ הנגדי: הכריכה המסתובבת היא גם גנרטור, והמתח המושרה בה מקטין את הזרם.)',
      done:function(s){return s.comm&&s.rpm>=300;}}]});
   var model=magModeler(kit);
   kit.predict({q:'באיזה מצב של הכריכה המומנט עליה הכי גדול? (הגרף יופיע אחרי שתענו.)',
@@ -30523,7 +30525,10 @@ MAG_SIMS['mag-generator']=function(canvas){
     why:'מחליף הכיוון הופך את חיבורי הכריכה בכל חצי סיבוב, בדיוק כשהכא״מ מחליף סימן: המתח במוצא הוא |ε| — פועם, אבל תמיד באותו כיוון.'});
   var setGo=function(){var b=document.getElementById('btn-mgg-go');if(b)b.textContent=run?'⏸ עצרו':'▶ הפעילו';};
   magBtn('mgg-ring',function(b){var go=function(){rings=!rings;b.textContent=rings?'🔘 טבעות החלקה (AC)':'🔁 מחליף כיוון (DC פועם)';};if(rings)askRing(go);else go();});
-  magBtn('mgg-go',function(){run=!run;hand=false;hist=[];setGo();});
+  // ⏸ is a freeze frame: the graphs keep their history and the readouts the
+  // values of that instant. Only leaving the hand mode clears them (its axis
+  // is in seconds, the motor's in periods).
+  magBtn('mgg-go',function(){if(hand)hist=[];run=!run;hand=false;setGo();});
   // by hand: the angle of the pointer about the axis turns the coil
   var angAt=function(p){return Math.atan2(CY-p.y,p.x-CX);};
   simDrag(canvas,dpr,{down:function(p){if(Math.hypot(p.x-CX,p.y-CY)>RP+40)return;if(!hand){hand=true;run=false;hist=[];setGo();}lastA=angAt(p);},
@@ -30541,7 +30546,7 @@ MAG_SIMS['mag-generator']=function(canvas){
     else if(hand){if(hold)th+=hold*2*Math.PI*dt;
       // the hand's ω, smoothed over ~0.1 s of real time (not of frames)
       var wi=dt>0?(th-thPrev)/dt:0,ka=dt>0?Math.exp(-dt/0.1):1;wHand=wHand*ka+wi*(1-ka);wNow=wHand;e=N*B*AR*wHand*Math.sin(th);ph+=dt;}
-    else{wNow=0;e=0;}
+    else{wNow=w;e=Em*Math.sin(th);}                 // paused: time stands still at the pause instant
     thPrev=th;
     if(dt>0&&(run||hand)){hist.push([ph,Math.cos(th),e]);while(hist.length&&ph-hist[0][0]>2)hist.shift();}
     var out=rings?e:Math.abs(e),Esc=Em;hist.forEach(function(h){Esc=Math.max(Esc,Math.abs(h[2]));});
@@ -30576,11 +30581,19 @@ MAG_SIMS['mag-generator']=function(canvas){
       var Y=function(q){return G[0]+gh/2-q*(gh/2-8);};
       ctx.save();ctx.strokeStyle='#1e3a52';ctx.beginPath();ctx.moveTo(gx,Y(0));ctx.lineTo(gx+gw,Y(0));ctx.stroke();ctx.restore();
       var c=hist.map(function(h){var v=h[G[2]]/G[6];if(G[2]===2&&!rings)v=Math.abs(v);return [gx+gw-(ph-h[0])/2*gw,Y(v)];});magPoly(ctx,c,G[3],2);
-      simText(ctx,(G[2]===1?G[4].toFixed(2):G[4].toFixed(G[4]<10?1:0))+' '+G[5],gx-4,Y(1)+3,'#64748b',8.5,'right');});
+      simText(ctx,(G[2]===1?G[4].toFixed(2):G[4].toFixed(G[4]<10?1:0))+' '+G[5],gx-4,Y(1)+3,'#64748b',8.5,'right');
+      // paused: the instant the coil shows, marked and read on each graph
+      if(!run&&!hand&&hist.length){var vn=G[2]===1?Math.cos(th):out/G[6],yd=Y(vn),
+          tg=G[2]===1?'NΦ = '+magNum(Pm*Math.cos(th),2)+' Wb':(rings?'ε = ':'|ε| = ')+magNum(out,1)+' V',
+          tw=labelW(ctx,tg,10)+10,ty=vn>0.15?yd+8:yd-26;
+        simCircle(ctx,gx+gw,yd,4.5,G[3],'#fff',1.5);
+        ctx.save();ctx.fillStyle='rgba(2,8,16,.9)';ctx.strokeStyle=G[3];ctx.lineWidth=1;ctx.beginPath();ctx.roundRect(gx+gw-tw-6,ty,tw,18,4);ctx.fill();ctx.stroke();ctx.restore();
+        simText(ctx,tg,gx+gw-6-tw/2,ty+13,G[3],10,'center',true);}});
     for(var k=0;k<=4;k++)simText(ctx,k===4?'0':hand?'−'+(2-k/2).toFixed(1)+' s':'−'+(Tp*1000*(2-k/2)).toFixed(Tp<0.02?1:0)+' ms',gx+k/4*gw,H-4,'#64748b',8.5,'center');
     simText(ctx,'ε מקסימלי כשהשטף עובר דרך אפס, ואפס כשהשטף בשיאו',W/2,g2-20,'#64748b',9,'center');
     var deg=((th*180/Math.PI)%360+360)%360;
-    if(hand)model(kit.m('ε = NBAω·sinθ = '+N.toFixed(0)+' × '+B.toFixed(2)+' × 0.050 × '+magNum(wHand,1)+' × sin '+deg.toFixed(0)+'° = '+magNum(e,1)+' V')+' — ω שלכם: סובבו מהר יותר, והכא״מ גדל');
+    if(!run&&!hand)model('ברגע העצירה: '+kit.m('NΦ = NBA·cosθ = '+Pm.toFixed(2)+' × cos '+deg.toFixed(0)+'° = '+magNum(Pm*Math.cos(th),2)+' Wb')+' · '+kit.m('ε = NBAω·sinθ = '+Em.toFixed(1)+' × sin '+deg.toFixed(0)+'° = '+magNum(e,1)+' V'));
+    else if(hand)model(kit.m('ε = NBAω·sinθ = '+N.toFixed(0)+' × '+B.toFixed(2)+' × 0.050 × '+magNum(wHand,1)+' × sin '+deg.toFixed(0)+'° = '+magNum(e,1)+' V')+' — ω שלכם: סובבו מהר יותר, והכא״מ גדל');
     else model(kit.m('εₘₐₓ = NBAω = '+N.toFixed(0)+' × '+B.toFixed(2)+' × 0.050 × '+w.toFixed(1)+' = '+Em.toFixed(1)+' V')+' · '+kit.m('εᵣₘₛ = εₘₐₓ/√2 = '+(Em/Math.SQRT2).toFixed(1)+' V'));
     kit.check({paused:!run&&!hand,ran:ranSeen,th:th,hand:hand,e:e,Em:Em});
     requestAnimationFrame(draw);
@@ -30681,21 +30694,24 @@ MAG_SIMS['mag-transformer']=function(canvas){
       simText(ctx,'P₁ = V₁I₁ = '+fP(V1*I1)+' = P₂ = V₂I₂ = '+fP(P)+'   ·   '+kind,W/2,y0+40,'#94a3b8',10,'center');}
     else if(ph){simText(ctx,'זרם ישר: השטף עולה פעם אחת ונשאר קבוע',W/2,y0+18,'#fbbf24',10.5,'center',true);
       simText(ctx,'ΔΦ/Δt → 0 ⇒ V₂ → 0',W/2,y0+37,'#fbbf24',10.5,'center',true);
-      simText(ctx,'רק ברגע החיבור מופיע מתח חולף במשני: '+v2.toFixed(1)+' V',W/2,y0+58,'#94a3b8',9.5,'center');}
+      simText(ctx,'המתח במשני: '+(V1*r).toFixed(1)+' V ברגע החיבור, ועכשיו '+v2.toFixed(1)+' V',W/2,y0+58,'#94a3b8',9.5,'center');}
     else{simText(ctx,'זרם ישר: השטף עולה פעם אחת ונשאר קבוע ⇒ ΔΦ/Δt → 0 ⇒ V₂ → 0',W/2,y0+18,'#fbbf24',11,'center',true);
-      simText(ctx,'רק ברגע החיבור מופיע מתח חולף במשני: '+v2.toFixed(1)+' V',W/2,y0+40,'#94a3b8',10,'center');}
-    // scope
-    var gx=44,gy=ph?366:H*0.64,gw=ph?W-60:W*0.52,gh=ph?104:H*0.33,Vm=Math.max(Math.SQRT2*V1,Math.SQRT2*V2,1)*1.05;
-    magPlotBox(ctx,gx-36,gy-14,gw+44,gh+12,'v₁(t) כתום · v₂(t) תכלת',null);
-    var Y=function(q){return gy+gh/2-q/Vm*(gh/2-8);};
-    ctx.save();ctx.strokeStyle='#1e3a52';ctx.beginPath();ctx.moveTo(gx,Y(0));ctx.lineTo(gx+gw,Y(0));ctx.stroke();ctx.restore();
-    magPoly(ctx,hist.map(function(h){return [gx+gw-(t-h[0])/4*gw,Y(h[1])];}),'#fb923c',1.8);
-    magPoly(ctx,hist.map(function(h){return [gx+gw-(t-h[0])/4*gw,Y(h[2])];}),'#22d3ee',2.2);
-    simText(ctx,Vm.toFixed(0)+' V',gx-4,Y(Vm)+3,'#64748b',8.5,'right');
+      simText(ctx,'המתח במשני: '+(V1*r).toFixed(1)+' V ברגע החיבור, ועכשיו '+v2.toFixed(1)+' V',W/2,y0+40,'#94a3b8',10,'center');}
+    // scope: each channel on its own scale, as on a two-channel oscilloscope --
+    // on one shared axis v₂ of a step-down transformer (17 V against 325 V)
+    // was a flat line, and so was the switch-on flash on DC
+    var gx=44,gy=ph?366:H*0.64,gw=ph?W-60:W*0.52,gh=ph?104:H*0.33,V1m=Math.max(Math.SQRT2*V1,1)*1.05,V2m=Math.max(Math.SQRT2*V2,0.01)*1.05;
+    magPlotBox(ctx,gx-36,gy-14,gw+44,gh+12,'v₁(t) כתום · v₂(t) תכלת — כל אחד בקנה מידה משלו',null);
+    var Y=function(q,m){return gy+gh/2-q/m*(gh/2-8);},fV=function(v){return (v>=10?v.toFixed(0):v>=1?v.toFixed(1):v.toFixed(2))+' V';};
+    ctx.save();ctx.strokeStyle='#1e3a52';ctx.beginPath();ctx.moveTo(gx,Y(0,1));ctx.lineTo(gx+gw,Y(0,1));ctx.stroke();ctx.restore();
+    // on AC the two traces coincide (v₂ is v₁ scaled): the wide one goes under
+    magPoly(ctx,hist.map(function(h){return [gx+gw-(t-h[0])/4*gw,Y(h[2],V2m)];}),'#22d3ee',3.4);
+    magPoly(ctx,hist.map(function(h){return [gx+gw-(t-h[0])/4*gw,Y(h[1],V1m)];}),'#fb923c',1.4);
+    simText(ctx,fV(V1m),gx-4,Y(1,1)+3,'#fb923c',8.5,'right');simText(ctx,fV(V2m),gx-4,Y(1,1)+15,'#22d3ee',8.5,'right');
     // transmission line: the same 10 MW over a 10 Ω line
     var IL=10e6/VL,Loss=IL*IL*10,fr=Math.min(1,Loss/10e6),nV=VL/20e3;
     var lossTxt='הפסד I²R = '+(Loss>=1e6?(Loss/1e6).toFixed(2)+' MW':(Loss/1e3).toFixed(1)+' kW');
-    var cmpTxt=nV>1.01?'מתח פי '+nV.toFixed(nV<10?1:0)+' מ-20 kV ⇒ הפסד פי '+(nV*nV).toFixed(0)+' פחות':'מתח פי n ⇒ זרם פי n פחות, הפסד פי n² פחות';
+    var cmpTxt=nV>1.01?'מתח פי '+nV.toFixed(nV<10?1:0)+' מ־20 kV ⇒ הפסד פי '+(nV*nV).toFixed(0)+' פחות':'מתח פי n ⇒ זרם פי n פחות, הפסד פי n² פחות';
     if(ph){var ty=gy+gh+10,th2=H-ty-6;            // a strip under the scope
       magPlotBox(ctx,8,ty,W-16,th2,'הולכה: 10 MW בקו של 10 Ω',null);
       simText(ctx,'מתח הקו '+(VL/1000).toFixed(0)+' kV   ·   I = P/V = '+IL.toFixed(0)+' A',W/2,ty+30,'#e2e8f0',10.5,'center',true);
@@ -30765,7 +30781,7 @@ runAnim('anim-mag-magnets',(cv,ctx,W,H,t)=>{
   [-0.5,0,0.5].forEach(function(f){var p0=toS(-Lm/2+12,f*a),p1=toS(Lm/2-12,f*a);
     ctx.save();ctx.strokeStyle='rgba(255,255,255,.55)';ctx.lineWidth=1.2;ctx.setLineDash([3,3]);ctx.beginPath();ctx.moveTo(p0[0],p0[1]);ctx.lineTo(p1[0],p1[1]);ctx.stroke();ctx.restore();});
   var m0=toS(-10,0),m1=toS(10,0);arrow(ctx,m0[0],m0[1],m1[0],m1[1],'#fff',1.6,6);
-  dcCap(ctx,'בחוץ: מ-N אל S · בתוך המגנט: מ-S אל N — כל קו הוא לולאה סגורה',W/2,H-6,'#94a3b8',10);
+  dcCap(ctx,'בחוץ: מ־N אל S · בתוך המגנט: מ־S אל N — כל קו הוא לולאה סגורה',W/2,H-6,'#94a3b8',10);
 });
 
 // a wire whose current reverses; compasses and field circles follow
@@ -30825,7 +30841,7 @@ runAnim('anim-mag-lorentz',(cv,ctx,W,H,t)=>{
   circle(ctx,x,y,8,'#fbbf24','#fff',1.5);label(ctx,'+',x,y+4,'#0f172a',11);
   label(ctx,'v',x+vx*54,y+vy*54+4,'#34d399',12);label(ctx,'F',x+(cx-x)/r*46,y+(cy-y)/r*46+4,'#f87171',12);
   label(ctx,'B ⊗ נכנס לדף',W*0.81,H*0.20,'#818cf8',11);
-  label(ctx,'F = qv × B ניצב ל-v',W*0.81,H*0.38,'#f87171',11);
+  label(ctx,'F = qv × B ניצב ל־v',W*0.81,H*0.38,'#f87171',11);
   label(ctx,'|v| קבוע · Ek קבועה',W*0.81,H*0.56,'#34d399',11);
   label(ctx,'הכוח מסובב — לא מאיץ',W*0.81,H*0.74,'#94a3b8',10);
 });
@@ -31023,7 +31039,7 @@ runAnim('anim-mag-generator',(cv,ctx,W,H,t)=>{
   ctx.save();ctx.strokeStyle='#1e3a52';ctx.beginPath();ctx.moveTo(gx,gy);ctx.lineTo(gx+gw,gy);ctx.stroke();ctx.restore();
   magPoly(ctx,pc,'rgba(129,140,248,.55)',1.4,[4,4]);magPoly(ctx,ec,'#f87171',2.2);circle(ctx,gx+gw,gy-A*e,5,'#f87171');
   label(ctx,'ε(t)',gx+gw-10,14,'#f87171',11,'right');label(ctx,'Φ(t) מקווקו',gx+10,14,'#818cf8',10,'left');
-  var cc=Math.abs(nx),st=cc>0.97?'מישור הסליל ניצב ל-B: Φ בשיאו, ε = 0':cc<0.26?'מישור הסליל מקביל ל-B: Φ = 0, ε בשיאו':'';
+  var cc=Math.abs(nx),st=cc>0.97?'מישור הסליל ניצב ל־B: Φ בשיאו, ε = 0':cc<0.26?'מישור הסליל מקביל ל־B: Φ = 0, ε בשיאו':'';
   if(st){if(W<480)dcCap(ctx,st,W/2,H-6,'#94a3b8',9.5);else label(ctx,st,gx+gw/2,H-6,'#94a3b8',10);}
 });
 
@@ -31101,10 +31117,14 @@ function simElcScope(canvas){
   var KX=W*(NAR?0.74:0.68),KY=NAR?96:86,PIVY=NAR?286:270,JW=NAR?66:95,LL=NAR?80:95;
   function getQ(){var e=document.getElementById('inp-scope-q');return e?parseFloat(e.value):5;}
   // The rod carries a real, signed charge. Slider/flip re-set it; contact shares it.
+  // Re-charging the rod brings charge from outside (it is rubbed again), so the
+  // total changes by exactly that much and is conserved again from there; the
+  // earth keeps what it took. (Re-setting the rod used to clear the earth's
+  // entry too, so the "conserved" total jumped by more than the rod changed.)
   var rodQ=-5, lastSlider=5, lastSign=-1, evt='', evtT=-99, earthQ=0;
   function syncRod(){
     var s=getQ();
-    if(s!==lastSlider||rodSign!==lastSign){rodQ=s*rodSign;lastSlider=s;lastSign=rodSign;earthQ=0;}
+    if(s!==lastSlider||rodSign!==lastSign){rodQ=s*rodSign;lastSlider=s;lastSign=rodSign;evt='rod';evtT=animT;}
   }
   var fb=document.getElementById('btn-scope-flip');
   if(fb)fb.addEventListener('click',function(){rodSign*=-1;});
@@ -31246,12 +31266,13 @@ function simElcScope(canvas){
               fresh&&evt==='gnd-off' ? '⏚ ההארקה נותקה — המטען נעול כעת על האלקטרוסקופ' :
               fresh&&evt==='ground'  ? '⏚ הארקה: המטען זרם לאדמה — לא נעלם, רק עבר לגוף ענק' :
               fresh&&evt==='far'     ? 'המוט רחוק מדי למגע — קרבו אותו אל הכפתור' :
+              fresh&&evt==='rod'     ? 'המוט נטען מחדש: מטען חדש הגיע מבחוץ — ומכאן הסכום שוב נשמר' :
               Math.abs(scopeQ)>0.05&&induced>3&&sgnRod*scopeQ<0 ? 'מוט בסימן הפוך: העלים נסגרים לפני שייפתחו שוב — כך בודקים את סימן המטען' :
               Math.abs(scopeQ)>0.05&&induced>3 ? 'מוט באותו סימן: העלים נפתחים עוד יותר' :
               Math.abs(scopeQ)>0.05 ? 'האלקטרוסקופ טעון ('+(scopeQ>0?'+':'−')+') — העלים נפרדים גם בלי המוט' :
               induced>3 ? 'השראה! הפרדת מטענים ללא מגע — העלים נפרדים, המטען הכולל עדיין אפס' :
               'קרבו את המוט כדי לראות השראה';
-    var msgCol = fresh&&evt==='far' ? '#f87171' : (fresh||induced>3||Math.abs(scopeQ)>0.05) ? '#34d399' : '#94a3b8';
+    var msgCol = fresh&&evt==='far' ? '#f87171' : fresh&&evt==='rod' ? '#fbbf24' : (fresh||induced>3||Math.abs(scopeQ)>0.05) ? '#34d399' : '#94a3b8';
     var mbw=Math.min(476,W-16);
     ctx.save();ctx.fillStyle='rgba(4,9,20,.88)';ctx.beginPath();ctx.roundRect(W/2-mbw/2,H-58,mbw,24,6);ctx.fill();ctx.restore();
     optLabel(ctx,msg,W/2,H-43,msgCol,10);
@@ -31273,7 +31294,7 @@ function simElcScope(canvas){
     if(hasEarth)ledLine('עבר לאדמה',earthQ,ly0+68,qcol(earthQ));
     ctx.save();ctx.strokeStyle='rgba(148,163,184,.3)';ctx.lineWidth=1;
     ctx.beginPath();ctx.moveTo(lx0+14,ly0+lh-36);ctx.lineTo(lx0+LW-14,ly0+lh-36);ctx.stroke();ctx.restore();
-    ledLine('סה״כ — נשמר תמיד',tot,ly0+lh-20,'#4ade80');
+    ledLine('סה״כ — נשמר',tot,ly0+lh-20,'#4ade80');
     if(!NAR)optInfoBox(ctx,8,8,186,['זווית עלים: '+leafAng.toFixed(0)+'°','מטען מושרה ∝ q/r²','מטען האלקטרוסקופ: '+scopeQ.toFixed(1)+' nC',(Math.abs(scopeQ)>0.15?'טעון — נשאר גם בלי המוט':'נייטרלי — השראה בלבד')]);
     // ── Induction recipe: ticks itself off as the learner performs it ──
     var RSTEPS=['1. קרבו את המוט (בלי מגע)','2. חברו הארקה ⏚','3. נתקו את ההארקה','4. הרחיקו את המוט'];
@@ -31358,7 +31379,7 @@ function simElcCoulomb(canvas){
   var kit=simKit(canvas,{missions:[
     {text:'הגדילו מטען אחד לפחות פי 4 מהשני — והשוו את שני חיצי הכוח',
      hint:'הזיזו את המחוון של '+_skM('q₁')+' עד 5 μC ואת זה של '+_skM('q₂')+' עד 1 μC. איזה חץ ארוך יותר?',
-     why:'החצים שווים: '+_skM('F₁₂')+' ו־'+_skM('F₂₁')+' הם זוג פעולה-תגובה, והמטען הגדול פועל על הקטן בכוח שגודלו שווה בדיוק לכוח שהקטן מפעיל עליו. מה שיכול להיות שונה הוא התאוצה, '+_skM('a = F/m')+' — כשמסות הגופים שונות.',
+     why:'החצים שווים באורכם: '+_skM('F₁₂')+' ו־'+_skM('F₂₁')+' הם זוג פעולה-תגובה, והמטען הגדול פועל על הקטן בכוח שגודלו שווה בדיוק לכוח שהקטן מפעיל עליו. מה שיכול להיות שונה הוא התאוצה, '+_skM('a = F/m')+' — כשמסות הגופים שונות.',
      done:function(s){return s.ratio>=4;}},
     {text:'מדדו את הכוח בשלושה מרחקים, אחד מהם לפחות פי 2 מאחר, וקראו את העמודה '+_skM('F·r²'),
      hint:'בכל פעם שאתם משחררים מטען, נרשמת מדידה בטבלה. גררו את '+_skM('q₂')+' למרחק 10 cm, אחר כך ל־20 cm ואחר כך רחוק יותר.',
@@ -31909,7 +31930,12 @@ function elcExplorer(canvas,mode){
     var ux0=Ep.m>1?Ep.x/Ep.m:0,uy0=Ep.m>1?Ep.y/Ep.m:-1,lu;
     if(!POT&&qq<0){lu={x:-uy0,y:ux0};if(lu.y<0)lu={x:uy0,y:-ux0};}   // arrows both ways: beside them
     else lu={x:-ux0,y:-uy0};
-    optLabel(ctx,POT?'גשוש':'מטען בוחן',px+lu.x*26,py+lu.y*22,pcol,9);
+    // far enough along lu that the whole label clears the handle (radius 15):
+    // at a fixed 26 px, a label as long as "Test charge" lay on the ball
+    var lt=POT?'גשוש':'מטען בוחן',lhw=labelW(ctx,lt,9)/2+2,lhh=7,
+        lAt=function(u){var d=18+Math.abs(u.x)*lhw+Math.abs(u.y)*lhh;return {x:px+u.x*d,y:py+u.y*d};},ls=lAt(lu);
+    if(ls.x-lhw<3||ls.x+lhw>W-3)ls=lAt({x:-lu.x,y:lu.y});        // no room on that side: the other
+    optLabel(ctx,lt,ls.x,ls.y,pcol,9);
     // the readout, in the bottom corner where reading starts
     var lines2;
     if(POT){
@@ -32001,7 +32027,7 @@ function simElcCompare(canvas){
   var kit=simKit(canvas,{missions:[
     {text:'קרוב למשטח הוא ״מישור אינסופי״: מצאו את המרחק שבו השדה שלו ירד ל־90% מ־'+_skM('σ/2ε₀'),
      hint:'בתצוגת השדה, גררו את הקו הצהוב מהמשטח והלאה, ועקבו אחר האחוז שמתחת לעמודת המשטח.',
-     why:'כ־6 cm — עשירית מצלע המשטח. במרחקים קטנים בהרבה ממידות המשטח '+_skM('E ≈ σ/2ε₀')+' כמעט אינו תלוי במרחק; רחוק יותר רואים את שולי המשטח בזווית, והשדה יורד.',
+     why:'כ־6 cm — פחות מעשירית מצלע המשטח. במרחקים קטנים בהרבה ממידות המשטח '+_skM('E ≈ σ/2ε₀')+' כמעט אינו תלוי במרחק; רחוק יותר רואים את שולי המשטח בזווית, והשדה יורד.',
      done:function(s){return !s.V&&Math.abs(s.inf-0.9)<0.012;}},
     {text:'מרחוק המשטח נראה כמו מטען נקודתי: מצאו מרחק שבו השדה שלו גדול ממחצית השדה של המטען הנקודתי',
      hint:'בתצוגת השדה, גררו את הקו הצהוב רחוק מהמשטח, ועקבו אחר העקומה הירוקה המתקרבת לאדומה.',
@@ -34629,7 +34655,7 @@ function simElcPlane(canvas){
       }
       // pushed to the outer side of each plate, clear of the drag badge that
       // sits across the top centre for the first few seconds
-      simText(ctx,(i?'σ₂':'σ₁')+' = '+pl[1].toFixed(1)+' μC/m²',
+      simText(ctx,(i?'σ₂':'σ₁')+' = '+elcSg(pl[1],1)+' μC/m²',
         pl[0]+(i?54:-54),yTop-12,col,10.5,'center',true);
     });
     // ── field arrows: same length everywhere inside a region, on purpose ──
@@ -34650,13 +34676,23 @@ function simElcPlane(canvas){
     var E1=Ei(S1,tx,x1), E2=two?Ei(S2,tx,x2):0, Et=E1+E2;
     // each plate's own contribution, drawn above the charge as two short arrows
     var sy2=ty-34;
-    [[E1,'#f0abfc','E₁'],[E2,'#7dd3fc','E₂']].forEach(function(a,i){
-      if(!two&&i===1)return;
-      if(Math.abs(a[0])<1e3)return;
-      var L=10+14*Math.min(1,Math.abs(a[0])/maxE), yy=sy2-i*13, d=a[0]>0?1:-1;
-      simArrow(ctx,tx-d*L/2,yy,tx+d*L/2,yy,a[1],1.8,6);
-      simText(ctx,a[2]+' = '+(Math.abs(a[0])/1e5).toFixed(2)+'×10⁵ V/m',tx+d*L/2+(d>0?6:-6),yy+3,a[1],9,d>0?'left':'right');
-    });
+    // one small card above the charge: an arrow and a value per plate. Loose
+    // over the field, on a phone the rows of arrows and the right plate ran
+    // through the two labels; the card stays inside the region of the charge
+    // (between the plates, or beside one) wherever it fits there
+    var back=function(x0,x1,y0,y1){ctx.save();ctx.fillStyle='rgba(3,10,20,.85)';ctx.beginPath();ctx.roundRect(x0,y0,x1-x0,y1-y0,5);ctx.fill();ctx.restore();};
+    var it=[[E1,'#f0abfc','E₁'],[E2,'#7dd3fc','E₂']].filter(function(a,i){return (two||i===0)&&Math.abs(a[0])>=1e3;});
+    if(it.length){
+      var aw=24,tws=it.map(function(a){a[3]=a[2]+' = '+(Math.abs(a[0])/1e5).toFixed(2)+'×10⁵ V/m';return labelW(ctx,a[3],9)*1.04;}),
+          cw=8+aw+6+Math.max.apply(null,tws)+8,ch=it.length*13+8,
+          rl=tx<x1?0:(two&&tx>x2)?x2:x1,rr=tx<x1?x1:(two&&tx<x2)?x2:W,
+          lo=cw<=rr-rl-12?rl+6:4,hi=cw<=rr-rl-12?rr-6-cw:W-4-cw,cx0=Math.max(lo,Math.min(hi,tx-cw/2)),cy1=sy2+7;
+      back(cx0,cx0+cw,cy1-ch,cy1);
+      it.forEach(function(a,i){
+        var L=10+14*Math.min(1,Math.abs(a[0])/maxE),yy=sy2-(it.length-1-i)*13,d=a[0]>0?1:-1,ax=cx0+8+aw/2;
+        simArrow(ctx,ax-d*L/2,yy,ax+d*L/2,yy,a[1],1.8,6);
+        simText(ctx,a[3],cx0+8+aw+6,yy+3,a[1],9,'left');});
+    }
     var qcol=qSign>0?'#f87171':'#60a5fa';
     ctx.save();ctx.fillStyle=qcol;ctx.strokeStyle='#0b1220';ctx.lineWidth=2;
     ctx.beginPath();ctx.arc(tx,ty,11,0,6.2832);ctx.fill();ctx.stroke();ctx.restore();
@@ -34664,7 +34700,9 @@ function simElcPlane(canvas){
     if(Math.abs(Et)>1e3){
       var FL=22+30*Math.min(1,Math.abs(Et)/maxE), fd=(Et*qSign)>0?1:-1;
       simArrow(ctx,tx,ty,tx+fd*FL,ty,'#34d399',3,11);
-      simText(ctx,'F = qE',tx+fd*(FL+4),ty-14,'#34d399',10,fd>0?'left':'right',true);
+      // over the middle of its arrow, under the card (beyond the head, it sat on the plate)
+      var fw=labelW(ctx,'F = qE',10)*1.1,fcx=tx+fd*(FL/2+6);back(fcx-fw/2-3,fcx+fw/2+3,ty-24,ty-10);
+      simText(ctx,'F = qE',fcx,ty-13,'#34d399',10,'center',true);
       var lw=ctx.measureText('E = E₁ + E₂ = 0.00×10⁵ V/m').width+16;
       ctx.save();ctx.fillStyle='rgba(3,10,20,.82)';
       ctx.beginPath();ctx.roundRect(tx-lw/2,ty+16,lw,18,5);ctx.fill();ctx.restore();
@@ -34703,7 +34741,7 @@ function simElcPlane(canvas){
       :(S1*S2<0?(eqM?'מטענים מנוגדים ושווים — קבל: כל השדה כלוא בפנים':'מנוגדים אך לא שווים — בפנים הסכום, ובחוץ נשאר ההפרש')
         :(S1*S2>0?(eqM?'מטענים זהים — השדה נדחף החוצה, ובפנים מתאפס':'אותו סימן, גדלים שונים — בחוץ הסכום, ובפנים רק ההפרש'):'אחד הלוחות נייטרלי')),
       W/2,H-10,'#a78bfa',10.5,'center',true);
-    simText(ctx,two?('ΔV בין הלוחות = '+Math.abs(Etot((x1+x2)/2)*D_M).toFixed(0)+' V   (d = 2 cm)')
+    simText(ctx,two?('בין הלוחות (d = 2 cm): ΔV = '+Math.abs(Etot((x1+x2)/2)*D_M).toFixed(0)+' V')
       :'לוח בודד: הפרש הפוטנציאלים גדל ליניארית ללא גבול',
       W/2,gy0-6,'#c4b5fd',10,'center',true);
     // the graph's axes, named
@@ -34865,7 +34903,7 @@ function simElcConductor(canvas){
         ctx.restore();
         optLabel(ctx,'⚡ פריצת אוויר — פריקת חוד',cx,cy+rr*1.5,'#22d3ee',9.5);
       } else {
-        optLabel(ctx,'הגדילו את |Q| או הקטינו את R עד ש-E בחוד יעבור 3×10⁶ V/m',cx,cy+rr*1.5,'#7d8da6',8.5);
+        optLabel(ctx,'הגדילו את |Q| או הקטינו את R עד ש־E בחוד יעבור 3×10⁶ V/m',cx,cy+rr*1.5,'#7d8da6',8.5);
       }
     }
     // ── probe (sphere mode only: kQ/r² does not describe the pear) ──
@@ -34891,7 +34929,7 @@ function simElcConductor(canvas){
       // has to reach left past the bars drops below the caption under the tip
       var SL=['כל פני השטח באותו פוטנציאל',
         'V≈kq/r ⇒ ברדיוס קטן די בפחות מטען',
-        'ולכן σ גדולה שם, ו-E=σ/ε₀ עצום',
+        'ולכן σ גדולה שם, ו־E=σ/ε₀ עצום',
         'זהו העיקרון של כליא הברק'];
       var SW=Math.min(PX0+PW-8,Math.max(PW,optInfoBoxW(ctx,SL))),SX=PX0+PW-SW;
       optInfoBox(ctx,SX,SX<PX0-1?Math.max(H-190,cy+rr*1.5+14):H-190,SW,SL,{wrap:true});
@@ -34954,7 +34992,7 @@ function simElcConductor(canvas){
     ctx.setLineDash([3,3]);ctx.beginPath();
     ctx.moveTo(xR1,gyE+GH);ctx.lineTo(xR1,gyE+GH-Math.min(1,Er[0]/Emax)*(GH-6));ctx.stroke();
     ctx.setLineDash([]);ctx.restore();
-    optLabel(ctx,'קפיצה ב-R',xR1+40,gyE+12,'#fbbf24',8);
+    optLabel(ctx,'קפיצה ב־R',xR1+40,gyE+12,'#fbbf24',8);
     // V: flat inside, then kQ/r — continuous
     ctx.save();ctx.strokeStyle='#22d3ee';ctx.lineWidth=2;ctx.beginPath();
     ctx.moveTo(GX,vY(Vr[0]));
@@ -35034,9 +35072,9 @@ function simElcUpair(canvas){
      hint:'שנו את הסימן של אחד המטענים.',
      why:'בסימנים מנוגדים '+_skM('U = kq₁q₂/r < 0')+': זוג קשור. כדי להפריד אותו עד אינסוף צריך להשקיע '+_skM('|U|')+'.',
      done:function(s){return s.qq<0;}},
-    {text:'קרבו את המטענים למחצית המרחק: פי כמה גדלה '+_skM('U')+', ופי כמה '+_skM('F')+'?',
+    {text:'קרבו את המטענים למחצית המרחק: פי כמה גדל '+_skM('|U|')+', ופי כמה '+_skM('F')+'?',
      hint:'התחילו כשהם רחוקים זה מזה, למשל 40 cm, קרבו אחד מהם עד מרחק של 20 cm, וקראו את '+_skM('U')+' ואת '+_skM('F')+'.',
-     why:'ל־'+_skM('U = kq₁q₂/r')+' יש חזקה אחת של '+_skM('r')+': חצי מרחק — פי 2 אנרגיה. הכוח, '+_skM('∝ 1/r²')+', גדל פי 4.',
+     why:'ל־'+_skM('U = kq₁q₂/r')+' יש חזקה אחת של '+_skM('r')+': בחצי המרחק '+_skM('|U|')+' גדל פי 2 — בזוג זהה '+_skM('U')+' גדלה פי 2, ובזוג מנוגד היא יורדת לערך שלילי כפול. הכוח, '+_skM('∝ 1/r²')+', גדל פי 4.',
      done:function(s){return s.halved;}},
     {text:'שחררו זוג זהה, וצפו כיצד '+_skM('U')+' הופכת לאנרגיה קינטית',
      hint:'שני מטענים באותו סימן, ואז ״🚀 שחררו״. עקבו אחר שלוש העמודות.',
@@ -35232,7 +35270,7 @@ function simElcNetwork(canvas){
       ctx.stroke();ctx.restore();
       capSym(W*0.26,yT,'C₁',c1,Q1,V1,'#f87171');
       capSym(W*0.46,yT,'C₂',c2,Q2,V2,'#60a5fa');
-      optLabel(ctx,'לולאה אחת: אותו מטען עובר בשניהם',W*0.36,yB2+22,'#4ade80',9.5);
+      optLabel(ctx,'הלוחות הפנימיים מבודדים ⇒ אותו מטען על שניהם',W*0.36,yB2+22,'#4ade80',9.5);
       optLabel(ctx,'טור — המטען משותף, המתחים מתחלקים',W/2,18,'#4ade80',11);
     }
     // comparison bars: C_eq against both inputs, so the rule of thumb is visible
@@ -35548,7 +35586,7 @@ function simElcCap(canvas){
     ctx.beginPath();ctx.moveTo(xB-10,yB-11);ctx.lineTo(xB-10,yB+11);ctx.stroke();
     ctx.lineWidth=3.5;ctx.beginPath();ctx.moveTo(xB+10,yB-6);ctx.lineTo(xB+10,yB+6);ctx.stroke();ctx.restore();
     optLabel(ctx,disc?'מנותק ✂ (Q קבוע)':Vx+' V',xB,yB-22,disc?'#f87171':'#e2e8f0',10);
-    if(disc)optLabel(ctx,'Q נעול: הרחקת לוחות מעלה את V ו-U — ושימו לב ש-E לא משתנה!',W/2,H0-14,'#a78bfa',9.5);
+    if(disc)optLabel(ctx,'Q נעול: הרחקת לוחות מעלה את V ו־U — ושימו לב ש־E לא משתנה!',W/2,H0-14,'#a78bfa',9.5);
     // Readout bars
     var Cref=3*ELC_EPS0*200e-4/4e-3;             // 3× the default C → defaults sit at ⅓ bar
     var bars=[['C',C/Cref,(C*1e12).toFixed(1)+' pF','#22d3ee'],
