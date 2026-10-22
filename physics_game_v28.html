@@ -8386,7 +8386,7 @@ const DC_CONTENT={
       <p>אותו מחוג, שני חיווטים הפוכים — ולכן לאמפרמטר התנגדות קטנה ולוולטמטר התנגדות גדולה.</p>
     </div>`,
   },
-  sim:{type:'dc-meters',desc:'הקישו על המכשיר כדי להחליף בין אמפרמטר לוולטמטר, ועל סימן השאלה כדי להעביר אותו — לתוך המסלול (בטור) או על R₂ (במקביל). שניים מארבעת החיבורים נכונים ושניים שגויים, והמעגל נפתר עם ההתנגדות האמיתית של המכשיר: כמעט 0 Ω לאמפרמטר ו־10 MΩ לוולטמטר.'},
+  sim:{type:'dc-meters',desc:'המכשיר עוד לא מחובר: הקישו על סימן שאלה כדי לחבר אותו — לתוך המסלול (בטור) או על R₂ (במקביל) — ועל המכשיר כדי להחליף בין אמפרמטר לוולטמטר. שניים מארבעת החיבורים נכונים ושניים שגויים, והמעגל נפתר עם ההתנגדות האמיתית של המכשיר: כמעט 0 Ω לאמפרמטר ו־10 MΩ לוולטמטר.'},
   example:{title:'קריאות מכשירים',text:`סוללה של ${M('12\\,\\text{V}')}, ${M('R_1=4\\,\\Omega')} ו־${M('R_2=8\\,\\Omega')} בטור.`,steps:[
     {q:'מה יראה אמפרמטר אידיאלי?',a:`${M('1\\,\\text{A}')} — ואותו ערך בכל נקודה בלולאה.`},
     {q:'מה יראה וולטמטר שמחובר על R₂?',a:`${M('8\\,\\text{V}')}`},
@@ -22270,7 +22270,9 @@ runAnim('anim-dc-junction',(canvas,ctx,W,H,t)=>{
     const ex=cx+a[0], ey=cy+a[1], into=a[5];
     ctx.save();ctx.strokeStyle='#64748b';ctx.lineWidth=2.4;
     ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(ex,ey);ctx.stroke();ctx.restore();
-    dcFlow(ctx,into?[[ex,ey],[cx,cy]]:[[cx,cy],[ex,ey]],t,Math.min(.55,Math.abs(a[2])*0.09),a[3],5);
+    // one spacing on every arm and a speed ∝ I (no cap): the charge crossing
+    // the junction each second visibly comes in and goes out in equal measure
+    dcFlowI(ctx,into?[[ex,ey],[cx,cy]]:[[cx,cy],[ex,ey]],t,Math.abs(a[2]),a[3],12,24);
     const f1=into?0.78:0.40, f2=into?0.40:0.78;   // the arrow always points the way we defined the branch
     arrow(ctx,cx+a[0]*f1+a[9],cy+a[1]*f1+a[10],cx+a[0]*f2+a[9],cy+a[1]*f2+a[10],a[3],2,7.5);
     label(ctx,a[4]+' = '+num(a[2]),cx+a[6],cy+a[7],a[3],9.5,a[8]);
@@ -22797,7 +22799,7 @@ runAnim('anim-dc-emf',(canvas,ctx,W,H,t)=>{
   const L=W*0.12,Rt=W*0.88,T=H*0.13,B=H*0.45;
   ctx.save();ctx.strokeStyle='#64748b';ctx.lineWidth=2.2;
   ctx.beginPath();ctx.rect(L,T,Rt-L,B-T);ctx.stroke();ctx.restore();
-  dcFlow(ctx,[[L,B],[L,T],[Rt,T],[Rt,B],[L,B]],t,Math.min(.55,I*0.035),'#fbbf24',12);
+  dcFlowI(ctx,[[L,B],[L,T],[Rt,T],[Rt,B],[L,B]],t,I,'#fbbf24',20);   // ∝ I, as in the simulation: 20 px/s per ampere
   // the cell and its internal resistance, one above the other ON the same rail --
   // r was drawn beside the wire, in no circuit at all
   const yb=T+(B-T)*0.30, yr=T+(B-T)*0.70;
@@ -32155,11 +32157,33 @@ function dcNum(v,d){var t=(Math.abs(v)<0.5*Math.pow(10,-d)?0:v).toFixed(d);retur
 // proportional to I — and every junction visibly balances. (dcFlow on its own
 // takes a dot count and a lap rate; picking those per branch made a 3:1 split
 // look like 5:1.) k is pixels per unit time per ampere.
-function dcFlowI(ctx,pts,t,I,col,k){
-  var len=0,i; for(i=1;i<pts.length;i++)len+=Math.hypot(pts[i][0]-pts[i-1][0],pts[i][1]-pts[i-1][1]);
+//
+// The dots' place is the charge that has passed, ∫I dt, kept per wire from
+// frame to frame (backwards too, when a reader scrubs an animation back):
+// placed at t·I(t), a current that changes -- a slider moved, a capacitor
+// charging, a resistance swept by an animation -- sent them jumping back and
+// forth, since the phase then moved by t·ΔI (and in a theory animation t·dI/dt
+// soon outgrew I itself). A steady current gives exactly t·I, as before.
+// open (optional): the wire is a piece, not a loop -- the dots keep exactly
+// that spacing and enter and leave at its ends, so arms of different lengths
+// meeting at a junction carry charge at one spacing and balance exactly.
+var _dcFlowQ=typeof WeakMap==='function'?new WeakMap():null;
+function dcFlowI(ctx,pts,t,I,col,k,open){
+  var len=0,i,seg=[]; for(i=1;i<pts.length;i++){var d=Math.hypot(pts[i][0]-pts[i-1][0],pts[i][1]-pts[i-1][1]);seg.push(d);len+=d;}
   if(len<1||!(Math.abs(I)>1e-12))return;
-  var sp=Math.min(240,k*Math.abs(I));
-  dcFlow(ctx,I>0?pts:pts.slice().reverse(),t,sp/len,col,Math.max(2,Math.round(len/28)));
+  var kk=Math.min(k,240/Math.abs(I)),q=I*t;          // at most 240 px/s
+  if(_dcFlowQ){var mp=_dcFlowQ.get(ctx);if(!mp){mp={n:0};_dcFlowQ.set(ctx,mp);}
+    var key=pts.map(function(p){return Math.round(p[0])+','+Math.round(p[1]);}).join(';')+col,s=mp[key];
+    if(!s||!(Math.abs(t-s.t)<=1)){if(++mp.n>400){mp={n:1};_dcFlowQ.set(ctx,mp);}s=mp[key]={t:t,q:kk*I*t};}
+    else{s.q+=kk*I*(t-s.t);s.t=t;}
+    q=s.q;}
+  else q*=kk;
+  var sp=open?open:len/Math.max(2,Math.round(len/28)),off=((q%sp)+sp)%sp;
+  ctx.save();ctx.fillStyle=col;
+  for(var x=off;x<len;x+=sp){var a=0,r=x;while(a<seg.length-1&&r>seg[a]){r-=seg[a];a++;}
+    var P=pts[a],Q=pts[a+1],f=seg[a]?r/seg[a]:0;
+    ctx.beginPath();ctx.arc(P[0]+(Q[0]-P[0])*f,P[1]+(Q[1]-P[1])*f,3.2,0,6.2832);ctx.fill();}
+  ctx.restore();
 }
 function dcFlow(ctx,pts,t,rate,col,n){
   // charges spaced evenly along a polyline, moving at a rate that stands for
@@ -33088,8 +33112,8 @@ function simDcBridge(canvas){
      done:function(s){return s.nulled;}},
     {text:'כשהגשר מאוזן, מדדו בגשושים את המתח בין שני קצות הגלוונומטר.',
      hint:'גשוש אחד בצומת שבין R₁ ל־R₃, השני בצומת שבין R₂ ל־Rₓ.',
-     why:'אפס: שני הצמתים באותו פוטנציאל — ולכן לשניהם אותו צבע, ואין מה שיניע זרם בגלוונומטר. האיזון הוא שוויון פוטנציאלים.',
-     done:function(s){return s.nulled&&s.acrossG&&Math.abs(s.vp)<0.005;}},
+     why:'אפס (או מתח זעיר, כשהאיזון המדויק נופל בין שתי שנתות של החוגה): שני הצמתים באותו פוטנציאל — ולכן לשניהם אותו צבע, ואין מה שיניע זרם בגלוונומטר. האיזון הוא שוויון פוטנציאלים.',
+     done:function(s){return s.nulled&&s.acrossG&&Math.abs(s.vp)<=s.vTol;}},
     {text:'כשהגשר מאוזן, שנו את מתח המקור. האם האיזון נשמר?',
      hint:'הזיזו את מחוון מתח המקור והסתכלו על המחוג.',
      why:'נקודת האיזון '+dcM('R₁/R₂ = R₃/Rₓ')+' אינה תלויה במתח: שני מחלקי המתח מחלקים כל מתח באותו יחס. לכן גשר מודד התנגדות בלי תלות בסוללה ובדיוק שלה.',
@@ -33156,7 +33180,11 @@ function simDcBridge(canvas){
     bd.drawFocus();
     // the source voltage at which the balance was first found
     if(nulled&&vNull===null)vNull=v;else if(!nulled)vNull=null;
-    kit.check({nulled:nulled,v:v,vNull:vNull,rx:rx,vp:vp===null?NaN:vp,acrossG:bd.across('A','Bn')});
+    // at the dial's best setting the two nodes still differ by what half a step
+    // of R₃ is worth, ε·R₁·0.5 Ω/(R₁+R₃)² -- 12 mV at Rₓ = 250 Ω, 9 V -- so
+    // "zero" is read to that, never tighter than 5 mV
+    var vTol=Math.max(0.005,1.1*v*r1*0.5/((r1+r3)*(r1+r3)));
+    kit.check({nulled:nulled,v:v,vNull:vNull,rx:rx,vp:vp===null?NaN:vp,vTol:vTol,acrossG:bd.across('A','Bn')});
     kit.model('איזון: '+dcM('I_G = 0 ⇔ R₁/R₂ = R₃/Rₓ')+'<br>'+dcM('R₁/R₂ = '+(r1/r2).toFixed(3)+', R₃/Rₓ = '+(r3/rx).toFixed(3))+'<br>'+dcM('I_G = '+dcNum(Ig*1000,3)+' mA'));
     requestAnimationFrame(draw);
   }
@@ -33610,7 +33638,9 @@ function simDcMeters(canvas){
   var RV=1e7;
   var m=Math.max(22,(W-640)/2),L=m+26,R=W-m-16,T=wide?110:104,Bt=wide?236:222,my=(T+Bt)/2,Tb=T-50;
   var x1=L+(R-L)*0.25,xs=L+(R-L)*0.47,xj=L+(R-L)*0.62,x2=L+(R-L)*0.80;
-  var type='A',pos='s',predicted=false,toast=0,tried={};
+  // the meter starts out of the circuit: where it goes is the learner's first
+  // decision (wired in series from the start, mission 1 was done before it was set)
+  var type='A',pos=null,predicted=false,toast=0,tried={};
   var bd=dcBoard(canvas,ctx,W,H,dpr,{
     gnd:'n',k:40,P0:8,
     aria:'מעגל: סוללה, R₁ ו־R₂ בטור, ומכשיר מדידה אחד שאפשר לחבר בטור או על R₂, כאמפרמטר או כוולטמטר. Tab עובר בין שני המקומות, Enter מחליף.',
@@ -33618,7 +33648,7 @@ function simDcMeters(canvas){
        r2a:[x2-28,T],r2b:[x2+28,T],tr:[R,T],u1:[xj,Tb],q1:[x2-18,Tb],q2:[x2+18,Tb],u2:[R,Tb],br:[R,Bt],bl:[L,Bt]},
     E:[{k:'bat',a:'n',b:'p',emf:V(),r:0,id:'bat'},
        {k:'w',p:['p','tl','r1a']},{k:'res',a:'r1a',b:'r1b',R:R1(),id:'R1'},{k:'w',p:['r1b','s1']},
-       {k:'amm',a:'s1',b:'s2',id:'ms'},{k:'w',p:['s2','j2','r2a']},{k:'res',a:'r2a',b:'r2b',R:R2(),id:'R2'},
+       {k:'amm',a:'s1',b:'s2',id:'ms',ghost:true},{k:'w',p:['s2','j2','r2a']},{k:'res',a:'r2a',b:'r2b',R:R2(),id:'R2'},
        {k:'w',p:['r2b','tr','br','bl','n']},
        {k:'w',p:['j2','u1','q1'],grp:'br',hidden:true},
        {k:'sw',a:'q1',b:'q2',on:false,id:'mp',fixed:true,hidden:true,body:30,ry:-28},
@@ -33628,7 +33658,7 @@ function simDcMeters(canvas){
   });
   var MODES=['אמפרמטר בטור','אמפרמטר במקביל','וולטמטר במקביל','וולטמטר בטור'],ORDER=[['A','s'],['A','p'],['V','p'],['V','s']];
   var mb=document.getElementById('btn-mtr-mode');
-  var mode=function(){for(var i=0;i<4;i++)if(ORDER[i][0]===type&&ORDER[i][1]===pos)return i;return 0;};
+  var mode=function(){for(var i=0;i<4;i++)if(ORDER[i][0]===type&&ORDER[i][1]===pos)return i;return -1;};   // -1: not connected yet
   function set(t,p){
     // the voltmeter in series is the prediction's subject: ask first
     if(t==='V'&&p==='s'&&!predicted){toast=2.6;var q=kit.el&&kit.el.querySelector('.sk-predict');
@@ -33641,7 +33671,7 @@ function simDcMeters(canvas){
     bd.group('br').forEach(function(e){e.hidden=p!=='p';});
     if(mb)mb.textContent='🔀 '+MODES[mode()];
     _say(MODES[mode()]);}
-  if(mb){mb.textContent='🔀 '+MODES[0];mb.addEventListener('click',function(){var o=ORDER[(mode()+1)%4];set(o[0],o[1]);});}
+  if(mb){mb.textContent='🔀 חברו את המכשיר';mb.addEventListener('click',function(){var o=ORDER[(mode()+1)%4];set(o[0],o[1]);});}
   var bat=bd.el('bat'),eR1=bd.el('R1'),eR2=bd.el('R2');
   var kit=simKit(canvas,{missions:[
     {text:'מדדו נכון את הזרם במעגל.',
@@ -33680,24 +33710,26 @@ function simDcMeters(canvas){
     // the empty place: dashed, and tappable
     ctx.save();ctx.strokeStyle='rgba(251,191,36,.55)';ctx.lineWidth=1.4;ctx.setLineDash([4,4]);
     if(pos!=='s'){ctx.beginPath();ctx.arc(xs,T,14,0,6.2832);ctx.stroke();}
-    else{ctx.beginPath();ctx.moveTo(xj,T);ctx.lineTo(xj,Tb);ctx.lineTo(R,Tb);ctx.lineTo(R,T);ctx.stroke();
+    if(pos!=='p'){ctx.beginPath();ctx.moveTo(xj,T);ctx.lineTo(xj,Tb);ctx.lineTo(R,Tb);ctx.lineTo(R,T);ctx.stroke();
       ctx.setLineDash([]);ctx.fillStyle='#050d1a';ctx.beginPath();ctx.arc(x2,Tb,14,0,6.2832);ctx.fill();
       ctx.setLineDash([4,4]);ctx.beginPath();ctx.arc(x2,Tb,14,0,6.2832);ctx.stroke();}
     ctx.restore();
     bd.drawCircuit(dt);
     if(pos!=='s')simText(ctx,'?',xs,T+4,'rgba(251,191,36,.85)',11,'center',true);
-    else simText(ctx,'?',x2,Tb+4,'rgba(251,191,36,.85)',11,'center',true);
+    if(pos!=='p')simText(ctx,'?',x2,Tb+4,'rgba(251,191,36,.85)',11,'center',true);
     simText(ctx,'R₁ = '+r1.toFixed(0)+' Ω',x1,T-20,'#e2e8f0',10.5,'center',true);
     simText(ctx,'R₂ = '+r2.toFixed(0)+' Ω',x2,T+28,'#e2e8f0',10.5,'center',true);
     simText(ctx,'ε = '+e.toFixed(1)+' V',L+40,my+4,'#f87171',10.5,'left',true);
     bd.legend(m+4,22,88);
-    dcCap(ctx,VERD[md],W/2,Bt+34,md===0||md===2?'#34d399':'#f87171',11,true);
+    if(md<0)dcCap(ctx,'המכשיר עוד לא מחובר — הקישו על סימן שאלה כדי לחבר אותו שם',W/2,Bt+34,'#cbd5e1',11,true);
+    else dcCap(ctx,VERD[md],W/2,Bt+34,md===0||md===2?'#34d399':'#f87171',11,true);
     if(toast>0){toast-=dt;simText(ctx,'קודם נחשו — השאלה מתחת לתרשים ↓',W/2,Bt+60,'#fbbf24',10.5,'center',true);}
     else simText(ctx,'הקישו על המכשיר כדי להחליף אמפרמטר ↔ וולטמטר, ועל ? כדי להעביר אותו',W/2,Bt+60,'#94a3b8',9.5,'center');
     bd.drawFocus();
     kit.check({t:type,p:pos});
     var uA=Math.abs(I)*1e6;
-    kit.model(md===0?'אמפרמטר אידיאלי בטור, '+dcM('R_A ≈ 0')+': '+dcM('I = ε/(R₁+R₂) = '+e.toFixed(1)+'/('+r1.toFixed(0)+'+'+r2.toFixed(0)+') = '+f(I)+' A')
+    kit.model(md<0?'עוד בלי מכשיר: '+dcM('I = ε/(R₁+R₂) = '+e.toFixed(1)+'/('+r1.toFixed(0)+'+'+r2.toFixed(0)+') = '+f(I)+' A')+'. מכשיר אידיאלי, מחובר נכון, אינו משנה אותו.'
+      :md===0?'אמפרמטר אידיאלי בטור, '+dcM('R_A ≈ 0')+': '+dcM('I = ε/(R₁+R₂) = '+e.toFixed(1)+'/('+r1.toFixed(0)+'+'+r2.toFixed(0)+') = '+f(I)+' A')
       :md===1?'האמפרמטר מקצר את R₂: '+dcM('I = ε/R₁ = '+e.toFixed(1)+'/'+r1.toFixed(0)+' = '+f(I)+' A')+', ו־'+dcM('V₂ = 0')
       :md===2?'וולטמטר על R₂, '+dcM('R_V = 10 MΩ')+': '+dcM('V₂ = I·R₂ = '+f(I)+'·'+r2.toFixed(0)+' = '+f(v2)+' V')
       :'הוולטמטר בטור: '+dcM('I = ε/(R₁+R₂+R_V) = '+uA.toFixed(1)+' μA')+', ולכן '+dcM('V = ε − I·(R₁+R₂) = '+f(e-Math.abs(I)*(r1+r2))+' V'));
