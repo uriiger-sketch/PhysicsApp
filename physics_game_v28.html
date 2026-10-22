@@ -31409,9 +31409,16 @@ function simElcScope(canvas){
               induced>3 ? 'השראה! הפרדת מטענים ללא מגע — העלים נפרדים, המטען הכולל עדיין אפס' :
               'קרבו את המוט כדי לראות השראה';
     var msgCol = fresh&&evt==='far' ? '#f87171' : fresh&&evt==='rod' ? '#fbbf24' : (fresh||induced>3||Math.abs(scopeQ)>0.05) ? '#34d399' : '#94a3b8';
-    var mbw=Math.min(476,W-16);
-    ctx.save();ctx.fillStyle='rgba(4,9,20,.88)';ctx.beginPath();ctx.roundRect(W/2-mbw/2,H-58,mbw,24,6);ctx.fill();ctx.restore();
-    optLabel(ctx,msg,W/2,H-43,msgCol,10);
+    // The banner sits under the jar, not across its foot, where it hid "gold
+    // leaves" on a wide screen; on a phone a message too long for one line
+    // at a readable size takes two (shrunk to fit, it fell to 7 px)
+    var mbw=Math.min(476,W-16),two=null;
+    ctx.save();ctx.font='10px Heebo,sans-serif';
+    if(ctx.measureText(_mathIso(msg)).width>mbw-12)two=_splitHalf(msg);ctx.restore();
+    var mbh=two?36:24,mby=NAR?H-10-mbh:Math.max(H-58,KY+84+240+3);
+    ctx.save();ctx.fillStyle='rgba(4,9,20,.88)';ctx.beginPath();ctx.roundRect(W/2-mbw/2,mby,mbw,mbh,6);ctx.fill();ctx.restore();
+    if(two){optLabel(ctx,two[0],W/2,mby+11,msgCol,10);optLabel(ctx,two[1],W/2,mby+25,msgCol,10);}
+    else optLabel(ctx,msg,W/2,mby+15,msgCol,10);
     // ── Charge ledger: conservation made visible ──
     var hasEarth=Math.abs(earthQ)>0.05;   // NOTE: distinct from `grounded` (the switch)
     var tot=rodQ+scopeQ+earthQ;
