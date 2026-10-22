@@ -13734,7 +13734,8 @@ function simEnergy(canvas){
     ctx.save();ctx.strokeStyle='rgba(251,191,36,.4)';ctx.setLineDash([2,4]);ctx.beginPath();ctx.moveTo(tx0,ty0);ctx.lineTo(tx0,FLOOR_Y);ctx.stroke();ctx.restore();
     // the height label: beside its dashed line, or beside the cart when the line is too short
     var hl=FLOOR_Y-ty0>40, hx=hl?tx0+(tx0<W*0.5?8:-8):bx+(bx<W*0.5?20:-20);
-    simText(ctx,'h = '+h.toFixed(2)+' m',hx,hl?ty0+(FLOOR_Y-ty0)/2+3:by+4,'#fbbf24',8.5,(hl?tx0:bx)<W*0.5?'left':'right');
+    // (at least 30 px under the rail: on a phone the middle of a short line touched the cart)
+    simText(ctx,'h = '+h.toFixed(2)+' m',hx,hl?Math.min(FLOOR_Y-4,Math.max(ty0+(FLOOR_Y-ty0)/2+3,ty0+30)):by+4,'#fbbf24',8.5,(hl?tx0:bx)<W*0.5?'left':'right');
     // the stretch of rail where it had to pull the cart down, fading
     if(pulled){ctx.save();ctx.fillStyle='#fb923c';pullPts.forEach(function(q){var xq=xfAt(q.s);ctx.globalAlpha=Math.max(0,1-(tsec-q.t)/1.8);
       ctx.beginPath();ctx.arc(TX(xq),TY(at(Hm,q.s)),2.6,0,6.2832);ctx.fill();});ctx.restore();}
@@ -17353,7 +17354,7 @@ function simCircular(canvas){
       var nx2=-uy2,ny2=ux2; if(nx2*vx/vl-ny2*vy/vl>0){nx2=-nx2;ny2=-ny2;}
       var fl='F = '+Fs.toFixed(2)+' N', fw=labelW(ctx,fl,10)*1.08;
       // (beyond the puck's handle ring: at 0.55 of a short arrow it touched it)
-      var fk=Math.max(0.55,Math.min(0.8,(PR+16)/Math.max(FL,1)));
+      var fk=Math.max(0.55,Math.min(0.95,(PR+15+fw*0.5)/Math.max(FL,1)));
       var lx=q.x+ux2*FL*fk+nx2*(10+fw/2*Math.abs(nx2)), ly=q.y+uy2*FL*fk+ny2*(12+3*Math.abs(ny2));
       simText(ctx,fl,Math.max(fw/2+6,Math.min(W-fw/2-6,lx)),ly+4,'#f87171',10,'center',true);
       if(clip){var cxm=q.x+ux2*FL*0.6,cym=q.y+uy2*FL*0.6;ctx.save();ctx.strokeStyle='#f87171';ctx.lineWidth=2;
