@@ -7162,7 +7162,7 @@ const OPTICS_CONTENT={
       <p><b>מתי יש חצי אורך גל ״נוסף״?</b> סופרים היפוכי פאזה. קרום סבון באוויר, או שמן (n≈1.45) על מים (1.33): מדד השבירה עולה רק במשטח העליון — היפוך אחד, והבנייה ב־${M('2nt=(m+\\tfrac12)\\lambda')}. ציפוי MgF₂ (1.38) על זכוכית (1.50): המדד עולה בשני המשטחים — שני היפוכים מתקזזים, הבנייה ב־${M('2nt=m\\lambda')} וההרס ב־${M('2nt=(m+\\tfrac12)\\lambda')}.</p>
       <p>עוצמת ההחזרה (היפוך אחד, מבט ניצב): ${M('I \\propto \\sin^2\\!\\left(\\tfrac{2\\pi n t}{\\lambda}\\right)')}. כל אורך גל מקבל עוצמה שונה → <b>קשת צבעים</b>!</p>
       <div class="def-block"><div class="def-title">ציפוי אנטי-החזרה (AR Coating)</div>
-        <p>עדשות מצלמה ומשקפיים מצופות ב־MgF₂ (n≈1.38) בעובי ${M('t=\\lambda/4n')} — כמעט מבטל את ההחזרה ל־550 nm (ירוק): מכ־4% לכ־1%. (ביטול מלא היה דורש ציפוי שמדד השבירה שלו הוא שורש מדד הזכוכית, ${M('n=\\sqrt{1.50}\\approx1.22')}, כדי ששתי ההחזרות יהיו שוות בעוצמתן.) לכן עדשות מצופות נראות סגול-אדום: כל הצבעים חוץ מהירוק משתקפים מעט.</p>
+        <p>עדשות מצלמה ומשקפיים מצופות ב־MgF₂ (n≈1.38) בעובי ${M('t=\\lambda/4n')} — כמעט מבטל את ההחזרה ל־550 nm (ירוק): מכ־4% לכ־1.4%. (ביטול מלא היה דורש ציפוי שמדד השבירה שלו הוא שורש מדד הזכוכית, ${M('n=\\sqrt{1.50}\\approx1.22')}, כדי ששתי ההחזרות יהיו שוות בעוצמתן.) לכן עדשות מצופות נראות סגול-אדום: כל הצבעים חוץ מהירוק משתקפים מעט.</p>
       </div>
       <div class="enrich-card"><div class="enrich-title">צבעים בלי צבען — פרפר המורפו</div>
         <p>הכחול המבריק של כנפי פרפר המורפו אינו פיגמנט. על קשקשי הכנף יש מבנה מחזורי זעיר, בגודל של מאות ננומטרים, שבו מתרחשת התאבכות בונה של אור כחול בלבד. זהו <b>צבע מבני</b>, ולכן הוא משתנה מעט עם זווית ההסתכלות ואינו דוהה, כי אין בו צבען שמתפרק.</p>
@@ -18581,17 +18581,20 @@ function simOptEmWave(canvas){
     ctx.beginPath();ctx.moveTo(bx2,cy-amp-24);ctx.lineTo(bx2,cy-amp-8);ctx.stroke();
     ctx.beginPath();ctx.moveTo(bx1,cy-amp-16);ctx.lineTo(bx2,cy-amp-16);ctx.stroke();
     ctx.setLineDash([]);ctx.restore();
-    optLabel(ctx,'λ='+(lam|0)+'nm',(bx1+bx2)/2,cy-amp-30,'#fbbf24',10);
+    optLabel(ctx,'λ = '+(lam|0)+' nm',(bx1+bx2)/2,cy-amp-30,'#fbbf24',10);
     // ── Color swatch ─────────────────────────────────────────────────────────
     ctx.save();ctx.fillStyle=hex;optGlow(ctx,hex,18);
     ctx.beginPath();ctx.arc(W-26,28,15,0,Math.PI*2);ctx.fill();optNoGlow(ctx);ctx.restore();
     var cn=optColorName(lam);
     optLabel(ctx,cn,W-26,50,'#94a3b8',9);
     // ── Labels ───────────────────────────────────────────────────────────────
-    optLabel(ctx,'E — שדה חשמלי (אנכי)',W*0.62,cy-amp-10,hex,10);
+    // E's name on the row of λ's, above the crests (just over them, it sat on
+    // the crest that passes under it)
+    var EN='E — שדה חשמלי (אנכי)',enW=labelW(ctx,EN,10),lmW=labelW(ctx,'λ = '+(lam|0)+' nm',10);
+    optLabel(ctx,EN,Math.min(W-6-enW/2,Math.max(W*0.62,(bx1+bx2)/2+lmW/2+10+enW/2)),cy-amp-30,hex,10);
     optLabel(ctx,'B — שדה מגנטי (אופקי, בפאזה)',W*0.62,cy+amp+18,'#e879f9',10);
     var freq=(3e8/(lam*1e-9)/1e14).toFixed(2);
-    optInfoBox(ctx,8,8,176,['λ='+(lam|0)+' nm','f='+freq+' ×10¹⁴ Hz','c = λ·f','E ⊥ B ⊥ c — בפאזה','E × B בכיוון ההתקדמות']);
+    optInfoBox(ctx,8,8,176,['λ = '+(lam|0)+' nm','f = '+freq+'×10¹⁴ Hz','c = λ·f','E ⊥ B ⊥ c — בפאזה','E × B בכיוון ההתקדמות']);
     var Tfs=lam*1e-9/3e8*1e15;
     kit.model(_skM('c = λf ⇒ f = c/λ = 3.00×10⁸ / '+(lam|0)+'×10⁻⁹ = '+freq+'×10¹⁴ Hz')+'. זמן המחזור: '+_skM('T = 1/f = '+Tfs.toFixed(2)+' fs')+'.');
     if(lam>=695)seenRed=true;
@@ -19061,8 +19064,8 @@ function _optBench(canvas,P){
      why:'בתוך המוקד '+_skM('1/dᵢ = 1/f − 1/dₒ < 0')+': התמונה מדומה, מאחורי המראה, ישרה ומוגדלת, ו־'+_skM('m = f/(f − dₒ)')+' גדל ככל שהעצם מתקרב ל־F.',
      done:function(s){return s.virt&&s.m>=3;}},
     {text:'״מראה קעורה מגדילה״? צרו בה תמונה הקטנה מחצי גובה העצם',
-     hint:'הרחיקו את העצם אל מעבר ל־C.',
-     why:'מעבר ל־'+_skM('2f')+' התמונה ממשית, הפוכה ו<b>מוקטנת</b>: מראה קעורה מגדילה רק עצם קרוב, ב־'+_skM('dₒ < 2f')+'.',
+     hint:'מעבר ל־C התמונה כבר מוקטנת, אך לא די: '+_skM('|m| = f/(dₒ − f)')+'. כמה רחוק צריך העצם להיות כדי ש־'+_skM('|m| < ½')+'?',
+     why:'מעבר ל־'+_skM('2f')+' התמונה ממשית, הפוכה ו<b>מוקטנת</b>, ו־'+_skM('|m| = f/(dₒ − f)')+' יורד אל מתחת ל־½ כש־'+_skM('dₒ > 3f')+'. מראה קעורה מגדילה רק עצם קרוב, ב־'+_skM('dₒ < 2f')+'.',
      done:function(s){return s.real&&Math.abs(s.m)<0.5;}},
     {text:'שלחו את התמונה לאינסוף',
      hint:'מה מיוחד בעצם שעומד בדיוק במוקד?',
@@ -19104,7 +19107,8 @@ function _optBench(canvas,P){
   function pill(txt,x,y,col,sz){             // a name on a dark ground, readable across a ray
     var w=labelW(ctx,txt,sz),xc=Math.max(5+w/2,Math.min(W-5-w/2,x));
     ctx.save();ctx.fillStyle='rgba(3,11,23,.78)';ctx.beginPath();ctx.roundRect(xc-w/2-4,y-sz*0.75,w+8,sz*1.5,4);ctx.fill();ctx.restore();
-    optLabel(ctx,txt,xc,y,col,sz);}
+    optLabel(ctx,txt,xc,y,col,sz);
+    return [xc-w/2-4,y-sz*0.75,xc+w/2+4,y+sz*0.75];}
   function drawOptic(){
     if(mirror){
       var sag=function(y){var t=y/AP;return (conv?-1:1)*6*t*t;};   // a shallow arc through the vertex plane
@@ -19185,7 +19189,7 @@ function _optBench(canvas,P){
     // the image
     var bright=covered?0.5:1,imgOn=!inf&&ix>4&&ix<W-4;
     var screenFirst=screenOn&&!mirror&&scrX!==null&&real&&ix>scrX+2;   // the screen stops the light first
-    var iyD=Math.max(BAND0,Math.min(BAND1,iyT)),cut=iyD!==iyT;
+    var iyD=Math.max(BAND0,Math.min(BAND1,iyT)),cut=iyD!==iyT,imgBox=null;
     if(imgOn&&!screenFirst){
       var col=virt?'#34d399':'#f87171';
       var g=ctx.createRadialGradient(ix,(cy+iyD)/2,2,ix,(cy+iyD)/2,Math.max(30,Math.abs(cy-iyD)));
@@ -19193,7 +19197,7 @@ function _optBench(canvas,P){
       ctx.fillStyle=g;ctx.fillRect(ix-90,Math.min(cy,iyD)-70,180,Math.abs(cy-iyD)+140);
       arrowUp(ix,cy,iyD,col,virt,0.3+0.7*bright,4);
       var ly=iyD<cy?iyD-12:iyD+14;if(cut)ly=iyD<cy?BAND0-8:BAND1+12;
-      pill(virt?'תמונה מדומה':'תמונה ממשית',ix,ly,col,10);
+      imgBox=pill(virt?'תמונה מדומה':'תמונה ממשית',ix,ly,col,10);
     }
     // the screen: a real image is caught on it, and is sharp only at dᵢ
     var focus=false;
@@ -19231,7 +19235,13 @@ function _optBench(canvas,P){
     ctx.beginPath();ctx.roundRect(W/2-cw/2,7,cw,24,7);ctx.fill();ctx.stroke();ctx.restore();
     optLabel(ctx,chip,W/2,19,'#e2e8f0',11);
     if(askCover)optLabel(ctx,'🤔 נבאו קודם — ענו על השאלה שמתחת לתרשים',W/2,BAND0+4,'#fbbf24',10);
-    else if(!touched&&animT<10)optLabel(ctx,'✋ גררו את העצם, את קצהו ואת F',Math.max(110,Math.min(W-110,ox+30)),tipY-26+(reduce?0:Math.sin(animT*4)*3),'#fbbf24',10);
+    else if(!touched&&animT<10){
+      // over the object's tip -- or, where the image's name already sits there
+      // (an object close to the optic has its image close above it), a row
+      // higher, or under the object's own name
+      var HN='✋ גררו את העצם, את קצהו ואת F',hx=Math.max(110,Math.min(W-110,ox+30)),hw=labelW(ctx,HN,10)/2+4,hy=tipY-26;
+      if(imgBox)[tipY-26,tipY-50,cy+52].some(function(y){hy=y;return y>12&&!_boxOver([hx-hw,y-10,hx+hw,y+10],imgBox,0);});
+      optLabel(ctx,HN,hx,hy+(reduce?0:Math.sin(animT*4)*3),'#fbbf24',10);}
     // a photon along the parallel ray
     if(!reduce&&hObj<=AP){var ph=(animT*0.45)%1;ctx.save();ctx.fillStyle=wlHex;optGlow(ctx,wlHex,12);
       ctx.beginPath();ctx.arc(ox+(X0-ox)*ph,tipY,3.2,0,Math.PI*2);ctx.fill();optNoGlow(ctx);ctx.restore();}
@@ -19358,24 +19368,51 @@ function _optInterface(canvas,P){
     crests(cx,MY,Math.sin(th),-Math.cos(th),L,S/n1,ph,'#ffffff',F.R);       // away from it
     if(!F.tir)crests(cx,MY,Math.sin(th2),Math.cos(th2),Lt,S/n2,ph,'#ffffff',1-F.R);
     simHandle(ctx,sx,sy,hex,15);
-    // the critical angle, where there is one
-    if(thc!==null){var tc=thc*Math.PI/180;
+    // The names near the handle and at the beams' ends are placed one by one,
+    // each at the first of its spots that keeps clear of the boxes, the drag
+    // hint and the names placed before it: at normal incidence the incident
+    // ray, the reflected one and the hint all meet at the top, and near θc
+    // the dashed critical line runs along the incident ray to its handle.
+    var HINT='✋ גררו את הקרן סביב נקודת הפגיעה',hint=!touched&&animT<10,nb=Math.min(W*0.42,168);
+    var keep=[[8,8,8+nb,44],[8,MY+8,8+nb,MY+44]];
+    if(hint){var hw=labelW(ctx,HINT,10);keep.push([W-8-hw,13,W-8,27]);}
+    var segs=[[sx,sy,cx,MY,150],[cx,MY,rx,ry,F.R>=0.004?120:0]];
+    var spot=function(w,h,cands){var best=null,bs=1e9;
+      for(var i=0;i<cands.length;i++){var c=cands[i],b=[c[0]-w/2,c[1]-h/2,c[0]+w/2,c[1]+h/2];
+        var sc=(b[0]<2||b[2]>W-2||b[1]<1||b[3]>H-1)?5000:0;
+        keep.forEach(function(k){var o=_boxOver(b,k,0);if(o)sc+=300+o*5;});
+        segs.forEach(function(g){if(g[4]&&_segHitsBox(g,b,1))sc+=g[4];});
+        if(!sc){best=b;break;}if(sc<bs){bs=sc;best=b;}}
+      keep.push(best);return [(best[0]+best[2])/2,(best[1]+best[3])/2];};
+    // the critical angle, where there is one (its name is placed below)
+    if(thc!==null){var tc=thc*Math.PI/180,ex=cx-L*0.9*Math.sin(tc),ey=MY-L*0.9*Math.cos(tc);
       ctx.save();ctx.strokeStyle='#f59e0b';ctx.lineWidth=1.3;ctx.setLineDash([4,4]);ctx.globalAlpha=0.8;
-      ctx.beginPath();ctx.moveTo(cx,MY);ctx.lineTo(cx-L*0.9*Math.sin(tc),MY-L*0.9*Math.cos(tc));ctx.stroke();ctx.restore();
-      if(tir)optLabel(ctx,'θc = '+thc.toFixed(1)+'°',cx-L*0.9*Math.sin(tc)-4,MY-L*0.9*Math.cos(tc)-10,'#f59e0b',10,'right');}
+      ctx.beginPath();ctx.moveTo(cx,MY);ctx.lineTo(ex,ey);ctx.stroke();ctx.restore();}
     // angle arcs, each on its own side of the normal
     optAngleArc(ctx,cx,MY,44,-Math.PI/2-th,-Math.PI/2,'#fbbf24');
     if(!F.tir)optAngleArc(ctx,cx,MY,44,Math.PI/2-th2,Math.PI/2,'#34d399');
     var lab=function(t,x,y,c){var w=labelW(ctx,t,10);ctx.save();ctx.fillStyle='rgba(4,9,20,.8)';ctx.beginPath();ctx.roundRect(x-w/2-4,y-9,w+8,18,4);ctx.fill();ctx.restore();optLabel(ctx,t,x,y,c,10);};
-    lab('θ₁ = '+(tir?thD.toFixed(1):Math.round(thD))+'°',cx-62*Math.sin(th/2+0.15)-14,MY-62*Math.cos(th/2+0.15),'#fbbf24');
+    var t1='θ₁ = '+(tir?thD.toFixed(1):Math.round(thD))+'°',t1x=cx-62*Math.sin(th/2+0.15)-14,t1y=MY-62*Math.cos(th/2+0.15),t1w=labelW(ctx,t1,10)+8;
+    lab(t1,t1x,t1y,'#fbbf24');keep.push([t1x-t1w/2,t1y-9,t1x+t1w/2,t1y+9]);
     if(!F.tir)lab('θ₂ = '+(th2*180/Math.PI).toFixed(1)+'°',cx+62*Math.sin(th2/2+0.15)+14,MY+62*Math.cos(th2/2+0.15),'#34d399');
+    // the incident ray's name: above its handle, else beside it
+    var IN='קרן נכנסת',iw=labelW(ctx,IN,10),ip=spot(iw,12,[[sx<50?sx+iw/2:sx,Math.max(12,sy-22)],[sx-19-iw/2,sy],[sx+19+iw/2,sy],[sx-19-iw/2,sy+22]]);
+    optLabel(ctx,IN,ip[0],ip[1],hex,10);
+    keep.push([sx-16,sy-16,sx+16,sy+16]);       // the handle's ring, for the names that follow
     // the shares, at the beams' ends
     var pct=function(v){return v>0.995?'100%':v<0.005?'0%':(v*100).toFixed(v<0.1?1:0)+'%';};
-    lab('R = '+pct(F.R),Math.min(W-40,rx+6),Math.max(14,ry-14),F.R>0.5?'#fde68a':'#cbd5e1');
+    var tR='R = '+pct(F.R),rw=labelW(ctx,tR,10)+8;
+    var rp=spot(rw,18,[[Math.min(W-40,rx+6),Math.max(14,ry-14)],[rx+19+rw/2,ry],[rx+19+rw/2,ry+22],[rx-19-rw/2,ry+22]]);
+    lab(tR,rp[0],rp[1],F.R>0.5?'#fde68a':'#cbd5e1');
     if(!F.tir)lab('T = '+pct(1-F.R),Math.min(W-40,tx+8),Math.min(H-74,ty+12),'#a7f3d0');
     else{ctx.save();ctx.fillStyle='rgba(4,9,20,.88)';ctx.strokeStyle='#f87171';ctx.lineWidth=1.2;var ww=Math.min(W-20,labelW(ctx,'החזרה פנימית מלאה — אין קרן שבורה',12)+24);
       ctx.beginPath();ctx.roundRect(cx-ww/2,MY+62,ww,26,7);ctx.fill();ctx.stroke();ctx.restore();
       optLabel(ctx,'החזרה פנימית מלאה — אין קרן שבורה',cx,MY+75,'#fca5a5',12);}
+    // θc's name: at the end of its dashed line, or below that end, or on the
+    // normal's side of it -- never under the incident ray's handle
+    if(thc!==null&&tir){var tC='θc = '+thc.toFixed(1)+'°',cw=labelW(ctx,tC,10);
+      var cp=spot(cw,12,[[ex-4-cw/2,ey-10],[ex-8-cw/2,ey+12],[ex+12+cw/2,ey+6],[cx-L*0.62*Math.sin(tc)-10-cw/2,MY-L*0.62*Math.cos(tc)]]);
+      optLabel(ctx,tC,cp[0],cp[1],'#f59e0b',10);}
     // R(θ) for these two media, with the current angle marked
     var gw=Math.min(170,W*0.40),gh=58,gx=W-gw-10,gy=H-gh-18;
     ctx.save();ctx.fillStyle='rgba(4,9,20,.82)';ctx.beginPath();ctx.roundRect(gx-6,gy-16,gw+12,gh+30,6);ctx.fill();
@@ -19386,8 +19423,7 @@ function _optInterface(canvas,P){
     optLabel(ctx,'R(θ₁) — החלק המוחזר',gx+gw/2,gy-8,'#94a3b8',8.5);
     optLabel(ctx,'0°',gx,gy+gh+9,'#7d8da6',8);optLabel(ctx,'90°',gx+gw,gy+gh+9,'#7d8da6',8);
     if(thc!==null)optLabel(ctx,'θc',gx+thc/90*gw,gy+gh+9,'#f59e0b',8);
-    optLabel(ctx,'קרן נכנסת',sx,Math.max(12,sy-16),hex,10,sx<50?'left':'center');
-    if(!touched&&animT<10)optLabel(ctx,'✋ גררו את הקרן סביב נקודת הפגיעה',W-8,20,'#fbbf24',10,'right');
+    if(hint)optLabel(ctx,HINT,W-8,20,'#fbbf24',10,'right');
     // the law, in numbers
     var s1=n1*Math.sin(th);
     if(F.tir)kit.model('חוק סנל: '+_skM('sin θ₂ = (n₁/n₂)·sin θ₁ = ('+n1.toFixed(3)+'/'+n2.toFixed(3)+')·sin '+thD.toFixed(tir?1:0)+'° = '+((s1/n2)<1.0005?(s1/n2).toFixed(4):(s1/n2).toFixed(3))+' > 1')+' — אין זווית כזו: החזרה פנימית מלאה ('+_skM('θ₁ > θc = '+thc.toFixed(2)+'°')+').');
@@ -20429,8 +20465,13 @@ function simOptPolarization(canvas){
     optLabel(ctx,'I₁ = '+pc(I1),mid?(X.p1+X.p2)/2:(X.p1+X.p3)/2,row,'#fde68a',10);
     if(mid)optLabel(ctx,'I₂ = '+pc(I2),(X.p2+X.p3)/2,row,'#fde68a',10);
     optLabel(ctx,'I = '+pc(I3),X.det,row,I3>0.0005?'#fde68a':'#f87171',10,X.det>W-30?'right':'center');
-    if(I3<1e-9)optLabel(ctx,'חושך מוחלט',X.det,by-rD-12,'#f87171',10,'right');
-    if(!touched&&animT<10)optLabel(ctx,'✋ סובבו את המנתח',X.p3,by-rD-14+Math.sin(animT*4)*3,'#fbbf24',10);
+    // "total darkness" over the detector; while the drag hint bobs over the
+    // analyzer beside it, one row higher if the two would touch
+    var HINT='✋ סובבו את המנתח',hint=!touched&&animT<10;
+    if(I3<1e-9){var DK='חושך מוחלט',dkY=by-rD-12;
+      if(hint&&X.det-labelW(ctx,DK,10)-6<X.p3+labelW(ctx,HINT,10)/2)dkY-=20;
+      optLabel(ctx,DK,X.det,dkY,'#f87171',10,'right');}
+    if(hint)optLabel(ctx,HINT,X.p3,by-rD-14+Math.sin(animT*4)*3,'#fbbf24',10);
     if(asking)optLabel(ctx,'🤔 נבאו קודם — ענו על השאלה שמתחת לתרשים',W/2,22,'#fbbf24',10);
     // Malus's law at the analyzer: cos² of the angle between it and the light reaching it
     var gw=Math.min(220,W*0.6),gh=Math.min(80,H*0.18),gx=(W-gw)/2,gy=H-gh-26,rel=((th3-lastA)%180+180)%180;
@@ -20591,7 +20632,11 @@ function simOptLaser(canvas){
   // `id` here held the type string while _simStop/_simGen are keyed by the
   // canvas id -- the stop flag could never reach this loop.
   var id=canvas.id, _g=_simGen[id];
-  var R=setupCanvas(canvas,480);var ctx=R.ctx,W=R.W,H=R.H;
+  // 416 px tall, the cavity 120 px from the top: the inversion meter's name
+  // then sits near the top edge (at 480 px and the cavity at 38 % of the
+  // height, the top 80 px stayed empty -- a third of a phone's screen above
+  // the picture)
+  var R=setupCanvas(canvas,416);var ctx=R.ctx,W=R.W,H=R.H;
   var animT=0,last=null;
   var photons=[];
   function getPump(){var e=document.getElementById('inp-laser-pump');return e?parseFloat(e.value)/100:0.6;}
@@ -20634,7 +20679,7 @@ function simOptLaser(canvas){
     var IR=wl>700;
     if(IR){lCol='#b91c1c';lRGB=['185','28','28'];}
     ctx.fillStyle='#0f172a';ctx.fillRect(0,0,W,H);
-    var cavL=W*0.12,cavR=W*0.8,cavY=H*0.38,cavH=H*0.22;
+    var cavL=W*0.12,cavR=W*0.8,cavY=120,cavH=106;
     // Active medium
     var medGrad=ctx.createLinearGradient(cavL,0,cavR,0);
     var alpha=Math.min(1,pump*1.5);
@@ -21693,7 +21738,11 @@ function _optSpecRGB(Rf,gain){
   var X=0,Y=0,Z=0,Yw=0;
   for(var i=0;i<_OPT_D65.length;i++){var l=380+10*i,c=_optCMF(l),S=_OPT_D65[i],r=Rf(l);
     X+=r*S*c[0];Y+=r*S*c[1];Z+=r*S*c[2];Yw+=S*c[1];}
-  X*=gain/Yw;Y*=gain/Yw;Z*=gain/Yw;
+  return _optXYZtoRGB(X*gain/Yw,Y*gain/Yw,Z*gain/Yw);
+}
+// XYZ (Y = 1 for the white of D65) as sRGB 0..255: a colour out of gamut goes
+// toward white, and one too bright keeps its hue at full brightness
+function _optXYZtoRGB(X,Y,Z){
   var lin=[3.2406*X-1.5372*Y-0.4986*Z,-0.9689*X+1.8758*Y+0.0415*Z,0.0557*X-0.2040*Y+1.0570*Z];
   var mn=Math.min(lin[0],lin[1],lin[2]);if(mn<0)lin=lin.map(function(v){return v-mn;});   // out of gamut: toward white
   var mx=Math.max(lin[0],lin[1],lin[2]);if(mx>1)lin=lin.map(function(v){return v/mx;});
@@ -21860,14 +21909,38 @@ function simOptGrating(canvas){
      hint:_skM('d = 1/800 mm = 1.25 μm')+'. קבעו d ו־λ, וגררו את הגלאי על הקשת אל הקו.',
      why:_skM('sin θ₁ = 656/1250 = 0.525')+' ⇒ '+_skM('θ₁ ≈ 31.6°')+'. הקו הכחול, 486 nm, נמצא ב־22.9° — הפרש של '+_skM('8.8°')+'.',
      done:function(s){return !s.white&&Math.abs(s.d-1250)<6&&Math.abs(s.lam-656)<3&&Math.abs(s.mDet-1)<0.02;}}]});
-  var cache={k:null,c:null};
+  var cache={k:null,c:null},SPEC=null;
+  // White light as the eye sees it: at each point of the screen, the spectrum
+  // that arrives there (every wavelength's own pattern, every 2 nm under D65)
+  // made a colour by the CIE matching functions, as in the thin film. Adding
+  // 31 rainbow RGBs channel by channel and clipping each at 255 turned every
+  // bright patch into flat white or a saturated band. Here the central maximum
+  // is white with reddish edges (red's maximum is the widest), and the orders
+  // are spectra. A spectrum spreads the light ~N times thinner than the white
+  // centre gathers it, so the exposure is set by the brightest point outside
+  // the central maximum, as a photographer would; the centre, over-exposed,
+  // stays white. Each point of the screen is the mean over its own width
+  // (orders far out are narrower than it: sampled at one angle they sparkled).
+  function specTab(){
+    if(SPEC)return SPEC;SPEC=[];var Yw=0;
+    for(var l=380;l<=720;l+=2){var u=(l-380)/10,i0=Math.min(_OPT_D65.length-2,Math.floor(u)),S=_OPT_D65[i0]+(_OPT_D65[i0+1]-_OPT_D65[i0])*(u-i0),c=_optCMF(l);
+      SPEC.push([l,S*c[0],S*c[1],S*c[2]]);Yw+=S*c[1];}
+    SPEC.forEach(function(q){q[1]/=Yw;q[2]/=Yw;q[3]/=Yw;});
+    return SPEC;
+  }
   function arcColours(N,d,lam){          // the screen, sample by sample: monochrome or white light
     var k=N+'|'+d+'|'+lam+'|'+white;if(cache.k===k)return cache.c;
-    var out=[],S=240;
-    for(var i=0;i<=S;i++){var th=-Math.PI/2+Math.PI*i/S,s=Math.sin(th),r=0,g=0,b=0;
-      if(!white){var I=Inslit(N,d,lam,s),c=wavelengthToRGB(lam).match(/\d+/g);r=c[0]*I;g=c[1]*I;b=c[2]*I;}
-      else{for(var l=400;l<=700;l+=10){var Il=Inslit(N,d,l,s),cc=wavelengthToRGB(l).match(/\d+/g);r+=cc[0]*Il/9;g+=cc[1]*Il/9;b+=cc[2]*Il/9;}}
-      out.push([th,Math.min(255,r),Math.min(255,g),Math.min(255,b)]);}
+    var out=[],S=240,i,th;
+    if(!white){var c=wavelengthToRGB(lam).match(/\d+/g);
+      for(i=0;i<=S;i++){th=-Math.PI/2+Math.PI*i/S;var I=Inslit(N,d,lam,Math.sin(th));out.push([th,Math.min(255,c[0]*I),Math.min(255,c[1]*I),Math.min(255,c[2]*I)]);}}
+    else{
+      var T=specTab(),dth=Math.PI/S,M=Math.max(1,Math.min(12,Math.ceil(dth*3*N*d/380))),s0=1.5*700/(N*d),xyz=[],ymax=0;
+      for(i=0;i<=S;i++){th=-Math.PI/2+dth*i;var X=0,Y=0,Z=0;
+        for(var u=0;u<M;u++){var s=Math.sin(th+dth*((u+0.5)/M-0.5));
+          for(var j=0;j<T.length;j++){var Il=Inslit(N,d,T[j][0],s);X+=Il*T[j][1];Y+=Il*T[j][2];Z+=Il*T[j][3];}}
+        xyz.push([X/M,Y/M,Z/M]);if(Math.abs(Math.sin(th))>s0)ymax=Math.max(ymax,Y/M);}
+      var gain=Math.max(1,Math.min(20,0.85/Math.max(1e-6,ymax)));
+      for(i=0;i<=S;i++){var q=_optXYZtoRGB(xyz[i][0]*gain,xyz[i][1]*gain,xyz[i][2]*gain);out.push([-Math.PI/2+dth*i,q[0],q[1],q[2]]);}}
     cache={k:k,c:out};return out;
   }
   function draw(ts){
@@ -21901,7 +21974,7 @@ function simOptGrating(canvas){
     // order names beyond the arc
     var mm=white?[-2,-1,0,1,2]:orders.map(function(o){return o[0];});
     mm.forEach(function(m){var s=m*(white?550:lam)/d;if(Math.abs(s)>0.985)return;var th=Math.asin(s),pt=aPt(th,RA+20);
-      optLabel(ctx,'m='+m,pt.x,pt.y,m===0&&white?'#ffffff':'#cbd5e1',9,pt.x>W-24?'right':'center');});
+      optLabel(ctx,'m = '+(m<0?'−'+(-m):m),pt.x,pt.y,m===0&&white?'#ffffff':'#cbd5e1',9,pt.x>W-24?'right':'center');});
     // the detector on the arc
     var th=detA*Math.PI/180,dp=aPt(th,RA),mDet=d*Math.sin(th)/(white?550:lam);
     ctx.save();ctx.strokeStyle='rgba(255,255,255,.35)';ctx.setLineDash([4,5]);ctx.beginPath();ctx.moveTo(gX,cy);ctx.lineTo(dp.x,dp.y);ctx.stroke();ctx.restore();
@@ -26448,7 +26521,7 @@ runAnim('anim-em-spectrum',(canvas,ctx,W,H,t)=>{
   ctx.restore();
   oLbl(ctx,'λ',cw,waveY+24,curCol,8);
   // Label: λ together with its frequency f=c/λ
-  oLbl(ctx,'\u200eλ='+wl+'nm  ·  f='+(3e5/wl).toFixed(0)+'THz',cw,barY-56,curCol,10);
+  oLbl(ctx,'\u200eλ = '+wl+' nm  ·  f = '+(3e5/wl).toFixed(0)+' THz',cw,barY-56,curCol,10);
   // Axis labels
   oLbl(ctx,'380nm',barX+12,barY+barH+12,'#9333ea',8);
   oLbl(ctx,'700nm',barX+barW-14,barY+barH+12,'#ef4444',8);
@@ -27533,10 +27606,10 @@ runAnim('anim-grating-t',function(canvas,ctx,W,H,t){
     oRay(ctx,gX,ax,ex,ey,m===0?'rgba(255,255,255,0.7)':col,2);
     if(m!==0)optNoGlow(ctx);
     ctx.restore();
-    oLbl(ctx,'m='+m,ex+(m===0?16:22),ey,col,8);
+    oLbl(ctx,'m='+(m<0?'−'+(-m):m),ex+(m===0?16:22),ey,col,8);
   });
   oLbl(ctx,'d·sinθ=mλ',W/2,H-6,'#94a3b8',8);
-  oLbl(ctx,'λ='+Math.round(wl)+'nm',W*0.18,ax-12,lHex,9);
+  oLbl(ctx,'λ = '+Math.round(wl)+' nm',W*0.18,ax-12,lHex,9);
 });
 
 // ══════════════════════════════════════════════

@@ -513,11 +513,12 @@ const EXPECT = {
   t('interference: every mission is reachable', await missions() === '111', await missions());
 
   // ── the EM wave: f = c/λ and T = 1/f in the live line; λ drawn to one scale
-  // for every colour (the λ label sits at the middle of the bracket, X0 + 8 + λ/2) ──
+  // for every colour (the λ label sits at the middle of the bracket, X0 + 8 + λ/2,
+  // below the readout box in the top corner, which names λ the same way) ──
   await open('opt-light', 'light-nature');
   await p.evaluate(() => { if (window.__PX) return; window.__PX = []; const o = CanvasRenderingContext2D.prototype.fillText;
-    CanvasRenderingContext2D.prototype.fillText = function (s, x) { if (typeof s === 'string' && this.canvas.id === 'sim-canvas' && /^λ=\d/.test(s.replace(/[⁦-⁩‎]/g, ''))) { window.__PX.push([s.replace(/[⁦-⁩‎]/g, ''), x]); if (window.__PX.length > 400) window.__PX.splice(0, 200); } return o.apply(this, arguments); }; });
-  const lamPx = async lam => { await p.waitForTimeout(120); return p.evaluate(lam => { const a = window.__PX.filter(q => q[0] === 'λ=' + lam + 'nm'); return a.length ? 2 * (a[a.length - 1][1] - 38) : null; }, lam); };
+    CanvasRenderingContext2D.prototype.fillText = function (s, x, y) { if (typeof s === 'string' && this.canvas.id === 'sim-canvas' && /^λ = \d/.test(s.replace(/[⁦-⁩‎]/g, ''))) { window.__PX.push([s.replace(/[⁦-⁩‎]/g, ''), x, y]); if (window.__PX.length > 400) window.__PX.splice(0, 200); } return o.apply(this, arguments); }; });
+  const lamPx = async lam => { await p.waitForTimeout(120); return p.evaluate(lam => { const a = window.__PX.filter(q => q[0] === 'λ = ' + lam + ' nm' && q[2] > 110); return a.length ? 2 * (a[a.length - 1][1] - 38) : null; }, lam); };
   const wpx = {};
   for (const lam of [380, 550, 700]) {
     await setv('emw-wl', lam); const tx = await modelFor('/ ' + lam + '×10⁻⁹'), g = /= (\d\.\d\d)×10¹⁴ Hz/.exec(tx), T = /T = 1\/f = (\d\.\d\d) fs/.exec(tx);
