@@ -16540,7 +16540,7 @@ function simElcMillikan(canvas){
   // simulation never divides by a value of e it already knew.
   var id=canvas.id,_g=_simGen[id];
   var NAR=((canvas.parentElement&&canvas.parentElement.clientWidth)||800)<560;
-  const H=NAR?660:540; const {ctx,W,dpr}=setupCanvas(canvas,H);
+  const H=NAR?690:540; const {ctx,W,dpr}=setupCanvas(canvas,H);
   const d_m=0.005, g=10, e_c=1.6e-19, ETA=1.8e-5, RHO=900;
   const TL=25;                 // on screen the motion runs 25 times faster than life
   var LTR=document.documentElement.dir==='ltr';
@@ -16570,7 +16570,11 @@ function simElcMillikan(canvas){
   function gV(){var e=document.getElementById('inp-mk-V');return e?parseFloat(e.value):300;}
   // geometry: the chamber, the number line of q, the log
   var PL=NAR?W*0.12:W*0.05, PR=NAR?W*0.80:W*0.50, PT=36, PB=NAR?236:246;
-  var NLx0=NAR?36:44, NLx1=W-(NAR?28:36), NLy=NAR?428:440, QMAX=9e-19;
+  // on a phone the measurement lines may need a second row each (set small
+  // enough to fit one row, the weighing line fell to 7 px): the number line
+  // and the log below it move down by two rows, once, for every drop alike
+  var EX=NAR?15:0;
+  var NLx0=NAR?36:44, NLx1=W-(NAR?28:36), NLy=NAR?428+2*EX:440, QMAX=9e-19;
   function qX(q){return NLx0+(NLx1-NLx0)*q/QMAX;}
   function xQ(x){return (x-NLx0)/(NLx1-NLx0)*QMAX;}
   function onTooth(q){var k=q/comb;return Math.round(k)>=1&&Math.abs(k-Math.round(k))<0.1;}
@@ -16655,11 +16659,13 @@ function simElcMillikan(canvas){
     ctx.strokeStyle='#f59e0b';ctx.lineWidth=1.5;ctx.stroke();
     // all three forces on one scale: at terminal speed they sum to zero
     var Fd=-Fnet, sc=52/Math.max(Fg,Fe,1e-30);
+    // each name beyond its arrow's head -- unless that is on a plate (a drop
+    // low in the chamber put "mg" on the blue plate): then beside the head
     simArrow(ctx,cx-30,dy,cx-30,dy+Fg*sc,'#ef4444',2.5,9);
-    slTxt(ctx,'mg',cx-36,dy+Fg*sc+13,'#ef4444',11,'right',true);
+    slTxt(ctx,'mg',cx-36,Math.min(dy+Fg*sc+13,PB-4),'#ef4444',11,'right',true);
     if(Fe>Fg*0.005){
       simArrow(ctx,cx+30,dy,cx+30,dy-Fe*sc,'#10b981',2.5,9);
-      slTxt(ctx,'qE',cx+36,dy-Fe*sc-6,'#10b981',11,'left',true);
+      slTxt(ctx,'qE',cx+36,Math.max(dy-Fe*sc-6,PT+12),'#10b981',11,'left',true);
     }
     if(Math.abs(Fd)*sc>5){
       simArrow(ctx,cx+62,dy,cx+62,dy-Fd*sc,'#94a3b8',2,8);
@@ -16669,25 +16675,35 @@ function simElcMillikan(canvas){
     simText(ctx,off?'השדה כבוי: נופלת במהירות קבועה — הגרר מאזן את המשקל'
       :bal?'⚖ מרחפת — qE = mg':(Fnet>0?'עולה במהירות קבועה — qE > mg, והגרר מאזן את ההפרש':'יורדת במהירות קבועה — mg > qE, והגרר מאזן את ההפרש'),
       (PL+PR)/2,sy,bal?'#10b981':'#94a3b8',12,'center',true);
-    simText(ctx,edge?(edge<0?'הטיפה בתחתית שדה הראייה — העלו את המתח כדי להחזיר אותה':'הטיפה בראש שדה הראייה — הורידו את המתח')
-      :'על המסך התנועה מואצת פי '+TL,(PL+PR)/2,sy+18,edge?'#f59e0b':'#7d8da6',10,'center');
+    var edT=edge?(edge<0?'הטיפה בתחתית שדה הראייה — העלו את המתח כדי להחזיר אותה':'הטיפה בראש שדה הראייה — הורידו את המתח')
+      :'על המסך התנועה מואצת פי '+TL;
+    // a phone has a free row under it (the measurements below start lower there)
+    if(EX)dcCap(ctx,edT,(PL+PR)/2,sy+18,edge?'#f59e0b':'#7d8da6',10,false,true);
+    else simText(ctx,edT,(PL+PR)/2,sy+18,edge?'#f59e0b':'#7d8da6',10,'center');
     // ── the two measurements on this drop ──
     var by=sy+46;
     slTxt(ctx,'E = V/d = '+E.toFixed(0)+' V/m      v = '+(Math.abs(vy)*1000).toFixed(3)+' mm/s '+(Math.abs(vy)<1e-7?'':(vy>0?'↑':'↓')),
       W/2,by,'#94a3b8',11,'center');
+    // a line too wide for the canvas at its own size takes two rows (a phone
+    // has the row for it), cut where the text says: at a dash, or before ⇒
+    var rows=function(t,y,col,sz,bold,cut,f){f=f||simText;
+      ctx.save();ctx.font=(bold?'bold ':'')+sz+'px Heebo,sans-serif';var wide=ctx.measureText(_mathIso(_cvSub(t))).width>W-16;ctx.restore();
+      var i=wide&&EX?t.indexOf(cut):-1;
+      if(i<0){f(ctx,t,W/2,y,col,sz,'center',bold);return;}
+      f(ctx,t.slice(0,i).trim(),W/2,y,col,sz,'center',bold);f(ctx,t.slice(i).replace(/^\s*—\s*/,'').trim(),W/2,y+EX,col,sz,'center',bold);};
     if(mMeas===null){
-      simText(ctx,'שלב 1: הורידו את המתח ל־0 — מהירות הנפילה תיתן את מסת הטיפה',W/2,by+22,'#fbbf24',11.5,'center',true);
+      rows('שלב 1: הורידו את המתח ל־0 — מהירות הנפילה תיתן את מסת הטיפה',by+22,'#fbbf24',11.5,true,' — ');
     } else {
       var rM2=Math.cbrt(3*mMeas/(4*Math.PI*RHO));
-      slTxt(ctx,'v₀ = '+(vFall*1000).toFixed(3)+' mm/s  ⇒  r = √(9ηv₀/2ρg) = '+(rM2*1e6).toFixed(2)+' μm  ⇒  m = '+sciTxt(mMeas)+' kg',
-        W/2,by+22,'#dde6f0',11.5,'center',true);
+      rows('v₀ = '+(vFall*1000).toFixed(3)+' mm/s  ⇒  r = √(9ηv₀/2ρg) = '+(rM2*1e6).toFixed(2)+' μm  ⇒  m = '+sciTxt(mMeas)+' kg',
+        by+22,'#dde6f0',11.5,true,'  ⇒  m',slTxt);
     }
     if(revealed){
-      slTxt(ctx,'q = mgd/V = '+sciTxt(cur.q)+' C   (V = '+Vbal.toFixed(0)+' V)',W/2,by+44,'#fbbf24',12.5,'center',true);
+      slTxt(ctx,'q = mgd/V = '+sciTxt(cur.q)+' C   (V = '+Vbal.toFixed(0)+' V)',W/2,by+44+EX,'#fbbf24',12.5,'center',true);
     } else if(mMeas!==null){
-      simText(ctx,'שלב 2: העלו את המתח עד שהטיפה תעצור — ואז ייחשב המטען',W/2,by+44,'#7d8da6',11.5,'center');
+      rows('שלב 2: העלו את המתח עד שהטיפה תעצור — ואז ייחשב המטען',by+44+EX,'#7d8da6',11.5,false,' — ');
     } else if(bal){
-      simText(ctx,'הטיפה מרחפת — אבל q = mgd/V דורש את m: התחילו בשלב 1',W/2,by+44,'#f59e0b',11.5,'center',true);
+      rows('הטיפה מרחפת — אבל q = mgd/V דורש את m: התחילו בשלב 1',by+44+EX,'#f59e0b',11.5,true,' — ');
     }
     // ── the number line of q, and the comb ──
     var fitAll=log.length>0&&log.every(function(m){return onTooth(m.q);});
