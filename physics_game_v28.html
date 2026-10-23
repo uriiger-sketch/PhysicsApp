@@ -10347,6 +10347,25 @@ function simKit(canvas,spec){
   api.label=function(t){if(t&&canvas.getAttribute('aria-label')!==t)canvas.setAttribute('aria-label',t);};
   return api;
 }
+// A question asked when a button is pressed ("predict first") shows under the
+// canvas. It was brought into view with scrollIntoView on the whole kit panel
+// -- question, model line and missions -- which on a phone scrolled the page
+// ~530 px and took the canvas off the screen. simReveal brings in only the
+// question, by the least scroll that shows it, and never so far that more
+// than half of the canvas leaves the screen; the question glows a moment, so
+// the eye finds it.
+function simReveal(canvas,el){
+  if(!el||!el.getBoundingClientRect)return;
+  var hd=document.querySelector('.header'),top=0;
+  try{if(hd&&/sticky|fixed/.test(getComputedStyle(hd).position))top=Math.max(0,hd.getBoundingClientRect().bottom);}catch(e){}
+  var r=el.getBoundingClientRect(),c=canvas.getBoundingClientRect(),vh=window.innerHeight,d=0;
+  if(r.bottom>vh-8)d=Math.min(r.bottom-(vh-8),r.top-top-8);    // below the screen: its foot in, its head kept in
+  else if(r.top<top+8)d=r.top-top-8;                           // scrolled past it: its head in (the canvas comes back too)
+  if(d>0)d=Math.min(d,Math.max(0,c.top+c.height/2-top));       // half of the canvas stays on the screen
+  if(Math.abs(d)>1)try{window.scrollBy({top:d,behavior:_reducedMotion()?'auto':'smooth'});}catch(e){window.scrollBy(0,d);}
+  el.style.transition='box-shadow .3s';el.style.boxShadow='0 0 0 3px var(--gold)';
+  setTimeout(function(){el.style.boxShadow='';},1300);
+}
 // maths inside a kit text: one left-to-right run, whatever the page direction;
 // x_0, T_C, I_{max} are set as subscripts (as the canvas labels set them) and
 // v^2, s^{-1} as superscripts
@@ -17331,7 +17350,7 @@ function simCircular(canvas){
   function wantCut(){
     if(cut){retie();return;}
     if(!revealed){toast='נחשו קודם: מה יקרה כשהחוט ייגזר? 👇';toastT=t;
-      var q=kit.el&&kit.el.querySelector('.sk-predict');if(q&&q.scrollIntoView)q.scrollIntoView({block:'nearest',behavior:'smooth'});return;}
+      simReveal(canvas,kit.el&&kit.el.querySelector('.sk-predict'));return;}
     doCut();
   }
   var cb=document.getElementById('btn-circ-cut');
@@ -29343,7 +29362,7 @@ function magPredictor(kit,canvas){
       if(st.done||(host&&host._simReplay)){st.done=true;go();return;}
       st.go=go;if(cur===st)return;cur=st;
       kit.predict(p,function(){st.done=true;cur=null;var g=st.go;st.go=null;if(g)g();});
-      try{if(kit.el&&kit.el.scrollIntoView)kit.el.scrollIntoView({block:'nearest'});}catch(e){}
+      try{simReveal(canvas,kit.el&&kit.el.querySelector('.sk-predict'));}catch(e){}
     };
   };
 }
