@@ -342,6 +342,9 @@ const EXPECT = {
   t('... on the ground after landing it rests: v = 0, a = 0, t = 2v0/g', close(landed[0], 2 * 18 / 9.8, 0.006) && landed[2] === 0 && landed[3] === 0, landed.join(', '));
   await until(async () => /= −18\.0 m\/s/.test(await modelTxt()), 2000);
   t('... the model line substitutes the numbers: v = v0 − g·t', /v = v₀ − g·t = 18 − 9\.8×3\.67 = −18\.0 m\/s/.test(await modelTxt()), await modelTxt());
+  // ... as the velocity it struck the ground with: at rest, the line agrees with the readout
+  const ffm = await modelTxt();
+  t('... and says it has landed: −18.0 m/s is the impact velocity, and now v = 0 · a = 0, as the readout shows', ffm.includes(L('נחת: פגע בקרקע במהירות ')) && ffm.includes(L(', ועכשיו הוא במנוחה: ')) && /v = 0\s·\sa = 0$/.test(ffm.trim()), ffm);
   // mission 2: drag the time cursor to the top
   rr = await rect(); W = rr.w;
   const ffSW = W < 600 ? Math.round(W * 0.42) : Math.min(320, Math.round(W * 0.38)), ffGX = ffSW + (W < 600 ? 28 : 40), ffGW = W - ffGX - 12;
@@ -369,6 +372,13 @@ const EXPECT = {
     T6.push(nums(await last('^t = [\\d.]+ s +· '))[0]);
   }
   t('free fall: a 0.5 kg and a 5 kg ball thrown at 6 m/s land at the same t = 2v0/g', T6.every(x => close(x, 12 / 9.8, 0.006)) && await mission('kinematics.freefall', 2), T6.join(' s, ') + ' s');
+  // one scale for a(t) whatever g is, so the Moon and Jupiter look different: the
+  // grid runs from −30 to +10 m/s² for both (it was rescaled to each g)
+  const ffAGrid = async g => { await set('ff-g', g); await fresh(); await p.waitForTimeout(300);
+    return [...new Set((await all('^[−+]?\\d+$')).map(s => nums(s)[0]))]; };
+  const gMoon = await ffAGrid(1.6), gJup = await ffAGrid(25);
+  t('free fall: the a(t) graph has one scale for the Moon and for Jupiter, −30 to +10 m/s²', [gMoon, gJup].every(G => G.includes(-30) && G.includes(10) && !G.includes(-40)), gMoon.join(',') + ' | ' + gJup.join(','));
+  await set('ff-g', 9.8);
 
   // position–time: a flat graph, path vs displacement, moving + on the − side
   await open('kinematics.distance-time');

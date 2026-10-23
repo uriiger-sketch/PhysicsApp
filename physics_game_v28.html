@@ -11609,7 +11609,11 @@ function simFreefall(canvas){
   const VT={x:GX,y:TOPY,w:GW,h:Math.round((GND-TOPY)*0.58)};
   const AT={x:GX,y:VT.y+VT.h+26}; AT.w=GW; AT.h=GND-AT.y;
   const AIMS=(GND-TOPY-44)/30;            // px of pull per m/s of v₀
-  const LA=30;                             // the a arrow: one length for one g
+  // The a arrow and the a(t) graph are drawn to one scale for every g: the
+  // arrow is 30 px for the Earth's 9.8 m/s² and in proportion for any other,
+  // the graph runs to −30 m/s² (the slider stops at 25). With a fixed length
+  // and a graph scaled to each g, the Moon, the Earth and Jupiter looked alike.
+  const KA=30/9.8, A_LO=-30, A_HI=10;
   var fl=null, paused=false, scrub=false, aim=null, flights=[], scrubbed=false, pT=null;
   var VIEW=30;
   function getV0(){var e=document.getElementById('inp-v0');return e?parseFloat(e.value)||0:18;}
@@ -11742,10 +11746,16 @@ function simFreefall(canvas){
     simCircle(ctx,BX,by,r,gr,'#818cf8',2);ctx.restore();
     var v=fl?vOf(fl.t):0;
     if(air){
-      // v: green, its length is the speed; a: cyan, one length for g, always down
-      var VS=Math.min(4,92/Math.max(5,fl.v0));
-      if(Math.abs(v)*VS>3)_mkVec(ctx,BX-r-9,by,BX-r-9,by-v*VS,'#34d399','v',W,H);
-      _mkVec(ctx,BX+r+9,by,BX+r+9,by+LA,'#22d3ee','a',W,H);
+      // v: green, its length is the speed; a: cyan, its length is g, always down.
+      // Near the ground an arrow pointing down is lifted beside the ball, so it
+      // ends above the ground line and its name stays off the "y = 0" row (it
+      // used to run through both, and v off the canvas); a short one gets a
+      // head to its size.
+      var lift=function(len){return Math.min(by,GND-20-len);};
+      var VS=Math.min(4,92/Math.max(5,fl.v0)), vl=-v*VS, vy0=vl>0?lift(vl):by;
+      if(Math.abs(v)*VS>3)_mkVec(ctx,BX-r-9,vy0,BX-r-9,vy0+vl,'#34d399','v',W,H);
+      var LA=fl.g*KA, ay0=lift(LA);
+      _mkVec(ctx,BX+r+9,ay0,BX+r+9,ay0+LA,'#22d3ee','a',W,H,Math.max(1,Math.min(3,(0.7*LA-1)/3.6)));
       if((paused||scrub)&&Math.abs(v)<0.35){
         ctx.save();ctx.strokeStyle='#fbbf24';ctx.lineWidth=2;ctx.setLineDash([4,3]);
         ctx.beginPath();ctx.arc(BX,by,r+7,0,6.2832);ctx.stroke();ctx.restore();}
@@ -11765,9 +11775,9 @@ function simFreefall(canvas){
     // ── v(t) and a(t): the same instants, one cursor ──
     var F=fl||{v0:Math.max(v0s,1),g:g,t:0};
     var T1=fl?fl.T:2*F.v0/F.g, U=fl?fl.up:F.v0/F.g;
-    var vR=_mkUp(Math.max(5,F.v0)), aR=_mkUp(F.g*1.3);
+    var vR=_mkUp(Math.max(5,F.v0));
     var pv=_mkPlot(ctx,{x:VT.x,y:VT.y,w:VT.w,h:VT.h,t1:T1,lo:-vR,hi:vR,name:'v (m/s)',col:'#34d399'});
-    var pa=_mkPlot(ctx,{x:AT.x,y:AT.y,w:AT.w,h:AT.h,t1:T1,lo:-aR,hi:aR,name:'a (m/s²)',col:'#22d3ee'});
+    var pa=_mkPlot(ctx,{x:AT.x,y:AT.y,w:AT.w,h:AT.h,t1:T1,lo:A_LO,hi:A_HI,name:'a (m/s²)',col:'#22d3ee'});
     if(fl){
       var tc=fl.t;
       // the top: where v(t) crosses zero -- and a(t) does nothing
@@ -11815,9 +11825,14 @@ function simFreefall(canvas){
     simText(ctx,'זמן עלייה = זמן ירידה = '+(fv/Math.max(fg,0.01)).toFixed(2)+' s',GX+GW/2,H-7,'#cbd5e1',10,'center');
 
     // ── the lesson's own line, and the missions ──
-    if(fl&&(air||fl.t>0)){
-      var vv=air?v:-fl.v0;
-      model(_skM('v = v₀ − g·t = '+fl.v0.toFixed(0)+' − '+fl.g.toFixed(1)+'×'+fl.t.toFixed(2)+' = '+_mkS(vv,1)+' m/s')+
+    if(fl&&!air&&!aim){
+      // landed: at rest on the ground, as the readout above says. −v₀ is the
+      // velocity it struck the ground with -- this line used to give it as
+      // "v" while the readout showed 0
+      model('נחת: פגע בקרקע במהירות '+_skM('v = v₀ − g·t = '+fl.v0.toFixed(0)+' − '+fl.g.toFixed(1)+'×'+fl.T.toFixed(2)+' = '+_mkS(-fl.v0,1)+' m/s')+
+        ', ועכשיו הוא במנוחה: '+_skM('v = 0')+' · '+_skM('a = 0'));
+    } else if(fl&&air){
+      model(_skM('v = v₀ − g·t = '+fl.v0.toFixed(0)+' − '+fl.g.toFixed(1)+'×'+fl.t.toFixed(2)+' = '+_mkS(v,1)+' m/s')+
         ' · '+_skM('a = −g = −'+fl.g.toFixed(1)+' m/s²')+' בכל רגע של המעוף');
     } else {
       var vq=aim?aim.v:v0s;
