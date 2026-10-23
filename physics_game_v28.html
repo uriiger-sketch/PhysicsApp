@@ -10101,17 +10101,43 @@ function simPointerXY(canvas,dpr,evt){
 // One place for "this canvas takes the pointer": mouse and touch together, a
 // release that only releases (a position read from an up-event snaps whatever
 // is being dragged to the edge), and no page scroll stolen mid-drag.
+//
+// A canvas never holds the page on a touch screen. h.hit(p) says whether a
+// press at p lands on something the learner can take hold of -- a handle, a
+// probe, a charge, a lamp; a finger that starts there drags at once. h.pad(p)
+// marks a drag strip, a surface the sim reads under a moving finger (a graph
+// scrubbed sideways, the field a velocity is aimed in): a finger that starts
+// on it takes it unless its first move is a steep, scrolling one, which the
+// page keeps. A finger that starts anywhere else scrolls the page as it would
+// beside the canvas, and a tap there still reaches the sim, as the mouse
+// press the browser makes of a tap. Once a finger has taken hold, the page
+// does not move under it. (A canvas with neither would take every touch:
+// every sim gives one.) The sims with handlers of their own keep to the same
+// rule.
 function simDrag(canvas,dpr,h){
-  var on=false;
+  var on=false,pend=null;
   function P(e){return simPointerXY(canvas,dpr,e);}
-  function dn(e){on=true;if(h.down)h.down(P(e));if(e.cancelable)e.preventDefault();}
-  function mv(e){if(!on)return;if(h.move)h.move(P(e));if(e.cancelable)e.preventDefault();}
-  function up(){if(!on)return;on=false;if(h.up)h.up();}
+  function dn(e){
+    pend=null;
+    if(e.type==='touchstart'&&(h.hit||h.pad)){
+      if(e.touches&&e.touches.length>1)return;
+      var p=P(e);
+      if(!(h.hit&&h.hit(p))){if(h.pad&&h.pad(p))pend=p;return;}}
+    on=true;if(h.down)h.down(P(e));if(e.cancelable)e.preventDefault();}
+  function mv(e){
+    // a strip: the first move decides (the browser sends it once the finger
+    // has gone ~15 px, while the page can still be told not to scroll)
+    if(pend){var p0=pend,q=P(e);pend=null;
+      if(!e.cancelable||Math.abs(q.x-p0.x)<0.4*Math.abs(q.y-p0.y))return;
+      on=true;if(h.down)h.down(p0);}
+    if(!on)return;if(h.move)h.move(P(e));if(e.cancelable)e.preventDefault();}
+  function up(){pend=null;if(!on)return;on=false;if(h.up)h.up();}
   canvas.addEventListener('mousedown',dn);canvas.addEventListener('touchstart',dn,{passive:false});
   canvas.addEventListener('mousemove',mv);canvas.addEventListener('touchmove',mv,{passive:false});
   canvas.addEventListener('mouseup',up);canvas.addEventListener('mouseleave',up);
   canvas.addEventListener('touchend',up);canvas.addEventListener('touchcancel',up);
-  canvas.style.touchAction='none';canvas.style.cursor='pointer';
+  // pans and pinches are the page's (no double-tap zoom, so a tap answers at once)
+  canvas.style.touchAction=h.hit||h.pad?'manipulation':'none';canvas.style.cursor='pointer';
 }
 // A draggable point that is not drawn is a draggable point nobody finds. One
 // ring, one dot, sized for a fingertip -- drawn at the hit target itself so the
@@ -10253,11 +10279,17 @@ function simKit(canvas,spec){
   if(box&&ms.every(function(m,i){return isDone(i);}))shut(true);
   fx(P);
   // armed by the learner's own hand on the sim -- not by a hint, a
-  // prediction or the description's close button
-  var TY=['pointerdown','mousedown','touchstart','keydown','input','change','click'];
+  // prediction or the description's close button, and not by a finger that
+  // only scrolled the page past the canvas: a touch arms when the sim took it
+  // (it is then cancelled, below) or as the tap the browser turns into a click
+  var TY=['pointerdown','mousedown','keydown','input','change','click'];
   if(host._skArm)TY.forEach(function(t){host.removeEventListener(t,host._skArm,true);});
-  host._skArm=function(e){var t=e.target;if(t&&t.closest&&t.closest('.sk-panel,.sim-tip'))return;armed=true;};
+  if(host._skArmT){host.removeEventListener('touchstart',host._skArmT);host.removeEventListener('touchmove',host._skArmT);}
+  host._skArm=function(e){var t=e.target;if(t&&t.closest&&t.closest('.sk-panel,.sim-tip'))return;
+    if(e.type==='pointerdown'&&e.pointerType==='touch')return;armed=true;};
+  host._skArmT=function(e){var t=e.target;if(e.defaultPrevented&&!(t&&t.closest&&t.closest('.sk-panel,.sim-tip')))armed=true;};
   TY.forEach(function(t){host.addEventListener(t,host._skArm,{capture:true,passive:true});});
+  host.addEventListener('touchstart',host._skArmT,{passive:true});host.addEventListener('touchmove',host._skArmT,{passive:true});
   api.check=function(s){
     if(!armed||!items.length)return;
     for(var i=0;i<ms.length;i++){
@@ -11063,10 +11095,13 @@ function simPositionTime(canvas){
   canvas.addEventListener('mousemove',function(e){if(drag)ballX=getXE(e);});
   canvas.addEventListener('mouseup',function(){drag=false;});
   canvas.addEventListener('mouseleave',function(){drag=false;});
-  canvas.addEventListener('touchstart',function(e){e.preventDefault();_ptStart(getXE(e));},{passive:false});
-  canvas.addEventListener('touchmove',function(e){e.preventDefault();if(drag)ballX=getXE(e);},{passive:false});
+  // a finger takes the ball on the track's band (a tap elsewhere still moves
+  // it there, as a click); anywhere else on the canvas it scrolls the page
+  canvas.addEventListener('touchstart',function(e){var p=simPointerXY(canvas,dpr,e);
+    if(Math.abs(p.y-AXISY)>56||p.x<GL-24||p.x>GR+24)return;e.preventDefault();_ptStart(getXE(e));},{passive:false});
+  canvas.addEventListener('touchmove',function(e){if(!drag)return;e.preventDefault();ballX=getXE(e);},{passive:false});
   canvas.addEventListener('touchend',function(){drag=false;});
-  canvas.style.touchAction='none';
+  canvas.style.touchAction='manipulation';
   var rb=document.getElementById('btn-pt-reset'); if(rb)rb.addEventListener('click',function(){hist=[];ballX=toCanvasX(0);recording=false;tRec0=null;sPath=0;lastXm=null;});
   var kit=simKit(canvas,{missions:[
     {text:'צרו בגרף x(t) קטע אופקי באורך '+_skM('2 s')+'.',
@@ -11219,10 +11254,12 @@ function simConstVelocity(canvas){
     if(el)el.addEventListener('input',function(){t=0;hist=[];});
   });
   // the velocity arrow's tip is a handle: grab it and pull to set v
-  simDrag(canvas,dpr,{
+  var cvHit=function(p){var xm=x0+vel*t, bx=toXpx(Math.max(-10.5,Math.min(10.5,xm)));
+    return Math.hypot(p.x-(bx+vel*VPX),p.y-(AXISY-34))<26||Math.abs(p.y-AXISY)<24&&Math.abs(p.x-bx)<26;};
+  simDrag(canvas,dpr,{hit:cvHit,
     down:function(p){
       var xm=x0+vel*t, bx=toXpx(Math.max(-10.5,Math.min(10.5,xm)));
-      if(Math.hypot(p.x-(bx+vel*VPX),p.y-(AXISY-34))<26||Math.abs(p.y-AXISY)<24&&Math.abs(p.x-bx)<26){
+      if(cvHit(p)){
         drag=true; t=0; hist=[];
         // the run restarts from x0 so the arrow sits on the ball at x0
         dragBase=toXpx(x0);
@@ -11654,6 +11691,7 @@ function simFreefall(canvas){
     aim.v=Math.round(v);simSyncSlider('v0',aim.v,0);
   }
   simDrag(canvas,dpr,{
+    hit:function(p){return inGraph(p)||(!inAir()&&Math.abs(p.x-BX)<64&&p.y>GND-160)||(inAir()&&Math.hypot(p.x-BX,p.y-ballY())<ballR(fl.m)+28);},
     down:function(p){
       if(inGraph(p)){scrub=true;paused=true;scrubTo(p.x);pauseLabel();return;}
       if(!inAir()&&Math.abs(p.x-BX)<64&&p.y>GND-160){aim={v:0,y:p.y};aimTo(p);return;}
@@ -11922,7 +11960,7 @@ function simVectors(canvas){
   canvas.addEventListener('mousedown',_vDn);canvas.addEventListener('touchstart',_vDn,{passive:false});
   canvas.addEventListener('mousemove',_vMv);canvas.addEventListener('touchmove',_vMv,{passive:false});
   canvas.addEventListener('mouseup',_vUp);canvas.addEventListener('touchend',_vUp);canvas.addEventListener('mouseleave',_vUp);
-  canvas.style.touchAction='none';
+  canvas.style.touchAction='manipulation';
   var kit=simKit(canvas,{missions:[
     {text:'סובבו את A בלי לשנות את אורכו, בזווית של '+_skM('30°')+' לפחות. האם זה אותו וקטור?',
      hint:'גררו את ראש החץ האדום לאורך מעגל סביב הראשית; '+_skM('|A|')+' שבראש התרשים צריך להישאר כמעט קבוע.',
@@ -11998,6 +12036,7 @@ function simInertia(canvas){
   // ── hands: hold the pointer down beside the block; the hand pushes away from it ──
   function bx(){return W/2+(x-cam)*PPM;}
   simDrag(canvas,dpr,{
+    hit:function(p){return p.y>FLOOR-BH-70&&p.y<FLOOR+24;},
     down:function(p){everPushed=true;push=p.x<bx()?1:-1;},
     move:function(p){if(push)push=p.x<bx()?1:-1;},
     up:function(){push=0;}
@@ -12442,6 +12481,7 @@ function simIncline(canvas){
   function rampHit(p){var t=th(),L=Lpx(t),d=Math.hypot(p.x-CX,p.y-CY),a=Math.atan2(CY-p.y,p.x-CX);
     return d>30&&d<L+30&&a>t-0.35&&a<t+0.3;}
   simDrag(canvas,dpr,{
+    hit:function(p){var b=blockC();return (onFloor||Math.abs(v)<1e-9)&&Math.hypot(p.x-b.x,p.y-b.y)<BS*0.9||rampHit(p);},
     down:function(p){
       var b=blockC();dragged=true;
       var still=onFloor||Math.abs(v)<1e-9;
@@ -12872,10 +12912,11 @@ function simFBD(canvas){
     };
   }
   function onDown(e){
-    e.preventDefault();
+    if(e.type!=='touchstart')e.preventDefault();
     const {x,y}=getXY(e);
     for(let i=OBJ.length-1;i>=0;i--){
       if(Math.abs(x-OBJ[i].x)<28&&Math.abs(y-OBJ[i].y)<28){
+        e.preventDefault();
         dragObj=OBJ[i]; dragOX=x-OBJ[i].x; dragOY=y-OBJ[i].y;
         OBJ[i].onScale=false; if(activeObj===OBJ[i]){activeObj=null;scaleTarget=0;}
         break;
@@ -13546,6 +13587,8 @@ function simCollision(canvas){
   var drag=null;
   function arrowTip(k){var x=k===1?x1:x2,v=k===1?U1():U2();return {x:TX0+x*PPM+v*13,y:TY-52};}
   simDrag(canvas,dpr,{
+    hit:function(p){if(st!=='set')return false;for(var k=1;k<=2;k++){var a=arrowTip(k),cx=TX0+(k===1?x1:x2)*PPM;
+      if(Math.hypot(p.x-a.x,p.y-a.y)<26||Math.abs(p.x-cx)<30&&p.y>TY-60&&p.y<TY+6)return true;}return false;},
     down:function(p){if(st!=='set')return;for(var k=1;k<=2;k++){var a=arrowTip(k);if(Math.hypot(p.x-a.x,p.y-a.y)<26){drag=k;return;}}
       // a press on a glider itself: grab its arrow
       for(var k2=1;k2<=2;k2++){var cx=TX0+(k2===1?x1:x2)*PPM;if(Math.abs(p.x-cx)<30&&p.y>TY-60&&p.y<TY+6){drag=k2;return;}}},
@@ -14179,10 +14222,10 @@ function simSpringForce(canvas){
     return (pt.clientX-r.left)*scl;
   }
   function onDown(e){
-    e.preventDefault();
+    if(e.type!=='touchstart')e.preventDefault();
     var mx=getMouseX(e);
     var massPx=EQ_X+x*PX_PER_M;
-    if(Math.abs(mx-massPx)<30){dragging=true;dragStartMouseX=mx;dragStartX=x;vel=0;}
+    if(Math.abs(mx-massPx)<30){dragging=true;dragStartMouseX=mx;dragStartX=x;vel=0;e.preventDefault();}
   }
   function onMove(e){
     if(!dragging)return; e.preventDefault();
@@ -14889,7 +14932,7 @@ function simGravityForce(canvas){
 
   var colW=Math.floor(W/PLANETS.length);
   canvas.dataset.tap='1';             // tapped, never dragged: the badge under the canvas says "tap"
-  simDrag(canvas,dpr,{down:function(p){
+  simDrag(canvas,dpr,{hit:function(){return false;},down:function(p){
     // the banner drops every ball at once, which is the race worth seeing
     if(p.y<46){for(var k=0;k<PLANETS.length;k++)startDrop(k);raceOn=true;return;}
     raceOn=false;
@@ -15119,7 +15162,7 @@ function simStaticFriction(canvas){
 
   // drag: in the push scene the hand (right = harder), in the truck scene the pedal
   var drag=null, dragged=false;
-  simDrag(canvas,dpr,{
+  simDrag(canvas,dpr,{hit:function(){return false;},pad:function(p){return p.x<=SW&&p.y<=SH;},
     down:function(p){if(p.x>SW||p.y>SH)return;dragged=true;drag={x:p.x,v0:scene==='push'?Fp():At()};},
     move:function(p){if(!drag)return;
       if(scene==='push')simSyncSlider('sft-F',Math.max(0,Math.min(80,drag.v0+(p.x-drag.x)*0.4)),1);
@@ -15786,7 +15829,7 @@ function simNewton3(canvas){
     if(dB<26*k(mB())+16)return 'B';
     return null;
   }
-  simDrag(canvas,dpr,{
+  simDrag(canvas,dpr,{hit:function(p){return !!hitSk(p);},
     down:function(p){touched=true;var h=hitSk(p);if(!h)return;
       if(phase!==0)reset();
       if(h!==who){who=h;whoLabel();}
@@ -16206,7 +16249,7 @@ function simProjectile(canvas){
   var hi=document.getElementById('inp-proj-h'); if(hi)hi.addEventListener('input',function(){if(!fly)rescale();});
   // the cannon sits on the tower top
   function cannon(){return {x:X(0),y:Y(HH())};}
-  simDrag(canvas,dpr,{
+  simDrag(canvas,dpr,{hit:function(p){var c=cannon();return !fly&&Math.hypot(p.x-c.x,p.y-c.y)<80;},
     down:function(p){if(fly)return;var c=cannon();if(Math.hypot(p.x-c.x,p.y-c.y)<80){aim=true;aimed=true;}},
     move:function(p){if(!aim)return;var c=cannon(),dx=p.x-c.x,dy=c.y-p.y,L=Math.hypot(dx,dy);
       if(L<14||dx<-4)return;
@@ -16559,6 +16602,7 @@ function simElcDeflect(canvas){
   var X0=W*0.08, PPMx=(W*0.52)/0.14, CY=H*0.40, PPMy=(H*0.30)/d_m, SX=W*0.90;
   function plateEnd(){return X0+gL()*PPMx;}
   simDrag(canvas,dpr,{
+    hit:function(p){return Math.abs(p.x-plateEnd())<22&&p.y>CY-(d_m/2)*PPMy-34&&p.y<CY+(d_m/2)*PPMy+34;},
     down:function(p){if(Math.abs(p.x-plateEnd())<22&&p.y>CY-(d_m/2)*PPMy-34&&p.y<CY+(d_m/2)*PPMy+34){dragL=true;touched=true;}},
     move:function(p){if(dragL)simSyncSlider('df-L',(p.x-X0)/PPMx*100,0);},
     up:function(){dragL=false;}});
@@ -16753,6 +16797,7 @@ function simElcMillikan(canvas){
   // fine-tunes the voltage (finer than the slider's 1 V steps)
   var dragV0=0,dragY0=0;
   simDrag(canvas,dpr,{
+    hit:function(p){return Math.abs(p.y-NLy)<34&&p.x>NLx0-10||p.x>PL-10&&p.x<PR+10&&p.y>PT-10&&p.y<PB+10;},
     down:function(p){touched=true;
       if(Math.abs(p.y-NLy)<34&&p.x>NLx0-10){combDrag=true;setComb(p.x);}
       else{combDrag=false;dragV0=gV();dragY0=p.y;}},
@@ -17171,7 +17216,10 @@ function simStaticsCom(canvas){
   function gth(){var e=document.getElementById('inp-cm-th');return e?parseFloat(e.value):15;}
   // drag anywhere on the ramp to set its angle
   var drag=false;
-  function _dn(e){drag=true;e.preventDefault();}
+  function _dn(e){
+    if(e.type==='touchstart'){var p=simPointerXY(canvas,dpr,e),a=gth()*Math.PI/180,ux=Math.cos(a),uy=-Math.sin(a),
+      u=Math.max(0,Math.min(RL,(p.x-BX)*ux+(p.y-BY)*uy));if(Math.hypot(p.x-BX-u*ux,p.y-BY-u*uy)>44)return;}
+    drag=true;e.preventDefault();}
   // the ramp and the box at one scale that fits the tallest box on the
   // steepest ramp (55°, h = 1.2 m) under the canvas top: scaled with the
   // width alone, on a wide screen the box left the canvas at 40°
@@ -17362,6 +17410,7 @@ function simCircular(canvas){
   function segDist(px,py,ax,ay,bx,by){var dx=bx-ax,dy=by-ay,L=dx*dx+dy*dy||1,u=Math.max(0,Math.min(1,((px-ax)*dx+(py-ay)*dy)/L));
     return Math.hypot(px-ax-u*dx,py-ay-u*dy);}
   simDrag(canvas,dpr,{
+    hit:function(p){var q=puckXY();return Math.hypot(p.x-q.x,p.y-q.y)<PR+14||!cut&&segDist(p.x,p.y,CX,CY,q.x,q.y)<14&&Math.hypot(p.x-CX,p.y-CY)>10;},
     down:function(p){
       var q=puckXY();
       if(Math.hypot(p.x-q.x,p.y-q.y)<PR+14){
@@ -17552,7 +17601,7 @@ function simAtwood(canvas){
   if(launchB)launchB.addEventListener('click',release);
   var rb=document.getElementById('btn-atw-reset');if(rb)rb.addEventListener('click',reset);
   ['inp-atw-m1','inp-atw-m2'].forEach(function(q){var e=document.getElementById(q);if(e)e.addEventListener('input',function(){if(!run)reset();});});
-  simDrag(canvas,dpr,{down:function(p){if(Math.hypot(p.x-PX,p.y-PY0)<PR+18)release();}});
+  simDrag(canvas,dpr,{hit:function(p){return Math.hypot(p.x-PX,p.y-PY0)<PR+18;},down:function(p){if(Math.hypot(p.x-PX,p.y-PY0)<PR+18)release();}});
   _mkKeys(canvas,{' ':release,'Enter':release});
 
   var kit=simKit(canvas,{missions:[
@@ -18163,6 +18212,7 @@ function simSHMDef(canvas){
   // drag the point P on the circle: its angle is the phase, its distance the amplitude
   function Pxy(){var a=A(),th=2*Math.PI/T()*t+phi;return {x:CX+a*PXM*Math.cos(th),y:CY-a*PXM*Math.sin(th),th:th};}
   simDrag(canvas,dpr,{
+    hit:function(p){var q=Pxy(),mx=CX+A()*PXM*Math.cos(q.th);return Math.hypot(p.x-q.x,p.y-q.y)<28||Math.abs(p.x-mx)<26&&Math.abs(p.y-TRY)<26;},
     down:function(p){var q=Pxy();if(Math.hypot(p.x-q.x,p.y-q.y)<28){drag=true;setRun(false);}
       else{var mx=CX+A()*PXM*Math.cos(q.th);if(Math.abs(p.x-mx)<26&&Math.abs(p.y-TRY)<26){drag=true;setRun(false);}}},
     move:function(p){if(!drag)return;
@@ -18302,10 +18352,11 @@ function simVecOps(canvas){
             y:(pt.clientY-r.top)*scl};
   }
   function onDown(e){
-    e.preventDefault();
     var p=getXY(e);
     var dA=Math.hypot(p.x-(CX+vA.x),p.y-(CY+vA.y)), dB=Math.hypot(p.x-(CX+vB.x),p.y-(CY+vB.y));
     if(op==='scalar')dB=1e9;            // only A is drawn in this mode
+    if(e.type==='touchstart'&&Math.min(dA,dB)>=26)return;
+    e.preventDefault();
     if(Math.min(dA,dB)<26){ if(dA<=dB){dragging='A';vecStart={x:vA.x,y:vA.y};} else {dragging='B';vecStart={x:vB.x,y:vB.y};} dragStart=p; }
     else {
       // a press away from both handles moves the nearer tip to the finger and keeps dragging it
@@ -18528,8 +18579,9 @@ function simVecComponents(canvas){
             y:(pt.clientY-r.top)*scl};
   }
   function onDown(e){
-    e.preventDefault();
     var p=getXY(e);
+    if(e.type==='touchstart'&&!(Math.abs(p.x-CX-vx)<26&&Math.abs(p.y-CY-vy)<26))return;
+    e.preventDefault();
     if(Math.abs(p.x-CX-vx)<26&&Math.abs(p.y-CY-vy)<26){dragging=true;}
     // a press elsewhere inside the drawing disc moves the tip there and keeps dragging
     else if(Math.hypot(p.x-CX,p.y-CY)<=RMAX+20){dragging=true;onMove(e);}
@@ -18989,6 +19041,7 @@ function simOptEmWave(canvas){
   // seen apart instead of only from one fixed angle.
   var d0=null;
   simDrag(canvas,dpr,{
+    pad:function(p){return p.x>18&&p.x<W-22&&Math.abs(p.y-(H/2+16))<92;},
     down:function(p){d0={x:p.x,y:p.y,wl:getWl(),zx:ZX,zy:ZY};},
     move:function(p){
       if(!d0)return;
@@ -19148,7 +19201,7 @@ function simOptRefrIndex(canvas){
   var media=[{name:'ריק',n:1.0,col:'#60a5fa'},{name:'אוויר',n:1.0003,col:'#7dd3fc'},{name:'מים',n:1.33,col:'#22d3ee'},{name:'זכוכית',n:1.50,col:'#a78bfa'},{name:'יהלום',n:2.42,col:'#f9a8d4'}];
   function gv(k,d){var e=document.getElementById('inp-'+k);return e?parseFloat(e.value):d;}
   var x0=Math.round(W*0.40),xs=14,xe=W-14,yA=118,yB=246,CPX=110;   // CPX: c on screen, px/s
-  simDrag(canvas,dpr,{down:function(p){
+  simDrag(canvas,dpr,{hit:function(p){return chips.some(function(c){return p.x>=c.x&&p.x<=c.x+c.w&&p.y>=c.y&&p.y<=c.y+c.h;});},down:function(p){
     for(var i=0;i<chips.length;i++){var c=chips[i];if(p.x>=c.x&&p.x<=c.x+c.w&&p.y>=c.y&&p.y<=c.y+c.h){simSyncSlider('ri-n',c.n,2);touched=true;t0=null;return;}}
     if(p.y>yA+40&&p.y<yB+50){touched=true;t0=null;}}});           // a tap on the lanes restarts the race
   canvas.tabIndex=0;
@@ -19251,7 +19304,7 @@ function simOptReflection(canvas){
   function getWl(){var e=document.getElementById('inp-ref-wl');return e?parseFloat(e.value):550;}
   // Drag the incoming beam: the pointer sets the angle it makes with the normal
   // (the lesson invites exactly this, and there was no pointer handling at all)
-  simDrag(canvas,dpr,{down:setFromPointer,move:setFromPointer});
+  simDrag(canvas,dpr,{pad:function(p){return p.y<H-94&&Math.hypot(p.x-W/2,p.y-(H-90))<Math.min(188,H-120)+60;},down:setFromPointer,move:setFromPointer});
   function setFromPointer(p){
     var MY=H-90,cx=W/2,dx=cx-p.x,dy=MY-p.y;
     if(dy<4)return;
@@ -19396,7 +19449,7 @@ function simOptPlaneMirror(canvas){
     if(Math.abs(p.x-MX)<22&&Math.abs(p.y-Y(top))<22)return 'top';
     if(Math.abs(p.x-MX)<22&&Math.abs(p.y-Y(bot))<22)return 'bot';
     if(Math.abs(p.x-x)<28&&p.y>Y(HP)-10&&p.y<floorY+6)return 'man';return null;}
-  simDrag(canvas,dpr,{down:function(p){drag=hit(p);if(drag)touched=true;},
+  simDrag(canvas,dpr,{hit:function(p){return !!hit(p);},down:function(p){drag=hit(p);if(drag)touched=true;},
     move:function(p){if(drag==='man')simSyncSlider('pm-dist',(MX-p.x)/kx,1);
       if(drag==='top')simSyncSlider('pm-top',Math.max(gv('pm-bot',0.6)+0.1,(floorY-p.y)/kv),2);
       if(drag==='bot')simSyncSlider('pm-bot',Math.min(gv('pm-top',1.4)-0.1,(floorY-p.y)/kv),2);},
@@ -19534,7 +19587,7 @@ function _optBench(canvas,P){
     if(!mirror)fa=fa*(nOf(sl('wl',550))-1)/0.5;   // the slider holds f at 550 nm
     simSyncSlider(ids.f,fa,0);
   }
-  simDrag(canvas,dpr,{
+  simDrag(canvas,dpr,{hit:function(p){return !!hit(p);},
     down:function(p){drag=hit(p);if(drag)touched=true;},
     move:function(p){
       if(drag==='tip'||drag==='obj')simSyncSlider(ids.do,(X0-p.x)/k,0);
@@ -19838,7 +19891,7 @@ function _optInterface(canvas,P){
   function nD(n0,wl){return n0+4241*(1/(wl*wl)-1/(550*550))*(n0-1)/0.5;}
   function setTh(p){var dx=cx-p.x,dy=MY-p.y;if(dy<4||Math.hypot(dx,dy)<18)return;
     simSyncSlider(ids.th,Math.atan2(Math.abs(dx),dy)*180/Math.PI,tir?1:0);}
-  simDrag(canvas,dpr,{down:function(p){if(p.y<MY-4){drag=true;touched=true;setTh(p);}},
+  simDrag(canvas,dpr,{pad:function(p){return p.y<MY-4;},down:function(p){if(p.y<MY-4){drag=true;touched=true;setTh(p);}},
     move:function(p){if(drag)setTh(p);},up:function(){drag=false;}});
   canvas.addEventListener('mousemove',function(e){if(!drag){var q=simPointerXY(canvas,dpr,e);canvas.style.cursor=q.y<MY-4?'grab':'default';}});
   canvas.tabIndex=0;
@@ -20041,7 +20094,7 @@ function simOptPrism(canvas){
     if(d.y>0)t=Math.min(t,(H-6-p.y)/d.y);if(d.y<0)t=Math.min(t,(6-p.y)/d.y);return {x:p.x+d.x*t,y:p.y+d.y*t};}
   function getTh(){var e=document.getElementById('inp-prism-ang');return (e?parseFloat(e.value):55)*Math.PI/180;}
   // drag the white beam: its angle to the normal of the first face
-  simDrag(canvas,dpr,{down:setTh,move:setTh});
+  simDrag(canvas,dpr,{hit:function(p){return p.x<ent.x-10;},down:setTh,move:setTh});
   function setTh(p){var d={x:ent.x-p.x,y:ent.y-p.y},l=Math.hypot(d.x,d.y);if(l<20)return;d.x/=l;d.y/=l;
     var a=Math.atan2(nin.x*d.y-nin.y*d.x,nin.x*d.x+nin.y*d.y)*sideApex;
     simSyncSlider('prism-ang',a*180/Math.PI,0);}
@@ -20164,7 +20217,7 @@ function simOptEye(canvas){
   function dToX(d){return !isFinite(d)?xInf:vToX(Math.log10(Math.max(0.1,Math.min(10,d))));}
   var axY=cy+Math.max(56,70*es);
   function hit(p){var ox=vToX(lv());return Math.abs(p.x-ox)<24&&p.y>cy-80&&p.y<axY+14;}
-  simDrag(canvas,dpr,{down:function(p){drag=hit(p);if(drag)touched=true;},
+  simDrag(canvas,dpr,{hit:function(p){return !!hit(p);},down:function(p){drag=hit(p);if(drag)touched=true;},
     move:function(p){if(drag)simSyncSlider('eye-dist',xToV(p.x),3);},up:function(){drag=false;}});
   canvas.addEventListener('mousemove',function(e){if(!drag)canvas.style.cursor=hit(simPointerXY(canvas,dpr,e))?'grab':'default';});
   canvas.tabIndex=0;
@@ -20471,7 +20524,7 @@ function simOptYoungs(canvas){
     if(Math.abs(p.x-v.scr)<14)return 'scr';
     if(Math.abs(p.x-slitX)<20&&Math.abs(Math.abs(p.y-cy)-v.ds)<22)return 'slit';
     return null;}
-  simDrag(canvas,dpr,{down:function(p){drag=hit(p);if(drag)touched=true;},
+  simDrag(canvas,dpr,{hit:function(p){return !!hit(p);},down:function(p){drag=hit(p);if(drag)touched=true;},
     move:function(p){var ym=Math.max(-15.5,Math.min(15.5,(cy-p.y)/PXMM));
       if(drag==='A')yA=ym;if(drag==='B')yB=ym;
       if(drag==='scr')simSyncSlider('ys-L',XtoL(p.x),2);
@@ -20955,7 +21008,7 @@ function simOptPolarization(canvas){
   function ang(p,cx){var a=Math.atan2(p.y-by,p.x-cx)*180/Math.PI+90;return ((a%180)+180)%180;}
   function hit(p){if(Math.abs(p.y-by)>rD+14)return null;
     if(Math.abs(p.x-X.p3)<rD+12)return 'p3';if(mid&&Math.abs(p.x-X.p2)<rD+12)return 'p2';return null;}
-  simDrag(canvas,R.dpr,{down:function(p){drag=hit(p);if(drag)touched=true;},
+  simDrag(canvas,R.dpr,{hit:function(p){return !!hit(p);},down:function(p){drag=hit(p);if(drag)touched=true;},
     move:function(p){if(drag==='p3')simSyncSlider('pol-angle',ang(p,X.p3),0);if(drag==='p2')simSyncSlider('pol-mid',ang(p,X.p2),0);},
     up:function(){drag=null;}});
   canvas.addEventListener('mousemove',function(e){if(!drag)canvas.style.cursor=hit(simPointerXY(canvas,R.dpr,e))?'grab':'default';});
@@ -21227,6 +21280,7 @@ function simOptLaser(canvas){
   // it under the finger rather than only on a slider below the picture.
   var p0=null;
   simDrag(canvas,R.dpr,{
+    pad:function(p){return p.x>W*0.12-24&&p.x<W*0.8+24&&p.y>76&&p.y<246;},
     down:function(p){p0={x:p.x,v:getPump()*100};},
     move:function(p){if(p0)simSyncSlider('laser-pump',p0.v+(p.x-p0.x)*0.45,0);}});
   function getType(){var e=document.getElementById('inp-laser-type');return e?parseInt(e.value):633;}
@@ -21965,6 +22019,7 @@ function simOptColorMix(canvas){
   function selOf(h){return h.k==='probe'?0:h.k==='y'?4:h.i+1;}
   var pend=null;
   simDrag(canvas,R.dpr,{
+    hit:function(p){return p.x>=S.x&&p.x<=S.x+S.w&&p.y>=S.y&&p.y<=S.y+S.h&&!!pick(p);},
     down:function(p){pend=null;drag=null;if(p.x<S.x||p.x>S.x+S.w||p.y<S.y||p.y>S.y+S.h)return;
       tried[mode]=true;var h=pick(p);
       if(!h){probe[mode]=clampP(p,4);h={k:'probe'};}
@@ -22023,7 +22078,7 @@ function simOptFiber(canvas){
   // the end face far enough in for the incoming ray and the cone's name
   // (at 0.14·W a phone had 50 px there, and "Acceptance cone" ran into the fibre)
   var x0=Math.max(W*0.14,Math.min(84,W*0.24)),x2=W*0.94,fy=H*0.40,a=Math.min(42,H*0.09),cl=16;
-  simDrag(canvas,R.dpr,{down:setA,move:setA});
+  simDrag(canvas,R.dpr,{hit:function(p){return p.x<=x0+10;},down:setA,move:setA});
   function setA(p){if(p.x>x0+10)return;simSyncSlider('fib-ang',Math.atan2(Math.abs(p.y-fy),x0-p.x)*180/Math.PI,0);}
   canvas.tabIndex=0;
   canvas.addEventListener('keydown',function(e){if(e.key!=='ArrowUp'&&e.key!=='ArrowDown')return;e.preventDefault();
@@ -22366,7 +22421,7 @@ function simOptThinFilm(canvas){
     sub=k;ns=PRE[k].ns;simSyncSlider('tf-n',PRE[k].nf,2);paintB();});});
   paintB();
   function hit(p){return p.x>fx-14&&p.x<fx+fw+14&&p.y>fT-12&&p.y<fB+12;}
-  simDrag(canvas,R.dpr,{down:function(p){drag=hit(p);if(drag){touched=true;simSyncSlider('tf-thick',yToT(p.y),0);}},
+  simDrag(canvas,R.dpr,{hit:function(p){return !!hit(p);},down:function(p){drag=hit(p);if(drag){touched=true;simSyncSlider('tf-thick',yToT(p.y),0);}},
     move:function(p){if(drag)simSyncSlider('tf-thick',yToT(p.y),0);},up:function(){drag=false;}});
   canvas.addEventListener('mousemove',function(e){if(!drag)canvas.style.cursor=hit(simPointerXY(canvas,R.dpr,e))?'ns-resize':'default';});
   canvas.tabIndex=0;
@@ -22498,7 +22553,7 @@ function simOptGrating(canvas){
   function aPt(th,r){return {x:gX+r*Math.cos(th),y:cy+r*Math.sin(th)};}       // θ from the axis, + downward
   function hit(p){var dx=p.x-gX,dy=p.y-cy,r=Math.hypot(dx,dy);if(dx<0||Math.abs(r-RA)>26)return false;
     var th=Math.atan2(dy,dx);return Math.abs(th-detA*Math.PI/180)<0.2;}
-  simDrag(canvas,R.dpr,{down:function(p){drag=hit(p);if(drag)touched=true;},
+  simDrag(canvas,R.dpr,{hit:function(p){return !!hit(p);},down:function(p){drag=hit(p);if(drag)touched=true;},
     move:function(p){if(drag){var th=Math.atan2(p.y-cy,Math.max(1,p.x-gX))*180/Math.PI;detA=Math.max(-89,Math.min(89,th));}},
     up:function(){drag=false;}});
   canvas.addEventListener('mousemove',function(e){if(!drag)canvas.style.cursor=hit(simPointerXY(canvas,R.dpr,e))?'grab':'default';});
@@ -29446,6 +29501,7 @@ MAG_SIMS['mag-magnets']=function(canvas){
   var clampC=function(){comp=[Math.max(-xMax+0.01,Math.min(xMax-0.01,comp[0])),Math.max(yMin+0.01,Math.min(yMax-0.01,comp[1]))];
     bars().forEach(function(b){if(Math.abs(comp[0]-b[0])<b[1]/2+0.012&&Math.abs(comp[1])<0.022)comp[1]=comp[1]<0?-0.022:0.022;});};
   simDrag(canvas,dpr,{
+    hit:function(p){var c=toS(comp[0],comp[1]);return Math.hypot(p.x-c[0],p.y-c[1])<26||!!mode&&Math.abs(p.x-toS(m2x,0)[0])<LEN*s/2+6&&Math.abs(p.y-Hc)<22;},
     down:function(p){var c=toS(comp[0],comp[1]);
       // the second magnet answers a fingertip (44 px tall), not only its 14 px bar
       if(Math.hypot(p.x-c[0],p.y-c[1])<26)drag='c';
@@ -29570,6 +29626,8 @@ MAG_SIMS['mag-wire']=function(canvas){
   magBtn('mgw-two',function(b){two=!two;b.textContent=two?'➖ הסירו את התיל השני':'➕ תיל שני';});
   magBtn('mgw-rhr',function(){if(mode){setMode(0);}else{setMode(1);deal();}});
   simDrag(canvas,dpr,{
+    hit:function(p){if(mode){for(var i=0;i<4;i++){var c=chipXY(i);if(Math.hypot(p.x-c[0],p.y-c[1])<c[2]+4)return true;}return false;}
+    var q2=toS(w2[0],w2[1]),q=toS(probe[0],probe[1]);return two&&Math.hypot(p.x-q2[0],p.y-q2[1])<20||Math.hypot(p.x-q[0],p.y-q[1])<26;},
     down:function(p){
       if(mode){for(var i=0;i<4;i++){var c=chipXY(i);if(Math.hypot(p.x-c[0],p.y-c[1])<c[2]+4){pick(i);return;}}
         if(ch&&ch.pick>=0)deal();return;}
@@ -29698,7 +29756,7 @@ MAG_SIMS['mag-loop']=function(canvas){
     opts:['נשארת מימין','עוברת לשמאל','נעלמת — השדות מתבטלים'],correct:1,
     why:'כלל יד ימין לכריכה: האצבעות לכיוון הזרם, האגודל מראה את השדה בפנים ואת הפאה N. זרם הפוך — שדה הפוך, והפאה N עוברת לצד השני.'});
   magBtn('mgl-dir',function(b){askDir(function(){dir=-dir;});});
-  simDrag(canvas,dpr,{down:function(p){drag=true;px0=(p.x-W/2)/s;},move:function(p){px0=Math.max(-0.15,Math.min(0.15,(p.x-W/2)/s));},up:function(){drag=false;}});
+  simDrag(canvas,dpr,{hit:function(p){return Math.abs(p.x-(W/2+px0*s))<28&&Math.abs(p.y-cy)<40;},down:function(p){drag=true;px0=(p.x-W/2)/s;},move:function(p){px0=Math.max(-0.15,Math.min(0.15,(p.x-W/2)/s));},up:function(){drag=false;}});
   magKeys(canvas,{key:function(k,d){if(!d)return;if(k==='left'||k==='right')px0=Math.max(-0.15,Math.min(0.15,px0+(k==='left'?-0.002:0.002)));else if(k==='enter')magBtnPress('mgl-dir');}});
   function draw(){
     if(!magAlive(id,_g))return;
@@ -29761,7 +29819,7 @@ MAG_SIMS['mag-solenoid']=function(canvas){
   const H=500; const {ctx,W,dpr}=setupCanvas(canvas,H);
   var TOP=H*0.56, s=W*0.94/0.50, cy=TOP*0.50, A=0.03, L=null, key='', probe=[0.045,0.012], pend=0;
   var toS=function(u,v){return [W/2+u*s,cy-v*s];}, toW=function(px,py){return [(px-W/2)/s,(cy-py)/s];};
-  simDrag(canvas,dpr,{down:function(p){if(p.y<TOP)probe=toW(p.x,p.y);},move:function(p){if(p.y<TOP-4)probe=toW(p.x,p.y);}});
+  simDrag(canvas,dpr,{hit:function(p){var q=toS(probe[0],probe[1]);return p.y<TOP&&Math.hypot(p.x-q[0],p.y-q[1])<28;},down:function(p){if(p.y<TOP)probe=toW(p.x,p.y);},move:function(p){if(p.y<TOP-4)probe=toW(p.x,p.y);}});
   magKeys(canvas,{key:function(k,d){if(!d)return;var st=0.002,dd={left:[-st,0],right:[st,0],up:[0,st],down:[0,-st]}[k];
     if(dd)probe=[Math.max(-0.25,Math.min(0.25,probe[0]+dd[0])),Math.max(-cy/s,Math.min(cy/s,probe[1]+dd[1]))];}});
   var kit=simKit(canvas,{missions:[
@@ -29895,6 +29953,10 @@ MAG_SIMS['mag-lorentz']=function(canvas){
   magBtn('mgz-go',function(){askGo(function(){if(mode!==0)return;P=P0.slice();trail=[];turned=0;fly=true;});});
   magBtn('mgz-rhr',function(){if(mode!==2){mode=2;land();setLbl('mgz-mode','🧭 חזרה לשיגור');showGo();}deal();});
   simDrag(canvas,dpr,{
+    // the challenge's chips; the arrow's tip and the charge; the field is a strip v is aimed in
+    hit:function(p){if(mode===2){for(var i=0;i<7;i++){var c=chipXY(i);if(Math.hypot(p.x-c[0],p.y-c[1])<c[2]+4)return true;}return false;}
+    return mode===0&&(Math.hypot(p.x-P[0]-Math.cos(ang)*aLen(),p.y-P[1]+Math.sin(ang)*aLen())<28||Math.hypot(p.x-P[0],p.y-P[1])<24);},
+    pad:function(p){return mode!==2&&p.y<H-24&&!(mode===1&&p.y>H*0.56);},
     down:function(p){
       if(mode===2){for(var i=0;i<7;i++){var c=chipXY(i);if(Math.hypot(p.x-c[0],p.y-c[1])<c[2]+4){pick(i);return;}}
         if(!ch||ch.pick>=0)deal();return;}
@@ -30091,7 +30153,7 @@ MAG_SIMS['mag-circle']=function(canvas){
   magBtn('mgr-fire',function(){fire([magV('mgr-v',3)*1e6]);});
   magBtn('mgr-pair',function(){askPair(function(){pi=0;var b=document.getElementById('btn-mgr-p');if(b)b.textContent='⚛ '+PARTS[0].n;var v=magV('mgr-v',3)*1e6;fire([v,2*v]);});});
   // the gun is tapped to fire; ↑ ↓ trim B by 0.005 T, Enter fires
-  simDrag(canvas,dpr,{down:function(p){if(p.x<X0&&Math.abs(p.y-yE())<34)magBtnPress('mgr-fire');}});
+  simDrag(canvas,dpr,{hit:function(p){return p.x<X0&&Math.abs(p.y-yE())<34;},down:function(p){if(p.x<X0&&Math.abs(p.y-yE())<34)magBtnPress('mgr-fire');}});
   magKeys(canvas,{key:function(k,d){if(!d)return;if(k==='enter')magBtnPress('mgr-fire');
     else if(k==='up'||k==='down')simSyncSlider('mgr-B',magV('mgr-B',0.2)+(k==='up'?0.005:-0.005),3);}});
   function draw(ts){
@@ -30352,7 +30414,7 @@ MAG_SIMS['mag-parallel']=function(canvas){
   const H=460; const {ctx,W,dpr}=setupCanvas(canvas,H);
   var TOP=H*0.74, cy=TOP*0.5, s=W*0.62/0.20, segs=null, key='';
   var toS=function(x,y){return [W/2+x*s,cy-y*s];};
-  simDrag(canvas,dpr,{down:function(){},move:function(p){simSyncSlider('mgq-d',Math.abs(p.x-W/2)*2/s*100,1);}});
+  simDrag(canvas,dpr,{hit:function(p){return p.y<TOP&&Math.abs(Math.abs(p.x-W/2)-magV('mgq-d',5)/200*s)<30;},down:function(){},move:function(p){simSyncSlider('mgq-d',Math.abs(p.x-W/2)*2/s*100,1);}});
   magKeys(canvas,{key:function(k,d){if(d&&(k==='left'||k==='right'))simSyncSlider('mgq-d',magV('mgq-d',5)+(k==='left'?-0.5:0.5),1);}});
   var kit=simKit(canvas,{missions:[
     {text:'גרמו לשני התילים לדחות זה את זה.',
@@ -30460,7 +30522,7 @@ MAG_SIMS['mag-motor']=function(canvas){
     opts:['כשמישור הכריכה ניצב לשדה — היא ״פונה״ אליו','כשמישור הכריכה מקביל לשדה','המומנט שווה בכל המצבים'],correct:1,
     why:'כשמישור הכריכה ניצב לשדה, הכוחות על הצלעות רק מותחים אותה — המומנט אפס. הוא מרבי כשהמישור מקביל לשדה (θ = 90° בין n̂ ל־B): τ = NBIA·sinθ.'},function(){predicted=true;});
   magBtn('mgo-comm',function(b){comm=!comm;b.textContent=comm?'🔁 מחליף כיוון: מחובר':'🔁 מחליף כיוון: מנותק';});
-  simDrag(canvas,dpr,{down:function(p){drag=Math.hypot(p.x-CX,p.y-CY)<RP+30;},move:function(p){if(drag){phi=Math.atan2(CY-p.y,p.x-CX);om=0;}},up:function(){drag=false;}});
+  simDrag(canvas,dpr,{hit:function(p){return Math.hypot(p.x-CX,p.y-CY)<RP+30;},down:function(p){drag=Math.hypot(p.x-CX,p.y-CY)<RP+30;},move:function(p){if(drag){phi=Math.atan2(CY-p.y,p.x-CX);om=0;}},up:function(){drag=false;}});
   // ← → turn the coil by 5° (and stop it)
   magKeys(canvas,{key:function(k,d){if(!d)return;if(k==='left'||k==='right'){phi+=(k==='left'?5:-5)*Math.PI/180;om=0;}else if(k==='enter')magBtnPress('mgo-comm');}});
   function draw(ts){
@@ -30544,7 +30606,7 @@ MAG_SIMS['mag-flux']=function(canvas){
   // a drag down or to the right tilts the loop forward; a sideways drag used
   // to do nothing at all. Through simDrag, as every other sim: mouse and touch
   var last=null;
-  simDrag(canvas,dpr,{down:function(p){last=p;},up:function(){last=null;},
+  simDrag(canvas,dpr,{hit:function(p){return Math.abs(p.x-CX)<0.17*SC&&Math.abs(p.y-CY)<0.17*SC;},down:function(p){last=p;},up:function(){last=null;},
     move:function(p){if(!last)return;
       var th=magV('mgx-th',0)+((p.y-last.y)+(p.x-last.x))*0.8;last=p;simSyncSlider('mgx-th',((th%360)+360)%360,0);}});
   magKeys(canvas,{key:function(k,d){if(!d)return;var dd={left:-5,down:-5,right:5,up:5}[k];if(dd)simSyncSlider('mgx-th',((magV('mgx-th',0)+dd)%360+360)%360,0);}});
@@ -30666,7 +30728,8 @@ MAG_SIMS['mag-faraday']=function(canvas){
   magBtn('mgy-flip',function(b){flip=-flip;b.textContent=flip>0?'🔄 הפכו את המגנט (N פונה לסליל)':'🔄 הפכו את המגנט (S פונה לסליל)';});
   magBtn('mgy-park',function(){askPark(function(){park=true;auto=false;goal=null;autoLbl();});});
   var stopAuto=function(){if(auto){auto=false;autoLbl();}park=false;};
-  simDrag(canvas,dpr,{down:function(p){if(Math.abs(p.y-YS)>44)return;drag=true;stopAuto();var mx=toSx(xm);
+  simDrag(canvas,dpr,{hit:function(p){return Math.abs(p.y-YS)<=44&&Math.abs(p.x-toSx(xm))<ML*s/2+24;},pad:function(p){return Math.abs(p.y-YS)<=44;},
+  down:function(p){if(Math.abs(p.y-YS)>44)return;drag=true;stopAuto();var mx=toSx(xm);
       off=Math.abs(p.x-mx)<ML*s/2+24?p.x-mx:0;goal=clampX((p.x-off-X0)/s);},
     move:function(p){if(drag)goal=clampX((p.x-off-X0)/s);},up:function(){drag=false;goal=null;}});
   magKeys(canvas,{key:function(k,d){
@@ -30804,6 +30867,8 @@ MAG_SIMS['mag-lenz']=function(canvas){
   magBtn('mgn-cut',function(b){cut=!cut;b.textContent=cut?'⭕ סגרו את הטבעת':'✂️ חתכו את הטבעת';});
   magBtn('mgn-reset',function(){xr=0;vr=0;xm=XMIN;vm=0;mode=0;goal=null;heat=0;hist=[];});
   simDrag(canvas,dpr,{
+    hit:function(p){return Math.abs(p.y-YR)<=rr+30&&Math.abs(p.x-(X0+xm*s))<ML*s/2+24;},
+    pad:function(p){return Math.abs(p.y-YR)<=rr+60;},
     down:function(p){if(p.y>YR+rr+60)return;drag=true;mode=0;var mx=X0+xm*s;
       off=Math.abs(p.x-mx)<ML*s/2+24?p.x-mx:0;goal=clampX((p.x-off-X0)/s);},
     move:function(p){if(drag)goal=clampX((p.x-off-X0)/s);},
@@ -30917,7 +30982,7 @@ MAG_SIMS['mag-motional']=function(canvas){
   magBtn('mgv-go',function(b){var go=function(){on=!on;b.textContent=on?'⏸ הסירו את הכוח':'▶ הפעילו כוח קבוע';};if(on&&v>0.3)askOff(go);else go();});
   magBtn('mgv-reset',function(){x=0.4;v=0;hist=[];tt=0;});
   function rodX(){return Math.min(XL+x*s,W*0.62);}
-  simDrag(canvas,dpr,{down:function(p){drag=Math.abs(p.x-rodX())<30&&p.y<YB+20;lastX=null;},
+  simDrag(canvas,dpr,{hit:function(p){return Math.abs(p.x-rodX())<30&&p.y<YB+20;},down:function(p){drag=Math.abs(p.x-rodX())<30&&p.y<YB+20;lastX=null;},
     move:function(p){if(!drag)return;var dx=(p.x-rodX())/s;x=Math.max(0.1,x+dx);},up:function(){drag=false;}});
   // the keyboard: a held ← or → moves the rod by hand at a steady 0.6 m/s
   // (as a hand that drags it would), Enter switches the constant force
@@ -31021,7 +31086,7 @@ MAG_SIMS['mag-generator']=function(canvas){
   magBtn('mgg-go',function(){if(hand)hist=[];run=!run;hand=false;setGo();});
   // by hand: the angle of the pointer about the axis turns the coil
   var angAt=function(p){return Math.atan2(CY-p.y,p.x-CX);};
-  simDrag(canvas,dpr,{down:function(p){if(Math.hypot(p.x-CX,p.y-CY)>RP+40)return;if(!hand){hand=true;run=false;hist=[];setGo();}lastA=angAt(p);},
+  simDrag(canvas,dpr,{hit:function(p){return Math.hypot(p.x-CX,p.y-CY)<=RP+40;},down:function(p){if(Math.hypot(p.x-CX,p.y-CY)>RP+40)return;if(!hand){hand=true;run=false;hist=[];setGo();}lastA=angAt(p);},
     move:function(p){if(lastA===null)return;var a=angAt(p),d=a-lastA;d=(d+3*Math.PI)%(2*Math.PI)-Math.PI;th+=d;lastA=a;},
     up:function(){lastA=null;}});
   magKeys(canvas,{key:function(k,d){if(k==='left'||k==='right'){var v=k==='left'?1:-1;if(d){hold=v;if(!hand){hand=true;run=false;hist=[];setGo();}}else if(hold===v)hold=0;}
@@ -31132,7 +31197,8 @@ MAG_SIMS['mag-transformer']=function(canvas){
   magBtn('mgt-dc',function(b){var go=function(){ac=!ac;tsw=t;b.textContent=ac?'〰 זרם חילופין':'▬ זרם ישר (סוללה)';};if(ac)askDC(go);else go();});
   // drag a coil up or down to wind or unwind turns
   var gx0=W*0.30,gx1=W*0.70,gy0=ph?31:H*0.06,gy1=ph?229:H*0.44,GT=26,lastY=0;
-  simDrag(canvas,dpr,{down:function(p){if(p.y<gy0||p.y>gy1+24){drag=null;return;}
+  simDrag(canvas,dpr,{hit:function(p){return p.y>=gy0&&p.y<=gy1+24&&(Math.abs(p.x-(gx0+GT/2))<46||Math.abs(p.x-(gx1-GT/2))<46);},
+    down:function(p){if(p.y<gy0||p.y>gy1+24){drag=null;return;}
       drag=Math.abs(p.x-(gx0+GT/2))<46?'mgt-N1':Math.abs(p.x-(gx1-GT/2))<46?'mgt-N2':null;lastY=p.y;},
     move:function(p){if(!drag)return;var k=drag==='mgt-N1'?10:5,n=magV(drag,100)+Math.round((lastY-p.y)/2)*k;
       if(Math.abs(lastY-p.y)>=2){simSyncSlider(drag,n,0);lastY=p.y;}},
@@ -31873,6 +31939,8 @@ function simElcCoulomb(canvas){
     tab.push({r:r,F:Math.abs(Fpair(q1(),q2(),x2-x1))});if(tab.length>(NAR?4:6))tab.shift();
   }
   simDrag(canvas,dpr,{
+    hit:function(p){var c=[[1,x1,q1()],[2,x2,q2()]];if(on3)c.push([3,x3,Q3]);
+    return c.some(function(k){return Math.abs(p.x-k[1])<rad(k[2])+12&&Math.abs(p.y-cy)<rad(k[2])+22;});},
     down:function(p){
       var c=[[1,x1,q1()],[2,x2,q2()]];if(on3)c.push([3,x3,Q3]);
       c.forEach(function(k){if(Math.abs(p.x-k[1])<rad(k[2])+12&&Math.abs(p.y-cy)<rad(k[2])+22)drag=k[0];});
@@ -32243,6 +32311,7 @@ function elcExplorer(canvas,mode){
   function hitCharge(p){var A=act();
     for(var i=A.length-1;i>=0;i--)if(Math.hypot(p.x-A[i].x,p.y-A[i].y)<rq(A[i].q)+10)return i;return -1;}
   simDrag(canvas,dpr,{
+    hit:function(p){return Math.hypot(p.x-pr.x,p.y-pr.y)<24||hitCharge(p)>=0;},
     down:function(p){
       if(Math.hypot(p.x-pr.x,p.y-pr.y)<24){drag='p';fly=null;}
       else{var i=hitCharge(p);if(i>=0)drag=i;}
@@ -32532,6 +32601,7 @@ function simElcCompare(canvas){
   function Qv(){var e=document.getElementById('inp-cmp-Q');return e?parseFloat(e.value):3;}
   function Rv(){var e=document.getElementById('inp-cmp-R');return e?parseFloat(e.value):5;}
   simDrag(canvas,dpr,{
+    hit:function(p){return Math.abs(p.x-(GX+GW*rSel/RMAX))<30;},
     down:function(p){drag=true;touched=true;set(p);},
     move:function(p){if(drag)set(p);},
     up:function(){drag=false;}});
@@ -32662,6 +32732,8 @@ function simElcSphere(canvas){
   function E(r,R,Q){return r<R?0:K*Q/(r*r);}
   function V(r,R,Q){return r<R?K*Q/R:K*Q/r;}
   simDrag(canvas,dpr,{
+    hit:function(p){return Math.abs(p.x-(GX+GW*rProbe/RMAX))<30;},
+    pad:function(p){return p.x>GX-10&&p.x<GX+GW+10&&p.y>90&&p.y<402;},
     down:function(p){drag=true;touched=true;set(p);},
     move:function(p){if(drag)set(p);},
     up:function(){drag=false;}});
@@ -33252,6 +33324,7 @@ function dcBoard(canvas,ctx,W,H,dpr,spec){
       B.kbd=false;if(ii>=0){B.focus=ii;activate(items[ii]);}});
     canvas.addEventListener('pointermove',hover);
   }else simDrag(canvas,dpr,{
+    hit:function(p){return hitItem(p.x,p.y)>=0||!!(spec.pressAt&&spec.pressAt(p));},
     // a press on nothing of the board's own goes to the sim (a dial, a graph)
     down:function(p){
       B.kbd=false;var ii=hitItem(p.x,p.y);down={x:p.x,y:p.y,ii:ii,moved:false,own:false};
@@ -33525,7 +33598,8 @@ function simDcJunction(canvas){
       else if(dx>20)simSyncSlider('jn-I3',(p.x-NX)/ARM*6,1);
     }else if(dy<-20)simSyncSlider('jn-I2',(NY-p.y)/ARMV*6,1);
   }
-  simDrag(canvas,dpr,{down:set,move:set});
+  simDrag(canvas,dpr,{hit:function(p){if(!ARM)return false;var dx=p.x-NX,dy=p.y-NY;
+    return Math.abs(dy)<28&&Math.abs(dx)>14&&Math.abs(dx)<ARM+30||Math.abs(dx)<28&&dy<-14&&-dy<ARMV+30;},down:set,move:set});
   var kit=simKit(canvas,{missions:[
     {text:'הפכו את I₄ לשלילי, וקראו מה פירוש הדבר.',
      hint:'הגדילו את הזרם היוצא I₃ מעבר לסכום הנכנסים.',
@@ -33889,10 +33963,11 @@ function simDcBridge(canvas){
   var GX=W*0.10,GW=W*0.80,GY=B+44,y2=GY+52;
   var Mw=Math.min(170,W*0.42),M={x:W/2-Mw/2,y:y2+56,w:Mw,h:54};
   // the dial the learner turns: a press on its strip sets R₃
-  function dial(p){if(Math.abs(p.y-GY-6)>26)return false;
+  function onDial(p){return Math.abs(p.y-GY-6)<=26;}
+  function dial(p){if(!onDial(p))return false;
     simSyncSlider('br-R3',5+295*Math.max(0,Math.min(1,(p.x-GX)/GW)),0);bd.touched=true;}
   var bd=dcBoard(canvas,ctx,W,H,dpr,{
-    gnd:'n',k:1500,P0:0.3,probes:M,press:dial,
+    gnd:'n',k:1500,P0:0.3,probes:M,press:dial,pressAt:onDial,
     aria:'גשר ויטסטון: סוללה, זרועות היחס R₁ ו־R₂, הנגד המכויל R₃, הנגד הלא ידוע Rₓ וגלוונומטר ביניהם. גררו את החוגה של R₃; Tab עובר בין הגשושים, והחיצים מזיזים אותם.',
     P:{n:[L,mid+16],p:[L,mid-16],tl:[L,T],tA:[xl,T],r1a:[xl,yu-24],r1b:[xl,yu+24],A:[xl,mid],r3a:[xl,yd-24],r3b:[xl,yd+24],bA:[xl,B],
        tB:[Rr,T],r2a:[Rr,yu-24],r2b:[Rr,yu+24],Bn:[Rr,mid],rxa:[Rr,yd-24],rxb:[Rr,yd+24],bB:[Rr,B],bl:[L,B],
@@ -34561,7 +34636,8 @@ function simDcRealMeter(canvas){
   function Rk(){var e=document.getElementById('inp-rm-R');return e?parseFloat(e.value):10;}
   function RvExp(){var e=document.getElementById('inp-rm-RV');return e?parseFloat(e.value):1;}
   function set(p){if(GW>0&&p.y>GY-34)simSyncSlider('rm-RV',-1+5*Math.max(0,Math.min(1,(p.x-GX)/GW)),2);}
-  simDrag(canvas,dpr,{down:set,move:set});
+  var rmIn=function(p){return GW>0&&p.y>GY-34&&p.y<GY+GH+30&&p.x>GX-20&&p.x<GX+GW+20;};
+  simDrag(canvas,dpr,{hit:function(p){return rmIn(p)&&Math.abs(p.x-(GX+GW*(RvExp()+1)/5))<26;},pad:rmIn,down:set,move:set});
   // with two equal resistors the error is δ = 1/(1+2·R_V/R): the meter sees
   // the divider's Thevenin resistance R/2, which is where "×50" comes from
   var kit=simKit(canvas,{missions:[
@@ -34682,7 +34758,7 @@ function simDcEmf(canvas){
     S.on=true;K.on=false;bd.touched=true;
     simSyncSlider('emf-R',Em()/I-rr(),1);
   }
-  simDrag(canvas,dpr,{down:set,move:set});
+  simDrag(canvas,dpr,{hit:function(){return false;},pad:function(p){return GW>0&&p.y>=GY-30&&p.y<=GY+GH+24&&p.x>GX-20&&p.x<GX+GW+20;},down:set,move:set});
   var kit=simKit(canvas,{missions:[
     {text:'פתחו את מפסק העומס S. מה מתח ההדקים עכשיו?',
      hint:'כמה זרם עובר בסוללה כשהמעגל פתוח?',
@@ -34977,7 +35053,7 @@ function simDcCurrent(canvas){
     if(p.x<MID)XA=Math.max(26,Math.min(MID-40,p.x));
     else        XB=Math.max(MID+40,Math.min(W-26,p.x));
   }
-  simDrag(canvas,dpr,{down:set,move:set});
+  simDrag(canvas,dpr,{hit:function(p){return MID>0&&Math.abs(p.y-H*0.34)<64&&(Math.abs(p.x-XA)<26||Math.abs(p.x-XB)<26);},down:set,move:set});
   // the keyboard: Tab to the canvas, Space/Enter picks plane A or B, the
   // arrows move it (Shift: four times as far)
   var kb=elcKbd(canvas,{n:function(){return MID>0?2:0;},get:function(i){return {x:i?XB:XA,y:0};},
@@ -35084,7 +35160,8 @@ function simDcOhm(canvas){
   if(mb)mb.addEventListener('click',function(){lamp=!lamp;
     mb.textContent=lamp?'📏 נגד אוהמי':'💡 נורת להט';});
   var GX=52,GY=0,GW=0,GH=0,VMAX=12;
-  simDrag(canvas,dpr,{
+  var ohmIn=function(p){return GW>0&&p.x>GX-16&&p.x<GX+GW+16&&p.y>GY-16&&p.y<GY+GH+16;};
+  simDrag(canvas,dpr,{hit:function(p){return ohmIn(p)&&Math.abs(p.x-(GX+GW*Vv()/VMAX))<26;},pad:ohmIn,
     down:function(p){set(p);},move:function(p){set(p);}});
   function set(p){if(GW>0)simSyncSlider('ohm-V',Math.max(0,Math.min(VMAX,(p.x-GX)/GW*VMAX)),1);}
   // the span of voltages tried on one ohmic resistor, for "R does not depend on V"
@@ -35187,7 +35264,7 @@ function simDcPower(canvas){
   var pb=document.getElementById('btn-pw-run');
   if(pb)pb.addEventListener('click',function(){run=!run;pb.textContent=run?'⏸ עצרו':'▶ הפעילו';});
   function set(p){simSyncSlider('pw-V',1+23*Math.max(0,Math.min(1,(p.x-W*0.12)/(W*0.76))),1);}
-  simDrag(canvas,dpr,{down:set,move:set});
+  simDrag(canvas,dpr,{hit:function(){return false;},pad:function(p){return p.y<H*0.72-24;},down:set,move:set});
   var V0=Vv(),R0=Rv();
   var kit=simKit(canvas,{missions:[
     {text:'הכפילו את המתח על אותו נגד. פי כמה גדל ההספק?',
@@ -35270,6 +35347,7 @@ function simElcPlane(canvas){
   if(sb)sb.addEventListener('click',function(){qSign=-qSign;
     sb.textContent=qSign>0?'🔴 מטען בוחן חיובי':'🔵 מטען בוחן שלילי';});
   simDrag(canvas,dpr,{
+    hit:function(p){return Math.hypot(p.x-tx,p.y-ty)<30;},
     down:function(p){if(Math.hypot(p.x-tx,p.y-ty)<30){drag=true;touched=true;}},
     move:function(p){if(drag){tx=Math.max(12,Math.min(W-12,p.x));ty=Math.max(28,Math.min(H*0.62,p.y));}},
     up:function(){drag=false;}});
@@ -35747,6 +35825,7 @@ function simElcUpair(canvas){
     Uscale=Math.max(Math.abs(U0),qRel<0?Math.abs(Uof((rad(Q1())+rad(Q2()))/PXC/100)):0)||1;
   });
   simDrag(canvas,dpr,{
+    hit:function(p){return Math.hypot(p.x-x1,p.y-cy)<rad(Q1())+14||Math.hypot(p.x-x2,p.y-cy)<rad(Q2())+14;},
     down:function(p){
       if(Math.hypot(p.x-x1,p.y-cy)<rad(Q1())+14)dragC=1;else if(Math.hypot(p.x-x2,p.y-cy)<rad(Q2())+14)dragC=2;
       if(dragC){touched=true;released=false;U0=0;dOff=(dragC===1?x1:x2)-p.x;}},
