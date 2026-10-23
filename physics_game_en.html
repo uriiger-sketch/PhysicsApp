@@ -124,26 +124,26 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 
 /* HEADER */
 .header{background:var(--hdr-bg);border-bottom:1px solid var(--border);padding:0 24px;display:flex;align-items:center;justify-content:space-between;height:62px;position:sticky;top:0;z-index:200;box-shadow:0 4px 28px rgba(0,0,0,.5);}
-.header-title{font-family:'Rubik',sans-serif;font-weight:900;font-size:1.35rem;}
+.header-title{font-family:'Rubik',sans-serif;font-weight:900;font-size:1.35rem;white-space:nowrap;min-width:0;overflow:hidden;text-overflow:ellipsis;}
 /* the gradient fill is for the name only: clipped to an emoji's outline it
    turned ⚛️ into a plain cyan square and the other icons into silhouettes */
 .header-title .ht-name{background:var(--hdr-title);-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
 .header-xp{display:flex;align-items:center;gap:10px;font-size:.88rem;}
 .xp-badge{background:rgba(245,158,11,.15);border:1px solid rgba(245,158,11,.3);color:var(--gold);padding:4px 14px;border-radius:20px;font-weight:700;}
-.done-badge{color:var(--muted);font-size:.78rem;}
+.done-badge{color:var(--muted);font-size:.78rem;}.xp-badge,.done-badge{white-space:nowrap;}
 
-.ver-badge{margin-inline-start:10px;margin-inline-end:auto;font:600 .7rem/1 'Heebo',sans-serif;color:var(--muted);background:rgba(148,163,184,.08);border:1px solid var(--border);border-radius:999px;padding:4px 9px;cursor:pointer;direction:ltr;letter-spacing:.02em;transition:color .15s,border-color .15s;}
+.ver-badge{margin-inline-start:10px;margin-inline-end:auto;font:600 .7rem/1 'Heebo',sans-serif;color:var(--muted);background:rgba(148,163,184,.08);border:1px solid var(--border);border-radius:999px;padding:4px 9px;cursor:pointer;unicode-bidi:plaintext;letter-spacing:.02em;transition:color .15s,border-color .15s;}
 .ver-badge:hover{color:var(--text);border-color:#3b82f6;}
 .lang-btn{display:inline-flex;align-items:center;gap:4px;font-size:.85rem;}
 .lang-btn .lang-code{font:700 .68rem/1 'Heebo',sans-serif;letter-spacing:.04em;}
 .lang-menu{position:absolute;z-index:9990;min-width:150px;padding:6px;background:var(--panel);border:1px solid var(--border);border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.35);display:flex;flex-direction:column;gap:2px;}
 .lang-item{all:unset;box-sizing:border-box;display:block;width:100%;min-height:44px;padding:10px 14px;border-radius:8px;cursor:pointer;color:var(--text);font:500 .95rem/1.4 'Heebo',sans-serif;text-align:start;}
-.lang-item:hover,.lang-item:focus-visible{background:var(--panel2);outline:2px solid var(--accent);outline-offset:-2px;}
+.lang-item:hover{background:var(--panel2);} .lang-item:focus-visible{background:var(--panel2);outline:2px solid var(--accent2);outline-offset:-2px;}
 .lang-item.cur{color:var(--t-accent);font-weight:700;}
 /* the header fits 320 px: on a narrow phone the globe alone says it */
 @media (max-width:450px){.lang-btn .lang-code{display:none;}}
 @media (max-width:360px){.header-progress{gap:4px !important;}.header .xp-badge{padding:3px 7px;font-size:.74rem;}.header .ver-badge{margin-inline-start:4px;}}
-@media (max-width:340px){.header .ver-badge{padding:3px 4px;font-size:.62rem;margin-inline-start:2px;}.header .xp-badge{padding:3px 5px;}.header-progress{gap:3px !important;}}
+@media (max-width:340px){.header .ver-badge{padding:3px 4px;font-size:.62rem;margin-inline-start:2px;}.header .xp-badge{padding:3px 5px;}.header-progress{gap:3px !important;}#app .header{padding:0 6px;}#app .hamburger-btn{margin-inline-end:2px;}} @media (max-width:1024px){#app .header-progress .theme-btn{margin-inline-end:0;}#app .header .progress-bar-wrap{width:60px;}} @media (max-width:640px){.header-title{display:none;}}
 .cl-ver{padding:14px 20px 4px;display:flex;align-items:baseline;gap:10px}
 .cl-ver b{font-size:.95rem;color:var(--text);direction:ltr}
 .cl-ver span{font-size:.75rem;color:var(--muted);direction:ltr}
@@ -174,7 +174,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 .sec-btn.active .sec-lab{opacity:1;}
 /* the sentence is one flex item (a span): bare, each word run, <b> and
    formula was an item of its own and the line broke into columns */
-.lab-flag{display:inline-flex;align-items:center;gap:6px;margin:10px 0 0;padding:7px 12px;
+.lab-flag{display:inline-flex;align-items:center;gap:6px;margin:0 0 14px;padding:7px 12px;
   border-radius:9px;font-size:.8rem;font-weight:600;color:var(--accent2);
   background:rgba(6,182,212,.10);border:1px solid var(--accent2);}
 
@@ -195,7 +195,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 
 /* TABS */
 .tabs{display:flex;gap:3px;margin-bottom:24px;background:var(--panel);border-radius:12px;padding:4px;border:1px solid var(--border);}
-.tab{flex:1;padding:9px 12px;border:none;background:none;color:var(--muted);cursor:pointer;font-family:'AppSym','Heebo',sans-serif;font-size:.84rem;font-weight:600;border-radius:8px;transition:all .18s;display:flex;align-items:center;justify-content:center;gap:5px;}
+.tab{flex:1;padding:9px 12px;border:none;background:none;color:var(--muted);cursor:pointer;font-family:'AppSym','Heebo',sans-serif;font-size:.84rem;font-weight:600;border-radius:8px;transition:background-color .18s,color .18s;display:flex;align-items:center;justify-content:center;gap:5px;}
 .tab:hover{color:var(--text);background:var(--panel2);}
 .tab.active{background:var(--btn);color:#fff;}
 /* the problem tab before its quiz is done: it still opens (onto the panel
@@ -273,7 +273,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 .param-tip strong{color:var(--accent2);display:block;margin-bottom:3px;}
 
 /* DEF BLOCK */
-.def-block{background:rgba(59,130,246,.07);border:1px solid rgba(59,130,246,.2);border-radius:10px;padding:14px 18px;margin:14px 0;}
+.def-block{background:rgba(59,130,246,.07);border:1px solid rgba(59,130,246,.2);border-radius:10px;padding:14px 18px;margin:14px 0;font-size:.9rem;line-height:1.75;color:var(--t-body);}/* a run-in definition ("<b>Term:</b> text") is set like a titled one's paragraph */
 .unit-badge{display:inline-block;direction:ltr;unicode-bidi:isolate;background:rgba(52,211,153,.14);border:1px solid rgba(52,211,153,.35);color:var(--t-unit);border-radius:5px;padding:1px 6px;font-size:.72rem;font-weight:600;letter-spacing:.02em;}
 /* set like the theory's own paragraphs: as bare text it took the page's
    16 px and tight default leading, larger and denser than the text around it */
@@ -305,11 +305,11 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
   font-family:'AppSym','Heebo',sans-serif;font-size:.82rem;font-weight:600;transition:all .15s;}
 .fold-btn:hover{background:rgba(52,211,153,.16);}
 .fold-body{margin-top:10px;}
-.def-block .def-title{font-weight:700;color:var(--t-blue);margin-bottom:6px;font-size:.95rem;}
+.def-block .def-title{font-weight:700;color:var(--t-blue);margin-bottom:6px;font-size:.95rem;line-height:1.5;}
 .def-block p{font-size:.9rem;color:var(--t-body);line-height:1.75;margin:0;}
 
 /* INFO GRID */
-.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px;}
+.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:14px 0;}.info-grid:last-child{margin-bottom:0;}
 /* two columns of "T = m(g+a) > mg" are wider than a 320 px phone: the
    cards ran 17 px out of the theory card */
 @media (max-width:400px){.info-grid{grid-template-columns:1fr;}}
@@ -319,8 +319,8 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 
 /* ENRICHMENT SECTION */
 .enrich-card{background:var(--enrich);border:1px solid var(--enrich-border);border-radius:14px;padding:22px 26px;margin-top:20px;position:relative;overflow:hidden;}
-.enrich-card::before{content:'✨ Going further';position:absolute;top:14px;inset-inline-end:18px;font-size:.7rem;font-weight:800;color:var(--t-green);letter-spacing:.8px;text-transform:uppercase;background:rgba(16,185,129,.15);padding:3px 10px;border-radius:12px;border:1px solid rgba(16,185,129,.25);}
-.enrich-card .enrich-title{font-weight:700;font-size:1rem;color:var(--t-green);margin-bottom:10px;margin-top:28px;}
+.enrich-card::before{content:'✨ Going further';position:absolute;top:14px;inset-inline-end:18px;font-size:.7rem;font-weight:800;color:var(--t-green);letter-spacing:.8px;background:rgba(16,185,129,.15);padding:3px 10px;border-radius:12px;border:1px solid rgba(16,185,129,.25);}
+.theory-card .enrich-card:not(:last-child){margin-bottom:14px;}.enrich-card .enrich-title{font-weight:700;font-size:1rem;color:var(--t-green);margin-bottom:10px;margin-top:28px;}
 .enrich-card p{font-size:.9rem;color:var(--t-enrich);line-height:1.8;margin-bottom:10px;}
 .enrich-formula{background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.25);border-radius:8px;padding:12px 20px;text-align:center;margin:12px 0;}
 .enrich-formula .katex{font-size:1.2rem;}
@@ -332,7 +332,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 /* THEORY MINI-ANIM with controls */
 .theory-anim{background:var(--bg);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin:18px 0;}
 .theory-anim canvas{display:block;width:100%;background:#07101f;}
-.theory-anim-label{padding:6px 16px;font-size:.78rem;color:var(--muted);text-align:center;border-top:1px solid var(--border);}
+.theory-anim-label{padding:6px 16px;font-size:.78rem;color:var(--muted);text-align:center;border-top:1px solid var(--border);}.theory-anim>.theory-anim{margin:0;border:0;border-radius:0;}/* a lesson's own frame around animCanvas's frame: one frame, no empty band */.theory-card h3,.def-title,.enrich-title,.ex-title,.wx-title,.formula-name,.ac-lbl{text-wrap:balance;}.theory-card p,.theory-card li,.mis-block,.def-block,.sum-open,.ex-lesson,.enrich-card p,.enrich-card li,.wx-given,.wx-q,.wx-a,.quiz-q,.quiz-feedback,.step-q,.problem-text,.hint-box,.x-scroll-hint{text-wrap:pretty;}/* no heading ends on one word alone, no paragraph on one short word */
 /* ── phone sensor lab ── */
 .sensor-lab{background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid var(--accent2);
   border-radius:14px;margin:22px 0 6px;overflow:hidden;}
@@ -346,7 +346,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
   font-family:inherit;font-size:.85rem;font-weight:600;cursor:pointer;}
 .sl-ctrl button.sl-sec{background:var(--panel2);color:var(--text);border:1px solid var(--border);}
 .sl-ctrl button:disabled{opacity:.45;cursor:default;}
-.sl-ctrl button.on{background:var(--red);}
+.sl-ctrl button.on{background:var(--red);} .sl-ctrl button.sl-sec.on{background:var(--btn);border-color:var(--btn);color:#fff;}
 .sl-read{padding:0 15px 10px;display:flex;gap:7px;flex-wrap:wrap;}
 /* A chip reads like the page: its label at the start (right), then the value
    with its unit as one left-to-right run -- "1.35 m/s²", never "m/s² 1.35",
@@ -451,7 +451,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 .sk-missions{border:1px solid var(--border);border-radius:12px;overflow:hidden;background:var(--panel);transition:border-color .4s;}
 .sk-head{appearance:none;-webkit-appearance:none;display:flex;align-items:center;gap:10px;width:100%;min-height:44px;padding:7px 12px;border:0;margin:0;
   background:var(--panel2);font:inherit;font-weight:700;font-size:.88rem;color:var(--text);text-align:start;cursor:pointer;transition:background .4s;}
-.sk-title{flex:1 1 auto;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.sk-title{flex:1 1 auto;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;} .sk-head:focus-visible{outline-offset:-2px;}
 .sk-pips{display:flex;gap:4px;flex:0 0 auto;}
 .sk-pips i{display:block;width:14px;height:6px;border-radius:3px;background:var(--border);transition:background .3s,transform .3s;}
 .sk-pips i.on{background:var(--green);}
@@ -577,9 +577,9 @@ input[type=range]{accent-color:var(--accent);cursor:pointer;}
 .step-inp.ok{border-color:var(--green);background:rgba(16,185,129,.04);}
 .step-inp.err{border-color:var(--red);background:rgba(239,68,68,.04);}
 .unit-lbl{color:var(--muted);font-size:.88rem;white-space:nowrap;}
-.hint-btn{padding:7px 13px;background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.3);border-radius:7px;color:var(--gold);cursor:pointer;font-family:'AppSym','Heebo',sans-serif;font-size:.78rem;font-weight:700;transition:all .18s;white-space:nowrap;}
-.hint-btn:hover{background:rgba(245,158,11,.2);}
-.hint-box{margin-top:9px;padding:11px 14px;background:rgba(245,158,11,.07);border:1px solid rgba(245,158,11,.22);border-radius:8px;font-size:.86rem;color:var(--t-hint);line-height:1.6;}
+.hint-btn,.quiz-hint-btn{padding:7px 13px;background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.3);border-radius:8px;color:var(--gold);cursor:pointer;font-family:'AppSym','Heebo',sans-serif;font-size:.78rem;font-weight:700;transition:all .18s;white-space:nowrap;}
+.hint-btn:hover,.quiz-hint-btn:hover{background:rgba(245,158,11,.2);}
+.hint-box,.quiz-hint-box{margin-top:9px;padding:11px 14px;background:rgba(245,158,11,.07);border:1px solid rgba(245,158,11,.22);border-radius:8px;font-size:.86rem;color:var(--t-hint);line-height:1.6;}
 .step-fb{margin-top:9px;padding:9px 13px;border-radius:7px;font-size:.86rem;line-height:1.5;}
 .step-fb.ok{background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.25);color:var(--t-ok);}
 .step-fb.err{background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.25);color:var(--t-err);}
@@ -592,7 +592,7 @@ input[type=range]{accent-color:var(--accent);cursor:pointer;}
 
 /* LOCKED SECTION */
 .locked-sec{background:var(--panel);border:1px dashed var(--border);border-radius:14px;padding:44px 28px;text-align:center;color:var(--muted);}
-.locked-sec .lock-icon{font-size:2.3rem;margin-bottom:10px;}
+.locked-sec .lock-icon{font-size:2.3rem;margin-bottom:10px;} .done-note{color:var(--green);text-align:center;margin-top:12px;font-weight:700;} .sim-done-msg{color:var(--green);font-weight:700;} .locked-sec p,.done-banner h2,.done-banner p,.done-note,.chapter-summary h2,.onboard-card h2,.onboard-card p,.btn,.next-section-btn,.theory-done-msg,.lab-flag span,.sl-desk,.sec-title,.sec-desc{text-wrap:balance;} .step-fb,.quiz-hint-box,.sim-tip span,.sim-controls>p,.sl-pred,.sl-note,.sk-tx,.sk-hint,.sk-why,.sk-pa,.sk-pq{text-wrap:pretty;}
 
 /* SCROLLBAR */
 ::-webkit-scrollbar{width:5px;height:5px;}
@@ -804,7 +804,7 @@ input[type=range]{accent-color:var(--accent);cursor:pointer;}
   padding: 6px 10px;
   font-size: 1.1rem;
   line-height: 1;
-  margin-inline-start: 8px;
+  margin-inline-end: 6px;   /* its gap on the inner side: as margin-inline-start it sat 8 px further from its edge than the last button from the other */
   transition: background .15s;
 }
 .hamburger-btn:hover { background: rgba(255,255,255,.07); }
@@ -1077,12 +1077,12 @@ input[type=range]{accent-color:var(--accent);cursor:pointer;}
 }
 .onboard-step.active{ background:var(--accent); }
 .onboard-icon{ font-size:3rem; margin-bottom:4px; }
-.onboard-nav{ display:flex; gap:10px; justify-content:center; }
+.onboard-nav{ display:flex; gap:10px; justify-content:center; } @media (max-width:420px){ .onboard-card{ padding:28px 22px; width:calc(100% - 32px); } }
 
 /* ── Chapter summary ──────────────────────────────────── */
 .chapter-summary{
   background:linear-gradient(135deg,rgba(16,185,129,.12),rgba(6,182,212,.08));
-  border:1px solid rgba(16,185,129,.3); border-radius:16px;
+  border:1px solid rgba(16,185,129,.3); border-radius:14px;
   padding:28px 32px; margin:20px 0; text-align:center;
 }
 .chapter-summary h2{ color:var(--green); margin:0 0 8px; }
@@ -1104,7 +1104,7 @@ input[type=range]{accent-color:var(--accent);cursor:pointer;}
   font-size:.85rem; color:var(--muted); padding:3px 0;
   border-bottom:1px solid rgba(255,255,255,.04);
 }
-.summary-formula-row:last-child{ border:none; }
+.summary-formula-row:last-child{ border:none; } [data-theme='light'] .summary-formulas{ background:rgba(255,255,255,.7); border:1px solid var(--border); } [data-theme='light'] .summary-formula-row{ border-bottom-color:var(--border); }
 
 /* ── Theme toggle ─────────────────────────────────────── */
 .theme-btn{
@@ -1112,7 +1112,7 @@ input[type=range]{accent-color:var(--accent);cursor:pointer;}
   color:var(--muted); cursor:pointer; padding:4px 8px;
   font-size:.85rem; transition:all .15s; margin-inline-end:6px;
 }
-.theme-btn:hover{ background:rgba(255,255,255,.07); color:var(--text); }
+.theme-btn:hover{ background:rgba(255,255,255,.07); color:var(--text); } .header-progress>.theme-btn:last-child{ margin-inline-end:0; } [data-theme='light'] .header{ box-shadow:0 2px 14px rgba(15,23,42,.1); }
 
 /* ── XP unlock animation ──────────────────────────────── */
 @keyframes unlock-flash{
@@ -1143,18 +1143,18 @@ input[type=range]{accent-color:var(--accent);cursor:pointer;}
   body{ background:#fff; color:#000; }
 }
 
-/* ── Quiz hint button ─────────────────────────────────── */
+/* ── Quiz hint button and box ─────────────────────────── */
+/* They take the problem's look (.hint-btn, .hint-box, whose rules they
+   share): the quiz's were a thinner button in the browser's own font,
+   with a box in another colour, for the same "💡 hint (−5 XP)". Only
+   their place is their own. */
 .quiz-hint-btn{
-  background:none; border:1px solid var(--border); border-radius:6px;
-  color:var(--gold); font-size:.8rem; cursor:pointer; padding:4px 10px;
-  margin-top:8px; transition:all .15s;
+  margin-top:10px;
 }
-.quiz-hint-btn:hover{ background:rgba(245,158,11,.1); }
 .quiz-hint-box{
-  background:rgba(245,158,11,.08); border:1px solid rgba(245,158,11,.25);
-  border-radius:8px; padding:10px 14px; margin-top:10px;
-  font-size:.88rem; color:var(--gold); text-align:start;
+  margin-top:10px; text-align:start;
 }
+
 
 /* ── Phones, fingers, keyboards ─────────────────────────────────────── */
 /* the header is sticky: anything scrolled or focused into view must land
@@ -1231,7 +1231,7 @@ html{scroll-padding-top:72px;}
   /* below 16 px iOS zooms the whole page into the field and leaves it there */
   input[type=text],input[type=number],input:not([type]),select,textarea{font-size:16px!important;}
 }
-@media (pointer:coarse) and (max-width:340px){.ver-badge::after{left:-2px;}}
+@media (pointer:coarse) and (max-width:340px){.ver-badge::after{left:-2px;}.header-progress .theme-btn{min-width:40px;}}   /* 320 px: three 44 px buttons left the version and XP pills touching and the last button at the edge */
 /* Keyboard: one visible focus ring, in both themes */
 :focus-visible{outline:2px solid var(--accent2);outline-offset:2px;}
 .step-inp:focus-visible{outline:2px solid var(--accent2);outline-offset:1px;}
@@ -1329,8 +1329,15 @@ var APP_LANGS=[
   {code:'he',name:'עברית',file:'physics_game_v28.html'},
   {code:'en',name:'English',file:'physics_game_en.html'}
 ];
-var APP_VERSION='28.37';
+var APP_VERSION='28.38';
 var APP_CHANGELOG=[
+  {v:'28.38',d:'2026-10-23',notes:[
+    `Consistent headings: in every section the second misconception box is called “Another common misconception” (instead of “And one more”), and no heading starts with “And”`,
+    `Every button that opens a tab carries its name: “🔬 Simulation”, “🎯 Quiz”, “📝 Problem”; the theory ends with “✅ Got it · 🔬 Simulation →”, the simulation with “✅ Done · 🎯 Quiz →”, and the guided problem now leads on to the next topic`,
+    `One name and one emoji for each thing: “formula sheet”, “guided problem”, “sensor lab”; 🤔 for predictions, 🏁 for missions, 🎯 for the quiz`,
+    `Look: the header on one line at every width, the stage tabs fit a phone in English too, every animation in a single frame, even spacing between boxes, and headings and buttons without a lone word on the last line; in the light theme, a soft shadow and light formula boxes`,
+    `Consistent Hebrew punctuation and spelling in the lessons; in the guided problems every dimensionless answer has a label, and the instruction “(Include the sign.)” reads the same in every step`
+  ]},
   {v:'28.37',d:'2026-10-22',notes:[
     `Simulations — an overhaul of all 107: in each one, missions the simulation checks itself (with a hint, and the physics explained when you succeed), a prediction before the decisive moment, and a live model line — the formula with the numbers on the screen; progress is saved per section, the same in Hebrew and English`,
     `Color mixing rebuilt: colors are computed from the spectrum, in linear light (the CIE 1931 color-matching functions and the three types of cones); a 👁 probe shows the spectrum and the cone signals at any point; lights (additive mixing), filters (subtractive mixing), and objects under colored light; a spectral yellow lamp (580 nm) to match — metamerism`,
@@ -2718,16 +2725,16 @@ function _markScroll(root){
     }
   });
 }
-// ── A subject's name fits its tab ────────────────────────────────────────
-// Five subjects share the 272 px topic list, so a tab is about 45 px wide.
-// The Hebrew names fit; a longer name in another language ("Magnetism",
-// "Electricity") ran out over the tab's border into its neighbour. When a
-// name is wider than its tab, the row's five names are set at the one size
-// at which all of them fit; a row whose names fit is left exactly as it is.
-// Measured again when the web font arrives (it is wider or narrower than
-// the fallback) and when the window changes.
+// ── Tab names fit their tabs ──────────────────────────────────────────────
+// A longer name in another language ran out of its tab: a subject's ("Electricity" in a 45 px tab) over its neighbour, a stage's ("Simulation", 320 px) out of the bar.
+// Too wide, a row's names shrink together: the five subjects to the one size at which all fit, the four stages half a pixel at a time; a row that fits is left exactly as it is. Measured again when the web font arrives and when the window changes.
 function _fitTabs(root){
   if(!root||!root.querySelectorAll)return;
+  root.querySelectorAll('.tabs').forEach(function(row){var ts=row.querySelectorAll('.tab'),i,n=0,cs=getComputedStyle(row),fs,over,
+    pl=parseFloat(cs.paddingLeft)+parseFloat(cs.borderLeftWidth),pr=parseFloat(cs.paddingRight)+parseFloat(cs.borderRightWidth);
+    for(i=0;i<ts.length;i++)ts[i].style.fontSize='';if(!ts.length||!row.clientWidth)return;
+    over=function(){var r=row.getBoundingClientRect(),a=ts[0].getBoundingClientRect(),b=ts[ts.length-1].getBoundingClientRect();return Math.min(a.left,b.left)<r.left+pl-0.5||Math.max(a.right,b.right)>r.right-pr+0.5;};
+    for(fs=parseFloat(getComputedStyle(ts[0]).fontSize);n++<10&&fs>9&&over();){fs-=0.5;for(i=0;i<ts.length;i++)ts[i].style.fontSize=fs+'px';}});
   root.querySelectorAll('.subject-tabs').forEach(function(row){
     var ls=row.querySelectorAll('.subject-tab>span:last-child'),k=1,i;
     for(i=0;i<ls.length;i++)ls[i].style.fontSize='';
@@ -2995,7 +3002,7 @@ const OPTICS_CHAPTERS=[
     {id:'grating',title:`Diffraction grating`,sub:`Spectroscopy, d·sinθ=mλ, diffraction orders`},
   ]},
   {id:'opt-modern',icon:'🔬',title:`Chapter 6: Modern optics`,sections:[
-    {id:'em-spectrum-full',title:`The photon and ionizing radiation`,sub:`E=hf, intensity vs. photon energy, ionization`},
+    {id:'em-spectrum-full',title:`The photon and ionizing radiation`,sub:`E=hf, intensity versus photon energy, ionization`},
     {id:'polarization',title:`Polarization of light`,sub:`Malus’s law, I=I₀cos²θ`},
     {id:'doppler',title:`The Doppler effect for light`,sub:`Redshift, the expanding universe, speed`},
     {id:'lasers',title:`Lasers — coherent light`,sub:`Stimulated emission, E=hf`},
@@ -3168,11 +3175,11 @@ const CONTENT={
     steps:[
       {q:`The truck’s equation is ${tex('x = x_0 + v\\,t')}. The truck starts from ${tex('x_0=0')}. What is the coefficient of ${tex('t')} — that is, its velocity?`,
        nudge:`In the position–time equation for uniform motion, the constant term is the initial position and the coefficient of time is the velocity. Compare the general form with the given values for the truck.`,
-       hint:`The velocity is given in the question, and ${tex('x_0=0')} because the truck starts from the origin`,answer:'70',unit:'km/h',tolerance:0,
+       hint:`The velocity is given in the question, and ${tex('x_0=0')} because the truck starts from the origin.`,answer:'70',unit:'km/h',tolerance:0,
        explain:`For the truck: ${tex('x = 0 + 70t = 70t')} — the coefficient of ${tex('t')} in the position–time equation is always the velocity.`},
       {q:`The taxi leaves B (${tex('x=290')}) at ${tex('t=0.5')}, heading toward A. Its equation has the form ${tex('x = b - 100t')}. What is ${tex('b')}?`,
        nudge:`The taxi sets out later, so the time elapsed <b>since it set out</b> is not ${tex('t')} but ${tex('t-0.5')}. Write its equation in that form first, and only then expand the parentheses.`,
-       hint:`${tex('x = 290 - 100(t-0.5)')} — expand the parentheses and collect the constant term`,answer:'340',unit:'km',tolerance:0,
+       hint:`${tex('x = 290 - 100(t-0.5)')} — expand the parentheses and collect the constant term.`,answer:'340',unit:'km',tolerance:0,
        explain:`${tex('290 - 100(t-0.5) = 290 - 100t + 50 = 340 - 100t')}, so ${tex('b=340\\,\\text{km}')}. Note that 340 is not a position the taxi ever occupies — it is where the taxi <b>would have been</b> at ${tex('t=0')} had it already been on the road at that time.`},
       {q:`How long ${tex('t')} after the truck sets out will the two meet? (Set the two position equations equal and solve.)`,
        nudge:`Meeting means that at the same instant both objects are at the same place — that is, ${tex('x_1(t) = x_2(t)')}. Write the two expressions on either side of the equation and solve for ${tex('t')}.`,
@@ -3215,7 +3222,7 @@ const CONTENT={
       <div class="enrich-formula">${tex('v = \\dot{x} = \\dfrac{dx}{dt} = \\lim_{\\Delta t\\to0}\\dfrac{\\Delta x}{\\Delta t}', true)}</div>`
     }
   },
-  sim:{type:'avg-instant',title:`Average vs. instantaneous`,desc:`Watch a secant line shrink toward the tangent — this is how the instantaneous velocity arises.`},
+  sim:{type:'avg-instant',title:`Average versus instantaneous`,desc:`Watch a secant line shrink toward the tangent — this is how the instantaneous velocity arises.`},
   example:{title:`Average versus instantaneous velocity`,text:`An object moves according to ${M('x=2t^2')} (x in meters, t in seconds).`,steps:[
     {q:`What is the average velocity between t=2 s and t=4 s?`,a:`${M('\\bar v=\\dfrac{x(4)-x(2)}{4-2}=\\dfrac{32-8}{2}=12\\,\\text{m/s}')}`},
     {q:`What is the instantaneous velocity at t=2 s?`,a:`${M('v=\\dfrac{dx}{dt}=4t=4\\times2=8\\,\\text{m/s}')} — less than the average, because the object is speeding up.`},
@@ -3471,11 +3478,11 @@ const CONTENT={
        explain:`Vector — there is a magnitude (80 km/h) and also a direction (north). This is a <b>velocity</b>, not a speed; in everyday language the distinction blurs, because people use “speed” and “velocity” interchangeably. “I drove at ${tex('80\\,\\text{km/h}')}” is a scalar; “I drove ${tex('80\\,\\text{km/h}')} north” is a vector — and only the second lets you compute a displacement.`},
       {q:`“A force of 20 N downward” — S or V?`,
        nudge:`Check whether reversing the direction changes the physical meaning: is a 20 N force downward equivalent to a 20 N force upward?`,
-       hint:`Force is always a vector`,answer:'V',unit:'S / V',tolerance:-1,
+       hint:`Force is always a vector.`,answer:'V',unit:'S / V',tolerance:-1,
        explain:`Vector. A 20 N force downward and a 20 N force upward have the same <b>magnitude</b> but completely opposite effects, so the direction is part of the physical quantity itself. This is also why forces add geometrically rather than arithmetically: two forces of 20 N can add up to 40, to 0, or to any value in between.`},
       {q:`“The object’s mass is 5 kg” — S or V?`,
        nudge:`Ask yourself whether the phrase “${tex('5\\,\\text{kg}')} north” says anything. If the combination is meaningless, the quantity is a scalar.`,
-       hint:`Mass has no direction`,answer:'S',unit:'S / V',tolerance:-1,
+       hint:`Mass has no direction.`,answer:'S',unit:'S / V',tolerance:-1,
        explain:`Scalar. Mass is a measure of the amount of matter and of its inertia, and “mass to the north” has no meaning at all. Don’t confuse it with <b>weight</b>, which is the gravitational force and therefore a vector, measured in newtons — the same 5 kg object keeps its mass on the Moon, but its weight there is only a sixth as large.`},
     ]
   }
@@ -4641,7 +4648,7 @@ const CONTENT={
        explain:`${M('W=55\\times3.72\\approx205\\,\\text{N}')} — about 38% of her weight on Earth, even though her mass has not changed at all. Her muscles exert the same forces but have to overcome a much smaller weight, so on Mars she could jump about 2.6 times as high.`},
       {q:`Does her <b>mass</b> change when she is in space?`,
        nudge:`Ask yourself exactly what changed between the two previous steps: the formula ${M('W=mg')} contains two factors, and only one of them depends on location.`,
-       hint:`Mass = amount of matter, and it does not depend on location`,answer:`No`,unit:`yes / no`,tolerance:-1,
+       hint:`Mass = amount of matter, and it does not depend on location.`,answer:`No`,unit:`yes / no`,tolerance:-1,
        explain:`No. Mass is the measure of an object’s inertia and of the amount of matter in it — a property of the object itself, the same everywhere in the universe. Weight, on the other hand, is the gravitational pull acting on it, and it changes with ${M('g')}. Even in the weightlessness of the space station, pushing a massive object is still harder than pushing a less massive one — because the mass is still there.`},
     ]
   }
@@ -5214,7 +5221,7 @@ const CONTENT={
       <b>Non-conservative</b> (friction, drag): the work depends <b>on the length of the path</b>; there is no E_p, and the energy leaves as heat.</div>
       <p><b>How do you solve a problem?</b> Choose two points, write the energy at each, and set them equal. The mass almost always cancels: ${M('\\tfrac12v_1^2+gh_1=\\tfrac12v_2^2+gh_2')} — so <b>the speed at the bottom depends neither on the mass</b> nor on the shape of the track.</p>
       <div class="mis-block"><b>⚠️ Common misconception:</b> “Steeper ⇒ faster at the bottom.” Without friction, only the <b>difference in height</b> matters: ${M('v=\\sqrt{2g\\Delta h}')}. What changes is the <b>time</b>.</div>
-      <div class="mis-block"><b>⚠️ Common misconception:</b> “Friction destroys energy.” The energy turns into <b>heat</b>; what decreases is only the <b>mechanical</b> energy: ${M('E_k+E_p+Q=\\text{const}')}.</div>
+      <div class="mis-block"><b>⚠️ Another common misconception:</b> “Friction destroys energy.” The energy turns into <b>heat</b>; what decreases is only the <b>mechanical</b> energy: ${M('E_k+E_p+Q=\\text{const}')}.</div>
       ${animCanvas('anim-econs-fric',200,`With friction: the mechanical bar shrinks by exactly as much as the heat bar grows`)}
       ${fBox('\\Delta E_k + \\Delta E_p = W_{\\text{fric}}',`With friction (W negative)`)}
       <div class="ex-block"><div class="ex-title">✏️ Example — two slides, the same height</div>
@@ -5393,7 +5400,7 @@ const CONTENT={
         ['g',`Acceleration due to gravity`,'9.8 m/s²',"m/s²"],
         ['T',`Period`,`Independent of the mass!`,"s"]
       ])}
-      <div class="def-block"><div class="def-title">Insight: T does not depend on the mass!</div>
+      <div class="def-block"><div class="def-title">T does not depend on the mass</div>
         <p>Two pendulums with the same L but different masses — <b>exactly the same T</b>. The gravitational force is proportional to the mass, but so is the inertia (F=ma) — the mass cancels. This is one of Galileo’s classic discoveries.</p>
       </div>
       <div class="info-grid">
@@ -5404,7 +5411,7 @@ const CONTENT={
       </div>
       <p>Hence ${M('g = \\dfrac{4\\pi^2 L}{T^2}')} — a simple way to measure g! In an experiment, you measure T for a pendulum of known length and calculate g.</p>
       <div class="theory-anim">${animCanvas('anim-pendulum',252,`Same length, different masses — and yet exactly the same rhythm`)}</div>
-      <div class="mis-block"><b>⚠️ Why the mass cancels:</b> the restoring force is ${M('mg\\sin\\theta')} — proportional to the mass. But the resistance to a change in motion is also the mass, ${M('a=F/m')}. The two factors of ${M('m')} cancel, leaving an acceleration that depends only on ${M('g')} and ${M('L')}. This is exactly the same reason that all objects fall with the same acceleration.</div>
+      <div class="mis-block"><b>⚠️ Common misconception:</b> “A heavier pendulum swings faster.” The restoring force is ${M('mg\\sin\\theta')} — proportional to the mass. But the resistance to a change in motion is also the mass, ${M('a=F/m')}. The two factors of ${M('m')} cancel, leaving an acceleration that depends only on ${M('g')} and ${M('L')}. This is exactly the same reason that all objects fall with the same acceleration.</div>
       <div class="theory-anim">${animCanvas('anim-pend-amp',252,`Small amplitude versus large amplitude — the wide swing falls behind`)}</div>
     `,
     enrich:{
@@ -5727,7 +5734,7 @@ const CONTENT={
       </ol>
       <p class="ex-lesson"><b>Takeaway:</b> The load is closer to B, so B carries most of the weight.</p></div>
       <div class="mis-block"><b>⚠️ Common misconception:</b> “Torques can be taken only about a real axis.” In equilibrium the sum is zero about every point in space, even one outside the object — and that is the whole power of the method.</div>
-      <div class="mis-block"><b>⚠️ And one more:</b> forgetting the weight of the beam. A uniform object is treated as if all its weight acted at its <b>center</b>, and its lever arm is measured from there.</div>`,
+      <div class="mis-block"><b>⚠️ Another common misconception:</b> forgetting the weight of the beam. A uniform object is treated as if all its weight acted at its <b>center</b>, and its lever arm is measured from there.</div>`,
     enrich:{title:`Why doesn’t a crane tip over?`,html:`<p>A construction crane lifts tens of tons at the end of a long jib — and does not tip over, because at its other end, on a short arm, sits a heavy <b>counterweight</b>. The products ${M('F\\cdot d')} on the two sides of the tower are almost equal, so the net torque the base has to bear stays small.</p><p>The same calculation determines where a heavy child must sit on a seesaw to balance a light one, and why a truck with an unbalanced load can tip over on a turn.</p>`},
   },
   sim:{type:'statics-beam',desc:`Drag the load and the right-hand support. The support forces and the torque equation about A update live. Move the load beyond the support: a support force that comes out negative means the beam lifts off and tips over, because a support cannot pull.`},
@@ -6052,7 +6059,7 @@ const OPTICS_CONTENT={
         <p>The first mirrors were polished obsidian, followed by polished bronze in Egypt and Mesopotamia about 5,000 years ago. The Romans were already coating glass with metal. The modern mirror — glass covered with a thin layer of silver deposited by a chemical reaction — was invented by the chemist Justus von Liebig in 1835.</p>
       </div>
       <div class="mis-block"><b>⚠️ Common misconception:</b> “The image is on the surface of the mirror.” It is <b>behind</b> the mirror, as far behind it as the object is in front of it, ${M('d_i=-d_o')}. A camera aimed at your reflection in a mirror ${M('1\\,\\text{m}')} away from you has to focus at ${M('2\\,\\text{m}')}, not at one meter.</div>
-      <div class="mis-block"><b>⚠️ And one more:</b> “To see your whole body you need a bigger mirror, or you need to step back from it.” A mirror <b>half</b> your height is enough, at any distance: the rays from your head and from your feet to your eye strike the mirror halfway along, and as you step back, the image moves back by the same amount.</div>
+      <div class="mis-block"><b>⚠️ Another common misconception:</b> “To see your whole body you need a bigger mirror, or you need to step back from it.” A mirror <b>half</b> your height is enough, at any distance: the rays from your head and from your feet to your eye strike the mirror halfway along, and as you step back, the image moves back by the same amount.</div>
       <div class="theory-anim">${animCanvas('anim-plane-mirror-t',148,`Virtual image in a plane mirror`)}</div>`,
     enrich:{title:`How many images between two mirrors?`,html:`<p>Two plane mirrors at an angle ${M('\\theta')} to each other form images of images. When ${M('360^\\circ/\\theta')} is an even number, the number of images is given by the formula below; when it is odd, the formula is exact only for an object on the angle bisector:</p>
       <div class="enrich-formula">${tex('n=\\dfrac{360^\\circ}{\\theta}-1', true)}</div>
@@ -6586,7 +6593,7 @@ const OPTICS_CONTENT={
      opts:[`Increases by a factor of 2`,`Increases by a factor of 4`,`The same`,`Increases by a factor of 8`],correct:1,
      explain:`The amplitudes add: A+A=2A. But the intensity is proportional to the <b>square</b> of the amplitude, so I∝4A² — a factor of 4. Energy is conserved: alongside the places that are 4 times brighter there are dark regions, and averaged over the screen the intensity is exactly 2 times that of a single wave.`},
   ],
-  problem:{title:`Bright or dark`,text:`Two coherent sources emit light in phase. Point P is 12.0 μm from source 1 and 13.5 μm from source 2.`,
+  problem:{title:`Bright or dark?`,text:`Two coherent sources emit light in phase. Point P is 12.0 μm from source 1 and 13.5 μm from source 2.`,
     steps:[
       {q:`What is the path difference ${M('\\Delta d')} at point P, in nanometers?`,unit:'nm',answer:'1500',tolerance:10,
        explain:`Δd=13.5−12.0=1.5 μm=1500 nm. Only the difference matters, not the distances themselves: it is what determines the phase relationship with which the two waves meet.`,
@@ -6726,7 +6733,7 @@ const OPTICS_CONTENT={
     html:`
       <p>Visible light is a very narrow band of the spectrum: its wavelengths vary by less than a factor of 2, while the spectrum as a whole spans more than fifteen orders of magnitude, from radio waves kilometers long to gamma rays shorter than a picometer. All of them are the same phenomenon: electromagnetic waves.</p>
       ${fBox('c = \\lambda f',`Wavelength–frequency relation`,[['c',`Speed of light`,'3×10⁸ m/s',"m/s"],['\\lambda',`Wavelength`,`m (meters)`,"m"],['f',`Frequency`,`Hertz (Hz)`,"Hz"] ])}
-      ${fBox('E = hf = \\dfrac{hc}{\\lambda}',`Photon energy`,[['h',`Planck’s constant`,'6.626×10⁻³⁴ J·s',"J·s"],['f',`Frequency`,'Hz',"Hz"],['E',`Photon energy`,`J (joules)`,"J"] ])}
+      ${fBox('E = hf = \\dfrac{hc}{\\lambda}',`Photon energy`,[['h',`Planck’s constant`,'6.626×10⁻³⁴ J·s',"J·s"],['f',`Frequency`,'Hz',"Hz"],['E',`Photon energy`,'J',"J"] ])}
       <div style="overflow-x:auto;margin:16px 0"><table style="width:100%;border-collapse:collapse;font-size:.82rem;margin:0">
         <tr style="background:rgba(99,102,241,.18);color:#c7d2fe"><th style="padding:6px 8px;text-align:start">Band</th><th dir="ltr" style="padding:6px 8px">λ</th><th dir="ltr" style="padding:6px 8px">f</th><th dir="ltr" style="padding:6px 8px">E (photon)</th><th style="padding:6px 8px;text-align:start">Uses</th></tr>
         <tr style="border-bottom:1px solid rgba(99,102,241,.15)"><td style="padding:5px 8px;color:#e2e8f0">Radio waves</td><td dir="ltr" style="padding:5px 8px;color:#94a3b8">&gt;1 m</td><td dir="ltr" style="padding:5px 8px;color:#94a3b8">&lt;300 MHz</td><td dir="ltr" style="padding:5px 8px;color:#94a3b8">&lt;1.2 μeV</td><td style="padding:5px 8px;color:#94a3b8">Radio and TV broadcasting</td></tr>
@@ -7127,11 +7134,11 @@ const OPTICS_CONTENT={
     html:`
       <p>Both instruments use <b>two lenses</b>: the <b>objective lens</b> (facing the object) forms a real intermediate image, and the <b>eyepiece</b> (the lens at the eye) magnifies it like a magnifying glass.</p>
       <div class="def-block"><div class="def-title">The astronomical telescope</div>
-        ${fBox('M_{\\text{tel}} = -\\dfrac{f_o}{f_e}',`Telescope magnification`,[['f_o',`Objective focal length`,`Long, 100–2000 mm`,"m"],['f_e',`Eyepiece focal length`,`Short, 10–40 mm`,"m"],['M',`Angular magnification`,'',"—"]])}
+        ${fBox('M_{\\text{tel}} = -\\dfrac{f_o}{f_e}',`Magnification of a telescope`,[['f_o',`Objective focal length`,`Long, 100–2000 mm`,"m"],['f_e',`Eyepiece focal length`,`Short, 10–40 mm`,"m"],['M',`Angular magnification`,'',"—"]])}
         <p>Image: inverted (M negative), enlarged. The resolving power is limited by diffraction: ${M('\\theta_{\\min}=1.22\\lambda/D')} (the Rayleigh criterion).</p>
       </div>
       <div class="def-block"><div class="def-title">The microscope</div>
-        ${fBox('M_{\\text{mic}} = \\dfrac{d}{f_o} \\cdot \\dfrac{25\\,\\mathrm{cm}}{f_e}',`Microscope magnification`,[['d',`Tube length`,'≈160 mm',"m"],['f_o',`Objective focal length`,`Short, 2–40 mm`,"m"],['f_e',`Eyepiece focal length`,'10–25 mm',"m"]])}
+        ${fBox('M_{\\text{mic}} = \\dfrac{d}{f_o} \\cdot \\dfrac{25\\,\\mathrm{cm}}{f_e}',`Magnification of a microscope`,[['d',`Tube length`,'≈160 mm',"m"],['f_o',`Objective focal length`,`Short, 2–40 mm`,"m"],['f_e',`Eyepiece focal length`,'10–25 mm',"m"]])}
         <p>Requirement: the object just outside the focal point of the objective → a real, inverted, enlarged image → further magnification by the eyepiece. The formula gives the <b>magnitude</b> of the magnification; the final image is inverted. (${M('25\\,\\text{cm}')} is the standard near-point distance.)</p>
       </div>
       <div class="enrich-card"><div class="enrich-title">Galileo turns a telescope to the sky</div>
@@ -7166,7 +7173,7 @@ const OPTICS_CONTENT={
      opts:[`Decreases`,`Increases`,`Does not change`,`Drops to zero`],correct:1,
      explain:`M=fₒ/fₑ, with fₑ in the denominator — so a short-focal-length eyepiece magnifies more; hence sets of eyepieces. But there is a limit: high magnification spreads the same light over a larger area, the image grows dim, and vibrations are magnified along with it.`},
   ],
-  problem:{title:`Microscope magnification`,text:`A microscope has a tube length d=160 mm, fₒ=4 mm, and fₑ=10 mm. Calculate the total magnification.`,
+  problem:{title:`Magnification of a microscope`,text:`A microscope has a tube length d=160 mm, fₒ=4 mm, and fₑ=10 mm. Calculate the total magnification.`,
     steps:[
       {q:`What is the magnification ${M('M_{obj}')} of the microscope’s objective? (tube length ${M('d=160\\,\\text{mm}')}, ${M('f_o=4\\,\\text{mm}')})`,unit:'×',answer:'40',tolerance:0.5,
        explain:`M_obj=d/f_o=160/4=40. Inside the tube the objective forms a real image enlarged by a factor of 40 — this is the number engraved on the barrel of the objective in a real microscope. The shorter the focal length, the greater the magnification, which is why the most powerful objectives are the smallest.`,
@@ -7335,7 +7342,7 @@ const DC_CHAPTERS=[
   {id:'dc-real',icon:'🧪',title:`Chapter 3: Measurement, real batteries, and capacitors`,sections:[
     {id:'dc-meters',title:`Ammeters and voltmeters`,sub:`In series or in parallel, and the ideal meter`},
     {id:'dc-realmeters',title:`Non-ideal meters`,sub:`Loading error — exactly how much`},
-    {id:'dc-emf',title:`Non-ideal batteries`,sub:`Emf vs. terminal voltage, V=ε−Ir`},
+    {id:'dc-emf',title:`Non-ideal batteries`,sub:`Emf versus terminal voltage, V=ε−Ir`},
     {id:'dc-capacitor',title:`Capacitors in DC circuits`,sub:`In the steady state, no current flows through it`},
   ]},
   {id:'dc-kirchhoff',icon:'🕸️',title:`Chapter 4: Kirchhoff’s laws and complex circuits`,sections:[
@@ -7358,7 +7365,7 @@ const ELECTRO_CONTENT={
     <div class="mis-block"><b>⚠️ Common misconception:</b> “The leaves spread apart ⇒ the electroscope is charged.” In <b>induction</b> (no contact) the leaves spread apart, yet the total charge is zero — move the rod away and they collapse. Only in <b>conduction</b> is charge transferred, and then the leaves stay apart.</div>
     <div class="def-block"><b>Charging by induction with grounding (⏚):</b> bring a negative rod near without touching ⇒ ground the sphere, and the excess electrons escape to the earth ⇒ disconnect the ground, and only <b>then</b> move the rod away. The sphere is left positive although we never touched it. Moving the rod away before disconnecting the ground lets the electrons flow back — the order is everything.</div>
     ${animCanvas('anim-elc-induct-t',195,`The four steps of charging by induction — and why the order matters`)}
-    <div class="mis-block"><b>⚠️ Common misconception:</b> “Rubbing produces electricity.” It only moves electrons that are already there. And an object that became positive did not gain protons — it <b>lost electrons</b>.</div>
+    <div class="mis-block"><b>⚠️ Another common misconception:</b> “Rubbing produces electricity.” It only moves electrons that are already there. And an object that became positive did not gain protons — it <b>lost electrons</b>.</div>
     <p><b>And why is neutral paper attracted?</b> Polarization: each molecule is stretched slightly, and its side facing the charged rod takes on the opposite charge. That opposite side is closer, so its attraction (${M('\\propto 1/r^2')}) outweighs the repulsion of the far side ⇒ <b>a net attraction, for either sign</b>.</p>
     <div class="theory-anim">${animCanvas('anim-elc-polar-t',170,`Polarization: the insulator’s molecules line up — and the paper is attracted`)}</div>
     <div class="ex-block"><div class="ex-title">✏️ Example — contact between two identical spheres</div>
@@ -7500,7 +7507,7 @@ const ELECTRO_CONTENT={
     </div>
     ${animCanvas('anim-elc-2plane-t',200,`Opposite charges trap the field between the plates; like charges push it outside`)}
     <p>Between oppositely charged plates the field is constant, so ${M('\\Delta V = E\\,d')} — and this is exactly ${M('E=V/d')} from the next chapter, seen from the other side: ${M('\\sigma/\\varepsilon_0')} speaks of the <b>charge</b> on the plates, and ${M('V/d')} of the <b>voltage</b> between them.</p>
-    <div class="mis-block"><b>⚠️ And one more:</b> the potential ${M('V')} of an infinite plane does not go to zero at infinity — it keeps falling linearly forever. That is why here we always speak of potential <b>differences</b>, not of “the potential at a point” as we do for a point charge.</div>
+    <div class="mis-block"><b>⚠️ Another common misconception:</b> the potential ${M('V')} of an infinite plane does not go to zero at infinity — it keeps falling linearly forever. That is why here we always speak of potential <b>differences</b>, not of “the potential at a point” as we do for a point charge.</div>
     <div class="ex-block"><div class="ex-title">✏️ Example — a single sheet, then a pair</div>
     <p class="ex-given">A large sheet carries a charge density ${M('\\sigma=4\\,\\mu\\text{C/m}^2')}.</p>
     <ol class="ex-steps">
@@ -7553,7 +7560,7 @@ const ELECTRO_CONTENT={
       ${fBox('E_{\\text{in}}=0 \\;,\\;\\; V_{\\text{in}}=V_R=k\\dfrac{Q}{R} \\;,\\;\\; E_{\\text{out}}=k\\dfrac{Q}{r^2}',`Charged conducting sphere`,[['Q',`Total charge`,'C',"C"],['R',`Radius of the sphere`,'m',"m"],['r',`Distance from the center`,'m',"m"]])}
       <p>From outside, the sphere behaves like a point charge at its center; as you go inside, <b>E jumps to zero</b>, while <b>V is continuous</b> and stays flat at ${M('kQ/R')}. Drag the probe in the simulation in and out.</p>
       <div class="mis-block"><b>⚠️ Common misconception:</b> “Inside a conductor V=0.” It is <b>E</b> that is zero, not V: the potential inside is constant and equal to its value at the surface.</div>
-      <div class="mis-block"><b>⚠️ Common misconception:</b> “The charge spreads out uniformly.” That is true only for a sphere. For any other shape the charge <b>crowds into the points</b>: the whole surface is at the same potential, and ${M('V\\approx kq/r')}, so where the radius of curvature is small, less charge is enough — and there ${M('\\sigma')} and the field are enormous.</div>
+      <div class="mis-block"><b>⚠️ Another common misconception:</b> “The charge spreads out uniformly.” That is true only for a sphere. For any other shape the charge <b>crowds into the points</b>: the whole surface is at the same potential, and ${M('V\\approx kq/r')}, so where the radius of curvature is small, less charge is enough — and there ${M('\\sigma')} and the field are enormous.</div>
       <p><b>Lightning rods:</b> at the tip the field exceeds the dielectric strength of air, and a point (corona) discharge forms that neutralizes charge — and if lightning strikes anyway, the grounded tip provides a short path to the ground.</p>
       <div class="ex-block"><div class="ex-title">✏️ Example — two spheres connected by a wire</div>
       <p class="ex-given">Two conducting spheres, of radius ${M('R')} and radius ${M('3R')}, far apart, are connected by a thin conducting wire and charged together. Which one carries more charge, and which has the stronger field at its surface?</p>
@@ -7662,7 +7669,7 @@ const ELECTRO_CONTENT={
     <p class="ex-lesson"><b>Takeaway:</b> potentials add as numbers, fields add as vectors. ${M('V=0')} does not imply ${M('E=0')}.</p></div>
     <div class="def-block"><b>Equipotential surfaces:</b> around a point charge they are spheres; they are always perpendicular to the field lines, and moving along them takes no work.</div>
     <p><b>The electron volt:</b> ${M('1\\,\\text{eV}=1.6\\times10^{-19}\\,\\text{J}')} — the energy an electron gains when it is accelerated through a potential difference of one volt.</p>
-    <div class="mis-block"><b>⚠️ Common misconception:</b> “High voltage = danger.” A spark from the carpet is ~15,000 V and does no harm: the human body is a capacitor of about 100 pF, so the charge is about one and a half microcoulombs, the energy about ten millijoules, and the discharge is over in less than a microsecond. A 230 V outlet is far more dangerous because it drives charge <b>continuously</b> — tens of milliamperes through the heart.</div>
+    <div class="mis-block"><b>⚠️ Another common misconception:</b> “High voltage = danger.” A spark from the carpet is ~15,000 V and does no harm: the human body is a capacitor of about 100 pF, so the charge is about one and a half microcoulombs, the energy about ten millijoules, and the discharge is over in less than a microsecond. A 230 V outlet is far more dangerous because it drives charge <b>continuously</b> — tens of milliamperes through the heart.</div>
     <p><b>A bird on a power line</b> does not get a shock: both its feet are at the same potential. The danger lies in bridging two different potentials.</p>
     <div class="enrich-card"><div class="enrich-title">Lightning</div>
       <p>In a storm, a potential difference of about a hundred million volts builds up between a cloud and the ground. When the field exceeds the dielectric strength of air, about ${M('3\\times10^{6}\\,\\text{V/m}')}, the air is ionized and becomes a conductor.</p>
@@ -7757,7 +7764,7 @@ const ELECTRO_CONTENT={
       <p>Charge the sphere gradually: when ${M('q')} is already on it, its potential is ${M('kq/R')}, and bringing another ${M('dq')} from infinity costs ${M('dU=(kq/R)dq')}. Summing from 0 to ${M('Q')} gives:</p>
     </div>
     ${fBox('U = \\dfrac{kQ^2}{2R} = \\tfrac{1}{2}QV',`Energy of a charged conducting sphere`,[['U',`Stored energy`,'J',"J"],['Q',`Charge`,'C',"C"],['R',`Radius`,'m',"m"],['V',`Potential at the surface of the sphere`,'V',"V"]])}
-    <div class="mis-block"><b>⚠️ Common misconception:</b> ${M('U=QV')} without the one-half. ${M('U=qV')} is right for a charge placed at a <b>given</b> potential that something else created; here the charge creates its own potential — the first bit arrives when the sphere is empty and costs nothing, the last bit pays in full, so you pay the <b>average</b>.</div>
+    <div class="mis-block"><b>⚠️ Another common misconception:</b> ${M('U=QV')} without the one-half. ${M('U=qV')} is right for a charge placed at a <b>given</b> potential that something else created; here the charge creates its own potential — the first bit arrives when the sphere is empty and costs nothing, the last bit pays in full, so you pay the <b>average</b>.</div>
     <p><b>And where is the energy stored?</b> In the field, with density ${M('u=\\tfrac12\\varepsilon_0E^2')}. Inside, ${M('E=0')} and there is no energy at all, and summing over the whole outside gives exactly ${M('kQ^2/2R')} — the same answer from two different lines of reasoning.</p>
     <div class="def-block"><div class="def-title">How much charge can a sphere hold at all?</div>
       <p>Air breaks down in a field of ${M('3\\times10^{6}\\,\\text{V/m}')}, so ${M('E_{\\max}=kQ/R^2')} limits the charge. For a sphere of radius 5 cm this comes to only ${M('0.83\\,\\mu\\text{C}')} — and since ${M('V_{\\max}=E_{\\max}R')}, a larger sphere holds a higher voltage. That is why the dome of a Van de Graaff generator is huge and smooth, with no sharp points.</p>
@@ -7822,7 +7829,7 @@ const ELECTRO_CONTENT={
     </ol>
     <p class="ex-lesson"><b>Takeaway:</b> just as in a horizontal launch — the two axes are independent, and time links them.</p></div>
     <div class="mis-block"><b>⚠️ Common misconception:</b> “A faster electron is deflected more.” The reverse: ${M('y=\\tfrac12a(L/v_0)^2')} falls off as ${M('1/v_0^2')}. The force has not changed — only the time spent in the field.</div>
-    <div class="mis-block"><b>⚠️ Common misconception:</b> “Near a plate the force is stronger.” In a uniform field the force is <b>the same at every point</b>, so the path is a perfect parabola.</div>
+    <div class="mis-block"><b>⚠️ Another common misconception:</b> “Near a plate the force is stronger.” In a uniform field the force is <b>the same at every point</b>, so the path is a perfect parabola.</div>
     <p><b>Millikan in one sentence:</b> a charged oil drop hovers when ${M('qE=mg')}, which gives ${M('q')}. Every value came out as a multiple of ${M('1.6\\times10^{-19}\\,\\text{C}')} — quantization straight from experiment.</p>
     <div class="enrich-card"><div class="enrich-title">Printers and screens</div>
       <p>An industrial inkjet printer charges each drop of ink and steers it between deflection plates — exactly like the electron in the example. In older oscilloscopes, two such pairs of plates, one vertical and one horizontal, deflected an electron beam, which “wrote” the shape of the measured voltage on the screen. (In old televisions with curved screens, the beam was deflected by a magnetic field instead.)</p></div>
@@ -7872,7 +7879,7 @@ const ELECTRO_CONTENT={
       <li><b>Battery connected — the voltage is constant:</b> ${M('Q=CV=0.6\\,\\text{nC}')} — half of the charge has flowed back into the battery. The energy is halved to ${M('3.6\\,\\text{nJ}')}, and the field is halved too.</li>
     </ol>
     <p class="ex-lesson"><b>Takeaway:</b> the same mechanical action — and opposite results. The first question is always: what stays constant, the charge or the voltage?</p></div>
-    <div class="mis-block"><b>⚠️ Common misconception:</b> “A charged capacitor contains charge.” The total charge is zero: ${M('+Q')} and ${M('-Q')}. A capacitor stores <b>separated charge</b> and the energy in its field.</div>
+    <div class="mis-block"><b>⚠️ Another common misconception:</b> “A charged capacitor contains charge.” The total charge is zero: ${M('+Q')} and ${M('-Q')}. A capacitor stores <b>separated charge</b> and the energy in its field.</div>
     <p><b>The screen you are touching</b> is a grid of tiny capacitors: a conducting finger changes the local capacitance, and the controller locates the touch. An insulating glove barely changes ${M('C')}, so it does not work.</p>
     <div class="enrich-card"><div class="enrich-title">From defibrillators to computer memory</div>
       <ul class="enrich-list">
@@ -7919,7 +7926,7 @@ const ELECTRO_CONTENT={
     </ol>
     <p class="ex-lesson"><b>Takeaway:</b> the same action — the energy grows by a factor of 4 in one case and shrinks by a factor of 4 in the other.</p></div>
     <div class="mis-block"><b>⚠️ Common misconception:</b> “A dielectric always increases the energy.” At constant charge it <b>lowers</b> the energy — and in both cases the slab is <b>pulled in</b>, because the system — when the battery is connected, the capacitor together with the battery — moves toward lower energy.</div>
-    <div class="mis-block"><b>⚠️ And one more:</b> the dielectric conducts no charge at all — the molecules only rotate or stretch in place. That is also why it prevents a short circuit and lets the plates be brought closer, increasing ${M('C')} even further.</div>`,
+    <div class="mis-block"><b>⚠️ Another common misconception:</b> the dielectric conducts no charge at all — the molecules only rotate or stretch in place. That is also why it prevents a short circuit and lets the plates be brought closer, increasing ${M('C')} even further.</div>`,
   },
   sim:{type:'elc-dielectric',desc:`Slide the dielectric in and out and change κ. Tap the battery to disconnect and reconnect it: connected, V is constant; disconnected, Q is constant. The bars show by what factor each quantity grows or shrinks compared with the empty capacitor.`},
   example:{title:`Inserting a dielectric`,text:`A ${M('C_0=200\\,\\text{pF}')} capacitor is charged to ${M('9\\,\\text{V}')}, and then a dielectric with ${M('\\kappa=3')} is inserted into it.`,steps:[
@@ -8062,7 +8069,7 @@ const ELECTRO_CONTENT={
     </ol>
     <p class="ex-lesson"><b>Check:</b> half the gap is ${M('20\\,\\text{mm}')}, and the deflection is ${M('5.5\\,\\text{mm}')} — the electron gets out without hitting a plate ✓</p></div>
     <div class="mis-block"><b>⚠️ Common misconception:</b> computing the deflection with the distance to the screen. The formula gives the deflection <b>at the exit from the plates</b>; beyond them there is no field, and the electron continues in a <b>straight line</b> at the angle it has acquired. The deflection on a distant screen is the sum of the two.</div>
-    <div class="mis-block"><b>⚠️ And one more:</b> taking the electron’s weight into account — ${M('mg\\approx10^{-29}\\,\\text{N}')} versus ${M('qE\\approx4\\times10^{-16}\\,\\text{N}')}: smaller by a factor of ${M('10^{13}')}, and always neglected.</div>
+    <div class="mis-block"><b>⚠️ Another common misconception:</b> taking the electron’s weight into account — ${M('mg\\approx10^{-29}\\,\\text{N}')} versus ${M('qE\\approx4\\times10^{-16}\\,\\text{N}')}: smaller by a factor of ${M('10^{13}')}, and always neglected.</div>
     <div class="enrich-card"><div class="enrich-title">From the oscilloscope to the biology lab</div>
       <p>In the tube of an old oscilloscope, plates exactly like these deflected the electron beam, vertically and horizontally, and the beam traced the shape of the signal on the screen. (In old televisions, whose screens were larger, the beam was deflected by a magnetic field.) The electric force on charged particles is also at work in <b>electrophoresis</b>: DNA molecules migrate through a gel in an electric field and are sorted by size.</p></div>`,
   },
@@ -8126,7 +8133,7 @@ const ELECTRO_CONTENT={
     </ol>
     <p class="ex-lesson"><b>Takeaway:</b> the result came out as a whole number, not 1.7. The power of the experiment lies not in a single measurement but in the fact that all the measurements fall on multiples of the same elementary charge.</p></div>
     <div class="mis-block"><b>⚠️ Common misconception:</b> “Charge can have any value.” A free charge is always ${M('q=ne')} with ${M('n')} an integer. (Quarks carry ${M('\\pm\\tfrac13 e')} or ${M('\\pm\\tfrac23 e')}, but they are never found on their own.)</div>
-    <div class="mis-block"><b>⚠️ And one more:</b> “At a voltage above the hovering value, the drop accelerates upward.” Only for an instant: a micron-sized drop in air reaches a <b>constant velocity</b> within millionths of a second, at which the drag balances the difference ${M('qE-mg')}. That is exactly why Millikan could follow the drop and measure its speed.</div>
+    <div class="mis-block"><b>⚠️ Another common misconception:</b> “At a voltage above the hovering value, the drop accelerates upward.” Only for an instant: a micron-sized drop in air reaches a <b>constant velocity</b> within millionths of a second, at which the drag balances the difference ${M('qE-mg')}. That is exactly why Millikan could follow the drop and measure its speed.</div>
     <div class="enrich-card"><div class="enrich-title">The story behind the experiment</div>
       <ul class="enrich-list">
         <li>Millikan began in 1909 with water drops, which evaporated within seconds. His student Harvey Fletcher suggested clock oil, which hardly evaporates at all — and with it a single drop could be followed for hours.</li>
@@ -8354,7 +8361,7 @@ const DC_CONTENT={
       <li><b>Switch closed:</b> ${M('R_2')} is shorted out, so ${M('R=4\\,\\Omega\\Rightarrow I=3\\,\\text{A}')}, and the voltage across ${M('R_2')} is zero.</li>
     </ol>
     <p class="ex-lesson"><b>Takeaway:</b> the current in the circuit increases by a factor of three — and all of it flows through the switch, not through the shorted resistor.</p></div>
-    <div class="mis-block"><b>⚠️ And a short circuit across the battery itself:</b> a wire directly between the terminals leaves only the battery’s internal resistance. The current surges and the battery heats up dangerously — which is exactly why there are fuses and circuit breakers. We will do the calculation in the section on non-ideal batteries.</div>
+    <div class="mis-block"><b>⚠️ A short circuit across the battery itself:</b> a wire directly between the terminals leaves only the battery’s internal resistance. The current surges and the battery heats up dangerously — which is exactly why there are fuses and circuit breakers. We will do the calculation in the section on non-ideal batteries.</div>
     <div class="enrich-card"><div class="enrich-title">Why is a loose contact more dangerous than a break?</div>
       <p>A switch or outlet that does not make good contact is not “slightly open” — it is a small resistor connected <b>in series</b>. All the current flows through it, and the power ${M('I^2R')} is dissipated over a tiny contact area.</p>
       <p>That is where contacts burn and fires start: not at a clean break, where no current flows at all, but at a loose connection, where a small resistance sits in a place that was never designed to dissipate heat.</p>
@@ -8398,8 +8405,8 @@ const DC_CONTENT={
     ${animCanvas('anim-dc-meters',195,`The ammeter goes into the path; the voltmeter bridges across it — and neither one changes anything`)}
     <p><b>One way to remember it:</b> you measure a <b>flow</b> by stepping into the flow; you measure a <b>drop</b> by standing on both sides of it.</p>
     <div class="mis-block"><b>⚠️ A dangerous mistake:</b> connecting an ammeter <b>in parallel</b> with a component, or directly across the battery terminals. Its resistance is almost zero, so this is a <b>short circuit</b> — the current surges and the instrument burns out. An ammeter always goes into the path, never across it.</div>
+    <div class="mis-block"><b>⚠️ The opposite mistake:</b> a voltmeter <b>in series</b>. Its resistance is huge, so it almost stops the current in the circuit — it reads nearly the entire source voltage, and the circuit stops working.</div>
     <div class="mis-block"><b>⚠️ Common misconception:</b> “A voltmeter measures the voltage <b>at a point</b>.” Voltage is always a potential <b>difference</b> between two points, which is why a voltmeter has two terminals. “The voltage at point A” means the difference between A and a reference point — usually the negative terminal. Both voltmeter leads on the same wire? The reading is zero, because there is no resistor between them.</div>
-    <div class="mis-block"><b>⚠️ And the opposite mistake:</b> a voltmeter <b>in series</b>. Its resistance is huge, so it almost stops the current in the circuit — it reads nearly the entire source voltage, and the circuit stops working.</div>
     <div class="ex-block"><div class="ex-title">✏️ Example — what does each meter read?</div>
     <p class="ex-given">A ${M('12\\,\\text{V}')} battery is connected to resistors ${M('R_1=4\\,\\Omega')} and ${M('R_2=8\\,\\Omega')} in series. The meters are ideal.</p>
     <ol class="ex-steps">
@@ -8490,7 +8497,7 @@ const DC_CONTENT={
 },
 
 'dc-real.dc-emf':{
-  theory:{title:`Non-ideal batteries — emf vs. terminal voltage`,html:`
+  theory:{title:`Non-ideal batteries — emf versus terminal voltage`,html:`
     <p>A battery is labeled ${M('1.5')} V, but the voltage between its terminals is almost never exactly ${M('1.5')} V. The reason: the battery has a resistance of its own.</p>
     ${fBox('V = \\varepsilon - I\\,r',`Terminal voltage of a real battery`,[['V',`Terminal voltage`,`V — what the circuit actually gets`,"V"],['\\varepsilon',`Electromotive force (emf)`,`V — the energy per coulomb the battery supplies`,"V"],['I',`Current drawn`,`A — the current the circuit draws`,"A"],['r',`Internal resistance`,`Ω — of the battery itself`,"Ω"]])}
     <div class="def-block"><div class="def-title">What is the difference between ${M('\\varepsilon')} and ${M('V')}?</div>
@@ -8502,7 +8509,7 @@ const DC_CONTENT={
       <b>Short circuit</b> (${M('R=0')}): ${M('I_{\\max}=\\varepsilon/r')} — the current is limited <b>only</b> by the internal resistance, which is why a short circuit is dangerous.</p>
     </div>
     <div class="mis-block"><b>⚠️ Common misconception:</b> “A battery always delivers the same current.” A battery is not a current source: what is (nearly) constant in it is the <b>emf</b>, and the current is set by the circuit — ${M('I=\\varepsilon/(R+r)')}. That is why a bulb added in parallel does not “steal” current from the others: the battery supplies more current, and the others dim only slightly, because of ${M('Ir')}.</div>
-    <div class="mis-block"><b>⚠️ Common misconception:</b> “A weak battery means a low emf.” The emf does drop a little during discharge, but what changes sharply is ${M('r')}: it climbs, so under load the voltage collapses. That is why a “dead” battery can still show almost ${M('1.5')} V on a meter with no load — and collapse the moment you connect it to a device.</div>
+    <div class="mis-block"><b>⚠️ Another common misconception:</b> “A weak battery means a low emf.” The emf does drop a little during discharge, but what changes sharply is ${M('r')}: it climbs, so under load the voltage collapses. That is why a “dead” battery can still show almost ${M('1.5')} V on a meter with no load — and collapse the moment you connect it to a device.</div>
     <div class="ex-block"><div class="ex-title">✏️ Example — a battery with internal resistance</div>
     <p class="ex-given">A battery has emf ${M('\\varepsilon=12\\,\\text{V}')} and internal resistance ${M('r=0.5\\,\\Omega')}. A resistor ${M('R=5.5\\,\\Omega')} is connected to it.</p>
     <ol class="ex-steps">
@@ -8927,7 +8934,7 @@ const DC_CONTENT={
      explain:`10=2I₁+2(I₁+I₂)=4I₁+2I₂ — the coefficient of I₁ is 4 Ω, that is, R₁+R₃. The common resistor also appears next to I₂.`,nudge:`Replace I₃ with the sum given in the question, expand the parentheses, and collect all the terms containing I₁.`,hint:`I₁ appears in the R₁ term and in the R₃ term — add the coefficients.`},
     {q:`What is the current ${M('I_1')}, in amperes?`,unit:'A',answer:'3.25',tolerance:0.1,
      explain:`The second equation, from the second loop: 2=1·I₂+2(I₁+I₂)=2I₁+3I₂. Solving it together with 10=4I₁+2I₂ gives I₁=3.25 A.`,nudge:`Build the second equation the same way, and solve two equations in two unknowns.`,hint:`Solve the system 10=4I₁+2I₂ · 2=2I₁+3I₂ — eliminate I₂ and find I₁.`},
-    {q:`What is the current ${M('I_2')}, in amperes? (Keep the sign.)`,unit:'A',answer:'-1.5',tolerance:0.1,
+    {q:`What is the current ${M('I_2')}, in amperes? (Include the sign.)`,unit:'A',answer:'-1.5',tolerance:0.1,
      explain:`I₂=−1.5 A. The negative sign is the answer: the current in the second branch flows opposite to the arrow, that is, it enters the 2 V battery at its + terminal — the battery is being charged.`,nudge:`Substitute the I₁ you found into one of the equations. Do not “fix” the sign.`,hint:`Substitute I₁=3.25 A into the equation 2=2I₁+3I₂ and solve for I₂.`},
     {q:`What is the current ${M('I_3')} in the common resistor, in amperes?`,unit:'A',answer:'1.75',tolerance:0.1,
      explain:`I₃=I₁+I₂=3.25−1.5=1.75 A. Energy check: 10·3.25=32.5 W supplied; 2·1.5=3 W absorbed by the weaker battery; and the resistors dissipate 3.25²·2+1.5²·1+1.75²·2=29.5 W. And indeed 3+29.5=32.5 ✓`,nudge:`Use the junction rule, with the signs as they came out.`,hint:`The current in the common resistor is the sum of the two currents, with the negative I₂: I₃=I₁+I₂`},
@@ -8978,7 +8985,7 @@ const DC_CONTENT={
      explain:`It is the classic circuit with no pair that is purely series or purely parallel, so reduction gets stuck. You write the junction and loop equations, or — a handy shortcut — replace everything with a Thévenin equivalent as seen from the galvanometer branch.`},
   ],
   problem:{title:`Measuring with a Wheatstone bridge`,text:`A Wheatstone bridge has R₁=150 Ω, R₂=450 Ω, and a variable resistor R₃. The galvanometer reads zero when R₃=80 Ω.`,steps:[
-    {q:`What is the ratio R₁/R₂ of the ratio arms?`,unit:'',answer:'0.333',tolerance:0.02,
+    {q:`What is the ratio R₁/R₂ of the ratio arms?`,unit:`dimensionless`,answer:'0.333',tolerance:0.02,
      explain:`150/450=1/3≈0.333. This is the ratio that R₃/R_x must also equal.`,
      nudge:`Simply divide the first by the second.`,hint:`The ratio of the two ratio arms: R₁/R₂=150/450`},
     {q:`What is the resistance R_x being measured, in ohms?`,unit:'Ω',answer:'240',tolerance:5,
@@ -9046,7 +9053,7 @@ const MAG_CONTENT={
       <div class="info-item"><div class="il">MRI scanner</div><div class="iv">1.5–3 T</div></div>
     </div>
     <div class="mis-block"><b>⚠️ Common misconception:</b> “The compass needle points to Earth’s magnetic N pole.” Unlike poles attract — so the north end of the needle is attracted to a magnetic <b>south</b> pole. Earth is a magnet whose south pole lies near the geographic North Pole; that is where, geographically, the compass points.</div>
-    <div class="mis-block"><b>⚠️ And one more:</b> “Field lines begin at N and end at S” — like electric field lines, which begin on a positive charge. There is no magnetic charge for a line to begin on: the lines continue inside the magnet and close into a loop.</div>
+    <div class="mis-block"><b>⚠️ Another common misconception:</b> “Field lines begin at N and end at S” — like electric field lines, which begin on a positive charge. There is no magnetic charge for a line to begin on: the lines continue inside the magnet and close into a loop.</div>
     <p><b>Earth’s field is not horizontal.</b> In Israel it dips about 45° below the horizontal: a horizontal component of about ${M('32\\,\\mu\\text{T}')} toward the north, and a similar vertical component pointing down. An ordinary compass turns in a horizontal plane, so it responds only to the horizontal component.</p>
     <div class="ex-block"><div class="ex-title">✏️ Example — a magnet deflects a compass</div>
     <p class="ex-given">The horizontal component of Earth’s field is ${M('30\\,\\mu\\text{T}')} north. A magnet produces a field of ${M('20\\,\\mu\\text{T}')} east at the compass. Where will the needle point?</p>
@@ -9175,7 +9182,7 @@ const MAG_CONTENT={
      explain:'B=μ₀NI/2R=4π×10⁻⁷·50·2/(2·0.05)=1.26×10⁻³ T=1.26 mT.',nudge:`The turns are close together — their fields add, which means multiplying by N.`,hint:`Field at a loop’s center, times N: B=μ₀NI/2R`},
     {q:`What current is needed for the field at the center to be 2.0 mT, in amperes?`,unit:'A',answer:'3.18',tolerance:0.03,
      explain:`I = 2BR/(μ₀N) = 2·2×10⁻³·0.05/(4π×10⁻⁷·50) = 3.18 A. Check: the field is proportional to the current, and 2/1.26 × 2 A = 3.18 A ✓`,nudge:`The field is directly proportional to the current.`,hint:`Solve the field formula for the current: I=2BR/μ₀N`},
-    {q:`By what factor is the field at the center of a single turn greater than the field of a long straight wire carrying the same current, at a distance of 5 cm from it?`,unit:'',answer:'3.14',tolerance:0.03,
+    {q:`By what factor is the field at the center of a single turn greater than the field of a long straight wire carrying the same current, at a distance of 5 cm from it?`,unit:'×',answer:'3.14',tolerance:0.03,
      explain:`Single turn: μ₀I/2R=25.1 μT. Straight wire: μ₀I/2πR=8 μT. The ratio is 25.1/8=3.14=π — because in a loop all the segments of the wire are at a distance R and contribute in the same direction.`,nudge:`Calculate both fields and divide, or compare the formulas directly.`,hint:`Divide the field of the turn by the field of the wire: (μ₀I/2R)/(μ₀I/2πR) — almost everything cancels.`},
   ]},
 },
@@ -9272,7 +9279,7 @@ const MAG_CONTENT={
      explain:`a=F/m=1.6×10⁻¹³/1.67×10⁻²⁷=9.58×10¹³ m/s², that is, 9.58 in units of 10¹³ m/s². An enormous acceleration — and all of it perpendicular to the velocity, so the velocity only turns.`,nudge:`Use Newton’s second law.`,hint:`Divide the force by the proton’s mass: a=F/m`},
     {q:`If the velocity were at 30° to the field, what would the force be, in units of 10⁻¹³ N?`,unit:'×10⁻¹³ N',answer:'0.8',tolerance:0.02,
      explain:`F=qvB·sin30°=1.6×10⁻¹³·0.5=0.8×10⁻¹³ N — 0.8 in units of 10⁻¹³ N. Only the component of the velocity perpendicular to the field contributes.`,nudge:`Only the component of the velocity perpendicular to the field enters the formula.`,hint:`The previous force times sin30°: F=qvB·sinθ`},
-    {q:`How many times greater is the magnetic force (perpendicular case) than the proton’s weight? (g=9.8 m/s²)`,unit:'',answer:'9.78e12',tolerance:0.1e12,
+    {q:`How many times greater is the magnetic force (perpendicular case) than the proton’s weight? (g=9.8 m/s²)`,unit:'×',answer:'9.78e12',tolerance:0.1e12,
      explain:`mg=1.67×10⁻²⁷·9.8=1.64×10⁻²⁶ N, and the ratio is 1.6×10⁻¹³/1.64×10⁻²⁶=9.78×10¹². That is why gravity is neglected in every problem about particles in a field.`,nudge:`Calculate the weight mg and divide.`,hint:`Divide the magnetic force by the weight: F/(mg), with g=9.8 m/s²`},
   ]},
 },
@@ -9281,7 +9288,7 @@ const MAG_CONTENT={
   theory:{title:`Circular motion in a magnetic field`,html:`
     <p><b>A force of constant magnitude that is always perpendicular to the velocity</b> — we have met one before: it is the centripetal force of uniform circular motion. A charged particle that enters a uniform magnetic field perpendicular to it moves in a <b>circle</b>.</p>
     ${fBox('qvB=\\dfrac{mv^2}{r}\\;\\Rightarrow\\; r=\\dfrac{mv}{qB}',`Radius of the path`,[['r',`Radius of the circle`,'','m'],['m',`Mass of the particle`,'','kg'],['v',`Its speed`,'','m/s']])}
-    ${fBox('T=\\dfrac{2\\pi r}{v}=\\dfrac{2\\pi m}{qB}',`The period — independent of the speed!`)}
+    ${fBox('T=\\dfrac{2\\pi r}{v}=\\dfrac{2\\pi m}{qB}',`The period — independent of the speed`)}
     ${animCanvas('anim-mag-circle',200,`Two protons — one twice as fast. Its circle is twice as large, and they return to the entry line at the same instant`)}
     <div class="def-block"><div class="def-title">What determines what</div>
       <p>• <b>Faster or heavier</b> — a larger circle (${M('r\\propto mv')}).<br>
@@ -9584,7 +9591,7 @@ const MAG_CONTENT={
       <li>The emf: ${M('|\\varepsilon|=N\\dfrac{\\Delta\\Phi}{\\Delta t}=200\\times\\dfrac{5\\times10^{-3}}{0.1}=10\\,\\text{V}')}</li>
       <li>The current: ${M('I=\\dfrac{10}{20}=0.5\\,\\text{A}')}, and the charge that flows: ${M('q=I\\Delta t=0.05\\,\\text{C}')}</li>
     </ol>
-    <p class="ex-lesson"><b>A surprise:</b> ${M('q=\\dfrac{N\\Delta\\Phi}{R}')} — the charge that flows does not depend on how fast the change is. A slow change gives a small current for a long time; a fast change gives a large current for a short time.</p></div>
+    <p class="ex-lesson"><b>Takeaway:</b> ${M('q=\\dfrac{N\\Delta\\Phi}{R}')} — the charge that flows does not depend on how fast the change is. A slow change gives a small current for a long time; a fast change gives a large current for a short time.</p></div>
     <div class="enrich-card"><div class="enrich-title">Induction all around you</div>
       <ul class="enrich-list">
         <li><b>Induction cooktops</b> — a coil under the glass produces a field that changes tens of thousands of times a second. It induces currents in the bottom of the pot, and the pot heats up — the glass itself does not.</li>
@@ -9822,7 +9829,7 @@ const MAG_CONTENT={
      explain:`I₂=P/V₂=24/12=2 A. The load sets the current in the secondary — and that, in turn, will set the current in the primary.`,nudge:`How are the load’s power, the voltage across it, and the current through it related?`,hint:`Power is voltage times current, so I₂=P/V₂`},
     {q:`What is the current in the primary, in amperes?`,unit:'A',answer:'0.104',tolerance:0.002,
      explain:`In an ideal transformer P₁=P₂: I₁=24/230=0.104 A (or I₂·N₂/N₁=2·60/1150).`,nudge:`The transformer loses no power.`,hint:`The power in the primary equals the power in the secondary: V₁I₁=V₂I₂`},
-    {q:`A power station transmits 10 MW over a line with a resistance of 10 Ω. By what factor is the loss in the line smaller if the transmission is at 400 kV instead of 20 kV?`,unit:'',answer:'400',tolerance:2,
+    {q:`A power station transmits 10 MW over a line with a resistance of 10 Ω. By what factor is the loss in the line smaller if the transmission is at 400 kV instead of 20 kV?`,unit:'×',answer:'400',tolerance:2,
      explain:`I=P/V: 500 A at 20 kV versus 25 A at 400 kV. The I²R loss is 2.5 MW (a quarter of the power!) versus 6.25 kW. The ratio is (500/25)²=400.`,nudge:`Calculate the current at each voltage, and then I²R.`,hint:`The current in the line is P/V, and the loss in it is I²R — compare the two voltages.`},
   ]},
 },
@@ -10233,7 +10240,7 @@ function simKit(canvas,spec){
     if(!box)return;
     var all=n===items.length;
     box.classList.toggle('all',all);
-    hT.textContent=all?`🎯 All missions complete`:`🎯 Missions`;
+    hT.textContent=all?`🏁 All missions complete`:`🏁 Missions`;   // 🎯 is the quiz (the button under the sim says so)
     hC.textContent=n+'/'+items.length;
   }
   paint();
@@ -36391,7 +36398,7 @@ function buildSidebar(){
       const solved=isCompleted(ch.id,sec.id,'problem');
       const seen=!!state.visited[ch.id+'.'+sec.id];
       const dotCls=solved?'done':seen?'seen':'fresh';
-      const dotTitle=solved?`Problem solved`:seen?`Opened — not yet completed`:`Not opened`;
+      const dotTitle=solved?`Guided problem solved`:seen?`Opened — not yet completed`:`Not opened`;
       // twelve sections carry a phone-sensor experiment; flag them so they can
       // be found without opening every section in turn
       const hasLab=(typeof SENSOR_LABS!=='undefined')&&!!SENSOR_LABS[ch.id+'.'+sec.id];
@@ -36420,7 +36427,7 @@ function buildMain(ch,sec,content){
   else if(state.tab==='sim')body=buildSim(content.sim);
   else if(state.tab==='quiz')body=buildExample(content.example)+buildQuiz(content.quiz);
   else if(state.tab==='problem')body=quizDone?buildProblem(content.problem):`<div class="locked-sec"><div class="lock-icon">🔒</div><p>The guided problem unlocks after the quiz.</p>
-     <button class="btn btn-primary" onclick="setTab('quiz')" style="margin-top:14px">🎯 Go to the quiz</button></div>`;
+     <button class="btn btn-primary" onclick="setTab('quiz')" style="margin-top:14px">🎯 Quiz</button></div>`;
   return `<div class="sec-header${state.tab==='sim'?' sec-header--sim':''}">
     <span class="sec-badge ${badgeTxt[state.tab]?badgeTxt[state.tab][0]:'badge-theory'}">${badgeTxt[state.tab]?badgeTxt[state.tab][1]:''}</span>
     <h1 class="sec-title" id="sec-title" tabindex="-1">${(sec&&sec.title)||''}</h1>
@@ -36983,7 +36990,7 @@ function sensorLabCard(key){
     return `<div class="sl-desk">📱 <b>Sensor lab</b> — this section has an experiment that uses a phone’s sensors, “${L.ttl}”. Open the app <b>on a phone</b> to do it yourself.</div>`;
   }
   var chips='',i;for(i=0;i<L.chips.length;i++)chips+=slChip(L.chips[i][0],L.chips[i][1],L.chips[i][2]);
-  return `<div class="sensor-lab"><div class="sl-head">📱 Sensor lab <small>— ${L.ttl}</small></div><div class="sl-how">${L.how}</div>${L.pred?`<div class="sl-pred">🔮 <b>Predict first:</b> ${L.pred}</div>`:''}<div class="sl-ctrl"><button id="sl-start">▶ Start sensor</button><button class="sl-sec" id="sl-zero">↺ Reset</button>${L.ctrl}<button class="sl-sec" id="sl-hold">⏸ Freeze</button><span class="sl-zoom"><button class="sl-sec" id="sl-zout" title="Zoom out" aria-label="Zoom out of the graph">🔍−</button><button class="sl-sec" id="sl-zin" title="Zoom in" aria-label="Zoom in on the graph">🔍+</button><button class="sl-sec" id="sl-zrst" title="Full view" aria-label="Full view">⤢</button></span></div><div class="sl-read">${chips}</div><canvas id="sl-canvas" height="${L.h}"></canvas><div class="sl-err" id="sl-err" style="display:none"></div><div class="sl-note">${L.note}</div></div>`;
+  return `<div class="sensor-lab"><div class="sl-head">📱 Sensor lab <small>— ${L.ttl}</small></div><div class="sl-how">${L.how}</div>${L.pred?`<div class="sl-pred">🤔 <b>Predict first:</b> ${L.pred}</div>`:''}<div class="sl-ctrl"><button id="sl-start">▶ Start sensor</button><button class="sl-sec" id="sl-zero">↺ Reset</button>${L.ctrl}<button class="sl-sec" id="sl-hold">⏸ Freeze</button><span class="sl-zoom"><button class="sl-sec" id="sl-zout" title="Zoom out" aria-label="Zoom out of the graph">🔍−</button><button class="sl-sec" id="sl-zin" title="Zoom in" aria-label="Zoom in on the graph">🔍+</button><button class="sl-sec" id="sl-zrst" title="Full view" aria-label="Full view">⤢</button></span></div><div class="sl-read">${chips}</div><canvas id="sl-canvas" height="${L.h}"></canvas><div class="sl-err" id="sl-err" style="display:none"></div><div class="sl-note">${L.note}</div></div>`;
 }
 
 // ── per-lab behaviour: init / reset / sample / draw ──────────────────────
@@ -38632,10 +38639,10 @@ function buildTheory(th){
   }
   html+=sensorLabCard(`${state.chapter}.${state.section}`);
   if(!isCompleted(state.chapter,state.section,'theory')){
-    html+=`<button class="btn btn-primary" onclick="finishTheory()" style="margin-top:14px;width:100%">✅ Got it — on to the simulation →</button>`;
+    html+=`<button class="btn btn-primary" onclick="finishTheory()" style="margin-top:14px;width:100%">✅ Got it · 🔬 Simulation →</button>`;
   }else{
     html+=`<div class="theory-done-msg">✅ Theory complete
-      <button class="btn btn-primary" onclick="setTab('sim')" style="margin-inline-start:auto;padding:5px 14px;font-size:.85rem">🔬 Go to the simulation</button>
+      <button class="btn btn-primary" onclick="setTab('sim')" style="margin-inline-start:auto;padding:5px 14px;font-size:.85rem">🔬 Simulation</button>
     </div>`;
   }
   return html;
@@ -38766,8 +38773,8 @@ function buildSim(sim){
     <div class="sim-controls" style="border-top:1px solid var(--border);padding-top:12px">
       <p style="color:var(--muted);font-size:.85rem;line-height:1.6;flex:1 1 15em">${sim.desc}</p>
       <div class="sim-foot-btns">
-      <button class="btn btn-secondary" onclick="restartSim()" style="font-size:.82rem;padding:6px 12px">🔄 Start over</button>
-      ${!simDone?`<button class="btn btn-green" onclick="finishSim()">✅ Done</button>`:`<span style="color:var(--green);font-weight:700">✅ Completed</span>`}
+      <button class="btn btn-secondary" onclick="restartSim()">🔄 Start over</button>
+      ${!simDone?`<button class="btn btn-green" onclick="finishSim()">✅ Done · 🎯 Quiz →</button>`:`<span class="sim-done-msg">✅ Simulation complete</span><button class="btn btn-primary" onclick="setTab('quiz')">🎯 Quiz</button>`}
       </div>
     </div>
   </div>`;
@@ -38783,6 +38790,23 @@ function buildExample(ex){
   return `<div class="wx"><div class="wx-head"><span class="wx-tag">✏️ Worked example</span><span class="wx-title">${ex.title||''}</span></div>${ex.text?'<div class="wx-given">'+_ltSafe(ex.text)+'</div>':''}<ol class="wx-steps">${steps}</ol></div>`;
 }
 
+// After a topic's quiz or its problem (its last stage, whose banner had no way on): the next topic, the next subject at the end of one, or the course is done
+function _nextNav(){
+  var nextSec=null,_chs=getChapters(),chIdx=_chs.findIndex(function(c){return c.id===state.chapter;});
+  if(chIdx>=0){
+    var secIdx=_chs[chIdx].sections.findIndex(function(s){return s.id===state.section;});
+    if(secIdx>=0&&secIdx<_chs[chIdx].sections.length-1){
+      nextSec={ch:state.chapter,sec:_chs[chIdx].sections[secIdx+1].id,title:_chs[chIdx].sections[secIdx+1].title};
+    } else if(chIdx<_chs.length-1&&_chs[chIdx+1].sections.length>0){
+      nextSec={ch:_chs[chIdx+1].id,sec:_chs[chIdx+1].sections[0].id,title:_chs[chIdx+1].sections[0].title};
+    }
+  }
+  var _SUBJ=[['mechanics',`Mechanics`],['optics',`Optics`],['electro',`Electrostatics`],['circuits',`DC circuits`],['magnetism',`Magnetism and induction`]];
+  var _si=_SUBJ.findIndex(function(x){return x[0]===state.subject;}),nextSubj=(!nextSec&&_si>=0&&_si<_SUBJ.length-1)?_SUBJ[_si+1]:null;
+  return nextSec?`<button class="next-section-btn" onclick="navigate('${nextSec.ch}','${nextSec.sec}')">▶ Next topic: ${nextSec.title}</button>`
+    :nextSubj?`<div class="done-note">🎓 You’ve finished every chapter in this subject!</div><button class="next-section-btn" onclick="switchSubject('${nextSubj[0]}')">▶ Next subject: ${nextSubj[1]}</button>`
+    :`<div class="done-note">🎓 You’ve finished every subject!</div>`;
+}
 function buildQuiz(qs){
   if(!qs||!qs.length)return'';
   const st=getQS(state.chapter,state.section);
@@ -38790,31 +38814,14 @@ function buildQuiz(qs){
     // st.ans holds authored option indices (see getQS)
     const ok=st.ans.filter(function(a,i){return a===quizView(qs[i]).ci;}).length;
     const perfect=!st.legacy&&ok===qs.length;
-    var nextSec=null;
-    var _chs=getChapters();
-    var chIdx=_chs.findIndex(function(c){return c.id===state.chapter;});
-    if(chIdx>=0){
-      var secIdx=_chs[chIdx].sections.findIndex(function(s){return s.id===state.section;});
-      if(secIdx>=0&&secIdx<_chs[chIdx].sections.length-1){
-        nextSec={ch:state.chapter,sec:_chs[chIdx].sections[secIdx+1].id,title:_chs[chIdx].sections[secIdx+1].title};
-      } else if(chIdx<_chs.length-1&&_chs[chIdx+1].sections.length>0){
-        nextSec={ch:_chs[chIdx+1].id,sec:_chs[chIdx+1].sections[0].id,title:_chs[chIdx+1].sections[0].title};
-      }
-    }
-    // the last section of a subject is not the end of the course: offer the
-    // next subject rather than announcing that everything is done
-    var _SUBJ=[['mechanics',`Mechanics`],['optics',`Optics`],['electro',`Electrostatics`],['circuits',`DC circuits`],['magnetism',`Magnetism and induction`]];
-    var _si=_SUBJ.findIndex(function(x){return x[0]===state.subject;}),nextSubj=(!nextSec&&_si>=0&&_si<_SUBJ.length-1)?_SUBJ[_si+1]:null;
-    const nextBtn=nextSec?`<button class="next-section-btn" onclick="navigate('${nextSec.ch}','${nextSec.sec}')">▶ Next topic: ${nextSec.title}</button>`
-      :nextSubj?`<div style="color:var(--green);text-align:center;margin-top:12px;font-weight:700">🎓 You’ve finished every chapter in this subject!</div><button class="next-section-btn" onclick="switchSubject('${nextSubj[0]}')">▶ Next subject: ${nextSubj[1]}</button>`
-      :`<div style="color:var(--green);text-align:center;margin-top:12px;font-weight:700">🎓 You’ve finished every subject!</div>`;
+    const nextBtn=_nextNav();
     return`<div class="done-banner">
       <div class="big-icon trophy-anim">${perfect?'🏆':'⭐'}</div>
       <h2>${perfect?`Perfect!`:`Quiz complete!`}</h2>
       <p>${st.legacy?`This quiz was completed in an earlier version of the app, and its score was not saved.`:`${ok}/${qs.length} correct answers${perfect?` — full marks!`:''}`}</p>
       <div style="display:flex;gap:8px;justify-content:center;margin-top:12px;flex-wrap:wrap">
-        <button class="btn btn-primary" onclick="resetQuiz()">🔄 Retake quiz</button>
-        <button class="btn btn-secondary" onclick="setTab('problem')">📝 Go to the problem</button>
+        <button class="btn btn-primary" onclick="setTab('problem')">📝 Problem</button>
+        <button class="btn btn-secondary" onclick="resetQuiz()">🔄 Retake quiz</button>
       </div>
       ${nextBtn}
     </div>`;
@@ -38850,13 +38857,13 @@ function buildQuiz(qs){
   </div>`:'';
   // "next" while another question is unanswered (a quiz reopened on a
   // question added in an update may have them on either side), else "finish"
-  const nxt=ans?(_qNext(st,qs.length)>=0?`<button class="btn btn-primary" onclick="nextQ()" style="margin-top:12px">Next → <kbd style="font-size:.75em">Enter</kbd></button>`:`<button class="btn btn-green" onclick="finishQuiz()" style="margin-top:12px">Finish quiz ✓</button>`):'';
+  const nxt=ans?(_qNext(st,qs.length)>=0?`<button class="btn btn-primary" onclick="nextQ()" style="margin-top:12px">Next → <kbd style="font-size:.75em">Enter</kbd></button>`:`<button class="btn btn-green" onclick="finishQuiz()" style="margin-top:12px">✅ Finish quiz</button>`):'';
   return`<div class="quiz-card">${prog}<div class="quiz-q"><span class="quiz-q-num">${qi+1}</span>${_ltSafe(q.q)}</div><div class="quiz-opts">${opts}</div>${hintHTML}${fb}${nxt}</div>`;
 }
 function buildProblem(prob){
   if(!prob)return'';
   const ps=getPS(state.chapter,state.section);
-  if(ps.done)return`<div class="done-banner"><div class="big-icon trophy-anim">🎓</div><h2>Problem solved!</h2><p>All steps solved!</p><button class="btn btn-secondary" onclick="resetProblem()" style="margin-top:14px">🔄 Solve again</button></div>`;
+  if(ps.done)return`<div class="done-banner"><div class="big-icon trophy-anim">🎓</div><h2>Problem solved!</h2><p>All steps solved!</p><button class="btn btn-secondary" onclick="resetProblem()" style="margin-top:14px">🔄 Solve again</button>${_nextNav()}</div>`;
   const steps=prob.steps.map((st2,si)=>{
     const locked=si>ps.idx,solved=ps.solved[si],inp=ps.inputs[si]||'',fb=ps.feedback[si];
     const lvl=hintLvl(ps,si), maxLvl=hintMax(st2);
@@ -39679,7 +39686,7 @@ function openFormulaPanel(){
     if(!document.getElementById('formula-fab')){
       var fab=document.createElement('button');
       fab.id='formula-fab'; fab.className='formula-fab';
-      fab.title=`Formula sheet`; fab.textContent='📐';
+      fab.title=`Formula sheet (Shift+F)`; fab.textContent='📐';
       fab.setAttribute('aria-label',`Formula sheet`);
       fab.onclick=openFormulaPanel;
       document.body.appendChild(fab);
@@ -39926,7 +39933,7 @@ function renderOnboard(){
     '<div class="onboard-steps">'+dots+'</div>'+
     '<div class="onboard-nav">'+
       (isLast?
-        `<button class="btn btn-primary" onclick="closeOnboarding()">🚀 Let’s go!</button>`:
+        `<button class="btn btn-primary" onclick="closeOnboarding()">🚀 Get started</button>`:
         `<button class="btn btn-primary" onclick="nextOnboard()">Next →</button><button class="btn btn-secondary" onclick="closeOnboarding()">Skip</button>`)+
     '</div>'+
   '</div>';
