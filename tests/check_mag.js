@@ -7,9 +7,9 @@
 const { chromium } = require('playwright');
 const path = require('path');
 const { L, LR, WORDS } = require('./_lang.js');   // the words of the page's language
-// the induction captions, approaching and receding (coil, ring)
-const APPR = [L('מתקרב: השטף גדל — הסליל דוחה'), L('המגנט מתקרב ⇒ השטף גדל ⇒ הטבעת דוחה')];
-const RECD = [L('מתרחק: השטף קטן — הסליל מושך'), L('המגנט מתרחק ⇒ השטף קטן ⇒ הטבעת נמשכת')];
+// the induction captions of the coil, approaching and receding
+const APPR = [L('מתקרב: השטף גדל — הסליל דוחה')];
+const RECD = [L('מתרחק: השטף קטן — הסליל מושך')];
 const isAppr = (c) => APPR.some((a) => c.includes(a)), isRecd = (c) => RECD.some((a) => c.includes(a));
 const F = 'file://' + (process.env.APP_FILE ? path.resolve(process.env.APP_FILE) : path.resolve(__dirname, '..', 'physics_game_v28.html'));   // APP_FILE: test a language build
 
@@ -111,69 +111,343 @@ const EXPECT = {
   t('dipole flux derivative is the slope of the flux', near(H.fd, H.an, Math.abs(H.an) * 1e-3), H.fd.toExponential(4) + ' vs ' + H.an.toExponential(4));
 
   // helpers to drive a simulation and read what it draws
-  const open = async (ch, se) => { await p.evaluate(([c, s]) => { state.subject = 'magnetism'; state.chapter = c; state.section = s; state.tab = 'sim'; render(); }, [ch, se]); await p.waitForTimeout(700); };
-  const read = async (ms = 120) => { await p.evaluate(() => { window.__txt = []; }); await p.waitForTimeout(ms); return p.evaluate(() => window.__txt.slice()); };
+  // open a section's simulation, and wait until it has drawn (its handlers are
+  // attached by then): on a loaded machine the boot can take longer than 0.7 s
+  const open = async (ch, se) => { await p.evaluate(([c, s]) => { state.subject = 'magnetism'; state.chapter = c; state.section = s; state.tab = 'sim'; render(); window.__txt = []; }, [ch, se]); await p.waitForTimeout(700);
+    for (let k = 0; k < 60 && !(await p.evaluate(() => window.__txt.length)); k++) await p.waitForTimeout(100); };
+  // what the canvas drew in the next ms milliseconds — and, on a loaded machine
+  // whose frames stall, until at least one whole frame has been drawn
+  const read = async (ms = 120) => { await p.evaluate(() => { window.__txt = []; }); await p.waitForTimeout(ms);
+    for (let k = 0; k < 40 && !(await p.evaluate(() => window.__txt.length)); k++) await p.waitForTimeout(25);
+    return p.evaluate(() => window.__txt.slice()); };
   const num = (arr, re) => { for (const s of arr.slice().reverse()) { const m = s.match(re); if (m) return parseFloat(m[1].replace('−', '-')); } return NaN; };
   const has = (arr, sub) => arr.some(s => s.includes(sub));
   const click = id => p.evaluate(i => document.getElementById(i).click(), id);
   const slide = (id, v) => p.evaluate(([i, x]) => simSyncSlider(i, x, 3), [id, v]);
 
   console.log('\n3) simulation readouts and directions');
+  // the bar magnet: the field the compass reads is the field of the bar's two
+  // poles (m = 1 A·m², 8 cm), worked out here; then the magnet is cut in two
+  const MGQ = 1 / 0.08, mgB = (x, y, poles, earth) => { let bx = 0, by = earth ? 30e-6 : 0;
+    for (const [px, q] of poles) { const dx = x - px, dy = y, r3 = Math.pow(dx * dx + dy * dy, 1.5); bx += 1e-7 * q * dx / r3; by += 1e-7 * q * dy / r3; }
+    return [bx, by]; };
+  const BAR = [[0.04, MGQ], [-0.04, -MGQ]];
+  await open('mag-field', 'mag-magnets');
+  const mgPut = (x, y) => p.evaluate(([x, y]) => { const cv = document.getElementById('sim-canvas'), R = cv.getBoundingClientRect(), W = cv.offsetWidth, s = W / 0.6, Hc = 470 * 0.44;
+    const ev = (t) => cv.dispatchEvent(new MouseEvent(t, { clientX: R.left + W / 2 + x * s, clientY: R.top + Hc - y * s, bubbles: true, cancelable: true }));
+    ev('mousedown'); ev('mouseup'); }, [x, y]);
+  const mgRead = async () => { const T2 = await read(); const m = await p.evaluate(() => (document.querySelector('.sk-model-tx') || {}).textContent || '');
+    const d = m.match(/(\d+)°/); return { B: num(T2, /B\| [^=]*= ([\d.]+) μT/), dir: d ? +d[1] : NaN, T: T2, m }; };
+  await mgPut(0, 0.10); let mr = await mgRead(), mB = mgB(0, 0.10, BAR);
+  t('magnets: on the perpendicular bisector the field points back along the bar (180°), |B| from its two poles', mr.dir === 180 && near(mr.B, Math.hypot(...mB) * 1e6, 0.03 * Math.hypot(...mB) * 1e6), mr.B + ' μT at ' + mr.dir + '° vs ' + (Math.hypot(...mB) * 1e6).toFixed(1));
+  await mgPut(-0.07, 0); mr = await mgRead();
+  const mgDone = i => p.evaluate(i => document.querySelectorAll('.sk-m')[i].classList.contains('done'), i);
+  t('  on the axis beyond S the field points INTO S (0° ± 3°, toward the magnet): the needle\'s N end points at the S pole', (mr.dir <= 3 || mr.dir >= 357) && await mgDone(1), mr.dir + '°');
+  const mgBars = () => p.evaluate(async () => { const cv = document.getElementById('sim-canvas'), o = window.magBar, b = [];
+    window.magBar = function (c, x, y, len, th, ang) { if (c.canvas === cv) b.push([Math.round(len), ang || 0]); return o.apply(this, arguments); };
+    // on a loaded machine a frame can stall for longer than 150 ms: wait for one (up to 3 s)
+    await new Promise(r => setTimeout(r, 150)); for (let k = 0; k < 60 && !b.length; k++) await new Promise(r => setTimeout(r, 50));
+    window.magBar = o; return b.slice(-4); });
+  const mb0 = await mgBars();
+  const mAsk = await p.evaluate(() => { document.getElementById('btn-mgm-cut').click(); const o = document.querySelectorAll('.sk-predict .sk-opt'); if (o.length) o[1].click(); return o.length; });
+  const mb1 = await mgBars();
+  t('  cut (predicted first): two magnets of half the length, each with its N to the right — no lone pole', mAsk === 3 && mb1.length >= 2 && mb1.slice(-2).every(b => b[1] === 0 && Math.abs(b[0] - mb0[mb0.length - 1][0] / 2) <= 1) && await mgDone(0), JSON.stringify([mb0.slice(-1), mb1.slice(-2)]));
+  await click('btn-mgm-cut'); await click('btn-mgm-earth');
+  // the neutral point with Earth's 30 μT (north = up): searched here on a grid, then the compass put there
+  let nb = [1, 0, 0]; for (let x = -0.2; x <= 0.2; x += 0.002) for (let y = 0.03; y <= 0.14; y += 0.002) { const b = mgB(x, y, BAR, true), n = Math.hypot(...b); if (n < nb[0]) nb = [n, x, y]; }
+  await mgPut(nb[1], nb[2]); mr = await mgRead();
+  t('  with Earth\'s field: a neutral point at (' + (nb[1] * 100).toFixed(1) + ', ' + (nb[2] * 100).toFixed(1) + ') cm — |B| < 2 μT, the warning, the mission', mr.B < 2 && mr.T.some(x => x.includes(L('⚠ נקודה ניטרלית — השדות מבטלים זה את זה, והמחט אינה מתכוונת'))) && await mgDone(2), mr.B + ' μT');
+  // the model line names what the 30 μT is: the HORIZONTAL component of Earth's field (the theory's point)
+  t('  the model line adds the horizontal component of Earth\'s field, 30.0 μT northward', mr.m.includes(L('ועוד הרכיב האופקי של שדה כדור הארץ,').trim()) && mr.m.includes('30.0 μT'), mr.m.slice(0, 90));
+  // one weak magnet (0.2 A·m²) and no Earth: far away |B| < 2 μT, but nothing cancels
+  // there — the field is just weak, and the compass must not call it a neutral point
+  await click('btn-mgm-earth'); await slide('mgm-m', 0.2); await p.waitForTimeout(200);
+  const BARw = [[0.04, 0.2 / 0.08], [-0.04, -0.2 / 0.08]], wkB = Math.hypot(...mgB(-0.27, 0.13, BARw)) * 1e6;
+  await mgPut(-0.27, 0.13); mr = await mgRead();
+  t('  one weak magnet, no Earth, far away: |B| = ' + wkB.toFixed(1) + ' μT < 2 μT, yet no "neutral point" warning (no fields cancel)', wkB < 2 && near(mr.B, wkB, 0.15) && !mr.T.some(x => x.includes(L('⚠ נקודה ניטרלית — השדות מבטלים זה את זה, והמחט אינה מתכוונת'))), mr.B + ' μT');
   await open('mag-field', 'mag-wire'); let T = await read();
   t('wire: B at the probe = μ₀I/2πr (20 A, 4.5 cm)', near(num(T, /B = ([\d.]+) μT/), 2e-7 * 20 / 0.045 * 1e6, 0.2), num(T, /B = ([\d.]+) μT/));
+  const wmodel = () => p.evaluate(() => { const e = document.querySelector('.sk-model-tx'); return e ? e.textContent : ''; });
+  let WM = await wmodel();
+  t('  the model line: B = μ₀I/2πr = (4π×10⁻⁷ × 20)/(2π × 0.045) = 88.9 μT', WM.includes('B = μ₀I/2πr = (4π×10⁻⁷ × 20)/(2π × 0.045) = 88.9 μT'), WM);
+  // reversing the current (a prediction first) turns the probe's field arrow round
+  const wArrow = () => p.evaluate(async () => { const cv = document.getElementById('sim-canvas'), o = window.simArrow; let a = null;
+    window.simArrow = function (c, x1, y1, x2, y2, col) { if (c.canvas === cv && col === '#34d399') a = [x2 - x1, y2 - y1]; return o.apply(this, arguments); };
+    await new Promise(r => setTimeout(r, 150)); for (let k = 0; k < 60 && !a; k++) await new Promise(r => setTimeout(r, 50));
+    window.simArrow = o; return a; });
+  const wa0 = await wArrow();
+  const wAsk = await p.evaluate(() => { document.getElementById('btn-mgw-dir').click(); const o = document.querySelectorAll('.sk-predict .sk-opt'); if (o.length) o[1].click(); return o.length; });
+  const wa1 = await wArrow();
+  t('  current reversed (predicted first): the field at the probe turns round — up for ⊙ east of the wire, down for ⊗', wAsk === 3 && wa0[1] < -5 && wa1[1] > 5 && Math.abs(wa0[0]) < 2, JSON.stringify([wa0, wa1]));
+  await click('btn-mgw-dir');
+  // two wires with currents the same way (20 A, at −4 and +7 cm): the fields cancel half-way, at 1.5 cm
+  // both currents switched off: B = 0 everywhere — and that is not a null point of two fields
+  await click('btn-mgw-two'); await slide('mgw-I', 0); await slide('mgw-I2', 0); await p.waitForTimeout(400); T = await read();
+  const w00 = num(T, /B = ([\d.]+) μT/), w00done = await p.evaluate(() => document.querySelectorAll('.sk-m')[2].classList.contains('done'));
+  t('  two wires with no current: B = 0 at the probe, but the null-point mission is NOT done (no fields cancel)', w00 === 0 && !w00done, w00 + ' ' + w00done);
+  await slide('mgw-I', 20); await slide('mgw-I2', 20);
+  await p.evaluate(() => { const cv = document.getElementById('sim-canvas'), R = cv.getBoundingClientRect(), W = cv.offsetWidth, s = W / 0.30, cy = 480 * 0.6 * 0.5;
+    const ev = (t, x, y) => cv.dispatchEvent(new MouseEvent(t, { clientX: R.left + x, clientY: R.top + y, bubbles: true, cancelable: true }));
+    ev('mousedown', W / 2 + 0.015 * s, cy - 0.02 * s); ev('mousemove', W / 2 + 0.015 * s, cy); ev('mouseup', W / 2 + 0.015 * s, cy); });
+  T = await read(); WM = await wmodel();
+  const wmd = await p.evaluate(() => document.querySelectorAll('.sk-m')[2].classList.contains('done'));
+  const wB = WM.match(/B₁ = ([\d.]+) μT.*B₂ = ([\d.]+) μT/);
+  t('  two currents the same way: the null point half-way between them (B ≈ 0, B₁ = B₂ = 72.7 μT in the model line), its mission done', near(num(T, /B = ([\d.]+) μT/), 0, 0.2) && wB && near(+wB[1], 72.7, 0.3) && near(+wB[1], +wB[2], 0.2) && wmd, num(T, /B = ([\d.]+) μT/) + ' | ' + WM.slice(0, 70));
+  await click('btn-mgw-two');
+  // the right-hand-rule challenge: the current and the point read off the picture,
+  // B ∝ I ẑ × r̂ worked out here, and the chip in that direction tapped
+  const WH = await p.evaluate(async () => { const cv = document.getElementById('sim-canvas'), wait = ms => new Promise(r => setTimeout(r, ms)), out = [];
+    const CH = [[0, 1], [0, -1], [-1, 0], [1, 0]];
+    for (let k = 0; k < 5; k++) {
+      document.getElementById('btn-mgw-rhr').click(); if (k > 0) document.getElementById('btn-mgw-rhr').click();
+      const rec = { wire: null, q: null, chips: [], fb: null };
+      const oD = window.magDot, oT = window.simText, oArc = CanvasRenderingContext2D.prototype.arc;
+      window.magDot = function (c, x, y, r, o) { if (c.canvas === cv && r === 14) rec.wire = [x, y, o ? 1 : -1]; return oD.apply(this, arguments); };
+      window.simText = function (c, s, x, y) { if (c.canvas === cv && s === '?') rec.q = [x, y]; return oT.apply(this, arguments); };
+      CanvasRenderingContext2D.prototype.arc = function (x, y, r) { if (this.canvas === cv && r === 24) rec.chips.push([x, y]); return oArc.apply(this, arguments); };
+      await wait(60); for (let w = 0; w < 30 && !(rec.wire && rec.q && rec.chips.length >= 4); w++) await wait(50); window.magDot = oD; window.simText = oT; CanvasRenderingContext2D.prototype.arc = oArc;
+      const dx = rec.q[0] - rec.wire[0], dy = -(rec.q[1] - 5 - rec.wire[1]), L = Math.hypot(dx, dy), rx = Math.round(dx / L), ry = Math.round(dy / L);
+      const B = [-rec.wire[2] * ry, rec.wire[2] * rx];
+      let ans = CH.findIndex(c => c + '' === B + ''); if (k === 4) ans = (ans + 2) % 4;
+      const chip = rec.chips.slice(-4)[ans], R = cv.getBoundingClientRect();
+      cv.dispatchEvent(new MouseEvent('mousedown', { clientX: R.left + chip[0], clientY: R.top + chip[1], bubbles: true, cancelable: true }));
+      cv.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
+      const o2 = window.simText; window.simText = function (c, s) { if (c.canvas === cv && /^[✓✗]/.test(s)) rec.fb = s; return o2.apply(this, arguments); };
+      for (let w = 0; w < 30 && !rec.fb; w++) await wait(50); window.simText = o2; out.push({ B: B.join(','), fb: rec.fb });
+    }
+    return { out, done: document.querySelectorAll('.sk-m')[0].classList.contains('done') }; });
+  const wOk = WH.out.slice(0, 4).every((r, i) => r.fb && r.fb.startsWith('✓') && r.fb.endsWith(String(i + 1))) && WH.out[4].fb && WH.out[4].fb.startsWith('✗');
+  t('  right-hand-rule challenge: the compass the sim expects is B ∝ I ẑ × r̂ (4 dealt), a wrong tap resets the streak', wOk && WH.done, WH.out.map(r => r.B + ':' + (r.fb || '').slice(0, 12)).join(' | '));
   await open('mag-field', 'mag-loop'); T = await read();
   t('loop: centre field = μ₀NI/2R (1.26 mT)', has(T, '1.26 mT'));
+  const md = () => p.evaluate(() => (document.querySelector('.sk-model-tx') || {}).textContent || ''); const mdone = i => p.evaluate(i => document.querySelectorAll('.sk-m')[i].classList.contains('done'), i);
+  let LM2 = await md();
+  t('  the model line: B = μ₀NI/2R = (4π×10⁻⁷ × 50 × 2.0)/(2 × 0.050) = 1.26 mT', LM2.includes('B = μ₀NI/2R = (4π×10⁻⁷ × 50 × 2.0)/(2 × 0.050) = 1.26 mT'), LM2.slice(0, 60));
+  // the probe at 0.766 R on the axis, where B = B(0)/2 (R²+x² = 2^(2/3)R²)
+  await p.evaluate(() => { const cv = document.getElementById('sim-canvas'), R = cv.getBoundingClientRect(), W = cv.offsetWidth, H = 500, TOP = H * 0.62, cy = TOP * 0.5;
+    const s = Math.min(W * 0.94 / 0.30, (cy - 16) / 0.105), x = W / 2 + 0.05 * Math.sqrt(Math.pow(2, 2 / 3) - 1) * s;
+    cv.dispatchEvent(new MouseEvent('mousedown', { clientX: R.left + x, clientY: R.top + cy, bubbles: true, cancelable: true }));
+    cv.dispatchEvent(new MouseEvent('mouseup', { bubbles: true })); });
+  await p.waitForTimeout(300); LM2 = await md();
+  const lPct = +((LM2.match(/= (\d+)%/) || [])[1]);
+  t('  at x = 0.77R on the axis the field is half the centre’s (B ∝ 1/(R²+x²)^3/2): 50 ± 1 % (a pixel of the probe), its mission', Math.abs(lPct - 50) <= 1 && await mdone(1), LM2.slice(-40));
   await open('mag-field', 'mag-solenoid'); await p.waitForTimeout(400); T = await read();
-  t('solenoid: μ₀nI = 0.38 mT and the centre is 94% of it', has(T, '0.38 mT') && has(T, '94%'));
+  // the exact sum of 12 loops (a = 3 cm) over 16 cm: 93.7 % of μ₀nI at the centre
+  t('solenoid: μ₀nI = 0.38 mT and the centre is 93.7% of it', has(T, '0.38 mT') && has(T, '93.7%'));
+  LM2 = await md();
+  t('  the model line: B = μ₀nI = 4π×10⁻⁷ × 75 × 4.0 = 0.38 mT, the exact sum at the centre 93.7 %', LM2.includes('B = μ₀nI = 4π×10⁻⁷ × 75 × 4.0 = 0.38 mT') && LM2.includes('= 93.7%'), LM2.slice(0, 70));
+  // a sparse coil (5 turns over 24 cm, one of them at the centre) reads 108 %
+  // there and 86 % between the turns: that is not a uniform field
+  const solRatio = (N, Ln, x) => { let b = 0; for (let k = 0; k < N; k++) { const z = x + Ln / 2 - (k + 0.5) * Ln / N; b += 0.03 * 0.03 / (2 * Math.pow(0.03 * 0.03 + z * z, 1.5)); } return b / (N / Ln); };
+  await slide('mgs-N', 5); await slide('mgs-L', 24); await p.waitForTimeout(600); LM2 = await md();
+  const sp5 = +((LM2.match(/= ([\d.]+)%/) || [])[1]);
+  t('  a sparse coil (N = 5, L = 24 cm): 108.1 % at the turn in the middle, 86 % between turns — NOT the uniform-field mission', near(sp5, solRatio(5, 0.24, 0) * 100, 0.06) && near(sp5, 108.1, 0.06) && solRatio(5, 0.24, 0.024) < 0.9 && !(await mdone(1)), sp5 + '% / between ' + (solRatio(5, 0.24, 0.024) * 100).toFixed(1) + '%');
+  await slide('mgs-L', 30); await slide('mgs-N', 40); await p.waitForTimeout(600); LM2 = await md();
+  const sPct = +((LM2.match(/= ([\d.]+)%/) || [])[1]);
+  t('  a long, dense solenoid (L = 30 cm ≫ a = 3 cm, 40 turns): the centre 98.1 % of μ₀nI, no ripple — the uniform-field mission', near(sPct, solRatio(40, 0.30, 0) * 100, 0.06) && sPct >= 97 && await mdone(1), sPct + '%');
   await open('mag-force', 'mag-lorentz'); T = await read();
-  t('Lorentz: F = qvB = 1.60×10⁻¹³ N, r = 4.2 cm, T = 131 ns', has(T, '1.60×10⁻¹³') && has(T, '4.2 cm') && has(T, '131 ns'));
+  const kmodel = () => p.evaluate(() => { const e = document.querySelector('.sk-model-tx'); return e ? e.textContent : ''; });
+  let LM = await kmodel();
+  t('Lorentz: F = qvB = 1.60×10⁻¹³ N (model line), r = mv/qB = 4.2 cm, T = 2πm/qB = 131 ns', LM.includes('F = qvB = 1.60×10⁻¹³ N') && has(T, 'r = mv/qB = 4.2 cm') && has(T, 'T = 2πm/qB = 131 ns'), LM.slice(0, 40));
+  // launch (after the prediction) and follow the charge: a circle of radius
+  // mv/qB = 4.175 cm (69.9 px at 1675 px/m), counter-clockwise for + in B into
+  // the page, clockwise for −, and the speedometer reading the same throughout
+  const orbit = () => p.evaluate(async () => { const cv = document.getElementById('sim-canvas'), pts = [], sp = new Set();
+    const oC = window.simCircle, oT = window.simText;
+    window.simCircle = function (c, x, y, r, f) { if (c.canvas === cv && r === 10) pts.push([x, y]); return oC.apply(this, arguments); };
+    window.simText = function (c, s) { if (c.canvas === cv && /^\|v\| = /.test(s)) sp.add(s); return oT.apply(this, arguments); };
+    document.getElementById('btn-mgz-go').click();
+    const o = document.querySelectorAll('.sk-predict .sk-opt'); if (o.length && !o[0].disabled) o[2].click();
+    const turned = () => { const P = pts.slice(5); if (P.length < 8) return 0; const c = P[Math.floor(P.length / 2)]; let a = 0;
+      for (let i = 1; i < P.length; i++) { let d = Math.atan2(P[i][1] - c[1], P[i][0] - c[0]) - Math.atan2(P[i - 1][1] - c[1], P[i - 1][0] - c[0]); a += Math.abs((d + 3 * Math.PI) % (2 * Math.PI) - Math.PI); } return a; };
+    await new Promise(r => setTimeout(r, 2600)); for (let w = 0; w < 40 && pts.length < 400 && turned() < 3; w++) await new Promise(r => setTimeout(r, 200));
+    window.simCircle = oC; window.simText = oT;
+    // the circle through three points far apart, then every point against it
+    const P = pts.slice(5), a = P[0], b = P[Math.floor(P.length / 2)], c = P[P.length - 1];
+    const d = 2 * (a[0] * (b[1] - c[1]) + b[0] * (c[1] - a[1]) + c[0] * (a[1] - b[1]));
+    const ux = ((a[0] ** 2 + a[1] ** 2) * (b[1] - c[1]) + (b[0] ** 2 + b[1] ** 2) * (c[1] - a[1]) + (c[0] ** 2 + c[1] ** 2) * (a[1] - b[1])) / d;
+    const uy = ((a[0] ** 2 + a[1] ** 2) * (c[0] - b[0]) + (b[0] ** 2 + b[1] ** 2) * (a[0] - c[0]) + (c[0] ** 2 + c[1] ** 2) * (b[0] - a[0])) / d;
+    const R = Math.hypot(a[0] - ux, a[1] - uy), dev = Math.max(...P.map(q => Math.abs(Math.hypot(q[0] - ux, q[1] - uy) - R)));
+    let turn = 0; for (let i = 1; i < P.length; i++) { let da = Math.atan2(-(P[i][1] - uy), P[i][0] - ux) - Math.atan2(-(P[i - 1][1] - uy), P[i - 1][0] - ux);
+      da = (da + 3 * Math.PI) % (2 * Math.PI) - Math.PI; turn += da; }
+    return { n: P.length, R, dev, turn, speeds: [...sp] }; });
+  let ob = await orbit();
+  t('  launched: a circle of r = mv/qB (69.9 px), counter-clockwise for + in B ⊗, the speed never changing', ob.n > 60 && Math.abs(ob.R - 69.9) < 1.5 && ob.dev < 1.5 && ob.turn > 2 && ob.speeds.length === 1, `R=${ob.R.toFixed(1)} dev=${ob.dev.toFixed(2)} turn=${ob.turn.toFixed(2)} ${ob.speeds.join('/')}`);
+  await click('btn-mgz-q'); ob = await orbit();
+  t('  a − charge: the same circle, clockwise', Math.abs(ob.R - 69.9) < 1.5 && ob.dev < 1.5 && ob.turn < -2 && ob.speeds.length === 1, `R=${ob.R.toFixed(1)} turn=${ob.turn.toFixed(2)}`);
+  await click('btn-mgz-q');
   await click('btn-mgz-mode'); T = await read();
-  t('Lorentz, B along +x, v at 60°: force INTO the page on a + charge', has(T, L('נכנס לדף')));
+  t('Lorentz, B along +x, v at 60°: force INTO the page on a + charge', has(T, L('F נכנס לדף')));
   await click('btn-mgz-q'); T = await read();
-  t('  and OUT of the page on a − charge', has(T, L('יוצא מהדף')));
-  await open('mag-force', 'mag-circle'); await click('btn-mgr-fire'); T = await read();
-  t('circle: r = mv/qB = 15.66 cm, T/2 = 164.0 ns', has(T, '15.66 cm') && has(T, '164.0 ns'));
-  // a proton in B into the page turns counter-clockwise: from the lower entry, upward
-  const yel = async () => p.evaluate(() => { const c = document.getElementById('sim-canvas'), d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data;
-    let up = 0, lo = 0; for (let y = 0; y < c.height; y += 2) for (let x = Math.round(c.width * 0.25); x < c.width; x += 2) { const i = (y * c.width + x) * 4;
-      if (d[i] > 220 && d[i + 1] > 160 && d[i + 1] < 210 && d[i + 2] < 80) { if (y < c.height / 2) up++; else lo++; } } return [up, lo]; });
-  await p.waitForTimeout(2600); let yy = await yel();
-  t('  the proton curves UP (counter-clockwise) in B into the page', yy[0] > 20, yy.join('/'));
-  await click('btn-mgr-Bdir'); await click('btn-mgr-fire'); await p.waitForTimeout(2600); yy = await yel();
-  t('  and DOWN (clockwise) when B comes out of the page', yy[1] > 20 && yy[1] > yy[0], yy.join('/'));
+  t('  and OUT of the page on a − charge', has(T, L('F יוצא מהדף')));
+  // the keyboard: twelve presses of → turn v 60° clockwise, onto the field: no force
+  await p.focus('#sim-canvas'); for (let i = 0; i < 12; i++) await p.keyboard.press('ArrowRight');
+  T = await read(); LM = await kmodel();
+  // the model line is redrawn at most ~8 times a second: on a loaded machine give it a few frames
+  for (let w = 0; w < 30 && !/sin 0° = 0 N/.test(LM); w++) { await p.waitForTimeout(100); LM = await kmodel(); }
+  const still = await p.evaluate(() => state.section);
+  t('  v turned onto B with the arrow keys (the page stays): θ = 0°, F = 0', still === 'mag-lorentz' && has(T, 'θ = 0°') && has(T, 'F = 0') && /sin 0° = 0 N/.test(LM), still + ' ' + LM.slice(0, 50));
+  // the right-hand-rule challenge: what was dealt is read off the picture,
+  // F = q v×B worked out here, and the chip in that direction tapped
+  const RH = await p.evaluate(async (WR) => { const cv = document.getElementById('sim-canvas'), wait = ms => new Promise(r => setTimeout(r, ms)), out = [];
+    const CH = [[0, 1, 0], [0, -1, 0], [-1, 0, 0], [1, 0, 0], [0, 0, 1], [0, 0, -1], [0, 0, 0]];
+    const rect = () => cv.getBoundingClientRect();
+    for (let k = 0; k < 5; k++) {
+      document.getElementById('btn-mgz-rhr').click();
+      const rec = { v: null, B: null, z: 0, q: 0, chips: [], fb: null };
+      const oA = window.simArrow, oM = window.magFieldMarks, oT = window.simText, oArc = CanvasRenderingContext2D.prototype.arc;
+      window.simArrow = function (c, x1, y1, x2, y2, col) { if (c.canvas === cv) { if (col === '#34d399') rec.v = [x2 - x1, y1 - y2]; if (col === 'rgba(129,140,248,.55)') rec.B = [x2 - x1, y1 - y2]; } return oA.apply(this, arguments); };
+      window.magFieldMarks = function (c, a, b, d, e, o) { if (c.canvas === cv) rec.z = o ? 1 : -1; return oM.apply(this, arguments); };
+      window.simText = function (c, s) { if (c.canvas === cv) { if (s === '+' || s === '−') rec.q = s === '+' ? 1 : -1; } return oT.apply(this, arguments); };
+      CanvasRenderingContext2D.prototype.arc = function (x, y, r) { if (this.canvas === cv && r === 22) rec.chips.push([x, y]); return oArc.apply(this, arguments); };
+      await wait(60); for (let w = 0; w < 30 && !(rec.v && rec.q && rec.chips.length >= 7); w++) await wait(50);
+      window.simArrow = oA; window.magFieldMarks = oM; window.simText = oT; CanvasRenderingContext2D.prototype.arc = oArc;
+      const u = a => a.map(c => Math.round(c / Math.hypot(...a)));
+      const v = u(rec.v).concat(0), B = rec.z ? [0, 0, rec.z] : u(rec.B).concat(0);
+      const F = [v[1] * B[2] - v[2] * B[1], v[2] * B[0] - v[0] * B[2], v[0] * B[1] - v[1] * B[0]].map(c => c * rec.q);
+      let ans = CH.findIndex(c => c + '' === F + '');
+      if (k === 4) ans = (ans + 1) % 7;                         // and one wrong answer, on purpose
+      const chip = rec.chips.slice(-7)[ans], R = rect(), sc = R.width / cv.offsetWidth;
+      cv.dispatchEvent(new MouseEvent('mousedown', { clientX: R.left + chip[0] * sc, clientY: R.top + chip[1] * sc, bubbles: true, cancelable: true }));
+      cv.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
+      const o2 = window.simText; window.simText = function (c, s) { if (c.canvas === cv && /^[✓✗]/.test(s)) rec.fb = s; return o2.apply(this, arguments); };
+      for (let w = 0; w < 30 && !rec.fb; w++) await wait(50); window.simText = o2;
+      out.push({ F: F.join(','), fb: rec.fb });
+    }
+    return { out, done: document.querySelectorAll('.sk-m')[2].classList.contains('done') };
+  }, []);
+  const okFb = RH.out.slice(0, 4).every((r, i) => r.fb && r.fb.startsWith('✓') && r.fb.endsWith(String(i + 1))), badFb = RH.out[4].fb && RH.out[4].fb.startsWith('✗');
+  t('  right-hand-rule challenge: the sim\'s answer key is F = qv×B (4 dealt, worked out independently), a wrong tap resets the streak', okFb && badFb && RH.done, RH.out.map(r => r.F + ':' + (r.fb || '').slice(0, 14)).join(' | '));
+  // the circle sim, on its fixed scale (42 cm of the field's edge in H − 64 px):
+  // the proton enters moving right; in B into the page it turns UP, and lands
+  // 2r = 2mv/qB = 31.3 cm from where it entered — on the ruler and in the mark
+  await open('mag-force', 'mag-circle');
+  const cmodel = () => p.evaluate(() => (document.querySelector('.sk-model-tx') || {}).textContent || '');
+  let CM = await cmodel();
+  t('circle: r = mv/qB = 15.66 cm and T/2 = πm/qB = 164.0 ns in the model line', CM.includes(') = 15.66 cm') && CM.includes('T/2 = πm/qB = 164.0 ns'), CM.slice(0, 80));
+  const shoot = (btn, ms, ans) => p.evaluate(async ([btn, ms, ans]) => { const cv = document.getElementById('sim-canvas'), o = window.simCircle, oT = window.simText, fr = [], tx = new Set();
+    let cur = []; window.simCircle = function (c, x, y, r) { if (c.canvas === cv && r === 6) cur.push([x, y]); return o.apply(this, arguments); };
+    window.simText = function (c, s) { if (c.canvas === cv) tx.add(s); return oT.apply(this, arguments); };
+    const real = window.requestAnimationFrame; window.requestAnimationFrame = cb => real(t => { cur = []; cb(t); fr.push(cur); });
+    document.getElementById(btn).click(); const op = document.querySelectorAll('.sk-predict .sk-opt'); if (ans !== undefined && op.length && !op[0].disabled) op[ans].click();
+    const X0 = cv.offsetWidth * 0.2, landed = () => btn === 'btn-mgr-pair' ? fr.some(f => f.length === 2 && f[0][0] < X0 - 1 && f[1][0] < X0 - 1 && f[0][1] < cv.offsetHeight - 40) : [...tx].some(t => /^2r = /.test(t));
+    await new Promise(r => setTimeout(r, ms)); for (let w = 0; w < 50 && !landed(); w++) await new Promise(r => setTimeout(r, 200));
+    await new Promise(r => setTimeout(r, 300)); window.simCircle = o; window.simText = oT; window.requestAnimationFrame = real;
+    return { fr: fr.filter(f => f.length), tx: [...tx], H: cv.offsetHeight, W: cv.offsetWidth }; }, [btn, ms, ans]);
+  let sh = await shoot('btn-mgr-fire', 3600);
+  const sc0 = (sh.H - 64) / 0.42, yE0 = sh.H - 30, ys = sh.fr.map(f => f[0][1]);
+  t('  the proton curves UP in B ⊗ and lands 2r = 31.3 cm above the entry (310 px on the ruler\'s scale)', Math.min(...ys) < yE0 - 0.3 * sc0 && near(ys[ys.length - 1], yE0 - 0.3132 * sc0, 2) && sh.tx.some(x => x.startsWith('2r = 31.3 cm')), (yE0 - ys[ys.length - 1]).toFixed(1) + ' px vs ' + (0.3132 * sc0).toFixed(1));
+  await click('btn-mgr-Bdir'); sh = await shoot('btn-mgr-fire', 3600);
+  const ys2 = sh.fr.map(f => f[0][1]);
+  t('  and DOWN when B comes out of the page, the same 2r below the entry', near(ys2[ys2.length - 1], 30 + 0.3132 * sc0, 2), (ys2[ys2.length - 1] - 30).toFixed(1) + ' px');
+  await click('btn-mgr-Bdir');
+  // the target, 24 cm away: B = 2mv/(qD) = 0.261 T → 0.260 on the slider's 0.005 T steps
+  await slide('mgr-B', 0.26); sh = await shoot('btn-mgr-fire', 3600);
+  const cDone = i => p.evaluate(i => document.querySelectorAll('.sk-m')[i].classList.contains('done'), i);
+  t('  B = 0.260 T puts the proton on the 24 cm detector (2r = 24.1 cm): a hit, and its mission', sh.tx.some(x => x.includes('24.1 cm')) && sh.tx.some(x => x.startsWith(L('🎯 פגיעה! 2r = '))) && await cDone(0), sh.tx.filter(x => /2r/.test(x)).join(' | '));
+  // an α particle (m/q twice the proton's) at the same v needs twice the field
+  await click('btn-mgr-p'); await click('btn-mgr-p'); await slide('mgr-B', 0.52); sh = await shoot('btn-mgr-fire', 3600);
+  t('  an α at the same speed hits it at twice the field, B = 0.520 T (2r = 23.9 cm)', sh.tx.some(x => x.includes('23.9 cm')) && await cDone(2), sh.tx.filter(x => /2r/.test(x)).join(' | '));
+  // v and 2v (a prediction first): both leave the field in the same frame
+  await slide('mgr-B', 0.4); sh = await shoot('btn-mgr-pair', 3600, 2);
+  const X0c = sh.W * 0.2, out1 = sh.fr.findIndex(f => f.length === 2 && f[0][0] < X0c - 1 && f[0][1] < yE0 - 5), out2 = sh.fr.findIndex(f => f.length === 2 && f[1][0] < X0c - 1 && f[1][1] < yE0 - 5);
+  t('  v and 2v leave the field together (T = 2πm/qB), the faster on a circle twice as large', out1 > 0 && Math.abs(out1 - out2) <= 1 && await cDone(1), 'frames ' + out1 + ' / ' + out2);
   await open('mag-force', 'mag-spectro'); T = await read();
+  const spPaused = !has(T, '49.8 cm');
+  const spAsk = await p.evaluate(() => { document.getElementById('btn-mgp-run').click(); const o = document.querySelectorAll('.sk-predict .sk-opt'); if (o.length) o[1].click(); return o.length; });
+  T = await read();
+  t('spectrometer: the beam starts after a prediction (which isotope lands farthest?)', spPaused && spAsk === 3, spPaused + ' ' + spAsk);
   t('spectrometer: v = E/B = 4.00×10⁵ m/s; ¹²C and ¹⁴C land at 49.8 and 58.1 cm', has(T, '4.00×10⁵') && has(T, '49.8 cm') && has(T, '58.1 cm'));
-  await open('mag-force', 'mag-wireforce'); await p.waitForTimeout(2500); T = await read();
+  const SPM = await md();
+  t('  the model line: v = E/B = 4.0×10⁴/0.100 = 4.00×10⁵ m/s, 2r = 49.8 and 58.1 cm', SPM.includes('v = E/B = 4.0×10⁴/0.100 = 4.00×10⁵ m/s') && SPM.includes('49.8 cm') && SPM.includes('58.1 cm'), SPM.slice(0, 60));
+  await slide('mgp-E', 5); await p.waitForTimeout(400);
+  t('  E = 5×10⁴ V/m: only 5.00×10⁵ m/s passes, and ¹²C and ¹⁴C land 10.4 cm apart — both missions', await mdone(0) && await mdone(1) && (await md()).includes('5.00×10⁵'));
+  // the separation the mission asks for is seen on the detector: ¹⁴C's landing
+  // mark (2r = 72.6 cm) is drawn, and so is the farthest possible (5.6×10⁵ m/s, 81.3 cm)
+  T = await read();
+  const sp14 = has(T, '2r = 72.6 cm'); await slide('mgp-E', 5.6); await p.waitForTimeout(400); T = await read();
+  t('  …and seen: the ¹⁴C mark at 2r = 72.6 cm is on the detector, as is the farthest one, 81.3 cm at 5.6×10⁵ m/s', sp14 && has(T, '2r = 81.3 cm'), sp14 + ' ' + T.filter(x => /2r =/.test(x)).slice(-3).join(' | '));
+  await slide('mgp-E', 4);
+  await open('mag-force', 'mag-wireforce'); T = await read();
+  const wfOpen = has(T, L('המעגל פתוח — אין זרם')) && (await md()).includes('= 0.000 N');
+  const wfAsk = await p.evaluate(() => { document.getElementById('btn-mgf-on').click(); const o = document.querySelectorAll('.sk-predict .sk-opt'); if (o.length) o[2].click(); return o.length; });
+  t('swing: no force until the circuit is closed — after a prediction of where the wire goes', wfOpen && wfAsk === 4, wfOpen + ' ' + wfAsk);
+  await p.waitForTimeout(2500); T = await read();
   const phi = num(T, /φ = ([\d.]+)°/);
   t('swing: F = BIL = 0.080 N, equilibrium tanφ = F/mg', has(T, '0.080 N') && near(phi, Math.atan(0.08 / 0.196) * 180 / Math.PI, 0.3), phi);
   t('  I out of the page, N above: pushed to the RIGHT', has(T, L('ימינה')));
   await click('btn-mgf-flip'); T = await read();
   t('  magnet flipped: pushed to the LEFT', has(T, L('שמאלה')));
+  await p.waitForTimeout(1500);
+  t('  …and the wire swings left: its mission', await mdone(0));
+  await slide('mgf-th', 0); await p.waitForTimeout(300);
+  t('  the wire along the field (θ = 0): F = BIL·sinθ = 0, though the current flows — its mission', (await md()).includes('sin 0° = 0.000 N') && await mdone(1));
+  await slide('mgf-th', 90); await slide('mgf-B', 0.55); await p.waitForTimeout(400);
+  const WFM = await md();
+  t('  B = 0.55 T: F = 0.110 N, tanφ = F/mg = 0.56 ⇒ φ = 29.3° — the 30° mission', WFM.includes('= 0.110 N') && WFM.includes('φ = 29.3°') && await mdone(2), WFM.slice(-30));
   await open('mag-force', 'mag-parallel'); T = await read();
   t('parallel: 10 A and 10 A at 5 cm, same way: 4.00×10⁻⁴ N/m, attraction', has(T, '4.00×10⁻⁴') && has(T, L('משיכה')));
   await slide('mgq-I2', -10); T = await read();
   t('  one current reversed: repulsion, same size', has(T, '4.00×10⁻⁴') && has(T, L('דחייה')));
+  t('  …the repulsion mission', await mdone(0));
+  await slide('mgq-I2', 30); T = await read(); const PM = await md();
+  t('  10 A and 30 A at 5 cm: F/L = 1.20×10⁻³ N/m on EACH wire (model line) — both missions', PM.includes('2×10⁻⁷ × 10 × 30/0.050 = 1.20×10⁻³ N/m') && has(T, '1.20×10⁻³') && await mdone(1) && await mdone(2), PM.slice(0, 70));
   await open('mag-force', 'mag-motor'); T = await read();
+  const kmod = () => p.evaluate(() => (document.querySelector('.sk-model-tx') || {}).textContent || '');
+  const MOV = L('ענו על השאלה שמתחת לסימולציה — והגרף יופיע כאן');
+  const mHid = has(T, MOV), mQ = await p.evaluate(() => document.querySelectorAll('.sk-predict .sk-opt').length);
+  await p.evaluate(() => document.querySelectorAll('.sk-predict .sk-opt')[1].click()); T = await read();
+  t('motor: the torque graph waits for a prediction (asked on opening), then appears', mHid && mQ === 3 && !has(T, MOV), mHid + ' ' + mQ);
+  const MM = await kmod();
+  t('  spinning, the model line gives τₘₐₓ = NBIA = 100 × 0.30 × 0.5 × 0.0020 = 0.0300 N·m', MM.includes('τₘₐₓ = NBIA = 100 × 0.30 × 0.5 × 0.0020 = 0.0300 N·m'), MM);
   t('motor: τmax = NBIA = 0.0300 N·m', has(T, '0.0300 N·m'));
-  const taus = async n => { const a = []; for (let i = 0; i < n; i++) { const r = await read(90); a.push(num(r, /τ = (-?[\d.]+) N·m/)); } return a; };
+  // a 90 ms window with no frame in it (a loaded machine) reads nothing: such
+  // windows are left out, and at least 3/4 of them must have read a torque
+  // (τ is printed with the typeset minus, U+2212)
+  const taus = async n => { const a = []; for (let i = 0; i < n; i++) { const r = await read(90); a.push(num(r, /τ = ([−-]?[\d.]+) N·m/)); }
+    const ok = a.filter(x => isFinite(x)); return ok.length >= 0.75 * n ? ok : [NaN]; };
   let tv = await taus(30);
   t('  with the commutator the torque never reverses', tv.every(x => x >= -1e-4), Math.min(...tv).toFixed(4));
   await click('btn-mgo-comm'); await p.waitForTimeout(300); tv = await taus(40);
   t('  without it the torque takes both signs (it rocks)', Math.min(...tv) < -1e-3 && Math.max(...tv) > 1e-3, Math.min(...tv).toFixed(4) + '…' + Math.max(...tv).toFixed(4));
+  // left without the commutator, the coil rocks to rest with n̂ along B
+  await p.waitForTimeout(9000); T = await read();
+  const mRest = num(T, /^θ = (\d+)°/), mDone = await p.evaluate(() => document.querySelectorAll('.sk-m')[1].classList.contains('done'));
+  t('  …and comes to rest at θ = 0 (n̂ along B), the stable equilibrium — its mission done', mRest <= 3 && mDone, mRest + '° ' + mDone);
   await open('mag-induction', 'mag-flux'); T = await read();
   t('flux: BA at θ = 0 is 10.00 mWb', has(T, '10.00 mWb'));
   await slide('mgx-th', 60); T = await read();
   t('  and 5.00 mWb at 60°', has(T, '5.00 mWb'));
+  await slide('mgx-th', 90); await p.waitForTimeout(250); await slide('mgx-th', 180); await p.waitForTimeout(250);
+  const FXM = await md();
+  t('  90°: zero flux; 180°: Φ = BA·cos 180° = −10.00 mWb — all three flux missions', FXM.includes('cos 180° = −10.00 mWb') && await mdone(0) && await mdone(1) && await mdone(2), FXM);
   await open('mag-induction', 'mag-faraday'); T = await read();
-  t('Faraday: a magnet at rest induces nothing', num(T, /ε = (-?[\d.]+) mV/) === 0);
+  t('Faraday: a magnet at rest induces nothing', num(T, /ε = ([-−]?[\d.]+) mV/) === 0);
   // pair each readout with the caption drawn right after it, frame by frame
   const pairs = (r, re) => { const out = []; for (let i = 0; i + 1 < r.length; i++) { const m = r[i].match(re);
-    if (m) out.push([parseFloat(m[1]), r[i + 1]]); } return out; };
+    if (m) out.push([parseFloat(m[1].replace("−", "-")), r[i + 1]]); } return out; };
   await click('btn-mgy-auto'); let sgn = { app: [], rec: [] };
-  for (let i = 0; i < 60; i++) { for (const [e, c] of pairs(await read(80), /ε = (-?[\d.]+) mV/)) {
+  for (let i = 0; i < 60; i++) { for (const [e, c] of pairs(await read(80), /ε = ([-−]?[\d.]+) mV/)) {
     if (isAppr(c) && e) sgn.app.push(e); if (isRecd(c) && e) sgn.rec.push(e); } }
   t('  N approaching: ε < 0 (the coil sets up a field toward the magnet — repulsion)', sgn.app.length > 3 && sgn.app.every(e => e < 0), sgn.app.slice(0, 4).join(','));
   t('  N receding: ε > 0 (attraction)', sgn.rec.length > 3 && sgn.rec.every(e => e > 0), sgn.rec.slice(0, 4).join(','));
+  // the model line under the canvas is Faraday's law with the numbers in it:
+  // its ε must be −N times its ΔΦ/Δt, and its I that ε over 10 Ω, every time
+  const fmod = async () => p.evaluate(() => { const e = document.querySelector('.sk-model-tx'); return e ? e.textContent : ''; });
+  const mnum = x => parseFloat(String(x).replace('−', '-'));
+  let fm = { n: 0, big: 0, bad: [] };
+  for (let i = 0; i < 40; i++) { await p.waitForTimeout(130); const m = await fmod();
+    const a = m.match(/ε = −N·ΔΦ\/Δt = −(\d+) × \(([−\d.]+) mWb\/s\) = ([−\d.]+) mV/), b = m.match(/I = ε\/R = ([−\d.]+) mV \/ 10 Ω = ([−\d.]+) mA/);
+    if (!a || !b) { fm.bad.push(m.slice(0, 60)); continue; } fm.n++;
+    const N = +a[1], r = mnum(a[2]), e = mnum(a[3]), e2 = mnum(b[1]), I = mnum(b[2]);
+    if (Math.abs(e) > 20) fm.big++;
+    if (Math.abs(e + N * r) > 0.5 * N * 0.01 + 1 || e2 !== e || Math.abs(I - e / 10) > 0.1) fm.bad.push(m); }
+  t('  the model line: ε = −N·ΔΦ/Δt and I = ε/R with its own numbers, in every reading', fm.n > 30 && fm.big > 5 && fm.bad.length === 0, fm.n + ' read, ' + fm.big + ' large; ' + fm.bad.slice(0, 2).join(' | '));
+  await click('btn-mgy-auto');
+  const parkAsked = await p.evaluate(() => { document.getElementById('btn-mgy-park').click(); const o = document.querySelectorAll('.sk-predict .sk-opt'); if (o.length) o[2].click(); return o.length; });
+  await p.waitForTimeout(2600); T = await read();
+  const parked = await p.evaluate(() => ({ m: document.querySelector('.sk-model-tx').textContent, done: document.querySelectorAll('.sk-m.done').length }));
+  t('  parked in the coil, where the flux is largest (predicted first): ε = 0, ΔΦ/Δt = 0, and the mission says why', parkAsked === 3 && num(T, /ε = ([-−]?[\d.]+) mV/) === 0 && /\(0\.00 mWb\/s\)/.test(parked.m) && parked.done >= 1, parkAsked + ' options; ' + parked.m.slice(0, 50) + '; ' + parked.done + ' done');
   // The ring is stepped once per animation frame, and on a busy machine a
   // frame can be 40 ms long: then one frame's readout and caption could
   // disagree, and this check failed now and then (seen at load 8.8). Here
@@ -183,42 +457,122 @@ const EXPECT = {
   // And at 1/20 s per frame -- a slow phone: there one frame carried the
   // magnet past the ring's centre and the force was the last sub-step's
   // current times dΦ/dz at the end position, so it flipped sign for a frame.
+  // Lenz: every frame of a push in, the ring's swing and a pull out, at
+  // 60 fps and at 20 fps (a slow phone, where one frame can carry the magnet
+  // across a pole). Each frame records what the learner sees: the caption,
+  // the force arrow on the ring, the two field arrows at the ring (the
+  // magnet's, blue; the induced one, green) and where the magnet is.
+  const LZG = [L('השטף גדל ⇒ השדה המושרה נגד שדה המגנט ⇒ הטבעת נדחית')], LZS = [L('השטף קטן ⇒ השדה המושרה עם שדה המגנט ⇒ הטבעת נמשכת')];
   for (const [hz, tag] of [[60, ''], [20, ' (20 fps)']]) {
   await open('mag-induction', 'mag-lenz');
-  const lz = await p.evaluate(async (hz) => {
+  const lz = await p.evaluate(async ([hz, G, S]) => {
     const real = window.requestAnimationFrame, q = [];
-    let T = performance.now() + 1000;
+    let T = performance.now() + 1000, rec = null;
+    const oA = window.simArrow, oB = window.magBar, oT = window.simText;
+    window.simArrow = function (c, x1, y1, x2, y2, col) { if (rec && c.canvas.id === 'sim-canvas') rec.ar.push([x1, x2, col]); return oA.apply(this, arguments); };
+    window.magBar = function (c, x) { if (rec && c.canvas.id === 'sim-canvas') rec.mag = x; return oB.apply(this, arguments); };
+    window.simText = function (c, s) { if (rec && c.canvas.id === 'sim-canvas') { if (G.some(g => s.includes(g))) rec.cap = 'grow'; else if (S.some(g => s.includes(g))) rec.cap = 'shrink'; } return oT.apply(this, arguments); };
     window.requestAnimationFrame = cb => { q.push(cb); return q.length; };
     // the frame already asked of the browser runs once more and hands over
     for (let i = 0; i < 40 && !q.length; i++) await new Promise(r => setTimeout(r, 25));
-    const tick = () => { const cbs = q.splice(0); T += 1000 / hz; window.__txt = []; cbs.forEach(c => c(T)); return window.__txt.slice(); };
+    const tick = () => { const cbs = q.splice(0); T += 1000 / hz; rec = { ar: [], mag: null, cap: null }; cbs.forEach(c => c(T)); const r = rec; rec = null; return r; };
+    // each move is gated by a prediction: answer it, and the move starts
+    const answer = () => { const o = document.querySelectorAll('.sk-predict .sk-opt'); if (o.length) o[1].click(); return o.length ? 1 : 0; };
     for (let i = 0; i < 6; i++) tick();
-    document.getElementById('btn-mgn-push').click();
-    const frames = [];
-    for (let i = 0; i < Math.ceil(1.5 * hz); i++) frames.push(tick());   // 1.5 s: in, back out, at rest
+    const frames = []; let asked = 0;
+    document.getElementById('btn-mgn-push').click(); asked += answer();
+    for (let i = 0; i < Math.ceil(1.6 * hz); i++) frames.push(tick());   // in, and the ring's swing
+    document.getElementById('btn-mgn-pull').click(); asked += answer();
+    for (let i = 0; i < Math.ceil(1.2 * hz); i++) frames.push(tick());   // out again
+    window.simArrow = oA; window.magBar = oB; window.simText = oT;
     window.requestAnimationFrame = real; q.splice(0).forEach(c => real(c));
-    return frames;
-  }, hz);
-  let fa = [], fr = [];
-  for (const fm of lz) for (const [f, c] of pairs(fm, /F = (-?[\d.]+) mN/)) {
-    if (isAppr(c) && f) fa.push(f); if (isRecd(c) && f) fr.push(f); }
-  t('Lenz' + tag + ': magnet pushed in — the ring is pushed AWAY (F > 0)', fa.length > 2 && fa.every(f => f > 0), fa.slice(0, 4).join(','));
-  t('  magnet drawn out' + tag + ' — the ring is pulled AFTER it (F < 0)', fr.length > 1 && fr.every(f => f < 0), fr.slice(0, 4).join(','));
+    return { frames, asked };
+  }, [hz, LZG, LZS]);
+  const st = { gF: [0, 0], sF: [0, 0], gB: [0, 0], sB: [0, 0] };   // [agree, disagree]
+  for (const f of lz.frames) { if (!f.cap) continue;
+    const F = f.ar.find(a => a[2] === '#fb923c'), Bm = f.ar.find(a => a[2] === '#60a5fa'), Bi = f.ar.find(a => a[2] === '#34d399');
+    if (F) { const away = Math.sign(F[1] - F[0]) === Math.sign(F[0] - f.mag); st[f.cap === 'grow' ? 'gF' : 'sF'][(f.cap === 'grow') === away ? 0 : 1]++; }
+    if (Bm && Bi) { const same = Math.sign(Bm[1] - Bm[0]) === Math.sign(Bi[1] - Bi[0]); st[f.cap === 'grow' ? 'gB' : 'sB'][(f.cap === 'shrink') === same ? 0 : 1]++; } }
+  t('Lenz' + tag + ': both moves ask for a prediction first', lz.asked === 2, lz.asked);
+  t('  flux growing' + tag + ': the ring is pushed AWAY from the magnet, every frame', st.gF[0] > 2 && st.gF[1] === 0, st.gF.join('/'));
+  t('  flux shrinking' + tag + ': the ring is pulled TOWARD the magnet, every frame', st.sF[0] > 1 && st.sF[1] === 0, st.sF.join('/'));
+  t('  flux growing' + tag + ': the induced field points AGAINST the magnet\'s', st.gB[0] > 2 && st.gB[1] === 0, st.gB.join('/'));
+  t('  flux shrinking' + tag + ': the induced field points WITH the magnet\'s (it opposes the change, not the field)', st.sB[0] > 1 && st.sB[1] === 0, st.sB.join('/'));
   }
-  let fa = [];
   await click('btn-mgn-reset'); await click('btn-mgn-cut'); await click('btn-mgn-push');
-  for (let i = 0; i < 12; i++) { const r = await read(70); fa.push(num(r, /F = (-?[\d.]+) mN/)); }
-  t('  a cut ring: no current, no force', fa.every(f => f === 0));
+  let lzI = [], lzF = 0, lzCut = 0; const CUTC = L('טבעת חתוכה: יש כא״מ, אין זרם — ולכן אין כוח');
+  for (let i = 0; i < 12; i++) { const r = await read(70); lzI.push(num(r, /^I = ([\d.]+) A/)); if (r.some(x => /^F = /.test(x))) lzF++; if (r.some(x => x.includes(CUTC))) lzCut++; }
+  t('  a cut ring: no current, no force', lzI.every(v => v === 0) && lzF === 0, lzI.join(',') + ' / ' + lzF);
+  // its emf exists only while the flux changes: with the magnet at rest the caption says the flux is not changing
+  for (let w = 0; w < 20; w++) { const r = await read(100); if (!r.some(x => x.includes(CUTC))) break; }
+  T = await read(200);
+  t('  …"an emf, but no current" while the magnet moves; at rest "the flux is not changing" (no emf either)', lzCut > 0 && !T.some(x => x.includes(CUTC)) && T.some(x => x.includes(L('השטף אינו משתנה ⇒ אין זרם מושרה'))), lzCut + ' moving frames');
   await open('mag-induction', 'mag-motional'); await click('btn-mgv-go'); T = await read();
   t('motional: terminal speed FR/B²L² = 1.60 m/s', has(T, '1.60 m/s'));
   await p.waitForTimeout(1500); T = await read();
   const eps = num(T, /ε = BLv = ([\d.]+) V/), I = num(T, /I = ([\d.]+) A/), fb = num(T, /BIL = ([\d.]+) N/);
   t('  I = ε/R and BIL = B·I·L while it runs', near(I, eps / 2, 2e-3) && near(fb, 0.5 * I * 0.5, 2e-3), `ε=${eps} I=${I} F=${fb}`);
+  // B = 1 T: v_t = FR/B²L² = 0.40 m/s, reached in a few time constants M R/B²L² = 0.8 s
+  await slide('mgv-B', 1); await p.waitForTimeout(5000);
+  const MVM = await md(), mvv = +((MVM.match(/× ([\d.]+) = [\d.]+ V/) || [])[1]);
+  t('  at terminal speed (0.40 m/s at 1 T) Fv = I²R: the power mission', near(mvv, 0.4, 0.01) && await mdone(1), MVM.slice(0, 60));
+  const mvAsk = await p.evaluate(() => { document.getElementById('btn-mgv-go').click(); const o = document.querySelectorAll('.sk-predict .sk-opt'); if (o.length) o[1].click(); return o.length; });
+  await p.waitForTimeout(3000); const MV2 = await md(), mvv2 = +((MV2.match(/× ([\d.]+) = [\d.]+ V/) || [])[1]);
+  t('  the force removed (predicted first): magnetic braking slows the rod', mvAsk === 3 && mvv2 < 0.1, mvAsk + ' v=' + mvv2);
   await open('mag-induction', 'mag-generator'); T = await read();
   t('generator: ε_max = NBAω = 6.3 V, ε_rms = 4.4 V at 1 Hz', has(T, '6.3 V') && has(T, '4.4 V'));
+  // turned by hand (an arrow key held: one turn a second): the model line is
+  // ε = NBAω·sinθ with the hand's own ω and θ, every reading
+  // the motor's f is set to 2 Hz (ε_max 12.6 V) — by hand at one turn a second the
+  // amplitude shown must be the hand's, NBA·ω = 6.3 V
+  await slide('mgg-f', 2);
+  await p.focus('#sim-canvas'); await p.keyboard.down('ArrowLeft'); await p.waitForTimeout(900);
+  let gm = { n: 0, bad: [], w: [] };
+  for (let i = 0; i < 16; i++) { await p.waitForTimeout(130); const m = await kmod();
+    const a = m.match(/ε = NBAω·sinθ = 100 × 0\.20 × 0\.050 × ([−\d.]+) × sin (\d+)° = ([−\d.]+) V/);
+    if (!a) { gm.bad.push(m.slice(0, 50)); continue; } gm.n++; const w = +a[1].replace('−', '-'), e = +a[3].replace('−', '-'); gm.w.push(w);
+    if (Math.abs(e - 100 * 0.2 * 0.05 * w * Math.sin(+a[2] * Math.PI / 180)) > 0.2) gm.bad.push(m); }
+  T = await read(); const gEm = num(T, /NBAω = ([\d.]+) V\s+·/);
+  await p.keyboard.up('ArrowLeft');
+  t('  by hand the amplitude shown is NBA·ω of the hand (6.3 V), not of the motor\'s 2 Hz (12.6 V)', near(gEm, 6.3, 0.3), gEm);
+  t('  turned by hand at one turn a second: ω = 6.3 rad/s and ε = NBAω·sinθ in every reading', gm.n > 12 && gm.bad.length === 0 && gm.w.every(w => near(w, 6.3, 0.25)), gm.n + ' read; ω ' + gm.w.slice(0, 3).join(',') + '; ' + gm.bad.slice(0, 2).join(' | '));
+  // ⏸ is a freeze frame (mission 1 asks for the flux at the peak): back on the
+  // motor at 2 Hz, run, pause -- the graphs keep their history, and the instant
+  // is read off them: NΦ = NBA·cosθ and ε = NBAω·sinθ with the motor's ω, the
+  // same in the model line, on the graphs and in the readout, and still so later
+  await click('btn-mgg-go'); await p.waitForTimeout(1300); await click('btn-mgg-go'); await p.waitForTimeout(400);
+  const gPause = async () => { const T2 = await read(200), m = await kmod(),
+      a = m.match(/NΦ = NBA·cosθ = ([\d.]+) × cos (\d+)° = ([−\d.]+) Wb/), b = m.match(/ε = NBAω·sinθ = ([\d.]+) × sin (\d+)° = ([−\d.]+) V/);
+    return { m, a, b, T2, flux: num(T2, /^NΦ = ([−\d.]+) Wb$/), emf: num(T2, /^ε = ([−\d.]+) V$/), et: num(T2, /ε\(t\) = ([−\d.]+) V/), w: num(T2, /ω = ([\d.]+) rad\/s/) }; };
+  const gp1 = await gPause(); await p.waitForTimeout(600); const gp2 = await gPause();
+  const gpOK = g => g.a && g.b && +g.a[1] === 1 && +g.b[1] === 12.6 && g.a[2] === g.b[2] &&
+    near(+g.a[3].replace('−', '-'), Math.cos(+g.a[2] * Math.PI / 180), 0.015) && near(+g.b[3].replace('−', '-'), 12.57 * Math.sin(+g.b[2] * Math.PI / 180), 0.2) &&
+    g.flux === +g.a[3].replace('−', '-') && g.emf === +g.b[3].replace('−', '-') && g.et === g.emf && near(g.w, 12.6, 0.05);
+  t('  paused: the instant read off both graphs — NΦ = NBA·cosθ, ε = NBAω·sinθ at ω = 12.6 rad/s — as in the model line and the readout, and it stays', gpOK(gp1) && gp2.m === gp1.m && gp2.flux === gp1.flux, gp1.m.slice(-90) + ' | graphs ' + gp1.flux + ' Wb, ' + gp1.emf + ' V, ε(t) ' + gp1.et + ' | later ' + gp2.flux);
   await open('mag-induction', 'mag-transformer'); T = await read();
   t('transformer: V₂ = 12.0 V, I₂ = 2.00 A, I₁ = 0.104 A, P₁ = P₂ = 24.0 W', has(T, '12.0 V') && has(T, '2.00 A') && has(T, '0.104 A') && has(T, '24.0 W'));
   t('  and 10 MW at 20 kV loses 2.50 MW in a 10 Ω line', has(T, '2.50 MW'));
+  let TM = await kmod();
+  t('  the model line: V₂ = V₁·N₂/N₁ = 230 × 60/1150 = 12.0 V and I₁ = I₂·N₂/N₁ = 0.104 A', TM.includes('V₂ = V₁·N₂/N₁ = 230 × 60/1150 = 12.0 V') && TM.includes('= 0.104 A'), TM.slice(0, 60));
+  // drag the secondary up 40 px: 20 steps of 5 turns, 60 → 160, and V₂ = 230 × 160/1150 = 32.0 V
+  await p.evaluate(() => { const cv = document.getElementById('sim-canvas'), R = cv.getBoundingClientRect(), W = cv.offsetWidth, H = cv.offsetHeight, x = W * 0.70 - 13, y = H * 0.25;
+    const ev = (t, yy) => cv.dispatchEvent(new MouseEvent(t, { clientX: R.left + x, clientY: R.top + yy, bubbles: true, cancelable: true }));
+    ev('mousedown', y); for (let k = 1; k <= 20; k++) ev('mousemove', y - 2 * k); ev('mouseup', y - 40); });
+  await p.waitForTimeout(300); TM = await kmod();
+  const n2 = await p.evaluate(() => +document.getElementById('inp-mgt-N2').value);
+  t('  dragging the secondary coil up winds turns: N₂ = 160, V₂ = 32.0 V', n2 === 160 && TM.includes('= 32.0 V'), n2 + ' ' + TM.slice(0, 50));
+  await slide('mgt-N2', 60);
+  const tAsk = await p.evaluate(() => { document.getElementById('btn-mgt-dc').click(); const o = document.querySelectorAll('.sk-predict .sk-opt'); if (o.length) o[2].click(); return o.length; });
+  // the sim's clock runs at most 50 ms a frame: on a loaded machine it can lag, so wait for it (up to 8 s)
+  for (let w = 0; w < 40; w++) { await p.waitForTimeout(200); TM = await kmod(); if (w >= 10 && /V₂ = 0\.0 V/.test(TM)) break; }
+  const tDone = await p.evaluate(() => document.querySelectorAll('.sk-m')[2].classList.contains('done'));
+  t('  on DC (predicted first) the secondary falls to V₂ = 0.0 V once the flux stops changing — and the mission says why', tAsk === 3 && /V₂ = 0\.0 V/.test(TM) && tDone, tAsk + ' ' + TM.slice(0, 50));
+  // the switch-on flash stays readable after it has died away -- (N₂/N₁)V₁ = 12.0 V --
+  // and v₂ has its own scale on the scope (√2·V₂ + 5 % = 17.8, printed 18 V), not v₁'s 342 V,
+  // on which a 12 V flash was a flat line
+  T = await read(200); const tPk = num(T, new RegExp(LR('המתח במשני: ') + '([\\d.]+) V'));
+  t('  after the flash: the readout keeps the switch-on peak, 12.0 V, and v₂ is drawn on its own 18 V scale', tPk === 12 && T.includes('18 V') && T.includes('342 V'), tPk + ' ' + T.filter(x => / V$/.test(x)).slice(-6).join(' | '));
+  await click('btn-mgt-dc');
 
   console.log('\n4) the bar magnet behind the coil and the ring');
   // a bar magnet is a line of dipoles: its flux through a loop is the sum of
@@ -299,8 +653,9 @@ const EXPECT = {
   t('motor: n̂ follows the current (right-hand rule), so θ falls toward 0 as the coil turns…', dec > 10 && inc === 0, `${dec} falling, ${inc} rising`);
   t('  …and jumps back to 180° when the commutator reverses the current', flips >= 1, flips + ' flips');
   await open('mag-force', 'mag-lorentz'); await click('btn-mgz-mode'); await click('btn-mgz-Bdir'); T = await read();
-  t('Lorentz, B reversed to −x, v at 60°: θ from B is 240° and the force on + comes OUT of the page', has(T, 'θ = 240°') && has(T, L('יוצא מהדף')));
+  t('Lorentz, B reversed to −x, v at 60°: θ from B is 240° and the force on + comes OUT of the page', has(T, 'θ = 240°') && has(T, L('F יוצא מהדף')));
   await open('mag-force', 'mag-wireforce');
+  await p.evaluate(() => { document.getElementById('btn-mgf-on').click(); const o = document.querySelectorAll('.sk-predict .sk-opt'); if (o.length) o[2].click(); });
   await slide('mgf-I', 10); await slide('mgf-B', 1); await slide('mgf-L', 0.3); await slide('mgf-m', 5); await p.waitForTimeout(2500);
   const WF = (await read(800)).filter(s => /^F = BIL/.test(s));
   t('current balance, F/mg ≈ 61: the wire rests on the pole face, F stays 3.000 N (no flicker)', WF.length > 10 && WF.every(s => s.includes('3.000 N')) && has(await read(), L('F גדול מדי: התיל נעצר על פני הקוטב העליון — לפני שהגיע לזווית שיווי המשקל')), WF.length + ' frames');
@@ -386,16 +741,16 @@ const EXPECT = {
     await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] }); await q.waitForTimeout(150); return seen; };
   // where each sim's handle starts, from its own layout (W = canvas width)
   const TOUCH = [
-    ['mag-field', 'mag-magnets', W => [[W / 2, 206.8 - 0.15 * W], [W / 2 + 40, 266.8 - 0.15 * W]], '^' + LR('|B| במצפן = ')],
-    ['mag-field', 'mag-wire', W => [[W / 2, 144 - 0.15 * W], [W / 2 + 30, 154 - 0.15 * W], [W / 2 + 50, 144]], '^' + LR('בגשש: B = ')],
+    ['mag-field', 'mag-magnets', W => [[W / 2, 206.8 - 0.125 * W], [W / 2 + 40, 266.8 - 0.125 * W]], '^' + LR('|B| במצפן = ')],
+    ['mag-field', 'mag-wire', W => [[W * 0.65, 144], [W * 0.65 + 30, 154], [W * 0.65 + 50, 124]], '^' + LR('בגשש: B = ')],
     ['mag-field', 'mag-loop', W => [[W / 2 + 20, 155], [W / 2 + 50, 155], [W / 2 + 80, 155]], '^' + LR('בגשש (x = ')],
     ['mag-field', 'mag-solenoid', W => [[W * 0.6, 140], [W * 0.7, 150]], '^' + LR('בגשש: ')],
     ['mag-force', 'mag-lorentz', W => [[W * 0.8, 120], [W * 0.85, 100]], '^r = mv/qB'],
     ['mag-force', 'mag-parallel', W => [[W / 2 + 40, 170], [W / 2 + 70, 170], [W / 2 + 90, 170]], '^F/L'],
     ['mag-force', 'mag-motor', W => [[W * 0.36 + 30, 163], [W * 0.36, 128], [W * 0.36 - 30, 153]], '^θ = '],
     ['mag-induction', 'mag-flux', W => [[W * 0.3, 150], [W * 0.3, 180], [W * 0.3, 210]], '^θ = '],
-    ['mag-induction', 'mag-faraday', W => [[0.2 * W, 114], [W * 0.4, 114], [W * 0.5, 114]], '^NΦ ='],
-    ['mag-induction', 'mag-lenz', W => [[W * 0.316, 221], [W * 0.4, 221], [W * 0.5, 221]], '^I = '],
+    ['mag-induction', 'mag-faraday', W => [[0.13 * W, 110], [W * 0.3, 110], [W * 0.42, 110]], '^ε = '],
+    ['mag-induction', 'mag-lenz', W => [[W * 0.14, 150], [W * 0.3, 150], [W * 0.42, 150]], '^I = '],
     ['mag-induction', 'mag-motional', W => [[174, 130], [200, 130], [230, 130]], '^ε = BLv'],
   ];
   const deaf = [];

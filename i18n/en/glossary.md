@@ -124,6 +124,8 @@ can grow.
 | חוקי קירכהוף · חוק הצמתים · חוק הלולאות | Kirchhoff's laws · junction rule · loop rule |
 | אמפרמטר · וולטמטר · גלוונומטר · גשר ויטסטון | ammeter · voltmeter · galvanometer · Wheatstone bridge |
 | מפסק · מעגל פתוח · סגור · קצר | switch · open · closed · short circuit |
+| מהירות הסחיפה · הענף המשותף (שתי לולאות) | drift velocity · common branch (two loops) |
+| גשש (של וולטמטר) · COM | probe (of a voltmeter) · COM |
 | טעינה ופריקה של קבל · קבוע זמן | charging and discharging a capacitor · time constant |
 | נורת להט · קילוואט-שעה | incandescent bulb · kilowatt-hour (kWh) |
 | שדה מגנטי · קוטב צפוני · דרומי · מצפן | magnetic field · north pole · south pole · compass |
