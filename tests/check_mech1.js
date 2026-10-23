@@ -195,6 +195,8 @@ const EXPECT = {
   await set('n2-mu', 0.2); await click('btn-n2-reset'); await fresh(); await p.waitForTimeout(400);
   const sf = nums(await last('^ΣF = ')), aa = nums(await last('^a {2}= ')), NN = nums(await last('^N {2}= '));
   t('second law, m = 5 kg, F = 20 N, μ = 0.2: N = mg, ΣF = F − μN, a = ΣF/m', close(NN[0], 49, 0.06) && close(sf[0], 20 - 0.2 * 49, 0.006) && close(aa[0], (20 - 9.8) / 5, 0.0006), NN[0] + ' N, ' + sf[0] + ' N, ' + aa[0]);
+  // v(t) and a(t) are plotted against time, not against the frame number
+  t('second law: v(t) and a(t) each have a time axis in seconds', (await all('^t \\(s\\)$')).length >= 2, (await all('^t \\(s\\)$')).length);
 
   await open('newton2.n2-apps');
   await set('inc-mu', 0.2); await click('btn-inc-drop'); await fresh(); await p.waitForTimeout(300);

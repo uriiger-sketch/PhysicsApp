@@ -10869,9 +10869,12 @@ function _mkVec(ctx,x1,y1,x2,y2,col,lab,W,H,lw){
   simText(ctx,lab,c.x,c.y+4,col,11,'center',true);
 }
 // A small time graph: its box, a value grid with numbers, time numbers under
-// it and the axis names. Returns the maps from (t, value) to the canvas.
+// it and the axis names. Returns the maps from (t, value) to the canvas. The
+// time axis runs from o.t0 (0 if not given: a strip chart that scrolls gives
+// the start of its window) to o.t1.
 function _mkPlot(ctx,o){
-  var X=function(t){return o.x+t/o.t1*o.w;},
+  var t0=o.t0||0,
+      X=function(t){return o.x+(t-t0)/(o.t1-t0)*o.w;},
       Y=function(v){return o.y+o.h-(v-o.lo)/(o.hi-o.lo)*o.h;};
   ctx.save();
   ctx.fillStyle='rgba(8,18,36,.78)';ctx.strokeStyle='#1a3a5c';ctx.lineWidth=1.2;
@@ -10884,10 +10887,18 @@ function _mkPlot(ctx,o){
     simText(ctx,z?'0':_mkN(v,st<1?1:0),o.x-4,py+3,'#7d8da6',9,'right');
   }
   ctx.setLineDash([]);ctx.restore();
-  var tt=_kinTick(o.t1,o.w<220?3:6);
-  for(var t=0;t<=o.t1+1e-9;t+=tt)simText(ctx,String(+t.toFixed(2)),X(t),o.y+o.h+12,'#7d8da6',9,'center');
+  // the time axis is named inside the box, bottom right -- or, for a strip
+  // chart (o.tOut), whose newest point is always at the right edge, under the
+  // box at the end of the time numbers, which make way for it
+  var tt=_kinTick(o.t1-t0,o.w<220?3:6), tw=o.tOut?labelW(ctx,'t (s)',9)+8:0;
+  for(var t=Math.ceil(t0/tt-1e-9)*tt;t<=o.t1+1e-9;t+=tt){
+    var lx=X(t),hw=labelW(ctx,String(+t.toFixed(2)),9)/2;
+    if(o.tOut&&lx+hw>o.x+o.w-tw)continue;
+    simText(ctx,String(+t.toFixed(2)),lx,o.y+o.h+12,'#7d8da6',9,'center');
+  }
   simText(ctx,o.name,o.x+6,o.y+13,o.col,10,'left',true);
-  simText(ctx,'t (s)',o.x+o.w-5,o.y+o.h-5,'#94a3b8',9,'right');
+  if(o.tOut)simText(ctx,'t (s)',o.x+o.w,o.y+o.h+12,'#94a3b8',9,'right');
+  else simText(ctx,'t (s)',o.x+o.w-5,o.y+o.h-5,'#94a3b8',9,'right');
   return {X:X,Y:Y};
 }
 // A nice round number at or above x (for an axis that must hold x).
@@ -12084,8 +12095,11 @@ function simNewton2(canvas){
   const id=canvas.id;
   const FLY=H-160;
   let pos=W/2, vel=0, drag=false, pT=null;
-  let vHist=[], aHist=[], simTime=0;
-  const g=9.8;
+  // v(t) and a(t) are a strip chart of the last WIN seconds of simulated time.
+  // (They were plotted against the index of the frame, so the time axis -- and
+  // with it the slope of v(t), the acceleration -- depended on the frame rate.)
+  let hist=[], simTime=0;
+  const g=9.8, WIN=6;
 
   function getF()   { const e=document.getElementById('inp-n2-F');   return e?parseFloat(e.value):20; }
   function getMass(){ const e=document.getElementById('inp-mass');    return e?parseFloat(e.value):5; }
@@ -12094,7 +12108,7 @@ function simNewton2(canvas){
   // the v(t) scale only ever grows (until a reset): rescaled to each frame's own
   // maximum, its slope -- the acceleration, the point of the section -- meant nothing
   var vTop=2;
-  function resetSim(){ pos=W/2; vel=0; vHist=[]; aHist=[]; simTime=0; vTop=2; }
+  function resetSim(){ pos=W/2; vel=0; hist=[]; simTime=0; vTop=2; }
 
   // Drag top bar to override F
   let dragF=null;
@@ -12157,10 +12171,9 @@ function simNewton2(canvas){
     if(pos>W-48){ pos=W-48; vel=0; dragF=null; if(netF>=0){ atWall=true; netF=0; a=0; } }
     if(pos<48){   pos=48;   vel=0; dragF=null; if(netF<=0){ atWall=true; netF=0; a=0; } }
     simTime+=dt;
-    vHist.push(vel);
-    // Don't record false spike acceleration on wall hits
-    aHist.push(atWall?0:a);
-    if(vHist.length>260){ vHist.shift(); aHist.shift(); }
+    // (a = 0 against a wall: no false spike when the block hits it)
+    hist.push({t:simTime,v:vel,a:atWall?0:a});
+    while(hist.length>2&&hist[1].t<=simTime-WIN) hist.shift();
 
     simBg(ctx,W,H);
 
@@ -12255,48 +12268,31 @@ function simNewton2(canvas){
       simText(ctx,r[0],cx,cy,r[1],_ph?10:11,undefined,true);
     });
 
-    // ─── Dual graphs (bottom) ────────────────────────────────
-    const gY=H-86, gH=72, gL=12, gR=W-12, gW=(gR-gL)/2-3;
-
-    // v(t) graph
+    // ─── v(t) and a(t) against time (bottom) ─────────────────
+    // two strip charts of the last WIN seconds, with a time axis in seconds;
+    // room on the left of each for its value numbers. The newest point is the
+    // dot at the right edge (its value is printed over the block and in the panel).
+    const gY=H-88, gH=72, LM=26, gGap=8, gW=(W-16-2*LM-gGap)/2, vX=8+LM, aX=vX+gW+gGap+LM;
+    const tR=Math.max(WIN,simTime), tL=tR-WIN;
     vTop=Math.max(vTop,Math.abs(vel)); const vMax=_mkUp(vTop);
-    ctx.save(); ctx.fillStyle='rgba(6,14,28,.88)'; ctx.strokeStyle='#1e4060'; ctx.lineWidth=1;
-    ctx.beginPath(); ctx.roundRect(gL,gY,gW,gH,5); ctx.fill(); ctx.stroke(); ctx.restore();
-    simText(ctx,'v (m/s)',gL+8,gY+12,'#34d399',10,'left');
-    // zero line
-    ctx.save(); ctx.strokeStyle='#1e3a52'; ctx.lineWidth=0.8; ctx.setLineDash([2,4]);
-    ctx.beginPath(); ctx.moveTo(gL+2,gY+gH/2); ctx.lineTo(gL+gW-2,gY+gH/2); ctx.stroke(); ctx.setLineDash([]); ctx.restore();
-    if(vHist.length>2){
-      ctx.save(); ctx.strokeStyle='#34d399'; ctx.lineWidth=1.8; ctx.lineJoin='round'; ctx.beginPath();
-      vHist.forEach((v,i)=>{
-        const px=gL+2+(i/(vHist.length-1))*(gW-4);
-        const py=gY+gH/2-(v/vMax)*(gH/2-4);
-        i===0?ctx.moveTo(px,py):ctx.lineTo(px,py);
-      });
-      ctx.stroke(); ctx.restore();
-    }
-    simText(ctx,vel.toFixed(2)+' m/s',gL+gW-6,gY+gH-6,'#34d399',10,'right');
-
-    // a(t) graph
-    // Fixed scale prevents wall spikes from collapsing graph
+    // a fixed scale for a(t), set by the controls, so a wall stop cannot collapse it
     const curMass=getMass(), curF=getF(), curMu=getMu();
-    const aMax=Math.max(Math.abs(curF/curMass)+curMu*9.8+0.5, 0.5);
-    const g2L=gR-gW, g2R=gR;
-    ctx.save(); ctx.fillStyle='rgba(6,14,28,.88)'; ctx.strokeStyle='#1e4060'; ctx.lineWidth=1;
-    ctx.beginPath(); ctx.roundRect(g2L,gY,gW,gH,5); ctx.fill(); ctx.stroke(); ctx.restore();
-    simText(ctx,'a (m/s²)',g2L+8,gY+12,'#22d3ee',10,'left');
-    ctx.save(); ctx.strokeStyle='#1e3a52'; ctx.lineWidth=0.8; ctx.setLineDash([2,4]);
-    ctx.beginPath(); ctx.moveTo(g2L+2,gY+gH/2); ctx.lineTo(g2R-2,gY+gH/2); ctx.stroke(); ctx.setLineDash([]); ctx.restore();
-    if(aHist.length>2){
-      ctx.save(); ctx.strokeStyle='#22d3ee'; ctx.lineWidth=1.8; ctx.lineJoin='round'; ctx.beginPath();
-      aHist.forEach((av,i)=>{
-        const px=g2L+2+(i/(aHist.length-1))*(gW-4);
-        const py=gY+gH/2-(av/aMax)*(gH/2-4);
+    const aMax=_mkUp(Math.max(Math.abs(curF/curMass)+curMu*9.8+0.5, 0.5));
+    const trace=(pl,key,lim,col)=>{
+      if(hist.length<2)return;
+      ctx.save(); ctx.strokeStyle=col; ctx.lineWidth=1.8; ctx.lineJoin='round'; ctx.beginPath();
+      hist.forEach((s,i)=>{
+        const px=pl.X(Math.max(tL,s.t)), py=pl.Y(Math.max(-lim,Math.min(lim,s[key])));
         i===0?ctx.moveTo(px,py):ctx.lineTo(px,py);
       });
       ctx.stroke(); ctx.restore();
-    }
-    simText(ctx,a.toFixed(3)+' m/s²',g2R-6,gY+gH-6,'#22d3ee',10,'right');
+      const s=hist[hist.length-1];
+      simCircle(ctx,pl.X(s.t),pl.Y(Math.max(-lim,Math.min(lim,s[key]))),3.5,col);
+    };
+    const pv=_mkPlot(ctx,{x:vX,y:gY,w:gW,h:gH,t0:tL,tOut:true,t1:tR,lo:-vMax,hi:vMax,name:'v (m/s)',col:'#34d399'});
+    trace(pv,'v',vMax,'#34d399');
+    const pa=_mkPlot(ctx,{x:aX,y:gY,w:gW,h:gH,t0:tL,tOut:true,t1:tR,lo:-aMax,hi:aMax,name:'a (m/s²)',col:'#22d3ee'});
+    trace(pa,'a',aMax,'#22d3ee');
 
     var fr=atWall?0:f_fric;
     if(atWall)model('הגוש לחוץ אל הדופן, והדופן מאזנת את שאר הכוחות: '+_skM('ΣF = 0')+', ולכן '+_skM('a = 0'));
