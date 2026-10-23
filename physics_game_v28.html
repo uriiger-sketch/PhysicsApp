@@ -30450,7 +30450,9 @@ MAG_SIMS['mag-motor']=function(canvas){
     ctx.arc(CX,CY,RP+18,-0.7,0.7,false);ctx.lineTo(CX+RP+PE,CY+RP+10);ctx.closePath();ctx.fill();ctx.restore();
     simText(ctx,'N',CX-RP-PE*0.62,CY,'#fff',15,'center',true);simText(ctx,'S',CX+RP+PE*0.62,CY,'#fff',15,'center',true);
     for(var y=CY-RP+10;y<CY+RP;y+=26){ctx.save();ctx.strokeStyle='rgba(129,140,248,.22)';ctx.beginPath();ctx.moveTo(CX-RP-14,y);ctx.lineTo(CX+RP+14,y);ctx.stroke();ctx.restore();}
-    simArrow(ctx,CX-RP+4,CY+RP-6,CX-RP+30,CY+RP-6,'rgba(129,140,248,.7)',1.6,7);simText(ctx,'B',CX-RP+40,CY+RP-6,'#818cf8',11,'center',true);
+    // B's direction, under the N pole: inside the gap the coil, n̂ and the
+    // forces sweep every spot, and the n̂ label ran over it as the coil turned
+    simArrow(ctx,CX-RP-PE+8,CY+RP+24,CX-RP-PE+34,CY+RP+24,'rgba(129,140,248,.8)',1.6,7);simText(ctx,'B',CX-RP-PE+44,CY+RP+28,'#818cf8',11,'center',true);
     // coil, edge-on
     var ax=CX+RP*Math.cos(phi),ay=CY-RP*Math.sin(phi),bx=CX-RP*Math.cos(phi),by=CY+RP*Math.sin(phi);
     ctx.save();ctx.strokeStyle='rgba(251,191,36,.55)';ctx.lineWidth=5;ctx.beginPath();ctx.moveTo(ax,ay);ctx.lineTo(bx,by);ctx.stroke();ctx.restore();
