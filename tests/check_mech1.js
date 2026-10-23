@@ -267,18 +267,34 @@ const EXPECT = {
     await click('btn-n3-push'); await p.waitForTimeout(300);
     const fa = (await all('^' + LR('על A: ') + '\\d')).map(s => nums(s)[0]), fb = (await all('^' + LR('על B: ') + '\\d')).map(s => nums(s)[0]);
     const pa = await last('^' + LR('F על A = ') + '\\d'), pb = await last('^' + LR('F על B = ') + '\\d');
+    const slow = await last('^' + LR('מגע! · הילוך איטי ×') + '\\d');
     await fresh(); await until(async () => (await all('^v = [−+][\\d.]+ m/s$')).length >= 4 && (await all('^Σp = ')).length >= 6, 4000);
     const vs = (await all('^v = [−+][\\d.]+ m/s$')).map(s => nums(s)[0]);
     const sp = (await all('^Σp = ')).slice(-20).map(s => nums(s).pop());
-    return { fa, fb, pa: pa && nums(pa)[0], pb: pb && nums(pb)[0], vA: Math.min(...vs), vB: Math.max(...vs), sp };
+    return { fa, fb, pa: pa && nums(pa)[0], pb: pb && nums(pb)[0], vA: Math.min(...vs), vB: Math.max(...vs), sp, slow, dt: nums((await modelTxt()).match(/Δt = [\d.]+ s/) || '')[0] };
   };
-  let r3 = await n3();
+  // The push lasts as long as the hands touch: while the pusher's arms straighten,
+  // the skaters move apart by d = 0.625 m, so Δt = √(2d/(F/mA + F/mB)) — and a push
+  // shorter than 0.8 s is shown in slow motion, ×⌈0.8/Δt⌉, said on the canvas.
+  const n3dt = (F, a, b) => Math.sqrt(2 * 0.625 / (F / a + F / b));
+  let r3 = await n3(), dt3 = n3dt(300, 60, 30), slow = r3.slow;
   t('third law: the two measured forces are equal during the push (A pushes, 60 kg on 30 kg)', r3.fa.length > 0 && r3.fa.some(x => x > 0) && r3.fa.every((x, i) => r3.fb[i] === undefined || x === r3.fb[i]) && r3.pa === 300 && r3.pb === 300, r3.fa.slice(0, 4) + ' / ' + r3.fb.slice(0, 4) + ' | ' + r3.pa + ', ' + r3.pb);
   t('... and the skaters\' Σp stays 0', r3.sp.length > 5 && r3.sp.every(x => Math.abs(x) < 0.051), r3.sp.slice(-3).join(','));
-  t('... equal impulses F·Δt = 150 N·s: vA = −150/60, vB = +150/30', close(r3.vA, -2.5, 0.006) && close(r3.vB, 5, 0.006), r3.vA + ', ' + r3.vB);
+  t('... the push lasts while the arms straighten, Δt = √(2d/(F/mA + F/mB)) = ' + dt3.toFixed(3) + ' s, shown ×3 slower', close(r3.dt, dt3, 0.0051) && !!slow && nums(slow).pop() === 3, r3.dt + ' s, ' + slow);
+  t('... equal impulses F·Δt: vA = −FΔt/60, vB = +FΔt/30', close(r3.vA, -300 * dt3 / 60, 0.006) && close(r3.vB, 300 * dt3 / 30, 0.006), r3.vA + ', ' + r3.vB);
   await click('btn-n3-reset'); await click('btn-n3-who');
   r3 = await n3();
-  t('... when B pushes instead, nothing changes: the same 300 N on each, the same speeds', r3.fa.some(x => x === 300) && r3.fa.every((x, i) => r3.fb[i] === undefined || x === r3.fb[i]) && close(r3.vA, -2.5, 0.006) && close(r3.vB, 5, 0.006), r3.vA + ', ' + r3.vB);
+  t('... when B pushes instead, nothing changes: the same 300 N on each, the same speeds', r3.fa.some(x => x === 300) && r3.fa.every((x, i) => r3.fb[i] === undefined || x === r3.fb[i]) && close(r3.vA, -300 * dt3 / 60, 0.006) && close(r3.vB, 300 * dt3 / 30, 0.006), r3.vA + ', ' + r3.vB);
+  // the hardest push on the lightest pair: short, and bounded by the arms (it used
+  // to last 0.5 s, and the arms stretched 7.5 m)
+  await click('btn-n3-reset'); await click('btn-n3-who'); await set('n3-mA', 20); await set('n3-mB', 20); await set('n3-F', 600);
+  r3 = await n3(); dt3 = n3dt(600, 20, 20); slow = r3.slow;
+  t('third law: 600 N between two 20 kg skaters — Δt = ' + dt3.toFixed(3) + ' s, ×6 slower on screen, v = ±FΔt/m', close(r3.dt, dt3, 0.0051) && !!slow && nums(slow).pop() === 6 && close(r3.vA, -600 * dt3 / 20, 0.006) && close(r3.vB, 600 * dt3 / 20, 0.006) && r3.pa === 600 && r3.pb === 600, r3.dt + ' s, ' + slow + ', ' + r3.vA + ', ' + r3.vB);
+  // the section's problem: 120 N between 60 kg and 40 kg lasts its 0.5 s
+  await click('btn-n3-reset'); await set('n3-mA', 60); await set('n3-mB', 40); await set('n3-F', 120);
+  r3 = await n3();
+  t('... the section\'s problem rebuilt: 120 N, 60 kg and 40 kg — Δt = 0.50 s, vA = −1.00 m/s, vB = +1.50 m/s', r3.dt === 0.5 && close(r3.vA, -1, 0.006) && close(r3.vB, 1.5, 0.006), r3.dt + ' s, ' + r3.vA + ', ' + r3.vB);
+  await click('btn-n3-reset'); await set('n3-mB', 30); await set('n3-F', 300);
 
   // ── 3. touch ────────────────────────────────────────────────────────
   console.log('\n3) draggable canvases, by touch');

@@ -15739,14 +15739,21 @@ function simFrictionCombined(canvas){
 // force acts on a different skater: each one's acceleration is its own force
 // over its own mass. The learner picks the pusher (tap a skater, or the
 // button) and pushes by pulling that skater away from the other and letting
-// go (the pull sets F); the push lasts 0.5 s (DUR, as in the section's problem). Each gauge is measured from
+// go (the pull sets F). The push lasts as long as the hands are in contact:
+// while the pusher's arms straighten, so the two skaters move apart by ARM
+// during it, Δt = √(2·ARM/(F/mA + F/mB)). (It used to last a fixed 0.5 s, and
+// at 600 N between two 20 kg skaters the arms stretched 7.5 m.) ARM = 0.625 m
+// makes the section's problem -- 120 N between 60 kg and 40 kg -- last its
+// 0.5 s. A push shorter than SHOW is played in slow motion, said on the
+// canvas, so the pair of forces stays on screen long enough to compare.
+// Each gauge is measured from
 // its own skater's momentum change, F = Δp/Δt, so their equality is a
 // measurement, not a construction. The ice is frictionless; the rink's edge
 // stops a skater (an external force: from then on Σp is no longer 0).
 function simNewton3(canvas){
   const _c0=setupCanvas(canvas,400), W=_c0.W, dpr=_c0.dpr, PH=W<600;
   const H=PH?432:400; const ctx=PH?setupCanvas(canvas,H).ctx:_c0.ctx;
-  const id=canvas.id, ICE=PH?284:262, PPM=W/12, DUR=0.5, SZ=PH?1:1.3;
+  const id=canvas.id, ICE=PH?284:262, PPM=W/12, ARM=0.625, SHOW=0.8, SZ=PH?1:1.3;
   var who='A';                                   // who pushes
   var xA=0, xB=0, vA=0, vB=0, phase=0, tP=0, gA=0, gB=0, wall=false, pT=null, aim=null, pushed=null, touched=false;
   function mA(){var e=document.getElementById('inp-n3-mA');return e?parseFloat(e.value):60;}
@@ -15761,7 +15768,8 @@ function simNewton3(canvas){
   }
   function go(F){
     if(phase!==0)reset();
-    pushed={F:F,who:who,mA:mA(),mB:mB(),vA:0,vB:0,aA:F/mA(),aB:F/mB()};
+    var T=Math.sqrt(2*ARM/(F/mA()+F/mB()));
+    pushed={F:F,who:who,mA:mA(),mB:mB(),vA:0,vB:0,aA:F/mA(),aB:F/mB(),T:T,slow:T<SHOW?Math.ceil(SHOW/T):1};
     phase=1;tP=0;
   }
   reset();whoLabel();
@@ -15838,14 +15846,16 @@ function simNewton3(canvas){
     if(pT===null)pT=ts; var dt=Math.min((ts-pT)/1000,.04); pT=ts;
     var MA=pushed&&phase>0?pushed.mA:mA(), MB=pushed&&phase>0?pushed.mB:mB();
     if(phase===1){
-      var F=pushed.F, h=Math.min(dt,DUR-tP), vA0=vA, vB0=vB;
+      // h: the push's own time this frame (a slow-motion push gets dt/slow)
+      var F=pushed.F, h=Math.min(dt/pushed.slow,pushed.T-tP), vA0=vA, vB0=vB;
       vA-=F/MA*h; vB+=F/MB*h;
-      // each gauge reads its own skater's Δp/Δt
-      if(h>0){gA=Math.abs(MA*(vA-vA0)/h);gB=Math.abs(MB*(vB-vB0)/h);}
+      // each gauge reads its own skater's Δp/Δt (not over the last sliver of
+      // the push, where Δp/Δt is all rounding)
+      if(h>1e-6){gA=Math.abs(MA*(vA-vA0)/h);gB=Math.abs(MB*(vB-vB0)/h);}
       xA+=0.5*(vA0+vA)*h*PPM; xB+=0.5*(vB0+vB)*h*PPM; tP+=h;
       // after the push the gauges keep what they measured during it
-      if(tP>=DUR-1e-9){phase=2;pushed.vA=vA;pushed.vB=vB;pushed.done=true;}
-      var rest=dt-h; if(rest>0){xA+=vA*rest*PPM;xB+=vB*rest*PPM;}
+      if(tP>=pushed.T-1e-9){phase=2;pushed.vA=vA;pushed.vB=vB;pushed.done=true;}
+      var rest=dt-h*pushed.slow; if(rest>0){xA+=vA*rest*PPM;xB+=vB*rest*PPM;}
     } else if(phase===2){
       xA+=vA*dt*PPM; xB+=vB*dt*PPM;
       var wa=24*k(MA)*0.7+6, wb=24*k(MB)*0.7+6;
@@ -15858,7 +15868,8 @@ function simNewton3(canvas){
     ctx.save();ctx.strokeStyle='rgba(186,230,253,.55)';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(0,ICE);ctx.lineTo(W,ICE);ctx.stroke();ctx.restore();
     ctx.save();ctx.strokeStyle='rgba(186,230,253,.12)';ctx.lineWidth=1;
     for(var i=0;i<8;i++){var yy=ICE+8+i*6;ctx.beginPath();ctx.moveTo(((i*97)%W)*0.6,yy);ctx.lineTo(((i*97)%W)*0.6+W*0.25,yy);ctx.stroke();}ctx.restore();
-    simText(ctx,'קרח חלק: אין חיכוך',W-8,ICE+18,'#7dd3fc',9,'right');
+    // under the acceleration arrows of the push (at ICE+18 their labels ran over it)
+    simText(ctx,'קרח חלק: אין חיכוך',W-8,ICE+44,'#7dd3fc',9,'right');
 
     // the skaters: the pusher's arms reach the other; the pushed stands still-armed
     var contact=phase===1||(phase===0&&!aim);
@@ -15887,7 +15898,7 @@ function simNewton3(canvas){
       // accelerations, under them
       _mkVec(ctx,xA,ICE+30,xA-Math.min(70,pushed.aA*5),ICE+30,'#22d3ee','a = '+pushed.aA.toFixed(1)+' m/s²',W,H,2.4);
       _mkVec(ctx,xB,ICE+30,xB+Math.min(70,pushed.aB*5),ICE+30,'#22d3ee','a = '+pushed.aB.toFixed(1)+' m/s²',W,H,2.4);
-      simText(ctx,'מגע!',(xA+xB)/2,ga.top-34,'#fbbf24',10,'center',true);
+      simText(ctx,pushed.slow>1?'מגע! · הילוך איטי ×'+pushed.slow:'מגע!',(xA+xB)/2,ga.top-34,'#fbbf24',10,'center',true);
     }
     if(phase===2){
       if(Math.abs(vA)>0.05)_mkVec(ctx,xA,ga.top-30,xA+Math.max(-80,vA*12),ga.top-30,'#34d399','v = '+_mkS(vA,2)+' m/s',W,H,2.6);
@@ -15917,7 +15928,7 @@ function simNewton3(canvas){
     // ── the model line ──
     if(pushed){
       var P=pushed;
-      model('על A ועל B כוח באותו גודל, '+_skM('F = '+P.F.toFixed(0)+' N')+' · '+_skM('aA = F/mA = '+P.F.toFixed(0)+'/'+P.mA.toFixed(0)+' = '+P.aA.toFixed(2)+' m/s²')+' · '+_skM('aB = F/mB = '+P.F.toFixed(0)+'/'+P.mB.toFixed(0)+' = '+P.aB.toFixed(2)+' m/s²'));
+      model('על A ועל B כוח באותו גודל ולמשך אותו זמן — עד שזרועות הדוחף מתיישרות: '+_skM('F = '+P.F.toFixed(0)+' N')+' · '+_skM('Δt = '+P.T.toFixed(2)+' s')+' · '+_skM('aA = F/mA = '+P.F.toFixed(0)+'/'+P.mA.toFixed(0)+' = '+P.aA.toFixed(2)+' m/s²')+' · '+_skM('aB = F/mB = '+P.F.toFixed(0)+'/'+P.mB.toFixed(0)+' = '+P.aB.toFixed(2)+' m/s²'));
     } else model('הכוח ש־A מפעיל על B שווה בגודלו לכוח ש־B מפעיל על A, ומכוון הפוך — לא משנה מי דוחף.');
     kit.check({p:pushed});
     requestAnimationFrame(draw);
