@@ -29275,7 +29275,7 @@ function magBar(ctx,x,y,len,th,ang,lbl){
   ctx.fillStyle='#dc2626';ctx.fillRect(0,-th/2,len/2,th);
   ctx.fillStyle='#2563eb';ctx.fillRect(-len/2,-th/2,len/2,th);
   ctx.strokeStyle='rgba(255,255,255,.35)';ctx.lineWidth=1;ctx.strokeRect(-len/2,-th/2,len,th);
-  ctx.fillStyle='#fff';ctx.font='bold '+Math.min(13,th*0.7)+'px Heebo';ctx.textAlign='center';ctx.textBaseline='middle';
+  ctx.fillStyle='#fff';ctx.font='bold '+Math.max(9,Math.min(13,th*0.7))+'px Heebo';ctx.textAlign='center';ctx.textBaseline='middle';
   ctx.fillText('N',len/4,0);ctx.fillText('S',-len/4,0);
   ctx.restore();
 }
@@ -31027,7 +31027,7 @@ MAG_SIMS['mag-generator']=function(canvas){
     simText(ctx,'ε(t) = '+magFx(out,1)+' V   ·   ω = '+magFx(wNow,1)+' rad/s',W/2,ry+33,'#fbbf24',10,'center',true);
     simText(ctx,hand?'אתם מסובבים: ω שלכם':run?(slow>1.01?'הדמיה בהילוך איטי ×'+slow.toFixed(0):'מהירות אמיתית'):'מושהה — גררו את הכריכה כדי לסובב אותה ביד',W/2,ry+50,'#64748b',9,'center');
     // Φ(t) and ε(t): two periods in real milliseconds — or, by hand, the last 2 s
-    var gx=44,gw=W-60,g1=H*0.56,g2=H*0.78,gh=H*0.17,Tp=1/f;
+    var gx=44,gw=W-60,g1=H*(W<600?0.52:0.56),g2=H*0.78,gh=H*0.17,Tp=1/f;
     [[g1,'NΦ(t) = NBA·cosθ',1,'#818cf8',Pm,'Wb',1],[g2,rings?'ε(t) = NBAω·sinθ':'המוצא אחרי מחליף הכיוון: |ε(t)|',2,'#f87171',Esc,'V',Esc]].forEach(function(G){
       magPlotBox(ctx,gx-36,G[0]-14,gw+46,gh+10,G[1],G[3]);
       var Y=function(q){return G[0]+gh/2-q*(gh/2-8);};
@@ -31042,7 +31042,12 @@ MAG_SIMS['mag-generator']=function(canvas){
         ctx.save();ctx.fillStyle='rgba(2,8,16,.9)';ctx.strokeStyle=G[3];ctx.lineWidth=1;ctx.beginPath();ctx.roundRect(gx+gw-tw-6,ty,tw,18,4);ctx.fill();ctx.stroke();ctx.restore();
         simText(ctx,tg,gx+gw-6-tw/2,ty+13,G[3],10,'center',true);}});
     for(var k=0;k<=4;k++)simText(ctx,k===4?'0':hand?'−'+(2-k/2).toFixed(1)+' s':'−'+(Tp*1000*(2-k/2)).toFixed(Tp<0.02?1:0)+' ms',gx+k/4*gw,H-4,'#64748b',8.5,'center');
-    simText(ctx,'ε מקסימלי כשהשטף עובר דרך אפס, ואפס כשהשטף בשיאו',W/2,g2-20,'#64748b',9,'center');
+    // between the graphs; too wide for one line (a phone, in English: it was
+    // set at 8 px), two -- the upper graph stands higher on a phone for them
+    var gcT='ε מקסימלי כשהשטף עובר דרך אפס, ואפס כשהשטף בשיאו',gc2=null;
+    if(labelW(ctx,gcT,9)>W-14){ctx.save();ctx.font='9px Heebo';gc2=_splitBal(ctx,gcT);ctx.restore();}
+    if(gc2){simText(ctx,gc2[0],W/2,g2-31,'#64748b',9,'center');simText(ctx,gc2[1],W/2,g2-19,'#64748b',9,'center');}
+    else simText(ctx,gcT,W/2,g2-20,'#64748b',9,'center');
     var deg=((th*180/Math.PI)%360+360)%360;
     if(!run&&!hand)model('ברגע העצירה: '+kit.m('NΦ = NBA·cosθ = '+Pm.toFixed(2)+' × cos '+deg.toFixed(0)+'° = '+magNum(Pm*Math.cos(th),2)+' Wb')+' · '+kit.m('ε = NBAω·sinθ = '+Em.toFixed(1)+' × sin '+deg.toFixed(0)+'° = '+magNum(e,1)+' V'));
     else if(hand)model(kit.m('ε = NBAω·sinθ = '+N.toFixed(0)+' × '+B.toFixed(2)+' × 0.050 × '+magNum(wHand,1)+' × sin '+deg.toFixed(0)+'° = '+magNum(e,1)+' V')+' — ω שלכם: סובבו מהר יותר, והכא״מ גדל');
@@ -31563,7 +31568,8 @@ function simElcScope(canvas){
   // fought for the same corners; the narrow layout drops the readout box,
   // moves the recipe to the left and makes the jar and the ledger narrower.
   var NAR=((canvas.parentElement&&canvas.parentElement.clientWidth)||800)<560;
-  const H=NAR?470:440;const{ctx,W,dpr}=setupCanvas(canvas,H);
+  // (a phone keeps 14 px more at the bottom: the status banner may need three lines there)
+  const H=NAR?484:440;const{ctx,W,dpr}=setupCanvas(canvas,H);
   const id=canvas.id;var animT=0;
   var rodX=W*0.22,rodY=NAR?170:120,rodSign=-1,scopeQ=0,dragRod=false,touched=false;
   var KX=W*(NAR?0.74:0.68),KY=NAR?96:86,PIVY=NAR?286:270,JW=NAR?66:95,LL=NAR?80:95;
@@ -31730,14 +31736,19 @@ function simElcScope(canvas){
     var msgCol = fresh&&evt==='far' ? '#f87171' : fresh&&evt==='rod' ? '#fbbf24' : (fresh||induced>3||Math.abs(scopeQ)>0.05) ? '#34d399' : '#94a3b8';
     // The banner sits under the jar, not across its foot, where it hid "gold
     // leaves" on a wide screen; on a phone a message too long for one line
-    // at a readable size takes two (shrunk to fit, it fell to 7 px)
-    var mbw=Math.min(476,W-16),two=null;
+    // at a readable size takes two, or three -- never a smaller size (shrunk
+    // to fit, it fell to 7 px)
+    var mbw=Math.min(476,W-16),ml=[msg];
     ctx.save();ctx.font='10px Heebo,sans-serif';
-    if(ctx.measureText(_mathIso(msg)).width>mbw-12)two=_splitHalf(msg);ctx.restore();
-    var mbh=two?36:24,mby=NAR?H-10-mbh:Math.max(H-58,KY+84+240+3);
+    var mW=function(t){return ctx.measureText(_mathIso(t)).width;};
+    if(mW(msg)>mbw-12){var two=_splitHalf(msg);
+      if(two&&mW(two[0])<=mbw-12&&mW(two[1])<=mbw-12)ml=two;
+      else{ml=[];msg.split(' ').forEach(function(w){var l=ml.length?ml[ml.length-1]+' '+w:w;
+        if(ml.length&&mW(l)<=mbw-12)ml[ml.length-1]=l;else ml.push(w);});}}
+    ctx.restore();
+    var mbh=ml.length*13+11,mby=NAR?H-10-mbh:Math.max(H-58,KY+84+240+3);
     ctx.save();ctx.fillStyle='rgba(4,9,20,.88)';ctx.beginPath();ctx.roundRect(W/2-mbw/2,mby,mbw,mbh,6);ctx.fill();ctx.restore();
-    if(two){optLabel(ctx,two[0],W/2,mby+11,msgCol,10);optLabel(ctx,two[1],W/2,mby+25,msgCol,10);}
-    else optLabel(ctx,msg,W/2,mby+15,msgCol,10);
+    ml.forEach(function(t,i){optLabel(ctx,t,W/2,mby+12+13*i,msgCol,10);});
     // ── Charge ledger: conservation made visible ──
     var hasEarth=Math.abs(earthQ)>0.05;   // NOTE: distinct from `grounded` (the switch)
     var tot=rodQ+scopeQ+earthQ;
@@ -33702,7 +33713,8 @@ function simDcTwoLoop(canvas){
   function R2(){var e=document.getElementById('inp-tl-R2');return e?parseFloat(e.value):2;}
   function R3(){var e=document.getElementById('inp-tl-R3');return e?parseFloat(e.value):4;}
   var L=W*0.10,Rt=W*0.90,mid=W*0.50,T=60,B=210,my=(T+B)/2,x1=(L+mid)/2,x2=(mid+Rt)/2;
-  var Mw=Math.min(170,W*0.42),M={x:W/2-Mw/2,y:392,w:Mw,h:54};
+  // (the meter a little higher: on a phone its foot sat on "conventional current")
+  var Mw=Math.min(170,W*0.42),M={x:W/2-Mw/2,y:388,w:Mw,h:54};
   var bd=dcBoard(canvas,ctx,W,H,dpr,{
     gnd:'n1',k:30,P0:20,probes:M,
     // with the second cell turned round, potentials go below the − terminal
@@ -33781,16 +33793,19 @@ function simDcTwoLoop(canvas){
       simText(ctx,dcNum(vals[k],2)+' A',x,ry,cols[k],13.5,'center',true);
     }
     var pw1=e1*i1, pw2=e2*i2, chg=pw2<-0.01||pw1<-0.01;
-    simText(ctx,E2()<0.05?'ε₂ = 0: הענף השני הוא נגד בלבד, ומקור אחד מזין את שניהם'
+    var stT=E2()<0.05?'ε₂ = 0: הענף השני הוא נגד בלבד, ומקור אחד מזין את שניהם'
       :pw2<-0.01?'הסוללה השנייה נטענת — הזרם נכנס אליה בקוטב ה-+'
       :(pw1<-0.01?'הסוללה הראשונה היא שנטענת כאן'
       :(flip<0?'שתיהן דוחפות סביב הלולאה החיצונית — ושתיהן מספקות הספק'
-              :'שתי הסוללות מספקות הספק למעגל')),
-      W/2,ry+24,chg?'#f472b6':'#34d399',11,'center',true);
+              :'שתי הסוללות מספקות הספק למעגל'));
+    // too wide for one line (a phone, in English: it was set at 8 px): two
+    // lines, and the ledger under it moves down to make room
+    ctx.save();ctx.font='bold 11px Heebo';var st2=ctx.measureText(stT).width>W-14;ctx.restore();
+    dcCap(ctx,stT,W/2,st2?ry+21:ry+24,chg?'#f472b6':'#34d399',11,true,true);
     // the ledger: supplied, absorbed, dissipated
     var Pabs=Math.max(0,-e1*i1)+Math.max(0,-e2*i2);
     var Pdis=i1*i1*r1+i2*i2*r2+i3*i3*r3;
-    var bx=W*0.12,bw=W*0.76,by=ry+56,tot=Math.max(1e-6,Pabs+Pdis);
+    var bx=W*0.12,bw=W*0.76,by=ry+56+(st2?7:0),tot=Math.max(1e-6,Pabs+Pdis);
     ctx.save();ctx.fillStyle='rgba(56,189,248,.85)';ctx.fillRect(bx,by,bw*(Pdis/tot),16);
     ctx.fillStyle='rgba(244,114,182,.85)';ctx.fillRect(bx+bw*(Pdis/tot),by,bw*(Pabs/tot),16);
     ctx.strokeStyle='#1e3a52';ctx.lineWidth=1;ctx.strokeRect(bx+.5,by+.5,bw-1,15);ctx.restore();
@@ -35592,16 +35607,23 @@ function simElcConductor(canvas){
       var xR=GX+(R/rMaxG)*GW;
       ctx.save();ctx.strokeStyle='rgba(148,163,184,.45)';ctx.setLineDash([3,3]);ctx.lineWidth=1;
       ctx.beginPath();ctx.moveTo(xR,gy);ctx.lineTo(xR,gy+GH);ctx.stroke();ctx.setLineDash([]);ctx.restore();
-      optLabel(ctx,'R',xR,gy+GH+11,'#94a3b8',8);
+      optLabel(ctx,'R',xR,gy+GH+11,'#94a3b8',9);
       return xR;
     }
+    // a graph's caption, right of the line r = R: in one line where it fits
+    // (at a readable size: it was set at 8 px), else in two at the graph's
+    // right edge, above the curve where it has fallen
+    function gCap(t,xR,gy,dx,col){var sz=9.5,w=labelW(ctx,t,sz)*1.05,xr=GX+GW;
+      if(w<=xr-xR-8){optLabel(ctx,t,Math.max(xR+6+w/2,Math.min(xr-w/2,xR+dx)),gy+12,col,sz);return;}
+      var two=_splitHalf(t)||[t];
+      two.forEach(function(s,i){optLabel(ctx,s,xr-2,gy+11+12*i,col,sz,'right');});}
     var gyE=44, gyV=44+GH+42;
     var xR1=axes(gyE,'E(r)',  '#fbbf24');
     var xR2=axes(gyV,'V(r)',  '#22d3ee');
     if(Vlo<0){   // V changes sign: draw its zero
       ctx.save();ctx.strokeStyle='rgba(100,116,139,.35)';ctx.setLineDash([2,3]);ctx.lineWidth=1;
       ctx.beginPath();ctx.moveTo(GX,vY(0));ctx.lineTo(GX+GW,vY(0));ctx.stroke();ctx.setLineDash([]);ctx.restore();
-      optLabel(ctx,'0',GX-8,vY(0),'#7d8da6',8);
+      optLabel(ctx,'0',GX-8,vY(0),'#7d8da6',9);
     }
     // E: exactly zero inside, then kQ/r² — a genuine jump at r=R
     ctx.save();ctx.strokeStyle='#fbbf24';ctx.lineWidth=2;
@@ -35616,7 +35638,7 @@ function simElcConductor(canvas){
     ctx.setLineDash([3,3]);ctx.beginPath();
     ctx.moveTo(xR1,gyE+GH);ctx.lineTo(xR1,gyE+GH-Math.min(1,Er[0]/Emax)*(GH-6));ctx.stroke();
     ctx.setLineDash([]);ctx.restore();
-    optLabel(ctx,'קפיצה ב־R',xR1+40,gyE+12,'#fbbf24',8);
+    gCap('קפיצה ב־R',xR1,gyE,40,'#fbbf24');
     // V: flat inside, then kQ/r — continuous
     ctx.save();ctx.strokeStyle='#22d3ee';ctx.lineWidth=2;ctx.beginPath();
     ctx.moveTo(GX,vY(Vr[0]));
@@ -35626,7 +35648,7 @@ function simElcConductor(canvas){
       ctx.lineTo(GX+(rg2/rMaxG)*GW,vY(Vr[j]));
     }
     ctx.stroke();ctx.restore();
-    optLabel(ctx,'רציף — רק מתיישר',xR2+52,gyV+12,'#22d3ee',8);
+    gCap('רציף — רק מתיישר',xR2,gyV,52,'#22d3ee');
     // the probe on BOTH graphs at once
     var xp=GX+Math.min(1,r_m/rMaxG)*GW;
     ctx.save();ctx.fillStyle='#fbbf24';
