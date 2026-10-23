@@ -2114,12 +2114,31 @@ function runAnim(id, fn){
     return t.clientX - r.left;
   };
   const paint = () => { s.prev = null; fn(cv, animCtx, s.W, s.H, s.t); s.scrubbed = true; };
-  const down = e => {
-    s.drag = true; s.x0 = px(e); s.t0 = s.t; s.moved = 0;
+  // On a touch screen the animation is a strip, as the sims' graphs are: a
+  // finger that sets off sideways scrubs it, one that sets off up or down
+  // scrolls the page past it (the canvas used to refuse every swipe, so a
+  // theory page with its animations could hardly be scrolled on a phone),
+  // and a tap -- the browser's click -- still pauses or plays.
+  let pend = null;
+  const start = (x, e) => {
+    s.drag = true; s.x0 = x; s.t0 = s.t; s.moved = 0;
     s.wasPaused = s.paused; s.paused = true;
     if(e.cancelable) e.preventDefault();
   };
+  const down = e => {
+    pend = null;
+    if(e.type === 'touchstart'){
+      if(e.touches && e.touches.length === 1) pend = {x: e.touches[0].clientX, y: e.touches[0].clientY, px: px(e)};
+      return;
+    }
+    start(px(e), e);
+  };
   const move = e => {
+    if(pend){
+      const q = e.touches && e.touches[0], p0 = pend; pend = null;
+      if(!q || !e.cancelable || Math.abs(q.clientX - p0.x) < 0.4 * Math.abs(q.clientY - p0.y)) return;
+      start(p0.px, e);
+    }
     if(!s.drag) return;
     const d = px(e) - s.x0;
     s.moved = Math.max(s.moved, Math.abs(d));
@@ -2128,6 +2147,7 @@ function runAnim(id, fn){
     if(e.cancelable) e.preventDefault();
   };
   const up = () => {
+    pend = null;
     if(!s.drag) return;
     s.drag = false;
     // a tap is a toggle; a real drag leaves it parked on the chosen frame
@@ -2139,7 +2159,7 @@ function runAnim(id, fn){
   cv.addEventListener('mousemove', move); cv.addEventListener('touchmove', move, {passive:false});
   cv.addEventListener('mouseup', up); cv.addEventListener('mouseleave', up);
   cv.addEventListener('touchend', up); cv.addEventListener('touchcancel', up);
-  cv.style.touchAction = 'none'; cv.style.cursor = 'ew-resize';
+  cv.style.touchAction = 'manipulation'; cv.style.cursor = 'ew-resize';
   function tick(ts){
     if(_anim[id] !== s) return;
     // out of view: stop asking for frames; the observer restarts the loop
