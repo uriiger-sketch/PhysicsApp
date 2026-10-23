@@ -272,7 +272,8 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 .param-tip strong{color:var(--accent2);display:block;margin-bottom:3px;}
 
 /* DEF BLOCK */
-.def-block{background:rgba(59,130,246,.07);border:1px solid rgba(59,130,246,.2);border-radius:10px;padding:14px 18px;margin:14px 0;}
+.def-block{background:rgba(59,130,246,.07);border:1px solid rgba(59,130,246,.2);border-radius:10px;padding:14px 18px;margin:14px 0;
+  font-size:.9rem;line-height:1.75;color:var(--t-body);}
 .unit-badge{display:inline-block;direction:ltr;unicode-bidi:isolate;background:rgba(52,211,153,.14);border:1px solid rgba(52,211,153,.35);color:var(--t-unit);border-radius:5px;padding:1px 6px;font-size:.72rem;font-weight:600;letter-spacing:.02em;}
 /* set like the theory's own paragraphs: as bare text it took the page's
    16 px and tight default leading, larger and denser than the text around it */
@@ -304,11 +305,12 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
   font-family:'AppSym','Heebo',sans-serif;font-size:.82rem;font-weight:600;transition:all .15s;}
 .fold-btn:hover{background:rgba(52,211,153,.16);}
 .fold-body{margin-top:10px;}
-.def-block .def-title{font-weight:700;color:var(--t-blue);margin-bottom:6px;font-size:.95rem;}
+.def-block .def-title{font-weight:700;color:var(--t-blue);margin-bottom:6px;font-size:.95rem;line-height:1.5;}
 .def-block p{font-size:.9rem;color:var(--t-body);line-height:1.75;margin:0;}
 
 /* INFO GRID */
-.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px;}
+.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:14px 0;}
+.info-grid:last-child{margin-bottom:0;}
 /* two columns of "T = m(g+a) > mg" are wider than a 320 px phone: the
    cards ran 17 px out of the theory card */
 @media (max-width:400px){.info-grid{grid-template-columns:1fr;}}
@@ -318,7 +320,8 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 
 /* ENRICHMENT SECTION */
 .enrich-card{background:var(--enrich);border:1px solid var(--enrich-border);border-radius:14px;padding:22px 26px;margin-top:20px;position:relative;overflow:hidden;}
-.enrich-card::before{content:'✨ העשרה';position:absolute;top:14px;inset-inline-end:18px;font-size:.7rem;font-weight:800;color:var(--t-green);letter-spacing:.8px;text-transform:uppercase;background:rgba(16,185,129,.15);padding:3px 10px;border-radius:12px;border:1px solid rgba(16,185,129,.25);}
+.enrich-card::before{content:'✨ העשרה';position:absolute;top:14px;inset-inline-end:18px;font-size:.7rem;font-weight:800;color:var(--t-green);letter-spacing:.8px;background:rgba(16,185,129,.15);padding:3px 10px;border-radius:12px;border:1px solid rgba(16,185,129,.25);}
+.theory-card .enrich-card:not(:last-child){margin-bottom:14px;}
 .enrich-card .enrich-title{font-weight:700;font-size:1rem;color:var(--t-green);margin-bottom:10px;margin-top:28px;}
 .enrich-card p{font-size:.9rem;color:var(--t-enrich);line-height:1.8;margin-bottom:10px;}
 .enrich-formula{background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.25);border-radius:8px;padding:12px 20px;text-align:center;margin:12px 0;}
@@ -332,6 +335,17 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 .theory-anim{background:var(--bg);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin:18px 0;}
 .theory-anim canvas{display:block;width:100%;background:#07101f;}
 .theory-anim-label{padding:6px 16px;font-size:.78rem;color:var(--muted);text-align:center;border-top:1px solid var(--border);}
+/* 42 lessons wrap an animation in a frame of their own
+   (<div class="theory-anim">${animCanvas()}</div>), and animCanvas draws one
+   too: a frame inside a frame, with an empty 18 px band above the canvas.
+   The outer frame is the one that shows. */
+.theory-anim>.theory-anim{margin:0;border:0;border-radius:0;}
+/* Lesson typography. A heading breaks into even lines, never a line and
+   one word left alone below it; a paragraph does not end on one short word
+   (25 headings and 93 questions and steps did, at 390 px). */
+.theory-card h3,.def-title,.enrich-title,.ex-title,.wx-title,.formula-name,.ac-lbl{text-wrap:balance;}
+.theory-card p,.theory-card li,.mis-block,.def-block,.sum-open,.ex-lesson,.enrich-card p,.enrich-card li,
+.wx-given,.wx-q,.wx-a,.quiz-q,.quiz-feedback,.step-q,.problem-text,.hint-box,.x-scroll-hint{text-wrap:pretty;}
 /* ── phone sensor lab ── */
 .sensor-lab{background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid var(--accent2);
   border-radius:14px;margin:22px 0 6px;overflow:hidden;}
