@@ -29456,7 +29456,15 @@ MAG_SIMS['mag-magnets']=function(canvas){
       if(drag==='m')m2x=Math.max(LEN+0.04,Math.min(xMax-LEN/2-0.01,w[0]));
       clampC();},
     up:function(){drag=null;}});
-  magKeys(canvas,{key:function(k,d){if(!d)return;var st=0.003,dd={left:[-st,0],right:[st,0],up:[0,st],down:[0,-st]}[k];
+  // the keyboard: the arrows move the compass; with a second magnet on the
+  // bench, Space/Enter hands them to the magnet (← → only) and back
+  var kSel='c',kOn=false;
+  canvas.addEventListener('focus',function(){kOn=true;});canvas.addEventListener('blur',function(){kOn=false;});
+  magKeys(canvas,{key:function(k,d){if(!d)return;
+    if(k==='enter'){kSel=kSel==='c'&&mode?'m':'c';return;}
+    if(kSel==='m'&&!mode)kSel='c';
+    if(kSel==='m'){if(k==='left'||k==='right'){m2x=Math.max(LEN+0.04,Math.min(xMax-LEN/2-0.01,m2x+(k==='left'?-0.004:0.004)));clampC();}return;}
+    var st=0.003,dd={left:[-st,0],right:[st,0],up:[0,st],down:[0,-st]}[k];
     if(dd){comp=[comp[0]+dd[0],comp[1]+dd[1]];clampC();}}});
   function draw(){
     if(!magAlive(id,_g))return;
@@ -29478,7 +29486,8 @@ MAG_SIMS['mag-magnets']=function(canvas){
       [-0.28,0,0.28].forEach(function(f){var y=Hc+f*th;ctx.save();ctx.strokeStyle='rgba(255,255,255,.5)';ctx.lineWidth=1.1;ctx.setLineDash([3,3]);
         ctx.beginPath();ctx.moveTo(c[0]-L/2+4,y);ctx.lineTo(c[0]+L/2-4,y);ctx.stroke();ctx.restore();});
       simArrow(ctx,c[0]-b[2]*Math.min(9,L/4),Hc,c[0]+b[2]*Math.min(9,L/4),Hc,'#fff',1.5,6);
-      if(mode&&i===bars().length-1)simText(ctx,'⇆ גררו',c[0],c[1]+22,'#64748b',9,'center');});
+      if(mode&&i===bars().length-1){simText(ctx,'⇆ גררו',c[0],c[1]+22,'#64748b',9,'center');
+        if(kOn&&kSel==='m'){ctx.save();ctx.strokeStyle='#e2e8f0';ctx.lineWidth=2;ctx.setLineDash([3,3]);ctx.beginPath();ctx.roundRect(c[0]-L/2-6,Hc-th/2-6,L+12,th+12,6);ctx.stroke();ctx.restore();}}});
     if(cut){var g=toS(0,0);simText(ctx,'✂',g[0],Hc-th/2-10,'#fbbf24',13,'center',true);}
     if(earth){simArrow(ctx,W-26,H*0.78,W-26,H*0.78-44,'#34d399',2.2,9);simText(ctx,'צפון',W-26,H*0.78-54,'#34d399',9.5,'center',true);}
     // compass and readout
@@ -29490,6 +29499,7 @@ MAG_SIMS['mag-magnets']=function(canvas){
     var neutral=Bm<2e-6&&Bm<0.25*parts,dir=Math.atan2(b[1],b[0]);
     magNeedle(ctx,c[0],c[1],neutral?(Date.now()/700)%6.2832:dir,16,true);
     simHandle(ctx,c[0],c[1],'#fbbf24',24);
+    if(kOn&&(kSel==='c'||!mode)){ctx.save();ctx.strokeStyle='#e2e8f0';ctx.lineWidth=2;ctx.setLineDash([3,3]);ctx.beginPath();ctx.arc(c[0],c[1],30,0,6.2832);ctx.stroke();ctx.restore();}
     // on a phone the last line takes two rows (on one it fell to 7 px and ran
     // out of the box): the box starts where the field picture ends
     var ph=W<600,y0=H*(ph?0.80:0.83);
@@ -30909,14 +30919,22 @@ MAG_SIMS['mag-motional']=function(canvas){
   function rodX(){return Math.min(XL+x*s,W*0.62);}
   simDrag(canvas,dpr,{down:function(p){drag=Math.abs(p.x-rodX())<30&&p.y<YB+20;lastX=null;},
     move:function(p){if(!drag)return;var dx=(p.x-rodX())/s;x=Math.max(0.1,x+dx);},up:function(){drag=false;}});
+  // the keyboard: a held ← or → moves the rod by hand at a steady 0.6 m/s
+  // (as a hand that drags it would), Enter switches the constant force
+  var hold=0,kOn=false;
+  canvas.addEventListener('focus',function(){kOn=true;});canvas.addEventListener('blur',function(){kOn=false;});
+  magKeys(canvas,{key:function(k,d){if(k==='left'||k==='right'){var dv=k==='left'?-1:1;if(d)hold=dv;else if(hold===dv)hold=0;}
+    else if(k==='blur')hold=0;else if(k==='enter'&&d)magBtnPress('mgv-go');}});
   function draw(ts){
     if(!magAlive(id,_g))return;
     var dt=pT?Math.min(0.04,(ts-pT)/1000):0;pT=ts;tt+=dt;
     var B=magV('mgv-B',0.5),R=magV('mgv-R',2),Fx=on?magV('mgv-F',0.05):0,k=B*B*L*L/R,vt=Fx/k;
-    if(drag){if(lastX!==null&&dt>0)v=v*0.6+(x-lastX)/dt*0.4;lastX=x;}
+    if(hold&&!drag)x=Math.max(0.1,x+hold*0.6*dt);
+    var hand=drag||!!hold;
+    if(hand){if(lastX!==null&&dt>0)v=v*0.6+(x-lastX)/dt*0.4;lastX=x;}
     else{for(var i=0;i<10;i++){var h=dt/10;v+=(Fx-k*v)/M*h;x+=v*h;}lastX=null;}
     if(x<0.1){x=0.1;v=Math.max(0,v);}
-    var eps=B*L*v,I=eps/R,Fb=-k*v,Pin=drag?-Fb*v:Fx*v,Ph=I*I*R;
+    var eps=B*L*v,I=eps/R,Fb=-k*v,Pin=hand?-Fb*v:Fx*v,Ph=I*I*R;
     if(dt>0){hist.push([tt,v]);while(hist.length&&tt-hist[0][0]>14)hist.shift();}
     simBg(ctx,W,H);
     var rx=rodX(),off=XL+x*s-rx;
@@ -30934,16 +30952,17 @@ MAG_SIMS['mag-motional']=function(canvas){
     if(Math.abs(I)>1e-4)dcFlowI(ctx,[[rx,YB],[rx,YT],[XL,YT],[XL,YB],[rx,YB]],tt,I,'#fbbf24',60);
     ctx.save();ctx.strokeStyle='#e2e8f0';ctx.lineWidth=7;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(rx,YT-10);ctx.lineTo(rx,YB+10);ctx.stroke();ctx.restore();
     simHandle(ctx,rx,(YT+YB)/2,'#e2e8f0',16);
+    if(kOn){ctx.save();ctx.strokeStyle='#e2e8f0';ctx.lineWidth=2;ctx.setLineDash([3,3]);ctx.beginPath();ctx.arc(rx,(YT+YB)/2,22,0,6.2832);ctx.stroke();ctx.restore();}
     if(Math.abs(v)>0.01)simArrow(ctx,rx+10,YT+24,rx+10+Math.sign(v)*Math.min(70,20+Math.abs(v)*25),YT+24,'#34d399',2.6,9);
     if(Math.abs(Fb)>1e-4)simArrow(ctx,rx-10,YB-24,rx-10+Math.sign(Fb)*Math.min(80,18+Math.abs(Fb)*300),YB-24,'#f87171',3,10);
-    if(Fx>0&&!drag)simArrow(ctx,rx+10,(YT+YB)/2,rx+10+Math.min(80,18+Fx*300),(YT+YB)/2,'#fb923c',3,10);
+    if(Fx>0&&!hand)simArrow(ctx,rx+10,(YT+YB)/2,rx+10+Math.min(80,18+Fx*300),(YT+YB)/2,'#fb923c',3,10);
     simText(ctx,'v',rx+14+Math.sign(v||1)*40,YT+12,'#34d399',11,'center',true);
     simText(ctx,'BIL',rx-40,YB-36,'#f87171',10,'center',true);
     simText(ctx,'L = 50 cm',rx+22,(YT+YB)/2+34,'#64748b',9,'left');
     // readouts
     var y0=YB+30;ctx.save();ctx.fillStyle='rgba(2,8,16,.85)';ctx.fillRect(8,y0,W-16,52);ctx.restore();
     simText(ctx,'ε = BLv = '+magFx(eps,3)+' V   ·   I = '+magFx(I,3)+' A   ·   BIL = '+Math.abs(Fb).toFixed(3)+' N',W/2,y0+18,'#e2e8f0',11,'center',true);
-    simText(ctx,drag?'גוררים ביד: הכוח הנדרש לשמור על v הוא B²L²v/R':Fx>0?'כוח קבוע: המוט מאיץ עד v_t = FR/B²L² = '+vt.toFixed(2)+' m/s':'בלי כוח: הבלימה המגנטית עוצרת את המוט',W/2,y0+38,'#94a3b8',10,'center');
+    simText(ctx,hand?'גוררים ביד: הכוח הנדרש לשמור על v הוא B²L²v/R':Fx>0?'כוח קבוע: המוט מאיץ עד v_t = FR/B²L² = '+vt.toFixed(2)+' m/s':'בלי כוח: הבלימה המגנטית עוצרת את המוט',W/2,y0+38,'#94a3b8',10,'center');
     // v(t) and the power books
     // a phone stacks the power bars under the v(t) graph instead of beside it
     var ph=W<600,gx=44,gy=y0+62,gw=ph?W-60:W*0.56,gh=ph?84:H-gy-14,Vm=Math.max(0.5,vt*1.25,Math.abs(v)*1.2);
@@ -30954,7 +30973,7 @@ MAG_SIMS['mag-motional']=function(canvas){
     simText(ctx,Vm.toFixed(1),gx-4,Y(Vm)+3,'#64748b',8.5,'right');simText(ctx,'m/s',gx-4,Y(0)+3,'#64748b',8.5,'right');
     var bx=ph?14:W*0.70,bw=ph?W-28:W*0.27,py=ph?gy+gh+18:gy,pgh=ph?H-py-10:gh,Pm=Math.max(0.02,Pin,Ph)*1.2;
     magPlotBox(ctx,bx-6,py-4,bw+12,pgh+12,'הספקים: נכנס = חימום + ΔEk/Δt',null);
-    [['Fv',Pin,'#fb923c'],['I²R',Ph,'#f87171'],['ΔEk/Δt',drag?0:Fx*v-Ph,'#34d399']].forEach(function(q,i){
+    [['Fv',Pin,'#fb923c'],['I²R',Ph,'#f87171'],['ΔEk/Δt',hand?0:Fx*v-Ph,'#34d399']].forEach(function(q,i){
       var yy=py+22+i*((pgh-18)/3),w=Math.max(0,q[1])/Pm*(bw-110);
       ctx.save();ctx.fillStyle=q[2];ctx.fillRect(bx+60,yy-6,w,12);ctx.restore();
       simText(ctx,q[0],bx+56,yy,q[2],9,'right',true);simText(ctx,magFx(q[1],3)+' W',bx+64+w,yy,'#e2e8f0',9,'left');});
@@ -34959,6 +34978,10 @@ function simDcCurrent(canvas){
     else        XB=Math.max(MID+40,Math.min(W-26,p.x));
   }
   simDrag(canvas,dpr,{down:set,move:set});
+  // the keyboard: Tab to the canvas, Space/Enter picks plane A or B, the
+  // arrows move it (Shift: four times as far)
+  var kb=elcKbd(canvas,{n:function(){return MID>0?2:0;},get:function(i){return {x:i?XB:XA,y:0};},
+    set:function(i,x){if(i)XB=Math.max(MID+40,Math.min(W-26,x));else XA=Math.max(26,Math.min(MID-40,x));}});
   var I0=Iv();
   var kit=simKit(canvas,{missions:[
     {text:'הגדילו את החתך של החלק הימני עד פי ארבעה מהחלק הדק. מה קורה למהירות הסחיפה בו?',
@@ -35018,6 +35041,7 @@ function simDcCurrent(canvas){
       ctx.save();ctx.strokeStyle='#fbbf24';ctx.setLineDash([5,4]);ctx.lineWidth=2;
       ctx.beginPath();ctx.moveTo(g2[0],y0-46);ctx.lineTo(g2[0],y0+46);ctx.stroke();ctx.restore();
       simHandle(ctx,g2[0],y0-46,'#fbbf24',10);
+      elcFocus(ctx,kb,g2[2],g2[0],y0-46,16);
       simText(ctx,'חתך '+g2[1],g2[0],y0+60,'#fbbf24',10,'center',true);
     });
     simText(ctx,'גררו כל חתך לאן שתרצו — המונים לא יזוזו',W/2,y0+80,'#7d8da6',9,'center');
