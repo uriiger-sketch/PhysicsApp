@@ -35196,7 +35196,9 @@ function simElcPlane(canvas){
   const H=470; const {ctx,W,dpr}=setupCanvas(canvas,H);
   const EPS0=8.854e-12;
   var two=true, tx=W*0.5, ty=H*0.30, drag=false, touched=false, qSign=1;
-  var x1=W*0.30, x2=W*0.70;
+  // on a phone the plates stand a little wider apart, so the charge's two
+  // cards fit between them
+  var x1=W*(W<360?0.28:0.30), x2=W-x1;
   function s1(){var e=document.getElementById('inp-pln-s1');return e?parseFloat(e.value):4;}
   function s2(){var e=document.getElementById('inp-pln-s2');return e?parseFloat(e.value):-4;}
   var tb=document.getElementById('btn-pln-two');
@@ -35284,16 +35286,20 @@ function simElcPlane(canvas){
     // (between the plates, or beside one) wherever it fits there
     var back=function(x0,x1,y0,y1){ctx.save();ctx.fillStyle='rgba(3,10,20,.85)';ctx.beginPath();ctx.roundRect(x0,y0,x1-x0,y1-y0,5);ctx.fill();ctx.restore();};
     var it=[[E1,'#f0abfc','E₁'],[E2,'#7dd3fc','E₂']].filter(function(a,i){return (two||i===0)&&Math.abs(a[0])>=1e3;});
+    // the charge's region (between the plates, or beside one), and where a
+    // card w wide centred on the charge goes: inside the region when it fits
+    var rl=tx<x1?0:(two&&tx>x2)?x2:x1,rr=tx<x1?x1:(two&&tx<x2)?x2:W,room=rr-rl-12;
+    var cardX=function(w){var a=w<=room?rl+6:4,b=w<=room?rr-6-w:W-4-w;return Math.max(a,Math.min(b,tx-w/2));};
     if(it.length){
-      var aw=24,tws=it.map(function(a){a[3]=a[2]+' = '+(Math.abs(a[0])/1e5).toFixed(2)+'×10⁵ V/m';return labelW(ctx,a[3],9)*1.04;}),
-          cw=8+aw+6+Math.max.apply(null,tws)+8,ch=it.length*13+8,
-          rl=tx<x1?0:(two&&tx>x2)?x2:x1,rr=tx<x1?x1:(two&&tx<x2)?x2:W,
-          lo=cw<=rr-rl-12?rl+6:4,hi=cw<=rr-rl-12?rr-6-cw:W-4-cw,cx0=Math.max(lo,Math.min(hi,tx-cw/2)),cy1=sy2+7;
+      // a card one size too wide for the region loses its slack first
+      var tws=it.map(function(a){a[3]=a[2]+' = '+(Math.abs(a[0])/1e5).toFixed(2)+'×10⁵ V/m';return labelW(ctx,a[3],9)*1.04;}),
+          tw0=Math.max.apply(null,tws),tight=8+24+6+tw0+8>room,pd=tight?5:8,aw=tight?18:24,gp=tight?4:6,
+          cw=pd+aw+gp+tw0+pd,ch=it.length*13+8,cx0=cardX(cw),cy1=sy2+7;
       back(cx0,cx0+cw,cy1-ch,cy1);
       it.forEach(function(a,i){
-        var L=10+14*Math.min(1,Math.abs(a[0])/maxE),yy=sy2-(it.length-1-i)*13,d=a[0]>0?1:-1,ax=cx0+8+aw/2;
+        var L=Math.min(aw-4,10+14*Math.min(1,Math.abs(a[0])/maxE)),yy=sy2-(it.length-1-i)*13,d=a[0]>0?1:-1,ax=cx0+pd+aw/2;
         simArrow(ctx,ax-d*L/2,yy,ax+d*L/2,yy,a[1],1.8,6);
-        simText(ctx,a[3],cx0+8+aw+6,yy+3,a[1],9,'left');});
+        simText(ctx,a[3],cx0+pd+aw+gp,yy+3,a[1],9,'left');});
     }
     var qcol=qSign>0?'#f87171':'#60a5fa';
     ctx.save();ctx.fillStyle=qcol;ctx.strokeStyle='#0b1220';ctx.lineWidth=2;
@@ -35305,11 +35311,24 @@ function simElcPlane(canvas){
       // over the middle of its arrow, under the card (beyond the head, it sat on the plate)
       var fw=labelW(ctx,'F = qE',10)*1.1,fcx=tx+fd*(FL/2+6);back(fcx-fw/2-3,fcx+fw/2+3,ty-24,ty-10);
       simText(ctx,'F = qE',fcx,ty-13,'#34d399',10,'center',true);
-      var lw=ctx.measureText('E = E₁ + E₂ = 0.00×10⁵ V/m').width+16;
+      // the sum, on a card of its own under the charge, kept inside the
+      // charge's region like the card above (on a phone it lay across both
+      // plates): the whole line where it fits, else without its leading
+      // "E =", else in two lines, the second carrying on with "="
+      var eV=(Et/1e5).toFixed(2)+'×10⁵ V/m',bw=function(t){ctx.save();ctx.font='bold 10px Heebo';var w=ctx.measureText(t).width;ctx.restore();return w+14;},
+          eL=['E = E₁ + E₂ = '+eV];
+      if(bw(eL[0])>room)eL=['E₁ + E₂ = '+eV];
+      if(bw(eL[0])>room)eL=['E = E₁ + E₂','= '+eV];
+      var ew=Math.max.apply(null,eL.map(bw)),ex=cardX(ew);
       ctx.save();ctx.fillStyle='rgba(3,10,20,.82)';
-      ctx.beginPath();ctx.roundRect(tx-lw/2,ty+16,lw,18,5);ctx.fill();ctx.restore();
-      simText(ctx,'E = E₁ + E₂ = '+(Et/1e5).toFixed(2)+'×10⁵ V/m',tx,ty+26,'#fbbf24',10,'center',true);
-    } else simText(ctx,'E₁ + E₂ = 0 — אין כוח',tx,ty+26,'#94a3b8',10,'center',true);
+      ctx.beginPath();ctx.roundRect(ex,ty+16,ew,6+12*eL.length,5);ctx.fill();ctx.restore();
+      eL.forEach(function(t,i){simText(ctx,t,ex+ew/2,ty+26+12*i,'#fbbf24',10,'center',true);});
+    } else{
+      // no card: the words alone, in the region too (in two lines if need be)
+      var zT='E₁ + E₂ = 0 — אין כוח',zw=labelW(ctx,zT,10)*1.06,zL=zw<=room?[zT]:(_splitHalf(zT)||[zT]);
+      var zx=cardX(Math.max.apply(null,zL.map(function(t){return labelW(ctx,t,10)*1.06;})));
+      zL.forEach(function(t,i){simText(ctx,t,zx+Math.max.apply(null,zL.map(function(s){return labelW(ctx,s,10)*1.06;}))/2,ty+26+12*i,'#94a3b8',10,'center',true);});
+    }
     // the hint used to sit in the bottom corner, across the right plate and a
     // row of arrows; it goes under the charge's own readout instead, in the
     // gap before the next row of arrows (the charge has not moved yet)
