@@ -154,7 +154,7 @@ const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
   g = await look(L.a);
   t('legacy finished quiz reads the same after another reload', /גרסה קודמת/.test(g.banner || '') && (await p.evaluate(() => state.xp)) === 777, JSON.stringify(g));
   // trying it again scores normally and pays nothing twice
-  await p.click('.done-banner .btn-primary'); await p.waitForTimeout(80);
+  await p.click('.done-banner button[onclick="resetQuiz()"]'); await p.waitForTimeout(80);
   const n = await p.evaluate(k => CONTENT[k].quiz.length, L.a);
   for (let qi = 0; qi < n; qi++) { await answer('right'); await next(); }
   g = await look(L.a);

@@ -10238,7 +10238,7 @@ function simKit(canvas,spec){
     if(!box)return;
     var all=n===items.length;
     box.classList.toggle('all',all);
-    hT.textContent=all?'🎯 כל המשימות הושלמו':'🎯 משימות';
+    hT.textContent=all?'🏁 כל המשימות הושלמו':'🏁 משימות';   // 🎯 is the quiz (the button under the sim says so)
     hC.textContent=n+'/'+items.length;
   }
   paint();
@@ -36359,7 +36359,7 @@ function buildPage(ch,sec,content){
       <div class="progress-bar-wrap" title="${pct}% הושלם" role="progressbar" aria-label="התקדמות בקורס" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${pct}"><div class="progress-bar-fill" style="width:${pct}%"></div></div>
       <span class="xp-badge" id="xp-badge-el">⭐ ${state.xp} XP</span>
       <span class="done-badge">${doneSecs}/${allSecs} ✓</span>
-      <button class="theme-btn" onclick="toggleTheme()" title="עיצוב ${light?'כהה':'בהיר'} (Shift+D)" aria-label="מעבר לעיצוב ${light?'כהה':'בהיר'}">${light?'☀️':'🌙'}</button>
+      <button class="theme-btn" onclick="toggleTheme()" title="מעבר לעיצוב ${light?'כהה':'בהיר'} (Shift+D)" aria-label="מעבר לעיצוב ${light?'כהה':'בהיר'}">${light?'☀️':'🌙'}</button>
       <button class="theme-btn" onclick="openFormulaPanel()" title="דף נוסחאות (Shift+F)" aria-label="דף נוסחאות" style="font-size:.9rem">📐</button>
       <button class="theme-btn print-btn" onclick="printSummary()" title="הדפסת סיכום ההתקדמות" aria-label="הדפסת סיכום ההתקדמות" style="font-size:.9rem">🖨</button>
       <button class="theme-btn lang-btn" id="lang-btn" onclick="openLangMenu(this)" title="שפה · Language" aria-label="שפה · Language" aria-haspopup="menu" aria-expanded="false"><span aria-hidden="true">🌐</span><span class="lang-code">${APP_LANG.toUpperCase()}</span></button>
@@ -36413,11 +36413,11 @@ function buildSidebar(){
       const solved=isCompleted(ch.id,sec.id,'problem');
       const seen=!!state.visited[ch.id+'.'+sec.id];
       const dotCls=solved?'done':seen?'seen':'fresh';
-      const dotTitle=solved?'הבעיה המסכמת נפתרה':seen?'נפתח — טרם הושלם':'טרם נפתח';
+      const dotTitle=solved?'הבעיה המודרכת נפתרה':seen?'נפתח — טרם הושלם':'טרם נפתח';
       // twelve sections carry a phone-sensor experiment; flag them so they can
       // be found without opening every section in turn
       const hasLab=(typeof SENSOR_LABS!=='undefined')&&!!SENSOR_LABS[ch.id+'.'+sec.id];
-      return `<button class="sec-btn${active?' active':''}" onclick="navigate('${ch.id}','${sec.id}')"${hasLab?' title="בסעיף זה יש ניסוי עם חיישני הטלפון"':''}>
+      return `<button class="sec-btn${active?' active':''}" onclick="navigate('${ch.id}','${sec.id}')"${hasLab?' title="בסעיף זה יש מעבדת חיישנים — ניסוי עם חיישני הטלפון"':''}>
         <span class="sec-dot ${dotCls}" title="${dotTitle}"></span>${sec.title}${hasLab?'<span class="sec-lab">📱</span>':''}</button>`;
     }).join('');
   }).join('')+
@@ -37011,7 +37011,7 @@ function sensorLabCard(key){
   return '<div class="sensor-lab">'+
     '<div class="sl-head">📱 מעבדת חיישנים <small>— '+L.ttl+'</small></div>'+
     '<div class="sl-how">'+L.how+'</div>'+
-    (L.pred?'<div class="sl-pred">🔮 <b>נחשו קודם:</b> '+L.pred+'</div>':'')+
+    (L.pred?'<div class="sl-pred">🤔 <b>נבאו קודם:</b> '+L.pred+'</div>':'')+
     '<div class="sl-ctrl"><button id="sl-start">▶ הפעילו חיישן</button>'+
       '<button class="sl-sec" id="sl-zero">↺ איפוס</button>'+L.ctrl+
       '<button class="sl-sec" id="sl-hold">⏸ הקפיאו</button>'+
@@ -38525,7 +38525,7 @@ function initSensorLab(key){
     ctx.clearRect(0,0,W,H);
     if(st.started){impl.draw(ctx,W,H,st);return;}
     var mu=slCss('--muted','#889');
-    simText(ctx,'לחצו ▶ הפעילו חיישן כדי להתחיל למדוד',W/2,H/2-8,mu,13,'center',true);
+    simText(ctx,'לחצו ״▶ הפעילו חיישן״ כדי להתחיל למדוד',W/2,H/2-8,mu,13,'center',true);
     simText(ctx,'הגרפים והמדידות יופיעו כאן',W/2,H/2+16,mu,11,'center');
   }
   // The canvas is sized once from its CSS width, so a rotation to landscape
@@ -38814,8 +38814,8 @@ function buildSim(sim){
     <div class="sim-controls" style="border-top:1px solid var(--border);padding-top:12px">
       <p style="color:var(--muted);font-size:.85rem;line-height:1.6;flex:1 1 15em">${sim.desc}</p>
       <div class="sim-foot-btns">
-      <button class="btn btn-secondary" onclick="restartSim()" style="font-size:.82rem;padding:6px 12px">🔄 התחילו מחדש</button>
-      ${!simDone?'<button class="btn btn-green" onclick="finishSim()">✅ סיימתי</button>':'<span style="color:var(--green);font-weight:700">✅ הושלמה</span>'}
+      <button class="btn btn-secondary" onclick="restartSim()">🔄 התחילו מחדש</button>
+      ${!simDone?'<button class="btn btn-green" onclick="finishSim()">✅ סיימתי · 🎯 חידון ←</button>':'<span class="sim-done-msg">✅ סימולציה הושלמה</span><button class="btn btn-primary" onclick="setTab(\'quiz\')">🎯 חידון</button>'}
       </div>
     </div>
   </div>`;
@@ -38834,6 +38834,23 @@ function buildExample(ex){
     '<ol class="wx-steps">'+steps+'</ol></div>';
 }
 
+// After a topic's quiz or its problem (its last stage, whose banner had no way on): the next topic, the next subject at the end of one, or the course is done
+function _nextNav(){
+  var nextSec=null,_chs=getChapters(),chIdx=_chs.findIndex(function(c){return c.id===state.chapter;});
+  if(chIdx>=0){
+    var secIdx=_chs[chIdx].sections.findIndex(function(s){return s.id===state.section;});
+    if(secIdx>=0&&secIdx<_chs[chIdx].sections.length-1){
+      nextSec={ch:state.chapter,sec:_chs[chIdx].sections[secIdx+1].id,title:_chs[chIdx].sections[secIdx+1].title};
+    } else if(chIdx<_chs.length-1&&_chs[chIdx+1].sections.length>0){
+      nextSec={ch:_chs[chIdx+1].id,sec:_chs[chIdx+1].sections[0].id,title:_chs[chIdx+1].sections[0].title};
+    }
+  }
+  var _SUBJ=[['mechanics','מכניקה'],['optics','אופטיקה'],['electro','חשמל סטטי'],['circuits','מעגלי זרם ישר'],['magnetism','מגנטיות והשראה']];
+  var _si=_SUBJ.findIndex(function(x){return x[0]===state.subject;}),nextSubj=(!nextSec&&_si>=0&&_si<_SUBJ.length-1)?_SUBJ[_si+1]:null;
+  return nextSec?`<button class="next-section-btn" onclick="navigate('${nextSec.ch}','${nextSec.sec}')">▶ הנושא הבא: ${nextSec.title}</button>`
+    :nextSubj?`<div class="done-note">🎓 סיימתם את כל הפרקים בנושא הזה!</div><button class="next-section-btn" onclick="switchSubject('${nextSubj[0]}')">▶ הנושא הבא: ${nextSubj[1]}</button>`
+    :'<div class="done-note">🎓 סיימתם את כל הנושאים!</div>';
+}
 function buildQuiz(qs){
   if(!qs||!qs.length)return'';
   const st=getQS(state.chapter,state.section);
@@ -38841,31 +38858,14 @@ function buildQuiz(qs){
     // st.ans holds authored option indices (see getQS)
     const ok=st.ans.filter(function(a,i){return a===quizView(qs[i]).ci;}).length;
     const perfect=!st.legacy&&ok===qs.length;
-    var nextSec=null;
-    var _chs=getChapters();
-    var chIdx=_chs.findIndex(function(c){return c.id===state.chapter;});
-    if(chIdx>=0){
-      var secIdx=_chs[chIdx].sections.findIndex(function(s){return s.id===state.section;});
-      if(secIdx>=0&&secIdx<_chs[chIdx].sections.length-1){
-        nextSec={ch:state.chapter,sec:_chs[chIdx].sections[secIdx+1].id,title:_chs[chIdx].sections[secIdx+1].title};
-      } else if(chIdx<_chs.length-1&&_chs[chIdx+1].sections.length>0){
-        nextSec={ch:_chs[chIdx+1].id,sec:_chs[chIdx+1].sections[0].id,title:_chs[chIdx+1].sections[0].title};
-      }
-    }
-    // the last section of a subject is not the end of the course: offer the
-    // next subject rather than announcing that everything is done
-    var _SUBJ=[['mechanics','מכניקה'],['optics','אופטיקה'],['electro','חשמל סטטי'],['circuits','מעגלי זרם ישר'],['magnetism','מגנטיות והשראה']];
-    var _si=_SUBJ.findIndex(function(x){return x[0]===state.subject;}),nextSubj=(!nextSec&&_si>=0&&_si<_SUBJ.length-1)?_SUBJ[_si+1]:null;
-    const nextBtn=nextSec?`<button class="next-section-btn" onclick="navigate('${nextSec.ch}','${nextSec.sec}')">▶ הנושא הבא: ${nextSec.title}</button>`
-      :nextSubj?`<div style="color:var(--green);text-align:center;margin-top:12px;font-weight:700">🎓 סיימתם את כל הפרקים בנושא הזה!</div><button class="next-section-btn" onclick="switchSubject('${nextSubj[0]}')">▶ לנושא הבא: ${nextSubj[1]}</button>`
-      :'<div style="color:var(--green);text-align:center;margin-top:12px;font-weight:700">🎓 סיימתם את כל הנושאים!</div>';
+    const nextBtn=_nextNav();
     return`<div class="done-banner">
       <div class="big-icon trophy-anim">${perfect?'🏆':'⭐'}</div>
       <h2>${perfect?'מושלם!':'חידון הושלם!'}</h2>
       <p>${st.legacy?'החידון הושלם בגרסה קודמת של האפליקציה, והניקוד שלו לא נשמר.':`${ok}/${qs.length} תשובות נכונות${perfect?' — ניקוד מלא!':''}`}</p>
       <div style="display:flex;gap:8px;justify-content:center;margin-top:12px;flex-wrap:wrap">
-        <button class="btn btn-primary" onclick="resetQuiz()">🔄 נסו שוב</button>
-        <button class="btn btn-secondary" onclick="setTab('problem')">📝 בעיה לפתרון</button>
+        <button class="btn btn-primary" onclick="setTab('problem')">📝 בעיה</button>
+        <button class="btn btn-secondary" onclick="resetQuiz()">🔄 נסו שוב</button>
       </div>
       ${nextBtn}
     </div>`;
@@ -38901,13 +38901,13 @@ function buildQuiz(qs){
   </div>`:'';
   // "next" while another question is unanswered (a quiz reopened on a
   // question added in an update may have them on either side), else "finish"
-  const nxt=ans?(_qNext(st,qs.length)>=0?`<button class="btn btn-primary" onclick="nextQ()" style="margin-top:12px">הבאה ← <kbd style="font-size:.75em">Enter</kbd></button>`:`<button class="btn btn-green" onclick="finishQuiz()" style="margin-top:12px">סיום החידון ✓</button>`):'';
+  const nxt=ans?(_qNext(st,qs.length)>=0?`<button class="btn btn-primary" onclick="nextQ()" style="margin-top:12px">הבאה ← <kbd style="font-size:.75em">Enter</kbd></button>`:`<button class="btn btn-green" onclick="finishQuiz()" style="margin-top:12px">✅ סיום החידון</button>`):'';
   return`<div class="quiz-card">${prog}<div class="quiz-q"><span class="quiz-q-num">${qi+1}</span>${_ltSafe(q.q)}</div><div class="quiz-opts">${opts}</div>${hintHTML}${fb}${nxt}</div>`;
 }
 function buildProblem(prob){
   if(!prob)return'';
   const ps=getPS(state.chapter,state.section);
-  if(ps.done)return`<div class="done-banner"><div class="big-icon trophy-anim">🎓</div><h2>בעיה הושלמה!</h2><p>כל השלבים נפתרו!</p><button class="btn btn-secondary" onclick="resetProblem()" style="margin-top:14px">🔄 פתרו שוב</button></div>`;
+  if(ps.done)return`<div class="done-banner"><div class="big-icon trophy-anim">🎓</div><h2>בעיה הושלמה!</h2><p>כל השלבים נפתרו!</p><button class="btn btn-secondary" onclick="resetProblem()" style="margin-top:14px">🔄 פתרו שוב</button>${_nextNav()}</div>`;
   const steps=prob.steps.map((st2,si)=>{
     const locked=si>ps.idx,solved=ps.solved[si],inp=ps.inputs[si]||'',fb=ps.feedback[si];
     const lvl=hintLvl(ps,si), maxLvl=hintMax(st2);
@@ -39232,7 +39232,7 @@ window.chkStep=(si)=>{
   const inp=String(ps.inputs[si]||'').trim();
   // nothing typed, or nothing that reads as a number, is not an attempt: it
   // used to count toward the three that give the solution away for free
-  if(!inp){ps.feedback[si]='✏️ הקלידו תשובה ואז לחצו "בדקו".';render();_say(ps.feedback[si]);return;}
+  if(!inp){ps.feedback[si]='✏️ הקלידו תשובה ואז לחצו ״בדקו״.';render();_say(ps.feedback[si]);return;}
   if(step.tolerance===-1){
     if(_wordNorm(inp)===_wordNorm(step.answer))_stepSolved(ps,si,content);
     else{ps.feedback[si]='❌ לא נכון. נסו שוב.';render();_say(ps.feedback[si]);}return;
@@ -39713,7 +39713,7 @@ function buildFormulaPanelHTML(){
       }).join('');
   }).join('');
   return '<div class="formula-panel-hdr">'+
-    '<h3 id="formula-panel-h">📐 נוסחאות מהיר</h3>'+
+    '<h3 id="formula-panel-h">📐 דף נוסחאות</h3>'+
     '<button class="formula-panel-close" onclick="closeFormulaPanel()" aria-label="סגירת דף הנוסחאות">✕</button>'+
   '</div>'+rows;
 }
@@ -39735,7 +39735,7 @@ function openFormulaPanel(){
     if(!document.getElementById('formula-fab')){
       var fab=document.createElement('button');
       fab.id='formula-fab'; fab.className='formula-fab';
-      fab.title='נוסחאות'; fab.textContent='📐';
+      fab.title='דף נוסחאות (Shift+F)'; fab.textContent='📐';
       fab.setAttribute('aria-label','דף נוסחאות');
       fab.onclick=openFormulaPanel;
       document.body.appendChild(fab);
@@ -39805,7 +39805,7 @@ function createFormuleFAB(){
   if(document.getElementById('formula-fab')) return;
   var fab=document.createElement('button');
   fab.id='formula-fab'; fab.className='formula-fab';
-  fab.title='נוסחאות (Shift+F)'; fab.textContent='📐';
+  fab.title='דף נוסחאות (Shift+F)'; fab.textContent='📐';
   fab.setAttribute('aria-label','דף נוסחאות');
   fab.onclick=openFormulaPanel;
   document.body.appendChild(fab);
@@ -39968,7 +39968,7 @@ var _onboardStep=0;
 var ONBOARD_STEPS=[
   {icon:'⚛️',title:'ברוכים הבאים!',text:'פיזיקה לבגרות בחמישה נושאים: מכניקה, אופטיקה, חשמל סטטי, מעגלי זרם ישר ומגנטיות. בכל נושא — תיאוריה, סימולציה אינטראקטיבית, חידון ובעיה מודרכת.'},
   {icon:'📚',title:'תיאוריה ← סימולציה ← חידון ← בעיה',text:'עברו לפי הסדר: קראו את התיאוריה, נסו את הסימולציה, ענו על החידון, ואז פתרו את הבעיה המודרכת שלב אחר שלב. ״✅ הבנתי״ מעביר לשלב הבא.'},
-  {icon:'⭐',title:'צוברים XP ומתקדמים',text:'כל שלב שמסיימים מעניק XP, וההתקדמות נשמרת אוטומטית בדפדפן הזה. הכפתור 📐 פותח את דף הנוסחאות, ו-☰ בטלפון פותח את רשימת הנושאים.'},
+  {icon:'⭐',title:'צוברים XP ומתקדמים',text:'כל שלב שמסיימים מעניק XP, וההתקדמות נשמרת אוטומטית בדפדפן הזה. הכפתור 📐 פותח את דף הנוסחאות, ו־☰ בטלפון פותח את רשימת הנושאים.'},
 ];
 function showOnboarding(){
   if(document.getElementById('onboard-overlay')) return;
@@ -39994,7 +39994,7 @@ function renderOnboard(){
     '<div class="onboard-steps">'+dots+'</div>'+
     '<div class="onboard-nav">'+
       (isLast?
-        '<button class="btn btn-primary" onclick="closeOnboarding()">🚀 בואו נתחיל!</button>':
+        '<button class="btn btn-primary" onclick="closeOnboarding()">🚀 מתחילים</button>':
         '<button class="btn btn-primary" onclick="nextOnboard()">הבא ←</button>'+
         '<button class="btn btn-secondary" onclick="closeOnboarding()">דילוג</button>')+
     '</div>'+
