@@ -25,7 +25,7 @@ const t = (name, got, want) => {
   const chapters = await p.evaluate(() => [].concat(MECH_CHAPTERS, OPTICS_CHAPTERS, ELECTRO_CHAPTERS, DC_CHAPTERS, MAG_CHAPTERS)
     .map(c => ({ id: c.id, s: c.sections.map(x => x.id) })));
 
-  let seen = 0, noHandler = [], noScrub = [], noPause = [], blank = [];
+  let seen = 0, noHandler = [], noScrub = [], noPause = [], blank = [], noCap = [];
   for (const ch of chapters) for (const se of ch.s) {
     const r = await p.evaluate(async ([c, x]) => {
       state.subject = c.startsWith('opt-') ? 'optics' : c.startsWith('elc-') ? 'electro' : c.startsWith('dc-') ? 'circuits' : c.startsWith('mag-') ? 'magnetism' : 'mechanics';
@@ -55,7 +55,10 @@ const t = (name, got, want) => {
         const d = g.getImageData(0, 0, cv.width, cv.height).data;
         let ink = 0;
         for (let i = 3; i < d.length; i += 400) if (d[i] > 8) ink++;
-        out.push({ id, handler: cv.getAttribute('data-noh') !== '1', scrubbed, parked, toggled, ink: ink > 0 });
+        // and it says what it shows: a caption beside its controls ("caption · ↔ drag")
+        const lb = cv.closest('.theory-anim') && cv.closest('.theory-anim').querySelector('.ac-lbl');
+        const cap = !!lb && lb.textContent.indexOf(' · ') > 0;
+        out.push({ id, handler: cv.getAttribute('data-noh') !== '1', scrubbed, parked, toggled, ink: ink > 0, cap });
       }
       return out;
     }, [ch.id, se]);
@@ -64,12 +67,14 @@ const t = (name, got, want) => {
       if (!a.scrubbed) noScrub.push(`${ch.id}.${se}/${a.id}`);
       if (!a.parked || !a.toggled) noPause.push(`${ch.id}.${se}/${a.id}`);
       if (!a.ink) blank.push(`${ch.id}.${se}/${a.id}`);
+      if (!a.cap) noCap.push(`${ch.id}.${se}/${a.id}`);
     }
   }
   console.log(`   ${seen} theory animations exercised`);
   t('every animation scrubs with a drag', noScrub.slice(0, 6).join(' ') || 'none', 'none');
   t('every animation pauses on a drag and toggles on a tap', noPause.slice(0, 6).join(' ') || 'none', 'none');
   t('none of them renders blank', blank.slice(0, 6).join(' ') || 'none', 'none');
+  t('every animation has a caption that says what it shows', noCap.slice(0, 12).join(' ') || 'none', 'none');
   // Dragging an animation sets its time directly, which only makes sense if the
   // drawing is a pure function of that time. An animation that accumulates
   // state instead would show something different at t=6 depending on where it

@@ -195,6 +195,8 @@ const EXPECT = {
   await set('n2-mu', 0.2); await click('btn-n2-reset'); await fresh(); await p.waitForTimeout(400);
   const sf = nums(await last('^ΣF = ')), aa = nums(await last('^a {2}= ')), NN = nums(await last('^N {2}= '));
   t('second law, m = 5 kg, F = 20 N, μ = 0.2: N = mg, ΣF = F − μN, a = ΣF/m', close(NN[0], 49, 0.06) && close(sf[0], 20 - 0.2 * 49, 0.006) && close(aa[0], (20 - 9.8) / 5, 0.0006), NN[0] + ' N, ' + sf[0] + ' N, ' + aa[0]);
+  // v(t) and a(t) are plotted against time, not against the frame number
+  t('second law: v(t) and a(t) each have a time axis in seconds', (await all('^t \\(s\\)$')).length >= 2, (await all('^t \\(s\\)$')).length);
 
   await open('newton2.n2-apps');
   await set('inc-mu', 0.2); await click('btn-inc-drop'); await fresh(); await p.waitForTimeout(300);
@@ -265,18 +267,34 @@ const EXPECT = {
     await click('btn-n3-push'); await p.waitForTimeout(300);
     const fa = (await all('^' + LR('על A: ') + '\\d')).map(s => nums(s)[0]), fb = (await all('^' + LR('על B: ') + '\\d')).map(s => nums(s)[0]);
     const pa = await last('^' + LR('F על A = ') + '\\d'), pb = await last('^' + LR('F על B = ') + '\\d');
+    const slow = await last('^' + LR('מגע! · הילוך איטי ×') + '\\d');
     await fresh(); await until(async () => (await all('^v = [−+][\\d.]+ m/s$')).length >= 4 && (await all('^Σp = ')).length >= 6, 4000);
     const vs = (await all('^v = [−+][\\d.]+ m/s$')).map(s => nums(s)[0]);
     const sp = (await all('^Σp = ')).slice(-20).map(s => nums(s).pop());
-    return { fa, fb, pa: pa && nums(pa)[0], pb: pb && nums(pb)[0], vA: Math.min(...vs), vB: Math.max(...vs), sp };
+    return { fa, fb, pa: pa && nums(pa)[0], pb: pb && nums(pb)[0], vA: Math.min(...vs), vB: Math.max(...vs), sp, slow, dt: nums((await modelTxt()).match(/Δt = [\d.]+ s/) || '')[0] };
   };
-  let r3 = await n3();
+  // The push lasts as long as the hands touch: while the pusher's arms straighten,
+  // the skaters move apart by d = 0.625 m, so Δt = √(2d/(F/mA + F/mB)) — and a push
+  // shorter than 0.8 s is shown in slow motion, ×⌈0.8/Δt⌉, said on the canvas.
+  const n3dt = (F, a, b) => Math.sqrt(2 * 0.625 / (F / a + F / b));
+  let r3 = await n3(), dt3 = n3dt(300, 60, 30), slow = r3.slow;
   t('third law: the two measured forces are equal during the push (A pushes, 60 kg on 30 kg)', r3.fa.length > 0 && r3.fa.some(x => x > 0) && r3.fa.every((x, i) => r3.fb[i] === undefined || x === r3.fb[i]) && r3.pa === 300 && r3.pb === 300, r3.fa.slice(0, 4) + ' / ' + r3.fb.slice(0, 4) + ' | ' + r3.pa + ', ' + r3.pb);
   t('... and the skaters\' Σp stays 0', r3.sp.length > 5 && r3.sp.every(x => Math.abs(x) < 0.051), r3.sp.slice(-3).join(','));
-  t('... equal impulses F·Δt = 150 N·s: vA = −150/60, vB = +150/30', close(r3.vA, -2.5, 0.006) && close(r3.vB, 5, 0.006), r3.vA + ', ' + r3.vB);
+  t('... the push lasts while the arms straighten, Δt = √(2d/(F/mA + F/mB)) = ' + dt3.toFixed(3) + ' s, shown ×3 slower', close(r3.dt, dt3, 0.0051) && !!slow && nums(slow).pop() === 3, r3.dt + ' s, ' + slow);
+  t('... equal impulses F·Δt: vA = −FΔt/60, vB = +FΔt/30', close(r3.vA, -300 * dt3 / 60, 0.006) && close(r3.vB, 300 * dt3 / 30, 0.006), r3.vA + ', ' + r3.vB);
   await click('btn-n3-reset'); await click('btn-n3-who');
   r3 = await n3();
-  t('... when B pushes instead, nothing changes: the same 300 N on each, the same speeds', r3.fa.some(x => x === 300) && r3.fa.every((x, i) => r3.fb[i] === undefined || x === r3.fb[i]) && close(r3.vA, -2.5, 0.006) && close(r3.vB, 5, 0.006), r3.vA + ', ' + r3.vB);
+  t('... when B pushes instead, nothing changes: the same 300 N on each, the same speeds', r3.fa.some(x => x === 300) && r3.fa.every((x, i) => r3.fb[i] === undefined || x === r3.fb[i]) && close(r3.vA, -300 * dt3 / 60, 0.006) && close(r3.vB, 300 * dt3 / 30, 0.006), r3.vA + ', ' + r3.vB);
+  // the hardest push on the lightest pair: short, and bounded by the arms (it used
+  // to last 0.5 s, and the arms stretched 7.5 m)
+  await click('btn-n3-reset'); await click('btn-n3-who'); await set('n3-mA', 20); await set('n3-mB', 20); await set('n3-F', 600);
+  r3 = await n3(); dt3 = n3dt(600, 20, 20); slow = r3.slow;
+  t('third law: 600 N between two 20 kg skaters — Δt = ' + dt3.toFixed(3) + ' s, ×6 slower on screen, v = ±FΔt/m', close(r3.dt, dt3, 0.0051) && !!slow && nums(slow).pop() === 6 && close(r3.vA, -600 * dt3 / 20, 0.006) && close(r3.vB, 600 * dt3 / 20, 0.006) && r3.pa === 600 && r3.pb === 600, r3.dt + ' s, ' + slow + ', ' + r3.vA + ', ' + r3.vB);
+  // the section's problem: 120 N between 60 kg and 40 kg lasts its 0.5 s
+  await click('btn-n3-reset'); await set('n3-mA', 60); await set('n3-mB', 40); await set('n3-F', 120);
+  r3 = await n3();
+  t('... the section\'s problem rebuilt: 120 N, 60 kg and 40 kg — Δt = 0.50 s, vA = −1.00 m/s, vB = +1.50 m/s', r3.dt === 0.5 && close(r3.vA, -1, 0.006) && close(r3.vB, 1.5, 0.006), r3.dt + ' s, ' + r3.vA + ', ' + r3.vB);
+  await click('btn-n3-reset'); await set('n3-mB', 30); await set('n3-F', 300);
 
   // ── 3. touch ────────────────────────────────────────────────────────
   console.log('\n3) draggable canvases, by touch');
@@ -340,6 +358,9 @@ const EXPECT = {
   t('... on the ground after landing it rests: v = 0, a = 0, t = 2v0/g', close(landed[0], 2 * 18 / 9.8, 0.006) && landed[2] === 0 && landed[3] === 0, landed.join(', '));
   await until(async () => /= −18\.0 m\/s/.test(await modelTxt()), 2000);
   t('... the model line substitutes the numbers: v = v0 − g·t', /v = v₀ − g·t = 18 − 9\.8×3\.67 = −18\.0 m\/s/.test(await modelTxt()), await modelTxt());
+  // ... as the velocity it struck the ground with: at rest, the line agrees with the readout
+  const ffm = await modelTxt();
+  t('... and says it has landed: −18.0 m/s is the impact velocity, and now v = 0 · a = 0, as the readout shows', ffm.includes(L('נחת: פגע בקרקע במהירות ')) && ffm.includes(L(', ועכשיו הוא במנוחה: ')) && /v = 0\s·\sa = 0$/.test(ffm.trim()), ffm);
   // mission 2: drag the time cursor to the top
   rr = await rect(); W = rr.w;
   const ffSW = W < 600 ? Math.round(W * 0.42) : Math.min(320, Math.round(W * 0.38)), ffGX = ffSW + (W < 600 ? 28 : 40), ffGW = W - ffGX - 12;
@@ -367,6 +388,13 @@ const EXPECT = {
     T6.push(nums(await last('^t = [\\d.]+ s +· '))[0]);
   }
   t('free fall: a 0.5 kg and a 5 kg ball thrown at 6 m/s land at the same t = 2v0/g', T6.every(x => close(x, 12 / 9.8, 0.006)) && await mission('kinematics.freefall', 2), T6.join(' s, ') + ' s');
+  // one scale for a(t) whatever g is, so the Moon and Jupiter look different: the
+  // grid runs from −30 to +10 m/s² for both (it was rescaled to each g)
+  const ffAGrid = async g => { await set('ff-g', g); await fresh(); await p.waitForTimeout(300);
+    return [...new Set((await all('^[−+]?\\d+$')).map(s => nums(s)[0]))]; };
+  const gMoon = await ffAGrid(1.6), gJup = await ffAGrid(25);
+  t('free fall: the a(t) graph has one scale for the Moon and for Jupiter, −30 to +10 m/s²', [gMoon, gJup].every(G => G.includes(-30) && G.includes(10) && !G.includes(-40)), gMoon.join(',') + ' | ' + gJup.join(','));
+  await set('ff-g', 9.8);
 
   // position–time: a flat graph, path vs displacement, moving + on the − side
   await open('kinematics.distance-time');
@@ -633,9 +661,11 @@ const EXPECT = {
   await until(() => mission('forces.inertia', 1), 5000);
   const ifk1 = await card('^fₖ = '), isf1 = await card('^ΣF = ');
   t('... F = 10 N: kinetic friction −μmg = −9.8 N, ΣF = +0.2 N — nearly constant speed, mission solved', ifk1 === -9.8 && isf1 === 0.2 && await mission('forces.inertia', 1), ifk1 + ', ' + isf1);
+  // every frame since the release, not the last one: the block (≈0.75 m/s) stops
+  // within ≈0.4 s, and on a loaded machine the last frame read is often at rest
   await click('btn-in-hold'); await fresh(); await p.waitForTimeout(250);
-  const ad = await card('^a = ΣF/m = ');
-  t('... let go: ΣF = −μmg, so a = −μg = −1.96 m/s² — moving right, pushed left: mission solved', ad === -1.96 && await mission('forces.inertia', 2), ad);
+  const ads = (await all('^a = ΣF/m = ')).map(s => nums(s)[0]), adm = ads.filter(x => x !== 0);
+  t('... let go: ΣF = −μmg, so a = −μg = −1.96 m/s² — moving right, pushed left: mission solved', adm.length > 0 && adm.every(x => x === -1.96) && await mission('forces.inertia', 2), [...new Set(ads)].join(', '));
 
   // Atwood: the tension between the weights, g/2, and the section's problem
   await open('newton2.n2-atwood');
