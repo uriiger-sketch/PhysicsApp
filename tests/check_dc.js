@@ -47,7 +47,9 @@ const t=(name,cond,detail)=>(cond?ok:bad).push(name+(detail?' — '+detail:''));
   // (a click on a card below can scroll the canvas out of view: bring it back)
   const inView=async()=>p.evaluate(()=>{const c=document.querySelector('#app canvas'),r=c.getBoundingClientRect();
     if(r.top<0||r.bottom>innerHeight)c.scrollIntoView({block:'center'});});
-  const dragProbe=async(i,name,off)=>{await inView();const a=await probeXY(i),b2=await ptXY(name);off=off||[0,0];
+  // on a loaded machine the sim can still be building when go()'s wait ends: wait for its board
+  const board=()=>p.waitForFunction(()=>{const c=document.querySelector('#app canvas');return !!(c&&c._dc&&c._dc.probes);},null,{timeout:8000});
+  const dragProbe=async(i,name,off)=>{await board();await inView();const a=await probeXY(i),b2=await ptXY(name);off=off||[0,0];
     await p.mouse.move(a.x,a.y);await p.mouse.down();
     for(let k=1;k<=6;k++)await p.mouse.move(a.x+(b2.x+off[0]-a.x)*k/6,a.y+(b2.y+off[1]-a.y)*k/6);
     await p.mouse.up();await p.waitForTimeout(120);};

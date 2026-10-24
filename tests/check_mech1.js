@@ -661,9 +661,11 @@ const EXPECT = {
   await until(() => mission('forces.inertia', 1), 5000);
   const ifk1 = await card('^fₖ = '), isf1 = await card('^ΣF = ');
   t('... F = 10 N: kinetic friction −μmg = −9.8 N, ΣF = +0.2 N — nearly constant speed, mission solved', ifk1 === -9.8 && isf1 === 0.2 && await mission('forces.inertia', 1), ifk1 + ', ' + isf1);
+  // every frame since the release, not the last one: the block (≈0.75 m/s) stops
+  // within ≈0.4 s, and on a loaded machine the last frame read is often at rest
   await click('btn-in-hold'); await fresh(); await p.waitForTimeout(250);
-  const ad = await card('^a = ΣF/m = ');
-  t('... let go: ΣF = −μmg, so a = −μg = −1.96 m/s² — moving right, pushed left: mission solved', ad === -1.96 && await mission('forces.inertia', 2), ad);
+  const ads = (await all('^a = ΣF/m = ')).map(s => nums(s)[0]), adm = ads.filter(x => x !== 0);
+  t('... let go: ΣF = −μmg, so a = −μg = −1.96 m/s² — moving right, pushed left: mission solved', adm.length > 0 && adm.every(x => x === -1.96) && await mission('forces.inertia', 2), [...new Set(ads)].join(', '));
 
   // Atwood: the tension between the weights, g/2, and the section's problem
   await open('newton2.n2-atwood');
