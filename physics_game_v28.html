@@ -255,6 +255,9 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 /* ...and one longer than its line flows on in it, so the mark follows its
    last piece (_fitMath) */
 .mglue>.math-ltr.ml-flow{display:inline;unicode-bidi:isolate;vertical-align:baseline;overflow:visible;padding:0;}
+/* a paragraph's last two words are one: the last line never holds one word
+   alone (_noOrphan) */
+.no-orph{white-space:nowrap;}
 .enrich-formula{direction:ltr;}
 /* Responsive equation sizing */
 @media(max-width:600px){
@@ -2365,6 +2368,7 @@ function fixInlineMath(root){
   _chainBreaks(root);
   _gluePunct(root);
   _mathMarks(root);
+  _noOrphan(root);
   _fitMath(root);
 }
 // ── No gap between a formula and its punctuation ─────────────────────────
@@ -2529,6 +2533,80 @@ function _gluePunct(root){
     a.t.nodeValue=v.slice(0,v.length-a.k);
     if(!a.t.nodeValue)a.t.parentNode.removeChild(a.t);
   });
+}
+// ── No word alone on a paragraph's last line ─────────────────────────────
+// text-wrap:pretty keeps the last word company in plain text, but Chromium
+// does not apply it to a paragraph with a formula in it (any isolate turns
+// it off) -- every such paragraph in Hebrew and most in English: a step's
+// question still ended on "במיקרו־טסלה?" or "centimeters?" alone at 390 px.
+// Here the last two words of a paragraph go into one no-wrap span and move to
+// the next line together. The text is not touched (no no-break space for a
+// test, a search or a screen reader to trip over) and no isolate is added:
+// only the line break between the two goes. A formula, a chip or a glued run
+// counts as one word. Left alone: two words of more than 24 characters (they
+// would crowd a phone's line), a paragraph of two words, a last line after a
+// <br> or a nested block, and an element whose split could change what it
+// means (a link, an isolate).
+var _NO_ORPH='.theory-card p,.theory-card li,.mis-block,.def-block,.sum-open,.ex-lesson,.enrich-card p,.enrich-card li,.wx-given,.wx-q,.wx-a,'+
+  '.quiz-q,.quiz-feedback,.quiz-hint-box,.step-q,.step-fb,.problem-text,.hint-box,.sim-tip>span,.sl-pred,.sl-note,.sk-tx,.sk-hint,.sk-why,.sk-pa,.sk-pq';
+var _NO_ORPH_ATOM='.katex,.math-ltr,.ltr-run,.mglue,.nb,.param-wrap,.unit-badge,.sk-f,img,svg,canvas,input,button,select,textarea,code,kbd';
+var _NO_ORPH_SPLIT=/^(B|STRONG|I|EM|U|S|SMALL|MARK|SUB|SUP|SPAN|Q|ABBR|DFN|CITE|VAR)$/;
+function _noOrphan(root){
+  if(!root||!root.querySelectorAll)return;
+  var els=Array.prototype.slice.call(root.querySelectorAll(_NO_ORPH));
+  if(root.matches&&root.matches(_NO_ORPH))els.push(root);
+  els.forEach(function(el){try{_noOrphan1(el);}catch(e){}});
+}
+function _noOrphan1(el){
+  if(el.querySelector('.no-orph')||el.closest('.no-orph,.katex,.math-ltr,.ltr-run,.mglue')||/\$/.test(el.textContent))return;
+  var BRK=/[ \t\n\r\f]/;                 // a no-break space is no break
+  var atomLen=function(k){var n=k.textContent.length;
+    k.querySelectorAll('.katex-mathml,.param-tip').forEach(function(x){n-=x.textContent.length;});return n;};
+  // from the end: 0 after the last word, 1 in it, 2 between the two, 3 in the
+  // one before -- until the space before that one (found) or anything that
+  // ends the line's content (a <br>, a block)
+  var phase=0,len=0,at=null,stop=false;
+  var word=function(n){if(phase===0||phase===2)phase++;len+=n;};
+  var back=function(n){
+    for(var k=n.lastChild;k&&!at&&!stop;k=k.previousSibling){
+      if(k.nodeType===3){var v=k.nodeValue;
+        for(var i=v.length-1;i>=0;i--){var sp=BRK.test(v.charAt(i));
+          if(!sp){word(1);continue;}
+          if(phase===1)phase=2;
+          else if(phase===3){at={t:k,i:i+1};break;}}
+        continue;}
+      if(k.nodeType!==1)continue;
+      var cs=getComputedStyle(k);
+      if(cs.display==='none'||cs.position==='absolute'||cs.position==='fixed')continue;
+      if(k.tagName==='BR'){stop=true;break;}
+      if(k.matches(_NO_ORPH_ATOM)||/^inline-/.test(cs.display)){word(atomLen(k));continue;}
+      if(cs.display!=='inline'){stop=true;break;}
+      back(k);
+    }
+  };
+  back(el);
+  if(!at||len>24)return;
+  // the elements between that space and the paragraph: each is cut in two at
+  // the boundary, so the last two words can share one span
+  for(var e=at.t.parentNode;e!==el;e=e.parentNode){
+    if(!e||!_NO_ORPH_SPLIT.test(e.tagName)||e.hasAttribute('dir')||getComputedStyle(e).unicodeBidi!=='normal'||e.matches(_NO_ORPH_ATOM))return;}
+  var par=at.t.parentNode,ref;
+  if(at.i<at.t.nodeValue.length)ref=at.t.splitText(at.i);
+  else ref=at.t.nextSibling;
+  while(par!==el){
+    if(!ref){ref=par.nextSibling;par=par.parentNode;continue;}
+    var first=par.firstChild;
+    while(first&&first.nodeType===3&&!first.nodeValue)first=first.nextSibling;
+    if(ref===first){ref=par;par=par.parentNode;continue;}
+    var c=par.cloneNode(false);c.removeAttribute('id');
+    while(ref){var nx=ref.nextSibling;c.appendChild(ref);ref=nx;}
+    par.parentNode.insertBefore(c,par.nextSibling);
+    ref=c;par=par.parentNode;
+  }
+  if(!ref)return;
+  var g=document.createElement('span');g.className='no-orph';
+  el.insertBefore(g,ref);
+  while(g.nextSibling)g.appendChild(g.nextSibling);
 }
 // A formula and its unit, or two halves of one chain, can arrive as separate
 // pieces -- a KaTeX span followed by " m/s", or "a = " then a bold result.
