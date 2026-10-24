@@ -127,6 +127,10 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 /* the gradient fill is for the name only: clipped to an emoji's outline it
    turned ⚛️ into a plain cyan square and the other icons into silhouettes */
 .header-title .ht-name{background:var(--hdr-title);-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+/* a long name ("Newtonian mechanics", "Magnetism and induction") with no room
+   beside the header's buttons gives way to its tab's short name, whole --
+   not to "…" (_fitTabs measures) */
+.header-title .ht-short,.header-title.ht-tight .ht-full{display:none;} .header-title.ht-tight .ht-short{display:inline;}
 .header-xp{display:flex;align-items:center;gap:10px;font-size:.88rem;}
 .xp-badge{background:rgba(245,158,11,.15);border:1px solid rgba(245,158,11,.3);color:var(--gold);padding:4px 14px;border-radius:20px;font-weight:700;}
 .done-badge{color:var(--muted);font-size:.78rem;}.xp-badge,.done-badge{white-space:nowrap;}
@@ -937,12 +941,20 @@ input[type=range]{accent-color:var(--accent);cursor:pointer;}
   flex: 1; padding: 8px 6px; border: 1.5px solid var(--border);
   border-radius: 8px; background: none; color: var(--muted);
   cursor: pointer; font-family: 'AppSym','Heebo',sans-serif; font-size: .82rem;
-  font-weight: 700; transition: all .18s;
+  font-weight: 700;
+  /* colours only: with "all", a new size or row (_fitTabs) was animated, and
+     the fit measured the old one */
+  transition: background .18s, border-color .18s, color .18s;
   /* five subjects share 272px: icon over label keeps every name whole */
   display: flex; flex-direction: column; align-items: center; gap: 2px;
   font-size: .72rem; padding: 6px 2px; min-width: 0; white-space: nowrap;
 }
 .subject-tab .st-ic { font-size: 1rem; line-height: 1; }
+/* names too long for five in a row at a readable size ("Electricity" fell
+   to 8 px in English): three and two, the same size, the second row centred
+   (_fitTabs decides, by measuring) */
+.subject-tabs.st-2r { flex-wrap: wrap; justify-content: center; }
+.subject-tabs.st-2r .subject-tab { flex: 0 0 calc((100% - 8px) / 3); }
 .subject-tab:hover { background: rgba(255,255,255,.05); color: var(--text); }
 .subject-tab.active {
   background: linear-gradient(135deg, rgba(59,130,246,.2), rgba(6,182,212,.15));
@@ -2726,7 +2738,7 @@ function _markScroll(root){
 }
 // ── Tab names fit their tabs ──────────────────────────────────────────────
 // A longer name in another language ran out of its tab: a subject's ("Electricity" in a 45 px tab) over its neighbour, a stage's ("Simulation", 320 px) out of the bar.
-// Too wide, a row's names shrink together: the five subjects to the one size at which all fit, the four stages half a pixel at a time; a row that fits is left exactly as it is. Measured again when the web font arrives and when the window changes.
+// Too wide, a row's names shrink together: the four stages half a pixel at a time; the five subjects to the one size at which all fit -- but never below 11 px: below that they take two rows, three and two, and shrink from there only if they must. A row that fits is left exactly as it is. The subject's name in the header: in full where it fits, else its tab's short name. Measured again when the web font arrives and when the window changes.
 function _fitTabs(root){
   if(!root||!root.querySelectorAll)return;
   root.querySelectorAll('.tabs').forEach(function(row){var ts=row.querySelectorAll('.tab'),i,n=0,cs=getComputedStyle(row),fs,over,
@@ -2735,17 +2747,27 @@ function _fitTabs(root){
     over=function(){var r=row.getBoundingClientRect(),a=ts[0].getBoundingClientRect(),b=ts[ts.length-1].getBoundingClientRect();return Math.min(a.left,b.left)<r.left+pl-0.5||Math.max(a.right,b.right)>r.right-pr+0.5;};
     for(fs=parseFloat(getComputedStyle(ts[0]).fontSize);n++<10&&fs>9&&over();){fs-=0.5;for(i=0;i<ts.length;i++)ts[i].style.fontSize=fs+'px';}});
   root.querySelectorAll('.subject-tabs').forEach(function(row){
-    var ls=row.querySelectorAll('.subject-tab>span:last-child'),k=1,i;
+    var ls=row.querySelectorAll('.subject-tab>span:last-child'),i,fs;
+    row.classList.remove('st-2r');
     for(i=0;i<ls.length;i++)ls[i].style.fontSize='';
-    for(i=0;i<ls.length;i++){
-      var room=ls[i].parentNode.clientWidth;         // inside the tab's border
-      if(!room)return;                               // not laid out (hidden)
-      var w=ls[i].getBoundingClientRect().width;
-      if(w>room+1)k=Math.min(k,room/w);
-    }
+    if(!ls.length)return;
+    // the share of its size at which the longest name fits its tab (1: all fit)
+    var fit=function(){var k=1;
+      for(var j=0;j<ls.length;j++){var room=ls[j].parentNode.clientWidth;   // inside the tab's border
+        if(!room)return 1;                           // not laid out (hidden)
+        room-=2;                                     // a pixel clear of it on each side
+        var w=ls[j].getBoundingClientRect().width;
+        if(w>room+0.5)k=Math.min(k,room/w);}
+      return k;};
+    fs=parseFloat(getComputedStyle(ls[0]).fontSize);
+    var k=fit();
+    if(k<1&&fs*k<11){row.classList.add('st-2r');k=fit();}
     if(k>=1)return;
-    var fs=parseFloat(getComputedStyle(ls[0]).fontSize);
-    for(i=0;i<ls.length;i++)ls[i].style.fontSize=Math.max(8,Math.floor(fs*k*10)/10)+'px';
+    for(i=0;i<ls.length;i++)ls[i].style.fontSize=Math.max(row.classList.contains('st-2r')?9:11,Math.floor(fs*k*10)/10)+'px';
+  });
+  root.querySelectorAll('.header-title').forEach(function(t){
+    t.classList.remove('ht-tight');
+    if(t.clientWidth&&t.scrollWidth>t.clientWidth+0.5)t.classList.add('ht-tight');
   });
 }
 try{document.fonts.addEventListener('loadingdone',function(){_fitTabs(document);});}catch(e){}
@@ -36356,11 +36378,15 @@ function buildPage(ch,sec,content){
   const subjIcon=state.subject==='optics'?'🔆':state.subject==='electro'?'⚡':state.subject==='circuits'?'🔌':state.subject==='magnetism'?'🧲':'⚛️';
   const subjName=state.subject==='optics'?'אופטיקה':state.subject==='electro'?'חשמל סטטי'
     :state.subject==='circuits'?'מעגלי זרם ישר':state.subject==='magnetism'?'מגנטיות והשראה':'מכניקה ניוטונית';
+  // the name on the subject's tab in the topic list, for a header with no room
+  // for the full one (_fitTabs chooses)
+  const subjShort=state.subject==='optics'?'אופטיקה':state.subject==='electro'?'חשמל'
+    :state.subject==='circuits'?'מעגלים':state.subject==='magnetism'?'מגנטיות':'מכניקה';
   return `
   <a class="skip-link" href="#main-content" onclick="return _skipToMain()">דילוג לתוכן</a>
   <header class="header">
     <button class="hamburger-btn" id="hamburger-btn" onclick="openDrawer()" aria-label="נושאים" aria-haspopup="dialog" aria-controls="mobile-drawer" aria-expanded="false">☰</button>
-    <div class="header-title"><span aria-hidden="true">${subjIcon}</span> <span class="ht-name">${subjName}</span></div>
+    <div class="header-title"><span aria-hidden="true">${subjIcon}</span> <span class="ht-name ht-full">${subjName}</span><span class="ht-name ht-short">${subjShort}</span></div>
     <button class="ver-badge" id="ver-badge" onclick="openChangelog()" title="מה חדש בגרסה" aria-label="גרסה ${APP_VERSION} — מה חדש">v${APP_VERSION}</button>
     <div class="header-progress">
       <div class="progress-bar-wrap" title="${pct}% הושלם" role="progressbar" aria-label="התקדמות בקורס" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${pct}"><div class="progress-bar-fill" style="width:${pct}%"></div></div>
