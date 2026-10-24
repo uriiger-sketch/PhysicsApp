@@ -514,7 +514,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 @media (prefers-reduced-motion:reduce){.sk-m.sk-just,.sk-m.sk-just .sk-box,.sk-m.sk-just .sk-why,.sk-pa,.sk-pips i.sk-just{animation:none;}
   .sk-xp.sk-just{animation:none;opacity:1;}.sk-box,.sk-box svg,.sk-chev{transition:none!important;}}
 .sk-pips{flex-wrap:wrap;max-width:40%;}
-@media (max-width:360px){.sk-pips i{width:9px;}}/* the title keeps its room on a phone: the +10 XP badge takes space only while it shows; all done, the green n/n says what the pips said */.sk-xp:not(.sk-just){display:none;}.sk-missions.all .sk-pips{display:none;}
+@media (max-width:360px){.sk-pips i{width:9px;}}/* the title keeps its room on a phone: the +10 XP badge takes space only while it shows, and where the head is too narrow for it the pips (sk-x1), then the count (sk-x2), make way meanwhile; all done, the green n/n says what the pips said */.sk-xp:not(.sk-just){display:none;}.sk-missions.all .sk-pips,.sk-head.sk-x1 .sk-pips,.sk-head.sk-x2 .sk-count{display:none;}
 @media (max-width:480px){.sk-panel{padding:10px 12px 2px;}.sk-tabs{padding:7px 8px;gap:5px;}.sk-tab{font-size:.8rem;padding:4px 4px;}
   /* a phone gives the mission its whole width; the hint goes under it */
   .sk-row{flex-wrap:wrap;row-gap:0;}.sk-tx{flex:1 1 calc(100% - 30px);}.sk-hint-b{margin-inline-start:24px;}}
@@ -10263,12 +10263,29 @@ function simKit(canvas,spec){
     if(fresh!=null&&items[fresh]){var li=items[fresh],pi=pips[fresh];fx(li.querySelector('.sk-why'));
       [li,pi,hX].forEach(function(x){x.classList.remove('sk-just');});void li.offsetWidth;
       [li,pi,hX].forEach(function(x){x.classList.add('sk-just');});
-      setTimeout(function(){[li,pi,hX].forEach(function(x){x.classList.remove('sk-just');});},2700);}
+      var my=++xpN;
+      setTimeout(function(){li.classList.remove('sk-just');pi.classList.remove('sk-just');
+        if(my===xpN){hX.classList.remove('sk-just');paint();}},2700);}
     if(!box)return;
     var all=n===items.length;
     box.classList.toggle('all',all);
-    hT.textContent=all?'🏁 כל המשימות הושלמו':'🏁 משימות';   // 🎯 is the quiz (the button under the sim says so)
+    hT.textContent=all?T_ALL:T_SOME;
     hC.textContent=n+'/'+items.length;
+    xpRoom();
+  }
+  // "+10 XP" shows in the header for 2.6 s. On a narrow one (320 px) it cut
+  // the title to "🏁 Mis…": while it shows, the pips step aside first, then
+  // the count, and "all complete" waits until it has gone -- the title stays
+  // whole, and the row does not move when nothing had to give way.
+  var T_ALL='🏁 כל המשימות הושלמו',T_SOME='🏁 משימות',xpN=0;   // 🎯 is the quiz (the button under the sim says so)
+  function xpRoom(){
+    head.classList.remove('sk-x1','sk-x2');
+    if(!hX.classList.contains('sk-just'))return;
+    var cut=function(){return hT.scrollWidth>hT.clientWidth+0.5;};
+    if(cut())head.classList.add('sk-x1');
+    if(cut())head.classList.add('sk-x2');
+    if(cut()&&hT.textContent===T_ALL){hT.textContent=T_SOME;   // and the count comes back if it fits now
+      head.classList.remove('sk-x2');if(cut())head.classList.add('sk-x2');}
   }
   paint();
   // came back with everything done: one line, open on request
