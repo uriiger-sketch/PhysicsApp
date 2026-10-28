@@ -78,7 +78,7 @@ const SCAN = `(() => {
 })()`;
 
 (async () => {
-  const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium', args: ['--no-sandbox'] });
+  const b = await chromium.launch({ executablePath: require('./_browser'), args: ['--no-sandbox'] });
   const p = await b.newPage();
   await K.route(p);
   await p.goto(F);

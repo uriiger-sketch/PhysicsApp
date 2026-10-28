@@ -11,7 +11,7 @@ const F = 'file://' + (process.env.APP_FILE ? path.resolve(process.env.APP_FILE)
 const ok=[],bad=[];
 const t=(name,cond,detail)=>(cond?ok:bad).push(name+(detail?' — '+detail:''));
 (async () => {
-  const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium', args: ['--no-sandbox'] });
+  const b = await chromium.launch({ executablePath: require('./_browser'), args: ['--no-sandbox'] });
   const p = await (await b.newContext({viewport:{width:900,height:1000}})).newPage();
   const errs=[]; p.on('pageerror',e=>errs.push(e.message));
   await p.goto(F); await p.waitForTimeout(1200);

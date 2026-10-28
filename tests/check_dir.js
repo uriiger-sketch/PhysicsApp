@@ -22,7 +22,7 @@ let fail = 0, pass = 0;
 const t = (name, ok, got) => { if (ok) pass++; else fail++; if (!ok || process.env.VERBOSE) console.log(`   ${ok ? 'PASS' : 'FAIL'} ${name}${got !== undefined ? ': ' + got : ''}`); };
 
 (async () => {
-  const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium', args: ['--no-sandbox'] });
+  const b = await chromium.launch({ executablePath: require('./_browser'), args: ['--no-sandbox'] });
   const errs = [];
   let dir = '';
   for (const [w, h] of [[1366, 800], [360, 740]]) {

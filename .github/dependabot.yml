@@ -1,0 +1,12 @@
+version: 2
+updates:
+  # keeps the SHA pins in .github/workflows and their "# vX.Y.Z" comments current
+  - package-ecosystem: github-actions
+    directory: /
+    schedule: {interval: weekly}
+    groups: {actions: {patterns: ["*"]}}
+  # a katex bump fails CI until the page's URL and SRI hashes, tests/_katex.js
+  # and the rebuilt edition follow it (see .claude/skills/security-sweep)
+  - package-ecosystem: npm
+    directory: /
+    schedule: {interval: weekly}

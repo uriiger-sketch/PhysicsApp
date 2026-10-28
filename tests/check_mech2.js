@@ -38,7 +38,7 @@ const EXPECT = {
 };
 
 (async () => {
-  const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium', args: ['--no-sandbox'] });
+  const b = await chromium.launch({ executablePath: require('./_browser'), args: ['--no-sandbox'] });
   const ctx = await b.newContext({ viewport: { width: 390, height: 1300 }, hasTouch: true, isMobile: true, deviceScaleFactor: 2 });
   const p = await ctx.newPage();
   const errs = [];

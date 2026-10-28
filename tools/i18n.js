@@ -372,6 +372,7 @@ const phs = (s) => (s.match(PH_RE) || []).sort().join('');
 // attributes that are not reading text (class, style, onclick, id, data-*,
 // href...) must come through byte for byte: they are code
 const TEXT_ATTRS = new Set(['title', 'aria-label', 'alt', 'placeholder']);
+const BIDI_CTL = /[\u202A-\u202E\u2066-\u2069]/g;
 const attrsOf = (s) => (s.match(/<[a-zA-Z][^<>]*>/g) || []).map(tag => (tag.match(/[a-zA-Z_:][-a-zA-Z0-9_:.]*\s*=\s*("[^"]*"|'[^']*')/g) || [])
   .filter(a => !TEXT_ATTRS.has(a.split('=')[0].trim().toLowerCase()))).flat().sort().join(' ');
 
@@ -383,6 +384,18 @@ function validate(e, lang) {
   if (tagsOf(t) !== tagsOf(e.he)) errs.push(`HTML tags differ: [${tagsOf(e.he)}] → [${tagsOf(t)}]`);
   else { const A = attrsOf(e.he).replace(/dir="rtl"/g, 'dir="ltr"').replace(/direction:\s*rtl/g, 'direction:ltr'), B = attrsOf(t).replace(/dir="rtl"/g, 'dir="ltr"').replace(/direction:\s*rtl/g, 'direction:ltr');
     if (A !== B) errs.push('an HTML attribute changed (class, style, onclick... must stay exactly as in the Hebrew)'); }
+  // markup a translation never adds, whatever the tag/attribute bookkeeping says
+  const added = (re) => (t.match(re) || []).length > (e.he.match(re) || []).length;
+  if (added(/<\/?(script|style|iframe|object|embed|base|meta|link|form|svg|math|template|noscript|textarea|title)\b/gi)) errs.push('a script/style/embedding tag was added');
+  // attrsOf above compares QUOTED attributes only: an unquoted one (<b onmouseover=alert(1)>) slipped past it
+  if (added(/<[a-zA-Z][^<>]*?[\s\/"']on[a-z]+\s*=/gi)) errs.push('an event-handler attribute (on…=) was added');
+  if (added(/<[a-zA-Z][^<>]*?[\s\/"'](?:href|src|srcdoc|action|formaction|xlink:href|style|class|id)\s*=/gi)) errs.push('a URL/style/class attribute was added');
+  if (added(/(?:java|vb)script\s*:|data\s*:\s*text\/html/gi)) errs.push('a script URL was added');
+  if (added(/<!--|-->|<!\[CDATA\[/g)) errs.push('an HTML comment or CDATA marker was added');
+  if (added(BIDI_CTL)) errs.push('a bidi control character (U+202A–202E, U+2066–2069) was added');
+  // the code puts some units inside an attribute value (title="${dotTitle}",
+  // L36839): an ASCII " would end it there. Typographic “ ” are the ones to use.
+  if (added(/"/g)) errs.push('an ASCII double quote was added (use “ ”)');
   if (nums(t) !== nums(e.he)) warns.push(`numbers ${nums(e.he)} → ${nums(t)}`);
   if (maths(t) !== maths(e.he)) warns.push(`maths symbols ${maths(e.he)} → ${maths(t)}`);
   return { errs, warns };
@@ -461,12 +474,15 @@ function cmdSet(lang) {
 }
 
 // ── build ────────────────────────────────────────────────────────────────
-function escTpl(s) { return s.replace(/\\/g, '\\\\').replace(/`/g, '\\`').replace(/\$\{/g, '\\${').replace(/<\/script/gi, '<\\/script'); }
+// Text inside the inline <script>: besides the template literal itself, a
+// translation must not end the script element (</script) nor switch the HTML
+// tokenizer into its escaped states (<!--, <script). "\x3C" is "<" to JS.
+function escTpl(s) { return s.replace(/\\/g, '\\\\').replace(/`/g, '\\`').replace(/\$\{/g, '\\${').replace(/<(?=\/?script|!--)/gi, '\\x3C'); }
 
 // the master's own quiz identities, computed by the master itself
 async function qidTable() {
   let pw; try { pw = require('playwright'); } catch (e) { pw = require('/opt/node22/lib/node_modules/playwright'); }
-  const b = await pw.chromium.launch({ executablePath: process.env.CHROMIUM || '/opt/pw-browsers/chromium', args: ['--no-sandbox'] });
+  const b = await pw.chromium.launch({ executablePath: process.env.CHROMIUM || (fs.existsSync('/opt/pw-browsers/chromium') ? '/opt/pw-browsers/chromium' : undefined), args: ['--no-sandbox'] });
   try {
     const p = await b.newPage();
     await p.route(/^https?:/, r => r.abort());
@@ -536,6 +552,11 @@ function badgeInserts(code) {
 
 async function cmdBuild(lang) {
   const C = langConf(lang);
+  // a language patch swaps words (he→en, rtl→ltr, he_IL→en_US); it cannot add code
+  const punct = (s) => s.replace(/[\w\s-]/g, '').split('').sort().join('');
+  for (const [from, to] of [...(C.codePatches || []), ...(C.htmlPatches || [])])
+    if (punct(from) !== punct(to)) die(`a patch may change words only, not code: ${to}`);
+  if (!/^[A-Za-z0-9_-]+\.html$/.test(C.file || '') || path.join(ROOT, C.file) === MASTER) die(`config "file" must be a plain .html name beside the master: ${C.file}`);
   const { M, units } = collect();
   const L = loadLang(lang);
   const ltr = C.dir === 'ltr';
@@ -605,8 +626,10 @@ async function cmdBuild(lang) {
       chunk = chunk.replace(/((?:content|title|aria-label|alt)=")([^"]*[\u0590-\u05FF][^"]*)(")|(>)([^<>]*[\u0590-\u05FF][^<>]*)(<)/g, (all, a1, t1, z1, a2, t2, z2) => {
         const text = t1 !== undefined ? t1 : t2, e = L.tr.get(idOf(text.trim()));
         let v = e && (e[lang] || '').trim() && !e.keep ? e[lang] : null;
+        if (v && validate(Object.assign({}, e, { he: text.trim() }), lang).errs.length) v = null;
         if (!v && PSEUDO) v = pseudo(text.trim());
         if (!v) { fallbacks++; return all; }
+        v = v.replace(/</g, '&lt;').replace(/>/g, '&gt;');
         const pre = text.match(/^\s*/)[0], post = text.match(/\s*$/)[0];
         return t1 !== undefined ? a1 + v.replace(/"/g, '&quot;') + z1 : a2 + pre + v + post + z2;
       });
@@ -617,9 +640,10 @@ async function cmdBuild(lang) {
   const css = (part) => part.replace(/(<style\b[^>]*>)([\s\S]*?)(<\/style>)/g, (all, o, body, c) => o + body.replace(new RegExp(CSS_CONTENT.source, 'g'), (a, q, text) => {
     const e = L.tr.get(idOf(text));
     let v = e && (e[lang] || '').trim() && !e.keep ? e[lang] : null;
+    if (v && validate(Object.assign({}, e, { he: text }), lang).errs.length) v = null;
     if (!v && PSEUDO) v = pseudo(text);
     if (!v) { fallbacks++; return a; }
-    return 'content:' + q + v.replace(/\\/g, '\\\\').replace(new RegExp(q, 'g'), '\\' + q) + q;
+    return 'content:' + q + v.replace(/\\/g, '\\\\').replace(new RegExp(q, 'g'), '\\' + q).replace(/</g, '\\3c ').replace(/[\r\n\f]/g, '\\a ') + q;
   }) + c);
   let before = css(html(M.before)), after = css(html(M.after));
   for (const [from, to] of C.htmlPatches || []) {
@@ -629,11 +653,17 @@ async function cmdBuild(lang) {
   }
   const outFile = process.env.I18N_OUT ? path.resolve(process.env.I18N_OUT) : path.join(ROOT, C.file);
   const banner = `<!-- GENERATED by tools/i18n.js from physics_game_v28.html and i18n/${lang}/ -- do not edit by hand -->\n`;
-  fs.writeFileSync(outFile, banner + before + newCode + after);
+  const page = banner + before + newCode + after;
+  const count = (s, re) => (s.match(re) || []).length;
+  for (const re of [/<script\b/gi, /<\/script/gi, /<style\b/gi, /<\/style/gi, /<iframe\b/gi, /<base\b/gi, /<!--/g])
+    if (count(page, re) !== count(M.src, re) + count(banner, re)) die(`the edition has a different number of ${re.source} than the master: a translation injects markup`);
+  try { acorn.parse(newCode, { ecmaVersion: 'latest', sourceType: 'script' }); } catch (x) { die('the generated app script does not parse: ' + x.message); }
+  fs.writeFileSync(outFile, page);
   console.log(`i18n build ${lang}: wrote ${path.relative(ROOT, outFile)} (${fallbacks} texts still in Hebrew; unit badges fixed from the Hebrew: ${stat.chips} chips, ${stat.params} formula-box parameters, ${stat.explicit} explicit${stat.skipped ? ', ' + stat.skipped + ' not static' : ''})`);
 }
 
 const [cmd, lang] = process.argv.slice(2);
 if (!cmd || !lang) die('usage: node tools/i18n.js extract|check|build|stats <lang>');
+if (!/^[a-z]{2,3}(-[A-Za-z0-9]{2,8})?$/.test(lang)) die('not a language code: ' + lang);
 Promise.resolve(({ extract: cmdExtract, check: (l) => cmdCheck(l, process.argv.includes('--strict')), build: cmdBuild, stats: cmdStats, todo: cmdTodo, set: cmdSet }[cmd] || (() => die('unknown command ' + cmd)))(lang))
   .catch(e => { console.error(e); process.exit(2); });

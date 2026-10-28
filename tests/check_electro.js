@@ -57,7 +57,7 @@ const EXPECT = {
 const sig2 = x => x === 0 ? 0 : Number(x.toPrecision(2));
 
 (async () => {
-  const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium', args: ['--no-sandbox'] });
+  const b = await chromium.launch({ executablePath: require('./_browser'), args: ['--no-sandbox'] });
   const p = await b.newPage({ viewport: { width: 1280, height: 900 } });
   const errs = [];
   p.on('pageerror', x => errs.push(x.message));

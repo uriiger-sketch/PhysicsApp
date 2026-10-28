@@ -64,7 +64,7 @@ const S = p => p.evaluate(() => JSON.parse(JSON.stringify(_sl.st, (k, v) =>
   (k === 'tr' || k === 'trR' || k === 'reset' || k === 'buf' || k === 'rec') ? undefined : v)));
 
 (async () => {
-  const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium', args: ['--no-sandbox'] });
+  const b = await chromium.launch({ executablePath: require('./_browser'), args: ['--no-sandbox'] });
   let p = await phone(b), s;
 
   console.log('\n1) the registry itself');

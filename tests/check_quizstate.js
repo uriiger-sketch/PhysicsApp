@@ -34,7 +34,7 @@ const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 (async () => {
   const original = fs.readFileSync(FILE, 'utf8');
   let body = original;
-  const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium', args: ['--no-sandbox'] });
+  const b = await chromium.launch({ executablePath: require('./_browser'), args: ['--no-sandbox'] });
   const ctx = await b.newContext({ viewport: { width: 1280, height: 800 } });
   // one origin, so localStorage outlives the "update"; nothing else loads
   await ctx.route('**/*', r => {

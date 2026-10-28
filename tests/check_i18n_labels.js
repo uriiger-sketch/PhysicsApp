@@ -53,7 +53,7 @@ async function drops(b, url, width) {
 }
 
 (async () => {
-  const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium', args: ['--no-sandbox'] });
+  const b = await chromium.launch({ executablePath: require('./_browser'), args: ['--no-sandbox'] });
   let bad = 0, views = 0;
   for (const w of WIDTHS) {
     const he = await drops(b, MASTER, w), ed = await drops(b, EDITION, w);
