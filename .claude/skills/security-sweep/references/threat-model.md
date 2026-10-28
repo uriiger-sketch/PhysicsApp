@@ -62,17 +62,36 @@ or a custom domain in front of GitHub Pages), send them, and keep the
 `<meta>` CSP as a fallback:
 
 ```
-Content-Security-Policy: <the meta policy>; frame-ancestors 'none'; report-to csp
-Strict-Transport-Security: max-age=63072000; includeSubDomains; preload
+Content-Security-Policy: <the meta policy>; frame-ancestors 'self'
+X-Frame-Options: SAMEORIGIN
+Strict-Transport-Security: max-age=63072000; includeSubDomains
 X-Content-Type-Options: nosniff
 Referrer-Policy: no-referrer
-Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(), usb=(), accelerometer=(self), gyroscope=(self)
 Cross-Origin-Opener-Policy: same-origin
 Cross-Origin-Resource-Policy: same-origin
+Permissions-Policy: accelerometer=(self), gyroscope=(self), magnetometer=(self), screen-wake-lock=(self), camera=(), microphone=(), geolocation=(), payment=(), usb=(), serial=(), hid=(), bluetooth=(), midi=(), display-capture=(), browsing-topics=()
 ```
 
-Note on `accelerometer` and `gyroscope`: the sensor lab reads
-DeviceMotion, so they must stay `(self)`.
+These were validated over a local server with the real page. The checks
+covered:
+- KaTeX;
+- the print popup;
+- the language switch;
+- the sensor lab;
+- `frame-ancestors 'self'` blocking a cross-site frame.
+
+Two cautions:
+- `accelerometer`, `gyroscope` and `screen-wake-lock` must stay `(self)`:
+  the sensor lab reads DeviceMotion and holds a wake lock while it
+  measures.
+- Never add `upgrade-insecure-requests`: on a plain-HTTP LAN preview it
+  turned the same-origin language switch into an error page, and there is
+  no `http://` URL to upgrade anyway.
+
+Clickjacking is a low risk here, but it is real. A cross-site frame of the
+app shares its storage, and the reset button sits only behind `confirm()`.
+`frame-ancestors` fixes it, and it needs a header. Do not add JS
+frame-busting.
 
 The custom domain also ends the shared-origin storage risk (A1–A5). Progress
 is kept per origin, so plan a one-time export and import.

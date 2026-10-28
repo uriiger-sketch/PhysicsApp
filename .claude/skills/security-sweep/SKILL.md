@@ -174,10 +174,24 @@ Owner-only actions: …   Accepted risks (with reason): …
 
 ## 5. Accepted risks and their reasons (re-check each sweep)
 
-- `script-src 'unsafe-inline'`: the app runs from an inline block injected by
-  the loader, and its HTML uses inline handlers, so no hash or nonce can cover
-  it. The defence is invariants 5–7. To lift it, move the handlers to
-  delegated listeners and the app to an external file under a hash.
+- `script-src 'unsafe-inline'` on the app pages. The app runs from an inline
+  block that the loader injects, with line padding and `location.href`, so
+  no hash fits it. Its HTML also carries about 44 inline-handler templates.
+  The defence is invariants 5–7. The paths forward were measured in v28.40:
+  1. **Blob loader.** The loader runs the app from a `blob:` URL;
+     `script-src-elem` lists the two static `<head>`/boot scripts by hash, the
+     KaTeX files and `blob:`; `script-src-attr 'unsafe-inline'` is kept.
+     - Gain: also blocks `javascript:` URLs and `srcdoc` scripts. All tests
+       pass with zero violations.
+     - Limit: `<img onerror>` still runs.
+     - Cost: a stale hash leaves the page stuck on "loading", which every
+       browser test catches.
+  2. **Delegated listeners.** Turn the handler templates into delegated
+     listeners (`data-act`), then use `script-src-attr 'none'`. This is the
+     real fix, and Trusted Types become possible after it.
+  3. **Rejected: `'strict-dynamic'`.** With no code change it works, but an
+     injected handler could then load a script from any host.
+  `index.html` has no handlers, so it is already hash-only.
 - KaTeX 0.16.9 has advisories (fixed by 0.16.10 to 0.18.2). They need `trust`
   or attacker-controlled TeX, and the app passes only authored TeX with the
   default `trust:false`. To upgrade: the loader URL and three SRI hashes, the

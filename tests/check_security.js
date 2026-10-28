@@ -63,6 +63,13 @@ function staticChecks(name, src, isApp) {
     const sites = all.filter(v => /^https?:\/\//.test(v));
     t(`${name}: CSP names only KaTeX's exact path`, sites.every(v => v === KATEX.replace(/dist\/$/, '') || v === KATEX), sites.join(' '));
   }
+  if (!isApp && P) {
+    // index.html: its one script and one style allowed by hash, not 'unsafe-inline'
+    const crypto = require('crypto'), h = x => `'sha256-${crypto.createHash('sha256').update(x, 'utf8').digest('base64')}'`;
+    const want = (re) => [...src.matchAll(re)].map(m => h(m[1])).sort().join(' ');
+    t(`${name}: script-src is exactly the hash of its script`, (P.d['script-src'] || []).slice().sort().join(' ') === want(/<script>([\s\S]*?)<\/script>/g), (P.d['script-src'] || []).join(' '));
+    t(`${name}: style-src is exactly the hash of its style`, (P.d['style-src'] || []).slice().sort().join(' ') === want(/<style>([\s\S]*?)<\/style>/g), (P.d['style-src'] || []).join(' '));
+  }
   t(`${name}: referrer policy no-referrer`, /<meta name="referrer" content="no-referrer">/.test(src));
   // every URL of another site in the page
   const urls = (src.match(/https?:\/\/[A-Za-z0-9.-]+[^\s"'`)<>\\]*/g) || [])
@@ -256,6 +263,12 @@ function staticChecks(name, src, isApp) {
       await ip.waitForTimeout(400);
       t(`index.html with phys_lang=${l}: opens the Hebrew page`, /\/physics_game_v28\.html(#.*)?$/.test(ip.url()), ip.url());
     }
+    // 'en' must reach the English page: only the script can do that (the meta
+    // refresh always goes to Hebrew), so this fails if the CSP blocks the script
+    await ip.evaluate(() => localStorage.setItem('phys_lang', 'en'));
+    await ip.goto('file://' + path.join(ROOT, 'index.html#/kinematics/distance-time/quiz'));
+    await ip.waitForTimeout(400);
+    t('index.html with phys_lang=en: its script runs and opens the English page at the same topic', /\/physics_game_en\.html#\/kinematics\/distance-time\/quiz$/.test(ip.url()), ip.url());
     await ip.evaluate(() => localStorage.setItem('phys_lang', 'he'));
   }
 
