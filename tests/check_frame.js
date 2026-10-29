@@ -56,7 +56,7 @@ const INSTRUMENT = () => {
 };
 
 (async () => {
-  const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium', args: ['--no-sandbox'] });
+  const b = await chromium.launch({ executablePath: require('./_browser'), args: ['--no-sandbox'] });
   const p = await (await b.newContext({ ...devices['Pixel 7'] })).newPage();
   await p.addInitScript(INSTRUMENT);
   await p.goto(F);

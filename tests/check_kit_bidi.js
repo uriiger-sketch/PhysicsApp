@@ -89,7 +89,7 @@ const SCAN = (roots, hebOnly) => {
 };
 
 (async () => {
-  const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium', args: ['--no-sandbox'] });
+  const b = await chromium.launch({ executablePath: require('./_browser'), args: ['--no-sandbox'] });
   const errs = [];
   let checked = 0;
   const bad = [];

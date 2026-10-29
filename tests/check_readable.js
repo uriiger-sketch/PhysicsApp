@@ -174,7 +174,7 @@ const CVEVAL = `(function(rows,pageBg){
   return res;})`;
 
 (async () => {
-  const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium', args: ['--no-sandbox'] });
+  const b = await chromium.launch({ executablePath: require('./_browser'), args: ['--no-sandbox'] });
   const found = [];
   for (const theme of ['dark', 'light']) {
     const ctx = await b.newContext({ viewport: { width: 1100, height: 900 } });

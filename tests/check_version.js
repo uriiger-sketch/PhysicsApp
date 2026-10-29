@@ -37,7 +37,7 @@ const cmp = (a, b) => { const x = a.split('.').map(Number), y = b.split('.').map
     if (hv && head !== src) console.log(`   HEAD v${hv} → working v${v}`);
   }
 
-  const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium', args: ['--no-sandbox'] });
+  const b = await chromium.launch({ executablePath: require('./_browser'), args: ['--no-sandbox'] });
   const p = await b.newPage();
   const errs = [];
   p.on('pageerror', e => errs.push(e.message));

@@ -45,7 +45,7 @@ let fail = 0, n = 0;
 const t = (name, ok, info) => { n++; if (!ok) fail++; console.log(`   ${ok ? 'PASS' : 'FAIL'} ${name}${!ok && info !== undefined ? ': ' + info : ''}`); };
 
 (async () => {
-  const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium', args: ['--no-sandbox'] });
+  const b = await chromium.launch({ executablePath: require('./_browser'), args: ['--no-sandbox'] });
   const errs = [];
   const newCtx = async (o) => {
     const ctx = await b.newContext({ viewport: { width: 1280, height: 900 }, ...(o || {}) });

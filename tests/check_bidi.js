@@ -78,7 +78,7 @@ const SCAN = `(() => {
 })()`;
 
 (async () => {
-  const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium', args: ['--no-sandbox'] });
+  const b = await chromium.launch({ executablePath: require('./_browser'), args: ['--no-sandbox'] });
   const p = await b.newPage();
   await K.route(p);
   await p.goto(F);
@@ -94,6 +94,9 @@ const SCAN = `(() => {
   for (const ch of chapters) for (const se of ch.s) {
     for (const tab of ['theory', 'quiz', 'problem', 'sim']) {
       const hits = await p.evaluate(async ([c, x, tb, scan]) => {
+        // compiled before the first await: the page's CSP has no 'unsafe-eval',
+        // and only the synchronous start of an evaluate runs as DevTools code
+        const runScan = eval('() => ' + scan);
         state.subject = c.startsWith('opt-') ? 'optics' : c.startsWith('elc-') ? 'electro' : c.startsWith('dc-') ? 'circuits' : c.startsWith('mag-') ? 'magnetism' : 'mechanics';
         state.chapter = c; state.section = x; state.tab = tb;
         markCompleted(c, x, 'quiz', 0);
@@ -104,7 +107,7 @@ const SCAN = `(() => {
           const o = document.querySelector('#app .quiz-opt'); if (o) o.click();
           await new Promise(r => setTimeout(r, 40));
         }
-        return eval(scan);
+        return runScan();
       }, [ch.id, se, tab, SCAN]);
       scanned++;
       hits.forEach(h => { const k = `${ch.id}.${se}/${tab}`; (bad[k] = bad[k] || []).push(h); });

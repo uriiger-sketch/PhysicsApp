@@ -1,0 +1,180 @@
+# GitHub Pages serves this repository as it is (.nojekyll), so CI builds no
+# site: it runs the repository's own checks. It replaces the stock "Jekyll
+# site CI", which mounted the checkout (with its token) into an unpinned
+# jekyll/builder:latest image and checked nothing about the app.
+#
+# Hardening: read-only token for every job, no credentials left in
+# .git/config, every action pinned to a full commit SHA (the release in the
+# comment; Dependabot keeps both current), dev tools from the lockfile with
+# install scripts off, time limits, and never pull_request_target.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+  schedule:
+    - cron: '17 4 * * 1'   # weekly: catches runner and browser drift
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  static:
+    name: Secrets, supply chain, translations, generated edition
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Check out (no token left in .git/config)
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: No credentials or private endpoints in the tree
+        run: |
+          set -euo pipefail
+          pattern='AKfyc[A-Za-z0-9_-]{20,}|script\.google(usercontent)?\.com/macros/|openById\(|(ADMIN|STUDENT)_PASS|-----BEGIN [A-Z ]*PRIVATE KEY-----|gh[pousr]_[A-Za-z0-9]{30,}|github_pat_[A-Za-z0-9_]{40,}|AIza[0-9A-Za-z_-]{35}|(AKIA|ASIA)[0-9A-Z]{16}|xox[baprs]-[A-Za-z0-9-]{10,}'
+          if git grep -n -I -E "$pattern" -- . ':(exclude)tools/vendor/' ':(exclude).github/workflows/ci.yml' ':(exclude)tests/check_security.js' ':(exclude).claude/'; then
+            echo "::error::credential-like string in the tree (lines above)"
+            exit 1
+          fi
+
+      - name: Vendored acorn is byte-identical to acorn@8.18.0 dist/acorn.js
+        run: echo 'fc3ed7b81e58464715d0291402892f22c3d86ea75302645a330390f85d8015c9  tools/vendor/acorn.js' | sha256sum -c -
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '22'
+
+      - name: Dev tools from the lockfile (integrity-checked, no install scripts)
+        run: npm ci --ignore-scripts --no-audit --no-fund
+
+      - name: The pages load KaTeX at the locked version, under its real SRI hashes
+        run: |
+          set -euo pipefail
+          v=$(node -p "require('katex/package.json').version")
+          for page in physics_game_v28.html physics_game_en.html; do
+            grep -qF "https://cdn.jsdelivr.net/npm/katex@$v/dist/" "$page" || { echo "::error::$page does not load katex@$v"; exit 1; }
+            for f in katex.min.css katex.min.js contrib/auto-render.min.js; do
+              h="sha384-$(openssl dgst -sha384 -binary "node_modules/katex/dist/$f" | openssl base64 -A)"
+              grep -qF "$h" "$page" || { echo "::error::$page: no SRI $h for $f"; exit 1; }
+            done
+          done
+
+      - name: Translation guards
+        run: node tools/i18n.js check en
+
+      - name: Chromium
+        run: |
+          set -euo pipefail
+          ./node_modules/.bin/playwright install --with-deps chromium
+          echo "CHROMIUM=$(node -p "require('playwright').chromium.executablePath()")" >> "$GITHUB_ENV"
+
+      - name: The committed English edition is exactly what the build makes
+        run: |
+          node tools/i18n.js build en
+          git diff --exit-code --stat -- physics_game_en.html
+
+      - name: Version and changelog
+        run: node tests/check_version.js
+
+  browser-tests:
+    name: Browser tests (${{ matrix.edition }})
+    needs: static
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        edition: [physics_game_v28.html, physics_game_en.html]
+    env:
+      APP_FILE: ${{ matrix.edition }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '22'
+
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+
+      - name: Chromium
+        run: |
+          set -euo pipefail
+          ./node_modules/.bin/playwright install --with-deps chromium
+          echo "CHROMIUM=$(node -p "require('playwright').chromium.executablePath()")" >> "$GITHUB_ENV"
+
+      - name: Keep the CDN out of reach (the suite's default, offline-formula mode)
+        run: printf '0.0.0.0 %s\n' cdn.jsdelivr.net | sudo tee -a /etc/hosts
+
+      - name: Security invariants
+        run: node tests/check_security.js
+
+      - name: Fast tier
+        run: |
+          set -euo pipefail
+          node tests/check_numbers.js
+          node tests/check_examples.js
+          node tests/smoke.js
+
+      - name: English edition shows no Hebrew
+        if: matrix.edition == 'physics_game_en.html'
+        run: node tests/check_i18n.js en
+
+      - name: KaTeX mode, files served from the locked npm package under the page's SRI
+        if: matrix.edition == 'physics_game_v28.html'
+        env:
+          KATEX: local
+          KATEX_DIR: node_modules/katex/dist
+        run: node tests/smoke.js
+
+      - name: Full tier (main, weekly, manual)
+        if: github.event_name != 'pull_request'
+        run: |
+          set -euo pipefail
+          for t in check_quizstate check_answers check_sims check_anims; do
+            echo "::group::$t"; node "tests/$t.js"; echo "::endgroup::"
+          done
+
+  flow:
+    # check_flow drives every section through the UI: over 15 min for all
+    # subjects, so it runs per subject, weekly or on demand
+    name: Functional sweep (${{ matrix.subject }})
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    needs: static
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        subject: [mechanics, optics, electro, circuits, magnetism]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '22'
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Chromium
+        run: |
+          set -euo pipefail
+          ./node_modules/.bin/playwright install --with-deps chromium
+          echo "CHROMIUM=$(node -p "require('playwright').chromium.executablePath()")" >> "$GITHUB_ENV"
+      - name: Keep the CDN out of reach
+        run: printf '0.0.0.0 %s\n' cdn.jsdelivr.net | sudo tee -a /etc/hosts
+      - run: node tests/check_flow.js "$SUBJECT"
+        env:
+          SUBJECT: ${{ matrix.subject }}

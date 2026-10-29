@@ -1,5 +1,10 @@
 <!DOCTYPE html><html lang="he" dir="rtl"><head>
 <meta charset="utf-8">
+<!-- this page only redirects: its one script and one style, by their SHA-256
+     (recompute both if either changes -- tests/check_security.js checks them;
+     with a stale hash the script is blocked and only the meta refresh is left) -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-pxQgEpQQCf4RcJsdtc2xnXHYNvE08MeCIgXuP7JWzUc='; style-src 'sha256-IiRGQj+vfbImtIWu4tsgsX+Wz66tQwlG6ThU0WVcbng='; img-src data:; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta name="referrer" content="no-referrer">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta http-equiv="refresh" content="0;url=physics_game_v28.html">
 <title>פיזיקה לבגרות — מכניקה, אופטיקה, חשמל ומגנטיות</title>
@@ -19,5 +24,5 @@
      topic (#/chapter/section/tab) survives the redirect -->
 <script>(function(){var f={he:'physics_game_v28.html',en:'physics_game_en.html'},l='he';
 try{l=localStorage.getItem('phys_lang')||'he';}catch(e){}
-window.location.replace((f[l]||f.he)+(window.location.hash||''));})();</script>
+window.location.replace((Object.prototype.hasOwnProperty.call(f,l)?f[l]:f.he)+(window.location.hash||''));})();</script>
 </body></html>

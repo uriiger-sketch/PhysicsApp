@@ -39,7 +39,7 @@ async function badges(b, url) {
 }
 
 (async () => {
-  const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium', args: ['--no-sandbox'] });
+  const b = await chromium.launch({ executablePath: require('./_browser'), args: ['--no-sandbox'] });
   const he = await badges(b, MASTER), ed = await badges(b, EDITION);
   await b.close();
   let n = 0, bad = 0;

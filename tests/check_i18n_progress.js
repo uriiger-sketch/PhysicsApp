@@ -26,7 +26,7 @@ let fail = 0, checks = 0;
 const t = (name, ok, info) => { checks++; if (!ok) fail++; console.log(`   ${ok ? 'PASS' : 'FAIL'} ${name}${!ok && info ? ': ' + info : ''}`); };
 
 (async () => {
-  const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium', args: ['--no-sandbox'] });
+  const b = await chromium.launch({ executablePath: require('./_browser'), args: ['--no-sandbox'] });
   const ctx = await b.newContext({ viewport: { width: 1280, height: 800 } });
   await ctx.route('**/*', r => {
     const name = r.request().url().split('#')[0].split('?')[0].replace(ORIGIN, '');

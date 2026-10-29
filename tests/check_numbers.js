@@ -16,7 +16,7 @@ const t = (name, got, want) => {
 };
 
 (async () => {
-  const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium', args: ['--no-sandbox'] });
+  const b = await chromium.launch({ executablePath: require('./_browser'), args: ['--no-sandbox'] });
   const p = await b.newPage();
   await p.goto(F);
   await p.waitForTimeout(800);
