@@ -254,7 +254,8 @@ function staticChecks(name, src, isApp) {
   t('no request to any site but KaTeX\'s path on jsDelivr', !other.length, other.slice(0, 5).join(' '));
 
   // ── 7. the landing page: a language name from storage is looked up, not inherited
-  if (!process.env.APP_FILE) {
+  // (once, with the master: CI names it in APP_FILE too)
+  if (FILE === path.join(ROOT, 'physics_game_v28.html')) {
     const ip = await ctx.newPage();
     for (const l of ['__proto__', 'constructor', 'toString', 'javascript:alert(1)']) {
       await ip.goto('file://' + path.join(ROOT, 'index.html'));
