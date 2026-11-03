@@ -1,0 +1,27 @@
+{
+  "name": "physics-mobile-app",
+  "private": true,
+  "description": "The Physics game (Hebrew master and English edition) packaged as native iOS and Android apps with Capacitor. Generated from the pages at the repository root; nothing here edits them.",
+  "license": "UNLICENSED",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "check": "node scripts/check.mjs && node scripts/listing-check.mjs && node scripts/policy-csp.mjs --check",
+    "art": "python3 scripts/icon.py && node scripts/art.mjs",
+    "screenshots": "node scripts/screenshots.mjs",
+    "android:open": "cap open android",
+    "android:bundle": "cd android && ./gradlew bundleRelease",
+    "ios:open": "cap open ios"
+  },
+  "dependencies": {
+    "@capacitor/android": "8.5.3",
+    "@capacitor/core": "8.5.3",
+    "@capacitor/ios": "8.5.3",
+    "katex": "0.16.9"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "8.5.3"
+  }
+}

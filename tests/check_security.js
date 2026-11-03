@@ -253,24 +253,50 @@ function staticChecks(name, src, isApp) {
   const other = away.filter(u => !u.startsWith(KATEX));
   t('no request to any site but KaTeX\'s path on jsDelivr', !other.length, other.slice(0, 5).join(' '));
 
-  // ── 7. the landing page: a language name from storage is looked up, not inherited
+  // ── 7. the landing page: the language of the last visit, else Hebrew in
+  // Israel (its time zone, or an Israeli region in the device's languages) and
+  // English elsewhere; a language name from storage is looked up, not inherited
   // (once, with the master: CI names it in APP_FILE too)
   if (FILE === path.join(ROOT, 'physics_game_v28.html')) {
-    const ip = await ctx.newPage();
+    const index = 'file://' + path.join(ROOT, 'index.html');
+    const land = async (where, saved, hash = '') => {
+      const c = await b.newContext(where);
+      await c.route(/^(https?|wss?):/, r => r.abort());
+      if (saved !== undefined) await c.addInitScript(v => { try { localStorage.setItem('phys_lang', v); } catch (e) {} }, saved);
+      const q = await c.newPage();
+      await q.goto(index + hash);
+      await q.waitForURL(/\/physics_game_/, { timeout: 5000 }).catch(() => {});
+      const u = q.url();
+      await c.close();
+      return u;
+    };
+    const HE = /\/physics_game_v28\.html(#.*)?$/, EN = /\/physics_game_en\.html(#.*)?$/;
+    const IL = { timezoneId: 'Asia/Jerusalem', locale: 'he-IL' }, US = { timezoneId: 'America/New_York', locale: 'en-US' };
+    let u;
+    t('index.html, a first visit in Israel: Hebrew', HE.test(u = await land(IL)), u);
+    t('index.html, a first visit in Israel on an English device: Hebrew', HE.test(u = await land({ timezoneId: 'Asia/Jerusalem', locale: 'en-US' })), u);
+    t('index.html, a first visit abroad with an Israeli region (en-IL): Hebrew', HE.test(u = await land({ timezoneId: 'Europe/London', locale: 'en-IL' })), u);
+    t('index.html, a first visit elsewhere: English', EN.test(u = await land(US)), u);
+    t('index.html, a first visit where the place is unknown (UTC): English', EN.test(u = await land({ timezoneId: 'UTC', locale: 'fr-FR' })), u);
     for (const l of ['__proto__', 'constructor', 'toString', 'javascript:alert(1)']) {
-      await ip.goto('file://' + path.join(ROOT, 'index.html'));
-      await ip.evaluate(v => localStorage.setItem('phys_lang', v), l);
-      await ip.goto('file://' + path.join(ROOT, 'index.html'));
-      await ip.waitForTimeout(400);
-      t(`index.html with phys_lang=${l}: opens the Hebrew page`, /\/physics_game_v28\.html(#.*)?$/.test(ip.url()), ip.url());
+      t(`index.html with phys_lang=${l}, elsewhere: English, as on a first visit`, EN.test(u = await land(US, l)), u);
+      t(`index.html with phys_lang=${l}, in Israel: Hebrew, as on a first visit`, HE.test(u = await land(IL, l)), u);
     }
-    // 'en' must reach the English page: only the script can do that (the meta
-    // refresh always goes to Hebrew), so this fails if the CSP blocks the script
-    await ip.evaluate(() => localStorage.setItem('phys_lang', 'en'));
-    await ip.goto('file://' + path.join(ROOT, 'index.html#/kinematics/distance-time/quiz'));
-    await ip.waitForTimeout(400);
-    t('index.html with phys_lang=en: its script runs and opens the English page at the same topic', /\/physics_game_en\.html#\/kinematics\/distance-time\/quiz$/.test(ip.url()), ip.url());
-    await ip.evaluate(() => localStorage.setItem('phys_lang', 'he'));
+    // the last visit's language wins over the place. Only the script can reach
+    // English (the meta refresh always goes to Hebrew): this fails if the CSP blocks it
+    t('index.html with phys_lang=en, in Israel: its script runs and opens the English page at the same topic',
+      /\/physics_game_en\.html#\/kinematics\/distance-time\/quiz$/.test(u = await land(IL, 'en', '#/kinematics/distance-time/quiz')), u);
+    t('index.html with phys_lang=he, elsewhere: the Hebrew page', HE.test(u = await land(US, 'he')), u);
+    // every page records its language for the next visit
+    for (const [file, lang] of [['physics_game_en.html', 'en'], ['physics_game_v28.html', 'he']]) {
+      const c = await b.newContext(lang === 'en' ? IL : US);
+      await c.route(/^(https?|wss?):/, r => r.abort());
+      const q = await c.newPage();
+      await q.goto('file://' + path.join(ROOT, file));
+      const got = await q.waitForFunction(() => localStorage.getItem('phys_lang'), null, { timeout: 15000 }).then(h => h.jsonValue()).catch(() => null);
+      t(`${file} records its language for the next visit`, got === lang, String(got));
+      await c.close();
+    }
   }
 
   await b.close();
