@@ -11,7 +11,7 @@ leaves the device.
 | Key | What it holds |
 |---|---|
 | `phys_game_state_v2` | The place in the course, XP, completed and visited sections, quiz answers and hints, problem steps with the answers typed, sim missions, theme |
-| `phys_lang` | The language chosen in the 🌐 menu |
+| `phys_lang` | The language of the last visit, which the next one opens (also set by the 🌐 menu) |
 | `phys_onboarded` | That the welcome tour was seen |
 | `simtip_<chapter>.<section>` | That a simulation's tip was shown |
 
