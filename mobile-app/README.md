@@ -1,17 +1,25 @@
-# Physics as an iPhone, iPad and Android app
+# Physfun · פיזיכיף on iPhone, iPad and Android
 
-This folder turns the game, the Hebrew master `physics_game_v28.html` and the
-English `physics_game_en.html` at the repository root, into apps for the
-**App Store** and **Google Play**. It uses [Capacitor](https://capacitorjs.com)
-8: native projects that show the pages, bundled inside the app, in the system's
-web view. Nothing outside this folder is changed. The pages at the root stay
-the one source, and the app is rebuilt from them.
+This folder turns the game into apps for the **App Store** and **Google
+Play**. The game is the Hebrew master `physics_game_v28.html` and the English
+`physics_game_en.html`, with the landing page `index.html`, all at the
+repository root. It uses [Capacitor](https://capacitorjs.com) 8: native
+projects that show the pages, bundled inside the app, in the system's web view.
+
+The pages at the root stay the one source; the app is rebuilt from them.
+
+**Every change to the app is made in Hebrew and in English, both in the
+website's pages and here** (see `CLAUDE.md` at the repository root).
+- A text or behaviour change goes into the master.
+- It is translated and built into the English edition (`i18n/README.md`).
+- It reaches the app with `npm run build`.
+- What the stores show (`store/`) is kept in both languages too.
 
 | Ready here | What only you can do |
 |---|---|
 | Android Studio project (`android/`), Xcode project (`ios/`) | Developer accounts: Google Play ($25 once), Apple Developer Program ($99 a year) |
 | The app's web bundle, built and checked (`npm run build`, `npm run check`) | The signing keys, kept by you, never in the repository |
-| Icon, launch screens, feature graphic, 48 screenshots (`store/`) | Building the upload files: the `.aab` in Android Studio, the iOS build on a Mac with Xcode 26, or both with the cloud build in `ci/` |
+| Icon (from your design), launch screens, feature graphics, 48 screenshots (`store/`) | Building the upload files: the `.aab` in Android Studio, the iOS build on a Mac with Xcode 26, or both with the cloud build in `ci/` |
 | Listing texts in Hebrew and English, privacy policy, questionnaire answers (`store/`) | Creating the store entries, uploading, pressing *Submit* |
 
 ## Contents
@@ -24,13 +32,14 @@ mobile-app/
 ├── scripts/
 │   ├── build.mjs           www/ from the root pages + version and id into android/ and ios/
 │   ├── check.mjs           the bundle tested as the app runs it
-│   ├── art.mjs             icon, launch images, feature graphic (and the Android vector icon)
+│   ├── icon.py             every icon, launch image and the favicon, from resources/icon-source.jpg
+│   ├── art.mjs             the Play feature graphics
 │   ├── screenshots.mjs     the store screenshots
 │   ├── listing-check.mjs   store texts within the stores' limits
 │   └── policy-csp.mjs      the privacy page's CSP hash
 ├── android/                Android Studio project (Gradle; API 36, minimum Android 7.0)
 ├── ios/                    Xcode project (Swift Package Manager; minimum iOS 15)
-├── resources/icon.svg      the icon's design
+├── resources/              icon-source.jpg (the icon's design) and what icon.py makes from it
 ├── store/
 │   ├── listing.md          every text field of both stores, he + en
 │   ├── answers.md          Data safety, App Privacy, ratings, review notes
@@ -43,9 +52,9 @@ mobile-app/
 
 ## How the app differs from the website
 
-`scripts/build.mjs` copies both pages into `www/` with four changes. Each is an
-exact substitution it counts, so a change in the master that it does not
-expect stops the build instead of shipping:
+`scripts/build.mjs` copies both editions into `www/` with three changes. Each
+is an exact substitution it counts, so a change in the master that it does
+not expect stops the build instead of shipping:
 
 1. **KaTeX is inside the app** (`www/vendor/katex@0.16.9/`, the npm release
    byte for byte, still held to the pages' SRI hashes). The app works fully
@@ -57,10 +66,13 @@ expect stops the build instead of shipping:
 3. **🖨 (print a progress summary) is hidden**, and `window.open` returns
    nothing. A phone's web view has no print dialog, and on Android the blank
    window would replace the course.
-4. **The start page** (`www/index.html`) opens the edition chosen before with
-   🌐. Otherwise it opens the device's language: Hebrew on a Hebrew device,
-   English on any other. The site always starts in Hebrew. To do the same,
-   change `'en'` to `'he'` in the launcher script in `build.mjs`.
+
+**The start page is the website's own `index.html`, byte for byte**, so the
+site and the app open by one rule:
+- the language of the last session, which every page records;
+- on a first visit, Hebrew in Israel, by the device's time zone or an Israeli
+  region in its languages (he-IL, en-IL, …);
+- English everywhere else, and wherever the place is not known.
 
 And the native side:
 - **Android back button:** steps back through topics and tabs, as the game
@@ -74,13 +86,8 @@ And the native side:
   apps may read the accelerometer, and Capacitor grants the web view's request.
 
 `npm run check` tests all of this in Chromium, with the bundle served at the
-app's own origin and every other address cut off: 67 checks. The repository's
-own test suites also pass on the copies in `www/`:
-- `check_numbers`, `check_examples` and `smoke`: 107 topics, 107
-  simulations, 107 quizzes, no page error;
-- `check_i18n en`.
-
-Run them with, for example,
+app's own origin and every other address cut off. The repository's own test
+suites also pass on the copies in `www/`, for example
 `APP_FILE=mobile-app/www/physics_game_en.html node tests/smoke.js` from the
 root.
 
@@ -88,16 +95,19 @@ root.
 
 | | |
 |---|---|
-| App ID (Android package, iOS bundle ID) | `io.github.uriigersketch.physicsapp`, from this repository's own address |
-| Name under the icon | פיזיקה (Hebrew devices) · Physics (all others) |
-| Store names | פיזיקה לבגרות · Physics: Simulations & Quizzes |
-| Version | the game's `APP_VERSION`: 28.40 → Android versionCode 2804000, iOS build 28.40.0 |
+| App ID (Android package, iOS bundle ID) | `com.physfun` |
+| Store names | פיזיכיף (Hebrew) · Physfun (English) |
+| Name under the icon | פיזיכיף on a Hebrew device · Physfun on all others |
+| Icon | `resources/icon-source.jpg`; `npm run art` makes every size from it |
+| Version | the game's `APP_VERSION`: 28.41 → Android versionCode 2804100, iOS build 28.41.0 |
 
-**The app ID is permanent once the app is in a store.** To choose another, do
-it before the first upload:
+**The app ID is permanent once the app is in a store.** Android requires at
+least two parts separated by a dot, so `Physfun` alone is not possible there;
+`com.physfun` is the shortest valid form. To choose another before the first
+upload:
 1. Set `appId` in `capacitor.config.json`.
 2. Run `npm run build`. It writes the ID into both native projects. Android's
-   Java package can stay as it is.
+   Java package, `com.physfun`, can stay as it is.
 
 The version follows the game: every `npm run build` reads `APP_VERSION` from
 the master. To upload the same game version a second time, for a native-only
@@ -154,11 +164,11 @@ take their web assets from it; those copies are generated and not committed.
      `android/app/build/outputs/bundle/release/app-release.aab`.
    - **No Android Studio:** the cloud build below.
 4. **Play Console → Create app.**
-   - Default language Hebrew (`iw-IL`) or English, *App*, *Free*.
+   - App name `פיזיכיף`, default language Hebrew (`iw-IL`), *App*, *Free*.
    - **Store listing:** the texts in `store/listing.md`, and the images in
      `store/google-play/`: icon, feature graphic, phone screenshots, 10-inch
-     tablet screenshots. Then *Manage translations* to add the other language
-     with its own texts and screenshots.
+     tablet screenshots. Then *Manage translations* to add English (`en-US`,
+     name `Physfun`) with its own texts and screenshots.
    - **App content:** every answer is in `store/answers.md`. The privacy-policy
      address works once this folder is on `main`, because GitHub Pages serves it.
 5. **Testing → Closed testing:** create a release, upload the `.aab`, and add
@@ -168,11 +178,14 @@ take their web assets from it; those copies are generated and not committed.
 ## App Store, step by step
 
 1. **Account:** join the [Apple Developer Program](https://developer.apple.com/programs/).
-2. **App Store Connect → Apps → + → New App:** iOS, name `פיזיקה לבגרות`,
-   primary language Hebrew, bundle ID `io.github.uriigersketch.physicsapp`,
-   SKU any unique text (e.g. `physicsapp-ios`). If the bundle ID is not in the
-   list yet, register it under *Certificates, Identifiers & Profiles →
-   Identifiers*, or let Xcode register it in step 3.
+2. **App Store Connect → Apps → + → New App:**
+   - iOS, name `פיזיכיף`, primary language Hebrew;
+   - bundle ID `com.physfun`;
+   - SKU any unique text, e.g. `physfun-ios`.
+
+   If the bundle ID is not in the list yet, register it under *Certificates,
+   Identifiers & Profiles → Identifiers*, or let Xcode register it in step 3.
+   Add the English (U.S.) localization with the name `Physfun`.
 3. **On the Mac:**
    1. Run `npm ci --ignore-scripts && npm run build` in `mobile-app`.
    2. Run `npm run ios:open` to open Xcode. Xcode fetches the Capacitor package
@@ -184,7 +197,7 @@ take their web assets from it; those copies are generated and not committed.
 4. **App Store Connect, the version page:**
    - screenshots: `store/app-store/screenshots/<language>/`, iPhone 6.9″ and
      iPad 13″;
-   - texts: from `store/listing.md`, added as a localization for each language;
+   - texts: from `store/listing.md`, for each localization;
    - App Privacy, age rating and review notes: `store/answers.md`.
    - Then choose the uploaded build (optionally try it first in TestFlight),
      *Add for Review*, and *Submit*.
@@ -197,7 +210,7 @@ take their web assets from it; those copies are generated and not committed.
   App Store Connect.
 
 It runs `npm run check` first. It is a template because workflows run only
-from `.github/workflows/`, which this folder does not touch. To use it:
+from `.github/workflows/`. To use it:
 1. Copy the file there.
 2. Add the secrets listed at its top.
 3. Run it from the *Actions* tab.
@@ -208,11 +221,17 @@ and select Xcode 26 with
 
 ## Updating the app later
 
-1. Change the game at the root as always: new version, rebuilt edition.
+1. Change the game at the root as always: the Hebrew master, its English
+   translation and the rebuilt edition, a new version.
 2. Run `npm run build` in `mobile-app`. The new version is picked up.
 3. Build and upload as above.
 
-If you changed the icon's design in `scripts/art.mjs`, run `npm run art`.
+If the icon changes, replace `resources/icon-source.jpg` (the design on a light
+background, as given) and run `npm run art`. It rebuilds every icon, the
+launch images, the feature graphics and the pages' favicon file,
+`resources/favicon-64.png`. The favicon then goes into the `<link rel="icon">`
+of `index.html` and the master as a data URI.
+
 For new screenshots, run `npm run screenshots` (after a build).
 
 Maintenance:

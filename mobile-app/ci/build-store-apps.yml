@@ -125,9 +125,9 @@ jobs:
           set -euo pipefail
           v=$(sed -n "s/^var APP_VERSION='\([0-9.]*\)'.*/\1/p" physics_game_v28.html)
           tag="app-v$v.$APP_BUILD"
-          cp mobile-app/android/app/build/outputs/bundle/release/app-release.aab "physics-$v.$APP_BUILD.aab"
-          gh release create "$tag" "physics-$v.$APP_BUILD.aab" --draft --target "$GITHUB_SHA" \
-            --title "App $v (build $APP_BUILD)" \
+          cp mobile-app/android/app/build/outputs/bundle/release/app-release.aab "physfun-$v.$APP_BUILD.aab"
+          gh release create "$tag" "physfun-$v.$APP_BUILD.aab" --draft --target "$GITHUB_SHA" \
+            --title "Physfun $v (build $APP_BUILD)" \
             --notes "Android App Bundle for Google Play, built from $GITHUB_SHA. Upload it in Play Console; delete this draft afterwards."
 
   ios:

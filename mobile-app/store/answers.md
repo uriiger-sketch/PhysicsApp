@@ -57,10 +57,10 @@ If any of that changes, so do these answers.
 ### App Review notes (paste into *App Review Information → Notes*)
 
 ```text
-Physics is a complete, offline physics course for high-school students: 107 topics in five subjects (mechanics, optics, electrostatics, DC circuits, magnetism), in Hebrew and English. Everything is bundled in the app; it makes no network requests and needs no account.
+Physfun is a complete, offline physics course for high-school students: 107 topics in five subjects (mechanics, optics, electrostatics, DC circuits, magnetism), in Hebrew and English. Everything is bundled in the app; it makes no network requests and needs no account.
 
 How to try it:
-- The app opens in the device's language; the 🌐 button at the top switches between Hebrew and English (progress is kept).
+- The app opens in Hebrew in Israel and in English elsewhere, and after that always in the language of the last session; the 🌐 button at the top switches between Hebrew and English (progress is kept).
 - The topic list is at the side of the screen (on iPhone, behind ☰). Every topic has four tabs: Theory, Simulation (interactive: drag the objects on the diagram), Quiz, and Problem (a guided, multi-step problem that unlocks once the quiz is done).
 - 📐 opens the formula sheet.
 
@@ -70,5 +70,5 @@ Device feature: 14 mechanics topics include a sensor lab that reads the accelero
 The same notes in Hebrew, if you prefer them (reviewers read English):
 
 ```text
-״פיזיקה לבגרות״ הוא קורס פיזיקה מלא לתיכון שפועל בלי אינטרנט: 107 סעיפים בחמישה נושאים, בעברית ובאנגלית. הכול נמצא בתוך האפליקציה; היא אינה פונה לרשת ואין בה חשבון.
+״פיזיכיף״ הוא קורס פיזיקה מלא לתיכון שפועל בלי אינטרנט: 107 סעיפים בחמישה נושאים, בעברית ובאנגלית. הכול נמצא בתוך האפליקציה; היא אינה פונה לרשת ואין בה חשבון.
 ```

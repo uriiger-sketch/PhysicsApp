@@ -59,8 +59,11 @@ for (const [lang, file] of Object.entries(EDITIONS)) {
 
 // ── in the browser, at the app's origin ───────────────────────────────────
 const browser = await launch();
-async function session(locale, saved) {
-  const ctx = await browser.newContext({ viewport: { width: 400, height: 820 }, locale, hasTouch: true, isMobile: true });
+const PLACE = { IL: ['Asia/Jerusalem', 'he-IL'], 'IL/en': ['Asia/Jerusalem', 'en-US'], 'abroad/en-IL': ['Europe/London', 'en-IL'],
+  US: ['America/New_York', 'en-US'], DE: ['Europe/Berlin', 'de-DE'], unknown: ['UTC', 'fr-FR'] };
+async function session(place, saved) {
+  const [timezoneId, locale] = PLACE[place];
+  const ctx = await browser.newContext({ viewport: { width: 400, height: 820 }, locale, timezoneId, hasTouch: true, isMobile: true });
   const away = await serveApp(ctx);
   await ctx.addInitScript(([saved]) => {
     window.__csp = [];
@@ -75,27 +78,32 @@ async function session(locale, saved) {
 // the start page (the game then writes its first topic into the address: #/…)
 let direct;
 {
-  const s = await session('he-IL', null);
+  const s = await session('IL', null);
   await s.page.goto(`${ORIGIN}/${EDITIONS.he}`);
   await s.page.waitForTimeout(600);
   direct = await s.page.evaluate(() => history.length);
   await s.ctx.close();
 }
-for (const [locale, saved, want] of [['he-IL', null, 'he'], ['en-US', null, 'en'], ['de-DE', null, 'en'],
-  ['he-IL', 'en', 'en'], ['en-US', 'he', 'he'], ['en-US', 'xx', 'en'], ['he-IL', 'xx', 'he']]) {
+// the website's own rule (index.html, copied byte for byte): the language of
+// the last visit, else Hebrew in Israel -- by time zone, or an Israeli region
+// in the device's languages -- and English elsewhere or where unknown
+t('index.html: the website\'s own start page, byte for byte', read(path.join(WWW, 'index.html')) === read(path.join(ROOT, 'index.html')));
+for (const [locale, saved, want] of [['IL', null, 'he'], ['IL/en', null, 'he'], ['abroad/en-IL', null, 'he'],
+  ['US', null, 'en'], ['DE', null, 'en'], ['unknown', null, 'en'],
+  ['IL', 'en', 'en'], ['US', 'he', 'he'], ['US', 'xx', 'en'], ['IL', 'xx', 'he']]) {
   const s = await session(locale, saved);
   await s.page.goto(ORIGIN + '/');
   await s.page.waitForURL(/physics_game_/, { timeout: 15000 }).catch(() => {});
   await s.page.waitForTimeout(600);
   const url = s.page.url();
-  t(`start page, device ${locale}, saved ${saved}: opens ${want}`, url.split('#')[0] === `${ORIGIN}/${EDITIONS[want]}`, url);
+  t(`start page, ${locale}, saved ${saved}: opens ${want}`, url.split('#')[0] === `${ORIGIN}/${EDITIONS[want]}`, url);
   // back from the first topic must leave the app, not land on the start page
-  t(`start page, device ${locale}: leaves no history entry of its own`, await s.page.evaluate(() => history.length) === direct);
+  t(`start page, ${locale}: leaves no history entry of its own`, await s.page.evaluate(() => history.length) === direct);
   await s.ctx.close();
 }
 
 for (const [lang, file] of Object.entries(EDITIONS)) {
-  const s = await session(lang === 'he' ? 'he-IL' : 'en-US', null);
+  const s = await session(lang === 'he' ? 'IL' : 'US', null);
   await s.page.goto(`${ORIGIN}/${file}#/kinematics/distance-time/theory`);
   await s.page.waitForFunction(() => typeof window.render === 'function' && document.querySelector('.tab'), null, { timeout: 20000 });
   await s.page.waitForTimeout(700);
@@ -141,6 +149,16 @@ for (const [lang, file] of Object.entries(EDITIONS)) {
   t(`${file}: no CSP violation`, csp.length === 0, csp.slice(0, 3).join(' | '));
   t(`${file}: no page error`, s.errors.length === 0, s.errors.slice(0, 2).join(' | '));
   t(`${file}: no request to any other site`, s.away.length === 0, s.away.slice(0, 3).join(' '));
+  await s.ctx.close();
+}
+// a session in an edition is remembered: the next start opens it, wherever the device is
+for (const [place, file, want] of [['IL', EDITIONS.en, 'en'], ['US', EDITIONS.he, 'he']]) {
+  const s = await session(place, null);
+  await s.page.goto(`${ORIGIN}/${file}`);
+  await s.page.waitForFunction(() => localStorage.getItem('phys_lang'), null, { timeout: 20000 }).catch(() => {});
+  await s.page.goto(ORIGIN + '/');
+  await s.page.waitForURL(/physics_game_/, { timeout: 15000 }).catch(() => {});
+  t(`last session in ${want}, device ${place}: the next start opens ${want}`, s.page.url().split('#')[0] === `${ORIGIN}/${EDITIONS[want]}`, s.page.url());
   await s.ctx.close();
 }
 await browser.close();

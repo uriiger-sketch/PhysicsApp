@@ -11,13 +11,16 @@ collected. Change a number here when the course changes.
 
 | | Hebrew (he / iw-IL) | English (en-US) |
 |---|---|---|
-| App name, both stores (30) | פיזיקה לבגרות | Physics: Simulations & Quizzes |
-| Name under the icon (set in the app) | פיזיקה | Physics |
+| App name, both stores (30) | פיזיכיף | Physfun |
+| Name under the icon (set in the app) | פיזיכיף | Physfun |
+| App ID, both stores (permanent) | `com.physfun` | `com.physfun` |
 
-The English store name differs from the name under the icon because a store
-name must be unique: “Physics” alone is taken. If App Store Connect or Play
-Console says the name is in use, alternatives: `Physics — Learn by Simulation`,
-`Physics Course: Theory & Sims`.
+A store name must be unique in its store. If App Store Connect or Play Console
+says one is taken, a descriptive suffix keeps it: `Physfun: Physics Lab`,
+`פיזיכיף – פיזיקה לבגרות`.
+
+Every change to the app is made in both languages, in the website's pages and
+here (see CLAUDE.md at the repository root).
 
 ---
 
@@ -25,7 +28,7 @@ Console says the name is in use, alternatives: `Physics — Learn by Simulation`
 
 ### App name · שם האפליקציה (App Store 30, Google Play 30)
 ```text
-פיזיקה לבגרות
+פיזיכיף
 ```
 
 ### Subtitle · כותרת משנה (App Store 30)
@@ -45,12 +48,12 @@ Console says the name is in use, alternatives: `Physics — Learn by Simulation`
 
 ### Keywords · מילות מפתח (App Store 100, comma-separated, no spaces)
 ```text
-מכניקה,אופטיקה,חשמל,מגנטיות,מעגלים,קינמטיקה,כוחות,אנרגיה,סימולציה,חידון,תיכון,מדעים,מבחן
+פיזיקה,בגרות,מכניקה,אופטיקה,חשמל,מגנטיות,מעגלים,קינמטיקה,כוחות,אנרגיה,סימולציה,חידון,תיכון,מדעים
 ```
 
 ### Description · תיאור (App Store 4000, Google Play 4000)
 ```text
-קורס פיזיקה מלא לתיכון, בטלפון: תיאוריה ברורה, סימולציות אינטראקטיביות, חידונים ובעיות מודרכות בחמישה נושאים — לבגרות בפיזיקה, בעברית ובאנגלית.
+פיזיכיף הוא קורס פיזיקה מלא לתיכון, בטלפון: תיאוריה ברורה, סימולציות אינטראקטיביות, חידונים ובעיות מודרכות בחמישה נושאים — לבגרות בפיזיקה, בעברית ובאנגלית.
 
 חמישה נושאים, 107 סעיפים
 • מכניקה — קינמטיקה, וקטורים, כוחות וחוקי ניוטון, חיכוך וקפיצים, סטטיקה, זריקה ותנועה מעגלית, תנע, אנרגיה ותנודות
@@ -81,7 +84,7 @@ Console says the name is in use, alternatives: `Physics — Learn by Simulation`
 
 ### What's new · מה חדש (App Store 4000, Google Play release notes 500)
 ```text
-הגרסה הראשונה של האפליקציה: הקורס כולו — חמישה נושאים ו־107 סעיפים — באייפון, באייפד וב־Android, גם בלי אינטרנט.
+הגרסה הראשונה של פיזיכיף: הקורס כולו — חמישה נושאים ו־107 סעיפים — באייפון, באייפד וב־Android, גם בלי אינטרנט.
 ```
 
 ---
@@ -90,7 +93,7 @@ Console says the name is in use, alternatives: `Physics — Learn by Simulation`
 
 ### App name (App Store 30, Google Play 30)
 ```text
-Physics: Simulations & Quizzes
+Physfun
 ```
 
 ### Subtitle (App Store 30)
@@ -110,12 +113,12 @@ High-school physics: theory, simulations, quizzes and guided problems, offline
 
 ### Keywords (App Store 100, comma-separated, no spaces)
 ```text
-bagrut,mechanics,optics,electricity,magnetism,circuits,kinematics,forces,energy,science,exam,lab
+physics,bagrut,mechanics,optics,electricity,magnetism,circuits,kinematics,forces,energy,science
 ```
 
 ### Description (App Store 4000, Google Play 4000)
 ```text
-A complete high-school physics course on your phone, in English and in Hebrew: clear theory, interactive simulations, quizzes and guided problems in five subjects. Built for the Bagrut, the Israeli matriculation exam.
+Physfun is a complete high-school physics course on your phone, in English and in Hebrew: clear theory, interactive simulations, quizzes and guided problems in five subjects. Built for the Bagrut, the Israeli matriculation exam.
 
 FIVE SUBJECTS, 107 TOPICS
 • Mechanics — kinematics, vectors, forces and Newton's laws, friction and springs, statics, projectiles and circular motion, momentum, energy, oscillations
@@ -146,7 +149,7 @@ No account, no ads, no tracking. The app collects nothing and connects to nothin
 
 ### What's new (App Store 4000, Google Play release notes 500)
 ```text
-The first release of the app: the whole course — five subjects and 107 topics — on iPhone, iPad and Android, offline.
+The first release of Physfun: the whole course — five subjects and 107 topics — on iPhone, iPad and Android, offline.
 ```
 
 ---

@@ -1,4 +1,4 @@
-package io.github.uriigersketch.physicsapp;
+package com.physfun;
 
 import android.os.Bundle;
 import android.webkit.WebView;
