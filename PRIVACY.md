@@ -14,6 +14,7 @@ leaves the device.
 | `phys_lang` | The language of the last visit, which the next one opens (also set by the 🌐 menu) |
 | `phys_onboarded` | That the welcome tour was seen |
 | `simtip_<chapter>.<section>` | That a simulation's tip was shown |
+| `phys_simpin` | Whether a simulation's diagram stays pinned to the top of a phone's screen (📌) |
 
 **To erase it:**
 - **↺ Reset progress** (״איפוס ההתקדמות״), at the foot of the topics list,

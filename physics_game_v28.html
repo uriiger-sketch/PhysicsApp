@@ -1184,6 +1184,84 @@ html{scroll-padding-top:72px;}
   .sidebar{top:0;height:100vh;}
   html{scroll-padding-top:8px;}
 }
+/* ── A simulation on a phone or a tablet: docked (_simDockSet) ─────────────
+   'top': the canvas stays at the top of the screen and the rest scrolls under
+   it, sliders first; 'side': the canvas beside everything else. The visual
+   order changes, not the DOM's. */
+.sim-bar{display:none;}
+/* the description is read once: the tip, while it shows, or the footer */
+.sim-tipped>.sim-foot>.sim-desc{display:none;}
+html.sim-dock .sim-bar{display:flex;align-items:center;gap:6px;min-height:40px;padding:0 8px;
+  background:var(--panel2);border-top:1px solid var(--border);font-size:.8rem;}
+html.sim-dock .sim-bar .sim-hint{flex:1 1 auto;min-width:0;display:block;background:none;border:0;padding:0;
+  text-align:start;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.sim-speed{display:inline-flex;align-items:center;gap:3px;flex:0 0 auto;margin-inline-start:auto;}
+.sim-speed[hidden]{display:none;}
+.sim-speed-ic{font-size:.95rem;margin-inline-end:2px;}
+.sim-sp,.sim-pin{min-height:36px;min-width:40px;padding:0 8px;border-radius:8px;border:1px solid var(--border);
+  background:var(--chip);color:var(--text);font-family:'AppSym','Heebo',sans-serif;font-weight:700;font-size:.8rem;
+  line-height:1;cursor:pointer;white-space:nowrap;font-variant-numeric:tabular-nums;}
+.sim-sp[aria-pressed=true]{background:var(--btn);border-color:var(--btn);color:#fff;}
+/* the pin is a setting, not an action: lit, not filled */
+.sim-pin{background:transparent;font-weight:600;}
+.sim-pin[aria-pressed=true]{background:var(--sk-next);border-color:var(--accent);}
+.sim-pin{flex:0 0 auto;margin-inline-start:auto;}
+.sim-speed:not([hidden])~.sim-pin{margin-inline-start:4px;}
+html:not(.sim-dock-top) .sim-pin{display:none;}
+/* a phone's bar holds the hint, the speeds and the pin: beside the speeds
+   the pin is its icon alone (its name is still "pin" to a screen reader) */
+@media (max-width:480px){.sim-speed:not([hidden])~.sim-pin .sim-pin-tx{display:none;}
+  .sim-speed:not([hidden])~.sim-pin{padding:0 6px;min-width:42px;}}
+@media (pointer:coarse){html.sim-dock .sim-bar{min-height:46px;}.sim-sp,.sim-pin{min-height:42px;}}
+/* sticky needs the window as its scroller: the page scrolls the window, never
+   .main (_toTop), but .main's overflow made it the canvas's scroll container */
+html.sim-dock .main{overflow:visible;}
+/* the open tab says "simulation" already: its badge only pushed the sim down */
+html.sim-dock .sec-header--sim{display:none;}
+html.sim-dock .tabs{margin-bottom:10px;}
+html.sim-dock .sim-container{overflow:visible;}
+@supports (overflow:clip){html.sim-dock .sim-container{overflow:clip;}}
+html.sim-dock .sim-canvas-wrap{border-radius:0;}
+/* the kit's model line, prediction and missions take their own places */
+html.sim-dock .sk-panel{display:contents;}
+html.sim-dock .sk-model,html.sim-dock .sk-predict,html.sim-dock .sk-missions{margin:10px 12px 0;}
+html.sim-dock .sk-missions{margin-bottom:12px;}
+/* every line under the canvas is a line less of sliders on the screen */
+html.sim-dock .sk-model{font-size:.84rem;line-height:1.6;padding:5px 10px;}
+html.sim-dock .sim-container>.sim-controls:not(.sim-foot){padding:10px 14px 12px;}
+html.sim-dock .sim-container>*{order:7;}
+html.sim-dock .sim-container>.sk-tabs{order:0;}
+html.sim-dock .sim-container>.sim-canvas-wrap,html.sim-dock .sim-container>.sim-hint{order:1;}
+html.sim-dock .sk-model{order:2;}
+html.sim-dock .sim-container>.sim-controls{order:3;}
+html.sim-dock .sim-container>.sim-tip{order:4;border-top:1px solid var(--border);}
+html.sim-dock .sk-predict{order:5;}
+html.sim-dock .sk-missions{order:6;}
+html.sim-dock .sim-container>.sim-foot{order:8;}
+html.sim-dock-top .sim-container{display:flex;flex-direction:column;}
+/* a model line too tall to leave the first row of sliders on the screen
+   (_simFit): the sliders first, the line under them */
+html.sim-dock-top .sim-ctl-first>.sim-controls:not(.sim-foot){order:2;}
+html.sim-dock-top .sim-ctl-first .sk-model{order:3;margin-top:0;}
+html.sim-dock-top .sim-canvas-wrap{position:sticky;top:var(--dock-top,0px);z-index:4;
+  box-shadow:0 10px 14px -12px rgba(0,0,0,.8);}
+html.sim-dock-top.sim-unpin .sim-canvas-wrap{position:relative;box-shadow:none;}
+/* a control reached with the keyboard is scrolled into view below the canvas,
+   not under it */
+html.sim-dock-top:not(.sim-unpin){scroll-padding-top:calc(var(--dock-top,0px) + var(--stage-h,0px) + 8px);}
+html.sim-dock-side .sim-container{display:grid;align-items:start;
+  grid-template-columns:var(--stage-w,var(--stage-w0,60%)) minmax(0,1fr);grid-template-rows:repeat(14,auto) 1fr;}
+html.sim-dock-side .sim-container>*,html.sim-dock-side .sk-panel>*{grid-column:2;min-width:0;}
+html.sim-dock-side .sim-container>.sim-canvas-wrap{grid-column:1;grid-row:1/-1;align-self:start;
+  position:sticky;top:var(--dock-top,0px);z-index:4;border-inline-end:1px solid var(--border);}
+html.sim-dock-side .sim-container>.sk-tabs{padding:6px 8px;}
+/* the controls' column is a phone's width: its sliders take a phone's rows
+   (a phone on its side is wider than the 768 px those rules start at) */
+html.sim-dock-side .sim-controls{flex-wrap:wrap;gap:8px;}
+html.sim-dock-side .range-wrap{flex:1 1 100%;min-width:0;}
+html.sim-dock-side .range-wrap label{white-space:normal;flex:0 1 auto;min-width:0;line-height:1.35;}
+html.sim-dock-side .range-wrap input[type=range]{flex:1 1 96px;min-width:96px;}
+html.sim-dock-side .range-wrap .range-val{flex:0 0 auto;white-space:nowrap;}
 /* Touch: every control at least 44 px tall, the size of a fingertip */
 @media (pointer:coarse){
   .hamburger-btn{min-width:44px;min-height:44px;justify-content:center;}
@@ -1303,8 +1381,14 @@ var APP_LANGS=[
   {code:'he',name:'עברית',file:'physics_game_v28.html'},
   {code:'en',name:'English',file:'physics_game_en.html'}
 ];
-var APP_VERSION='28.41';
+var APP_VERSION='28.42';
 var APP_CHANGELOG=[
+  {v:'28.42',d:'2026-11-04',notes:[
+    'סימולציות בטלפון ובטאבלט: התרשים נשאר בראש המסך ושאר הסימולציה נגללת מתחתיו — קודם המשוואה החיה והמחוונים, אחריהם ההסבר, התחזית והמשימות. תרשים גבוה מדי מוצג קטן יותר ושלם, כך שבכל גודל מסך רואים את התרשים ואת המחוונים יחד; כפתור ההצמדה (📌) משחרר אותו לגודלו המלא',
+    'טלפון לרוחב: התרשים בצד אחד, בגובה המסך, והמחוונים וההסברים בצד השני',
+    'הילוך איטי: בסימולציה שיש בה תנועה מופיעים בפס שמתחת לתרשים כפתורי מהירות (🐢), לחצי מהירות ולרבע מהירות. שעון הסימולציה עצמו מאט, ולכן התנועה נשארת רציפה וכל מספר שמוצג — זמן, מחזור, ציר הזמן של גרף — נמדד בשניות של הסימולציה',
+    'ההסבר של כל סימולציה מוצג פעם אחת: כל עוד חלונית ההסבר פתוחה, העותק שבתחתית מוסתר',
+  ]},
   {v:'28.41',d:'2026-11-03',notes:[
     'שם חדש וסמל חדש: פיזיכיף',
     'שפה: בביקור הראשון האתר נפתח בעברית בישראל ובאנגלית בכל מקום אחר, ומאז תמיד בשפה של הביקור הקודם',
@@ -10224,29 +10308,228 @@ function setupCanvas(canvas, H){
   ctx.scale(dpr, dpr);
   return { ctx, W: cssW, H: cssH, dpr };
 }
-// A phone on its side has 360-430 px of height and the simulations are
-// 320-600 px tall: the top of the drawing or its graph was always off the
-// screen, and dragging a handle scrolled the page under the finger. There the
-// canvas is shown scaled down whole, to the height of the screen, centred --
-// the same picture, smaller. Only its CSS box changes: the bitmap and the
-// sim's own W x H coordinates are untouched, and every pointer read maps the
-// box back by canvas.width / box width -- one factor for x and y alike, as the
-// scale keeps the aspect ratio.
+// ── A simulation on a phone or a tablet: the dock ───────────────────────────
+// On a desktop a simulation reads down the page: the canvas, the model line,
+// the prediction, the missions, the sliders. On a phone that column was
+// 1240-2040 px tall for a screen of 500-780: every slider sat a screen or
+// more below the canvas it moves, so each change was made blind and watched
+// after scrolling back up -- by when the motion it started was over. There
+// the simulation is docked:
+//  'top'  a phone or a tablet upright (any touch screen, any window up to
+//         820 px): the canvas stays at the top of the screen, under the
+//         header, and the rest scrolls beneath it -- the model line and the
+//         sliders first, then the description, the prediction, the missions.
+//         A canvas too tall to leave room for its sliders is shown smaller,
+//         whole (never below 72% of its size where the screen allows it).
+//         The 📌 in the bar under it lets it go, at full size, with the page.
+//  'side' a phone on its side (480 px of height at most): the canvas on one
+//         side, fitted to the height of the screen, everything else beside it.
+// Only boxes move. The DOM keeps its order (what a screen reader and the
+// keyboard follow), the bitmap and the sim's own W x H coordinates are
+// untouched, and every pointer read maps the box back by canvas.width / box
+// width -- one factor for x and y alike, as the scale keeps the aspect ratio.
+var _dock={mode:'',pin:_ls.get('phys_simpin')!=='0',top:0,vh:0};
+function _simDockMode(){
+  var m=function(q){try{return window.matchMedia(q).matches;}catch(e){return false;}};
+  if(m('(max-height:480px) and (orientation:landscape)'))return 'side';
+  if(m('(max-width:820px)')||m('(hover:none) and (pointer:coarse)'))return 'top';
+  return '';
+}
+// The height that is always there: iOS's toolbars come and go as the page
+// scrolls, and a dock sized to the larger height would lose its last slider
+// under them each time they came back (100svh is the height with them shown).
+function _simVH(){
+  var h=window.innerHeight||0;
+  try{if(window.CSS&&CSS.supports&&CSS.supports('height','100svh')&&document.body){
+    var p=document.createElement('div');
+    p.style.cssText='position:fixed;top:0;left:0;width:0;height:100svh;visibility:hidden;pointer-events:none';
+    document.body.appendChild(p);var s=p.getBoundingClientRect().height;p.remove();
+    if(s>0)h=h?Math.min(h,s):s;}}catch(e){}
+  return h;
+}
+// The controls' column on a phone on its side: room for a slider's label,
+// its track and its value side by side
+function _simSideCtl(cw){return Math.max(280,Math.min(360,cw*0.4));}
+// Which layout, on every render and every resize; on any other tab, none
+function _simDockSet(on){
+  var de=document.documentElement,cl=de.classList,mode=on?_simDockMode():'';
+  _dock.mode=mode;
+  cl.toggle('sim-dock',!!mode);cl.toggle('sim-dock-top',mode==='top');cl.toggle('sim-dock-side',mode==='side');
+  cl.toggle('sim-unpin',mode==='top'&&!_dock.pin);
+  if(!mode)return;
+  var hd=document.querySelector('.header'),top=0,ps='';
+  if(hd){try{ps=getComputedStyle(hd).position;}catch(e){}
+    if(ps==='sticky'||ps==='fixed')top=Math.round(hd.getBoundingClientRect().height);}
+  _dock.top=top;_dock.vh=_simVH();
+  de.style.setProperty('--dock-top',top+'px');
+  [].forEach.call(document.querySelectorAll('#app .sim-pin'),function(b){b.setAttribute('aria-pressed',String(_dock.pin));});
+  // on its side, the canvas boots in a column wide enough that, fitted to
+  // the screen's height, it leaves the controls their column; the sim lays
+  // itself out for that width (its own wide or narrow design)
+  var host=document.querySelector('#app .sim-container');
+  if(mode==='side'&&host){
+    var cw=host.clientWidth,room=_dock.vh-top-54,ctl=_simSideCtl(cw);
+    var w0=room>0?(cw-ctl)*480/room:cw*0.6;
+    host.style.setProperty('--stage-w0',Math.round(Math.max(cw*0.5,Math.min(cw*0.82,w0)))+'px');
+  }
+}
 function _simFit(canvas,W,H){
-  var on=false;
-  try{on=window.matchMedia('(max-height:480px) and (orientation:landscape)').matches;}catch(e){}
-  if(!on||!canvas.closest||!canvas.closest('.sim-canvas-wrap'))return;
-  var room=window.innerHeight-12;
-  if(H<=room||room<160)return;
-  var h=Math.floor(room);
+  var wrap=canvas.closest&&canvas.closest('.sim-canvas-wrap'),host=wrap&&wrap.parentNode;
+  if(!host||!host.classList||!host.classList.contains('sim-container'))return;
+  canvas._fitWH=[W,H];
+  var mode=_dock.mode;
+  if(!mode)return;
+  var bar=wrap.querySelector('.sim-bar'),bh=bar?bar.offsetHeight:0,vh=_dock.vh||window.innerHeight,S=H;
+  host.classList.remove('sim-ctl-first');
+  if(mode==='side'){
+    // whole, beside its controls: the screen's height, and the width
+    // the controls leave, whichever is the tighter
+    var room=vh-_dock.top-bh-10,cw=host.clientWidth;
+    var s=Math.min(1,room/H,(cw-_simSideCtl(cw))/W);
+    if(!(s>0))s=1;
+    S=Math.max(Math.min(H,120),Math.floor(H*s));
+  }else{
+    if(!_dock.pin)return;
+    // as large as leaves the model line and the sliders on the screen
+    // under it; a canvas that cannot have that keeps 72% of its size (or
+    // 62% of the screen), and the sliders scroll beneath it
+    var avail=vh-_dock.top-bh,ctl=null,mod=null;
+    for(var c=host.firstElementChild;c;c=c.nextElementSibling){
+      if(!ctl&&c.classList.contains('sim-controls')&&!c.classList.contains('sim-foot'))ctl=c;
+      if(!mod&&c.classList.contains('sk-panel'))mod=c.querySelector('.sk-model');}
+    // the model line as the kit drew it (a guess until then: _simRefit
+    // measures it again once the sim has drawn its first frame)
+    var mh=mod?(mod.hidden?0:mod.offsetHeight+10):72;
+    var f=ctl&&ctl.querySelector('.range-wrap,button,select');
+    var row=f?f.getBoundingClientRect().bottom-ctl.getBoundingClientRect().top:0;
+    S=Math.min(H,Math.max(Math.min(H*0.72,avail*0.62),avail-(ctl?ctl.offsetHeight:0)-mh),avail-140);
+    S=Math.floor(Math.max(S,Math.min(H,160)));
+    // the first row of controls is on the screen with the canvas, always:
+    // where the model line would push it off (a five-line equation on a
+    // 320 px phone), the sliders come first and the model line under them
+    host.classList.toggle('sim-ctl-first',!!(row&&avail-S-mh-row-6<0));
+    document.documentElement.style.setProperty('--stage-h',(Math.min(S,H)+bh)+'px');
+  }
+  // the column holds the canvas and the wrap's own border (its divider)
+  var edge=wrap.offsetWidth-wrap.clientWidth;
+  if(S>=H){if(mode==='side')host.style.setProperty('--stage-w',(W+edge)+'px');return;}
+  // a whole number of pixels across, as the box is laid out: a fraction
+  // rounded away there would stretch the picture and the pointer with it
+  var w=Math.max(1,Math.round(W*S/H));S=Math.round(w*H/W);
+  if(mode==='side')host.style.setProperty('--stage-w',(w+edge)+'px');
   canvas.classList.add('sim-fit');
-  canvas.style.height=h+'px';
-  canvas.style.setProperty('--fit-w',(W*h/H)+'px');
+  canvas.style.height=S+'px';
+  canvas.style.setProperty('--fit-w',w+'px');
 }
 function _simUnfit(canvas){
+  var host=canvas.closest&&canvas.closest('.sim-container');
+  if(host&&host.style.getPropertyValue('--stage-w'))host.style.removeProperty('--stage-w');
   if(!canvas.classList||!canvas.classList.contains('sim-fit'))return;
   canvas.classList.remove('sim-fit');canvas.style.removeProperty('--fit-w');
 }
+// The same sim, laid out again for the screen as it is now (the pin, a
+// height that changed): only the box -- the sim keeps running
+function _simRefit(){
+  var cv=document.getElementById('sim-canvas');
+  if(!cv||!cv._fitWH||!cv.isConnected)return;
+  _simUnfit(cv);cv.style.height=cv._fitWH[1]+'px';
+  _simFit(cv,cv._fitWH[0],cv._fitWH[1]);
+}
+function _simPin(on){
+  _dock.pin=!!on;_ls.set('phys_simpin',on?'1':'0');
+  _simDockSet(state.tab==='sim');_simRefit();
+  // the canvas where the learner was looking: at the top of the screen
+  var w=document.querySelector('#app .sim-canvas-wrap');
+  if(w){var r=w.getBoundingClientRect();
+    if(r.top<_dock.top-1||r.top>window.innerHeight/2)try{window.scrollTo(0,Math.max(0,window.pageYOffset+r.top-_dock.top));}catch(e){}}
+}
+
+// ── The simulation's clock: slow motion ─────────────────────────────────────
+// What moves too fast to watch -- a projectile's two-second flight, a
+// collision, a fall -- can run at ½ or ¼ speed (🐢 in the bar under the
+// canvas). The sims step with the frame's timestamp (dt = ts - previous ts):
+// while the clock runs slow, every frame callback is handed simulation time
+// instead of the real one, advancing k times as fast, so the motion stays
+// smooth and every number it shows (a stopwatch, a period, a graph's t axis)
+// is in the simulation's own seconds. The few sims that step a fixed amount
+// each frame (they take no timestamp) run on k of the frames, and simNow()
+// is the same clock for those that read the time themselves. Until the speed
+// is changed, and from the next page on, nothing is wrapped: the browser's
+// own requestAnimationFrame is called, so the sims run exactly as before.
+var _clk={on:false,k:1,v:0,r:0,acc:0,last:-1,run:true,q:1e9,map:new Map()};
+var _rafN=window.requestAnimationFrame.bind(window),_cafN=window.cancelAnimationFrame.bind(window);
+function _clkAt(t){return _clk.on?_clk.v+(t-_clk.r)*_clk.k:t;}
+function simNow(){return _clkAt(performance.now());}
+function _clkSet(k){
+  var n=performance.now();
+  if(!_clk.on){if(k===1)return;_clk.on=true;_clk.v=n;_clk.r=n;_clk.acc=0;}
+  else{_clk.v=_clkAt(n);_clk.r=n;}
+  _clk.k=k;
+}
+function _clkReset(){_clk.on=false;_clk.k=1;_clk.acc=0;_clk.last=-1;}
+window.requestAnimationFrame=function(cb){
+  if(!_clk.on||typeof cb!=='function')return _rafN(cb);
+  // the id handed out stays the callback's while its frames are skipped, so
+  // cancelAnimationFrame still finds it
+  var q=++_clk.q,step=function(ts){
+    if(_clk.on&&_clk.k<1&&cb.length===0){
+      if(ts!==_clk.last){_clk.last=ts;_clk.acc+=_clk.k;_clk.run=_clk.acc>=1-1e-9;if(_clk.run)_clk.acc-=1;}
+      if(!_clk.run){_clk.map.set(q,_rafN(step));return;}
+    }
+    _clk.map.delete(q);cb(_clkAt(ts));
+  };
+  _clk.map.set(q,_rafN(step));return q;
+};
+window.cancelAnimationFrame=function(id){
+  if(_clk.map.has(id)){_cafN(_clk.map.get(id));_clk.map.delete(id);}else _cafN(id);
+};
+function simSpeed(k){
+  k=(k===0.5||k===0.25)?k:1;
+  _clkSet(k);
+  [].forEach.call(document.querySelectorAll('#app .sim-sp'),function(b){b.setAttribute('aria-pressed',String(+b.dataset.k===k));});
+}
+// The speed buttons appear once the canvas moves by itself -- a picture that
+// changes while nobody touches the sim: a launch, a wave, a current. A still
+// picture (vectors, a field map, a balance) never shows them, nor does a sim
+// whose time is the learner's own hand (position-time draws the hand's x(t)).
+var SIM_OWN_TIME={'position-time':1};
+function _simWatch(id,cv,host,g,type){
+  var sp=host&&host.querySelector('.sim-speed');
+  if(!sp||!sp.hidden||SIM_OWN_TIME[type]||!_dock.mode)return;
+  // the learner's own hand on the picture or on a slider: what changes then
+  // follows the hand. A button's press is not counted -- what it starts (a
+  // launch, a release) is the motion to slow down.
+  if(!host._simIn){host._simIn=true;
+    var mark=function(e){var t=e.target;
+      if(e.type==='input'||(t&&t.closest&&t.closest('.sim-canvas-wrap')&&!t.closest('.sim-bar')))host._simInT=performance.now();};
+    ['pointerdown','pointermove','mousedown','mousemove','touchstart','touchmove','wheel','keydown','input'].forEach(function(t){
+      host.addEventListener(t,mark,{capture:true,passive:true});});}
+  var N=48,o=document.createElement('canvas');o.width=o.height=N;
+  var x=o.getContext('2d'),prev=null,hits=0;
+  if(!x)return;
+  (function tick(){
+    if(_simGen[id]!==g||!cv.isConnected||!sp.hidden)return;
+    var d;
+    try{x.clearRect(0,0,N,N);x.drawImage(cv,0,0,N,N);d=x.getImageData(0,0,N,N).data;}catch(e){return;}
+    // two changes in a row with no hand on the sim are the sim's own (one
+    // is a redraw: a slider let go, a mode switched). Measured over the 48 x
+    // 48 thumbnail: the slowest real motions (light pulses along a lens's
+    // rays) change it by 500 or more a quarter second, a handle's pulsing
+    // ring or a glow (fbd, gravity-force) by 420 at most
+    if(prev&&performance.now()-(host._simInT||0)>300){
+      var s=0;for(var i=0;i<d.length;i+=4)s+=Math.abs(d[i]-prev[i])+Math.abs(d[i+1]-prev[i+1])+Math.abs(d[i+2]-prev[i+2]);
+      hits=s>450?hits+1:0;
+      if(hits>=2){sp.hidden=false;return;}
+    }else hits=0;
+    prev=d;setTimeout(tick,250);
+  })();
+}
+document.addEventListener('click',function(e){
+  var b=e.target&&e.target.closest&&e.target.closest('#app .sim-sp,#app .sim-pin');
+  if(!b)return;
+  if(b.classList.contains('sim-sp'))simSpeed(+b.dataset.k);
+  else _simPin(b.getAttribute('aria-pressed')!=='true');
+});
 
 // ── Pointer helpers: dpr-safe canvas coords + drag→slider sync ──
 function simPointerXY(canvas,dpr,evt){
@@ -10462,9 +10745,9 @@ function simKit(canvas,spec){
   var TY=['pointerdown','mousedown','keydown','input','change','click'];
   if(host._skArm)TY.forEach(function(t){host.removeEventListener(t,host._skArm,true);});
   if(host._skArmT){host.removeEventListener('touchstart',host._skArmT);host.removeEventListener('touchmove',host._skArmT);}
-  host._skArm=function(e){var t=e.target;if(t&&t.closest&&t.closest('.sk-panel,.sim-tip'))return;
+  host._skArm=function(e){var t=e.target;if(t&&t.closest&&t.closest('.sk-panel,.sim-tip,.sim-bar'))return;
     if(e.type==='pointerdown'&&e.pointerType==='touch')return;armed=true;};
-  host._skArmT=function(e){var t=e.target;if(e.defaultPrevented&&!(t&&t.closest&&t.closest('.sk-panel,.sim-tip')))armed=true;};
+  host._skArmT=function(e){var t=e.target;if(e.defaultPrevented&&!(t&&t.closest&&t.closest('.sk-panel,.sim-tip,.sim-bar')))armed=true;};
   TY.forEach(function(t){host.addEventListener(t,host._skArm,{capture:true,passive:true});});
   host.addEventListener('touchstart',host._skArmT,{passive:true});host.addEventListener('touchmove',host._skArmT,{passive:true});
   api.check=function(s){
@@ -10487,7 +10770,10 @@ function simKit(canvas,spec){
   api.solved=function(i){return i>=0&&i<ms.length&&isDone(i);};
   api.model=function(html){
     if(html===lastModel)return;lastModel=html;
-    M.hidden=!html;
+    // a docked canvas is fitted to leave this line room under it: the
+    // line's first appearance fits it again (_simFit measures the line)
+    var was=M.hidden;M.hidden=!html;
+    if(was&&html&&_dock.mode==='top')requestAnimationFrame(function(){_simRefit();});
     if(!html){M.innerHTML='';return;}
     if(!M.firstChild){var ic=el('span','sk-model-ic','📐');ic.setAttribute('aria-hidden','true');M.appendChild(ic);M.appendChild(el('span','sk-model-tx'));}
     M.lastChild.innerHTML=html;fx(M.lastChild);
@@ -10905,7 +11191,11 @@ function initSim(id,type,keep){
       // mousedown, so it looks draggable) says so with data-tap="1"
       var _tap=canvas.dataset&&canvas.dataset.tap==='1';
       h.className='sim-hint';h.textContent=_drag&&!_tap?'✋ גררו על התרשים':'👆 הקישו על התרשים';
-      if(wrapEl.parentNode)wrapEl.parentNode.insertBefore(h,wrapEl.nextSibling);else wrapEl.appendChild(h);
+      // docked, in the bar under the canvas: it keeps the bar's height when
+      // it goes, so nothing under it moves
+      var hbar=_dock.mode&&wrapEl.querySelector&&wrapEl.querySelector('.sim-bar');
+      if(hbar)hbar.insertBefore(h,hbar.firstChild);
+      else if(wrapEl.parentNode)wrapEl.parentNode.insertBefore(h,wrapEl.nextSibling);else wrapEl.appendChild(h);
       var kill=function(){if(h.parentNode)h.remove();};
       canvas.addEventListener('mousedown',kill,{once:true});
       canvas.addEventListener('touchstart',kill,{once:true});
@@ -11008,6 +11298,10 @@ function initSim(id,type,keep){
       try{replay.forEach(function(bid){var b=document.getElementById(bid);if(b&&host.contains(b))b.click();});}
       finally{host._simReplay=false;host._simClicks=replay;}
     }
+    _simWatch(id,canvas,host,_g,type);
+    // fitted again once the sim has drawn its first frame: its model line
+    // is on the page only then, and the fit needs its height
+    if(_dock.mode==='top')requestAnimationFrame(function(){if(_simGen[id]===_g)_simRefit();});
     })});
   },50);
 }
@@ -22192,7 +22486,7 @@ function simOptColorMix(canvas){
     dirty=true;
   }
   // the lamp changes colour smoothly (at once under reduced motion)
-  function lampTo(t){if(RM){vals.obj=t.slice();showVals();dirty=true;return;}anim={from:vals.obj.slice(),to:t,t0:performance.now(),dur:900};}
+  function lampTo(t){if(RM){vals.obj=t.slice();showVals();dirty=true;return;}anim={from:vals.obj.slice(),to:t,t0:simNow(),dur:900};}
   function stepAnim(now){var u=Math.min(1,(now-anim.t0)/anim.dur),e=u<.5?2*u*u:1-Math.pow(-2*u+2,2)/2;
     vals.obj=anim.from.map(function(a,i){return a+(anim.to[i]-a)*e;});if(mode==='obj')showVals();if(u>=1)anim=null;dirty=true;}
   function bind(idb,fn){var b=document.getElementById('btn-'+idb);if(b)b.addEventListener('click',fn);return b;}
@@ -22247,7 +22541,7 @@ function simOptColorMix(canvas){
   // ── the loop: drawn when something changed ──
   function frame(ts){
     if(_simGen[id]!==_g||_simStop[id])return;
-    if(anim)stepAnim(ts||performance.now());
+    if(anim)stepAnim(ts||simNow());
     if(dirty||ripple){dirty=false;draw();}
     if(lastS)kit.check(lastS);
     requestAnimationFrame(frame);
@@ -29752,7 +30046,7 @@ MAG_SIMS['mag-magnets']=function(canvas){
     // field far from one weak magnet
     var parts=earth?30e-6:0;for(var ip=0;ip+1<P.length;ip+=2){var bp=Bf(comp[0],comp[1],[P[ip],P[ip+1]]);parts+=Math.hypot(bp[0],bp[1]-(earth?30e-6:0));}
     var neutral=Bm<2e-6&&Bm<0.25*parts,dir=Math.atan2(b[1],b[0]);
-    magNeedle(ctx,c[0],c[1],neutral?(Date.now()/700)%6.2832:dir,16,true);
+    magNeedle(ctx,c[0],c[1],neutral?(simNow()/700)%6.2832:dir,16,true);
     simHandle(ctx,c[0],c[1],'#fbbf24',24);
     if(kOn&&(kSel==='c'||!mode)){ctx.save();ctx.strokeStyle='#e2e8f0';ctx.lineWidth=2;ctx.setLineDash([3,3]);ctx.beginPath();ctx.arc(c[0],c[1],30,0,6.2832);ctx.stroke();ctx.restore();}
     // on a phone the last line takes two rows (on one it fell to 7 px and ran
@@ -33904,7 +34198,7 @@ function simDcLoop(canvas){
     var e1=E1(), e2=E2()*(aid?1:-1), r1=R1(), r2=R2();
     var Enet=e1+e2, I=Enet/(r1+r2);
     u=(u+0.0035)%1;
-    var now=performance.now()/1000; tf+=tl?Math.min(0.05,now-tl):0; tl=now;
+    var now=simNow()/1000; tf+=tl?Math.min(0.05,now-tl):0; tl=now;
     var bg=ctx.createLinearGradient(0,0,0,H);bg.addColorStop(0,'#020810');bg.addColorStop(1,'#04101e');
     ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);
     var L=W*0.12,Rt=W*0.88,T=H*0.13,B=H*0.36;
@@ -35401,7 +35695,7 @@ function simDcOhm(canvas){
     var cy=88, bx=W*0.24, rx=W*0.76, cmp=(bx+rx)/2;   // below the drag badge
     ctx.save();ctx.strokeStyle='#64748b';ctx.lineWidth=2.2;
     ctx.beginPath();ctx.rect(bx,cy-26,rx-bx,52);ctx.stroke();ctx.restore();
-    dcFlowI(ctx,[[bx,cy+26],[bx,cy-26],[rx,cy-26],[rx,cy+26],[bx,cy+26]],performance.now()/1000,I,'#fbbf24',40);   // ∝ I: 6 A at most
+    dcFlowI(ctx,[[bx,cy+26],[bx,cy-26],[rx,cy-26],[rx,cy+26],[bx,cy+26]],simNow()/1000,I,'#fbbf24',40);   // ∝ I: 6 A at most
     ctx.save();ctx.fillStyle=lamp?'rgba(251,191,36,'+Math.min(.85,I*0.35)+')':'rgba(148,163,184,.15)';
     ctx.strokeStyle=lamp?'#fbbf24':'#94a3b8';ctx.lineWidth=2;
     ctx.beginPath();ctx.rect(cmp-32,cy-26-15,64,30);ctx.fill();ctx.stroke();ctx.restore();
@@ -36703,6 +36997,8 @@ function render(){
   // the KaTeX retry loop, leaving the old loop drawing into a canvas that is
   // already off the page for the best part of a second.
   if(state.tab!=='sim')stopSim('sim-canvas');
+  // every page starts at normal speed (a slowed clock is the sim's own)
+  _clkReset();
   // Preserve sidebar scroll position
   var _sidebarEl=document.getElementById('sidebar-nav');
   var _sidebarScroll=_sidebarEl?_sidebarEl.scrollTop:0;
@@ -36724,6 +37020,8 @@ function render(){
   var _fk=_focusKey();
   _renderT=Date.now();
   document.getElementById('app').innerHTML=buildPage(ch,sec,content);
+  // a simulation's layout for this screen, before its first paint
+  _simDockSet(state.tab==='sim'&&!!(content&&content.sim));
   _restoreFocus(_fk);
   _syncHash();
   // Immediately, not behind the KaTeX retry loop: a formula that reads backwards
@@ -37046,12 +37344,33 @@ window.addEventListener('resize',function(){
     if(typeof state==='undefined')return;
     if(state.tab==='sim'){
       var c=CONTENT[state.chapter+'.'+state.section];
-      // rebuilt at the new width with the presses replayed (initSim, keep)
+      // rebuilt at the new width with the presses replayed (initSim, keep),
+      // in the layout of the screen as it is now (turned: docked beside)
+      _simDockSet(!!(c&&c.sim));
       if(c&&c.sim&&document.getElementById('sim-canvas'))initSim('sim-canvas',c.sim.type,true);
     }
     // theory animations resize themselves in place, keeping their moment
     // (_animResizeAll); restarting them all from t = 0 is no longer needed
   },240);
+});
+// A height that changed and a width that did not -- a split screen, a window
+// made shorter: the docked canvas is fitted again, in place (the toolbars of
+// a phone's browser do not count: the dock is sized without them, _simVH)
+var _dkT=null,_dkW=window.innerWidth;
+window.addEventListener('resize',function(){
+  clearTimeout(_dkT);
+  _dkT=setTimeout(function(){
+    // a new width is the handler above's: it rebuilds the sim
+    var turned=Math.abs(window.innerWidth-_dkW)>=24;_dkW=window.innerWidth;
+    if(turned||typeof state==='undefined'||state.tab!=='sim'||!document.getElementById('sim-canvas'))return;
+    var m=_dock.mode,v=_dock.vh,t=_dock.top;
+    _simDockSet(true);
+    // another layout (a window made short enough to dock beside): the sim
+    // takes its new column's width, rebuilt as on a turn
+    if(_dock.mode!==m){var c=CONTENT[state.chapter+'.'+state.section];
+      if(c&&c.sim)initSim('sim-canvas',c.sim.type,true);}
+    else if(Math.abs(_dock.vh-v)>40||_dock.top!==t)_simRefit();
+  },260);
 });
 document.addEventListener('visibilitychange',function(){
   // No events arrive while hidden, so resuming would stitch across a gap of
@@ -39265,11 +39584,18 @@ function buildSim(sim){
   // 90 px column beside them, one or two words a line, in every sim. The two
   // buttons wrap as one group: one at a time, a longer description (English)
   // kept "Start over" beside it and sent "Done" alone to the line below
+  // The bar under the canvas is the phone's (see _simDock): it stays on the
+  // screen with the diagram, so what it holds is always in reach -- the touch
+  // hint, the simulation's speed (shown once something moves by itself) and
+  // the pin that keeps the diagram at the top of the screen.
   return `<div class="sim-container">
-    <div class="sim-canvas-wrap"><canvas id="sim-canvas" height="280" role="img" aria-label="${String(sim.title||'סימולציה').replace(/"/g,'&quot;').replace(/<[^>]*>/g,'')}"></canvas></div>
+    <div class="sim-canvas-wrap"><canvas id="sim-canvas" height="280" role="img" aria-label="${String(sim.title||'סימולציה').replace(/"/g,'&quot;').replace(/<[^>]*>/g,'')}"></canvas><div class="sim-bar">
+      <div class="sim-speed" role="group" aria-label="מהירות הסימולציה" hidden><span class="sim-speed-ic" aria-hidden="true">🐢</span><button type="button" class="sim-sp" dir="ltr" data-k="1" aria-pressed="true" aria-label="מהירות רגילה">1×</button><button type="button" class="sim-sp" dir="ltr" data-k="0.5" aria-pressed="false" aria-label="חצי מהירות">½×</button><button type="button" class="sim-sp" dir="ltr" data-k="0.25" aria-pressed="false" aria-label="רבע מהירות">¼×</button></div>
+      <button type="button" class="sim-pin" aria-pressed="true" aria-label="הצמדה" title="התרשים נשאר בראש המסך בזמן הגלילה"><span aria-hidden="true">📌</span><span class="sim-pin-tx"> הצמדה</span></button>
+    </div></div>
     ${extra}
-    <div class="sim-controls" style="border-top:1px solid var(--border);padding-top:12px">
-      <p style="color:var(--muted);font-size:.85rem;line-height:1.6;flex:1 1 15em">${sim.desc}</p>
+    <div class="sim-controls sim-foot" style="border-top:1px solid var(--border);padding-top:12px">
+      <p class="sim-desc" style="color:var(--muted);font-size:.85rem;line-height:1.6;flex:1 1 15em">${sim.desc}</p>
       <div class="sim-foot-btns">
       <button class="btn btn-secondary" onclick="restartSim()">🔄 התחילו מחדש</button>
       ${!simDone?'<button class="btn btn-green" onclick="finishSim()">✅ סיימתי · 🎯 חידון ←</button>':'<span class="sim-done-msg">✅ סימולציה הושלמה</span><button class="btn btn-primary" onclick="setTab(\'quiz\')">🎯 חידון</button>'}
@@ -40421,7 +40747,10 @@ function showSimTooltip(desc){
   var tip=document.createElement('div');
   tip.className='sim-tip';tip.setAttribute('role','note');
   tip.innerHTML='<span>🔬 '+desc+'</span><button type="button" class="sim-tip-x" aria-label="סגירת ההסבר">✕</button>';
-  tip.querySelector('button').onclick=function(){tip.remove();};
+  // the same description closes the sim (its footer): while the tip shows
+  // it, the footer's copy is hidden, so it is read once
+  var host=wrap.parentNode;host.classList.add('sim-tipped');
+  tip.querySelector('button').onclick=function(){tip.remove();host.classList.remove('sim-tipped');};
   wrap.parentNode.insertBefore(tip,wrap.nextSibling);
   // built after render(), so the page-wide passes have already been and gone
   fixInlineMath(tip);ensureContrast(tip);
