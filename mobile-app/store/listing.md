@@ -64,7 +64,7 @@ here (see CLAUDE.md at the repository root).
 
 כל סעיף בארבעה שלבים
 📚 תיאוריה — הסברים קצרים ומדויקים עם כל הנוסחאות, דוגמאות פתורות ותרשימים.
-🔬 סימולציה — גוררים, משגרים ומודדים: רואים איך נוצרת תמונה מאחורי עדשה, את קווי השדה של סליל, ועגלה שמחליפה אנרגיה קינטית בפוטנציאלית על מסילה שאתם מעצבים. משימות מכוונות מה לנסות.
+🔬 סימולציה — גוררים, משגרים ומודדים: רואים איך נוצרת תמונה מאחורי עדשה, את קווי השדה של סליל, ועגלה שמחליפה אנרגיה קינטית בפוטנציאלית על מסילה שאתם מעצבים. משימות מכוונות מה לנסות. בטלפון התרשים נשאר על המסך יחד עם המחוונים, ותנועה מהירה אפשר להאט לחצי או לרבע מהירות.
 🎯 חידון — שאלות עם רמזים, דוגמאות פתורות והסברים, כך שגם טעות מלמדת.
 📝 בעיה מודרכת — בעיה רב־שלבית שפותרים שלב אחר שלב, עם רמז כשצריך.
 
@@ -129,7 +129,7 @@ FIVE SUBJECTS, 107 TOPICS
 
 EVERY TOPIC IN FOUR STEPS
 📚 Theory — short, precise explanations with every formula, worked examples and diagrams.
-🔬 Simulation — drag, launch and measure: see how a lens forms an image, trace the field lines of a solenoid, watch a cart trade kinetic for potential energy on a track you shape. Missions suggest what to try.
+🔬 Simulation — drag, launch and measure: see how a lens forms an image, trace the field lines of a solenoid, watch a cart trade kinetic for potential energy on a track you shape. Missions suggest what to try. On a phone the diagram stays on screen with its sliders, and fast motion can be slowed to half or quarter speed.
 🎯 Quiz — questions with hints, worked examples and explanations, so a wrong answer still teaches.
 📝 Guided problem — a multi-step problem, solved one step at a time, with a hint when you need one.
 

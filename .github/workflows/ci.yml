@@ -144,7 +144,7 @@ jobs:
         if: github.event_name != 'pull_request'
         run: |
           set -euo pipefail
-          for t in check_quizstate check_answers check_sims check_anims; do
+          for t in check_quizstate check_answers check_sims check_anims check_dock; do
             echo "::group::$t"; node "tests/$t.js"; echo "::endgroup::"
           done
 
