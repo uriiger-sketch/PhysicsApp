@@ -1,0 +1,336 @@
+# Store apps, on GitHub's machines -- no Mac and no Android Studio needed.
+#
+# On a pull request that touches the app or the game, both apps are compiled
+# (unsigned): every change to the site must still build into the store apps.
+# Run by hand (Actions → Store apps → Run workflow), it does what is ticked:
+#   - iOS: archives the app, signs it with Apple's cloud signing and uploads
+#     it to App Store Connect (it appears in TestFlight after Apple's processing);
+#   - the App Store listing: names, subtitles, descriptions, keywords,
+#     promotional texts, URLs, categories, review notes and 24 screenshots, in
+#     Hebrew and English, from mobile-app/store/ (fastlane deliver; nothing is
+#     submitted for review);
+#   - Android: the App Bundle, signed when its secrets are set, on a draft release.
+#
+# Secrets (Settings → Secrets and variables → Actions → New repository secret):
+#   iOS and the listing -- an App Store Connect API key: App Store Connect →
+#   Users and Access → Integrations → App Store Connect API → Team Keys →
+#   Generate API Key, access Admin (cloud signing needs it):
+#     APPLE_TEAM_ID   developer.apple.com → Account → Membership details → Team ID
+#     ASC_KEY_ID      the key's Key ID
+#     ASC_ISSUER_ID   the Issuer ID shown above the keys
+#     ASC_KEY_P8      the downloaded AuthKey_….p8 file, all of it (BEGIN and END lines too)
+#   Android, for a signed bundle:
+#     ANDROID_KEYSTORE_BASE64 (base64 -w0 upload-keystore.jks), ANDROID_KEYSTORE_PASSWORD,
+#     ANDROID_KEY_ALIAS, ANDROID_KEY_PASSWORD
+#
+# Hardening as in ci.yml: actions pinned to commit SHAs, no credentials left in
+# .git/config, packages from lockfiles with install scripts off, fastlane at a
+# fixed version with its usage reporting off, secrets only in the steps that
+# use them, write access only where a release is created, and nothing signed
+# or uploaded from a pull request.
+name: Store apps
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'mobile-app/**'
+      - 'physics_game_v28.html'
+      - 'physics_game_en.html'
+      - 'index.html'
+      - '.github/workflows/store-apps.yml'
+  workflow_dispatch:
+    inputs:
+      ios_upload:
+        description: 'iOS: build, sign and upload to App Store Connect (TestFlight)'
+        type: boolean
+        default: true
+      ios_listing:
+        description: 'App Store listing: texts and screenshots, Hebrew and English (no submission)'
+        type: boolean
+        default: true
+      android:
+        description: 'Android: the App Bundle on a draft release (signed when its secrets are set)'
+        type: boolean
+        default: false
+      build:
+        description: 'Build number within this game version, 0-99 (raise it to upload the same version again)'
+        default: '0'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: store-apps-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+defaults:
+  run:
+    shell: bash
+
+env:
+  APP_BUILD: ${{ inputs.build || '0' }}
+
+jobs:
+  ios:
+    name: iOS app${{ github.event_name == 'pull_request' && ' (compile check)' || ' → App Store Connect' }}
+    if: github.event_name == 'pull_request' || inputs.ios_upload
+    runs-on: macos-26
+    timeout-minutes: 60
+    steps:
+      - name: Xcode 26 or later (the App Store takes no older build)
+        run: |
+          set -euo pipefail
+          xcodebuild -version
+          [ "$(xcodebuild -version | sed -n 's/^Xcode \([0-9]*\).*/\1/p')" -ge 26 ]
+
+      - name: The four App Store Connect secrets are set
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          A: ${{ secrets.APPLE_TEAM_ID }}
+          B: ${{ secrets.ASC_KEY_ID }}
+          C: ${{ secrets.ASC_ISSUER_ID }}
+          D: ${{ secrets.ASC_KEY_P8 }}
+        run: |
+          if [ -z "$A" ] || [ -z "$B" ] || [ -z "$C" ] || [ -z "$D" ]; then
+            echo "::error::set APPLE_TEAM_ID, ASC_KEY_ID, ASC_ISSUER_ID and ASC_KEY_P8 (see the top of this file)"; exit 1
+          fi
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '22'
+
+      - name: The app's packages and its web bundle, from the pages at the root
+        working-directory: mobile-app
+        run: |
+          set -euo pipefail
+          npm ci --ignore-scripts --no-audit --no-fund
+          npm run build
+
+      # unsigned: on a clean machine an automatically signed archive asks for a
+      # development certificate that cloud signing does not provide; the export
+      # below signs the app for the App Store instead
+      - name: Archive for devices (unsigned)
+        working-directory: mobile-app/ios/App
+        run: |
+          set -euo pipefail
+          xcodebuild -project App.xcodeproj -scheme App -configuration Release \
+            -destination 'generic/platform=iOS' -archivePath "$RUNNER_TEMP/App.xcarchive" \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO archive
+          plutil -p "$RUNNER_TEMP/App.xcarchive/Products/Applications/App.app/Info.plist" \
+            | grep -E '"(CFBundleIdentifier|CFBundleShortVersionString|CFBundleVersion|CFBundleDisplayName|MinimumOSVersion)"'
+
+      - name: Sign in the cloud and upload to App Store Connect
+        if: github.event_name == 'workflow_dispatch'
+        working-directory: mobile-app/ios/App
+        env:
+          TEAM: ${{ secrets.APPLE_TEAM_ID }}
+          KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ISSUER: ${{ secrets.ASC_ISSUER_ID }}
+          KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+        run: |
+          set -euo pipefail
+          key="$RUNNER_TEMP/AuthKey_$KEY_ID.p8"
+          if printf '%s' "$KEY_P8" | grep -q 'BEGIN PRIVATE KEY'; then printf '%s\n' "$KEY_P8" > "$key"
+          else printf '%s' "$KEY_P8" | base64 --decode > "$key"; fi
+          cat > "$RUNNER_TEMP/ExportOptions.plist" <<EOF
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0"><dict>
+            <key>method</key><string>app-store-connect</string>
+            <key>destination</key><string>upload</string>
+            <key>teamID</key><string>$TEAM</string>
+            <key>signingStyle</key><string>automatic</string>
+            <key>manageAppVersionAndBuildNumber</key><false/>
+          </dict></plist>
+          EOF
+          xcodebuild -exportArchive -archivePath "$RUNNER_TEMP/App.xcarchive" \
+            -exportOptionsPlist "$RUNNER_TEMP/ExportOptions.plist" -exportPath "$RUNNER_TEMP/export" \
+            -allowProvisioningUpdates -authenticationKeyPath "$key" \
+            -authenticationKeyID "$KEY_ID" -authenticationKeyIssuerID "$ISSUER"
+          rm -f "$key"
+          echo "::notice::Uploaded. The build appears in App Store Connect → TestFlight once Apple has processed it (minutes to an hour)."
+
+  ios-listing:
+    name: App Store listing (Hebrew, English)
+    if: github.event_name == 'workflow_dispatch' && inputs.ios_listing
+    runs-on: macos-26
+    timeout-minutes: 30
+    env:
+      FASTLANE_VERSION: 2.241.1
+      FASTLANE_OPT_OUT_USAGE: 'YES'
+      FASTLANE_SKIP_UPDATE_CHECK: 'YES'
+      FASTLANE_HIDE_CHANGELOG: 'YES'
+      LANG: en_US.UTF-8
+      LC_ALL: en_US.UTF-8
+    steps:
+      - name: The App Store Connect key is set
+        env:
+          B: ${{ secrets.ASC_KEY_ID }}
+          C: ${{ secrets.ASC_ISSUER_ID }}
+          D: ${{ secrets.ASC_KEY_P8 }}
+        run: |
+          if [ -z "$B" ] || [ -z "$C" ] || [ -z "$D" ]; then
+            echo "::error::set ASC_KEY_ID, ASC_ISSUER_ID and ASC_KEY_P8 (see the top of this file)"; exit 1
+          fi
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '22'
+
+      - name: The listing, from mobile-app/store/
+        working-directory: mobile-app
+        run: node scripts/appstore-metadata.mjs
+
+      - name: fastlane ${{ env.FASTLANE_VERSION }}
+        run: |
+          set -euo pipefail
+          gem install fastlane -v "$FASTLANE_VERSION" --no-document --user-install
+          echo "$(ruby -e 'puts Gem.user_dir')/bin" >> "$GITHUB_PATH"
+
+      - name: Upload the listing (no binary, nothing submitted)
+        env:
+          KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ISSUER: ${{ secrets.ASC_ISSUER_ID }}
+          KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+        run: |
+          set -euo pipefail
+          key="$RUNNER_TEMP/key.p8"
+          if printf '%s' "$KEY_P8" | grep -q 'BEGIN PRIVATE KEY'; then printf '%s\n' "$KEY_P8" > "$key"
+          else printf '%s' "$KEY_P8" | base64 --decode > "$key"; fi
+          node -e 'const fs=require("fs");fs.writeFileSync(process.argv[1],JSON.stringify({key_id:process.env.KEY_ID,issuer_id:process.env.ISSUER,key:fs.readFileSync(process.argv[2],"utf8"),in_house:false}))' \
+            "$RUNNER_TEMP/asc_api_key.json" "$key"
+          rm -f "$key"
+          app_id=$(node -p "require('./mobile-app/capacitor.config.json').appId")
+          version=$(sed -n "s/^var APP_VERSION='\([0-9.]*\)'.*/\1/p" physics_game_v28.html)
+          fastlane "_${FASTLANE_VERSION}_" deliver \
+            --api_key_path "$RUNNER_TEMP/asc_api_key.json" \
+            --app_identifier "$app_id" --platform ios --app_version "$version" \
+            --metadata_path mobile-app/build/appstore/metadata \
+            --screenshots_path mobile-app/build/appstore/screenshots \
+            --skip_binary_upload true --overwrite_screenshots true --force true \
+            --submit_for_review false --automatic_release false --run_precheck_before_submit false
+          rm -f "$RUNNER_TEMP/asc_api_key.json"
+
+  android:
+    name: Android app (compile check)
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '22'
+
+      - name: Packages from the lockfiles (no install scripts)
+        run: |
+          set -euo pipefail
+          npm ci --ignore-scripts --no-audit --no-fund
+          npm ci --ignore-scripts --no-audit --no-fund --prefix mobile-app
+
+      - name: Chromium (for the app's checks)
+        run: |
+          set -euo pipefail
+          ./node_modules/.bin/playwright install --with-deps chromium
+          echo "CHROMIUM=$(node -p "require('playwright').chromium.executablePath()")" >> "$GITHUB_ENV"
+
+      - name: Web bundle and native projects, from the pages at the root
+        working-directory: mobile-app
+        run: npm run build
+
+      - name: The bundle works as the app runs it; the listing is complete
+        working-directory: mobile-app
+        run: |
+          set -euo pipefail
+          npm run check
+          node scripts/appstore-metadata.mjs
+
+      - name: The Gradle wrapper is Gradle's own
+        working-directory: mobile-app/android
+        run: |
+          set -euo pipefail
+          v=$(sed -n 's/^distributionUrl=.*gradle-\([0-9.]*\)-.*\.zip$/\1/p' gradle/wrapper/gradle-wrapper.properties)
+          want=$(curl -fsSL "https://services.gradle.org/distributions/gradle-$v-wrapper.jar.sha256")
+          echo "$want  gradle/wrapper/gradle-wrapper.jar" | sha256sum -c -
+
+      - name: Release bundle (unsigned)
+        working-directory: mobile-app/android
+        run: |
+          set -euo pipefail
+          export JAVA_HOME="$JAVA_HOME_21_X64"
+          ./gradlew --no-daemon bundleRelease
+          ls -l app/build/outputs/bundle/release/app-release.aab
+
+  android-release:
+    name: Android App Bundle → draft release
+    if: github.event_name == 'workflow_dispatch' && inputs.android
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    permissions:
+      contents: write   # the draft release that carries the bundle
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '22'
+
+      - name: The app's packages and its web bundle
+        working-directory: mobile-app
+        run: |
+          set -euo pipefail
+          npm ci --ignore-scripts --no-audit --no-fund
+          npm run build
+
+      - name: The Gradle wrapper is Gradle's own
+        working-directory: mobile-app/android
+        run: |
+          set -euo pipefail
+          v=$(sed -n 's/^distributionUrl=.*gradle-\([0-9.]*\)-.*\.zip$/\1/p' gradle/wrapper/gradle-wrapper.properties)
+          want=$(curl -fsSL "https://services.gradle.org/distributions/gradle-$v-wrapper.jar.sha256")
+          echo "$want  gradle/wrapper/gradle-wrapper.jar" | sha256sum -c -
+
+      - name: Release bundle (signed with the upload key when the secrets are set)
+        working-directory: mobile-app/android
+        env:
+          KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          export JAVA_HOME="$JAVA_HOME_21_X64"
+          if [ -n "$KEYSTORE_B64" ]; then
+            printf '%s' "$KEYSTORE_B64" | base64 --decode > "$RUNNER_TEMP/upload.jks"
+            export ANDROID_KEYSTORE_FILE="$RUNNER_TEMP/upload.jks"
+          else
+            echo "::warning::no ANDROID_KEYSTORE_BASE64 secret: the bundle is unsigned, and Play accepts only a signed one"
+          fi
+          ./gradlew --no-daemon bundleRelease
+          rm -f "$RUNNER_TEMP/upload.jks"
+          if [ -n "$KEYSTORE_B64" ]; then "$JAVA_HOME/bin/jarsigner" -verify app/build/outputs/bundle/release/app-release.aab | tail -1; fi
+
+      - name: Attach the bundle to a draft release (visible to the repository's writers)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          v=$(sed -n "s/^var APP_VERSION='\([0-9.]*\)'.*/\1/p" physics_game_v28.html)
+          cp mobile-app/android/app/build/outputs/bundle/release/app-release.aab "physfun-$v.$APP_BUILD.aab"
+          gh release create "app-v$v.$APP_BUILD" "physfun-$v.$APP_BUILD.aab" --draft --target "$GITHUB_SHA" \
+            --title "Physfun $v (build $APP_BUILD)" \
+            --notes "Android App Bundle for Google Play, built from $GITHUB_SHA. Upload it in Play Console; delete this draft afterwards."
