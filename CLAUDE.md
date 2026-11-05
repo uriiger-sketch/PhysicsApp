@@ -30,6 +30,11 @@ Every change to the app is made in both languages and in both places:
 
    See `mobile-app/README.md`.
 
+Pull requests that touch the app or the game also run the *Store apps*
+workflow (`.github/workflows/store-apps.yml`): both store apps compiled on
+GitHub's machines. Run by hand, it uploads the iOS build and the App Store
+listing (`mobile-app/README.md`).
+
 Before pushing, run the checks of `.github/workflows/ci.yml` (fast tier, the
 security invariants on both editions, the i18n guards and `check_i18n en`) and,
 for the app, `cd mobile-app && npm run check`.

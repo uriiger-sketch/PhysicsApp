@@ -30,8 +30,10 @@ const SHOTS = [
 
 // w x h logical px at dpr = the store's pixel size; cap = headline band; m = side margin
 const DEVICES = [
-  { id: 'iphone-6.9', store: 'app-store', w: 440, h: 956, dpr: 3, cap: 190, m: 28, r: 26, h1: 30, sub: 16 },     // 1320 x 2868
-  { id: 'ipad-13', store: 'app-store', w: 1032, h: 1376, dpr: 2, cap: 220, m: 56, r: 30, h1: 46, sub: 22 },      // 2064 x 2752
+  // App Store: the sizes App Store Connect takes in its required 6.9-inch and
+  // 13-inch slots that every version of the upload tools knows (6.7"/12.9" pixels)
+  { id: 'iphone-6.9', store: 'app-store', w: 430, h: 932, dpr: 3, cap: 190, m: 28, r: 26, h1: 30, sub: 16 },     // 1290 x 2796
+  { id: 'ipad-13', store: 'app-store', w: 1024, h: 1366, dpr: 2, cap: 220, m: 56, r: 30, h1: 46, sub: 22 },      // 2048 x 2732
   { id: 'phone', store: 'google-play', w: 432, h: 768, dpr: 2.5, cap: 150, m: 24, r: 24, h1: 26, sub: 14 },      // 1080 x 1920
   { id: 'tablet-10', store: 'google-play', w: 900, h: 1600, dpr: 1.6, cap: 210, m: 48, r: 30, h1: 42, sub: 20 }, // 1440 x 2560
 ];
@@ -62,7 +64,9 @@ p{margin:${Math.round(d.h1 * 0.38)}px 0 0;font:600 ${d.sub}px/1.35 Heebo,sans-se
 
 const browser = await launch();
 const errors = [], away = [], written = [];
-for (const d of DEVICES) {
+// --only app-store | google-play: one store's sets
+const only = (process.argv.find((a) => a.startsWith('--only=')) || '').slice(7) || (process.argv.includes('--only') ? process.argv[process.argv.indexOf('--only') + 1] : '');
+for (const d of DEVICES.filter((x) => !only || x.store === only)) {
   const cw = d.w - 2 * d.m, ch = d.h - d.cap - d.m;
   for (const lang of ['he', 'en']) {
     const app = await browser.newContext({ viewport: { width: cw, height: ch }, deviceScaleFactor: d.dpr, hasTouch: true, isMobile: d.w < 600 });
