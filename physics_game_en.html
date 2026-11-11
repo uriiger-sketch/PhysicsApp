@@ -1309,6 +1309,36 @@ html.sim-dock-side .range-wrap .range-val{flex:0 0 auto;white-space:nowrap;}
   font:600 .78rem 'Heebo',sans-serif;padding:7px 14px;cursor:pointer;}
 .reset-btn:hover{color:var(--t-err);border-color:var(--red);}
 @media (pointer:coarse){.reset-btn{min-height:44px;}}
+
+/* SEARCH: one field at the head of the topic list, over every subject. It
+   stays in view while the list scrolls, in the sidebar and in the phone's
+   drawer alike. */
+.topic-search{position:sticky;top:0;z-index:2;display:flex;align-items:center;padding:8px 12px 6px;background:var(--panel);}
+.ts-inp{flex:1;min-width:0;padding:8px 12px;padding-inline-end:34px;background:var(--panel2);border:1.5px solid var(--border);border-radius:9px;color:var(--text);font-family:'AppSym','Heebo',sans-serif;font-size:.86rem;outline:none;transition:border-color .18s;}
+.ts-inp::placeholder{color:var(--muted);opacity:1;}
+.ts-inp:focus{border-color:var(--accent);}
+.ts-inp:focus-visible{outline:2px solid var(--accent2);outline-offset:1px;}
+.ts-clear{position:absolute;inset-inline-end:16px;top:50%;transform:translateY(-50%);width:28px;height:28px;display:inline-flex;align-items:center;justify-content:center;background:none;border:none;border-radius:6px;color:var(--muted);cursor:pointer;font-size:.9rem;}
+.ts-clear[hidden],.search-results[hidden],.sb-list[hidden]{display:none;}
+.ts-clear:hover{color:var(--text);background:rgba(255,255,255,.08);}
+.search-results{padding:0 0 16px;}
+.sr-group{padding:12px 14px 4px;font-size:.68rem;font-weight:800;color:var(--muted);letter-spacing:1.2px;}
+.sr-hit{align-items:flex-start;padding-block:8px;line-height:1.4;}
+.sr-hit .sec-dot{margin-top:.5em;}
+.sr-ic{flex-shrink:0;font-size:.82rem;line-height:1.5;}
+.sr-main{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1;}
+.sr-t{color:var(--text);overflow-wrap:anywhere;}
+.sr-sub{font-size:.72rem;font-weight:400;color:var(--muted);line-height:1.5;overflow-wrap:anywhere;}
+.sr-f{color:var(--text);font-size:.9rem;overflow-wrap:anywhere;}
+.search-results mark{background:rgba(245,158,11,.3);color:inherit;border-radius:3px;}
+.sr-none,.sr-more{padding:10px 14px;color:var(--muted);font-size:.8rem;line-height:1.6;}
+.sr-more{padding-top:2px;font-size:.72rem;}
+/* the definition or formula a search result led to */
+.sr-flash{animation:srFlash 1.8s ease-out 1;}
+@keyframes srFlash{0%,35%{box-shadow:0 0 0 3px var(--gold);}100%{box-shadow:0 0 0 3px transparent;}}
+@media (prefers-reduced-motion:reduce){.sr-flash{animation:none;outline:2px solid var(--gold);}}
+/* a finger's target, and 16px so that iOS does not zoom the page on focus */
+@media (pointer:coarse){.ts-inp{min-height:44px;font-size:16px;}.ts-clear{width:40px;height:40px;inset-inline-end:12px;}}
 /* a wide monitor: the reading column sits in the middle of the free space
    instead of hugging the topic list with a blank half-screen beside it */
 @media (min-width:1500px){ .main{margin-inline:auto;} }
@@ -37129,7 +37159,7 @@ function buildSidebar(){
     <span><i style="border-color:var(--gold);background:var(--gold)"></i>Opened</span>
     <span><i style="border-color:var(--green);background:var(--green)"></i>Problem solved</span>
   </div>`;
-  return `${subjectTabs+legend+getChapters().map(function(ch){
+  const chapters=getChapters().map(function(ch){
     return `<div class="sidebar-chapter">${ch.icon} ${ch.title}</div>`+
     ch.sections.map(function(sec){
       // red never opened · amber opened · green the guided problem is solved
@@ -37144,7 +37174,11 @@ function buildSidebar(){
       return `<button class="sec-btn${active?' active':''}" onclick="navigate('${ch.id}','${sec.id}')"${hasLab?` title="This section has a sensor lab — an experiment with your phone’s sensors"`:''}>
         <span class="sec-dot ${dotCls}" title="${dotTitle}"></span>${sec.title}${hasLab?'<span class="sec-lab">📱</span>':''}</button>`;
     }).join('');
-  }).join('')}<div class="sidebar-foot"><button class="reset-btn" onclick="resetAllProgress()">↺ Reset progress</button></div>`;
+  }).join('');
+  // starting over has to be possible without clearing the browser's data
+  const foot=`<div class="sidebar-foot"><button class="reset-btn" onclick="resetAllProgress()">↺ Reset progress</button></div>`;
+  // sb-list is what the search results stand in for while a search is on
+  return subjectTabs+_searchBox()+'<div class="sb-list"'+(_searchQ?' hidden':'')+'>'+legend+chapters+foot+'</div>';
 }
 
 function buildMain(ch,sec,content){
@@ -39697,6 +39731,262 @@ window.navigate=(c,s)=>{
   _toTop(true);
 };
 
+// ══════════════════════════════════════════════════════════════════
+// SEARCH -- one field over every topic, term and formula of the course
+// ══════════════════════════════════════════════════════════════════
+// 107 topics in five subjects are more than a list shows at a glance. The
+// field at the head of the topic list finds a topic by its name, a term by
+// its definition, a formula by what it gives or by its letters ("f=ma"), and
+// any word of the theory pages -- in all five subjects at once, in the
+// page's own language. The index is built from the page itself the first
+// time the field is used; nothing is sent anywhere and nothing is stored.
+// What is typed reaches the page only escaped (_escHtml).
+var _searchQ='',_searchIx=null,_searchSay=0;
+var _S_SUBJ=[['mechanics',`Mechanics`],['optics',`Optics`],['electro',`Electricity`],['circuits',`Circuits`],['magnetism',`Magnetism`]];
+var _S_SUP={'⁰':'0','¹':'1','²':'2','³':'3','⁴':'4','⁵':'5','⁶':'6','⁷':'7','⁸':'8','⁹':'9'};
+// Folded for matching, character for character -- so a match found in the
+// folded text sits at the same place in the text that is shown: letter case,
+// the Hebrew final letters ("אורך" finds "אורכי"), sub- and superscript
+// digits ("v0" finds v₀), and punctuation, the maqaf and hyphens as spaces.
+function _sFold(x){
+  return String(x==null?'':x).toLowerCase().replace(/[ךםןףץ₀-₉⁰¹²³⁴-⁹\s ־‐-―\-_.,;:!?()\[\]{}"'״׳“”‘’`]/g,function(c){
+    var k=c.charCodeAt(0);
+    // a final letter is the code point just before its ordinary form
+    if(k===0x5DA||k===0x5DD||k===0x5DF||k===0x5E3||k===0x5E5)return String.fromCharCode(k+1);
+    if(_S_SUP[c])return _S_SUP[c];
+    if(k>=0x2080&&k<=0x2089)return String(k-0x2080);
+    return ' ';});
+}
+// a formula's letters with nothing between them: "F = ma", "f=ma", "F=m·a" are one
+function _sFoldF(x){return _sFold(x).replace(/[\s·⋅×*^−]/g,'');}
+function _sPlain(node){return (node.textContent||'').replace(/\s+/g,' ').trim();}
+function _searchIndex(){
+  if(_searchIx)return _searchIx;
+  var ix={sec:[],def:[],frm:[],txt:[]};
+  var L={mechanics:MECH_CHAPTERS,optics:OPTICS_CHAPTERS,electro:ELECTRO_CHAPTERS,circuits:DC_CHAPTERS,magnetism:MAG_CHAPTERS};
+  // inert: a template runs no script and loads nothing
+  var tpl=function(html){var d=document.createElement('template');
+    // a space where a block ends, so two paragraphs' words do not run together
+    d.innerHTML=String(html==null?'':html).replace(/<\/(?:p|div|li|h[1-6]|td|th|tr|summary|details|ul|ol|table)>|<br\s*\/?>/gi,'$& ');
+    var x=d.content.querySelectorAll('.katex-mathml,annotation,script,style,canvas,button,.param-tip,.unit-badge,.anim-ctrl');
+    for(var i=0;i<x.length;i++)x[i].remove();
+    return d.content;};
+  _S_SUBJ.forEach(function(sj){(L[sj[0]]||[]).forEach(function(ch){
+    var chT=_sPlain(tpl(ch.title));
+    ch.sections.forEach(function(se){
+      var c=CONTENT[ch.id+'.'+se.id];if(!c)return;
+      var title=_sPlain(tpl(se.title)),sub=_sPlain(tpl(se.sub));
+      var at={subj:sj[0],c:ch.id,s:se.id,title:title,ch:chT};
+      ix.sec.push({at:at,fT:_sFold(title),fS:_sFold(sub),fC:_sFold(chT)});
+      // the page as it is shown: the theory, then its "going further" card
+      var en=c.theory&&c.theory.enrich;
+      var th=tpl(String((c.theory&&c.theory.html)||'')+(en?' <div>'+en.title+'</div> '+en.html:'')),i;
+      var defs=th.querySelectorAll('.def-block');
+      for(i=0;i<defs.length;i++){
+        var dt=defs[i].querySelector('.def-title');if(!dt)continue;
+        var name=_sPlain(dt),p=defs[i].querySelector('p');
+        if(name)ix.def.push({at:at,i:i,name:name,body:p?_sPlain(p):'',fN:_sFold(name)});
+      }
+      var fbs=th.querySelectorAll('.formula-box');
+      for(i=0;i<fbs.length;i++){
+        var nm=fbs[i].querySelector('.formula-name'),fe=fbs[i].firstElementChild;
+        if(!nm||!fe||fe===nm)continue;
+        ix.frm.push({at:at,i:i,name:_sPlain(nm),html:fe.outerHTML,fN:_sFold(_sPlain(nm)),fF:_sFoldF(_sPlain(fe))});
+      }
+      var text=_sPlain(th);
+      ix.txt.push({at:at,text:text,fX:_sFold(text)});
+    });
+  });});
+  return (_searchIx=ix);
+}
+// Every word of the query must be found. Topics come first -- by title, then
+// by subtitle, then every topic of a chapter that was named -- then terms by
+// their names, formulas by name or by letters, and last the topics whose
+// theory mentions the words and that are not listed already.
+function _searchFind(q){
+  // (vowel points are dropped; the maqaf, U+05BE, is among them in Unicode and
+  // must stay -- it separates two words)
+  var fq=_sFold(String(q==null?'':q).replace(/[֑-ֽֿ-ׇ]/g,'')),words=fq.split(' ').filter(Boolean);
+  if(fq.replace(/ /g,'').length<2)return null;
+  var ix=_searchIndex(),w0=words[0];
+  var all=function(h){for(var i=0;i<words.length;i++)if(h.indexOf(words[i])<0)return false;return true;};
+  var out={words:words,sec:[],def:[],frm:[],txt:[]},listed={};
+  ix.sec.forEach(function(e){
+    var r=all(e.fT)?(e.fT.indexOf(w0)===0?0:1):all(e.fT+' '+e.fS)?2:all(e.fC+' '+e.fT+' '+e.fS)?3:-1;
+    if(r<0)return;
+    out.sec.push({e:e,r:r});listed[e.at.c+'.'+e.at.s]=1;
+  });
+  ix.def.forEach(function(e){if(all(e.fN))out.def.push({e:e,r:e.fN.indexOf(w0)===0?0:1});});
+  // by its letters only when the query is written like a formula ("f=ma",
+  // "v0", "mv²") -- a word of prose must not match the inside of "sin"
+  var raw=String(q).trim(),ff=_sFoldF(raw);
+  var asF=ff.length>=2&&(/[=+\/^√∑ΣΔ²³½0-9]/.test(raw)||(!/\s/.test(raw)&&ff.length<=4&&/^[a-zα-ω]+$/i.test(ff)));
+  ix.frm.forEach(function(e){
+    var r=all(e.fN)?0:(asF&&e.fF.indexOf(ff)>=0)?1:-1;
+    if(r>=0)out.frm.push({e:e,r:r});
+  });
+  ix.txt.forEach(function(e){if(!listed[e.at.c+'.'+e.at.s]&&all(e.fX))out.txt.push({e:e,r:0});});
+  // (sort is stable: within a rank the course's own order is kept)
+  ['sec','def','frm'].forEach(function(k){out[k].sort(function(a,b){return a.r-b.r;});});
+  out.n=out.sec.length+out.def.length+out.frm.length+out.txt.length;
+  return out;
+}
+// the text, escaped, with the query's words marked
+function _sMark(text,words){
+  text=String(text==null?'':text);
+  var f=_sFold(text),r=[];
+  if(f.length!==text.length)return _escHtml(text);
+  words.forEach(function(w){var i=-1;while((i=f.indexOf(w,i+1))>=0)r.push([i,i+w.length]);});
+  if(!r.length)return _escHtml(text);
+  r.sort(function(a,b){return a[0]-b[0];});
+  var out='',p=0;
+  r.forEach(function(x){var a=Math.max(x[0],p),b=x[1];if(b<=a)return;
+    out+=_escHtml(text.slice(p,a))+'<mark>'+_escHtml(text.slice(a,b))+'</mark>';p=b;});
+  return out+_escHtml(text.slice(p));
+}
+// the words around the first match, cut at spaces
+function _sSnip(text,fold,words){
+  var i=Math.max(0,fold.indexOf(words[0])),a=Math.max(0,i-36),b=Math.min(text.length,i+96);
+  if(a>0){var sp=text.indexOf(' ',a);if(sp>=0&&sp<i)a=sp+1;}
+  if(b<text.length){var en=text.lastIndexOf(' ',b);if(en>i+words[0].length)b=en;}
+  return (a>0?'…':'')+_sMark(text.slice(a,b),words)+(b<text.length?'…':'');
+}
+function _searchHTML(q){
+  var res=_searchFind(q);
+  var tShort=`Type at least two characters.`;
+  if(!res)return '<div class="sr-none">'+tShort+'</div>';
+  if(!res.n){
+    var tNone=`No results for “${_escHtml(q)}”. Try another word, or part of a word.`;
+    return '<div class="sr-none">'+tNone+'</div>';
+  }
+  var W=res.words,subj={};_S_SUBJ.forEach(function(x){subj[x[0]]=x[1];});
+  var tTopics=`Topics`,tTerms=`Terms and definitions`,tFormulas=`Formula sheet`,tText=`In the text`;
+  var where=function(at){return subj[at.subj]+' · '+_escHtml(at.ch);};
+  var dot=function(at){var done=isCompleted(at.c,at.s,'problem'),seen=!!state.visited[at.c+'.'+at.s];
+    return '<span class="sec-dot '+(done?'done':seen?'seen':'fresh')+'"></span>';};
+  // (ids are the course's own: letters, digits and hyphens)
+  var go=function(at,kind,i){return ' onclick="_searchGo(\''+at.c+'\',\''+at.s+'\',this'+(kind?',\''+kind+'\','+i:'')+')"';};
+  var here=function(at){return state.chapter===at.c&&state.section===at.s?' active':'';};
+  var group=function(t){return '<div class="sr-group">'+t+'</div>';};
+  var cap=function(list,max,fn){
+    var more=list.length-max,tMore=`And ${more} more results — narrow the search to see them.`;
+    return list.slice(0,max).map(fn).join('')+(more>0?'<div class="sr-more">'+tMore+'</div>':'');};
+  var html='';
+  if(res.sec.length)html+=group(tTopics)+cap(res.sec,14,function(x){var e=x.e;
+    return '<button class="sec-btn sr-hit'+here(e.at)+'"'+go(e.at)+'>'+dot(e.at)+'<span class="sr-main"><span class="sr-t">'+_sMark(e.at.title,W)+'</span>'+
+      '<span class="sr-sub">'+where(e.at)+'</span></span></button>';});
+  if(res.def.length)html+=group(tTerms)+cap(res.def,8,function(x){var e=x.e,cut=e.body.lastIndexOf(' ',130);
+    var body=e.body.length>130?e.body.slice(0,cut>60?cut:130)+'…':e.body;
+    return '<button class="sec-btn sr-hit"'+go(e.at,'def',e.i)+'><span class="sr-ic" aria-hidden="true">📖</span><span class="sr-main"><span class="sr-t">'+_sMark(e.name,W)+'</span>'+
+      (body?'<span class="sr-sub">'+_escHtml(body)+'</span>':'')+'<span class="sr-sub">'+_escHtml(e.at.title)+' · '+where(e.at)+'</span></span></button>';});
+  if(res.frm.length)html+=group(tFormulas)+cap(res.frm,8,function(x){var e=x.e;
+    return '<button class="sec-btn sr-hit"'+go(e.at,'frm',e.i)+'><span class="sr-ic" aria-hidden="true">📐</span><span class="sr-main"><span class="sr-f">'+e.html+'</span>'+
+      '<span class="sr-sub">'+_sMark(e.name,W)+'</span><span class="sr-sub">'+_escHtml(e.at.title)+' · '+where(e.at)+'</span></span></button>';});
+  if(res.txt.length)html+=group(tText)+cap(res.txt,8,function(x){var e=x.e;
+    return '<button class="sec-btn sr-hit'+here(e.at)+'"'+go(e.at)+'><span class="sr-ic" aria-hidden="true">📄</span><span class="sr-main"><span class="sr-t">'+_escHtml(e.at.title)+'</span>'+
+      '<span class="sr-sub">'+_sSnip(e.text,e.fX,W)+'</span></span></button>';});
+  return html;
+}
+function _searchBox(){
+  var q=_searchQ,tPh=`Search: topic, term, or formula`,tLbl=`Search the course`,tClr=`Clear the search`,tRes=`Search results`;
+  return '<div class="topic-search" role="search">'+
+    '<input class="ts-inp" type="text" inputmode="search" enterkeyhint="search" role="searchbox" dir="auto" maxlength="60"'+
+      ' autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"'+
+      ' placeholder="'+tPh+'" aria-label="'+tLbl+'" title="'+tLbl+' (/)" value="'+_escHtml(q)+'"'+
+      ' oninput="_searchType(this)" onkeydown="_searchKey(event,this)" onfocus="_searchWarm()">'+
+    '<button class="ts-clear" onclick="_searchClear(this)" aria-label="'+tClr+'"'+(q?'':' hidden')+'>✕</button></div>'+
+    '<div class="search-results" role="region" aria-label="'+tRes+'" onkeydown="_searchNav(event)"'+(q?'':' hidden')+'>'+(q?_searchHTML(q):'')+'</div>';
+}
+function _searchRoot(el){return el&&el.closest?el.closest('#drawer-nav,#sidebar-nav'):null;}
+// the results in place of the topic list, or the list back -- without a
+// render, so the field keeps the caret while it is typed in
+function _searchShow(root){
+  if(!root)return;
+  var box=root.querySelector('.search-results'),list=root.querySelector('.sb-list'),clr=root.querySelector('.ts-clear'),q=_searchQ;
+  if(clr)clr.hidden=!q;
+  if(list)list.hidden=!!q;
+  if(!box)return;
+  box.hidden=!q;
+  box.innerHTML=q?_searchHTML(q):'';
+  if(q){if(typeof _subifyDom==='function')_subifyDom(box);fixInlineMath(box);if(typeof ensureContrast==='function')ensureContrast(box);}
+  // the list scrolls inside the sidebar, or inside the phone's drawer
+  var sc=root.id==='sidebar-nav'?root:document.getElementById('mobile-drawer');
+  if(sc&&q)sc.scrollTop=0;
+}
+window._searchWarm=function(){if(!_searchIx)setTimeout(_searchIndex,30);};
+window._searchType=function(inp){
+  _searchQ=String(inp.value||'').slice(0,60);
+  _searchShow(_searchRoot(inp));
+  // a screen reader hears how many were found, once the typing pauses
+  clearTimeout(_searchSay);
+  var q=_searchQ;
+  if(q)_searchSay=setTimeout(function(){
+    if(q!==_searchQ)return;
+    var r=_searchFind(q),n=r?r.n:0;
+    _say(n?`${n} search results`:`No search results`);
+  },800);
+};
+window._searchClear=function(el){
+  var root=_searchRoot(el),inp=root&&root.querySelector('.ts-inp');
+  _searchQ='';clearTimeout(_searchSay);
+  if(inp)inp.value='';
+  _searchShow(root);
+  if(inp)try{inp.focus({preventScroll:true});}catch(e){}
+};
+window._searchKey=function(e,inp){
+  var root=_searchRoot(inp),hits=root?root.querySelectorAll('.search-results .sr-hit'):[];
+  if(e.key==='Escape'){
+    // a first Escape empties the field; from an empty field it closes the drawer, as everywhere
+    if(_searchQ){e.preventDefault();e.stopPropagation();window._searchClear(inp);}
+  }else if(e.key==='ArrowDown'){
+    if(hits.length){e.preventDefault();hits[0].focus();}
+  }else if(e.key==='Enter'){
+    e.preventDefault();
+    // one result opens; several take the focus (and a phone's keyboard out of their way)
+    if(hits.length===1)hits[0].click();else if(hits.length)hits[0].focus();
+  }
+};
+window._searchNav=function(e){
+  if(e.key!=='ArrowDown'&&e.key!=='ArrowUp')return;
+  var box=e.currentTarget,hits=[].slice.call(box.querySelectorAll('.sr-hit')),i=hits.indexOf(document.activeElement);
+  if(i<0)return;
+  e.preventDefault();
+  if(e.key==='ArrowDown'){if(hits[i+1])hits[i+1].focus();}
+  else if(i>0)hits[i-1].focus();
+  else{var root=_searchRoot(box),inp=root&&root.querySelector('.ts-inp');if(inp)inp.focus();}
+};
+// Opens the topic a result names, in whichever subject it is, and brings the
+// definition or formula that was found into view.
+window._searchGo=function(c,s,el,kind,i){
+  var subj=_subjectOf(c);
+  if(!subj||!CONTENT[c+'.'+s])return;
+  // in the drawer the search is over once a result is taken: the next time
+  // it opens, it shows the topics. In the sidebar the results stay, for the
+  // next one to be opened from them.
+  if(el&&el.closest&&el.closest('#mobile-drawer')){_searchQ='';clearTimeout(_searchSay);}
+  var same=state.chapter===c&&state.section===s&&state.tab==='theory';
+  stopSim('sim-canvas');
+  state.subject=subj;state.chapter=c;state.section=s;state.tab='theory';
+  closeDrawer();
+  _pushNext=!same;
+  render();
+  _toTop(true);
+  if(kind)setTimeout(function(){
+    if(state.chapter!==c||state.section!==s||state.tab!=='theory')return;
+    var t=document.querySelectorAll('#main-content '+(kind==='def'?'.def-block':'.formula-box'))[i];
+    if(!t||t.offsetParent===null)return;
+    try{t.scrollIntoView({block:'center'});}catch(e){}
+    t.classList.add('sr-flash');
+    setTimeout(function(){t.classList.remove('sr-flash');},1900);
+  },220);
+};
+// "/" from anywhere on the page: the field in the sidebar, or in the drawer on a phone
+function _searchFocus(){
+  var sb=document.getElementById('sidebar-nav'),inp=sb&&sb.offsetParent!==null?sb.querySelector('.ts-inp'):null;
+  if(!inp){openDrawer();var dn=document.getElementById('drawer-nav');inp=dn&&dn.querySelector('.ts-inp');}
+  if(inp)try{inp.focus();inp.select();}catch(e){}
+}
+
 // ── Mobile Drawer ──────────────────────────────────────────────
 function ensureDrawer(){
   if(document.getElementById('mobile-drawer')) return;
@@ -39714,7 +40004,10 @@ function ensureDrawer(){
 }
 function refreshDrawerNav(){
   var nav=document.getElementById('drawer-nav');
-  if(nav){ nav.innerHTML=buildSidebar(); _fitTabs(nav); }
+  if(nav){ nav.innerHTML=buildSidebar(); _fitTabs(nav);
+    // (search results shown in the drawer: subscripts and maths direction)
+    var sr=nav.querySelector('.search-results');
+    if(sr&&_searchQ){if(typeof _subifyDom==='function')_subifyDom(sr);fixInlineMath(sr);} }
   // the drawer lives outside #app, so the render-time contrast pass misses it
   var dr=document.getElementById('mobile-drawer');
   if(dr&&typeof ensureContrast==='function')ensureContrast(dr);
@@ -40613,6 +40906,8 @@ document.addEventListener('keydown',function(e){
     }
     // Escape → close panels
     case 'Escape': closeDrawer(); closeFormulaPanel(); closeChangelog(); break;
+    // "/" → the search field
+    case '/': e.preventDefault();_searchFocus(); break;
     // Shift+F → formula panel
     case 'F': if(e.shiftKey){e.preventDefault();openFormulaPanel();} break;
     // Shift+D → toggle theme
