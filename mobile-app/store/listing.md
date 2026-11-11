@@ -72,7 +72,10 @@ here (see CLAUDE.md at the repository root).
 מעבדת החיישנים הופכת את הטלפון למכשיר מדידה: מודדים את זמן המחזור של מטוטלת, מוצאים את הזווית שבה הטלפון מתחיל להחליק, רואים את המשקל המדומה משתנה במעלית, תופסים את חוסר המשקל בזריקה ומוצאים את מרכז המסה של הטלפון עצמו.
 
 ועוד
-• דף נוסחאות במרחק נגיעה אחת
+• חזרה מעורבת: שאלות מכל הנושאים שסיימתם, בסדר מעורב — קודם אלה שטעיתם בהן
+• חיפוש של נושא, מושג או נוסחה בכל הקורס
+• בבעיה המודרכת, תשובה שגויה מקבלת אבחנה: סימן, חזקה של 10, גורם 2
+• דף נוסחאות במרחק נגיעה אחת, עם קבועים, קידומות ויחידות
 • XP והתקדמות בכל הנושאים, שנשמרים במכשיר
 • עברית ואנגלית — מחליפים בכל רגע, וההתקדמות עוברת איתכם
 • ערכת צבעים כהה ובהירה
@@ -137,7 +140,10 @@ MEASURE WITH YOUR PHONE
 The sensor lab turns the phone into a lab instrument: time a pendulum, find the angle at which the phone starts to slide, watch its apparent weight change in an elevator, catch the weightlessness of a toss, and find the phone's own center of mass.
 
 ALSO
-• A formula sheet one tap away
+• Mixed review: questions from every topic you have finished, in mixed order, the ones you got wrong first
+• Search for a topic, a term or a formula across the whole course
+• In a guided problem, a wrong number gets a diagnosis: sign, power of ten, factor of 2
+• A formula sheet one tap away, with constants, prefixes and units
 • XP and progress across every subject, saved on your device
 • English and Hebrew: switch at any time, and your progress comes with you
 • Dark and light themes
