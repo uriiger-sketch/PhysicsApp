@@ -39953,6 +39953,44 @@ function _stepSolved(ps,si,content){
   else render();
   _say('✅ '+_ltSafe(content.problem.steps[si].explain||'')+(ps.done?` — problem solved!`:''));
 }
+// A wrong number often carries the signature of the slip that produced it: the
+// right digits with the opposite sign, a thousand times too large, exactly
+// double, the square of the answer, or just outside the accuracy asked for.
+// Naming the slip -- when the number leaves no doubt -- teaches more than "try
+// again"; it is what a teacher writes in the margin. A miss that fits two
+// signatures at once (4 for an answer of 2: doubled, or squared?) gets no
+// diagnosis: a wrong one would send the learner looking in the wrong place.
+// `band` is the width the correct answer is accepted in, so "the right digits"
+// means exactly what it means for a correct answer.
+function _missWhy(cands,ans,band,hasUnit){
+  if(!ans||!isFinite(ans)||!(band>0))return '';
+  var hit={},n=0,exp=0,up=false,near=false;
+  var ok=function(x){return Math.abs(x-ans)<=band;};
+  var mark=function(k){if(!hit[k]){hit[k]=1;n++;}};
+  cands.forEach(function(num){
+    if(!num||!isFinite(num))return;
+    if(ok(-num)){mark('sign');return;}
+    var k=Math.round(Math.log10(Math.abs(num/ans)));
+    if(k&&Math.abs(k)<=15&&ok(num/Math.pow(10,k))){mark('pow');exp=Math.abs(k);up=k>0;}
+    if(ok(num/2)||ok(num*2))mark('two');
+    if(ans>0&&num>0&&ok(Math.sqrt(num)))mark('sq');
+    if(Math.abs(num-ans)<=Math.abs(ans)*0.1)near=true;
+  });
+  // close to the answer is the safest thing to say, and it is always true
+  if(near)return `Very close, but outside the required accuracy. You may have rounded too early, or used a value other than the one the problem gives (g, π, sin…). Round only at the end.`;
+  if(n!==1)return '';
+  if(hit.sign)return `The magnitude is right, but the sign is reversed. Check which direction is taken as positive and what the question asks for.`;
+  if(hit.pow){
+    var times=exp<=4?String(Math.pow(10,exp)):'10'+String(exp).split('').map(function(d){return '⁰¹²³⁴⁵⁶⁷⁸⁹'.charAt(+d);}).join('');
+    var head=up?`The digits are right, but the answer is ${times} times too large. Check unit conversions and powers of 10.`
+               :`The digits are right, but the answer is ${times} times too small. Check unit conversions and powers of 10.`;
+    var tail=hasUnit?`The required unit is shown beside the field.`:'';
+    return tail?head+' '+tail:head;
+  }
+  if(hit.two)return `A factor of 2 seems to be missing or extra. Check formulas with a ½ or a 2, radius versus diameter, and round-trip distances or times.`;
+  if(hit.sq)return `Your number is the square of the answer: a square root seems to be left to take (for example, from v² to v).`;
+  return '';
+}
 window.chkStep=(si)=>{
   const ps=getPS(state.chapter,state.section);
   const content=CONTENT[`${state.chapter}.${state.section}`];
@@ -39971,7 +40009,7 @@ window.chkStep=(si)=>{
   // of modern optics — and none of them could be answered correctly.
   const ans=parseFloat(step.answer);
   const tol=step.tolerance||0;
-  let ok;
+  let ok,why='';
   if(isNaN(ans))ok=inp.toLowerCase().includes(String(step.answer).toLowerCase());
   else{
     const cands=_numCands(inp);
@@ -39984,6 +40022,7 @@ window.chkStep=(si)=>{
     const sf2=ans?0.5*Math.pow(10,Math.floor(Math.log10(Math.abs(ans)))-1):0;
     const band=Math.max(tol,Math.abs(ans)*.04,sf2)*(1+1e-9);
     ok=cands.some(function(num){return Math.abs(num-ans)<=band;});
+    if(!ok)why=_missWhy(cands,ans,band,!!step.unit);
   }
   if(ok)_stepSolved(ps,si,content);
   else{
@@ -39998,7 +40037,7 @@ window.chkStep=(si)=>{
     // the third miss opens the hint and the worked solution above the field
     // (it used to repeat the hint here as well)
     if(a>=3){ps.feedback[si]=`❌ Not quite (attempt ${a}). ${step.nudge?`Both hints are now open`:`The hint is now open`} above the answer box — go over ${step.nudge?`them`:`it`} and try again.`;ps.hints[si]=2;}
-    else ps.feedback[si]=`❌ Not quite (attempt ${a}/3). Try again.`;
+    else ps.feedback[si]=why?`❌ Not quite (attempt ${a}/3). ${why}`:`❌ Not quite (attempt ${a}/3). Try again.`;
     render();_say(ps.feedback[si]);}
 };
 window.resetProblem=()=>{state.problemState[`${state.chapter}.${state.section}`]={idx:0,inputs:[],solved:[],hints:[],feedback:[],done:false,attempts:[]};render();};
