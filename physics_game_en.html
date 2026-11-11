@@ -1333,6 +1333,29 @@ html.sim-dock-side .range-wrap .range-val{flex:0 0 auto;white-space:nowrap;}
 .search-results mark{background:rgba(245,158,11,.3);color:inherit;border-radius:3px;}
 .sr-none,.sr-more{padding:10px 14px;color:var(--muted);font-size:.8rem;line-height:1.6;}
 .sr-more{padding-top:2px;font-size:.72rem;}
+/* MIXED REVIEW: its entry in the topic list, and the dialog it opens */
+.rv-entry{padding:6px 12px 2px;}
+.rv-btn{width:100%;display:flex;align-items:center;justify-content:center;gap:8px;padding:9px 12px;background:rgba(99,102,241,.12);border:1px solid rgba(99,102,241,.35);border-radius:9px;color:var(--t-active);font-family:'AppSym','Heebo',sans-serif;font-size:.86rem;font-weight:700;cursor:pointer;transition:background .15s;}
+.rv-btn:hover{background:rgba(99,102,241,.22);}
+.rv-badge{min-width:20px;padding:1px 6px;border-radius:10px;background:#b91c1c;color:#fff;font-size:.7rem;font-weight:800;line-height:1.5;}
+.rv-overlay{position:fixed;inset:0;z-index:9000;display:none;align-items:flex-start;justify-content:center;background:rgba(2,6,14,.74);overflow-y:auto;padding:24px 12px;}
+.rv-overlay.open{display:flex;}
+.rv-card{width:min(680px,100%);margin:auto 0;background:var(--panel);border:1px solid var(--border);border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,.5);}
+.rv-hdr{display:flex;align-items:center;gap:10px;padding:14px 18px;border-bottom:1px solid var(--border);}
+.rv-hdr h3{margin:0;font-size:1.05rem;color:var(--text);}
+.rv-count{margin-inline-start:auto;font-size:.78rem;font-weight:700;color:var(--muted);}
+.rv-body{padding:18px 18px 20px;}
+.rv-body .quiz-q:focus{outline:none;}
+.rv-body .done-banner,.rv-body .locked-sec{margin:0;}
+.rv-formula{margin-top:8px;padding:6px 10px;background:var(--chip);border-radius:6px;text-align:start;font-family:'Cambria Math','Times New Roman',serif;color:var(--accent);font-size:1rem;}
+.rv-from{margin-top:10px;font-size:.8rem;color:var(--muted);line-height:1.6;}
+.rv-link{background:none;border:0;padding:0;color:var(--accent2);font:inherit;font-weight:700;cursor:pointer;text-decoration:underline;text-align:start;}
+.rv-weak{display:flex;flex-direction:column;gap:6px;margin:12px auto 4px;max-width:420px;}
+.rv-weak .sec-btn{border:1px solid var(--border);background:var(--panel);}
+.rv-body .done-banner p.rv-xp{font-weight:800;color:var(--gold);margin:10px 0 0;}
+.rv-actions{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:14px;}
+@media (pointer:coarse){.rv-btn{min-height:44px;}.rv-link{display:inline-block;padding:6px 0;}}
+@media (max-width:520px){.rv-overlay{padding:0;}.rv-card{min-height:100%;border:0;border-radius:0;}}
 /* the definition or formula a search result led to */
 .sr-flash{animation:srFlash 1.8s ease-out 1;}
 @keyframes srFlash{0%,35%{box-shadow:0 0 0 3px var(--gold);}100%{box-shadow:0 0 0 3px transparent;}}
@@ -3080,6 +3103,8 @@ function _cleanSave(saved){
     if(Array.isArray(q.ids))o.ids=arr(q.ids,64,function(s){return typeof s==='string'&&s.length<=64?s:'';});
     if(isObj(q.hints))o.hints=dict(q.hints,/^\d{1,2}$/,yes);
     if(q.legacy===true)o.legacy=true;
+    // the mixed review's mark for each question: 1 right, 0 wrong, the last time it was asked there
+    if(Array.isArray(q.rv))o.rv=arr(q.rv,64,function(v){return v===1||v===0?v:null;});
     return o;});
   r.problemState=dict(saved.problemState,SEC,function(p){if(!isObj(p))return undefined;
     var text=function(s){return typeof s==='string'?s.slice(0,256):'';};
@@ -3436,7 +3461,7 @@ const CONTENT={
     {q:`A car drives out at ${tex('60\\,\\text{km/h}')} and returns along the same route at ${tex('30\\,\\text{km/h}')}. What is its average speed for the whole trip?`,
      opts:[tex('45\\,\\text{km/h}'),tex('40\\,\\text{km/h}'),tex('50\\,\\text{km/h}'),tex('90\\,\\text{km/h}')],correct:1,
      explain:`Not 45. Average speed is <b>distance divided by time</b>: ${tex('t=\\tfrac{d}{60}+\\tfrac{d}{30}=\\tfrac{3d}{60}')}, so ${tex('\\bar v=\\tfrac{2d}{3d/60}=40\\,\\text{km/h}')}. The slow leg lasts twice as long and pulls the average down; a simple average works only when the times are equal.`},
-    {q:`And for the same round trip — what is the average <b>velocity</b>?`,
+    {seq:1,q:`And for the same round trip — what is the average <b>velocity</b>?`,
      opts:[tex('40\\,\\text{km/h}'),tex('45\\,\\text{km/h}'),`Zero`,tex('15\\,\\text{km/h}')],correct:2,
      explain:`Zero: average velocity is Δx/Δt, and the car has returned to its starting point. This is the difference between the two “averages” — one divides the <b>distance</b> by the time (40 km/h), the other the <b>displacement</b> (zero). Both are correct; they measure different things.`},
     {q:`An object starts at ${tex('x_0=0')} and reaches ${tex('x=12\\,\\text{m}')} at ${tex('t=3\\,\\text{s}')}. What is its velocity?`,
@@ -3668,7 +3693,7 @@ const CONTENT={
     {q:`A ball is thrown upward at ${tex('v_0=20\\,\\text{m/s}')}. Taking ${tex('g=10\\,\\text{m/s}^2')}, what is its maximum height?`,
      opts:[tex('10\\,\\text{m}'),tex('20\\,\\text{m}'),tex('40\\,\\text{m}'),tex('200\\,\\text{m}')],correct:1,
      explain:`${tex('v^2=v_0^2-2gh')} with ${tex('v=0')} at the top gives ${tex('h=v_0^2/2g=400/20=20\\,\\text{m}')}. Note the quadratic dependence: a throw at twice the speed goes <b>four</b> times as high, not twice as high.`},
-    {q:`The same ball: how does the time going up compare with the time coming down (neglecting air resistance)?`,
+    {seq:1,q:`The same ball: how does the time going up compare with the time coming down (neglecting air resistance)?`,
      opts:[`The way up takes longer`,`The way down takes longer`,`They are exactly equal`,`It depends on the mass`],correct:2,
      explain:`Equal. The same g acts on the way up and on the way down, so the descent is the ascent “played backward”: t=v₀/g for both, and the ball returns with speed v₀ in the opposite direction. With air resistance the symmetry breaks and the descent takes longer.`},
     {q:`A feather and a stone are released together in a vacuum chamber. What will happen?`,
@@ -4298,7 +4323,7 @@ const CONTENT={
     {q:`The normal force always points:`,
      opts:[`Vertically upward`,`Opposite to the direction of motion`,`Perpendicular to the surface, outward`,`Parallel to the surface, up the slope`],correct:2,
      explain:`“Normal” means perpendicular — perpendicular <b>to the surface</b>, and pointing away from it. Only on a horizontal surface does it also happen to be vertical. On an incline it tilts along with the incline, and on a vertical wall it is completely horizontal.`},
-    {q:`A book lies on a table. You press down on it with your hand with a force of ${tex('20\\,\\text{N}')}. What happens to N?`,
+    {seq:1,q:`A book lies on a table. You press down on it with your hand with a force of ${tex('20\\,\\text{N}')}. What happens to N?`,
      opts:[`Stays ${tex('mg')}`,`Increases by ${tex('20\\,\\text{N}')}`,`Decreases by ${tex('20\\,\\text{N}')}`,`Becomes zero`],correct:1,
      explain:`The book is still not accelerating, so ${tex('\\Sigma F_y=0')} requires ${tex('N=mg+20')}. The normal force is not “the weight” — it is whatever the surface must supply to keep the object from sinking into it, and that changes with what you do to the object. This is also a useful demonstration for the next question.`},
     {q:`An elevator is going down and slowing (the acceleration is upward, ${tex('a=2\\,\\text{m/s}^2')}). A ${tex('60\\,\\text{kg}')} person stands in it. Taking ${tex('g=10')}, what does the scale read?`,
@@ -4368,7 +4393,7 @@ const CONTENT={
     {q:`A bullet is fired from a gun. The gun:`,
      opts:[`Stands still`,`Is pushed forward`,`Recoils backward`,`Spins`],correct:2,
      explain:`The force the gun exerts forward on the bullet is exactly equal to the force the bullet exerts backward on the gun. Their momenta are also equal and opposite, so the product of mass and speed is the same for both — and the gun, being much heavier, recoils much more slowly.`},
-    {q:`A truck hits a mosquito. Which exerts the larger force?`,
+    {seq:1,q:`A truck hits a mosquito. Which exerts the larger force?`,
      opts:[`The truck — it is much heavier`,`The mosquito`,`Both — the forces are exactly equal`,`It depends on how fast the truck is going`],correct:2,
      explain:`Exactly equal, always, regardless of the masses or the speed — that is the entire content of the third law. The opposite intuition is very strong, because what we see is not the force but its <b>effect</b>. The next question deals with this.`},
     {q:`If the forces are equal, why does the truck barely slow down while the mosquito is crushed?`,
@@ -4595,7 +4620,7 @@ const CONTENT={
     {q:`Two forces of magnitudes ${tex('3\\,\\text{N}')} and ${tex('4\\,\\text{N}')} act on an object. What values can ${tex('|\\Sigma F|')} take?`,
      opts:[`Only ${tex('7\\,\\text{N}')} or ${tex('1\\,\\text{N}')}`,`Any value between ${tex('5')} and ${tex('7\\,\\text{N}')}`,`Any value between ${tex('1')} and ${tex('7\\,\\text{N}')}`,`Any value between ${tex('0')} and ${tex('7\\,\\text{N}')}`],correct:2,
      explain:`This is exactly why force is a vector and not a number. In the same direction: ${tex('3+4=7')}. In opposite directions: ${tex('4-3=1')}. At right angles: ${tex('\\sqrt{3^2+4^2}=5')} — somewhere in between, not the minimum. Any angle gives a value between 1 and 7, and zero is possible only for two forces of <b>equal</b> magnitude.`},
-    {q:`What kind of quantity is force?`,opts:[`Scalar`,`Vector`,`Dimensional`,`Unitless`],correct:1,
+    {seq:1,q:`What kind of quantity is force?`,opts:[`Scalar`,`Vector`,`Dimensional`,`Unitless`],correct:1,
      explain:`Vector — so “adding forces” is not adding numbers. Two forces of ${tex('5\\,\\text{N}')} can give a net force of 10, of 0, or of any value in between — depending only on the angle. The previous question is a numerical demonstration of exactly this.`},
     {q:`In the FBD of a particular object, which forces do you draw?`,
      opts:[`All the forces in the system`,`Only the forces the object exerts on others`,`Only the forces acting <b>on</b> the object`,`Forces and accelerations together`],correct:2,
@@ -4747,7 +4772,7 @@ const CONTENT={
     {q:`Two blocks, ${tex('2\\,\\text{kg}')} and ${tex('8\\,\\text{kg}')}, slide down the same frictionless incline. Which reaches the bottom first?`,
      opts:[`The heavier one`,`The lighter one`,`Both at the same time`,`It depends on the angle`],correct:2,
      explain:`${tex('a=g\\sin\\theta')} — the mass cancels out, just as in free fall. This remains true with friction too: ${tex('a=g(\\sin\\theta-\\mu\\cos\\theta)')} — still without ${tex('m')}. The mass appears in the forces themselves, but cancels out of the acceleration.`},
-    {q:`An object slides down an incline with friction. What is its acceleration?`,
+    {seq:1,q:`An object slides down an incline with friction. What is its acceleration?`,
      opts:[tex('g\\sin\\theta'),tex('g(\\sin\\theta-\\mu\\cos\\theta)'),tex('g(\\sin\\theta+\\mu\\cos\\theta)'),tex('\\mu g\\cos\\theta')],correct:1,
      explain:`Along the incline, ${tex('mg\\sin\\theta')} pulls down and ${tex('f_k=\\mu N=\\mu mg\\cos\\theta')} opposes it, so ${tex('a=g(\\sin\\theta-\\mu\\cos\\theta)')}. If ${tex('\\mu>\\tan\\theta')}, the expression comes out negative: an object that is already sliding <b>slows down</b> and stops. If the object is at rest, whether it starts to move is decided by ${tex('\\mu_s')} — see the next question.`},
     {q:`What is the minimum angle at which an object starts to slide down an incline on its own?`,
@@ -4818,7 +4843,7 @@ const CONTENT={
     {q:`In an Atwood machine, m₁=m₂=4 kg. What happens?`,
      opts:[`a=0 — equilibrium`,`a=g — free fall`,`a=g/2 — half of gravity`,`a=2g — two masses pulling`],correct:0,
      explain:`When m₁=m₂: a=(m₂-m₁)g/(m₁+m₂)=0 and T=mg. Equilibrium means a=0 — the system stays at rest, or keeps moving at constant velocity if it was given a push.`},
-    {q:`An Atwood machine has ${tex('m_1=2\\,\\text{kg}')} and ${tex('m_2=6\\,\\text{kg}')}. Taking ${tex('g=10')}, what is the tension?`,
+    {seq:1,q:`An Atwood machine has ${tex('m_1=2\\,\\text{kg}')} and ${tex('m_2=6\\,\\text{kg}')}. Taking ${tex('g=10')}, what is the tension?`,
      opts:[tex('30\\,\\text{N}'),tex('20\\,\\text{N}'),tex('15\\,\\text{N}'),tex('60\\,\\text{N}')],correct:0,
      explain:`${tex('T=\\frac{2m_1m_2g}{m_1+m_2}=\\frac{2\\cdot2\\cdot6\\cdot10}{8}=30\\,\\text{N}')}. A sanity check: the tension comes out between the two weights (${tex('20')} and ${tex('60\\,\\text{N}')}) — as it must, and the next question explains why.`},
     {q:`In an Atwood machine, is the tension equal to the weight of the heavier mass?`,
@@ -5199,13 +5224,13 @@ const CONTENT={
     {q:`An object with m=10 kg, initially at rest, is pulled with a force F=45 (μs=0.5, μk=0.35, g=10). What happens?`,
      opts:[`The object stays at rest`,`The object starts to move`,`The object accelerates at 1 m/s²`,`The object accelerates at 4 m/s²`],correct:0,
      explain:`${M('f_{s,\\max}=50>45')} — the object stays at rest.`},
-    {q:`The same object is now pulled with F=55. a=?`,
+    {seq:1,q:`The same object is now pulled with F=55. a=?`,
      opts:['0.5 m/s²','1.5 m/s²','2 m/s²','5.5 m/s²'],correct:2,
      explain:M('a=(55-0.35\\times100)/10=(55-35)/10=2\\,\\text{m/s}^2')},
     {q:`Why is ${tex('f_k')} smaller than ${tex('f_{s,\\max}')} for most materials?`,
      opts:[`Because ${tex('f_k')} decreases as the speed increases`,`Because at rest the surfaces have time to stick`,`Because the surface heats up and becomes slick`,`Because in motion the object presses less on the surface`],correct:1,
      explain:`At rest the surfaces have time to “settle”: the microscopic peaks press into each other and form bonds. A sliding surface “hops” over the peaks and has no time to form them, so the resistance is smaller. This is the physical reason behind ${tex('\\mu_k<\\mu_s')}.`},
-    {q:`The force is increased gradually until the object <b>just</b> starts to move. What happens to the acceleration at that moment?`,
+    {seq:1,q:`The force is increased gradually until the object <b>just</b> starts to move. What happens to the acceleration at that moment?`,
      opts:[`It increases gradually, from zero upward`,`It jumps from zero to a finite value`,`It stays zero for a while longer`,`It drops to a negative value`],correct:1,
      explain:`It jumps. Up to the threshold, fₛ=F and the acceleration is zero; the moment the object moves, friction drops to the smaller fₖ, and the difference immediately becomes a net force. For the object in the previous questions: a=(50−35)/10=1.5 m/s² all at once. This is the feeling of a piece of furniture that suddenly “breaks loose.”`},
     {q:`A crate is pushed with a force angled <b>downward</b>. Compared with a horizontal push of the same magnitude, the friction:`,
@@ -6465,7 +6490,7 @@ const OPTICS_CONTENT={
     {q:`A convex mirror always forms:`,opts:[`A real, inverted image`,`A real, upright image`,`A virtual, upright, reduced image`,`A virtual, inverted, enlarged image`],correct:2,explain:`A convex mirror (f<0) always gives an image that is virtual (dᵢ<0), upright (m>0), and reduced (m<1) — no exceptions.`},
     {q:`Why are car side mirrors convex?`,opts:[`Because they are cheaper`,`Because they give a wide field of view`,`Because they magnify`,`Because the images they form are real`],correct:1,explain:`A convex mirror spreads light out — giving a much wider field of view than a plane mirror. The drawback: objects look <b>farther away</b> than they really are — hence the warning “closer than they appear.”`},
     {q:`A convex mirror has f=−30 cm, and an object is at dₒ=90 cm. dᵢ=?`,opts:['−22.5 cm','+22.5 cm','−45 cm','+45 cm'],correct:0,explain:`1/dᵢ=1/(−30)−1/90=−3/90−1/90=−4/90 → dᵢ=−22.5 cm. Negative = virtual.`,formula:'1/f=1/dₒ+1/dᵢ'},
-    {q:`What is the magnification m in the previous question?`,opts:['−0.25','+0.25','−4','+4'],correct:1,explain:`m=−dᵢ/dₒ=−(−22.5)/90=+0.25. Positive = upright; less than 1 = reduced.`},
+    {seq:1,q:`What is the magnification m in the previous question?`,opts:['−0.25','+0.25','−4','+4'],correct:1,explain:`m=−dᵢ/dₒ=−(−22.5)/90=+0.25. Positive = upright; less than 1 = reduced.`},
     {q:`Car side mirrors carry the warning “Objects in mirror are closer than they appear.” Why?`,
      opts:[`The mirror is flat but mounted at an angle that distorts distances`,`The mirror is convex and shrinks things, and the brain reads a small object as distant`,`The mirror is concave and magnifies, and the brain reads a large object as close`,`The mirror is tinted, and the brain reads a dark object as distant`],correct:1,
      explain:`A convex mirror gives ${tex('m<1')} — a reduced image. The brain uses apparent size to judge distance, so a reduced object is perceived as farther away than it is. This is the price of a much wider field of view, which shrinks the “blind spot.”`},
@@ -7804,7 +7829,7 @@ const ELECTRO_CONTENT={
     {q:`What is the field of an infinite charged plane at a distance ${M('d')} from it?`,opts:[`σ/ε₀ — independent of d`,`σ/2ε₀ — independent of d`,`kσ/d² — falls off like a point charge’s`,`σd/ε₀ — grows with distance`],correct:1,explain:`E=σ/2ε₀, completely constant. Moving away weakens each patch of charge as 1/r², but brings into play an area that grows as r² — and the two cancel exactly.`},
     {q:`A test charge is moved twice as far from an infinite charged plane. The force on it:`,opts:[`Weakens by a factor of 2`,`Weakens by a factor of 4`,`Does not change`,`Strengthens by a factor of 2`],correct:2,explain:`F=qE and the field is constant, so the force is constant too. This is what sets a plane apart from a point charge, where increasing the distance by a factor of 2 weakens the force by a factor of 4.`},
     {q:`Two parallel planes carry charges equal in magnitude and opposite in sign. What is the field outside both of them?`,opts:[tex('\\sigma/\\varepsilon_0'),tex('\\sigma/2\\varepsilon_0'),`Zero`,`Depends on the distance`],correct:2,explain:`Outside the pair, the two fields are equal in magnitude and opposite in direction ⇒ their sum is zero. All of the field is trapped between the plates — and that is exactly what makes a capacitor a capacitor.`},
-    {q:`And what is the field <b>between</b> two parallel planes whose charges have the <b>same</b> sign?`,opts:[tex('\\sigma/\\varepsilon_0'),`Zero`,tex('\\sigma/2\\varepsilon_0'),`4 times that of one plane`],correct:1,explain:`Between them the fields point against each other and cancel; it is outside both that they add up to σ/ε₀. This is exactly the reverse of the capacitor picture.`},
+    {seq:1,q:`And what is the field <b>between</b> two parallel planes whose charges have the <b>same</b> sign?`,opts:[tex('\\sigma/\\varepsilon_0'),`Zero`,tex('\\sigma/2\\varepsilon_0'),`4 times that of one plane`],correct:1,explain:`Between them the fields point against each other and cancel; it is outside both that they add up to σ/ε₀. This is exactly the reverse of the capacitor picture.`},
     {q:`Why is there a 2 in the denominator for a single plane?`,opts:[`Because the plane carries two kinds of charge`,`Because the charge sends its field to both sides`,`Because the field is split between the two plates`,`Because a surface has two dimensions, not three`],correct:1,explain:`The plane sends its field in both directions, and each side gets half. When a second, oppositely charged plate is placed parallel to it, the two halves add up between the plates and cancel outside — hence σ/ε₀ between the plates of a capacitor.`},
     {q:`The potential difference between two oppositely charged plates a distance ${M('d')} apart is:`,opts:[`Zero — the field is uniform`,tex('\\Delta V=E\\cdot d'),tex('\\Delta V=kQ/d'),tex('\\Delta V=\\sigma d^2/\\varepsilon_0')],correct:1,explain:`In a uniform field the work per unit charge is simply E·d. This also gives the familiar form E=V/d, which is the same equation seen from the other side.`},
   ],
@@ -8600,7 +8625,7 @@ const DC_CONTENT={
     {q:`When reducing a combination circuit, you always start:`,opts:[`With the resistor nearest the battery`,`With the innermost combination`,`With the largest resistor`,`At the junction`],correct:1,explain:`Only a combination with no other combination inside it can be reduced with a single formula. Reduce it, and the combination around it becomes the innermost one in turn. How close a resistor is to the battery, or how large it is, makes no difference — only what is connected to what.`},
     {q:`R₁ is in series with a parallel combination. The voltage across the parallel combination is:`,opts:[`The battery voltage, as in any parallel connection`,`The battery voltage minus the drop across R₁`,`The battery voltage divided by the number of branches`,`Zero`],correct:1,explain:`The drops along the path add up to the source voltage, so what is left for the parallel combination is V−IR₁. The full battery voltage appears across a parallel combination only when there is no series resistor before it.`},
     {q:`A 6 Ω resistor in parallel with a 3 Ω resistor is equivalent to:`,opts:['9 Ω','4.5 Ω','2 Ω','1.5 Ω'],correct:2,explain:`R=6·3/9=2 Ω — smaller than 3, as it must be in any parallel connection.`},
-    {q:`In this section’s example, the current in the 3 Ω branch, compared with that in the 6 Ω branch, is:`,opts:[`Half`,`Double`,`Equal`,`4 times`],correct:1,explain:`The same voltage across both branches ⇒ I∝1/R. Half the resistance means twice the current.`},
+    {seq:1,q:`In this section’s example, the current in the 3 Ω branch, compared with that in the 6 Ω branch, is:`,opts:[`Half`,`Double`,`Equal`,`4 times`],correct:1,explain:`The same voltage across both branches ⇒ I∝1/R. Half the resistance means twice the current.`},
     {q:`Which check catches a mistake in how the current divides at a junction?`,opts:[`Sum of the resistances`,`In = out`,`Sum of the powers`,`Ohm’s law`],correct:1,explain:`Charge does not pile up at a junction, so the sum of the currents entering equals the sum of the currents leaving. If the two branches do not add up to the total current, there is a mistake.`},
     {q:`The parallel combination is shorted out with a wire. The total current:`,opts:[`Increases`,`Decreases`,`Does not change`,`Becomes zero`],correct:0,explain:`The short brings the resistance of the combination down to zero, so R_eq decreases and I=V/R_eq increases. All the current now flows through the wire, not through the resistors.`},
   ],
@@ -8650,7 +8675,7 @@ const DC_CONTENT={
     {q:`A switch in series in a circuit is opened. The current in the resistor on the far side of the circuit:`,opts:[`Increases`,`Decreases`,`Zero`,`Unchanged`],correct:2,explain:`A broken path means no current anywhere in the loop — not just near the switch. Current requires a complete closed path.`},
     {q:`The voltage across an <b>open</b> switch in a simple circuit is:`,opts:[`Zero, because there is no current`,`The entire battery voltage`,`Half the battery voltage`,`Depends on the size of the resistor`],correct:1,explain:`There is no current, so there is no voltage drop across any resistor — and the entire source voltage appears across the open gap itself. “No current ⇒ no voltage” is true for a resistor (V=IR), not for an open gap.`},
     {q:`A wire is connected in parallel with a resistor. The voltage across the resistor:`,opts:[`Increases by a factor of 2`,`Becomes zero`,`Does not change`,`Increases slightly`],correct:1,explain:`Its two ends are connected by a wire with no resistance, so they are at the same potential — and the potential difference between them is zero.`},
-    {q:`And what happens to the total current in the circuit when a resistor is shorted out?`,opts:[`Increases`,`Decreases`,`Does not change`,`Becomes zero`],correct:0,explain:`The short reduces the total resistance, so I=V/R_eq increases. The danger is to the other components, not to the shorted resistor.`},
+    {seq:1,q:`And what happens to the total current in the circuit when a resistor is shorted out?`,opts:[`Increases`,`Decreases`,`Does not change`,`Becomes zero`],correct:0,explain:`The short reduces the total resistance, so I=V/R_eq increases. The danger is to the other components, not to the shorted resistor.`},
     {q:`What flows through a shorted resistor?`,opts:[`All the current`,`Almost zero`,`Half`,`Depends on the voltage`],correct:1,explain:`The current divides in inverse proportion to the resistances, and the wire’s resistance is thousands of times smaller — so almost all of it flows through the wire.`},
     {q:`Why is there a fuse in the electrical panel?`,opts:[`To keep the voltage in the house constant`,`To disconnect when the current is too large`,`To increase the resistance`,`To measure the current in the house`],correct:1,explain:`A short circuit brings the resistance down to almost zero, and the current surges. The fuse is a deliberate weak link that burns out first and opens the circuit before anything else catches fire.`},
   ],
@@ -9198,9 +9223,9 @@ const DC_CONTENT={
      explain:`There is no pair of components that is purely series (the same current) or purely parallel (the same voltage), because each battery sits in a branch of its own. The reduction simply cannot begin — so you switch to equations. The number of batteries is not the problem: two batteries in series in the same loop reduce without any difficulty.`},
     {q:`A good check on the solution of a two-loop circuit is that:`,opts:[`All the currents come out positive`,`The power supplied equals that absorbed and dissipated`,`The sum of all the currents in the circuit is zero`,`The largest current is in the shortest branch`],correct:1,
      explain:`The power balance. It checks all the equations at once, and it fails for almost any sign or arithmetic error. The requirement that “all the currents be positive” is not valid at all — a negative current is a legitimate result.`},
-    {q:`In this circuit, ε₁=12 V, ε₂=12 V, and R₁=R₂. How is I₃ related to I₁?`,opts:['I₃=I₁','I₃=2I₁','I₃=I₁/2',`Zero`],correct:1,
+    {seq:1,q:`In this circuit, ε₁=12 V, ε₂=12 V, and R₁=R₂. How is I₃ related to I₁?`,opts:['I₃=I₁','I₃=2I₁','I₃=I₁/2',`Zero`],correct:1,
      explain:`With full symmetry the two batteries contribute equally, so I₁=I₂, and from the junction I₃=2I₁. That is how two identical batteries in parallel work: each supplies only half of the load current (so together they last twice as long) — but the voltage across the load is not doubled.`},
-    {q:`What does I₃R₃ represent in the two loop equations?`,opts:[`Two different voltages`,`The same voltage drop, common to both loops`,`A mistake — the same term must not be written twice`,`The battery’s emf`],correct:1,
+    {seq:1,q:`What does I₃R₃ represent in the two loop equations?`,opts:[`Two different voltages`,`The same voltage drop, common to both loops`,`A mistake — the same term must not be written twice`,`The battery’s emf`],correct:1,
      explain:`Exactly the same drop: R₃ is the branch common to the two loops, and both pass through it. That is what links the equations and makes them a system — without the common branch these would be two separate circuits.`},
   ],
   problem:{title:`Two batteries and a common resistor`,text:`A battery ε₁=10 V in series with R₁=2 Ω and a battery ε₂=2 V in series with R₂=1 Ω both feed the common resistor R₃=2 Ω. The currents I₁ and I₂ are marked toward the junction, and I₃ away from it.`,steps:[
@@ -9935,7 +9960,7 @@ const MAG_CONTENT={
     {q:`What is the force between the magnet and the ring?`,a:`Repulsion: N facing N. The force opposes the approach — as Lenz’s law requires.`}]},
   quiz:[
     {q:`The N pole of a magnet approaches a closed ring. The ring:`,opts:[`Is attracted to it`,`Is repelled by it`,`Is unaffected`,`Rotates`],correct:1,explain:`The flux increases, and the ring produces an opposing field — its side facing the magnet becomes N. N facing N — repulsion, which opposes the approach.`},
-    {q:`The same magnet moves away from the ring. The ring:`,opts:[`Is attracted to it`,`Is repelled by it`,`Is unaffected`,`Comes to a stop`],correct:0,explain:`The flux decreases; the ring “tries to preserve it” and produces a field in the same direction — its side facing the magnet becomes S, and the ring is attracted to the magnet, following it. Again, against the relative motion.`},
+    {seq:1,q:`The same magnet moves away from the ring. The ring:`,opts:[`Is attracted to it`,`Is repelled by it`,`Is unaffected`,`Comes to a stop`],correct:0,explain:`The flux decreases; the ring “tries to preserve it” and produces a field in the same direction — its side facing the magnet becomes S, and the ring is attracted to the magnet, following it. Again, against the relative motion.`},
     {q:`Why does a magnet fall slowly through a copper pipe?`,opts:[`Copper is attracted to magnets, like iron`,`Induced currents in the pipe brake it`,`Friction with the air inside the pipe`,`The pipe is narrow and the magnet rubs against it`],correct:1,explain:`The falling magnet changes the flux through every ring of the pipe, and the induced currents (Lenz’s law) produce an upward force that grows with the speed — until a low terminal velocity is reached.`},
     {q:`A slit is cut in a ring, and a magnet is brought near it. What happens?`,opts:[`It is repelled as usual — the slit is too small`,`An emf is induced, but no current — and no force`,`Nothing happens — no emf and no current`,`It is attracted`],correct:1,explain:`The induced emf exists (the flux is changing), but the circuit is open — there is no current, and so no induced field and no force. Even a narrow slit is enough: without a closed path there is no current.`},
     {q:`Lenz’s law is an expression of:`,opts:[`Conservation of charge`,`Conservation of energy`,`Newton’s third law alone`,`Conservation of momentum`],correct:1,explain:`If the induced current assisted the change, we would get energy from nothing. The opposition ensures that the heat produced by the current comes from work that someone has done.`},
@@ -9987,7 +10012,7 @@ const MAG_CONTENT={
     {q:`Check conservation of energy`,a:`${M('Fv=0.18\\,\\text{W}')} and ${M('I^2R=0.18\\,\\text{W}')} — equal ✓`}]},
   quiz:[
     {q:`The rod moves along the rails at twice the speed. The emf:`,opts:[`Increases by a factor of 2`,`Increases by a factor of 4`,`Does not change`,`Decreases by a factor of 2`],correct:0,explain:`ε=BLv is proportional to the speed.`},
-    {q:`In the same situation (twice the speed), the power converted into heat:`,opts:[`Twice as large`,`4 times`,`Does not change`,`Half as large`],correct:1,explain:`P=B²L²v²/R — proportional to the square of the speed: the emf increases by a factor of 2, and so does the current.`},
+    {seq:1,q:`In the same situation (twice the speed), the power converted into heat:`,opts:[`Twice as large`,`4 times`,`Does not change`,`Half as large`],correct:1,explain:`P=B²L²v²/R — proportional to the square of the speed: the emf increases by a factor of 2, and so does the current.`},
     {q:`The rod moves to the right in a field pointing into the page. The magnetic force on the rod is:`,opts:[`To the right`,`To the left`,`Upward`,`Zero`],correct:1,explain:`By Lenz’s law the force brakes the rod — it opposes the motion. (By calculation: the current in the rod flows upward, and ŷ×(−ẑ)=−x̂.)`},
     {q:`The resistor is disconnected (the circuit is open), and the rod keeps moving. The braking force:`,opts:[`Increases`,`Zero`,`Does not change`,`Reverses`],correct:1,explain:`There is an emf between the ends of the rod, but no current — so there is no force BIL. The rod keeps moving without braking.`},
     {q:`The rod is pushed with a constant force. Its speed:`,opts:[`Increases without limit, because the force is constant`,`Is constant from the start`,`Rises to a terminal velocity`,`Drops to zero`],correct:2,explain:`The braking force B²L²v/R grows with the speed until it equals the pushing force — and then the acceleration is zero. Terminal velocity: v=FR/B²L².`},
@@ -10090,7 +10115,7 @@ const MAG_CONTENT={
     {q:`And what is the current in the primary?`,a:`${M('I_1=\\dfrac{24}{230}\\approx0.104\\,\\text{A}')} — smaller than ${M('I_2')} by a factor of ${M('\\dfrac{1150}{60}\\approx19')}.`}]},
   quiz:[
     {q:`In a transformer, N₂=2N₁. The voltage across the secondary is:`,opts:[`Half that across the primary`,`Twice that across the primary`,`Equal`,`4 times`],correct:1,explain:`V₂/V₁=N₂/N₁=2 — a step-up transformer.`},
-    {q:`In the same ideal transformer, the current in the secondary, compared with that in the primary, is:`,opts:[`Double`,`Half`,`Equal`,`4 times`],correct:1,explain:`Power is conserved: V₁I₁=V₂I₂. Twice the voltage — half the current.`},
+    {seq:1,q:`In the same ideal transformer, the current in the secondary, compared with that in the primary, is:`,opts:[`Double`,`Half`,`Equal`,`4 times`],correct:1,explain:`Power is conserved: V₁I₁=V₂I₂. Twice the voltage — half the current.`},
     {q:`A transformer is connected to a battery (direct current). The steady-state voltage across the secondary is:`,opts:[`Set by the turns ratio`,`Zero`,`Double`,`Equal to the input voltage`],correct:1,explain:`Direct current produces a constant flux; with no change in flux there is no induction. (Only at the moments of connection and disconnection does a transient voltage appear.)`},
     {q:`Why is electricity transmitted over power lines at high voltage?`,opts:[`Because it is safer`,`To reduce the current in the line`,`Because high voltage is faster`,`To increase the power`],correct:1,explain:`For the same power, a voltage higher by a factor of n means a current smaller by a factor of n, and an I²R loss in the line smaller by a factor of n². The power itself does not increase, and the voltage is not “faster.”`},
     {q:`The transmission voltage is raised by a factor of 10 (same power, same line). The loss in the line:`,opts:[`Smaller by a factor of 10`,`Smaller by a factor of 100`,`Does not change`,`Larger by a factor of 10`],correct:1,explain:`I decreases by a factor of 10, and the I²R loss by a factor of 100.`},
@@ -10139,6 +10164,7 @@ function getQS(c,s){const k=`${c}.${s}`;var q=state.quizState[k];
     q.v=2;
   }
   if(q.hints!==undefined&&(!q.hints||typeof q.hints!=='object'))q.hints={};
+  if(q.rv!==undefined&&!Array.isArray(q.rv))delete q.rv;
   _qsAlign(k,q);
   return q;}
 // ── A saved answer belongs to its QUESTION, not to its place ──────────────
@@ -10207,18 +10233,20 @@ function _qsAlign(k,q){
   if(old)m=_qidMatch(old,cur);
   else m=cur.map(function(x,i2){return i2;});      // v28.17: by position
   var c=CONTENT[k],qs=(c&&Array.isArray(c.quiz))?c.quiz:[];
-  var ans=[],hints={},oc=q.cur,nc=-1;
+  var ans=[],hints={},rv=[],oc=q.cur,nc=-1;
   for(i=0;i<cur.length;i++){
     var j=m[i];if(j<0)continue;
     var a=q.ans[j],n=qs[i]&&qs[i].opts?qs[i].opts.length:0;
     if(typeof a==='number'&&a>=0&&a<n)ans[i]=a;
     if(q.hints&&q.hints[j])hints[i]=q.hints[j];
+    if(q.rv&&(q.rv[j]===0||q.rv[j]===1))rv[i]=q.rv[j];   // the review's mark follows its question too
     if(j===oc)nc=i;
   }
   var moved=old?m.some(function(j,i2){return j!==i2;})||old.length!==cur.length:
     q.ans.some(function(a,i2){return a!==undefined&&ans[i2]!==a;});
   q.ans=ans;q.ids=cur.slice();
   if(q.hints)q.hints=hints;
+  if(q.rv)q.rv=rv;
   if(!moved)return;
   var first=-1;for(i=0;i<cur.length;i++)if(ans[i]===undefined){first=i;break;}
   if(q.done){
@@ -36970,6 +36998,7 @@ window.addEventListener('popstate',function(){
   if(typeof closeDrawer==='function')closeDrawer();
   if(typeof closeFormulaPanel==='function')closeFormulaPanel();
   if(typeof closeChangelog==='function')closeChangelog();
+  if(typeof closeReview==='function')closeReview();
   var before=state.chapter+'.'+state.section;
   // a link to no topic, typed or followed on this page, changes nothing --
   // and the address bar says so again instead of keeping the dead link
@@ -37178,7 +37207,7 @@ function buildSidebar(){
   // starting over has to be possible without clearing the browser's data
   const foot=`<div class="sidebar-foot"><button class="reset-btn" onclick="resetAllProgress()">↺ Reset progress</button></div>`;
   // sb-list is what the search results stand in for while a search is on
-  return subjectTabs+_searchBox()+'<div class="sb-list"'+(_searchQ?' hidden':'')+'>'+legend+chapters+foot+'</div>';
+  return subjectTabs+_searchBox()+'<div class="sb-list"'+(_searchQ?' hidden':'')+'>'+_rvEntry()+legend+chapters+foot+'</div>';
 }
 
 function buildMain(ch,sec,content){
@@ -39987,6 +40016,204 @@ function _searchFocus(){
   if(inp)try{inp.focus();inp.select();}catch(e){}
 }
 
+// ══════════════════════════════════════════════════════════════════
+// MIXED REVIEW -- the questions already met, from every topic, mixed
+// ══════════════════════════════════════════════════════════════════
+// A quiz is taken right after its topic: the answers are still in short-term
+// memory, and every question is known to be about that topic. What makes
+// knowledge last, and what an exam asks for, is the opposite -- recalling it
+// later, and telling which idea a question calls for when no one says which
+// topic it belongs to. The mixed review draws ten questions from the quizzes
+// the learner has finished: the ones answered wrong there first, no more than
+// two from a topic, the topics shuffled together, and the topic named only
+// after the answer. It remembers one thing about a question: whether the
+// last answer given to it here was right (quizState[k].rv[i], 1 or 0, kept
+// beside the quiz's own answers and following its question as they do). A
+// question is "missed" while its last answer -- here, or in its quiz if it
+// was never asked here -- is wrong: those come first, then the ones the
+// review has not asked yet, then the rest. Answering a missed question right
+// takes it off the count on the review's button, for good; retaking a quiz
+// starts its questions afresh. A right answer earns 5 XP, once a session.
+// A question that leans on its neighbours in the quiz ("and for the same
+// round trip...", "see the next question") carries seq:1 and stays out.
+var _rv=null,_rvOk={},_RV_N=10,_RV_XP=5;
+function _rvPool(){
+  var out=[];
+  [MECH_CHAPTERS,OPTICS_CHAPTERS,ELECTRO_CHAPTERS,DC_CHAPTERS,MAG_CHAPTERS].forEach(function(list){list.forEach(function(ch){ch.sections.forEach(function(se){
+    var k=ch.id+'.'+se.id,c=CONTENT[k];
+    if(!c||!c.quiz||!Object.prototype.hasOwnProperty.call(state.quizState,k))return;
+    var st=getQS(ch.id,se.id);
+    if(!st.done)return;
+    c.quiz.forEach(function(q,i){
+      if(!q||q.seq||!q.opts||q.opts.length<2)return;
+      var a=st.ans[i],r=st.rv?st.rv[i]:undefined,asked=r===0||r===1;
+      out.push({k:k,c:ch.id,s:se.id,i:i,title:se.title,asked:asked,
+        missed:asked?r===0:(!st.legacy&&typeof a==='number'&&a!==quizView(q).ci)});
+    });
+  });});});
+  return out;
+}
+function _rvShuffle(a){for(var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1)),t=a[i];a[i]=a[j];a[j]=t;}return a;}
+function _rvPick(){
+  var pool=_rvShuffle(_rvPool()),per={},out=[];
+  var take=function(list,cap){list.forEach(function(x){
+    if(out.length>=_RV_N||out.indexOf(x)>=0||(per[x.k]||0)>=cap)return;
+    per[x.k]=(per[x.k]||0)+1;out.push(x);});};
+  take(pool.filter(function(x){return x.missed;}),2);    // what was missed, first
+  take(pool.filter(function(x){return !x.asked;}),2);    // then what the review has not asked yet
+  take(pool,2);                                           // then the rest, two a topic
+  take(pool,_RV_N);                                       // few topics finished: more from each
+  return _rvSpread(_rvShuffle(out));
+}
+// two questions of one topic do not follow each other, where the round allows
+// it: the second of such a pair changes places with a question that leaves
+// both places without a neighbour of their own topic
+function _rvSpread(a){
+  var same=function(x,y){return !!x&&!!y&&x.k===y.k;};
+  var bad=function(i){return same(a[i],a[i-1])||same(a[i],a[i+1]);};
+  for(var pass=0;pass<4;pass++){
+    var left=false;
+    for(var i=1;i<a.length;i++){
+      if(!same(a[i],a[i-1]))continue;
+      var done=false;
+      for(var j=0;j<a.length&&!done;j++){
+        if(j===i||j===i-1)continue;
+        var t=a[i];a[i]=a[j];a[j]=t;
+        if(!bad(i)&&!bad(j))done=true;
+        else{t=a[i];a[i]=a[j];a[j]=t;}
+      }
+      if(!done)left=true;
+    }
+    if(!left)break;
+  }
+  return a;
+}
+function _rvEntry(){
+  var tRv=`🔁 Mixed review`,tTip=`Questions from the quizzes you have finished, from every topic and in mixed order — the ones you got wrong first`,tMiss=`Questions you got wrong`;
+  var miss=_rvPool().filter(function(x){return x.missed;}).length;
+  return '<div class="rv-entry"><button class="rv-btn" onclick="openReview()" title="'+tTip+'">'+tRv+
+    (miss?'<span class="rv-badge" title="'+tMiss+'"><span class="visually-hidden">'+tMiss+': </span>'+miss+'</span>':'')+'</button></div>';
+}
+// focus: 'q' the question (a new one is read out), 'next' the button that
+// follows an answer, 'first' the first button (the summary, the empty round)
+function _rvDraw(focus){
+  var ov=document.getElementById('review-overlay');if(!ov||!_rv)return;
+  var body=ov.querySelector('.rv-body'),cnt=ov.querySelector('.rv-count'),n=_rv.list.length,html='';
+  if(!n){
+    var tEmpty=`The mixed review asks questions from the quizzes you have already finished — from every topic, in mixed order, starting with the ones you got wrong. Finish one quiz and it will open.`,tGot=`Got it`;
+    html='<div class="locked-sec"><div class="lock-icon">🔁</div><p>'+tEmpty+'</p><button class="btn btn-primary" onclick="closeReview()" style="margin-top:14px">'+tGot+'</button></div>';
+    cnt.textContent='';
+  }else if(_rv.pos>=n){
+    var ok=_rv.right,all=ok===n,weak=[],seen={};
+    _rv.list.forEach(function(it,i){var r=_rv.ans[i];if(r&&!r.ok&&!seen[it.k]){seen[it.k]=1;weak.push(it);}});
+    var tScore=`${ok} of ${n} answers correct`,tAll=`Every answer correct — well done!`,tWeak=`These topics are worth another look:`,tAgain=`🔁 Another round`,tClose=`Close`;
+    html='<div class="done-banner"><div class="big-icon'+(all?' trophy-anim':'')+'">'+(all?'🏆':'⭐')+'</div><h2 id="rv-q" tabindex="-1">'+tScore+'</h2>'+
+      '<p>'+(all?tAll:tWeak)+'</p>'+
+      (weak.length?'<div class="rv-weak">'+weak.map(function(it){
+        return '<button class="sec-btn" onclick="_rvTopic(\''+it.c+'\',\''+it.s+'\')"><span class="sec-dot seen"></span>'+it.title+'</button>';}).join('')+'</div>':'')+
+      (_rv.xp?'<p class="rv-xp">+'+_rv.xp+' XP</p>':'')+
+      '<div class="rv-actions"><button class="btn btn-primary" onclick="_rvStart(1)">'+tAgain+'</button>'+
+      '<button class="btn btn-secondary" onclick="closeReview()">'+tClose+'</button></div></div>';
+    cnt.textContent='';
+  }else{
+    var it=_rv.list[_rv.pos],q=CONTENT[it.k].quiz[it.i],qv=quizView(q),a=_rv.ans[_rv.pos],done=a!==undefined;
+    var lets=[`A`,`B`,`C`,`D`],tOk=`✅ Correct!`,tNo=`❌ Incorrect.`,tFrom=`From the topic:`,tNext=`Next →`,tSum=`To the summary →`;
+    var dots='<div class="quiz-progress" aria-hidden="true">'+_rv.list.map(function(x,i){var r=_rv.ans[i];
+      return '<div class="qp-dot'+(i===_rv.pos?' active':r===undefined?'':(r.ok?' done':' wrong'))+'"></div>';}).join('')+'</div>';
+    var opts=qv.opts.map(function(o,oi){var cls='';if(done){if(oi===qv.correct)cls=' correct';else if(oi===a.oi)cls=' wrong';}
+      return '<button class="quiz-opt'+cls+'"'+(done?' disabled':'')+' onclick="_rvAnswer('+oi+')"><span class="quiz-opt-letter">'+(lets[oi]||'')+'</span><span class="quiz-opt-text">'+_ltSafe(o)+'</span></button>';}).join('');
+    // the topic is told only now: recognising it was part of the question
+    var fb=done?'<div class="quiz-feedback '+(a.ok?'fb-ok':'fb-err')+'"><div style="font-size:1rem;margin-bottom:4px">'+(a.ok?tOk:tNo)+'</div>'+
+        '<div style="font-size:.88rem;color:var(--muted)">'+_ltSafe(q.explain||'')+'</div>'+
+        (q.formula&&!a.ok?'<div class="rv-formula"><span dir="ltr">'+q.formula+'</span></div>':'')+'</div>'+
+      '<div class="rv-from">'+tFrom+' <button class="rv-link" onclick="_rvTopic(\''+it.c+'\',\''+it.s+'\')">'+it.title+'</button></div>'+
+      '<button class="btn btn-primary rv-next" onclick="_rvNext()" style="margin-top:12px">'+(_rv.pos===n-1?tSum:tNext)+'</button>':'';
+    html=dots+'<div class="quiz-q" id="rv-q" tabindex="-1"><span class="quiz-q-num">'+(_rv.pos+1)+'</span>'+_ltSafe(q.q)+'</div><div class="quiz-opts">'+opts+'</div>'+fb;
+    cnt.textContent=`Question ${_rv.pos+1} of ${n}`;
+  }
+  body.innerHTML=html;
+  // the page's own passes, which stop at #app: formulas, their direction, contrast
+  if(window.renderMathInElement)try{renderMathInElement(body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}],throwOnError:false,strict:false});}catch(e){}
+  fixInlineMath(body);
+  if(typeof ensureContrast==='function')ensureContrast(body);
+  ov.scrollTop=0;
+  var f=focus==='next'?body.querySelector('.rv-next'):focus==='first'?body.querySelector('button:not([disabled])'):body.querySelector('#rv-q');
+  if(focus&&f)try{f.focus({preventScroll:true});}catch(e){}
+}
+window._rvStart=function(again){
+  _rv={list:_rvPick(),pos:0,ans:[],right:0,xp:0};
+  _rvDraw(again?'q':null);
+};
+window._rvAnswer=function(oi){
+  if(!_rv||_rv.pos>=_rv.list.length||_rv.ans[_rv.pos]!==undefined)return;
+  var it=_rv.list[_rv.pos],q=CONTENT[it.k].quiz[it.i],qv=quizView(q);
+  if(qv.src[oi]===undefined)return;
+  var ok=oi===qv.correct,id=it.k+'#'+it.i,st=getQS(it.c,it.s);
+  _rv.ans[_rv.pos]={oi:oi,ok:ok};
+  if(!Array.isArray(st.rv))st.rv=[];
+  st.rv[it.i]=ok?1:0;
+  if(ok){
+    _rv.right++;
+    if(!_rvOk[id]){
+      _rvOk[id]=true;state.xp+=_RV_XP;_rv.xp+=_RV_XP;
+      var b=document.getElementById('xp-badge-el');if(b)b.textContent='⭐ '+state.xp+' XP';
+    }
+  }
+  saveState();
+  _rvDraw('next');
+  _say((ok?`Correct! `:`Incorrect. `)+_ltSafe(q.explain||''));
+};
+window._rvNext=function(){
+  if(!_rv||_rv.ans[_rv.pos]===undefined)return;
+  _rv.pos++;
+  _rvDraw(_rv.pos>=_rv.list.length?'first':'q');
+  if(_rv.pos>=_rv.list.length)_say(document.getElementById('rv-q').textContent);
+};
+// from the review to a topic it asked about
+window._rvTopic=function(c,s){closeReview();window._searchGo(c,s);};
+// the topic list as it stands now (the count of missed questions on the
+// review's button), without drawing the page -- and a simulation -- again
+function _navRefresh(){
+  var sb=document.getElementById('sidebar-nav');if(!sb)return;
+  var top=sb.scrollTop;
+  sb.innerHTML=buildSidebar();_fitTabs(sb);fixInlineMath(sb);
+  if(typeof ensureContrast==='function')ensureContrast(sb);
+  sb.scrollTop=top;
+}
+window.openReview=function(){
+  closeDrawer();
+  var ov=document.getElementById('review-overlay');
+  if(!ov){
+    var tT=`🔁 Mixed review`,tX=`Close the review`;
+    ov=document.createElement('div');ov.id='review-overlay';ov.className='rv-overlay';
+    ov.innerHTML='<div class="rv-card" role="dialog" aria-modal="true" aria-labelledby="rv-h"><div class="rv-hdr"><h3 id="rv-h">'+tT+'</h3><span class="rv-count"></span>'+
+      '<button class="formula-panel-close" onclick="closeReview()" aria-label="'+tX+'">✕</button></div><div class="rv-body"></div></div>';
+    // 1-4 answer, as the letters beside the options suggest
+    ov.addEventListener('keydown',function(e){
+      if(e.altKey||e.ctrlKey||e.metaKey||!/^[1-4]$/.test(e.key))return;
+      e.preventDefault();window._rvAnswer(+e.key-1);});
+    document.body.appendChild(ov);
+  }
+  if(ov.classList.contains('open'))return;
+  ov.classList.add('open');
+  document.body.style.overflow='hidden';
+  _rv=null;window._rvStart();
+  _openPanel(ov,ov.querySelector('#rv-q')||ov.querySelector('.rv-body button')||ov.querySelector('.formula-panel-close'));
+};
+function closeReview(){
+  var ov=document.getElementById('review-overlay');
+  if(!ov||!ov.classList.contains('open'))return;
+  var op=_panelOpener,fromList=!!(op&&op.classList&&op.classList.contains('rv-btn'));
+  ov.classList.remove('open');
+  document.body.style.overflow='';
+  _closedPanel(ov);
+  _rv=null;
+  _navRefresh();
+  // the button that opened the review was redrawn with the list: back onto the new one
+  if(fromList){var b=document.querySelector('#sidebar-nav .rv-btn');if(b&&b.offsetParent!==null)try{b.focus({preventScroll:true});}catch(e){}}
+}
+window.closeReview=closeReview;
+
 // ── Mobile Drawer ──────────────────────────────────────────────
 function ensureDrawer(){
   if(document.getElementById('mobile-drawer')) return;
@@ -40034,7 +40261,7 @@ function _openPanelEl(){
   // the first-visit welcome is a modal dialog too: Tab used to walk out of
   // it into the page hidden behind, and "2" switched that page's tab
   var ob=document.getElementById('onboard-overlay');if(ob)return ob;
-  var l=['mobile-drawer','formula-panel','changelog-panel'];
+  var l=['mobile-drawer','formula-panel','changelog-panel','review-overlay'];
   for(var i=0;i<l.length;i++){var e=document.getElementById(l[i]);if(e&&e.classList.contains('open'))return e;}
   return null;
 }
@@ -40871,7 +41098,7 @@ document.addEventListener('keydown',function(e){
     if(document.getElementById('onboard-overlay')){closeOnboarding();return;}
     var ae=document.activeElement;
     if(ae&&ae.classList&&ae.classList.contains('param-wrap'))ae.blur();
-    closeDrawer(); closeFormulaPanel(); closeChangelog(); return; }
+    closeDrawer(); closeFormulaPanel(); closeChangelog(); closeReview(); return; }
   if(editable||e.altKey||e.ctrlKey||e.metaKey) return;
   // A key a simulation took is the simulation's: an arrow that turns a ray on
   // a focused canvas (the sim calls preventDefault) also took the learner to
