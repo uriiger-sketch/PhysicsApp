@@ -1,4 +1,4 @@
-// Mechanics chapters ו-י (statics, motion in a plane, momentum, energy, SHM):
+// Mechanics chapters ו-יא (statics, motion in a plane, momentum, energy, SHM, gravitation):
 // every problem recomputed from first principles and put through the app's
 // own answer check, the physics the simulations and animations claim,
 // measured from what they actually draw, plus every draggable canvas driven
@@ -694,6 +694,6 @@ const EXPECT = {
 
   t('no page errors, touchend included', errs.length === 0, errs.length ? errs.join(' | ') : 'none');
   await b.close();
-  console.log(fail ? `\n❌ ${fail} FAILED` : '\n✅ MECHANICS ו-י: PHYSICS HOLDS AND EVERY DRAG WORKS BY TOUCH');
+  console.log(fail ? `\n❌ ${fail} FAILED` : '\n✅ MECHANICS ו-יא: PHYSICS HOLDS AND EVERY DRAG WORKS BY TOUCH');
   process.exit(fail ? 1 : 0);
 })();
