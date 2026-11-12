@@ -15047,6 +15047,7 @@ function simKepler(canvas){
 
 // a body fired straight up: the energy diagram decides whether it returns
 function simGravEscape(canvas){
+  function mn1(x){return x.toFixed(1).replace('-','\u2212');}
   // SECTION: gravitation.grav-energy
   // PEDAGOGY: the total energy ½v² − GM/r is a horizontal line on the graph
   // of −GM/r; the body turns back where the two meet, and if the line is not
@@ -15123,7 +15124,7 @@ function simGravEscape(canvas){
     ctx.save();ctx.strokeStyle='rgba(148,163,184,.6)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(GL,GT);ctx.lineTo(GL,GB);ctx.stroke();
     ctx.setLineDash([4,4]);ctx.beginPath();ctx.moveTo(GL,gy(0));ctx.lineTo(GR,gy(0));ctx.stroke();ctx.setLineDash([]);ctx.restore();
     simText(ctx,'0',GL-5,gy(0)+3,'#94a3b8',8.5,'right');
-    simText(ctx,'−GM/R',GL-3,gy(-U0)+3,'#94a3b8',NAR?7.5:8.5,'right');
+    simText(ctx,'−GM/R',GL-8,gy(-U0)-6,'#94a3b8',NAR?7.5:8.5,'right');
     [1,4,7,10].forEach(function(q){simText(ctx,q+'R',gx(q),GB+13,'#7d8da6',8.5,'center');});
     simText(ctx,`Energy per unit mass`,(GL+GR)/2,GT-4,'#94a3b8',8.5,'center');
     ctx.save();ctx.strokeStyle='#22d3ee';ctx.lineWidth=2;ctx.beginPath();
@@ -15139,13 +15140,13 @@ function simGravEscape(canvas){
     simText(ctx,`Blue: potential · ${E0>=0?`Green`:`Yellow`}: total · Red: kinetic`,(GL+GR)/2,GB+28,'#64748b',NAR?7.5:8.5,'center');
     // the readouts
     var cx=(GL+GR)/2, fs=NAR?10:11.5, vn=ph==='idle'?v0:Math.abs(v)/1000;
-    simText(ctx,'E/m = ½v² − GM/r = '+(E0/1e6).toFixed(1)+' MJ/kg',cx,24,col,fs,'center',true);
+    simText(ctx,'E/m = ½v² − GM/r = '+mn1(E0/1e6)+' MJ/kg',cx,24,col,fs,'center',true);
     simText(ctx,'v = '+vn.toFixed(2)+' km/s   ·   r = '+(r/R).toFixed(2)+' R',cx,44,'#e2e8f0',fs,'center');
     var msg=ph==='landed'?`Back at the surface — peak: r = ${(peak/R).toFixed(2)} R`:ph==='escaped'?`Escaped: the total energy is not negative`:
       ph==='far'?`Will reach ${(-GM/E0/R).toFixed(1)} R — then return`:ph==='fly'?(v>0?`Rising, slowing down`:`Falling back`):`Escape speed here: ${(vesc/1000).toFixed(2)} km/s`;
     simText(ctx,msg,cx,62,'#94a3b8',NAR?9:10,'center');
-    if(E0<0)model(kit.m('E/m = '+(E0/1e6).toFixed(1)+' MJ/kg < 0 ⇒ r_max = GM/|E/m| = '+(-GM/E0/R).toFixed(2)+' R'));
-    else model(kit.m('E/m = '+(E0/1e6).toFixed(1)+' MJ/kg ≥ 0 ⇒ v∞ = √(v₀² − v_esc²) = '+Math.sqrt(Math.max(0,v0*v0-vesc*vesc/1e6)).toFixed(2)+' km/s'));
+    if(E0<0)model(kit.m('E/m = '+mn1(E0/1e6)+' MJ/kg < 0 ⇒ r_max = GM/|E/m| = '+(-GM/E0/R).toFixed(2)+' R'));
+    else model(kit.m('E/m = '+mn1(E0/1e6)+' MJ/kg ≥ 0 ⇒ v∞ = √(v₀² − v_esc²) = '+Math.sqrt(Math.max(0,v0*v0-vesc*vesc/1e6)).toFixed(2)+' km/s'));
     kit.check(flags);
     requestAnimationFrame(draw);
   }
