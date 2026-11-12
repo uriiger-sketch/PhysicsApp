@@ -50,7 +50,7 @@ const t = (name, ok, info) => { checks++; if (!ok) { fail++; console.log(`   FAI
   const subj = Object.keys(per);
   t('every subject\'s sheet ends with the four shared sections', subj.every(s => per[s].chapters.slice(-4).join('|') === SHARED.join('|')), JSON.stringify(per.optics.chapters.slice(-4)));
   t('and opens on its own chapters', subj.every(s => per[s].chapters.length >= 7 && per[s].own >= 15) && new Set(subj.map(s => per[s].chapters[0])).size === 5, JSON.stringify(subj.map(s => [per[s].chapters.length, per[s].own])));
-  t('the shared part is the same 33 rows everywhere', new Set(subj.map(s => per[s].rows - per[s].own)).size === 1 && per.mechanics.rows - per.mechanics.own === 33, JSON.stringify(subj.map(s => per[s].rows - per[s].own)));
+  t('the shared part is the same 36 rows everywhere', new Set(subj.map(s => per[s].rows - per[s].own)).size === 1 && per.mechanics.rows - per.mechanics.own === 36, JSON.stringify(subj.map(s => per[s].rows - per[s].own)));
   t('on a 360 px phone nothing scrolls sideways and no formula is cut', subj.every(s => per[s].sideways <= 0 && per[s].page <= 0 && per[s].cut.length === 0 && per[s].out === 0), JSON.stringify(subj.map(s => [per[s].sideways, per[s].cut])));
   t('no row is empty, and no subscript is left as an underscore', subj.every(s => per[s].empty === 0 && per[s].raw.length === 0), JSON.stringify(subj.map(s => per[s].raw)));
 
@@ -61,9 +61,9 @@ const t = (name, ok, info) => { checks++; if (!ok) { fail++; console.log(`   FAI
     const rows = [...pn.querySelectorAll('.formula-row')].filter(r => anchor.compareDocumentPosition(r) & Node.DOCUMENT_POSITION_FOLLOWING);
     return rows.map(r => r.querySelector('.formula-math').textContent.replace(/\s+/g, ' ').trim() + ' | ' + r.querySelector('.formula-desc').textContent.trim()); });
   const has = (f) => ref.some(r => r.startsWith(f + ' | '));
-  t('the constants', ['g = 9.8 m/s²', 'G = 6.67×10⁻¹¹ N·m²/kg²', 'c = 3.00×10⁸ m/s', 'e = 1.6×10⁻¹⁹ C', 'k = 9×10⁹ N·m²/C²', 'ε0 = 8.85×10⁻¹² F/m', 'μ0 = 4π×10⁻⁷ T·m/A', 'h = 6.63×10⁻³⁴ J·s', 'me = 9.11×10⁻³¹ kg', 'mp = 1.67×10⁻²⁷ kg'].every(has), ref.slice(0, 10).join(' ; '));
-  t('the powers of ten, each on a unit the course uses', ['1 GHz = 10⁹ Hz', '1 MΩ = 10⁶ Ω', '1 km = 10³ m', '1 cm = 10⁻² m', '1 mA = 10⁻³ A', '1 μC = 10⁻⁶ C', '1 nm = 10⁻⁹ m', '1 pF = 10⁻¹² F'].every(has), ref.slice(10, 18).join(' ; '));
-  t('the units and the conversions', ['1 N = 1 kg·m/s²', '1 J = 1 N·m', '1 W = 1 J/s', '1 V = 1 J/C', '1 Ω = 1 V/A', '1 F = 1 C/V', '1 T = 1 N/(A·m)', '1 Wb = 1 T·m²', '1 N/C = 1 V/m', '1 m/s = 3.6 km/h', '1 kWh = 3.6×10⁶ J', '1 eV = 1.6×10⁻¹⁹ J', '180° = π rad'].every(has), ref.slice(18).join(' ; '));
+  t('the constants', ['g = 9.8 m/s²', 'G = 6.67×10⁻¹¹ N·m²/kg²', 'ME = 5.97×10²⁴ kg', 'RE = 6.37×10⁶ m', 'c = 3.00×10⁸ m/s', 'e = 1.6×10⁻¹⁹ C', 'k = 9×10⁹ N·m²/C²', 'ε0 = 8.85×10⁻¹² F/m', 'μ0 = 4π×10⁻⁷ T·m/A', 'h = 6.63×10⁻³⁴ J·s', 'hc = 1240 eV·nm', 'me = 9.11×10⁻³¹ kg', 'mp = 1.67×10⁻²⁷ kg'].every(has), ref.slice(0, 13).join(' ; '));
+  t('the powers of ten, each on a unit the course uses', ['1 GHz = 10⁹ Hz', '1 MΩ = 10⁶ Ω', '1 km = 10³ m', '1 cm = 10⁻² m', '1 mA = 10⁻³ A', '1 μC = 10⁻⁶ C', '1 nm = 10⁻⁹ m', '1 pF = 10⁻¹² F'].every(has), ref.slice(13, 21).join(' ; '));
+  t('the units and the conversions', ['1 N = 1 kg·m/s²', '1 J = 1 N·m', '1 W = 1 J/s', '1 V = 1 J/C', '1 Ω = 1 V/A', '1 F = 1 C/V', '1 T = 1 N/(A·m)', '1 Wb = 1 T·m²', '1 N/C = 1 V/m', '1 m/s = 3.6 km/h', '1 kWh = 3.6×10⁶ J', '1 eV = 1.6×10⁻¹⁹ J', '180° = π rad'].every(has), ref.slice(21).join(' ; '));
   // consistent with one another: k = 1/4πε0, kWh, eV
   const k = 1 / (4 * Math.PI * 8.85e-12);
   t('k, ε0, the kWh and the eV agree with one another', Math.abs(k - 9e9) / 9e9 < 0.002 && 1000 * 3600 === 3.6e6 && Math.abs(1e3 / 3600 * 3.6 - 1) < 1e-12);

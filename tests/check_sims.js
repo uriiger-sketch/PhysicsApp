@@ -43,7 +43,7 @@ const t = (name, got, want) => {
       const drag = cv.getAttribute('data-drag') === '1';
       // read the affordance BEFORE the strokes below, which dismiss it
       const hint = !!document.querySelector('.sim-hint');
-      const ctrls = document.querySelectorAll('#app input[type=range], #app input[type=checkbox], #app .sim-ctrl button, #app .sim-btns button').length;
+      const ctrls = document.querySelectorAll('#app input[type=range], #app input[type=checkbox], #app .sim-controls button, #app .sk-tabs button').length;
       // a canvas that claims to take the pointer must actually change under it
       let responded = null;
       if (drag) {

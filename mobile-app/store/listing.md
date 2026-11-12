@@ -4,8 +4,8 @@ Everything the two stores ask you to type, in Hebrew and English, ready to
 paste. Each block is one field; the heading gives the store's limit, and every
 text here is within it (`node scripts/listing-check.mjs` counts them).
 
-The facts in the descriptions are the app's own: five subjects, 26 chapters,
-107 topics, each with theory, a simulation, a quiz and a guided problem;
+The facts in the descriptions are the app's own: five subjects, 28 chapters,
+115 topics, each with theory, a simulation, a quiz and a guided problem;
 14 sensor labs in mechanics; offline, no account, no ads, nothing
 collected. Change a number here when the course changes.
 
@@ -38,7 +38,7 @@ here (see CLAUDE.md at the repository root).
 
 ### Promotional text · טקסט קידום (App Store 170)
 ```text
-107 סעיפים במכניקה, אופטיקה, חשמל ומגנטיות — בכל אחד תיאוריה, סימולציה אינטראקטיבית, חידון ובעיה מודרכת. בלי חשבון, בלי פרסומות, ועובד גם בלי אינטרנט.
+115 סעיפים במכניקה, אופטיקה, חשמל ומגנטיות — בכל אחד תיאוריה, סימולציה אינטראקטיבית, חידון ובעיה מודרכת. בלי חשבון, בלי פרסומות, ועובד גם בלי אינטרנט.
 ```
 
 ### Short description · תיאור קצר (Google Play 80)
@@ -55,9 +55,9 @@ here (see CLAUDE.md at the repository root).
 ```text
 פיזיכיף הוא קורס פיזיקה מלא לתיכון, בטלפון: תיאוריה ברורה, סימולציות אינטראקטיביות, חידונים ובעיות מודרכות בחמישה נושאים — לבגרות בפיזיקה, בעברית ובאנגלית.
 
-חמישה נושאים, 107 סעיפים
-• מכניקה — קינמטיקה, וקטורים, כוחות וחוקי ניוטון, חיכוך וקפיצים, סטטיקה, זריקה ותנועה מעגלית, תנע, אנרגיה ותנודות
-• אופטיקה — טבע האור, החזרה ומראות, שבירה, עדשות ומכשירים אופטיים, אופטיקה גלית ואופטיקה מודרנית
+חמישה נושאים, 115 סעיפים
+• מכניקה — קינמטיקה, וקטורים, כוחות וחוקי ניוטון, חיכוך וקפיצים, סטטיקה, זריקה ותנועה מעגלית, תנע, אנרגיה והספק, תנודות, כבידה ולוויינים
+• אופטיקה — טבע האור, החזרה ומראות, שבירה, עדשות ומכשירים אופטיים, אופטיקה גלית, אופטיקה מודרנית, פוטונים, אטומים וגרעינים
 • חשמל סטטי — מטען וחוק קולון, שדה ופוטנציאל, קבלים, מטענים בתנועה
 • מעגלי זרם ישר — זרם והתנגדות, חיבור בטור ובמקביל, מכשירי מדידה וסוללות אמיתיות, חוקי קירכהוף
 • מגנטיות והשראה — שדות מגנטיים, כוחות מגנטיים ומנועים, השראה ושנאים
@@ -87,7 +87,7 @@ here (see CLAUDE.md at the repository root).
 
 ### What's new · מה חדש (App Store 4000, Google Play release notes 500)
 ```text
-הגרסה הראשונה של פיזיכיף: הקורס כולו — חמישה נושאים ו־107 סעיפים — באייפון, באייפד וב־Android, גם בלי אינטרנט.
+הגרסה הראשונה של פיזיכיף: הקורס כולו — חמישה נושאים ו־115 סעיפים — באייפון, באייפד וב־Android, גם בלי אינטרנט.
 ```
 
 ---
@@ -106,7 +106,7 @@ High-school physics, hands-on
 
 ### Promotional text (App Store 170)
 ```text
-107 topics in mechanics, optics, electricity and magnetism, each with theory, an interactive simulation, a quiz and a guided problem. No account, no ads, works offline.
+115 topics in mechanics, optics, electricity and magnetism, each with theory, an interactive simulation, a quiz and a guided problem. No account, no ads, works offline.
 ```
 
 ### Short description (Google Play 80)
@@ -123,9 +123,9 @@ physics,bagrut,mechanics,optics,electricity,magnetism,circuits,kinematics,forces
 ```text
 Physfun is a complete high-school physics course on your phone, in English and in Hebrew: clear theory, interactive simulations, quizzes and guided problems in five subjects. Built for the Bagrut, the Israeli matriculation exam.
 
-FIVE SUBJECTS, 107 TOPICS
-• Mechanics — kinematics, vectors, forces and Newton's laws, friction and springs, statics, projectiles and circular motion, momentum, energy, oscillations
-• Optics — the nature of light, reflection and mirrors, refraction, lenses and optical instruments, wave optics, modern optics
+FIVE SUBJECTS, 115 TOPICS
+• Mechanics — kinematics, vectors, forces and Newton's laws, friction and springs, statics, projectiles and circular motion, momentum, energy and power, oscillations, gravitation and satellites
+• Optics — the nature of light, reflection and mirrors, refraction, lenses and optical instruments, wave optics, modern optics, photons, atoms and nuclei
 • Electrostatics — charge and Coulomb's law, field and potential, capacitors, charges in motion
 • DC circuits — current and resistance, series and parallel, meters and real batteries, Kirchhoff's laws
 • Magnetism and induction — magnetic fields, magnetic forces and motors, induction and transformers
@@ -155,7 +155,7 @@ No account, no ads, no tracking. The app collects nothing and connects to nothin
 
 ### What's new (App Store 4000, Google Play release notes 500)
 ```text
-The first release of Physfun: the whole course — five subjects and 107 topics — on iPhone, iPad and Android, offline.
+The first release of Physfun: the whole course — five subjects and 115 topics — on iPhone, iPad and Android, offline.
 ```
 
 ---

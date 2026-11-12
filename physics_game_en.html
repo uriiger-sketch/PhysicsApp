@@ -1442,8 +1442,15 @@ var APP_LANGS=[
   {code:'he',name:'עברית',file:'physics_game_v28.html'},
   {code:'en',name:'English',file:'physics_game_en.html'}
 ];
-var APP_VERSION='28.45';
+var APP_VERSION='28.46';
 var APP_CHANGELOG=[
+  {v:'28.46',d:'2026-11-12',notes:[
+    `Mechanics, a new chapter — Gravitation and satellites: the law of universal gravitation, a satellite in circular orbit, Kepler’s laws, gravitational energy and escape speed. Every topic has theory, a simulation with missions, a quiz, and a guided problem`,
+    `Mechanics, energy: a new topic — Power and efficiency, with a simulation of a crane lifting a crate`,
+    `Optics, a new chapter — Photons, atoms, and nuclei: the photoelectric effect, the Bohr model and the hydrogen spectrum, radioactivity and half-life`,
+    `Formula sheet: now includes the formulas of power, gravitation, photons, and radioactive decay, and the constants now include Earth’s mass, its radius, and the shortcut hc = 1240 eV·nm`,
+    `The course now has 115 topics in 28 chapters`,
+  ]},
   {v:'28.45',d:'2026-11-11',notes:[
     `Magnetism: two correct quiz answers were shortened, so that the right answer does not stand out by its length`,
   ]},
@@ -3279,11 +3286,18 @@ const MECH_CHAPTERS=[
     {id:'kinetic',title:`Kinetic energy and work`,sub:`Work–energy theorem`},
     {id:'potential',title:`Potential energy`,sub:`Gravitational and elastic`},
     {id:'energy-cons',title:`Conservation of energy`,sub:`Conservative forces`},
+    {id:'power',title:`Power and efficiency`,sub:`P=W/t, P=Fv, efficiency`},
   ]},
   {id:'shm',icon:'〰️',title:`Chapter 10: Harmonic motion`,sections:[
     {id:'shm-def',title:`Oscillations and periodic motion`,sub:`Period, frequency, amplitude`},
     {id:'shm-spring',title:`Mass–spring system`,sub:'T=2π√(m/k)'},
     {id:'pendulum',title:`Simple pendulum`,sub:'T=2π√(L/g)'},
+  ]},
+  {id:'gravitation',icon:'🪐',title:`Chapter 11: Gravitation and satellites`,sections:[
+    {id:'grav-law',title:`The law of universal gravitation`,sub:`F=GMm/r², the acceleration due to gravity g(r)`},
+    {id:'orbits',title:`A satellite in circular orbit`,sub:`v=√(GM/r), period, geostationary satellite`},
+    {id:'kepler',title:`Kepler’s laws`,sub:`Ellipses, equal areas, T²∝a³`},
+    {id:'grav-energy',title:`Gravitational energy and escape speed`,sub:`U=−GMm/r, escape speed`},
   ]},
 ];
 
@@ -3327,6 +3341,11 @@ const OPTICS_CHAPTERS=[
     {id:'polarization',title:`Polarization of light`,sub:`Malus’s law, I=I₀cos²θ`},
     {id:'doppler',title:`The Doppler effect for light`,sub:`Redshift, the expanding universe, speed`},
     {id:'lasers',title:`Lasers — coherent light`,sub:`Stimulated emission, E=hf`},
+  ]},
+  {id:'opt-quantum',icon:'⚛️',title:`Chapter 7: Photons, atoms, and nuclei`,sections:[
+    {id:'photoelectric',title:`The photoelectric effect`,sub:`hf = W + Eₖ, threshold frequency, stopping voltage`},
+    {id:'bohr',title:`The Bohr model and the hydrogen spectrum`,sub:`Eₙ = −13.6/n² eV, the spectral series`},
+    {id:'radioactivity',title:`Radioactivity and half-life`,sub:`α, β, γ and the decay law`},
   ]},
 ];
 
@@ -6178,6 +6197,459 @@ const CONTENT={
        explain:`${tex('\\theta = \\arctan(0.30) \\approx 16.7°')} — <b>smaller</b> than the tipping angle of 26.6°, so the box will slide long before it has a chance to tip over. The two conditions always compete, and the one with the smaller angle is what actually happens.`},
     ]},
 },
+// ════ energy.power ════
+'energy.power':{
+  theory:{
+    title:`Power and efficiency`,
+    html:`
+      <p>Two cranes lift the same load to the same height — one in ten seconds and the other in a minute. Both did <b>the same work</b>; what distinguishes them is the <b>rate</b> at which it was done. This rate is called power.</p>
+      <div class="def-block"><div class="def-title">Power</div>
+        <p>The work done — or the energy converted — per unit time. The unit is the <b>watt</b>: ${M('1\\,\\text{W}=1\\,\\text{J/s}')}. A motor of ${M('1\\,\\text{kW}')} converts a thousand joules every second.</p>
+      </div>
+      ${fBox('P = \\dfrac{W}{t}',`Average power`,[
+        ['P',`Power`,'W',"W"],['W',`Work done`,'J',"J"],['t',`Time interval`,'s',"s"],
+      ])}
+      <p>When a constant force ${M('F')} acts in the direction of motion of an object moving at speed ${M('v')}, the object advances ${M('v')} meters every second, and in that second the force does work ${M('F\\cdot v')}:</p>
+      ${fBox('P = F\\,v',`Instantaneous power of a force along the motion`,[
+        ['F',`Component of the force along the velocity`,'N',"N"],['v',`Speed of the object`,'m/s',"m/s"],
+      ])}
+      <div class="mis-block"><b>⚠️ Common misconception:</b> “A more powerful motor does more work.” Not necessarily: the work is set by the task — lifting ${M('m')} to a height of ${M('h')} takes ${M('mgh')}, with any motor. A motor of greater power does <b>the same work in less time</b>. Another common confusion: the kilowatt-hour, despite its name, is not a power but an <b>energy</b> — ${M('1\\,\\text{kWh}=1000\\,\\text{W}\\times3600\\,\\text{s}=3.6\\times10^{6}\\,\\text{J}')}.</div>
+      <div class="def-block"><div class="def-title">Efficiency</div>
+        <p>No machine turns all the energy it receives into useful work: part of it always becomes heat. The <b>efficiency</b> is the useful fraction.</p>
+      </div>
+      ${fBox('\\eta = \\dfrac{P_{out}}{P_{in}}',`Efficiency`,[
+        ['\\eta',`Efficiency`,`Between 0 and 1, or in percent`,null],['P_{out}',`Useful power`,'W',"W"],['P_{in}',`Input power`,'W',"W"],
+      ])}
+      <div class="info-grid">
+        <div class="info-item"><div class="il">A person walking</div><div class="iv">≈ 100 W</div></div>
+        <div class="info-item"><div class="il">A professional cyclist</div><div class="iv">≈ 400 W</div></div>
+        <div class="info-item"><div class="il">One horsepower</div><div class="iv">746 W</div></div>
+        <div class="info-item"><div class="il">A car engine</div><div class="iv">≈ 100 kW</div></div>
+      </div>
+      <div class="ex-block"><div class="ex-title">✏️ Example — a car going uphill</div>
+      <p class="ex-given">A car of mass ${M('1200\\,\\text{kg}')} climbs at a constant speed of ${M('15\\,\\text{m/s}')} on a road with a slope of ${M('\\sin\\theta=0.1')}. The resistance force (air and rolling) is ${M('600\\,\\text{N}')}. Take ${M('g=10\\,\\text{m/s}^2')}.</p>
+      <ol class="ex-steps">
+        <li>The speed is constant, so the driving force balances the component of gravity and the resistance: ${M('F=mg\\sin\\theta+f=1200\\times10\\times0.1+600=1800\\,\\text{N}')}</li>
+        <li>The power the engine delivers to the wheels: ${M('P=Fv=1800\\times15=27{,}000\\,\\text{W}=27\\,\\text{kW}')}</li>
+        <li>Of this, raising the car in height takes ${M('1200\\times15=18\\,\\text{kW}')}; and overcoming the resistance takes ${M('600\\times15=9\\,\\text{kW}')}</li>
+      </ol>
+      <p class="ex-lesson"><b>Takeaway:</b> at constant speed the kinetic energy does not change — all the power becomes potential energy and heat.</p></div>
+    `,
+    enrich:{
+      title:`Why “horsepower”?`,
+      html:`<p>When James Watt set out to sell his steam engine, in the 18th century, customers wanted to know how many horses it would replace. Watt measured horses turning a mill and determined: a horse lifts about ${M('76\\,\\text{kg}')} at a rate of one meter per second, that is, about ${M('746\\,\\text{W}')}.</p>
+      <p>The unit named after him, the watt, replaced the horse — but “horsepower” still appears in the specifications of every car. A healthy person sustains about a tenth of a horsepower over time, and more than a whole horsepower for a few seconds.</p>`
+    }
+  },
+  sim:{type:'power',title:`Power`,desc:`A crane lifts a crate to a height of 10 m at constant speed. Choose a mass and a power and press “▶ Lift”: the work mgh is set by the mass and the height alone, and the power sets how long it takes — and at what speed, v = P/mg.`},
+  example:{title:`The power of a pump`,text:`A pump raises ${M('600\\,\\text{kg}')} of water to a height of ${M('8\\,\\text{m}')} every minute. Take ${M('g=10\\,\\text{m/s}^2')}.`,steps:[
+    {q:`How much work does it do in one minute?`,a:`${M('W=mgh=600\\times10\\times8=48{,}000\\,\\text{J}')}`},
+    {q:`What is its useful power?`,a:`${M('P=\\dfrac{W}{t}=\\dfrac{48{,}000}{60}=800\\,\\text{W}')}`},
+    {q:`The pump draws 1000 W of electrical power. What is its efficiency?`,a:`${M('\\eta=\\dfrac{800}{1000}=0.8')}, that is, 80%. A fifth of the electrical energy becomes heat.`},
+  ]},
+  quiz:[
+    {q:`A motor does ${tex('600\\,\\text{J}')} of work in ${tex('4\\,\\text{s}')}. What is its power?`,
+     opts:[tex('2400\\,\\text{W}'),tex('150\\,\\text{W}'),tex('604\\,\\text{W}'),tex('0.0067\\,\\text{W}')],correct:1,
+     explain:`${tex('P=W/t=600/4=150\\,\\text{W}')}. Multiplying instead of dividing gives 2400 — but that is a number in units of J·s, not a power.`},
+    {q:`Two students of equal mass climb the same flight of stairs. Dana climbs it in half of Yoav’s time. Which statement is correct?`,
+     opts:[`Dana did double the work`,`Equal work; Dana has double the power`,`Equal work and equal power`,`Equal work; Yoav has double the power`],correct:1,
+     explain:`The work against gravity is mgh — the same mass and the same height, so the same work. Power is the work divided by the time: half the time means double the power. That is why running up stairs is more tiring than walking, although the work is the same.`},
+    {q:`A car travels at a constant speed of ${tex('20\\,\\text{m/s}')} against a resistance force of ${tex('500\\,\\text{N}')}. What power does the engine deliver to the wheels?`,
+     opts:[tex('25\\,\\text{W}'),tex('10\\,\\text{kW}'),tex('520\\,\\text{W}'),tex('100\\,\\text{kW}')],correct:1,
+     explain:`The speed is constant, so the driving force equals the resistance, 500 N. ${tex('P=Fv=500\\times20=10{,}000\\,\\text{W}=10\\,\\text{kW}')}. All of this power becomes heat in the air and the tires.`},
+    {q:`The kilowatt-hour (kWh) is a unit of:`,
+     opts:[`Power`,`Energy`,`Time`,`Force`],correct:1,
+     explain:`Power times time is energy: ${tex('1\\,\\text{kWh}=1000\\,\\text{W}\\times3600\\,\\text{s}=3.6\\times10^6\\,\\text{J}')}. The electricity bill is measured in kWh because you pay for energy, not for power.`},
+    {q:`An engine runs at constant power. As the car accelerates, the driving force it supplies:`,
+     opts:[`Increases`,`Decreases`,`Stays constant`,`Drops to zero at once`],correct:1,
+     explain:`${tex('P=Fv')}, so at constant power ${tex('F=P/v')} decreases as the speed increases. That is why a car accelerates sharply from rest and barely at high speed — and why it has a top speed: the one at which the driving force drops to the resistance force.`},
+    {q:`An electric motor draws ${tex('500\\,\\text{W}')} and lifts a load with a useful power of ${tex('400\\,\\text{W}')}. What is its efficiency, and what happens to the rest?`,
+     opts:[`80%; the rest becomes heat`,`125%; the rest is stored in the motor`,`20%; the rest becomes heat`,`80%; the rest vanishes`],correct:0,
+     explain:`${tex('\\eta=400/500=0.8')}. The remaining hundred watts do not vanish — energy is conserved — they become heat in the coils and the bearings. An efficiency greater than 100% would violate conservation of energy.`},
+  ],
+  problem:{
+    title:`A crane at the port`,
+    text:`A crane lifts a container of mass 400 kg to a height of 15 m at constant speed, in 30 s. Take ${M('g=10\\,\\text{m/s}^2')}.`,
+    steps:[
+      {q:`How much work ${M('W')} does the crane do on the container?`,
+       nudge:`At constant speed the crane’s force equals the container’s weight, and it acts along the whole height.`,
+       hint:`The work against gravity is the weight times the height: ${M('W=mgh=400\\times10\\times15')}`,answer:'60000',unit:'J',tolerance:600,
+       explain:`${M('W=mgh=400\\times10\\times15=60{,}000\\,\\text{J}')}. This work does not depend on how long the lift takes: a slow crane would do exactly the same work.`},
+      {q:`What is the crane’s useful power ${M('P')}?`,
+       nudge:`Power is the rate of doing work: how many joules every second.`,
+       hint:`The work divided by the time it took: ${M('P=W/t=60{,}000/30')}`,answer:'2000',unit:'W',tolerance:20,
+       explain:`${M('P=W/t=60{,}000/30=2000\\,\\text{W}')}. Another way: the lifting speed is ${M('v=15/30=0.5\\,\\text{m/s}')} and the force is ${M('F=mg=4000\\,\\text{N}')}, so ${M('P=Fv=4000\\times0.5=2000\\,\\text{W}')} ✓.`},
+      {q:`The crane’s motor draws an electrical power of 2500 W. What is its efficiency, in percent?`,
+       nudge:`What fraction of the power the motor receives becomes useful power?`,
+       hint:`The useful power divided by the input power: ${M('\\eta=2000/2500')}`,answer:'80',unit:'%',tolerance:1,
+       explain:`${M('\\eta=2000/2500=0.8')}, that is, 80%. The remaining five hundred watts become heat in the motor and the cables.`},
+    ]
+  }
+},
+// ════ gravitation.grav-law ════
+'gravitation.grav-law':{
+  theory:{
+    title:`The law of universal gravitation`,
+    html:`
+      <p>What keeps the Moon in its orbit? Newton realized that it is <b>the same force</b> that makes an apple fall from the tree: every two objects in the universe attract each other, and the attraction weakens with the square of the distance between them.</p>
+      ${fBox('F = G\\,\\dfrac{m_1 m_2}{r^2}',`The law of universal gravitation`,[
+        ['F',`Force of attraction between the two objects`,'N',"N"],
+        ['G',`Universal gravitational constant`,'6.67×10⁻¹¹ N·m²/kg²',null],
+        ['m_1, m_2',`Masses of the two objects`,'kg',"kg"],
+        ['r',`Distance between the centers of the objects`,'m',"m"],
+      ])}
+      <div class="def-block"><div class="def-title">Three properties of the gravitational force</div>
+        <p>• It is always <b>attractive</b>, and acts along the line joining the centers of the objects.<br>
+        • It acts on both objects <b>with the same magnitude</b> (the third law): Earth attracts you, and you attract it with exactly the same force.<br>
+        • A spherical object attracts objects outside it as if <b>all its mass were concentrated at its center</b>. That is why ${M('r')} is always measured from Earth’s center, not from the surface.</p>
+      </div>
+      <p>Substitute Earth’s mass ${M('M')} into the law and divide by the mass of the object — and you get the free-fall acceleration at any distance:</p>
+      ${fBox('g = \\dfrac{GM}{r^2}',`Acceleration due to gravity at distance r from a planet’s center`,[
+        ['g',`Free-fall acceleration`,`m/s² — on Earth’s surface 9.8`,"m/s²"],
+        ['M',`Mass of the planet`,'kg',"kg"],
+        ['r',`Distance from the planet’s center`,'m',"m"],
+      ])}
+      <div class="mis-block"><b>⚠️ Common misconception:</b> “At a height of 400 km, substitute r = 400 km.” The distance is measured <b>from the center</b>: ${M('r=R+h=6370+400=6770\\,\\text{km}')}. So at the height of the space station gravity is only 11% weaker than on the ground — ${M('g\\approx8.7\\,\\text{m/s}^2')} — and not “zero.” For gravity to drop to a quarter you must move out to ${M('r=2R')}, that is, to a height of one full Earth radius.</div>
+      <div class="info-grid">
+        <div class="info-item"><div class="il">r ↑ ×2</div><div class="iv">F ↓ ×4</div></div>
+        <div class="info-item"><div class="il">r ↑ ×3</div><div class="iv">F ↓ ×9</div></div>
+        <div class="info-item"><div class="il">m₁ ↑ ×2</div><div class="iv">F ↑ ×2</div></div>
+        <div class="info-item"><div class="il">Both masses ↑ ×2</div><div class="iv">F ↑ ×4</div></div>
+      </div>
+      <div class="ex-block"><div class="ex-title">✏️ Example — weighing the Earth</div>
+      <p class="ex-given">On Earth’s surface ${M('g=9.8\\,\\text{m/s}^2')}, and its radius is ${M('R=6.37\\times10^{6}\\,\\text{m}')}. What is its mass?</p>
+      <ol class="ex-steps">
+        <li>On the surface ${M('g=\\dfrac{GM}{R^2}')}, so ${M('M=\\dfrac{gR^2}{G}')}</li>
+        <li>Substitute: ${M('M=\\dfrac{9.8\\times(6.37\\times10^{6})^2}{6.67\\times10^{-11}}\\approx5.96\\times10^{24}\\,\\text{kg}')}</li>
+      </ol>
+      <p class="ex-lesson"><b>Takeaway:</b> once ${M('G')} is known, a measurement of ${M('g')} and of a planet’s radius “weighs” it.</p></div>
+    `,
+    enrich:{
+      title:`How is G measured?`,
+      html:`<p>Gravity between objects of human size is astonishingly weak, which is why ${M('G')} was measured only in 1798, more than a hundred years after Newton. Henry Cavendish hung a rod with two small lead balls at its ends from a thin fiber, and brought two large lead balls close to them. The attraction — about the weight of a grain of sand — twisted the fiber slightly, and from the angle of twist he calculated the force.</p>
+      <p>Cavendish called the experiment “weighing the Earth”: with ${M('G')} in hand, ${M('g=GM/R^2')} gives the mass of Earth, and from it its average density — 5.5 times the density of water.</p>`
+    }
+  },
+  sim:{type:'grav-field',title:`The gravitational field`,desc:`Move an object away from Earth and watch its weight and the acceleration due to gravity g = GM/r² decrease with the square of the distance from the center. The graph on the right is g as a function of r; the distance is measured in Earth radii, R = 6370 km.`},
+  example:{title:`The force between Earth and the Moon`,text:`Earth’s mass is ${M('6.0\\times10^{24}\\,\\text{kg}')}, the Moon’s mass is ${M('7.3\\times10^{22}\\,\\text{kg}')}, and the distance between their centers is ${M('3.8\\times10^{8}\\,\\text{m}')}.`,steps:[
+    {q:`What force does Earth exert on the Moon?`,a:`${M('F=\\dfrac{Gm_1m_2}{r^2}=\\dfrac{6.67\\times10^{-11}\\times6.0\\times10^{24}\\times7.3\\times10^{22}}{(3.8\\times10^{8})^2}\\approx2.0\\times10^{20}\\,\\text{N}')}`},
+    {q:`And what force does the Moon exert on Earth?`,a:`Exactly the same force, ${M('2.0\\times10^{20}\\,\\text{N}')}, in the opposite direction — this is the third law. The Moon accelerates much more only because its mass is about 80 times smaller.`},
+  ]},
+  quiz:[
+    {q:`Two objects are moved apart until the distance between their centers has increased by a factor of 2. The gravitational force between them:`,
+     opts:[`Decreases by a factor of 2`,`Decreases by a factor of 4`,`Does not change`,`Increases by a factor of 4`],correct:1,
+     explain:`${tex('F\\propto 1/r^2')}: doubling the distance reduces the force by a factor of ${tex('2^2=4')}. This is what an “inverse-square law” means.`},
+    {q:`Earth attracts the Moon with a force F. With what force does the Moon attract Earth?`,
+     opts:[`Much smaller than F, because the Moon’s mass is small`,`Exactly F`,`Greater than F`,`Zero — only the large object attracts`],correct:1,
+     explain:`The third law: the two forces are equal in magnitude and opposite in direction. In the formula ${tex('F=Gm_1m_2/r^2')}, too, the two masses appear symmetrically — there is no “attractor” and no “attracted.”`},
+    {q:`What is the acceleration due to gravity at a height of one Earth radius above the surface? (On the surface ${tex('g=9.8\\,\\text{m/s}^2')}.)`,
+     opts:[tex('4.9\\,\\text{m/s}^2'),tex('2.45\\,\\text{m/s}^2'),tex('9.8\\,\\text{m/s}^2'),`Zero`],correct:1,
+     explain:`At a height R above the surface the distance from the center is ${tex('r=2R')}, so ${tex('g=9.8/2^2=2.45\\,\\text{m/s}^2')}. The answer 4.9 comes from forgetting the square.`},
+    {q:`A planet has double the mass of Earth and double its radius. The acceleration due to gravity on its surface is:`,
+     opts:[`Double g`,`Equal to g`,`Half of g`,`A quarter of g`],correct:2,
+     explain:`${tex('g=GM/R^2')}: the mass doubles g, and the doubled radius divides it by 4. Altogether ${tex('2/4=\\tfrac12')}.`},
+    {q:`In the law of gravitation, from where is the distance r between Earth and a satellite measured?`,
+     opts:[`From sea level to the satellite`,`From Earth’s center to the satellite`,`From the top of the atmosphere to the satellite`,`From the launch site to the satellite`],correct:1,
+     explain:`A sphere attracts objects outside it as if all its mass were at its center, so r is measured from the center: ${tex('r=R+h')}. On the surface itself ${tex('r=R')} — not zero.`},
+    {q:`The mass of each of two objects is doubled, and so is the distance between them. The gravitational force:`,
+     opts:[`Increases by a factor of 4`,`Increases by a factor of 2`,`Does not change`,`Decreases by a factor of 2`],correct:2,
+     explain:`The product of the masses increases by a factor of 4, and the square of the distance also increases by a factor of 4 — so the ratio ${tex('m_1m_2/r^2')} does not change.`},
+  ],
+  problem:{
+    title:`Gravity on Mars`,
+    text:`The mass of Mars is 6.4×10²³ kg and its radius is 3.4×10⁶ m. Take G = 6.67×10⁻¹¹ N·m²/kg².`,
+    steps:[
+      {q:`What is the acceleration due to gravity ${M('g')} on the surface of Mars?`,
+       nudge:`On the surface, the distance from the planet’s center is its radius. Do not forget to square it.`,
+       hint:`The gravitational constant times the planet’s mass, divided by the radius squared: ${M('g=GM/R^2')}`,answer:'3.69',unit:'m/s²',tolerance:0.05,
+       explain:`${M('g=\\dfrac{GM}{R^2}=\\dfrac{6.67\\times10^{-11}\\times6.4\\times10^{23}}{(3.4\\times10^{6})^2}\\approx3.69\\,\\text{m/s}^2')} — a little more than a third of the value on Earth.`},
+      {q:`What is the weight there of an astronaut whose mass is 80 kg, in newtons?`,
+       nudge:`Mass does not change from place to place; weight is the force the planet exerts on it.`,
+       hint:`The weight is the mass times the local acceleration due to gravity: ${M('W=mg=80\\times3.69')}`,answer:'295',unit:'N',tolerance:3,
+       explain:`${M('W=mg=80\\times3.69\\approx295\\,\\text{N}')}, compared with 784 N on Earth. The mass, 80 kg, has not changed.`},
+      {q:`At what height above the surface of Mars does the acceleration due to gravity drop to a quarter of its surface value? (In meters.)`,
+       nudge:`By what factor must the distance from the center grow for gravity to decrease by a factor of 4? And note: the question asks for the height, not the distance from the center.`,
+       hint:`Gravity is smaller by a factor of 4 at double the distance from the center, and then the height above the surface is: ${M('h=2R-R=R')}`,answer:'3.4e6',unit:'m',tolerance:20000,
+       explain:`${M('g\\propto1/r^2')}, so a quarter of the gravity is obtained at ${M('r=2R')}. The height above the surface is ${M('h=r-R=R=3.4\\times10^{6}\\,\\text{m}')}. The answer ${M('6.8\\times10^{6}')} is the distance from the center, not the height.`},
+    ]
+  }
+},
+
+// ════ gravitation.orbits ════
+'gravitation.orbits':{
+  theory:{
+    title:`A satellite in circular orbit`,
+    html:`
+      <p>A satellite does not “hover” above Earth: it is <b>falling</b> all the time. But it moves sideways so fast that the ground curves away beneath it at the same rate at which it falls — and it never gets any closer.</p>
+      <p>Circular motion requires a centripetal force ${M('mv^2/r')}, and here gravity alone provides it:</p>
+      ${fBox('\\dfrac{GMm}{r^2} = \\dfrac{mv^2}{r} \;\\Rightarrow\; v = \\sqrt{\\dfrac{GM}{r}}',`Speed of a satellite in circular orbit`,[
+        ['v',`Speed of the satellite`,'m/s',"m/s"],
+        ['M',`Mass of Earth (the central body)`,'kg',"kg"],
+        ['r',`Orbit radius, from Earth’s center`,'m',"m"],
+      ])}
+      <p>The satellite’s mass ${M('m')} has canceled: each orbit has one and only one speed, for every satellite. And the <b>lower</b> the orbit, the <b>faster</b> the satellite.</p>
+      ${fBox('T = \\dfrac{2\\pi r}{v} = 2\\pi\\sqrt{\\dfrac{r^3}{GM}}',`Period of a satellite`,[
+        ['T',`Time for one revolution`,'s',"s"],
+        ['r',`Radius of the path`,'m',"m"],
+      ])}
+      <div class="def-block"><div class="def-title">A geostationary satellite</div>
+        <p>A satellite whose period is ${M('24')} hours, above the equator, turns together with Earth and appears from the ground to <b>hang in one place</b> in the sky. The formula gives one and only one orbit: ${M('r\\approx42{,}200\\,\\text{km}')}, that is, a height of about ${M('35{,}800\\,\\text{km}')}. That is where satellite dishes point.</p>
+      </div>
+      <div class="mis-block"><b>⚠️ Common misconception:</b> “Astronauts float because there is no gravity in space.” At the height of the space station ${M('g\\approx8.7\\,\\text{m/s}^2')} — almost as on the ground, and it is this gravity that keeps the station in orbit. The astronauts float because they and the station <b>fall together</b>: no floor pushes on them, so they feel no weight.</div>
+      <div class="info-grid">
+        <div class="info-item"><div class="il">Space station · 400 km</div><div class="iv">7.7 km/s · 92 minutes</div></div>
+        <div class="info-item"><div class="il">GPS satellites · 20,200 km</div><div class="iv">3.9 km/s · 12 hours</div></div>
+        <div class="info-item"><div class="il">Geostationary · 35,800 km</div><div class="iv">3.1 km/s · 24 hours</div></div>
+        <div class="info-item"><div class="il">The Moon · 384,000 km</div><div class="iv">1.0 km/s · 27.3 days</div></div>
+      </div>
+      <div class="ex-block"><div class="ex-title">✏️ Example — the International Space Station</div>
+      <p class="ex-given">The station orbits at a height of ${M('400\\,\\text{km}')}. Use ${M('GM=3.98\\times10^{14}\\,\\text{m}^3/\\text{s}^2')} and ${M('R=6370\\,\\text{km}')}.</p>
+      <ol class="ex-steps">
+        <li>The orbit radius: ${M('r=R+h=6370+400=6770\\,\\text{km}=6.77\\times10^{6}\\,\\text{m}')}</li>
+        <li>The speed: ${M('v=\\sqrt{\\dfrac{GM}{r}}=\\sqrt{\\dfrac{3.98\\times10^{14}}{6.77\\times10^{6}}}\\approx7670\\,\\text{m/s}')}</li>
+        <li>The period: ${M('T=\\dfrac{2\\pi r}{v}=\\dfrac{2\\pi\\times6.77\\times10^{6}}{7670}\\approx5550\\,\\text{s}')} — about 92 minutes</li>
+      </ol>
+      <p class="ex-lesson"><b>Takeaway:</b> the astronauts see 16 sunrises a day — and move at more than 27,000 km/h without feeling a thing.</p></div>
+    `,
+    enrich:{
+      title:`Newton’s cannon`,
+      html:`<p>Newton proposed a thought experiment: place a cannon on a very high mountain and fire a shell horizontally. The faster the shell, the farther away it lands. At a high enough speed — about ${M('7.9\\,\\text{km/s}')} near the ground — the ground curves away beneath it at exactly the rate at which it falls, and it comes back to the cannon from behind.</p>
+      <p>That is a satellite. It falls all the time — and misses Earth. An even higher speed turns the circle into an ellipse, and above ${M('11.2\\,\\text{km/s}')} the shell does not return at all.</p>`
+    }
+  },
+  sim:{type:'orbit',title:`A satellite in circular orbit`,desc:`Choose the satellite’s orbit radius and its mass. Gravity is the centripetal force, so each radius has one speed, v = √(GM/r), and one period. Time in the simulation is sped up: one second is about 23 minutes.`},
+  example:{title:`A geostationary satellite`,text:`A communications satellite follows an orbit of radius ${M('4.22\\times10^{7}\\,\\text{m}')}. Use ${M('GM=3.98\\times10^{14}\\,\\text{m}^3/\\text{s}^2')}.`,steps:[
+    {q:`What is its speed?`,a:`${M('v=\\sqrt{\\dfrac{GM}{r}}=\\sqrt{\\dfrac{3.98\\times10^{14}}{4.22\\times10^{7}}}\\approx3070\\,\\text{m/s}')}`},
+    {q:`What is its period?`,a:`${M('T=\\dfrac{2\\pi r}{v}=\\dfrac{2\\pi\\times4.22\\times10^{7}}{3070}\\approx86{,}400\\,\\text{s}')} — exactly one day, which is why it appears fixed in the sky.`},
+  ]},
+  quiz:[
+    {q:`Which force provides the centripetal force for a satellite orbiting Earth?`,
+     opts:[`The force of the satellite’s engine`,`Earth’s gravitational force`,`The centrifugal force`,`Air resistance`],correct:1,
+     explain:`Above the atmosphere only one force acts on the satellite — gravity — and it always points toward Earth’s center, exactly as a centripetal force must. The engine is off: it is needed only to reach the orbit.`},
+    {q:`A satellite is moved to an orbit whose radius is 4 times larger. Its speed in the new orbit:`,
+     opts:[`Increases by a factor of 2`,`Decreases by a factor of 2`,`Decreases by a factor of 4`,`Does not change`],correct:1,
+     explain:`${tex('v=\\sqrt{GM/r}')}, so ${tex('v\\propto1/\\sqrt r')}: a radius larger by a factor of 4 gives a speed smaller by a factor of ${tex('\\sqrt4=2')}. A high orbit is a slow orbit.`},
+    {q:`Two satellites follow the same orbit. The mass of one is 10 times the mass of the other. Its speed is:`,
+     opts:[`10 times greater than the other’s`,`10 times smaller than the other’s`,`Equal to the other’s speed`,`√10 times greater than the other’s`],correct:2,
+     explain:`In the equality ${tex('GMm/r^2=mv^2/r')} the satellite’s mass cancels. That is why an astronaut who steps out of the space station keeps orbiting beside it, although the astronaut’s mass is thousands of times smaller than the station’s.`},
+    {q:`What is special about a geostationary satellite?`,
+     opts:[`It does not move at all`,`Its period is 24 hours, above the equator`,`It is the satellite closest to Earth`,`The gravitational force does not act on it`],correct:1,
+     explain:`It completes one revolution per day, in the same direction as Earth’s rotation, so it stays above the same point on the equator. It moves at about 3 km/s — only relative to the ground does it appear stationary.`},
+    {q:`What is the speed of a satellite orbiting just above Earth’s surface, ${tex('r\\approx R=6.4\\times10^{6}\\,\\text{m}')}? Take ${tex('g=9.8\\,\\text{m/s}^2')}.`,
+     opts:[tex('11.2\\,\\text{km/s}'),tex('7.9\\,\\text{km/s}'),tex('3.1\\,\\text{km/s}'),tex('63\\,\\text{km/s}')],correct:1,
+     explain:`Near the surface ${tex('GM/R^2=g')}, so ${tex('v=\\sqrt{GM/R}=\\sqrt{gR}=\\sqrt{9.8\\times6.4\\times10^{6}}\\approx7900\\,\\text{m/s}')}. This is the “first cosmic velocity”; 11.2 km/s is the escape speed.`},
+    {q:`Why do astronauts in the space station float?`,
+     opts:[`Because at the station’s height gravity is gone`,`Because they and the station fall together all the time`,`Because space has no air, and so no weight`,`Because the station is very far from any planet`],correct:1,
+     explain:`At the station’s height gravity is only 11% weaker than on the ground. “Weightlessness” means that there is no normal force: the floor falls together with the astronaut and does not push on them — as in an elevator whose cable has snapped.`},
+  ],
+  problem:{
+    title:`An observation satellite`,
+    text:`A satellite follows a circular orbit at a height of 630 km above Earth’s surface. Use R = 6370 km and GM = 4.0×10¹⁴ m³/s².`,
+    steps:[
+      {q:`What is the orbit radius ${M('r')}, in meters?`,
+       nudge:`The orbit radius is measured from Earth’s center, not from the surface.`,
+       hint:`Earth’s radius plus the height, in meters: ${M('r=R+h=6370+630\\,\\text{km}')}`,answer:'7.0e6',unit:'m',tolerance:50000,
+       explain:`${M('r=R+h=6370+630=7000\\,\\text{km}=7.0\\times10^{6}\\,\\text{m}')}. Substituting the height alone in place of r is the most common mistake in satellite problems.`},
+      {q:`What is the satellite’s speed ${M('v')}?`,
+       nudge:`Gravity is the centripetal force. Equate the two and solve for the speed.`,
+       hint:`Setting gravity equal to the centripetal force gives: ${M('v=\\sqrt{GM/r}')}`,answer:'7560',unit:'m/s',tolerance:80,
+       explain:`${M('v=\\sqrt{\\dfrac{GM}{r}}=\\sqrt{\\dfrac{4.0\\times10^{14}}{7.0\\times10^{6}}}\\approx7560\\,\\text{m/s}')} — more than 27,000 km/h.`},
+      {q:`What is the period ${M('T')}, in seconds?`,
+       nudge:`In one revolution the satellite covers the circumference of the orbit at constant speed.`,
+       hint:`The circumference of the orbit divided by the speed: ${M('T=2\\pi r/v')}`,answer:'5820',unit:'s',tolerance:60,
+       explain:`${M('T=\\dfrac{2\\pi r}{v}=\\dfrac{2\\pi\\times7.0\\times10^{6}}{7560}\\approx5820\\,\\text{s}')} — about 97 minutes per revolution.`},
+      {q:`What is the acceleration due to gravity ${M('g')} at the height of the orbit?`,
+       nudge:`This is also the satellite’s centripetal acceleration. It can be computed from the law of gravitation.`,
+       hint:`The acceleration due to gravity at distance r from the center: ${M('g=GM/r^2')}`,answer:'8.16',unit:'m/s²',tolerance:0.1,
+       explain:`${M('g=\\dfrac{GM}{r^2}=\\dfrac{4.0\\times10^{14}}{(7.0\\times10^{6})^2}\\approx8.16\\,\\text{m/s}^2')} — 83% of the value on the ground. Check: ${M('v^2/r=7560^2/(7.0\\times10^{6})\\approx8.16')} ✓ — the satellite really is in free fall.`},
+    ]
+  }
+},
+
+// ════ gravitation.kepler ════
+'gravitation.kepler':{
+  theory:{
+    title:`Kepler’s laws`,
+    html:`
+      <p>At the beginning of the 17th century, decades before Newton, Johannes Kepler found three laws in Tycho Brahe’s tables of observations. Newton later showed that all three follow from the law of gravitation.</p>
+      <div class="def-block"><div class="def-title">The first law — the law of ellipses</div>
+        <p>The orbit of every planet is an <b>ellipse</b>, and the Sun is at one of its two <b>foci</b> — not at its center. The point closest to the Sun is called the <b>perihelion</b>, and the farthest the <b>aphelion</b>. Half the distance between them is the <b>semi-major axis</b> ${M('a')}. A circle is an ellipse whose two foci coincide.</p>
+      </div>
+      <div class="def-block"><div class="def-title">The second law — the law of areas</div>
+        <p>The line joining the planet to the Sun sweeps out <b>equal areas in equal times</b>. So a planet moves <b>fast</b> when it is close to the Sun and <b>slowly</b> when it is far from it.</p>
+      </div>
+      ${fBox('r_p\\,v_p = r_a\\,v_a',`The law of areas at perihelion and aphelion`,[
+        ['r_p, v_p',`Distance from the Sun and speed at perihelion`,'',"m"],
+        ['r_a, v_a',`Distance from the Sun and speed at aphelion`,'',"m"],
+      ])}
+      <div class="def-block"><div class="def-title">The third law — the law of periods</div>
+        <p>The square of the period is proportional to the cube of the semi-major axis — with <b>the same constant</b> for all objects orbiting the same central body.</p>
+      </div>
+      ${fBox('\\dfrac{T^2}{a^3} = \\dfrac{4\\pi^2}{GM}',`Kepler’s third law`,[
+        ['T',`Period`,'s',"s"],
+        ['a',`Semi-major axis (in a circular orbit: the radius)`,'m',"m"],
+        ['M',`Mass of the central body`,'kg',"kg"],
+      ])}
+      <p>Around the Sun it is convenient to measure ${M('T')} in years and ${M('a')} in astronomical units (${M('1\\,\\text{AU}')} is Earth’s average distance from the Sun). Then the constant is 1, and ${M('T^2=a^3')}.</p>
+      <div class="mis-block"><b>⚠️ Common misconception:</b> “It is hot in summer because Earth is closer to the Sun.” Earth’s orbit is almost circular — the distance from the Sun changes by only 3% — and it is in early January, in the northern hemisphere’s winter, that Earth is closest to it. The seasons come from the tilt of Earth’s rotation axis, not from the distance.</div>
+      <div class="info-grid">
+        <div class="info-item"><div class="il">Mercury · 0.39 AU</div><div class="iv">0.24 years</div></div>
+        <div class="info-item"><div class="il">Earth · 1 AU</div><div class="iv">One year</div></div>
+        <div class="info-item"><div class="il">Mars · 1.52 AU</div><div class="iv">1.88 years</div></div>
+        <div class="info-item"><div class="il">Jupiter · 5.2 AU</div><div class="iv">11.9 years</div></div>
+      </div>
+      <div class="ex-block"><div class="ex-title">✏️ Example — the Martian year</div>
+      <p class="ex-given">The semi-major axis of the orbit of Mars is ${M('1.52\\,\\text{AU}')}. How long does a year on Mars last?</p>
+      <ol class="ex-steps">
+        <li>In units of years and AU: ${M('T^2=a^3=1.52^3\\approx3.51')}</li>
+        <li>Take the square root: ${M('T=\\sqrt{3.51}\\approx1.87')} Earth years</li>
+      </ol>
+      <p class="ex-lesson"><b>Takeaway:</b> knowing the size of the orbit is enough to know the period — the planet’s mass and the shape of the orbit make no difference.</p></div>
+    `,
+    enrich:{
+      title:`Halley’s comet`,
+      html:`<p>Edmond Halley noticed that comets seen in 1531, in 1607, and in 1682 had followed the same orbit, and concluded that they were one comet that returns every 76 years. From the third law: ${M('a=T^{2/3}=76^{2/3}\\approx18\\,\\text{AU}')}.</p>
+      <p>The orbit is a very elongated ellipse: at perihelion the comet is closer to the Sun than Venus, ${M('0.59\\,\\text{AU}')}, and at aphelion it is farther from it than Neptune, ${M('35\\,\\text{AU}')}. By the law of areas it sweeps past the Sun 60 times faster than it moves at the far end — which is why it is visible for only a few months in each revolution. The next visit: 2061.</p>`
+    }
+  },
+  sim:{type:'kepler',title:`Kepler’s laws`,desc:`A planet orbits the Sun in an elliptical orbit. Change the semi-major axis a and the eccentricity e (how elongated the ellipse is). The two colored triangles are the areas the planet sweeps out in a tenth of the period, near the Sun and far from it — and they are equal. Time is sped up: one year lasts 4 seconds.`},
+  example:{title:`Moons of Jupiter`,text:`The moon Io orbits Jupiter at a radius of ${M('4.2\\times10^{5}\\,\\text{km}')} and completes one revolution in ${M('1.77')} days. The moon Ganymede orbits at a radius of ${M('1.07\\times10^{6}\\,\\text{km}')}.`,steps:[
+    {q:`By what factor is Ganymede’s orbit radius larger?`,a:`${M('\\dfrac{1.07\\times10^{6}}{4.2\\times10^{5}}\\approx2.55')}`},
+    {q:`What is Ganymede’s period?`,a:`Both orbit the same central body, so ${M('T^2\\propto a^3')}: ${M('T=1.77\\times2.55^{3/2}\\approx7.2')} days.`},
+  ]},
+  quiz:[
+    {q:`According to Kepler’s first law, the orbit of a planet is:`,
+     opts:[`A circle with the Sun at its center`,`An ellipse with the Sun at its center`,`An ellipse with the Sun at one focus`,`A parabola with the Sun at its focus`],correct:2,
+     explain:`An ellipse, with the Sun at one of the two foci — not at the center. That is why the distance from the Sun changes along the orbit, and there is a closest point (perihelion) and a farthest point (aphelion).`},
+    {q:`What follows from the law of areas?`,
+     opts:[`A planet moves at constant speed`,`A planet is faster when it is close to the Sun`,`A planet is faster when it is far from the Sun`,`All the planets move at the same speed`],correct:1,
+     explain:`When the planet is close to the Sun the line joining them is short, and to sweep out the same area in the same time it must cover a longer arc — that is, move faster.`},
+    {q:`The semi-major axis of a planet’s orbit is ${tex('4\\,\\text{AU}')}. What is its period?`,
+     opts:[`4 years`,`8 years`,`16 years`,`64 years`],correct:1,
+     explain:`${tex('T^2=a^3=4^3=64')}, so ${tex('T=\\sqrt{64}=8')} years. The answer 64 forgets the square root, and the answer 4 assumes that T is proportional to a.`},
+    {q:`Two satellites orbit Earth. The orbit radius of the second is 4 times larger. Compared with the first, its period is:`,
+     opts:[`Twice as large`,`4 times`,`8 times`,`16 times`],correct:2,
+     explain:`${tex('T\\propto r^{3/2}')}: ${tex('4^{3/2}=\\sqrt{4^3}=8')}. The same calculation works around any central body.`},
+    {q:`What does the constant ${tex('T^2/a^3')} of a planetary system depend on?`,
+     opts:[`On the mass of each planet`,`On the mass of the central body`,`On the shape of the orbit`,`On the speed of the planet`],correct:1,
+     explain:`${tex('T^2/a^3=4\\pi^2/GM')}, and M is the mass of the central body. So all the planets of the Sun have the same constant, and the moons of Jupiter have a different one — which is how Jupiter’s mass is measured.`},
+    {q:`Earth is closest to the Sun in early January. Its orbital speed then is:`,
+     opts:[`The lowest of the year`,`The highest of the year`,`Equal to its speed in July`,`Zero for an instant`],correct:1,
+     explain:`By the law of areas, a planet is fastest at perihelion. That is why winter in the northern hemisphere is a few days shorter than its summer — and it also shows that the seasons are not set by the distance from the Sun.`},
+  ],
+  problem:{
+    title:`The orbit of a comet`,
+    text:`A comet orbits the Sun in an elliptical orbit. At perihelion its distance from the Sun is 2 AU, and at aphelion 34 AU.`,
+    steps:[
+      {q:`What is the semi-major axis ${M('a')} of the orbit, in AU?`,
+       nudge:`The whole major axis stretches from perihelion to aphelion, and the Sun lies on it.`,
+       hint:`Half the sum of the distances at perihelion and at aphelion: ${M('a=(r_p+r_a)/2')}`,answer:'18',unit:'AU',tolerance:0.2,
+       explain:`${M('a=\\dfrac{r_p+r_a}{2}=\\dfrac{2+34}{2}=18\\,\\text{AU}')}. The sum, 36, is the whole major axis.`},
+      {q:`What is the comet’s period ${M('T')}, in years?`,
+       nudge:`Around the Sun, in years and astronomical units, the constant of the third law is 1.`,
+       hint:`From the third law, in years and AU: ${M('T=a^{3/2}')}`,answer:'76.4',unit:`years`,tolerance:1,
+       explain:`${M('T^2=a^3=18^3=5832')}, so ${M('T=\\sqrt{5832}\\approx76.4')} years. This is approximately the period of Halley’s comet.`},
+      {q:`By what factor is the comet’s speed at perihelion greater than its speed at aphelion?`,
+       nudge:`At these two points the velocity is perpendicular to the line to the Sun, and equal areas are swept out in equal times.`,
+       hint:`By the law of areas, the ratio is the inverse of the ratio of the distances: ${M('v_p/v_a=r_a/r_p')}`,answer:'17',unit:`dimensionless`,tolerance:0.5,
+       explain:`${M('r_pv_p=r_av_a')}, so ${M('\\dfrac{v_p}{v_a}=\\dfrac{r_a}{r_p}=\\dfrac{34}{2}=17')}. The comet sweeps past the Sun at high speed, and spends most of its revolution moving slowly at the far end.`},
+    ]
+  }
+},
+
+// ════ gravitation.grav-energy ════
+'gravitation.grav-energy':{
+  theory:{
+    title:`Gravitational energy and escape speed`,
+    html:`
+      <p>The formula ${M('E_p=mgh')} assumes that ${M('g')} is constant, and it is good only close to the surface. A rocket that travels thousands of kilometers away needs the general formula:</p>
+      ${fBox('U = -\\dfrac{GMm}{r}',`Gravitational potential energy`,[
+        ['U',`Potential energy of the two objects`,`J — zero when they are infinitely far apart`,"J"],
+        ['M, m',`Masses of the two objects`,'kg',"kg"],
+        ['r',`Distance between their centers`,'m',"m"],
+      ])}
+      <div class="def-block"><div class="def-title">Why negative?</div>
+        <p>We chose ${M('U=0')} when the objects are infinitely far apart. Separating them takes an <b>input</b> of energy, so at every finite distance the energy is below zero. A negative total energy means a <b>bound</b> system: the object cannot move away to infinity.</p>
+      </div>
+      <p>When gravity alone acts, the total energy is conserved:</p>
+      ${fBox('\\tfrac12mv^2 - \\dfrac{GMm}{r} = \\text{const}',`Conservation of energy in a gravitational field`,[
+        ['v',`Speed of the object at distance r`,'m/s',"m/s"],
+      ])}
+      <p>An object “escapes” if its total energy is not negative. The lowest speed that suffices, for a launch from the surface of a planet of radius ${M('R')}, follows from ${M('\\tfrac12mv^2-GMm/R=0')}:</p>
+      ${fBox('v_{esc} = \\sqrt{\\dfrac{2GM}{R}}',`Escape speed`,[
+        ['v_{esc}',`Escape speed from the planet’s surface`,`m/s — from Earth 11.2 km/s`,"m/s"],
+        ['M, R',`Mass and radius of the planet`,'',null],
+      ])}
+      <div class="def-block"><div class="def-title">The energy of a satellite in circular orbit</div>
+        <p>In a circular orbit ${M('v^2=GM/r')}, so the kinetic energy is ${M('GMm/2r')} — half the magnitude of the potential energy — and the total energy is ${M('E=-\\dfrac{GMm}{2r}')}. A higher orbit is a <b>slower</b> orbit, but one with a <b>greater</b> total energy. From this it also follows that ${M(`v_{esc}=\\sqrt2\\,v_{\\text{circular}}`)}.</p>
+      </div>
+      <div class="mis-block"><b>⚠️ Common misconception:</b> “A spacecraft must move at 11.2 km/s to leave Earth.” The escape speed is the speed needed by an object that <b>has no engine</b> — a projectile fired from the surface that then coasts. A spacecraft whose engine keeps running can move away slowly, at any speed. Also: the escape speed does not depend on the mass of the launched object, nor on the direction of launch.</div>
+      <div class="info-grid">
+        <div class="info-item"><div class="il">The Moon</div><div class="iv">2.4 km/s</div></div>
+        <div class="info-item"><div class="il">Mars</div><div class="iv">5.0 km/s</div></div>
+        <div class="info-item"><div class="il">Earth</div><div class="iv">11.2 km/s</div></div>
+        <div class="info-item"><div class="il">Jupiter</div><div class="iv">60 km/s</div></div>
+      </div>
+      <div class="ex-block"><div class="ex-title">✏️ Example — how far will it go?</div>
+      <p class="ex-given">An object is fired vertically from Earth’s surface at a speed of ${M('8\\,\\text{km/s}')}, with no air resistance. Use ${M('GM=3.98\\times10^{14}\\,\\text{m}^3/\\text{s}^2')} and ${M('R=6.37\\times10^{6}\\,\\text{m}')}.</p>
+      <ol class="ex-steps">
+        <li>At the peak the speed is zero, so: ${M('\\tfrac12v^2-\\dfrac{GM}{R}=-\\dfrac{GM}{r_{max}}')} (the mass has canceled)</li>
+        <li>Substitute: ${M('\\tfrac12(8000)^2-\\dfrac{3.98\\times10^{14}}{6.37\\times10^{6}}=3.2\\times10^{7}-6.25\\times10^{7}=-3.05\\times10^{7}\\,\\text{J/kg}')}</li>
+        <li>From this: ${M('r_{max}=\\dfrac{3.98\\times10^{14}}{3.05\\times10^{7}}\\approx1.3\\times10^{7}\\,\\text{m}')} — about two Earth radii, that is, a height of about ${M('6700\\,\\text{km}')}</li>
+      </ol>
+      <p class="ex-lesson"><b>Takeaway:</b> a calculation with ${M('mgh')} would give ${M('h=v^2/2g\\approx3260\\,\\text{km}')} — less than half. As the object rises, gravity weakens, and it travels farther.</p></div>
+    `,
+    enrich:{
+      title:`A black hole`,
+      html:`<p>The escape speed increases when the same mass is compressed into a smaller radius. What happens when it reaches the speed of light? In 1783 John Michell calculated the radius at which this happens, and general relativity gives exactly the same expression:</p>
+      <div class="enrich-formula">${tex('r_s = \\dfrac{2GM}{c^2}', true)}</div>
+      <p>An object compressed to below this radius is a <b>black hole</b>: not even light gets out of it. For the Sun ${M('r_s\\approx3\\,\\text{km}')}; for Earth — less than one centimeter.</p>`
+    }
+  },
+  sim:{type:'grav-escape',title:`Escape speed`,desc:`Launch an object vertically from the surface of a planet, with no air. The graph on the right is the energy per unit mass: the curve is the potential energy −GM/r, and the horizontal line is the total energy, which is conserved. The object turns back where the two meet — and if the line is not below zero, it does not return. Time is sped up: by a factor of 900 near the surface, and more as the object moves away.`},
+  example:{title:`The escape speed from Earth`,text:`Use ${M('GM=3.98\\times10^{14}\\,\\text{m}^3/\\text{s}^2')} and ${M('R=6.37\\times10^{6}\\,\\text{m}')}.`,steps:[
+    {q:`What is the escape speed from Earth’s surface?`,a:`${M('v_{esc}=\\sqrt{\\dfrac{2GM}{R}}=\\sqrt{\\dfrac{2\\times3.98\\times10^{14}}{6.37\\times10^{6}}}\\approx1.12\\times10^{4}\\,\\text{m/s}')} — 11.2 km/s.`},
+    {q:`And what is the speed of a satellite orbiting just above the surface?`,a:`${M('v=\\sqrt{\\dfrac{GM}{R}}\\approx7.9\\,\\text{km/s}')} — smaller than the escape speed by a factor of ${M('\\sqrt2')}.`},
+  ]},
+  quiz:[
+    {q:`The gravitational potential energy of a satellite, ${tex('U=-GMm/r')}, is:`,
+     opts:[`Positive, and increases with distance`,`Negative, and rises toward zero as the distance grows`,`Negative, and drops further as the distance grows`,`Zero on Earth’s surface`],correct:1,
+     explain:`The zero is set at infinity, and moving the satellite away takes energy. So U is negative at every finite distance, and it increases — becomes less negative — as the distance grows.`},
+    {q:`What does the escape speed from a planet depend on?`,
+     opts:[`On the mass of the launched object alone`,`On the planet’s mass and its radius`,`On the direction of launch alone`,`On the shape of the launched object`],correct:1,
+     explain:`${tex('v_{esc}=\\sqrt{2GM/R}')}: only the planet’s mass and radius. The mass of the launched object cancels in the energy equation, and energy is a scalar — the direction does not matter.`},
+    {q:`What is the ratio of the escape speed from a planet’s surface to the speed of a satellite orbiting just above its surface?`,
+     opts:[`Are equal`,`√2 times as large`,`Twice as large`,`4 times`],correct:1,
+     explain:`${tex('v_{esc}=\\sqrt{2GM/R}')} and ${tex('v=\\sqrt{GM/R}')}, so the ratio is ${tex('\\sqrt2\\approx1.41')}. For Earth: 11.2 km/s compared with 7.9 km/s.`},
+    {q:`An object is fired from Earth’s surface at a speed of ${tex('15\\,\\text{km/s}')} (the escape speed is ${tex('11.2\\,\\text{km/s}')}). What is its speed very far from Earth?`,
+     opts:[tex('3.8\\,\\text{km/s}'),tex('10\\,\\text{km/s}'),tex('15\\,\\text{km/s}'),`Zero`],correct:1,
+     explain:`Energy, not speed, is what is conserved: ${tex('\\tfrac12v_\\infty^2=\\tfrac12v_0^2-\\tfrac12v_{esc}^2')}, so ${tex('v_\\infty=\\sqrt{15^2-11.2^2}\\approx10\\,\\text{km/s}')}. Simple subtraction, 3.8, is wrong — it is the squares that are subtracted.`},
+    {q:`A satellite is moved from a low circular orbit to a high circular orbit. What happens to its speed and to its total energy?`,
+     opts:[`Both increase`,`The speed decreases, and the total energy increases`,`The speed increases, and the total energy decreases`,`Both decrease`],correct:1,
+     explain:`${tex('v=\\sqrt{GM/r}')} decreases, but ${tex('E=-GMm/2r')} increases — becomes less negative. That is why an engine must fire to climb to a higher orbit, even though the satellite ends up moving more slowly there.`},
+    {q:`When may a change in potential energy be computed with ${tex('mgh')}?`,
+     opts:[`Always, at any height and on any planet`,`When the height is much smaller than the planet’s radius`,`Only on Earth’s surface, and not on any other planet`,`Only when the object is at rest`],correct:1,
+     explain:`${tex('mgh')} assumes that g is constant all the way. That is an excellent approximation as long as ${tex('h\\ll R')} — at a height of 10 km the error is about one and a half thousandths — and completely wrong at a height of thousands of kilometers.`},
+  ],
+  problem:{
+    title:`A launch from the Moon’s surface`,
+    text:`An object is fired vertically from the Moon’s surface at a speed of 1500 m/s. For the Moon, GM = 4.9×10¹² m³/s² and the radius is R = 1.74×10⁶ m.`,
+    steps:[
+      {q:`What is the object’s total energy per unit mass, ${M('E/m')}, at the moment of launch? (In J/kg, with its sign.)`,
+       nudge:`The total energy is kinetic plus potential — and the gravitational potential energy is negative.`,
+       hint:`Half the speed squared, minus GM over the radius: ${M('E/m=\\tfrac12v^2-GM/R')}`,answer:'-1.69e6',unit:'J/kg',tolerance:20000,
+       explain:`${M('\\dfrac{E}{m}=\\tfrac12(1500)^2-\\dfrac{4.9\\times10^{12}}{1.74\\times10^{6}}=1.125\\times10^{6}-2.816\\times10^{6}\\approx-1.69\\times10^{6}\\,\\text{J/kg}')}. The energy is negative: the object is bound to the Moon, and it will return.`},
+      {q:`What distance ${M('r_{max}')} from the Moon’s center does the object reach, in meters?`,
+       nudge:`At the farthest point the object stops for an instant, and all its energy is potential.`,
+       hint:`At the peak the speed is zero, so the energy per unit mass there is: ${M('E/m=-GM/r_{max}')}`,answer:'2.9e6',unit:'m',tolerance:30000,
+       explain:`${M('r_{max}=\\dfrac{GM}{|E/m|}=\\dfrac{4.9\\times10^{12}}{1.69\\times10^{6}}\\approx2.9\\times10^{6}\\,\\text{m}')} — a height of about 1160 km above the Moon’s surface. A calculation with ${M('mgh')} would give only 695 km.`},
+      {q:`What is the escape speed ${M('v_{esc}')} from the Moon’s surface?`,
+       nudge:`Find the lowest speed at which the total energy is not negative.`,
+       hint:`The condition of zero total energy gives: ${M('v_{esc}=\\sqrt{2GM/R}')}`,answer:'2370',unit:'m/s',tolerance:30,
+       explain:`${M('v_{esc}=\\sqrt{\\dfrac{2GM}{R}}=\\sqrt{\\dfrac{2\\times4.9\\times10^{12}}{1.74\\times10^{6}}}\\approx2370\\,\\text{m/s}')} — about a fifth of the escape speed from Earth. That is why the Moon has no atmosphere: gas molecules are fast enough to escape from it.`},
+    ]
+  }
+},
 };// end CONTENT
 
 // ══════════════════════════════════════════════
@@ -7615,6 +8087,295 @@ const OPTICS_CONTENT={
 },
 
 
+'opt-quantum.photoelectric':{
+  theory:{
+    title:`The photoelectric effect`,
+    html:`
+      <p>Light that hits a metal can release electrons from it. The phenomenon was discovered in 1887, and three of its properties stubbornly refused to fit the picture of light as a continuous wave:</p>
+      <div class="def-block"><div class="def-title">Three observations a wave does not explain</div>
+        <p>• <b>A threshold frequency.</b> Below a certain frequency, which depends on the metal, not a single electron is released — even in very bright light.<br>
+        • <b>The energy depends on the color.</b> The maximum kinetic energy of the electrons increases with the frequency of the light, and does not depend on its intensity at all.<br>
+        • <b>No delay.</b> The electrons are released at once, even in very dim light.</p>
+      </div>
+      <p>In 1905 Einstein proposed that light arrives in packets — <b>photons</b> — each carrying an energy ${M('hf')}. An electron absorbs <b>one</b> photon. Part of the energy is needed to leave the metal, and the rest remains with it as kinetic energy:</p>
+      ${fBox('hf = W + E_{k,max}',`Einstein’s equation for the photoelectric effect`,[
+        ['hf',`Photon energy`,'h = 6.63×10⁻³⁴ J·s',null],
+        ['W',`Work function: the minimum energy to release an electron from the metal`,`eV — a property of the metal`,"J"],
+        ['E_{k,max}',`Maximum kinetic energy of the electron`,'eV',"J"],
+      ])}
+      ${fBox('f_0 = \\dfrac{W}{h}',`Threshold frequency`,[
+        ['f_0',`Lowest frequency that releases electrons`,'Hz',"Hz"],
+      ])}
+      <div class="def-block"><div class="def-title">The stopping voltage</div>
+        <p>A reverse voltage, which slows the electrons, is applied between the plates and increased until the current drops to zero. At this voltage, ${M('V_s')}, even the fastest electron stops just short of the opposite plate, so ${M('eV_s=E_{k,max}')}. In electron volts the relation is especially simple: a stopping voltage of ${M('0.8\\,\\text{V}')} means ${M('E_{k,max}=0.8\\,\\text{eV}')}.</p>
+      </div>
+      ${fBox('eV_s = E_{k,max} = hf - W',`Stopping voltage`,[
+        ['V_s',`Reverse voltage that brings the current to zero`,'V',"V"],
+        ['e',`Elementary charge`,'1.6×10⁻¹⁹ C',"C"],
+      ])}
+      <div class="mis-block"><b>⚠️ Common misconception:</b> “Brighter light gives the electrons more energy.” A greater intensity means <b>more photons</b> per second — and so more electrons and a larger current — but every photon has the same energy ${M('hf')}, and every electron the same maximum energy. Only changing the <b>frequency</b> changes the energy. And below the threshold frequency even a mighty floodlight does not release a single electron.</div>
+      <p>A useful shortcut: ${M('E=\\dfrac{hc}{\\lambda}')}, and in numbers ${M('E\\,[\\text{eV}]=\\dfrac{1240}{\\lambda\\,[\\text{nm}]}')}.</p>
+      <div class="info-grid">
+        <div class="info-item"><div class="il">Cesium</div><div class="iv">W ≈ 2.1 eV</div></div>
+        <div class="info-item"><div class="il">Sodium</div><div class="iv">W ≈ 2.3 eV</div></div>
+        <div class="info-item"><div class="il">Zinc</div><div class="iv">W ≈ 4.3 eV</div></div>
+        <div class="info-item"><div class="il">Copper</div><div class="iv">W ≈ 4.7 eV</div></div>
+      </div>
+      <div class="ex-block"><div class="ex-title">✏️ Example — violet light on sodium</div>
+      <p class="ex-given">Light of wavelength ${M('400\\,\\text{nm}')} hits sodium, whose work function is ${M('2.28\\,\\text{eV}')}.</p>
+      <ol class="ex-steps">
+        <li>The photon energy: ${M('E=\\dfrac{1240}{400}=3.10\\,\\text{eV}')}</li>
+        <li>The maximum kinetic energy: ${M('E_{k,max}=3.10-2.28=0.82\\,\\text{eV}')}</li>
+        <li>The stopping voltage: ${M('V_s=0.82\\,\\text{V}')}</li>
+        <li>The threshold wavelength: ${M('\\lambda_0=\\dfrac{1240}{2.28}\\approx544\\,\\text{nm}')} — green light. Yellow or red light releases nothing from sodium.</li>
+      </ol>
+      <p class="ex-lesson"><b>Takeaway:</b> everything follows from one comparison — the photon energy against the work function.</p></div>
+    `,
+    enrich:{
+      title:`What did Einstein receive the Nobel Prize for?`,
+      html:`<p>Not for the theory of relativity. The Nobel Prize for 1921 was awarded to Einstein “for his discovery of the law of the photoelectric effect.” Robert Millikan, who did not believe in photons, spent ten years measuring the stopping voltage as a function of frequency in order to refute the equation — and obtained a straight line whose slope is ${M('h/e')}, exactly as Einstein had predicted.</p>
+      <p>Today the effect is everywhere: in solar cells, in the sensor of every digital camera, and in the electric eye that opens automatic doors.</p>`
+    }
+  },
+  sim:{type:'photoelectric',desc:`Light hits a metal plate inside a vacuum tube. Choose a metal, a wavelength, and an intensity, and apply a reverse voltage that slows the electrons. The ammeter shows how many of them reach the opposite plate: the frequency determines whether they are released and with what energy, and the intensity determines only how many.`},
+  example:{title:`Will electrons be released?`,text:`Red light of wavelength ${M('650\\,\\text{nm}')} hits cesium, whose work function is ${M('2.1\\,\\text{eV}')}.`,steps:[
+    {q:`What is the photon energy?`,a:`${M('E=\\dfrac{1240}{650}\\approx1.91\\,\\text{eV}')}`},
+    {q:`Will electrons be released?`,a:`No: ${M('1.91\\,\\text{eV}<2.1\\,\\text{eV}')}. No photon has enough energy, and increasing the intensity will not help.`},
+    {q:`From what wavelength will they be released?`,a:`${M('\\lambda_0=\\dfrac{1240}{2.1}\\approx590\\,\\text{nm}')} — orange-yellow light and shorter wavelengths.`},
+  ]},
+  quiz:[
+    {q:`Very bright red light hits a zinc plate and releases no electrons. What will release them?`,
+     opts:[`Even brighter red light`,`Ultraviolet light, even dim`,`Waiting longer`,`Moving the lamp closer to the plate`],correct:1,
+     explain:`Every red photon has an energy of about 1.9 eV, less than the work function of zinc (4.3 eV), and an electron absorbs only one photon. More photons of this kind do not help; a more energetic photon is needed, that is, a higher frequency.`},
+    {q:`The intensity of the light is increased by a factor of 2, without changing its color (above the threshold frequency). What changes?`,
+     opts:[`The maximum energy of the electrons doubles`,`The number of electrons per second doubles`,`The stopping voltage doubles`,`The threshold frequency drops`],correct:1,
+     explain:`Double the intensity is double the number of photons per second, and so double the number of electrons — double the current. The energy of each photon, ${tex('hf')}, has not changed, so the maximum energy and the stopping voltage have not changed either.`},
+    {q:`A photon of ${tex('5.0\\,\\text{eV}')} hits a metal whose work function is ${tex('2.0\\,\\text{eV}')}. What is the maximum kinetic energy of the electron?`,
+     opts:[tex('7.0\\,\\text{eV}'),tex('3.0\\,\\text{eV}'),tex('5.0\\,\\text{eV}'),tex('2.5\\,\\text{eV}')],correct:1,
+     explain:`${tex('E_{k,max}=hf-W=5.0-2.0=3.0\\,\\text{eV}')}. This is the <b>maximum</b> energy: electrons that came from deep inside the metal lost part of it on the way.`},
+    {q:`The maximum kinetic energy of the electrons is ${tex('1.5\\,\\text{eV}')}. What is the stopping voltage?`,
+     opts:[tex('1.5\\,\\text{V}'),tex('2.4\\times10^{-19}\\,\\text{V}'),tex('0.67\\,\\text{V}'),tex('3.0\\,\\text{V}')],correct:0,
+     explain:`${tex('eV_s=E_{k,max}')}. An electron volt is exactly the energy a charge e gains or loses in crossing one volt, so ${tex('1.5\\,\\text{eV}')} are stopped by a voltage of ${tex('1.5\\,\\text{V}')}.`},
+    {q:`The stopping voltage is plotted as a function of the frequency of the light. What is the slope of the straight line?`,
+     opts:[tex('h'),tex('h/e'),tex('W'),tex('e/h')],correct:1,
+     explain:`From ${tex('eV_s=hf-W')} we get ${tex('V_s=(h/e)f-W/e')}: a straight line whose slope is ${tex('h/e')} — the same slope for every metal — and which crosses the frequency axis at the threshold frequency. This is how Millikan measured Planck’s constant.`},
+    {q:`Which observation cannot be explained at all if light is a continuous wave?`,
+     opts:[`Brighter light produces a larger electric current`,`Below a certain frequency, no electrons at any intensity`,`The emitted electrons carry negative charge`,`Light reaches the metal in a straight line`],correct:1,
+     explain:`A continuous wave would transfer energy to the electron gradually, and bright enough light — of any color — would eventually release it. A threshold frequency is explained only if the energy arrives in packets of ${tex('hf')}, and an electron absorbs one packet.`},
+  ],
+  problem:{
+    title:`Ultraviolet light on zinc`,
+    text:`Light of wavelength 250 nm hits a zinc plate, whose work function is 4.3 eV. Use hc = 1240 eV·nm.`,
+    steps:[
+      {q:`What is the photon energy ${M('E')}, in electron volts?`,
+       nudge:`A photon of short wavelength has a large energy. The shortcut in electron volts and nanometers saves the conversions.`,
+       hint:`Divide hc by the wavelength: ${M('E=1240/250')}`,answer:'4.96',unit:'eV',tolerance:0.05,
+       explain:`${M('E=\\dfrac{hc}{\\lambda}=\\dfrac{1240}{250}=4.96\\,\\text{eV}')} — more than the work function of zinc, so electrons are released.`},
+      {q:`What is the maximum kinetic energy ${M('E_{k,max}')} of the electrons?`,
+       nudge:`Part of the photon’s energy is needed to leave the metal. What is left?`,
+       hint:`The photon energy minus the work function: ${M('E_{k,max}=4.96-4.3')}`,answer:'0.66',unit:'eV',tolerance:0.03,
+       explain:`${M('E_{k,max}=hf-W=4.96-4.3=0.66\\,\\text{eV}')}. Most of the photon’s energy went just to leaving the metal.`},
+      {q:`What is the stopping voltage ${M('V_s')}?`,
+       nudge:`Which reverse voltage takes all the kinetic energy from the fastest electron?`,
+       hint:`The stopping voltage in volts equals the maximum kinetic energy in electron volts: ${M('eV_s=E_{k,max}')}`,answer:'0.66',unit:'V',tolerance:0.03,
+       explain:`${M('V_s=E_{k,max}/e=0.66\\,\\text{V}')}. At a larger reverse voltage no electron reaches the opposite plate, and the current is zero.`},
+      {q:`What is the threshold wavelength ${M('\\lambda_0')} of zinc, in nanometers?`,
+       nudge:`At the threshold, all the photon’s energy goes to the work function, and nothing is left for the electron.`,
+       hint:`The wavelength at which the photon energy exactly equals the work function: ${M('\\lambda_0=1240/4.3')}`,answer:'288',unit:'nm',tolerance:3,
+       explain:`${M('\\lambda_0=\\dfrac{hc}{W}=\\dfrac{1240}{4.3}\\approx288\\,\\text{nm}')} — in the ultraviolet. That is why visible light, of any color and at any intensity, releases no electrons from zinc.`},
+    ]
+  }
+},
+
+'opt-quantum.bohr':{
+  theory:{
+    title:`The Bohr model and the hydrogen spectrum`,
+    html:`
+      <p>Hot hydrogen gas does not glow in every color: its spectrum contains only a few sharp <b>lines</b> — a red one, a blue-green one, and two violet ones. And another puzzle: according to classical physics, an electron orbiting a nucleus should radiate energy without pause and collapse into the nucleus within a fraction of a second. Atoms should not exist at all.</p>
+      <div class="def-block"><div class="def-title">Bohr’s postulates (1913)</div>
+        <p>• The electron can exist only in certain <b>allowed orbits</b>, each with a definite energy. In an allowed orbit it <b>does not radiate</b>.<br>
+        • The atom emits or absorbs light only when the electron <b>jumps</b> between two levels — and then <b>one</b> photon is emitted or absorbed, whose energy is exactly the difference between the levels.</p>
+      </div>
+      ${fBox('E_n = -\\dfrac{13.6\\,\\text{eV}}{n^2}',`Energy levels of the hydrogen atom`,[
+        ['n',`Quantum number: 1, 2, 3, …`,`n = 1 is the ground state`,"—"],
+        ['E_n',`Energy of the level`,`eV — negative: the electron is bound`,"J"],
+      ])}
+      ${fBox('hf = E_i - E_f',`Photon energy in a transition between levels`,[
+        ['E_i',`Energy of the initial level`,'',"J"],
+        ['E_f',`Energy of the final level`,'',"J"],
+      ])}
+      <p>A drop to a lower level <b>emits</b> a photon; a rise to a higher level requires the <b>absorption</b> of a photon whose energy exactly equals the difference. Removing the electron completely from the ground state — <b>ionization</b> — takes ${M('13.6\\,\\text{eV}')}.</p>
+      <div class="def-block"><div class="def-title">The spectral series</div>
+        <p>• <b>The Lyman series</b> — drops to ${M('n=1')}: ultraviolet.<br>
+        • <b>The Balmer series</b> — drops to ${M('n=2')}: four lines in visible light — ${M('656')}, ${M('486')}, ${M('434')}, and ${M('410\\,\\text{nm}')}.<br>
+        • <b>The Paschen series</b> — drops to ${M('n=3')}: infrared.</p>
+      </div>
+      <div class="mis-block"><b>⚠️ Common misconception:</b> “An atom can absorb any photon, and rise a little.” An atom absorbs only a photon whose energy <b>exactly matches</b> the difference between two levels (or a photon with enough energy to ionize it). A photon of ${M('11\\,\\text{eV}')} passes through ground-state hydrogen without being absorbed: ${M('10.2\\,\\text{eV}')} would raise the electron to ${M('n=2')} and ${M('12.1\\,\\text{eV}')} to ${M('n=3')} — and there is no level in between. That is why the absorption spectrum of a gas consists of dark lines, exactly at the positions of its emission lines.</div>
+      <div class="info-grid">
+        <div class="info-item"><div class="il">n = 1</div><div class="iv">−13.6 eV</div></div>
+        <div class="info-item"><div class="il">n = 2</div><div class="iv">−3.40 eV</div></div>
+        <div class="info-item"><div class="il">n = 3</div><div class="iv">−1.51 eV</div></div>
+        <div class="info-item"><div class="il">n = 4</div><div class="iv">−0.85 eV</div></div>
+      </div>
+      <div class="ex-block"><div class="ex-title">✏️ Example — the red line of hydrogen</div>
+      <p class="ex-given">An electron in a hydrogen atom drops from ${M('n=3')} to ${M('n=2')}. What is the wavelength of the emitted photon?</p>
+      <ol class="ex-steps">
+        <li>The energies: ${M('E_3=-\\dfrac{13.6}{9}=-1.51\\,\\text{eV}')} and ${M('E_2=-\\dfrac{13.6}{4}=-3.40\\,\\text{eV}')}</li>
+        <li>The photon energy: ${M('hf=E_3-E_2=-1.51-(-3.40)=1.89\\,\\text{eV}')}</li>
+        <li>The wavelength: ${M('\\lambda=\\dfrac{1240}{1.89}\\approx656\\,\\text{nm}')} — red</li>
+      </ol>
+      <p class="ex-lesson"><b>Takeaway:</b> this is the ${M('H_\\alpha')} line, which colors nebulae red throughout the universe. Measuring its wavelength in a distant galaxy reveals how fast the galaxy is receding.</p></div>
+    `,
+    enrich:{
+      title:`Why these orbits in particular? De Broglie’s wave`,
+      html:`<p>Bohr stated which orbits are allowed, but did not explain why. In 1924 Louis de Broglie proposed that a particle, too, has a wavelength:</p>
+      <div class="enrich-formula">${tex('\\lambda = \\dfrac{h}{mv}', true)}</div>
+      <p>An allowed orbit is one in which the electron’s wave “closes” on itself — a whole number of wavelengths in the circumference, ${M('2\\pi r=n\\lambda')} — like a standing wave on a string. In any other orbit the wave would cancel itself. Three years later the diffraction of electrons by a crystal was observed: particles really do behave as waves.</p>`
+    }
+  },
+  sim:{type:'bohr',desc:`A hydrogen atom: choose an initial level and a final level and press “⚡ Transition”. A drop emits a photon, and a rise absorbs one; its energy is the difference between the levels, and its line is marked in the spectrum below. ∞ denotes an electron that has been freed from the atom.`},
+  example:{title:`Absorption from the ground state`,text:`A hydrogen atom is in the ground state, ${M('n=1')}.`,steps:[
+    {q:`What energy will raise it to n = 2?`,a:`${M('E_2-E_1=-3.40-(-13.6)=10.2\\,\\text{eV}')}`},
+    {q:`What is the wavelength of such a photon?`,a:`${M('\\lambda=\\dfrac{1240}{10.2}\\approx122\\,\\text{nm}')} — ultraviolet, the first line of the Lyman series.`},
+    {q:`And what happens to a photon of 9 eV?`,a:`It is not absorbed: there is no level 9 eV above the ground state. The gas is transparent to it.`},
+  ]},
+  quiz:[
+    {q:`One hydrogen atom drops from n = 3 to n = 2, and another from n = 2 to n = 1. In which transition is the photon of greater energy emitted?`,
+     opts:[`From 3 to 2`,`From 2 to 1`,`The same energy in both`,`It depends on the gas temperature`],correct:1,
+     explain:`The levels are not evenly spaced: ${tex('E_2-E_1=10.2\\,\\text{eV}')}, whereas ${tex('E_3-E_2=1.89\\,\\text{eV}')} only. The levels crowd together as you go up, so the jumps to the ground state are the most energetic — in the ultraviolet.`},
+    {q:`What is the energy of a hydrogen atom in the level n = 2?`,
+     opts:[tex('-13.6\\,\\text{eV}'),tex('-6.8\\,\\text{eV}'),tex('-3.4\\,\\text{eV}'),tex('-27.2\\,\\text{eV}')],correct:2,
+     explain:`${tex('E_n=-13.6/n^2')}, so ${tex('E_2=-13.6/4=-3.4\\,\\text{eV}')}. Dividing by n instead of by ${tex('n^2')} gives the wrong answer ${tex('-6.8')}.`},
+    {q:`Why does the emission spectrum of hydrogen gas contain only separate lines?`,
+     opts:[`Because the gas is too thin to emit every color`,`Because the electron is allowed only certain energy levels`,`Because the eye sees only a few colors of the spectrum`,`Because hydrogen itself absorbs the other colors`],correct:1,
+     explain:`Every photon is emitted in a jump between two levels, and its energy is the difference between them. Discrete levels give discrete differences — and so only certain wavelengths. The lines are the “fingerprint” of the element.`},
+    {q:`Which transitions produce the hydrogen lines in visible light (the Balmer series)?`,
+     opts:[`Drops to n = 1`,`Drops to n = 2`,`Drops to n = 3`,`Rises from n = 1`],correct:1,
+     explain:`Drops to ${tex('n=2')} emit photons of 1.9 to 3.4 eV, and the first four lines lie in the visible range. Drops to ${tex('n=1')} are too energetic (ultraviolet), and drops to ${tex('n=3')} are too weak (infrared).`},
+    {q:`What energy is needed to ionize a hydrogen atom that is in the ground state?`,
+     opts:[tex('3.4\\,\\text{eV}'),tex('10.2\\,\\text{eV}'),tex('13.6\\,\\text{eV}'),tex('1.89\\,\\text{eV}')],correct:2,
+     explain:`Ionization means raising the electron from ${tex('E_1=-13.6\\,\\text{eV}')} to zero energy, where it is free. So it takes ${tex('13.6\\,\\text{eV}')} — a photon with a wavelength shorter than 91 nm.`},
+    {q:`A photon of ${tex('11\\,\\text{eV}')} hits a hydrogen atom in the ground state. What happens?`,
+     opts:[`The atom rises to n = 2, and the excess becomes heat`,`The photon is not absorbed`,`The atom is ionized`,`The atom rises to a level between n = 2 and n = 3`],correct:1,
+     explain:`An atom absorbs a whole photon or none at all, and only if the energy exactly matches the difference between levels: 10.2 eV to ${tex('n=2')}, 12.1 eV to ${tex('n=3')}. There is no level 11 eV above the ground state, so the photon continues on its way.`},
+  ],
+  problem:{
+    title:`The blue-green line of hydrogen`,
+    text:`An electron in a hydrogen atom is in the level n = 4 and drops to n = 2. The energy levels are Eₙ = −13.6/n² eV, and hc = 1240 eV·nm.`,
+    steps:[
+      {q:`What is the energy ${M('E_4')} of the level n = 4, in electron volts? (With its sign.)`,
+       nudge:`The energy is negative, and its magnitude decreases with the square of the quantum number.`,
+       hint:`Substitute n = 4 into the level formula: ${M('E_4=-13.6/4^2')}`,answer:'-0.85',unit:'eV',tolerance:0.01,
+       explain:`${M('E_4=-\\dfrac{13.6}{16}=-0.85\\,\\text{eV}')}. The level is close to zero: the electron is only barely bound to the nucleus.`},
+      {q:`What is the energy of the photon emitted in the drop to n = 2?`,
+       nudge:`All the energy the atom loses goes to a single photon.`,
+       hint:`The difference between the two levels: ${M('hf=E_4-E_2=-0.85-(-3.40)')}`,answer:'2.55',unit:'eV',tolerance:0.03,
+       explain:`${M('hf=E_4-E_2=-0.85-(-3.40)=2.55\\,\\text{eV}')}. Mind the signs: a negative number is being subtracted.`},
+      {q:`What is the wavelength ${M('\\lambda')} of the photon, in nanometers?`,
+       nudge:`A greater energy means a shorter wavelength. The shortcut in electron volts and nanometers is useful here.`,
+       hint:`Divide hc by the photon energy: ${M('\\lambda=1240/2.55')}`,answer:'486',unit:'nm',tolerance:4,
+       explain:`${M('\\lambda=\\dfrac{hc}{E}=\\dfrac{1240}{2.55}\\approx486\\,\\text{nm}')} — blue-green. This is the second line of the Balmer series, ${M('H_\\beta')}.`},
+      {q:`What energy is needed to ionize the atom when it is in the level n = 2?`,
+       nudge:`Ionization means raising the electron to zero energy.`,
+       hint:`The distance of the level from zero: ${M('0-E_2=13.6/4')}`,answer:'3.4',unit:'eV',tolerance:0.05,
+       explain:`${M('0-E_2=3.4\\,\\text{eV}')} — a quarter of what is needed in the ground state. An excited atom is much easier to ionize.`},
+    ]
+  }
+},
+
+'opt-quantum.radioactivity':{
+  theory:{
+    title:`Radioactivity and half-life`,
+    html:`
+      <p>Packed into the nucleus of an atom are ${M('Z')} protons and ${M('N')} neutrons; ${M('A=Z+N')} is the <b>mass number</b>. Nuclei with the same ${M('Z')} and a different number of neutrons are <b>isotopes</b> of the same element. Most of the possible combinations are not stable: the nucleus <b>decays</b> by itself, and emits radiation.</p>
+      <div class="def-block"><div class="def-title">Three kinds of radiation</div>
+        <p>• <b>Alpha (α)</b> — a helium nucleus, two protons and two neutrons. ${M('A')} decreases by 4 and ${M('Z')} by 2. Stopped by a sheet of paper.<br>
+        • <b>Beta (β⁻)</b> — a fast electron: a neutron in the nucleus becomes a proton. ${M('A')} does not change and ${M('Z')} increases by 1. Stopped by a thin sheet of aluminum.<br>
+        • <b>Gamma (γ)</b> — a photon of very high energy. ${M('A')} and ${M('Z')} do not change. Only thick lead or concrete weakens it.</p>
+      </div>
+      <p>It is impossible to know <b>when</b> a particular nucleus will decay — but every nucleus of the same kind has the same probability of decaying in each second. So in a large sample <b>the same fraction</b> decays in every time interval:</p>
+      <div class="def-block"><div class="def-title">Half-life</div>
+        <p>The time in which half of the nuclei in the sample decay. After one half-life a half remains, after two a quarter, after three an eighth.</p>
+      </div>
+      ${fBox('N = N_0\\left(\\tfrac12\\right)^{t/T_{1/2}}',`Law of radioactive decay`,[
+        ['N',`Number of nuclei that have not yet decayed`,'',null],
+        ['N_0',`Number of nuclei at the start`,'',null],
+        ['T_{1/2}',`Half-life`,`A property of the isotope`,null],
+      ])}
+      ${fBox('A = \\lambda N,\\quad \\lambda = \\dfrac{\\ln2}{T_{1/2}}',`Activity (the decay rate)`,[
+        ['A',`Number of decays per second`,`Bq (becquerel) — one decay per second`,null],
+        ['\\lambda',`Decay constant: the probability of decay per unit time`,'1/s',"nm"],
+      ])}
+      <p>The activity is proportional to the number of nuclei remaining, so it too is halved in each half-life.</p>
+      <div class="mis-block"><b>⚠️ Common misconception:</b> “After two half-lives the whole sample has decayed.” In the second half-life, half <b>of what remains</b> decays, so a quarter is left — not zero. Also: the decay rate does not depend on the temperature, the pressure, or the chemical state of the material. It is set in the nucleus, and nothing done to the atom from outside reaches there.</div>
+      <div class="info-grid">
+        <div class="info-item"><div class="il">Iodine-131 (medicine)</div><div class="iv">8 days</div></div>
+        <div class="info-item"><div class="il">Cesium-137</div><div class="iv">30 years</div></div>
+        <div class="info-item"><div class="il">Carbon-14 (dating)</div><div class="iv">5730 years</div></div>
+        <div class="info-item"><div class="il">Uranium-238</div><div class="iv">4.5 billion years</div></div>
+      </div>
+      <div class="ex-block"><div class="ex-title">✏️ Example — how old is the wood?</div>
+      <p class="ex-given">A piece of wood from an archaeological site contains a quarter of the amount of carbon-14 found in living wood. The half-life of carbon-14 is ${M('5730')} years.</p>
+      <ol class="ex-steps">
+        <li>A quarter is ${M('\\left(\\tfrac12\\right)^2')}: <b>two</b> half-lives have passed.</li>
+        <li>The age of the wood: ${M('t=2\\times5730=11{,}460')} years.</li>
+      </ol>
+      <p class="ex-lesson"><b>Takeaway:</b> a living plant takes in carbon-14 from the air; once it dies, the clock starts ticking. This is how finds are dated up to an age of about 50,000 years.</p></div>
+    `,
+    enrich:{
+      title:`Where does the energy come from? E = mc²`,
+      html:`<p>The mass of a nucleus is slightly smaller than the sum of the masses of the protons and neutrons that make it up. The “missing mass” is the binding energy of the nucleus: ${M('E=\\Delta m\\,c^2')}.</p>
+      <p>When a heavy nucleus <b>splits</b> in two (fission), or when two light nuclei <b>fuse</b> (fusion), the products are more tightly bound — and a small mass becomes an enormous energy. Fission powers nuclear reactors; fusion lights the Sun, which turns four million tons of matter into light every second.</p>`
+    }
+  },
+  sim:{type:'radioactivity',desc:`A sample of 400 radioactive nuclei. Each nucleus decays at a random moment, but all have the same probability — so the number remaining falls along the curve N₀·(½)^(t/T½). Choose a half-life, start, and pause to read how many remain. Every run differs slightly from the one before.`},
+  example:{title:`Radioactive iodine`,text:`A patient is given a dose of iodine-131, whose half-life is ${M('8')} days. The initial activity is ${M('400\\,\\text{MBq}')}.`,steps:[
+    {q:`What is the activity after 16 days?`,a:`Two half-lives have passed: ${M('400\\times\\left(\\tfrac12\\right)^2=100\\,\\text{MBq}')}`},
+    {q:`After how long does it drop to less than 1% of its initial value?`,a:`${M('\\left(\\tfrac12\\right)^7=\\tfrac1{128}<1\\%')}: after seven half-lives, that is, ${M('56')} days.`},
+  ]},
+  quiz:[
+    {q:`A sample contains 800 radioactive nuclei. About how many remain after three half-lives?`,
+     opts:['100','200',`Zero`,'267'],correct:0,
+     explain:`In each half-life, half of what was there remains: ${tex('800\\to400\\to200\\to100')}, that is, ${tex('800\\times(\\tfrac12)^3')}. Dividing by 3 (267) is wrong — the decay is not linear.`},
+    {q:`A nucleus emits an alpha particle. What happens to the atomic number Z and to the mass number A?`,
+     opts:[`Z decreases by 2, A decreases by 4`,`Z increases by 1, A does not change`,`Z decreases by 4, A decreases by 2`,`Neither of them changes`],correct:0,
+     explain:`An alpha particle is a helium nucleus: two protons and two neutrons. The nucleus loses 2 from its atomic number and 4 from its mass number — and becomes a different element, two places back in the periodic table.`},
+    {q:`In beta decay (β⁻), what happens in the nucleus?`,
+     opts:[`A proton is emitted from the nucleus`,`A neutron becomes a proton, and an electron is emitted`,`An electron from the shell falls into the nucleus`,`The nucleus splits in two`],correct:1,
+     explain:`A neutron becomes a proton, and the electron that is created is emitted at high speed. The mass number does not change, and the atomic number increases by 1. The electron was not in the nucleus beforehand — it is created at the moment of decay.`},
+    {q:`Which radiation penetrates matter most deeply?`,
+     opts:[`Alpha`,`Beta`,`Gamma`,`All to the same extent`],correct:2,
+     explain:`Gamma radiation consists of photons with no charge, and it passes through matter almost without being absorbed; centimeters of lead are needed to weaken it. Alpha radiation, heavy and charged, is stopped by a sheet of paper or by a few centimeters of air.`},
+    {q:`The activity of a sample is 1200 Bq. What will it be after two half-lives?`,
+     opts:['600 Bq','300 Bq',`Zero`,'400 Bq'],correct:1,
+     explain:`The activity is proportional to the number of nuclei remaining, so it too is halved in each half-life: ${tex('1200\\to600\\to300\\,\\text{Bq}')}.`},
+    {q:`A radioactive sample is heated to 1000°C. Its half-life:`,
+     opts:[`Becomes shorter`,`Becomes longer`,`Does not change`,`Drops to zero at once`],correct:2,
+     explain:`The decay takes place in the nucleus, and the energies there are a million times greater than the energies of heat or of chemical bonds. So no ordinary external condition changes the decay rate — and that is what makes it a reliable clock.`},
+  ],
+  problem:{
+    title:`A sample of iodine-131`,
+    text:`The half-life of iodine-131 is 8 days. The initial activity of a sample is 6400 Bq.`,
+    steps:[
+      {q:`How many half-lives pass in 24 days?`,
+       nudge:`Divide the time elapsed by the half-life.`,
+       hint:`The time elapsed divided by the half-life: ${M('24/8')}`,answer:'3',unit:`dimensionless`,tolerance:0,
+       explain:`${M('t/T_{1/2}=24/8=3')} half-lives.`},
+      {q:`What is the activity of the sample after 24 days, in becquerels?`,
+       nudge:`In each half-life the activity is halved — half of what remains, not of the initial amount.`,
+       hint:`Halve three times: ${M('A=6400\\times(\\tfrac12)^3')}`,answer:'800',unit:'Bq',tolerance:8,
+       explain:`${M('A=6400\\times\\left(\\tfrac12\\right)^3=\\dfrac{6400}{8}=800\\,\\text{Bq}')}. Dividing by 3 would give 2133 — but the decay is exponential, not linear.`},
+      {q:`After how many days does the activity drop to 100 Bq?`,
+       nudge:`By what factor must the activity decrease? And how many halvings is that?`,
+       hint:`The ratio is 64, which is two to the sixth power — six half-lives: ${M('6\\times8')}`,answer:'48',unit:`days`,tolerance:0.5,
+       explain:`${M('6400/100=64=2^6')}, so six half-lives are needed: ${M('6\\times8=48')} days.`},
+      {q:`What is the decay constant ${M('\\lambda')} of iodine-131, in units of “per day” (1/day)?`,
+       nudge:`The decay constant is the probability that a nucleus decays per unit time. It is large when the half-life is short.`,
+       hint:`The natural logarithm of 2, divided by the half-life: ${M('\\lambda=\\ln2/T_{1/2}')}`,answer:'0.0866',unit:`per day`,tolerance:0.002,
+       explain:`${M('\\lambda=\\dfrac{\\ln2}{T_{1/2}}=\\dfrac{0.693}{8}\\approx0.0866')} per day — an instantaneous rate of about 8.7% per day. Over a whole day about 8.3% of the nuclei actually decay, because the sample shrinks as it goes.`},
+    ]
+  }
+},
 };// end OPTICS_CONTENT
 
 // Merge optics into main lookup
@@ -10214,7 +10975,7 @@ function getQS(c,s){const k=`${c}.${s}`;var q=state.quizState[k];
 // numerator (\frac12 reads "21" there, "1/2" offline). Over the 642 questions
 // both renderers give every question the same identity.
 var _qidCache=new Map();
-var QID_TABLE={"kinematics.distance-time":["o7cdpz:8gup62:1:4","vgo28b:uoxllk:1:4","rpwesk:3kpqkx:1:4","e2cbmn:1dr4p4l:2:4","1l5wks3:corvj5:1:4","wd5bjo:1cunm50:0:4"],"kinematics.const-velocity":["l9rclq:1s8o2od:1:4","17vswn1:1ui8lu6:1:4","1esayd1:zp7soc:1:4","138vy0i:v59248:1:4","13ca4xf:8pdbi1:2:4","w0ra99:1539knq:0:4"],"kinematics.avg-instant-vel":["aggvfz:ua7kbg:0:4","dywdva:1x1f20q:1:4","55in7h:1ncnvxf:0:4","1kllmhl:1rmxtrh:1:4","zz3qwz:1eqiy6k:1:4","o47mtb:1kdhqjx:1:4"],"kinematics.acceleration":["1u1p7aa:x7vv4k:0:4","1xeivfv:q2wzb4:2:4","1uwh535:1nhim7d:0:4","8nr3ww:10w2voc:2:4","2d9f0o:bpy4em:1:4","1ch9c2r:hi44bn:1:4"],"kinematics.freefall":["1uckzve:12m3jz8:1:4","1dcq24e:qe90dr:0:4","nef7yi:2u1xnz:2:4","1wu97qg:1i6sawa:1:4","4p58j8:1s93nc4:2:4","12hay0i:jucf5s:2:4"],"vectors.vec-intro":["duq4ti:1kmem07:2:4","1etjvdc:fgfjde:2:4","15pe3bv:1g0k6fu:1:4","62v3hq:1w1v5tb:1:4","1lg0bhs:bt731r:1:4","1qkwl57:1nz0wie:2:4"],"forces.inertia":["1coplpz:6ja4hk:2:4","14kcnvo:1vybghk:2:4","11im5x:1nzu85q:2:4","1lb5pht:1wle921:1:4","1ws70m6:16no9jm:1:4","lu9pso:1g293qe:1:4"],"newton2.n2-law":["1s8i1lr:1b24oc1:0:4","1rpo22j:1lacn9q:1:4","34mw3t:14p532i:0:4","1sylwjj:zvul86:1:4","uumpr3:1o30yyf:1:4","1purwxd:ohj3ip:1:4"],"momentum.momentum-def":["jb0jb0:9e1j0w:0:4","r9zf7n:1a3qkpo:1:4","9lgmku:1qb35wn:2:4","90bz4a:186e1h2:1:4","16je1m0:9woctm:1:4","1svgim8:1qwou3z:2:4"],"energy.kinetic":["erh8pd:h1jqt0:0:4","2j5sa8:1uevgff:1:4","1kt2y7f:qtqh2n:1:4","84sfx8:hvtce6:1:4","1r2rq69:cnsvmg:1:4","tgfu8o:tbcglq:1:4"],"shm.shm-spring":["1au9tpn:wzwaer:0:4","3h9thu:1kzu85h:1:4","nyrmwx:1l15c1w:1:4","1a9jlu7:14m2kbw:1:4","18ea6s6:1pp7h69:2:4","wmu7rk:1kse58v:1:4"],"forces.tension":["8bm81y:bbmcns:1:4","1gxjq3z:1i1qc17:2:4","1tx6p53:tp25hv:2:4","tydtxk:va40op:1:4","1kh0z8e:hitxef:1:4","1u74o5o:s037iz:1:4"],"forces.normal-force":["1jl7ydu:1peigjz:2:4","ymkaah:i6y0c1:2:4","66dpls:1l6cyc:2:4","4fwcbf:te4r98:1:4","69jfqj:166jqov:2:4","ix1wts:c292vd:1:4"],"forces.n3-law":["1oljk7y:101jmhz:1:4","ynu0r4:5d3tq0:1:4","mkgex9:15xm7pn:2:4","1qrk08b:8imk2q:2:4","fyatwp:1xkc4i7:1:4","shia6p:1eoxx0n:1:4"],"vectors.vec-ops":["1yhi9e5:zpr961:1:4","18s6cyz:5ij4q8:2:4","mwmwnx:1kk56t5:1:4","izk5x3:14gss1i:1:4","kzsso6:1qodyv4:2:4","53y7ig:xtt3g2:1:4"],"vectors.vec-components":["19ivext:10zjag5:1:4","1kgnxjr:8qo480:1:4","1t7lusr:1poph66:1:4","pb4qnv:ryhxu8:1:4","d60w4:1soougk:1:4","14iiwb:1wffpmy:1:4"],"forces.force-intro":["92epmf:6ox4vd:2:4","n52ptk:1o3yq5q:2:4","9tfuhp:8f8m7z:1:4","1mnm0ah:1lrfl6w:2:4","1lewsr2:1lj10oz:1:4","lap057:tvw348:2:4"],"forces.force-types":["1ypyhu1:1vcdd9d:2:4","t5045a:zavjqx:1:4","p4um2a:1a834t5:1:4","1ivb32m:5e5jx9:2:4","18cr99x:e1fit8:1:4","179u2zx:16794cp:1:4"],"newton2.n2-apps":["ciu112:1eapg6f:0:4","70p2i2:t0skzz:2:4","1axikmy:1h9liit:2:4","mxi5a7:8w5npi:1:4","1j4trtt:19sa1qh:1:4","vm0p6q:108ivp1:1:4"],"newton2.n2-atwood":["29bd5g:kl2c53:0:4","1boeoep:1j5cz6w:0:4","1qx3bc7:1984zam:0:4","1unc4ue:jbd0c8:1:4","5l5q84:5h6tg8:1:4","11t9ghe:7hgqjo:1:4"],"forces2.gravity-force":["1u4lr0u:1yn3xvt:2:4","10u05v8:m5nlfx:2:4","bumk3d:ahks9h:1:4","1urtofh:2w6oxr:1:4","mshh84:8qwkys:2:4","1wxxab9:ies2lx:1:4"],"forces2.spring-force":["1cih7wu:55mmp9:1:4","htsuey:1dns6o8:1:4","1kfq3dt:8vznrv:1:4","1bandef:oiac6w:1:4","152a0mv:1k98m9l:2:4","10rf7ny:tb5yh:2:4"],"forces2.static-friction":["1danhll:4pvptu:1:4","jql6zo:1yndlgh:1:4","1v8ejfc:1p6mbuv:2:4","pq9wwz:1ijv1jq:2:4","h9ucqg:1ji52fr:1:4","d5sq0i:pa10no:1:4"],"forces2.kinetic-friction":["1dpnd2m:t9wttf:1:4","v7bfd0:1wnjs98:2:4","17i8avo:12cj0c5:1:4","602ch4:1e8jelu:1:4","172idxu:1ya8ett:1:4","owkk0p:3ztqc4:1:4"],"forces2.friction-combined":["1lyfi2l:uxuo0o:0:4","1ymvh30:1fv0x6s:2:4","6ayb56:ilo8ev:1:4","bo99g0:wavw6b:1:4","1630wn6:1bv67av:1:4","1qhott5:magia0:1:4"],"momentum.momentum-cons":["xwa470:vmoshj:1:4","qnd6q1:9w1buk:2:4","1ve7p2i:ocxcmi:2:4","12wqy7l:13tg1sf:1:4","2oip5h:10y7kri:1:4","1lkjd2n:otscg1:1:4"],"momentum.collision":["1psv18y:1dqvdwb:2:4","hy4o5n:1nsrm6r:1:4","owe9xo:12jjil1:1:4","6r9te6:1k92s0r:1:4","2ugjfa:1vau4cg:1:4","1d57yvv:xacjl2:1:4"],"energy.potential":["6bj3tk:9q8251:1:4","1cl6b9a:1mbdoxv:0:4","11q5tsv:1maqbfd:1:4","141j3cy:1hurg23:2:4","o1gj99:dwze35:1:4","1nnh2d:1oq1xtv:2:4"],"energy.energy-cons":["1cm5nti:179brh6:1:4","xnedp9:ffh7ip:1:4","1yj4gw7:ao507h:2:4","1nd5av1:uuydsg:2:4","1nhgsoy:1hf7tui:2:4","gz9iai:16isaqn:1:4"],"shm.shm-def":["hedhv9:vdrfkn:1:4","a1f8od:ulj0d6:1:4","v0s08j:1y5dp2h:2:4","15nro88:ydm0jf:1:4","1jy8uav:1y0i66j:2:4","c16gzr:buil1f:2:4"],"shm.pendulum":["1hpibap:1vd2yt4:0:4","1ujqh8j:ecbryf:1:4","7zjefl:1ghhwnv:3:4","odzih5:fs4f2d:1:4","6x335d:ikph1s:1:4","uoaoxw:1mn5sxe:1:4"],"planar.projectile":["ph72ee:10evvku:1:4","cani6m:1ozf52l:2:4","7u4arx:1bjpain:1:4","ltqivs:1trkkzl:2:4","yshdeq:rxjahd:1:4","1ld9vwr:k6tjl5:1:4"],"planar.circular":["1u9ik6p:14534ka:1:4","o8ptrc:14534ka:2:4","1f3hlj7:u1i9zz:2:4","vxwvwl:syl4bo:1:4","vco94d:1kv2wid:1:4","1bjt8uj:70izmx:1:4"],"statics.torque":["jespuw:3rv0ch:0:4","1st701j:1440jmp:0:4","j2mtt4:1387qqx:1:4","1nnoii7:fb1rxa:1:4","1fezqt2:7z9spm:2:4","1wwy5df:18ggbhx:1:4"],"statics.equilibrium":["1xr18at:1c620xv:2:4","1730mob:mrt8du:1:4","10v8j4v:4kale6:2:4","lfnmm8:b7djvf:1:4","1e5cano:v0tr82:0:4","8dhc15:i7g61x:1:4"],"statics.center-mass":["3lj2zz:cqdvkb:0:4","162dppw:luu7ec:1:4","qoo3cj:bep2h3:1:4","14x8apw:5oiy03:1:4","1qnuogu:1selee6:0:4","6ycnol:1quormh:1:4"],"opt-light.light-nature":["147tqg1:1vyty2i:1:4","co0iyw:1rhyp04:3:4","13i4o71:xddqvk:2:4","1t92jkc:l1bgnt:1:4","1xikilh:l03hbw:0:4","382sgc:19xi506:1:4"],"opt-light.light-speed":["mxdaqj:hrc6ep:2:4","c7d7k9:158jt9f:1:4","141ntcl:nz513t:3:4","ba02d4:nxanu3:3:4","px6x8b:1h0nl17:1:4","1srhxvh:183a9zg:1:4"],"opt-reflection.refl-laws":["teqkeu:uds98x:1:4","4vnyxq:1bvmog1:1:4","1kif3wn:6zeyol:0:4","5rpadd:1ir6ogk:2:4","1yt280o:ti3dyt:1:4","147opns:9f2urm:1:4"],"opt-reflection.plane-mirror":["19ymgkh:1dw44qj:2:4","1szx5tu:bwwxie:2:4","8a0l30:dokbgk:2:4","1hpj5wf:1pnovzq:2:4","1gssuar:90h2hz:1:4","34qehg:8lpc3i:1:4"],"opt-reflection.concave-mirror":["bc1p1:bskqg:2:4","cx95bo:ivqyrt:0:4","100yeun:b47ell:2:4","61rjnz:vzokyl:1:4","bbk0eg:1eyg7wz:1:4","121yymq:18dfe9c:1:4"],"opt-reflection.convex-mirror":["294b2x:1j6iqdp:2:4","19t5532:198udps:1:4","1dn1ijv:1g1qm9t:0:4","1b8lz8i:1dt0iif:1:4","irn69h:1emrja0:1:4","9jiezp:1d1sslt:3:4"],"opt-refraction.snell-law":["jz0gp:1pmene:0:4","19wp54:ch9124:1:4","1s48faf:1fjevf5:1:4","1f84q5k:pkjwm4:2:4","9uzp9w:hbi8ge:1:4","1owxno5:1q4anm6:1:4"],"opt-refraction.tir":["1l35asf:wajzd7:2:4","10qs2hv:iftt9k:1:4","54zors:mbhp57:1:4","twup66:1dtci2d:1:4","1vdkp55:1evdbdi:1:4","f799u8:h8kho6:1:4"],"opt-refraction.prism":["j2hxgy:labd9n:1:4","jla6dt:1rhyp04:3:4","oyqdcc:1rhyp04:2:4","1w997fj:15qi8u1:2:4","vdpip6:eag0yc:1:4","5jltqs:1y9gz43:1:4"],"opt-lenses.convex-lens":["1x37b2b:1lignvy:0:4","hgpan2:1r1y8jq:2:4","hkbkqu:17gofo9:1:4","12b81n3:1ve28h1:2:4","x7pu6b:4kaaq:1:4","j9wt2w:8cv8ws:1:4"],"opt-lenses.concave-lens":["1m35hui:193n47h:0:4","txfi2e:slaifi:0:4","xwsdyp:c9nis9:1:4","15yx0co:m9v5k9:1:4","ivotpv:12m1ly9:1:4","9icimb:10htjkx:1:4"],"opt-lenses.lens-eye":["wfck0u:1l5cbla:1:4","1ubuxfz:7yf8pu:1:4","1f7qhcp:odea3z:1:4","ftabd9:1kga4rl:1:4","igowfa:l8q4f2:1:4","1j2drmb:k7hwkm:1:4"],"opt-waves.interference":["8584hq:jk8at:2:4","127enb5:17ipmbt:1:4","1qmtwcp:dabdx6:1:4","za8rsp:9ugaj9:2:4","1qd6z7z:zarbx0:1:4","vj64ni:fqg4r9:1:4"],"opt-waves.youngs-slits":["qgvjy6:1bvfmvv:0:4","l9xg1k:1dijehr:1:4","1yb2lcb:fhpj6x:1:4","enpady:pi6gl:1:4","1vdirlj:1nmppqc:1:4","7mxjvi:tkqdl2:1:4"],"opt-waves.diffraction":["16iu1vz:1xeaw0l:0:4","1hunum6:1uroqh6:2:4","1iqpdlh:vhpnav:2:4","15sa8n8:4gv5ot:1:4","b1a8sq:j2icn7:1:4","ijlfei:99ku2m:1:4"],"opt-light.em-spectrum":["1vtmuoy:1mwcecv:3:4","1w58922:ud0bb:0:4","1pcfnhs:bcikg3:1:4","obc3pe:1d4ain5:1:4","1nm47z0:mjxxth:1:4","1vvcmzx:1tdkxqc:1:4"],"opt-modern.em-spectrum-full":["ywycgf:1asbsyv:1:4","et3c6f:1m7cysc:1:4","1uefaag:djhrkh:1:4","1lwmp8j:142ywim:1:4","a3p6n3:id184i:1:4","xh7j9h:1t0q0is:1:4"],"opt-modern.polarization":["3qmypu:k0ktv6:2:4","12tfn33:17k4kof:3:4","n3cvz:fads53:1:4","r9hmhq:rddj0i:1:4","17urzem:ja8wxv:1:4","7krfh8:1qx0da5:1:4"],"opt-modern.doppler":["10rry9q:wde5ax:1:4","8iyda4:12hrw3w:1:4","xrlkqd:nmktat:1:4","18s4vsu:iplrl5:1:4","2vnl5n:19gu8oj:1:4","16pcuxi:jtgm53:1:4"],"opt-modern.lasers":["kz3ev8:15ywvoe:1:4","12rsqj1:1hp86mk:1:4","111206l:iqwk0j:1:4","1nrrd4t:ur3yg9:2:4","cnrcc:11z2pbz:1:4","uvrjtm:qkaaq:1:4"],"opt-light.color-mixing":["w92hep:1hwtjww:2:4","1n4harr:10hsq4r:1:4","js3c4o:94dh87:2:4","18p0uw7:it3828:1:4","aqfjjq:3g7ztw:1:4","1legb30:1txk1oa:1:4"],"opt-refraction.fiber-optics":["ohhtq2:1go85wu:2:4","1wngimv:yaqpqb:0:4","g9isdk:1buh5nj:1:4","bqhty2:prfvpv:2:4","1b0g5h2:gr3dfv:1:4","41df2v:ijcnio:1:4"],"opt-lenses.telescope":["1d3ou2r:hrnto:1:4","1517xp2:5wpbs7:1:4","11snwyp:ivvwd6:1:4","c4svyq:1sj22z3:1:4","10z99lc:5zoqwi:1:4","zebryb:hb3rwi:1:4"],"opt-waves.thin-film":["bpw45g:1dh8zqc:1:4","1fxbjbq:8erra5:1:4","1c8s3ey:b4rnnm:1:4","jkiddn:cr3f9k:1:4","1p9aj8:5mk0zi:1:4","1ckppwf:dk3mz7:1:4"],"opt-waves.grating":["of2hfh:qfwsrw:0:4","1uag2wi:1ghbhqz:1:4","riyy19:19mgijv:1:4","mrh9pk:6s79om:0:4","ijg1v9:1g0z91d:1:4","ak4kl6:8iu391:1:4"],"elc-charge.elc-basics":["j9qchc:f8qb1s:1:4","wp0mjv:1yess1p:2:4","1bz8pme:103xsqf:1:4","z55cps:1jw044e:1:4","11adlxl:1jr7wy4:1:4","6lbohb:pqagye:1:4"],"elc-charge.elc-coulomb":["nv4pk9:ncqsib:1:4","1yr8jp6:13zofp7:1:4","1ymoqqh:1h5m9py:1:4","f8f38u:8ql0am:2:4","v3dj3k:1evjfag:0:4","jjwe0a:s58lo9:2:4"],"elc-charge.elc-field":["xu1yfr:118dmuh:1:4","dihwxg:1y76bza:1:4","z7n7m0:1fe2ayf:1:4","y4jdx0:1ho1hah:1:4","fksate:9qm15g:2:4","5cppen:1gby4de:1:4"],"elc-charge.elc-plane":["ruk110:41hvnu:1:4","12nyuis:i3rfxf:2:4","6k63y:y89sv1:2:4","1cgir01:xcsa2h:1:4","pf7ujx:jekqiz:1:4","6xpxlp:mttfsq:1:4"],"elc-charge.elc-conductor":["1267l6q:125csng:1:4","1qijr8a:osnfyu:1:4","1w9632y:krubaz:1:4","gg9fxf:79pxzu:1:4","bjsrxb:1wwcyro:1:4","otmpe:92nx4f:1:4"],"elc-energy.elc-network":["1p2o3be:uq8nbo:1:4","9hfpfm:1wbutbu:1:4","8gpyl7:1bay227:1:4","d8conk:kjooxr:2:4","1mhb34o:37tzjh:1:4","13c5xbb:10dzr8h:1:4"],"elc-energy.elc-potential":["1je23y5:1lo3ltt:1:4","4z41kg:isw1xx:1:4","1kw6sv:1msxw8v:1:4","1s1jwyg:1x5a963:0:4","ag6674:1frfq84:1:4","f88yks:k35l4p:1:4"],"elc-energy.elc-upair":["1hd2m0p:1swjwtz:1:4","1028t81:kkbb58:1:4","15bgh8i:1brq97u:1:4","50wzm1:rt389q:1:4","z3srav:c4x818:1:4","20sqbu:1l1554k:1:4"],"elc-energy.elc-sphere":["7eoz9p:19619ao:1:4","e7cbtf:1pr9uh9:1:4","nno0bm:11gi73d:1:4","6760f2:8mbay5:1:4","debb8u:1m38dmd:1:4","1e1o0ky:1kmb4r0:1:4"],"elc-energy.elc-plates":["1m135tp:mmn8to:2:4","zf1ksf:mw9po5:1:4","xl2wpd:1443pgn:2:4","ycpbfz:1x7o1i1:1:4","1baxnyn:a9423q:2:4","1rqzix0:ap2iuw:0:4"],"elc-energy.elc-capacitor":["1ge3xsf:2kb0r7:1:4","bqbc4w:1jhjl9d:1:4","nf17fn:9nkdgh:1:4","r17fks:14534ka:1:4","16ejsz4:clzokz:2:4","1mu8lb5:vhrj82:1:4"],"elc-energy.elc-dielectric":["1ept0h2:1f3efxx:0:4","g61xi9:r86be3:2:4","r6byi5:yyxmcz:1:4","ohei9x:kmda51:1:4","vrlols:1c1dtw7:1:4","1utvf5x:8kizgw:1:4"],"elc-energy.elc-compare":["1gb4n49:9wbu01:1:4","15bbl8r:fpqc49:2:4","6t0xij:rqjaxm:1:4","up9ekf:17ab2es:1:4","1q3cw7w:pe3vb:1:4","naiq0f:10p3d3:1:4"],"elc-motion.elc-deflection":["1u5nzrg:1ytgjwa:2:4","zmrsbm:i2mjy2:2:4","rq7goi:qjle7p:2:4","17e6ufm:ockyl1:1:4","177k96l:1ww4g0b:1:4","1ov5odw:13sjps4:1:4"],"elc-motion.elc-millikan":["1ks0kdk:3let5o:2:4","pkzvmf:d1nd0b:1:4","vnjw03:1bm5rw8:1:4","6zoa2w:16ij3n4:1:4","lkztq7:1yess1p:2:4","1h3d968:1wurvxb:1:4"],"dc-network.dc-series":["v3fgi8:f8ss01:1:4","1m3lco7:uuz4oi:1:4","amr5rb:1li0dik:1:4","gypip5:v0tr82:1:4","1mggng7:1ylv2bq:1:4","1o3xlvs:2u7f9j:1:4"],"dc-network.dc-parallel":["19x6jg8:f8ss01:1:4","1qlwjod:1drh25:1:4","108zhy6:1db5gpv:1:4","knd5m8:v0tr82:0:4","1k3bp6b:p1ztnq:0:4","55pwj2:azu7gj:2:4"],"dc-network.dc-mixed":["9jh8k:km465l:1:4","18bazez:1rb4uih:1:4","1nwpg6j:zrpkqf:2:4","163zeg0:1uv8k13:1:4","zicrca:k0anes:1:4","1fnvbcr:v0tr82:0:4"],"dc-network.dc-switch":["1ylvrab:75zduo:2:4","yb8odp:1lgfcou:1:4","b78ypd:8koiaa:1:4","v4of1e:v0tr82:0:4","1ac6o6j:47nnuv:1:4","1ii1lg1:16bnmhn:1:4"],"dc-real.dc-meters":["1ye6x5o:vgl7zg:1:4","16i9i82:1k91j7f:1:4","1mhgjzr:1w9tlz2:1:4","14w1ukp:am34uc:1:4","1ur2k4w:123rs03:1:4","1vqzype:1k3viq1:1:4"],"dc-real.dc-realmeters":["qgu6xa:ommhl2:1:4","1scdq9o:1j8t3yk:1:4","1f4z9s8:1gfhof0:1:4","1dzstah:169qko1:1:4","1tc9ws0:16wjqu7:1:4","3zmzq5:189gjxn:1:4"],"dc-real.dc-emf":["1gz1c6v:efsygi:2:4","1wcdhrw:qsvken:1:4","fupogg:3r8w3i:1:4","1hmejq1:1twepmg:1:4","nixwid:1n6q7x0:1:4","izfd63:1t0c54h:1:4"],"dc-real.dc-capacitor":["1llfre0:7frkiq:1:4","5ufqw9:123odyt:1:4","87kja8:1pfmuaz:1:4","3fstq8:kliovj:1:4","dxo0c1:1sqycgi:1:4","1rn7kwg:qkdn5c:0:4"],"dc-basics.dc-resistance":["5tg110:lp2r5j:1:4","m7ds0x:1px74j9:2:4","qc0xx2:1m38dmd:1:4","1wh2sbr:1soq9ki:1:4","1fvu1lp:184h2k8:1:4","1fabdw7:j1eim9:1:4"],"dc-basics.dc-power":["pxboib:f0n59r:1:4","1uet9og:64576d:1:4","1ee16gg:1xprf7t:1:4","1apf47k:1464ah0:0:4","1o625ki:hgq0mt:1:4","1vtevyl:pq2bx7:1:4"],"dc-basics.dc-current":["4dtgli:1chhcgn:1:4","420uf5:1vr8gtl:1:4","n0y0qx:n6muqx:1:4","qg1fc8:1ktxes1:2:4","e355wo:1m38dmd:1:4","1d71gap:hiw6r6:3:4"],"dc-kirchhoff.dc-junction":["fw4nnc:10zby4x:1:4","1ocvanx:tj37z5:0:4","1fof4jw:1e7nfl9:1:4","dhqxly:jgg848:1:4","192y3o7:1fm2c9:2:4","9kov0e:1plrt7f:1:4"],"dc-kirchhoff.dc-loop":["u2t7qs:1m79x5t:1:4","5056fv:not9mv:1:4","qlxo4k:1nj39u6:1:4","1p3yv7s:dvq9ul:1:4","lpbjfa:90jmrr:1:4","1oo7lkq:m3q6w7:1:4"],"dc-kirchhoff.dc-twoloop":["6kdulu:br4tp8:2:4","6gf10j:pr0ivb:1:4","wfeony:1qg4pee:1:4","1hjf8h7:mqplr8:1:4","nv4chm:1qsuduk:1:4","1cpp2vw:1b87ktk:1:4"],"dc-kirchhoff.dc-bridge":["1as3nil:1nyqwlp:1:4","18v0wel:quswwh:1:4","7k4i6c:1mj2ybz:2:4","12ud9l7:10pil0t:1:4","3bem8w:1w0dqkl:1:4","16c4s1u:1midpr0:1:4"],"mag-field.mag-magnets":["1lnfeba:1q9k5ay:1:4","1vl8jy7:1ssv1pt:1:4","1ytfyrq:1dkqui8:2:4","10ljgfd:1fxytpa:1:4","n8xbgw:ajvrn8:2:4","vq28oy:z55ujy:1:4"],"mag-field.mag-wire":["1ye8m8b:13plk36:1:4","qw1yze:1fxvryu:1:4","10x73li:c76zqs:2:4","4csd84:1l7f87:2:4","1fwi3ly:1ekqina:1:4","11bqki2:cnzabw:0:4"],"mag-field.mag-loop":["1nqdyvv:fo5jyw:0:4","r8c5qy:fdjtu4:1:4","3b3dce:1idi212:0:4","1d14zpy:vbb73j:2:4","rq0tx6:hrio2w:0:4","1d24lai:11bzsi8:1:4"],"mag-field.mag-solenoid":["h2w0ep:esb9ts:2:4","1rkgb7f:11uw3si:1:4","ufp1be:fdjtu4:1:4","coxouw:1dkthqr:1:4","97nrt6:1h14150:1:4","1xz2n2:1l7f87:2:4"],"mag-force.mag-lorentz":["50npw0:qxjiaq:2:4","wf19ma:uf0pd1:1:4","9tm4gj:1qsefjb:2:4","14jgfkg:16y74er:0:4","7eympo:p7hhya:2:4","19a5k76:1j52cf0:0:4"],"mag-force.mag-circle":["34i3bk:1l7f87:2:4","tn0f4a:fdjtu4:1:4","j7dq9v:1hq6fs6:1:4","1prwfb5:9ka83l:1:4","pxzdkc:ys0ao8:2:4","1qd2nwe:tarcsg:1:4"],"mag-force.mag-spectro":["1y5gody:1ytc3vq:1:4","1olqatz:193lval:1:4","suaik1:5ne3i8:1:4","1gbkkap:1akyxcd:0:4","p21ymd:1l7f87:1:4","1qz2037:10acqcm:1:4"],"mag-force.mag-wireforce":["1eo6uv4:x1brq3:1:4","111r6gp:16y74er:0:4","3ezhp4:1l7f87:1:4","147qybt:1ro70p2:2:4","1e5pupj:fknsf3:1:4","1himiwl:aisrkx:2:4"],"mag-force.mag-parallel":["1rm4gn0:vy521d:0:4","l23gir:quqhjx:2:4","mspi64:1l7f87:1:4","1nef6sq:fdjtu4:0:4","z5cl3y:1wumjc2:1:4","1ssyyi0:y7e1dz:1:4"],"mag-force.mag-motor":["460hho:5ojx69:0:4","tbzw63:1adn5kp:1:4","1c31fld:6wfow3:1:4","1hhlsmv:1l7f87:1:4","2xppt7:aee1a9:1:4","tuq4h5:kp9ud8:1:4"],"mag-induction.mag-flux":["94lysa:sr64un:1:4","1votzln:1jbdhcv:1:4","gw6rt:1l7f87:1:4","1106t2m:1qws0b6:2:4","1w2x19g:1bryksh:2:4","1d7t7w7:120ftic:2:4"],"mag-induction.mag-faraday":["792gn8:vetewi:2:4","168ez06:1l7f87:0:4","12ympks:1l7f87:0:4","1d4znaq:1ekm0eu:2:4","1dfbxvl:2qfh4o:2:4","b3irr6:1a0kbks:2:4"],"mag-induction.mag-lenz":["pqisx9:1u9v5vt:1:4","11oqn99:1x72ldp:0:4","y8c8rm:1wz3i89:1:4","14fu2en:1srjm19:1:4","1g6mp7p:1qzzi26:1:4","nc6t3x:5h353t:0:4"],"mag-induction.mag-motional":["1q4o4h1:1l7f87:0:4","1fypk5v:17dgkro:1:4","1hpeola:1245vep:1:4","neiwvs:1nvumge:1:4","eoifsh:2emvxv:2:4","thly26:17106nk:1:4"],"mag-induction.mag-generator":["94risw:b6dglc:1:4","1szf7h3:1l7f87:0:4","mc6x90:1pxa1z0:1:4","d35g0z:zchzqg:2:4","165nmq9:xp0vw7:1:4","xqjiwx:1btl65k:2:4"],"mag-induction.mag-transformer":["1xmh5jv:ncifq5:1:4","v3zo8x:1uv8k13:1:4","xvype9:7oqrg4:1:4","981g9v:1xysybp:1:4","66kel:2ozusd:1:4","ulot0m:y9u6br:1:4"]};
+var QID_TABLE={"kinematics.distance-time":["o7cdpz:8gup62:1:4","vgo28b:uoxllk:1:4","rpwesk:3kpqkx:1:4","e2cbmn:1dr4p4l:2:4","1l5wks3:corvj5:1:4","wd5bjo:1cunm50:0:4"],"kinematics.const-velocity":["l9rclq:1s8o2od:1:4","17vswn1:1ui8lu6:1:4","1esayd1:zp7soc:1:4","138vy0i:v59248:1:4","13ca4xf:8pdbi1:2:4","w0ra99:1539knq:0:4"],"kinematics.avg-instant-vel":["aggvfz:ua7kbg:0:4","dywdva:1x1f20q:1:4","55in7h:1ncnvxf:0:4","1kllmhl:1rmxtrh:1:4","zz3qwz:1eqiy6k:1:4","o47mtb:1kdhqjx:1:4"],"kinematics.acceleration":["1u1p7aa:x7vv4k:0:4","1xeivfv:q2wzb4:2:4","1uwh535:1nhim7d:0:4","8nr3ww:10w2voc:2:4","2d9f0o:bpy4em:1:4","1ch9c2r:hi44bn:1:4"],"kinematics.freefall":["1uckzve:12m3jz8:1:4","1dcq24e:qe90dr:0:4","nef7yi:2u1xnz:2:4","1wu97qg:1i6sawa:1:4","4p58j8:1s93nc4:2:4","12hay0i:jucf5s:2:4"],"vectors.vec-intro":["duq4ti:1kmem07:2:4","1etjvdc:fgfjde:2:4","15pe3bv:1g0k6fu:1:4","62v3hq:1w1v5tb:1:4","1lg0bhs:bt731r:1:4","1qkwl57:1nz0wie:2:4"],"forces.inertia":["1coplpz:6ja4hk:2:4","14kcnvo:1vybghk:2:4","11im5x:1nzu85q:2:4","1lb5pht:1wle921:1:4","1ws70m6:16no9jm:1:4","lu9pso:1g293qe:1:4"],"newton2.n2-law":["1s8i1lr:1b24oc1:0:4","1rpo22j:1lacn9q:1:4","34mw3t:14p532i:0:4","1sylwjj:zvul86:1:4","uumpr3:1o30yyf:1:4","1purwxd:ohj3ip:1:4"],"momentum.momentum-def":["jb0jb0:9e1j0w:0:4","r9zf7n:1a3qkpo:1:4","9lgmku:1qb35wn:2:4","90bz4a:186e1h2:1:4","16je1m0:9woctm:1:4","1svgim8:1qwou3z:2:4"],"energy.kinetic":["erh8pd:h1jqt0:0:4","2j5sa8:1uevgff:1:4","1kt2y7f:qtqh2n:1:4","84sfx8:hvtce6:1:4","1r2rq69:cnsvmg:1:4","tgfu8o:tbcglq:1:4"],"shm.shm-spring":["1au9tpn:wzwaer:0:4","3h9thu:1kzu85h:1:4","nyrmwx:1l15c1w:1:4","1a9jlu7:14m2kbw:1:4","18ea6s6:1pp7h69:2:4","wmu7rk:1kse58v:1:4"],"forces.tension":["8bm81y:bbmcns:1:4","1gxjq3z:1i1qc17:2:4","1tx6p53:tp25hv:2:4","tydtxk:va40op:1:4","1kh0z8e:hitxef:1:4","1u74o5o:s037iz:1:4"],"forces.normal-force":["1jl7ydu:1peigjz:2:4","ymkaah:i6y0c1:2:4","66dpls:1l6cyc:2:4","4fwcbf:te4r98:1:4","69jfqj:166jqov:2:4","ix1wts:c292vd:1:4"],"forces.n3-law":["1oljk7y:101jmhz:1:4","ynu0r4:5d3tq0:1:4","mkgex9:15xm7pn:2:4","1qrk08b:8imk2q:2:4","fyatwp:1xkc4i7:1:4","shia6p:1eoxx0n:1:4"],"vectors.vec-ops":["1yhi9e5:zpr961:1:4","18s6cyz:5ij4q8:2:4","mwmwnx:1kk56t5:1:4","izk5x3:14gss1i:1:4","kzsso6:1qodyv4:2:4","53y7ig:xtt3g2:1:4"],"vectors.vec-components":["19ivext:10zjag5:1:4","1kgnxjr:8qo480:1:4","1t7lusr:1poph66:1:4","pb4qnv:ryhxu8:1:4","d60w4:1soougk:1:4","14iiwb:1wffpmy:1:4"],"forces.force-intro":["92epmf:6ox4vd:2:4","n52ptk:1o3yq5q:2:4","9tfuhp:8f8m7z:1:4","1mnm0ah:1lrfl6w:2:4","1lewsr2:1lj10oz:1:4","lap057:tvw348:2:4"],"forces.force-types":["1ypyhu1:1vcdd9d:2:4","t5045a:zavjqx:1:4","p4um2a:1a834t5:1:4","1ivb32m:5e5jx9:2:4","18cr99x:e1fit8:1:4","179u2zx:16794cp:1:4"],"newton2.n2-apps":["ciu112:1eapg6f:0:4","70p2i2:t0skzz:2:4","1axikmy:1h9liit:2:4","mxi5a7:8w5npi:1:4","1j4trtt:19sa1qh:1:4","vm0p6q:108ivp1:1:4"],"newton2.n2-atwood":["29bd5g:kl2c53:0:4","1boeoep:1j5cz6w:0:4","1qx3bc7:1984zam:0:4","1unc4ue:jbd0c8:1:4","5l5q84:5h6tg8:1:4","11t9ghe:7hgqjo:1:4"],"forces2.gravity-force":["1u4lr0u:1yn3xvt:2:4","10u05v8:m5nlfx:2:4","bumk3d:ahks9h:1:4","1urtofh:2w6oxr:1:4","mshh84:8qwkys:2:4","1wxxab9:ies2lx:1:4"],"forces2.spring-force":["1cih7wu:55mmp9:1:4","htsuey:1dns6o8:1:4","1kfq3dt:8vznrv:1:4","1bandef:oiac6w:1:4","152a0mv:1k98m9l:2:4","10rf7ny:tb5yh:2:4"],"forces2.static-friction":["1danhll:4pvptu:1:4","jql6zo:1yndlgh:1:4","1v8ejfc:1p6mbuv:2:4","pq9wwz:1ijv1jq:2:4","h9ucqg:1ji52fr:1:4","d5sq0i:pa10no:1:4"],"forces2.kinetic-friction":["1dpnd2m:t9wttf:1:4","v7bfd0:1wnjs98:2:4","17i8avo:12cj0c5:1:4","602ch4:1e8jelu:1:4","172idxu:1ya8ett:1:4","owkk0p:3ztqc4:1:4"],"forces2.friction-combined":["1lyfi2l:uxuo0o:0:4","1ymvh30:1fv0x6s:2:4","6ayb56:ilo8ev:1:4","bo99g0:wavw6b:1:4","1630wn6:1bv67av:1:4","1qhott5:magia0:1:4"],"momentum.momentum-cons":["xwa470:vmoshj:1:4","qnd6q1:9w1buk:2:4","1ve7p2i:ocxcmi:2:4","12wqy7l:13tg1sf:1:4","2oip5h:10y7kri:1:4","1lkjd2n:otscg1:1:4"],"momentum.collision":["1psv18y:1dqvdwb:2:4","hy4o5n:1nsrm6r:1:4","owe9xo:12jjil1:1:4","6r9te6:1k92s0r:1:4","2ugjfa:1vau4cg:1:4","1d57yvv:xacjl2:1:4"],"energy.potential":["6bj3tk:9q8251:1:4","1cl6b9a:1mbdoxv:0:4","11q5tsv:1maqbfd:1:4","141j3cy:1hurg23:2:4","o1gj99:dwze35:1:4","1nnh2d:1oq1xtv:2:4"],"energy.energy-cons":["1cm5nti:179brh6:1:4","xnedp9:ffh7ip:1:4","1yj4gw7:ao507h:2:4","1nd5av1:uuydsg:2:4","1nhgsoy:1hf7tui:2:4","gz9iai:16isaqn:1:4"],"shm.shm-def":["hedhv9:vdrfkn:1:4","a1f8od:ulj0d6:1:4","v0s08j:1y5dp2h:2:4","15nro88:ydm0jf:1:4","1jy8uav:1y0i66j:2:4","c16gzr:buil1f:2:4"],"shm.pendulum":["1hpibap:1vd2yt4:0:4","1ujqh8j:ecbryf:1:4","7zjefl:1ghhwnv:3:4","odzih5:fs4f2d:1:4","6x335d:ikph1s:1:4","uoaoxw:1mn5sxe:1:4"],"planar.projectile":["ph72ee:10evvku:1:4","cani6m:1ozf52l:2:4","7u4arx:1bjpain:1:4","ltqivs:1trkkzl:2:4","yshdeq:rxjahd:1:4","1ld9vwr:k6tjl5:1:4"],"planar.circular":["1u9ik6p:14534ka:1:4","o8ptrc:14534ka:2:4","1f3hlj7:u1i9zz:2:4","vxwvwl:syl4bo:1:4","vco94d:1kv2wid:1:4","1bjt8uj:70izmx:1:4"],"statics.torque":["jespuw:3rv0ch:0:4","1st701j:1440jmp:0:4","j2mtt4:1387qqx:1:4","1nnoii7:fb1rxa:1:4","1fezqt2:7z9spm:2:4","1wwy5df:18ggbhx:1:4"],"statics.equilibrium":["1xr18at:1c620xv:2:4","1730mob:mrt8du:1:4","10v8j4v:4kale6:2:4","lfnmm8:b7djvf:1:4","1e5cano:v0tr82:0:4","8dhc15:i7g61x:1:4"],"statics.center-mass":["3lj2zz:cqdvkb:0:4","162dppw:luu7ec:1:4","qoo3cj:bep2h3:1:4","14x8apw:5oiy03:1:4","1qnuogu:1selee6:0:4","6ycnol:1quormh:1:4"],"energy.power":["1kev7pq:1o0zr04:1:4","3xnm8t:18gkdl4:1:4","1h4cuy:1881eb7:1:4","12yb0b6:1xwchmk:1:4","6rrw00:2q5io1:1:4","nhj4vs:34w5g2:0:4"],"gravitation.grav-law":["1wf9beq:1e8q1o8:1:4","1rpljio:4g9mse:1:4","1muxcw8:1ok0xyn:1:4","odc98x:3y7byn:2:4","yjl1t9:16hen5y:1:4","mpslvi:1440jmp:2:4"],"gravitation.orbits":["kal3kt:1fv0mg:1:4","16eperm:rhq1zc:1:4","1wxml1s:1id6ryl:2:4","1bewwes:194c8il:1:4","1k6l2lv:14315jk:1:4","1naqzq0:uu28ev:1:4"],"gravitation.kepler":["5p4ti0:1xg1aiv:2:4","1y5gosc:11qjt59:1:4","qllx9k:18kv2f0:1:4","1gnb4nr:nnd7c0:2:4","11b1l1f:18u9dz7:1:4","ykv0s6:8isqpx:1:4"],"gravitation.grav-energy":["bqttwu:1finbdb:1:4","523h3t:16zxhbg:1:4","g95sin:1r0qewp:1:4","1lvszll:uwou9z:1:4","f02x5i:1bp37jj:1:4","1jdckdi:16os6qp:1:4"],"opt-light.light-nature":["147tqg1:1vyty2i:1:4","co0iyw:1rhyp04:3:4","13i4o71:xddqvk:2:4","1t92jkc:l1bgnt:1:4","1xikilh:l03hbw:0:4","382sgc:19xi506:1:4"],"opt-light.light-speed":["mxdaqj:hrc6ep:2:4","c7d7k9:158jt9f:1:4","141ntcl:nz513t:3:4","ba02d4:nxanu3:3:4","px6x8b:1h0nl17:1:4","1srhxvh:183a9zg:1:4"],"opt-reflection.refl-laws":["teqkeu:uds98x:1:4","4vnyxq:1bvmog1:1:4","1kif3wn:6zeyol:0:4","5rpadd:1ir6ogk:2:4","1yt280o:ti3dyt:1:4","147opns:9f2urm:1:4"],"opt-reflection.plane-mirror":["19ymgkh:1dw44qj:2:4","1szx5tu:bwwxie:2:4","8a0l30:dokbgk:2:4","1hpj5wf:1pnovzq:2:4","1gssuar:90h2hz:1:4","34qehg:8lpc3i:1:4"],"opt-reflection.concave-mirror":["bc1p1:bskqg:2:4","cx95bo:ivqyrt:0:4","100yeun:b47ell:2:4","61rjnz:vzokyl:1:4","bbk0eg:1eyg7wz:1:4","121yymq:18dfe9c:1:4"],"opt-reflection.convex-mirror":["294b2x:1j6iqdp:2:4","19t5532:198udps:1:4","1dn1ijv:1g1qm9t:0:4","1b8lz8i:1dt0iif:1:4","irn69h:1emrja0:1:4","9jiezp:1d1sslt:3:4"],"opt-refraction.snell-law":["jz0gp:1pmene:0:4","19wp54:ch9124:1:4","1s48faf:1fjevf5:1:4","1f84q5k:pkjwm4:2:4","9uzp9w:hbi8ge:1:4","1owxno5:1q4anm6:1:4"],"opt-refraction.tir":["1l35asf:wajzd7:2:4","10qs2hv:iftt9k:1:4","54zors:mbhp57:1:4","twup66:1dtci2d:1:4","1vdkp55:1evdbdi:1:4","f799u8:h8kho6:1:4"],"opt-refraction.prism":["j2hxgy:labd9n:1:4","jla6dt:1rhyp04:3:4","oyqdcc:1rhyp04:2:4","1w997fj:15qi8u1:2:4","vdpip6:eag0yc:1:4","5jltqs:1y9gz43:1:4"],"opt-lenses.convex-lens":["1x37b2b:1lignvy:0:4","hgpan2:1r1y8jq:2:4","hkbkqu:17gofo9:1:4","12b81n3:1ve28h1:2:4","x7pu6b:4kaaq:1:4","j9wt2w:8cv8ws:1:4"],"opt-lenses.concave-lens":["1m35hui:193n47h:0:4","txfi2e:slaifi:0:4","xwsdyp:c9nis9:1:4","15yx0co:m9v5k9:1:4","ivotpv:12m1ly9:1:4","9icimb:10htjkx:1:4"],"opt-lenses.lens-eye":["wfck0u:1l5cbla:1:4","1ubuxfz:7yf8pu:1:4","1f7qhcp:odea3z:1:4","ftabd9:1kga4rl:1:4","igowfa:l8q4f2:1:4","1j2drmb:k7hwkm:1:4"],"opt-waves.interference":["8584hq:jk8at:2:4","127enb5:17ipmbt:1:4","1qmtwcp:dabdx6:1:4","za8rsp:9ugaj9:2:4","1qd6z7z:zarbx0:1:4","vj64ni:fqg4r9:1:4"],"opt-waves.youngs-slits":["qgvjy6:1bvfmvv:0:4","l9xg1k:1dijehr:1:4","1yb2lcb:fhpj6x:1:4","enpady:pi6gl:1:4","1vdirlj:1nmppqc:1:4","7mxjvi:tkqdl2:1:4"],"opt-waves.diffraction":["16iu1vz:1xeaw0l:0:4","1hunum6:1uroqh6:2:4","1iqpdlh:vhpnav:2:4","15sa8n8:4gv5ot:1:4","b1a8sq:j2icn7:1:4","ijlfei:99ku2m:1:4"],"opt-light.em-spectrum":["1vtmuoy:1mwcecv:3:4","1w58922:ud0bb:0:4","1pcfnhs:bcikg3:1:4","obc3pe:1d4ain5:1:4","1nm47z0:mjxxth:1:4","1vvcmzx:1tdkxqc:1:4"],"opt-modern.em-spectrum-full":["ywycgf:1asbsyv:1:4","et3c6f:1m7cysc:1:4","1uefaag:djhrkh:1:4","1lwmp8j:142ywim:1:4","a3p6n3:id184i:1:4","xh7j9h:1t0q0is:1:4"],"opt-modern.polarization":["3qmypu:k0ktv6:2:4","12tfn33:17k4kof:3:4","n3cvz:fads53:1:4","r9hmhq:rddj0i:1:4","17urzem:ja8wxv:1:4","7krfh8:1qx0da5:1:4"],"opt-modern.doppler":["10rry9q:wde5ax:1:4","8iyda4:12hrw3w:1:4","xrlkqd:nmktat:1:4","18s4vsu:iplrl5:1:4","2vnl5n:19gu8oj:1:4","16pcuxi:jtgm53:1:4"],"opt-modern.lasers":["kz3ev8:15ywvoe:1:4","12rsqj1:1hp86mk:1:4","111206l:iqwk0j:1:4","1nrrd4t:ur3yg9:2:4","cnrcc:11z2pbz:1:4","uvrjtm:qkaaq:1:4"],"opt-light.color-mixing":["w92hep:1hwtjww:2:4","1n4harr:10hsq4r:1:4","js3c4o:94dh87:2:4","18p0uw7:it3828:1:4","aqfjjq:3g7ztw:1:4","1legb30:1txk1oa:1:4"],"opt-refraction.fiber-optics":["ohhtq2:1go85wu:2:4","1wngimv:yaqpqb:0:4","g9isdk:1buh5nj:1:4","bqhty2:prfvpv:2:4","1b0g5h2:gr3dfv:1:4","41df2v:ijcnio:1:4"],"opt-lenses.telescope":["1d3ou2r:hrnto:1:4","1517xp2:5wpbs7:1:4","11snwyp:ivvwd6:1:4","c4svyq:1sj22z3:1:4","10z99lc:5zoqwi:1:4","zebryb:hb3rwi:1:4"],"opt-waves.thin-film":["bpw45g:1dh8zqc:1:4","1fxbjbq:8erra5:1:4","1c8s3ey:b4rnnm:1:4","jkiddn:cr3f9k:1:4","1p9aj8:5mk0zi:1:4","1ckppwf:dk3mz7:1:4"],"opt-waves.grating":["of2hfh:qfwsrw:0:4","1uag2wi:1ghbhqz:1:4","riyy19:19mgijv:1:4","mrh9pk:6s79om:0:4","ijg1v9:1g0z91d:1:4","ak4kl6:8iu391:1:4"],"opt-quantum.photoelectric":["2wxdbj:16261it:1:4","bp7waq:12xlce8:1:4","3d1xlw:mya51n:1:4","qm4ipk:1pc19h2:0:4","6ceyhq:1u79ww4:1:4","19mrh14:312u0j:1:4"],"opt-quantum.bohr":["s9tgek:6y5x4x:1:4","asdgv0:9rgl8h:2:4","19f0ok2:1jyhtm7:1:4","19her6r:dduvng:1:4","lpuzla:fq8o3l:2:4","bqtv6m:1rwako1:1:4"],"opt-quantum.radioactivity":["g9iq1g:1125odk:0:4","xagmjf:1t07c6m:0:4","178sgon:22zi4k:1:4","5u7d04:11x3q4z:2:4","vzah6s:17bft20:1:4","1fyzzlx:16r3fyn:2:4"],"elc-charge.elc-basics":["j9qchc:f8qb1s:1:4","wp0mjv:1yess1p:2:4","1bz8pme:103xsqf:1:4","z55cps:1jw044e:1:4","11adlxl:1jr7wy4:1:4","6lbohb:pqagye:1:4"],"elc-charge.elc-coulomb":["nv4pk9:ncqsib:1:4","1yr8jp6:13zofp7:1:4","1ymoqqh:1h5m9py:1:4","f8f38u:8ql0am:2:4","v3dj3k:1evjfag:0:4","jjwe0a:s58lo9:2:4"],"elc-charge.elc-field":["xu1yfr:118dmuh:1:4","dihwxg:1y76bza:1:4","z7n7m0:1fe2ayf:1:4","y4jdx0:1ho1hah:1:4","fksate:9qm15g:2:4","5cppen:1gby4de:1:4"],"elc-charge.elc-plane":["ruk110:41hvnu:1:4","12nyuis:i3rfxf:2:4","6k63y:y89sv1:2:4","1cgir01:xcsa2h:1:4","pf7ujx:jekqiz:1:4","6xpxlp:mttfsq:1:4"],"elc-charge.elc-conductor":["1267l6q:125csng:1:4","1qijr8a:osnfyu:1:4","1w9632y:krubaz:1:4","gg9fxf:79pxzu:1:4","bjsrxb:1wwcyro:1:4","otmpe:92nx4f:1:4"],"elc-energy.elc-network":["1p2o3be:uq8nbo:1:4","9hfpfm:1wbutbu:1:4","8gpyl7:1bay227:1:4","d8conk:kjooxr:2:4","1mhb34o:37tzjh:1:4","13c5xbb:10dzr8h:1:4"],"elc-energy.elc-potential":["1je23y5:1lo3ltt:1:4","4z41kg:isw1xx:1:4","1kw6sv:1msxw8v:1:4","1s1jwyg:1x5a963:0:4","ag6674:1frfq84:1:4","f88yks:k35l4p:1:4"],"elc-energy.elc-upair":["1hd2m0p:1swjwtz:1:4","1028t81:kkbb58:1:4","15bgh8i:1brq97u:1:4","50wzm1:rt389q:1:4","z3srav:c4x818:1:4","20sqbu:1l1554k:1:4"],"elc-energy.elc-sphere":["7eoz9p:19619ao:1:4","e7cbtf:1pr9uh9:1:4","nno0bm:11gi73d:1:4","6760f2:8mbay5:1:4","debb8u:1m38dmd:1:4","1e1o0ky:1kmb4r0:1:4"],"elc-energy.elc-plates":["1m135tp:mmn8to:2:4","zf1ksf:mw9po5:1:4","xl2wpd:1443pgn:2:4","ycpbfz:1x7o1i1:1:4","1baxnyn:a9423q:2:4","1rqzix0:ap2iuw:0:4"],"elc-energy.elc-capacitor":["1ge3xsf:2kb0r7:1:4","bqbc4w:1jhjl9d:1:4","nf17fn:9nkdgh:1:4","r17fks:14534ka:1:4","16ejsz4:clzokz:2:4","1mu8lb5:vhrj82:1:4"],"elc-energy.elc-dielectric":["1ept0h2:1f3efxx:0:4","g61xi9:r86be3:2:4","r6byi5:yyxmcz:1:4","ohei9x:kmda51:1:4","vrlols:1c1dtw7:1:4","1utvf5x:8kizgw:1:4"],"elc-energy.elc-compare":["1gb4n49:9wbu01:1:4","15bbl8r:fpqc49:2:4","6t0xij:rqjaxm:1:4","up9ekf:17ab2es:1:4","1q3cw7w:pe3vb:1:4","naiq0f:10p3d3:1:4"],"elc-motion.elc-deflection":["1u5nzrg:1ytgjwa:2:4","zmrsbm:i2mjy2:2:4","rq7goi:qjle7p:2:4","17e6ufm:ockyl1:1:4","177k96l:1ww4g0b:1:4","1ov5odw:13sjps4:1:4"],"elc-motion.elc-millikan":["1ks0kdk:3let5o:2:4","pkzvmf:d1nd0b:1:4","vnjw03:1bm5rw8:1:4","6zoa2w:16ij3n4:1:4","lkztq7:1yess1p:2:4","1h3d968:1wurvxb:1:4"],"dc-network.dc-series":["v3fgi8:f8ss01:1:4","1m3lco7:uuz4oi:1:4","amr5rb:1li0dik:1:4","gypip5:v0tr82:1:4","1mggng7:1ylv2bq:1:4","1o3xlvs:2u7f9j:1:4"],"dc-network.dc-parallel":["19x6jg8:f8ss01:1:4","1qlwjod:1drh25:1:4","108zhy6:1db5gpv:1:4","knd5m8:v0tr82:0:4","1k3bp6b:p1ztnq:0:4","55pwj2:azu7gj:2:4"],"dc-network.dc-mixed":["9jh8k:km465l:1:4","18bazez:1rb4uih:1:4","1nwpg6j:zrpkqf:2:4","163zeg0:1uv8k13:1:4","zicrca:k0anes:1:4","1fnvbcr:v0tr82:0:4"],"dc-network.dc-switch":["1ylvrab:75zduo:2:4","yb8odp:1lgfcou:1:4","b78ypd:8koiaa:1:4","v4of1e:v0tr82:0:4","1ac6o6j:47nnuv:1:4","1ii1lg1:16bnmhn:1:4"],"dc-real.dc-meters":["1ye6x5o:vgl7zg:1:4","16i9i82:1k91j7f:1:4","1mhgjzr:1w9tlz2:1:4","14w1ukp:am34uc:1:4","1ur2k4w:123rs03:1:4","1vqzype:1k3viq1:1:4"],"dc-real.dc-realmeters":["qgu6xa:ommhl2:1:4","1scdq9o:1j8t3yk:1:4","1f4z9s8:1gfhof0:1:4","1dzstah:169qko1:1:4","1tc9ws0:16wjqu7:1:4","3zmzq5:189gjxn:1:4"],"dc-real.dc-emf":["1gz1c6v:efsygi:2:4","1wcdhrw:qsvken:1:4","fupogg:3r8w3i:1:4","1hmejq1:1twepmg:1:4","nixwid:1n6q7x0:1:4","izfd63:1t0c54h:1:4"],"dc-real.dc-capacitor":["1llfre0:7frkiq:1:4","5ufqw9:123odyt:1:4","87kja8:1pfmuaz:1:4","3fstq8:kliovj:1:4","dxo0c1:1sqycgi:1:4","1rn7kwg:qkdn5c:0:4"],"dc-basics.dc-resistance":["5tg110:lp2r5j:1:4","m7ds0x:1px74j9:2:4","qc0xx2:1m38dmd:1:4","1wh2sbr:1soq9ki:1:4","1fvu1lp:184h2k8:1:4","1fabdw7:j1eim9:1:4"],"dc-basics.dc-power":["pxboib:f0n59r:1:4","1uet9og:64576d:1:4","1ee16gg:1xprf7t:1:4","1apf47k:1464ah0:0:4","1o625ki:hgq0mt:1:4","1vtevyl:pq2bx7:1:4"],"dc-basics.dc-current":["4dtgli:1chhcgn:1:4","420uf5:1vr8gtl:1:4","n0y0qx:n6muqx:1:4","qg1fc8:1ktxes1:2:4","e355wo:1m38dmd:1:4","1d71gap:hiw6r6:3:4"],"dc-kirchhoff.dc-junction":["fw4nnc:10zby4x:1:4","1ocvanx:tj37z5:0:4","1fof4jw:1e7nfl9:1:4","dhqxly:jgg848:1:4","192y3o7:1fm2c9:2:4","9kov0e:1plrt7f:1:4"],"dc-kirchhoff.dc-loop":["u2t7qs:1m79x5t:1:4","5056fv:not9mv:1:4","qlxo4k:1nj39u6:1:4","1p3yv7s:dvq9ul:1:4","lpbjfa:90jmrr:1:4","1oo7lkq:m3q6w7:1:4"],"dc-kirchhoff.dc-twoloop":["6kdulu:br4tp8:2:4","6gf10j:pr0ivb:1:4","wfeony:1qg4pee:1:4","1hjf8h7:mqplr8:1:4","nv4chm:1qsuduk:1:4","1cpp2vw:1b87ktk:1:4"],"dc-kirchhoff.dc-bridge":["1as3nil:1nyqwlp:1:4","18v0wel:quswwh:1:4","7k4i6c:1mj2ybz:2:4","12ud9l7:10pil0t:1:4","3bem8w:1w0dqkl:1:4","16c4s1u:1midpr0:1:4"],"mag-field.mag-magnets":["1lnfeba:1q9k5ay:1:4","1vl8jy7:1ssv1pt:1:4","1ytfyrq:1dkqui8:2:4","10ljgfd:1fxytpa:1:4","n8xbgw:ajvrn8:2:4","vq28oy:z55ujy:1:4"],"mag-field.mag-wire":["1ye8m8b:13plk36:1:4","qw1yze:1fxvryu:1:4","10x73li:c76zqs:2:4","4csd84:1l7f87:2:4","1fwi3ly:1ekqina:1:4","11bqki2:cnzabw:0:4"],"mag-field.mag-loop":["1nqdyvv:fo5jyw:0:4","r8c5qy:fdjtu4:1:4","3b3dce:1idi212:0:4","1d14zpy:vbb73j:2:4","rq0tx6:hrio2w:0:4","1d24lai:11bzsi8:1:4"],"mag-field.mag-solenoid":["h2w0ep:esb9ts:2:4","1rkgb7f:11uw3si:1:4","ufp1be:fdjtu4:1:4","coxouw:1dkthqr:1:4","97nrt6:1h14150:1:4","1xz2n2:1l7f87:2:4"],"mag-force.mag-lorentz":["50npw0:qxjiaq:2:4","wf19ma:uf0pd1:1:4","9tm4gj:1qsefjb:2:4","14jgfkg:16y74er:0:4","7eympo:p7hhya:2:4","19a5k76:1j52cf0:0:4"],"mag-force.mag-circle":["34i3bk:1l7f87:2:4","tn0f4a:fdjtu4:1:4","j7dq9v:1hq6fs6:1:4","1prwfb5:9ka83l:1:4","pxzdkc:ys0ao8:2:4","1qd2nwe:tarcsg:1:4"],"mag-force.mag-spectro":["1y5gody:1ytc3vq:1:4","1olqatz:193lval:1:4","suaik1:5ne3i8:1:4","1gbkkap:1akyxcd:0:4","p21ymd:1l7f87:1:4","1qz2037:10acqcm:1:4"],"mag-force.mag-wireforce":["1eo6uv4:x1brq3:1:4","111r6gp:16y74er:0:4","3ezhp4:1l7f87:1:4","147qybt:1ro70p2:2:4","1e5pupj:fknsf3:1:4","1himiwl:aisrkx:2:4"],"mag-force.mag-parallel":["1rm4gn0:vy521d:0:4","l23gir:quqhjx:2:4","mspi64:1l7f87:1:4","1nef6sq:fdjtu4:0:4","z5cl3y:1wumjc2:1:4","1ssyyi0:y7e1dz:1:4"],"mag-force.mag-motor":["460hho:5ojx69:0:4","tbzw63:1adn5kp:1:4","1c31fld:6wfow3:1:4","1hhlsmv:1l7f87:1:4","2xppt7:aee1a9:1:4","tuq4h5:kp9ud8:1:4"],"mag-induction.mag-flux":["94lysa:sr64un:1:4","1votzln:1jbdhcv:1:4","gw6rt:1l7f87:1:4","1106t2m:1qws0b6:2:4","1w2x19g:1bryksh:2:4","1d7t7w7:120ftic:2:4"],"mag-induction.mag-faraday":["792gn8:vetewi:2:4","168ez06:1l7f87:0:4","12ympks:1l7f87:0:4","1d4znaq:1ekm0eu:2:4","1dfbxvl:2qfh4o:2:4","b3irr6:1a0kbks:2:4"],"mag-induction.mag-lenz":["pqisx9:1u9v5vt:1:4","11oqn99:1x72ldp:0:4","y8c8rm:1wz3i89:1:4","14fu2en:1srjm19:1:4","1g6mp7p:1qzzi26:1:4","nc6t3x:5h353t:0:4"],"mag-induction.mag-motional":["1q4o4h1:1l7f87:0:4","1fypk5v:17dgkro:1:4","1hpeola:1245vep:1:4","neiwvs:1nvumge:1:4","eoifsh:2emvxv:2:4","thly26:17106nk:1:4"],"mag-induction.mag-generator":["94risw:b6dglc:1:4","1szf7h3:1l7f87:0:4","mc6x90:1pxa1z0:1:4","d35g0z:zchzqg:2:4","165nmq9:xp0vw7:1:4","xqjiwx:1btl65k:2:4"],"mag-induction.mag-transformer":["1xmh5jv:ncifq5:1:4","v3zo8x:1uv8k13:1:4","xvype9:7oqrg4:1:4","981g9v:1xysybp:1:4","66kel:2ozusd:1:4","ulot0m:y9u6br:1:4"]};
 function _qidText(s){
   s=String(s).replace(/<[^>]*>/g,'').replace(/&[#0-9A-Za-z]+;/g,'');
   try{s=s.normalize('NFKC');}catch(e){}
@@ -11300,6 +12061,11 @@ function initSim(id,type,keep){
     'energy':simEnergy,
     'energy-kinetic':simEnergyKinetic,
     'energy-potential':simEnergyPotential,
+    'power':simPower,
+    'grav-field':simGravField,
+    'orbit':simOrbit,
+    'kepler':simKepler,
+    'grav-escape':simGravEscape,
     'spring':simSpring,
     'shm-def':simSHMDef,
     'spring-force':simSpringForce,
@@ -11341,6 +12107,9 @@ function initSim(id,type,keep){
     'opt-telescope':simOptTelescope,
     'opt-thin-film':simOptThinFilm,
     'opt-grating':simOptGrating,
+    'photoelectric':simPhotoelectric,
+    'bohr':simBohr,
+    'radioactivity':simRadioactivity,
     'elc-scope':simElcScope,
     'elc-coulomb':simElcCoulomb,
     'elc-field':simElcField,
@@ -13909,6 +14678,479 @@ function simMomentumDisplay(canvas){
   requestAnimationFrame(draw);
 }
 
+
+// ─────────────────────────────────────────────────────────────
+// POWER: a crane lifts a crate 10 m at constant speed
+// ─────────────────────────────────────────────────────────────
+function simPower(canvas){
+  // SECTION: energy.power
+  // PEDAGOGY: the work mgh is set by the load and the height alone; the
+  // power sets how long it takes, and the speed of the lift is v = P/mg.
+  var H=460; var setup=setupCanvas(canvas,H); var ctx=setup.ctx; var W=setup.W;
+  var id=canvas.id, G=9.8, HT=10;
+  var m=50, P=500, y=0, t=0, run=false, fin=false, pT=null, runs=[];
+  var flags={t5:false,dbl:false,v1:false};
+  function read(){var a=document.getElementById('inp-pw-m'),b=document.getElementById('inp-pw-P');
+    if(a)m=parseFloat(a.value);if(b)P=parseFloat(b.value);}
+  function reset(){y=0;t=0;run=false;fin=false;pT=null;}
+  ['inp-pw-m','inp-pw-P'].forEach(function(s){var e=document.getElementById(s);
+    if(e)e.addEventListener('input',function(){read();reset();});});
+  var go=document.getElementById('btn-pw-go'),rs=document.getElementById('btn-pw-reset');
+  if(go)go.addEventListener('click',function(){read();reset();run=true;});
+  if(rs)rs.addEventListener('click',function(){reset();});
+  read();
+  var kit=simKit(canvas,{missions:[
+    {text:`Lift the crate to a height of ${_skM('10 m')} in exactly ${_skM('5 s')}`,
+     hint:`The work is mgh. What power does it in five seconds?`,
+     why:`${_skM('P = mgh/t')}: for a crate of ${_skM('50 kg')} the work is ${_skM('50 × 9.8 × 10 = 4900 J')}, and in five seconds that takes ${_skM('980 W')}. A different mass needs a different power, in the same ratio.`,
+     done:function(q){return q.t5;}},
+    {text:`Double the mass, and lift it in the same time as before`,
+     hint:`The work increases by a factor of 2. What must happen to the power for the time to stay the same?`,
+     why:`Double the mass means double the work, ${_skM('W = mgh')}. Doing it in the same time takes double the power: ${_skM('P = W/t')}.`,
+     done:function(q){return q.dbl;}},
+    {text:`Lift a crate at a constant speed of exactly ${_skM('1 m/s')}`,
+     hint:`In lifting at constant speed the crane’s force equals the weight. What is the power of a force F acting on an object moving at speed v?`,
+     why:`${_skM('P = Fv = mg·v')}: a crate of ${_skM('100 kg')} at a speed of ${_skM('1 m/s')} needs ${_skM('980 N × 1 m/s = 980 W')}. At the same power, a crate 2 times heavier rises 2 times more slowly.`,
+     done:function(q){return q.v1;}}]});
+  var model=_mbModel(kit);
+  kit.predict({q:`Two cranes lift identical crates to the same height. Crane A does it in ${_skM('10 s')}, and crane B in ${_skM('20 s')}. Which one did more work?`,
+    opts:[`Crane A, the fast one`,`Crane B, which worked longer`,`Both did the same work`],correct:2,
+    why:`The work is ${_skM('W = mgh')}: the same mass and the same height — the same work. The difference is in the power: crane A did it in half the time, that is, at double the power.`},function(){});
+  canvas._probe=function(){return {m:m,P:P,y:y,t:t,run:run,fin:fin,runs:runs.slice(),flags:flags};};
+  function finish(){
+    fin=true;run=false;y=HT;t=m*G*HT/P;
+    runs.push({m:m,P:P,t:t});if(runs.length>12)runs.shift();
+    if(Math.abs(t-5)<=0.1)flags.t5=true;
+    if(Math.abs(P/(m*G)-1)<=0.03)flags.v1=true;
+    runs.forEach(function(a){runs.forEach(function(b){
+      if(Math.abs(b.m-2*a.m)<1e-9&&Math.abs(b.t-a.t)<=0.1)flags.dbl=true;});});
+  }
+  var NAR=W<520;
+  function draw(ts){
+    if(_simStop[id])return;
+    if(pT==null)pT=ts;
+    var dt=Math.min((ts-pT)/1000,0.05);pT=ts;
+    var v=P/(m*G), Wk=m*G*HT;
+    if(run){t+=dt;y+=v*dt;if(y>=HT)finish();}
+    simBg(ctx,W,H);
+    var GY=H-40, TOP=74, SC=(GY-TOP-34)/HT;                 // px per metre
+    var LX=NAR?W*0.27:W*0.24;                                // the crane's column
+    simGround(ctx,W,GY);
+    // the height scale
+    ctx.save();ctx.strokeStyle='rgba(148,163,184,.55)';ctx.lineWidth=1;
+    for(var k=0;k<=HT;k+=2){var yy=GY-k*SC;
+      ctx.beginPath();ctx.moveTo(LX-64,yy);ctx.lineTo(LX-56,yy);ctx.stroke();
+      simText(ctx,k+' m',LX-68,yy+3,'#94a3b8',8.5,'right');}
+    ctx.beginPath();ctx.moveTo(LX-60,GY);ctx.lineTo(LX-60,GY-HT*SC);ctx.stroke();
+    // the target line
+    ctx.strokeStyle='rgba(251,191,36,.7)';ctx.setLineDash([5,5]);
+    ctx.beginPath();ctx.moveTo(LX-56,GY-HT*SC);ctx.lineTo(LX+58,GY-HT*SC);ctx.stroke();ctx.setLineDash([]);
+    ctx.restore();
+    // mast, jib and cable
+    var JY=GY-HT*SC-40;
+    ctx.save();ctx.fillStyle='#475569';ctx.fillRect(LX+50,JY,9,GY-JY);ctx.fillRect(LX-22,JY,81,7);
+    ctx.fillStyle='#fbbf24';ctx.fillRect(LX-6,JY-4,12,15);ctx.restore();
+    var CW=NAR?46:54, CH=30, cy=GY-y*SC;
+    ctx.save();ctx.strokeStyle='#cbd5e1';ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(LX,JY+11);ctx.lineTo(LX,cy-CH);ctx.stroke();ctx.restore();
+    // the crate
+    ctx.save();ctx.fillStyle='#b45309';ctx.strokeStyle='#fcd34d';ctx.lineWidth=1.5;
+    ctx.beginPath();ctx.roundRect(LX-CW/2,cy-CH,CW,CH,4);ctx.fill();ctx.stroke();ctx.restore();
+    simText(ctx,m+' kg',LX,cy-CH/2+4,'#fff',10,'center',true);
+    if(run&&!fin){simArrow(ctx,LX+CW/2+10,cy-6,LX+CW/2+10,cy-6-Math.min(46,10+v*14),'#34d399',2.5,9);
+      simText(ctx,'v',LX+CW/2+22,cy-22,'#6ee7b7',10,'center',true);}
+    // the readout card
+    var PX=NAR?W*0.50:W*0.46, PW=W-PX-10;
+    _mbCard(ctx,PX,12,PW,NAR?196:186);
+    var cx=PX+PW/2, fs=NAR?10:11.5;
+    simText(ctx,'W = mgh = '+Wk.toFixed(0)+' J',cx,34,'#22d3ee',fs,'center',true);
+    simText(ctx,'v = P/mg = '+v.toFixed(2)+' m/s',cx,56,'#6ee7b7',fs,'center',true);
+    simText(ctx,'t = '+t.toFixed(2)+' s',cx,84,'#fbbf24',NAR?15:17,'center',true);
+    // the energy the motor has delivered so far, against the work to be done
+    var E=Math.min(P*t,Wk), bx=PX+12, bw=PW-24, by=100;
+    simText(ctx,`Energy the motor delivered`,cx,by+2,'#94a3b8',8.5,'center');
+    ctx.save();ctx.fillStyle='rgba(15,30,55,.8)';ctx.beginPath();ctx.roundRect(bx,by+10,bw,12,3);ctx.fill();
+    var gr=ctx.createLinearGradient(bx,0,bx+bw,0);gr.addColorStop(0,'#0ea5e9');gr.addColorStop(1,'#34d399');
+    ctx.fillStyle=gr;ctx.beginPath();ctx.roundRect(bx,by+10,bw*(Wk?E/Wk:0),12,3);ctx.fill();ctx.restore();
+    simText(ctx,E.toFixed(0)+' / '+Wk.toFixed(0)+' J',cx,by+38,'#cbd5e1',9,'center');
+    // the last lifts, to compare
+    var rr=runs.slice(-3);
+    rr.forEach(function(r,i){simText(ctx,r.m+' kg · '+r.P+' W · '+r.t.toFixed(2)+' s',cx,by+58+i*14,i===rr.length-1?'#e2e8f0':'#7d8da6',8.5,'center');});
+    // one formula at a time: the work before the lift, P = Fv during it, P = W/t after it
+    if(fin)model(kit.m('P = W/t = '+Wk.toFixed(0)+' J / '+t.toFixed(2)+' s = '+P.toFixed(0)+' W'));
+    else if(run)model(kit.m('P = Fv = '+(m*G).toFixed(0)+' N × '+v.toFixed(2)+' m/s = '+P.toFixed(0)+' W'));
+    else model(kit.m('W = mgh = '+m+' × 9.8 × 10 = '+Wk.toFixed(0)+' J'));
+    kit.check(flags);
+    requestAnimationFrame(draw);
+  }
+  requestAnimationFrame(draw);
+}
+
+// ─────────────────────────────────────────────────────────────
+// GRAVITATION: four simulations
+// ─────────────────────────────────────────────────────────────
+// g against the distance from the Earth's centre
+function simGravField(canvas){
+  // SECTION: gravitation.grav-law
+  // PEDAGOGY: r is measured from the centre; g = GM/r² falls with the square
+  // of it and does not depend on the mass of the body that is weighed.
+  var H=440; var setup=setupCanvas(canvas,H); var ctx=setup.ctx; var W=setup.W;
+  var id=canvas.id, GS=9.8, r=1, m=10, seen={r:1,mn:10,mx:10};
+  var flags={quarter:false,g1:false,mass10:false};
+  function read(){var a=document.getElementById('inp-gf-r'),b=document.getElementById('inp-gf-m');
+    if(a)r=parseFloat(a.value);if(b)m=parseFloat(b.value);
+    if(Math.abs(seen.r-r)>1e-9)seen={r:r,mn:m,mx:m};
+    seen.mn=Math.min(seen.mn,m);seen.mx=Math.max(seen.mx,m);}
+  ['inp-gf-r','inp-gf-m'].forEach(function(s){var e=document.getElementById(s);if(e)e.addEventListener('input',read);});
+  read();
+  var kit=simKit(canvas,{missions:[
+    {text:`Find the distance from Earth’s center at which the object’s weight is a quarter of its weight on the surface`,
+     hint:`The force decreases with the square of the distance from the center. By what factor must the distance grow for the force to decrease by a factor of 4?`,
+     why:`${_skM('F ∝ 1/r²')}: at a distance of ${_skM('r = 2R')} the force is smaller by a factor of ${_skM('2² = 4')}. That is a height of one full Earth radius, ${_skM('6370 km')}, above the surface.`,
+     done:function(q){return q.quarter;}},
+    {text:`Find the distance at which the acceleration due to gravity is ${_skM('1 m/s²')}`,
+     hint:`On the surface g = 9.8 m/s². By what factor must g decrease, and what does that say about r?`,
+     why:`${_skM('g = 9.8/(r/R)²')}, so ${_skM('g = 1 m/s²')} when ${_skM('r/R = √9.8 ≈ 3.13')} — a distance of about ${_skM('20,000 km')} from the center.`,
+     done:function(q){return q.g1;}},
+    {text:`Without changing the distance, increase the object’s mass by a factor of 10. What happened to g?`,
+     hint:`The weight increases — but g is the weight divided by the mass.`,
+     why:`The weight ${_skM('W = GMm/r²')} increased by a factor of 10, but ${_skM('g = W/m = GM/r²')} does not depend on the object’s mass. That is why all objects fall with the same acceleration.`,
+     done:function(q){return q.mass10;}}]});
+  var model=_mbModel(kit);
+  kit.predict({q:`A satellite is at a height of one Earth radius above the surface. Its weight there, compared with its weight on the surface, is:`,
+    opts:[`Half`,`A quarter`,`Zero — there is no gravity in space`],correct:1,
+    why:`The distance is measured from the center: at a height R above the surface ${_skM('r = 2R')}, and the force is smaller by a factor of ${_skM('2² = 4')}.`},function(){});
+  canvas._probe=function(){return {r:r,m:m,g:GS/(r*r),flags:flags};};
+  var NAR=W<520;
+  function draw(){
+    if(_simStop[id])return;
+    var g=GS/(r*r), Wt=m*g;
+    if(Math.abs(r-2)<=0.03)flags.quarter=true;
+    if(Math.abs(g-1)<=0.03)flags.g1=true;
+    if(seen.mx/seen.mn>=10-1e-9)flags.mass10=true;
+    simBg(ctx,W,H);
+    // the scene: the Earth on the left, the body at r
+    var SY=NAR?74:84, EX=NAR?34:48, ER=NAR?20:26, X1=W-(NAR?26:40), U=(X1-EX)/10;   // px per Earth radius, from the centre
+    var eg=ctx.createRadialGradient(EX-ER*0.3,SY-ER*0.3,ER*0.1,EX,SY,ER);
+    eg.addColorStop(0,'#7dd3fc');eg.addColorStop(0.7,'#1d4ed8');eg.addColorStop(1,'#0b2a6b');
+    ctx.save();ctx.strokeStyle='rgba(148,163,184,.4)';ctx.lineWidth=1;ctx.setLineDash([3,4]);
+    ctx.beginPath();ctx.moveTo(EX,SY);ctx.lineTo(X1,SY);ctx.stroke();ctx.setLineDash([]);ctx.restore();
+    // the Earth is drawn with the radius of the scale, so the body at r = R touches it
+    simCircle(ctx,EX,SY,U,eg,'#93c5fd',1.5);
+    var bx=EX+r*U, br=NAR?6:7;
+    simCircle(ctx,bx,SY,br,'#fbbf24','#fde68a',1.5);
+    var al=Math.max(8,Math.min(bx-EX-U-br-2,(NAR?60:90)/(r*r)));
+    if(al>4)simArrow(ctx,bx-br-1,SY,bx-br-1-al,SY,'#f87171',2.5,8);
+    simText(ctx,'r = '+r.toFixed(2)+' R',Math.max(EX+U+40,Math.min(W-52,bx)),SY-(NAR?18:22),'#fde68a',NAR?10:11,'center',true);
+    for(var k=2;k<=10;k+=2){ctx.save();ctx.strokeStyle='rgba(148,163,184,.5)';ctx.beginPath();ctx.moveTo(EX+k*U,SY-4);ctx.lineTo(EX+k*U,SY+4);ctx.stroke();ctx.restore();
+      simText(ctx,k+'R',EX+k*U,SY+17,'#7d8da6',8.5,'center');}
+    // the readouts
+    var RY=NAR?116:130;
+    simText(ctx,'g = GM/r² = '+g.toFixed(2)+' m/s²',W*0.27,RY,'#22d3ee',NAR?10.5:12,'center',true);
+    simText(ctx,'W = mg = '+(Wt>=100?Wt.toFixed(0):Wt.toFixed(1))+' N',W*0.73,RY,'#fca5a5',NAR?10.5:12,'center',true);
+    simText(ctx,'h = r − R = '+Math.round((r-1)*6370).toLocaleString('en-US')+' km',W*0.5,RY+19,'#94a3b8',NAR?9:10,'center');
+    // the graph of g against r
+    var GL=NAR?40:52, GR=W-18, GT=RY+40, GB=H-34;
+    _mbCard(ctx,GL-34,GT-14,GR-GL+46,GB-GT+44);
+    ctx.save();ctx.strokeStyle='rgba(148,163,184,.6)';ctx.lineWidth=1;
+    ctx.beginPath();ctx.moveTo(GL,GT);ctx.lineTo(GL,GB);ctx.lineTo(GR,GB);ctx.stroke();ctx.restore();
+    var gx=function(q){return GL+q/10*(GR-GL);}, gy=function(v){return GB-v/10*(GB-GT);};
+    [0,2,4,6,8,10].forEach(function(k){simText(ctx,k?k+'R':'0',gx(k),GB+13,'#7d8da6',8.5,'center');});
+    [5,9.8].forEach(function(v){simText(ctx,String(v),GL-5,gy(v)+3,'#7d8da6',8.5,'right');
+      ctx.save();ctx.strokeStyle='rgba(148,163,184,.18)';ctx.beginPath();ctx.moveTo(GL,gy(v));ctx.lineTo(GR,gy(v));ctx.stroke();ctx.restore();});
+    simText(ctx,'g (m/s²)',GL+4,GT-2,'#94a3b8',8.5,'left');
+    simText(ctx,'r',GR-2,GB-6,'#94a3b8',9,'right');
+    // inside the Earth the formula does not hold: the curve starts at the surface
+    ctx.save();ctx.fillStyle='rgba(29,78,216,.16)';ctx.fillRect(GL,GT,gx(1)-GL,GB-GT);ctx.restore();
+    ctx.save();ctx.strokeStyle='#22d3ee';ctx.lineWidth=2;ctx.beginPath();
+    for(var q=1;q<=10.001;q+=0.05){var px=gx(q),py=gy(GS/(q*q));if(q===1)ctx.moveTo(px,py);else ctx.lineTo(px,py);}
+    ctx.stroke();ctx.restore();
+    ctx.save();ctx.strokeStyle='rgba(251,191,36,.6)';ctx.setLineDash([3,3]);ctx.beginPath();ctx.moveTo(gx(r),GB);ctx.lineTo(gx(r),gy(g));ctx.lineTo(GL,gy(g));ctx.stroke();ctx.setLineDash([]);ctx.restore();
+    simCircle(ctx,gx(r),gy(g),5,'#fbbf24','#fff',1.5);
+    model(kit.m('g = 9.8/'+r.toFixed(2)+'² = '+g.toFixed(2)+' m/s²'));
+    kit.check(flags);
+    requestAnimationFrame(draw);
+  }
+  requestAnimationFrame(draw);
+}
+
+// a satellite in a circular orbit: one speed for each radius
+function simOrbit(canvas){
+  // SECTION: gravitation.orbits
+  // PEDAGOGY: gravity is the centripetal force, so v = √(GM/r) and T follow
+  // from the radius alone -- a low orbit is a fast one, and the mass cancels.
+  var H=460; var setup=setupCanvas(canvas,H); var ctx=setup.ctx; var W=setup.W;
+  var id=canvas.id, GM=3.986e14, RE=6.371e6, TS=1380;      // one second shows 23 minutes
+  var r=6.8, m=500, th=-Math.PI/2, pT=null, seen={r:6.8,mn:500,mx:500};
+  var flags={geo:false,half:false,mass10:false};
+  function read(){var a=document.getElementById('inp-ob-r'),b=document.getElementById('inp-ob-m');
+    if(a)r=parseFloat(a.value);if(b)m=parseFloat(b.value);
+    if(Math.abs(seen.r-r)>1e-9)seen={r:r,mn:m,mx:m};
+    seen.mn=Math.min(seen.mn,m);seen.mx=Math.max(seen.mx,m);}
+  ['inp-ob-r','inp-ob-m'].forEach(function(s){var e=document.getElementById(s);if(e)e.addEventListener('input',read);});
+  read();
+  var V0=Math.sqrt(GM/6.6e6)/1000;
+  var kit=simKit(canvas,{missions:[
+    {text:`Find the orbit radius for which the period is 24 hours`,
+     hint:`A higher orbit is a longer orbit, and the satellite moves more slowly in it. Increase r until T reaches one day.`,
+     why:`This is the geostationary orbit: ${_skM('r ≈ 42,200 km')}, a height of about ${_skM('35,800 km')}. A satellite there completes one revolution in exactly one day, so from the ground it appears fixed in the sky.`,
+     done:function(q){return q.geo;}},
+    {text:`Find an orbit in which the satellite’s speed is half its speed in the lowest orbit, ${_skM('r = 6600 km')}`,
+     hint:`The speed decreases as one over the square root of the radius. By what factor must the radius grow?`,
+     why:`${_skM('v = √(GM/r)')}, so a speed smaller by a factor of 2 requires a radius larger by a factor of ${_skM('2² = 4')}: ${_skM('r = 26,400 km')}.`,
+     done:function(q){return q.half;}},
+    {text:`Without changing the orbit, increase the satellite’s mass by a factor of 10. What happened to the speed and the period?`,
+     hint:`Write the equality between gravity and the centripetal force, and look for the satellite’s mass in it.`,
+     why:`In ${_skM('GMm/r² = mv²/r')} the satellite’s mass cancels: the speed and the period are set by the radius alone. A tiny satellite and a space station follow the same orbit at the same speed.`,
+     done:function(q){return q.mass10;}}]});
+  var model=_mbModel(kit);
+  kit.predict({q:`Satellite A orbits close to Earth, and satellite B orbits far from it. Which one moves faster?`,
+    opts:[`The near one`,`The far one`,`Both at the same speed`],correct:0,
+    why:`${_skM('v = √(GM/r)')}: the smaller the radius, the stronger gravity is, and the faster the satellite must move to stay in orbit.`},function(){});
+  canvas._probe=function(){var rm=r*1e6;return {r:r,m:m,v:Math.sqrt(GM/rm)/1000,T:2*Math.PI*Math.sqrt(rm*rm*rm/GM),flags:flags};};
+  var NAR=W<520;
+  function draw(ts){
+    if(_simStop[id])return;
+    if(pT==null)pT=ts;
+    var dt=Math.min((ts-pT)/1000,0.05);pT=ts;
+    var rm=r*1e6, v=Math.sqrt(GM/rm), T=2*Math.PI*rm/v, g=GM/(rm*rm);
+    th+=2*Math.PI*dt*TS/T;
+    if(Math.abs(T/3600-24)<=0.3)flags.geo=true;
+    if(Math.abs(v/1000-V0/2)<=0.02)flags.half=true;
+    if(seen.mx/seen.mn>=10-1e-9)flags.mass10=true;
+    simBg(ctx,W,H);
+    var CY=NAR?H*0.60:H*0.52, CX=NAR?W*0.5:W*0.62, RM=Math.min(NAR?W*0.46:W*0.34,NAR?H*0.36:H*0.44), S=RM/Math.max(12,r*1.1);   // px per 1000 km: the view zooms so the orbit fills it, the Earth always to the same scale
+    var ER=6.371*S;
+    var eg=ctx.createRadialGradient(CX-ER*0.3,CY-ER*0.3,ER*0.1,CX,CY,ER);
+    eg.addColorStop(0,'#7dd3fc');eg.addColorStop(0.7,'#1d4ed8');eg.addColorStop(1,'#0b2a6b');
+    simCircle(ctx,CX,CY,ER,eg,'#93c5fd',1.2);
+    ctx.save();ctx.strokeStyle='rgba(148,163,184,.55)';ctx.lineWidth=1;ctx.setLineDash([4,5]);
+    ctx.beginPath();ctx.arc(CX,CY,r*S,0,Math.PI*2);ctx.stroke();ctx.setLineDash([]);ctx.restore();
+    var sx=CX+r*S*Math.cos(th), sy=CY+r*S*Math.sin(th);
+    // velocity along the orbit, gravity toward the centre
+    var vl=(NAR?5:6.5)*v/1000, gl=Math.min(r*S-ER-6,(NAR?3.2:4.2)*g);
+    simArrow(ctx,sx,sy,sx-Math.sin(th)*vl,sy+Math.cos(th)*vl,'#34d399',2.5,8);
+    if(gl>5)simArrow(ctx,sx,sy,sx-Math.cos(th)*gl,sy-Math.sin(th)*gl,'#f87171',2.5,8);
+    simCircle(ctx,sx,sy,NAR?4.5:5.5,'#fbbf24','#fff',1.2);
+    simText(ctx,`To scale: Earth and the orbit`,CX,H-12,'#64748b',8.5,'center');
+    // the readout card
+    var PW=NAR?W-20:W*0.36, PX=10, PY=10, cx=PX+PW/2, fs=NAR?10.5:11.5;
+    _mbCard(ctx,PX,PY,PW,NAR?86:118);
+    var Tt=T<7200?(T/60).toFixed(1)+' min':(T/3600).toFixed(2)+' h';
+    if(NAR){
+      simText(ctx,'v = √(GM/r) = '+(v/1000).toFixed(2)+' km/s',cx,PY+20,'#6ee7b7',fs,'center',true);
+      simText(ctx,'T = 2πr/v = '+Tt,cx,PY+40,'#fbbf24',fs,'center',true);
+      simText(ctx,'g = '+g.toFixed(2)+' m/s²   ·   h = '+Math.round(r*1000-6371).toLocaleString('en-US')+' km',cx,PY+60,'#94a3b8',9,'center');
+      simText(ctx,`Velocity`,W*0.30,PY+78,'#6ee7b7',8.5,'center');simText(ctx,`Gravity`,W*0.70,PY+78,'#fca5a5',8.5,'center');
+    }else{
+      simText(ctx,'v = √(GM/r) = '+(v/1000).toFixed(2)+' km/s',cx,PY+24,'#6ee7b7',fs,'center',true);
+      simText(ctx,'T = 2πr/v = '+Tt,cx,PY+46,'#fbbf24',fs,'center',true);
+      simText(ctx,'g = GM/r² = '+g.toFixed(2)+' m/s²',cx,PY+68,'#fca5a5',fs,'center',true);
+      simText(ctx,'h = r − R = '+Math.round(r*1000-6371).toLocaleString('en-US')+' km',cx,PY+90,'#94a3b8',10,'center');
+      simText(ctx,`Green: velocity · Red: gravity`,cx,PY+108,'#64748b',8.5,'center');
+    }
+    model(kit.m('v = √(GM/r) = '+(v/1000).toFixed(2)+' km/s')+' — '+kit.m('T = '+Tt));
+    kit.check(flags);
+    requestAnimationFrame(draw);
+  }
+  requestAnimationFrame(draw);
+}
+
+// Kepler: an ellipse about the Sun, equal areas, T² = a³
+function simKepler(canvas){
+  // SECTION: gravitation.kepler
+  // PEDAGOGY: the two shaded sectors are swept in equal times and have equal
+  // areas, so the planet is fast near the Sun; T depends on a alone.
+  var H=460; var setup=setupCanvas(canvas,H); var ctx=setup.ctx; var W=setup.W;
+  var id=canvas.id, a=1, e=0.3, tt=0, pT=null, seen={a:1,mn:0.3,mx:0.3};
+  var flags={T8:false,ratio3:false,eChange:false};
+  function read(){var A=document.getElementById('inp-kp-a'),E=document.getElementById('inp-kp-e');
+    if(A)a=parseFloat(A.value);if(E)e=parseFloat(E.value);
+    if(Math.abs(seen.a-a)>1e-9)seen={a:a,mn:e,mx:e};
+    seen.mn=Math.min(seen.mn,e);seen.mx=Math.max(seen.mx,e);}
+  ['inp-kp-a','inp-kp-e'].forEach(function(s){var x=document.getElementById(s);if(x)x.addEventListener('input',read);});
+  read();
+  // the position at mean anomaly M, from the Sun, perihelion on the +x axis
+  function at(M){var E=M,i;for(i=0;i<8;i++)E-=(E-e*Math.sin(E)-M)/(1-e*Math.cos(E));
+    return {x:a*(Math.cos(E)-e),y:a*Math.sqrt(1-e*e)*Math.sin(E)};}
+  var kit=simKit(canvas,{missions:[
+    {text:`Find the semi-major axis for which the planet’s year lasts 8 Earth years`,
+     hint:`In years and astronomical units, T² = a³. Which a gives T² = 64?`,
+     why:`${_skM('T² = a³')}: ${_skM('8² = 64 = 4³')}, so ${_skM('a = 4 AU')}. A distance 4 times greater — a year 8 times longer.`,
+     done:function(q){return q.T8;}},
+    {text:`Set the orbit so that the planet moves 3 times faster at perihelion than at aphelion`,
+     hint:`By the law of areas, the speed ratio is the inverse of the ratio of the distances from the Sun. Change e.`,
+     why:`${_skM('r_p·v_p = r_a·v_a')}, and the distances are ${_skM('a(1 − e)')} and ${_skM('a(1 + e)')}. The ratio ${_skM('(1 + e)/(1 − e) = 3')} is obtained at ${_skM('e = 0.5')}.`,
+     done:function(q){return q.ratio3;}},
+    {text:`Without changing a, change e by at least 0.3. Did the period change?`,
+     hint:`Watch T while you move only e.`,
+     why:`The period depends only on the semi-major axis: ${_skM('T² = a³')}. A circle and an elongated ellipse with the same a take exactly the same time.`,
+     done:function(q){return q.eChange;}}]});
+  var model=_mbModel(kit);
+  kit.predict({q:`When does a planet move fastest in its orbit?`,
+    opts:[`When it is close to the Sun`,`When it is far from the Sun`,`Its speed is constant along the orbit`],correct:0,
+    why:`The law of areas: the line to the Sun sweeps out equal areas in equal times. Close to the Sun the line is short, so the planet must cover a longer arc in the same time.`},function(){});
+  canvas._probe=function(){return {a:a,e:e,T:Math.pow(a,1.5),ratio:(1+e)/(1-e),flags:flags};};
+  var NAR=W<520;
+  function draw(ts){
+    if(_simStop[id])return;
+    if(pT==null)pT=ts;
+    var dt=Math.min((ts-pT)/1000,0.05);pT=ts;
+    var T=Math.pow(a,1.5), b=a*Math.sqrt(1-e*e), ratio=(1+e)/(1-e);
+    tt+=dt/4;                                   // a year in four seconds
+    if(Math.abs(T-8)<=0.15)flags.T8=true;
+    if(Math.abs(ratio-3)<=0.15)flags.ratio3=true;
+    if(seen.mx-seen.mn>=0.3-1e-9)flags.eChange=true;
+    simBg(ctx,W,H);
+    var AT=NAR?96:20, AL=NAR?14:W*0.34, AR=W-14, AB=H-30;
+    var S=Math.min((AR-AL)/(2*a),(AB-AT)/(2*b))*0.9;     // px per AU: the ellipse fills the frame
+    var CX=(AL+AR)/2, CY=(AT+AB)/2, SX=CX+a*e*S;          // the Sun is at the right-hand focus
+    var px=function(q){return SX+q.x*S;}, py=function(q){return CY-q.y*S;};
+    // the two sectors swept in a tenth of the period
+    [[0,'rgba(251,191,36,.34)'],[Math.PI,'rgba(34,211,238,.30)']].forEach(function(sc){
+      ctx.save();ctx.fillStyle=sc[1];ctx.beginPath();ctx.moveTo(SX,CY);
+      for(var i=0;i<=24;i++){var q=at(sc[0]-Math.PI/10+i/24*Math.PI/5);ctx.lineTo(px(q),py(q));}
+      ctx.closePath();ctx.fill();ctx.restore();});
+    ctx.save();ctx.strokeStyle='rgba(148,163,184,.7)';ctx.lineWidth=1.2;ctx.beginPath();
+    ctx.ellipse(CX,CY,a*S,b*S,0,0,Math.PI*2);ctx.stroke();
+    ctx.strokeStyle='rgba(148,163,184,.25)';ctx.setLineDash([3,4]);ctx.beginPath();ctx.moveTo(CX-a*S,CY);ctx.lineTo(CX+a*S,CY);ctx.stroke();ctx.setLineDash([]);ctx.restore();
+    var sg=ctx.createRadialGradient(SX,CY,1,SX,CY,NAR?8:10);sg.addColorStop(0,'#fff7ae');sg.addColorStop(1,'#f59e0b');
+    simCircle(ctx,SX,CY,NAR?8:10,sg,'#fde68a',1);
+    var pl=at(2*Math.PI*tt/T), rr=Math.hypot(pl.x,pl.y), vv=29.78*Math.sqrt(2/rr-1/a);
+    ctx.save();ctx.strokeStyle='rgba(226,232,240,.35)';ctx.beginPath();ctx.moveTo(SX,CY);ctx.lineTo(px(pl),py(pl));ctx.stroke();ctx.restore();
+    simCircle(ctx,px(pl),py(pl),NAR?5:6,'#60a5fa','#fff',1.2);
+    // a scale bar of 1 AU
+    ctx.save();ctx.strokeStyle='#94a3b8';ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(AR-S-4,AB+12);ctx.lineTo(AR-4,AB+12);ctx.stroke();ctx.restore();
+    simText(ctx,'1 AU',AR-4-S/2,AB+25,'#94a3b8',8.5,'center');
+    // the readout card
+    var PW=NAR?W-20:W*0.31, PX=10, PY=10, cx=PX+PW/2, fs=NAR?10.5:11.5;
+    _mbCard(ctx,PX,PY,PW,NAR?80:150);
+    if(NAR){
+      simText(ctx,`T = ${T.toFixed(2)} years`,W*0.27,PY+20,'#fbbf24',fs,'center',true);
+      simText(ctx,'r = '+rr.toFixed(2)+' AU',W*0.73,PY+20,'#e2e8f0',fs,'center',true);
+      simText(ctx,'v = '+vv.toFixed(1)+' km/s',W*0.27,PY+41,'#6ee7b7',fs,'center',true);
+      simText(ctx,`Speed ratio: ${ratio.toFixed(2)}`,W*0.73,PY+41,'#fca5a5',fs,'center',true);
+      simText(ctx,`The two areas: ${(Math.PI*a*b/10).toFixed(3)} AU² each`,W*0.5,PY+63,'#94a3b8',9,'center');
+    }else{
+      simText(ctx,`T = ${T.toFixed(2)} years`,cx,PY+24,'#fbbf24',12.5,'center',true);
+      simText(ctx,'r = '+rr.toFixed(2)+' AU',cx,PY+48,'#e2e8f0',fs,'center',true);
+      simText(ctx,'v = '+vv.toFixed(1)+' km/s',cx,PY+70,'#6ee7b7',fs,'center',true);
+      simText(ctx,`Speed ratio: ${ratio.toFixed(2)}`,cx,PY+92,'#fca5a5',fs,'center',true);
+      simText(ctx,`Perihelion vs. aphelion`,cx,PY+107,'#64748b',8.5,'center');
+      simText(ctx,`The two areas: ${(Math.PI*a*b/10).toFixed(3)} AU²`,cx,PY+130,'#94a3b8',9.5,'center');
+    }
+    model(`${kit.m('T² = a³ ⇒ T = √('+a.toFixed(1)+'³) = '+T.toFixed(2))} years`);
+    kit.check(flags);
+    requestAnimationFrame(draw);
+  }
+  requestAnimationFrame(draw);
+}
+
+// a body fired straight up: the energy diagram decides whether it returns
+function simGravEscape(canvas){
+  // SECTION: gravitation.grav-energy
+  // PEDAGOGY: the total energy ½v² − GM/r is a horizontal line on the graph
+  // of −GM/r; the body turns back where the two meet, and if the line is not
+  // below zero it never does.
+  var H=460; var setup=setupCanvas(canvas,H); var ctx=setup.ctx; var W=setup.W;
+  var id=canvas.id, TS=900;
+  var BODY={'ge-earth':{GM:3.986e14,R:6.371e6,col:'#1d4ed8',name:`Earth`},'ge-moon':{GM:4.905e12,R:1.737e6,col:'#64748b',name:`The Moon`},'ge-mars':{GM:4.283e13,R:3.390e6,col:'#b45309',name:`Mars`}};
+  var bid='ge-earth', B=BODY[bid], v0=6, r=B.R, v=0, ph='idle', pT=null, peak=B.R;
+  var flags={r2:false,escE:false,escM:false};
+  function read(){var a=document.getElementById('inp-ge-v');if(a)v0=parseFloat(a.value);}
+  function reset(){r=B.R;v=0;ph='idle';pT=null;peak=B.R;}
+  var e0=document.getElementById('inp-ge-v');if(e0)e0.addEventListener('input',function(){read();reset();});
+  var go=document.getElementById('btn-ge-go'),rs=document.getElementById('btn-ge-reset');
+  if(go)go.addEventListener('click',function(){read();reset();v=v0*1000;ph='fly';});
+  if(rs)rs.addEventListener('click',reset);
+  read();
+  var kit=simKit(canvas,{missions:[
+    {text:`Launch an object from Earth so that it reaches exactly a distance of ${_skM('2R')} from the center`,
+     hint:`At the peak all the energy is potential. Compare the energy at launch with the energy at r = 2R.`,
+     why:`${_skM('½v² − GM/R = −GM/2R')}, so ${_skM('v = √(GM/R) ≈ 7.9 km/s')} — exactly the speed of a satellite orbiting just above the surface, and smaller than the escape speed by a factor of ${_skM('√2')}.`,
+     done:function(q){return q.r2;}},
+    {text:`Find the lowest speed at which the object does not return to Earth`,
+     hint:`The object escapes when the total-energy line is not below zero. Increase v₀ until it gets there.`,
+     why:`The escape speed: ${_skM('½v² − GM/R = 0')}, that is, ${_skM('v_esc = √(2GM/R) ≈ 11.2 km/s')}. Above it the total energy is positive, and the object recedes forever.`,
+     done:function(q){return q.escE;}},
+    {text:`Switch to the Moon, and find its escape speed`,
+     hint:`The Moon’s mass is smaller by a factor of 81 and its radius by a factor of 3.7. Try much lower speeds.`,
+     why:`The escape speed from the Moon is only ${_skM('√(2GM/R) ≈ 2.4 km/s')}. That is why the Apollo lunar module lifted off from it with a small engine, while leaving Earth took a giant rocket.`,
+     done:function(q){return q.escM;}}]});
+  var model=_mbModel(kit);
+  kit.tabs({label:`Launch from`,value:'ge-earth',items:[{id:'ge-earth',label:`🌍 Earth`},{id:'ge-moon',label:`🌙 Moon`},{id:'ge-mars',label:`🔴 Mars`}],
+    onChange:function(x){bid=x;B=BODY[x];reset();}});
+  kit.predict({q:`A light object and one 100 times heavier are launched from Earth’s surface at the same speed. Without air resistance, which one rises higher?`,
+    opts:[`The lighter one`,`The heavier one`,`Both reach the same height`],correct:2,
+    why:`In the energy equation, ${_skM('½mv² − GMm/r = const')}, the mass appears in every term and cancels. The height is set by the launch speed alone.`},function(){});
+  canvas._probe=function(){return {body:bid,v0:v0,r:r/B.R,v:v/1000,ph:ph,peak:peak/B.R,flags:flags};};
+  var NAR=W<520;
+  function draw(ts){
+    if(_simStop[id])return;
+    if(pT==null)pT=ts;
+    var dt=Math.min((ts-pT)/1000,0.05);pT=ts;
+    var GM=B.GM, R=B.R, E0=0.5*v0*v0*1e6-GM/R, vesc=Math.sqrt(2*GM/R);
+    if(ph==='fly'){
+      var n=40,h=dt*TS*Math.max(1,r/R)/n,i;     // far from the body things are slow: the clock runs faster there
+      for(i=0;i<n&&ph==='fly';i++){
+        var a1=-GM/(r*r);r+=v*h+0.5*a1*h*h;var a2=-GM/(r*r);v+=0.5*(a1+a2)*h;
+        if(r>peak)peak=r;
+        if(r<=R&&v<0){r=R;v=0;ph='landed';}
+        else if(r>=10*R){ph=E0>=0?'escaped':'far';}
+      }
+      if(v<=0&&ph!=='idle'&&bid==='ge-earth'&&Math.abs(peak/R-2)<=0.06)flags.r2=true;
+      if(ph==='escaped'&&bid==='ge-earth'&&v0<=11.4)flags.escE=true;
+      if(ph==='escaped'&&bid==='ge-moon'&&v0<=2.6)flags.escM=true;
+    }
+    var E=ph==='idle'?E0:0.5*v*v-GM/r;
+    if(ph==='landed')E=E0;
+    simBg(ctx,W,H);
+    // the launch column: the height above the body, in its radii
+    var LX=NAR?W*0.16:W*0.14, LB=H-44, LT=26, LU=(LB-LT)/9;        // px per radius, from r = R
+    ctx.save();ctx.fillStyle=B.col;ctx.beginPath();ctx.arc(LX,LB+(NAR?70:90),NAR?70:90,Math.PI,2*Math.PI);ctx.fill();ctx.restore();
+    ctx.save();ctx.strokeStyle='rgba(148,163,184,.5)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(LX,LB);ctx.lineTo(LX,LT);ctx.stroke();
+    for(var k=2;k<=10;k+=2){var yy=LB-(k-1)*LU;ctx.beginPath();ctx.moveTo(LX-4,yy);ctx.lineTo(LX+4,yy);ctx.stroke();}
+    ctx.restore();
+    for(k=2;k<=10;k+=2)simText(ctx,k+'R',LX-8,LB-(k-1)*LU+3,'#7d8da6',8.5,'right');
+    simText(ctx,B.name,LX,H-10,'#e2e8f0',9.5,'center',true);
+    var by=LB-Math.min(9,(r/R-1))*LU;
+    simCircle(ctx,LX,by,NAR?4.5:5.5,'#fbbf24','#fff',1.2);
+    if(ph==='fly'&&Math.abs(v)>30){var al=Math.max(8,Math.min(34,Math.abs(v)/400));
+      simArrow(ctx,LX+10,by,LX+10,by-(v>0?al:-al),'#34d399',2.2,7);}
+    // the energy diagram: −GM/r, and the total energy as a level line
+    var GL=NAR?W*0.36:W*0.30, GR=W-14, GT=NAR?92:84, GB=H-44;
+    _mbCard(ctx,GL-(NAR?30:40),GT-16,GR-GL+(NAR?38:50),GB-GT+46);
+    var U0=GM/R, top=0.45*U0, gx=function(q){return GL+(q-1)/9*(GR-GL);}, gy=function(u){return GT+(top-u)/(top+U0)*(GB-GT);};
+    ctx.save();ctx.strokeStyle='rgba(148,163,184,.6)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(GL,GT);ctx.lineTo(GL,GB);ctx.stroke();
+    ctx.setLineDash([4,4]);ctx.beginPath();ctx.moveTo(GL,gy(0));ctx.lineTo(GR,gy(0));ctx.stroke();ctx.setLineDash([]);ctx.restore();
+    simText(ctx,'0',GL-5,gy(0)+3,'#94a3b8',8.5,'right');
+    simText(ctx,'−GM/R',GL-3,gy(-U0)+3,'#94a3b8',NAR?7.5:8.5,'right');
+    [1,4,7,10].forEach(function(q){simText(ctx,q+'R',gx(q),GB+13,'#7d8da6',8.5,'center');});
+    simText(ctx,`Energy per unit mass`,(GL+GR)/2,GT-4,'#94a3b8',8.5,'center');
+    ctx.save();ctx.strokeStyle='#22d3ee';ctx.lineWidth=2;ctx.beginPath();
+    for(var q=1;q<=10.001;q+=0.1){var X=gx(q),Y=gy(-U0/q);if(q===1)ctx.moveTo(X,Y);else ctx.lineTo(X,Y);}
+    ctx.stroke();ctx.restore();
+    var Ed=Math.max(-U0,Math.min(top,E0)), col=E0>=0?'#34d399':'#fbbf24';
+    var xe=E0<0?Math.min(GR,gx(Math.min(10,-GM/E0/R))):GR;
+    ctx.save();ctx.strokeStyle=col;ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(GL,gy(Ed));ctx.lineTo(xe,gy(Ed));ctx.stroke();ctx.restore();
+    // the kinetic energy is the gap between the level line and the curve
+    var qr=Math.min(10,r/R);
+    ctx.save();ctx.strokeStyle='rgba(248,113,113,.9)';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(gx(qr),gy(-U0/qr));ctx.lineTo(gx(qr),gy(Math.max(-U0/qr,Ed)));ctx.stroke();ctx.restore();
+    simCircle(ctx,gx(qr),gy(-U0/qr),4.5,'#fbbf24','#fff',1.2);
+    simText(ctx,`Blue: potential · ${E0>=0?`Green`:`Yellow`}: total · Red: kinetic`,(GL+GR)/2,GB+28,'#64748b',NAR?7.5:8.5,'center');
+    // the readouts
+    var cx=(GL+GR)/2, fs=NAR?10:11.5, vn=ph==='idle'?v0:Math.abs(v)/1000;
+    simText(ctx,'E/m = ½v² − GM/r = '+(E0/1e6).toFixed(1)+' MJ/kg',cx,24,col,fs,'center',true);
+    simText(ctx,'v = '+vn.toFixed(2)+' km/s   ·   r = '+(r/R).toFixed(2)+' R',cx,44,'#e2e8f0',fs,'center');
+    var msg=ph==='landed'?`Back at the surface — peak: r = ${(peak/R).toFixed(2)} R`:ph==='escaped'?`Escaped: the total energy is not negative`:
+      ph==='far'?`Will reach ${(-GM/E0/R).toFixed(1)} R — then return`:ph==='fly'?(v>0?`Rising, slowing down`:`Falling back`):`Escape speed here: ${(vesc/1000).toFixed(2)} km/s`;
+    simText(ctx,msg,cx,62,'#94a3b8',NAR?9:10,'center');
+    if(E0<0)model(kit.m('E/m = '+(E0/1e6).toFixed(1)+' MJ/kg < 0 ⇒ r_max = GM/|E/m| = '+(-GM/E0/R).toFixed(2)+' R'));
+    else model(kit.m('E/m = '+(E0/1e6).toFixed(1)+' MJ/kg ≥ 0 ⇒ v∞ = √(v₀² − v_esc²) = '+Math.sqrt(Math.max(0,v0*v0-vesc*vesc/1e6)).toFixed(2)+' km/s'));
+    kit.check(flags);
+    requestAnimationFrame(draw);
+  }
+  requestAnimationFrame(draw);
+}
 
 // ─────────────────────────────────────────────────────────────
 // MOMENTUM CONSERVATION: two balls collide
@@ -23085,6 +24327,289 @@ function simOptThinFilm(canvas){
     var list=peaks.length?peaks.map(function(q){return Math.round(q[1])+' nm';}).join(', '):'—';
     kit.model(`${_skM('2nt = 2 · '+nf.toFixed(2)+' · '+Math.round(t)+' nm = '+Math.round(2*nf*t)+' nm')}; ${cond} ⇒ reinforced in the visible: ${_skM(list)}.`);
     kit.check({sub:sub,t:t,lam0:lam0,R550:R550,Rlo:Rlo});
+    requestAnimationFrame(draw);
+  }
+  requestAnimationFrame(draw);
+}
+
+// ─────────────────────────────────────────────────────────────
+// PHOTONS, ATOMS AND NUCLEI: three simulations
+// ─────────────────────────────────────────────────────────────
+// the photoelectric effect: frequency decides whether, intensity decides how many
+function simPhotoelectric(canvas){
+  // SECTION: opt-quantum.photoelectric
+  // PEDAGOGY: one photon frees one electron, if hf > W; the stopping voltage
+  // measures the largest kinetic energy, and the intensity only sets the current.
+  var H=440; var setup=setupCanvas(canvas,H); var ctx=setup.ctx; var W=setup.W;
+  var id=canvas.id;
+  var METAL={'pe-na':{W:2.28,name:`Sodium`,col:'#cbd5e1'},'pe-zn':{W:4.30,name:`Zinc`,col:'#94a3b8'},'pe-cu':{W:4.70,name:`Copper`,col:'#c2703d'}};
+  var mid='pe-na', lam=400, inten=50, V=0, pT=null, phs=[], els=[], accP=0, accE=0, seen={k:'',mn:50,mx:50};
+  var flags={thr:false,stop:false,dim:false};
+  function read(){var a=document.getElementById('inp-pe-lam'),b=document.getElementById('inp-pe-I'),c=document.getElementById('inp-pe-V');
+    if(a)lam=parseFloat(a.value);if(b)inten=parseFloat(b.value);if(c)V=parseFloat(c.value);
+    var k=mid+'|'+lam;if(seen.k!==k)seen={k:k,mn:inten,mx:inten};
+    seen.mn=Math.min(seen.mn,inten);seen.mx=Math.max(seen.mx,inten);}
+  ['inp-pe-lam','inp-pe-I','inp-pe-V'].forEach(function(s){var e=document.getElementById(s);if(e)e.addEventListener('input',read);});
+  read();
+  var kit=simKit(canvas,{missions:[
+    {text:`Find the longest wavelength that still releases electrons from sodium`,
+     hint:`Increase the wavelength until the current vanishes, then go back one step. What is the photon energy there, compared with W?`,
+     why:`At the threshold, the photon energy exactly equals the work function: ${_skM('λ₀ = hc/W = 1240/2.28 ≈ 544 nm')}. A photon of longer wavelength is too weak, and no intensity will help.`,
+     done:function(q){return q.thr;}},
+    {text:`Shine light of ${_skM('300 nm')} on sodium, and find the stopping voltage: the smallest voltage that brings the current to zero`,
+     hint:`Increase the reverse voltage until the ammeter reads zero — and no further.`,
+     why:`${_skM('E = 1240/300 = 4.13 eV')}, so ${_skM('E_k,max = 4.13 − 2.28 = 1.85 eV')}. The voltage that stops even the fastest electron is ${_skM('V_s = 1.85 V')}: one electron volt per volt.`,
+     done:function(q){return q.stop;}},
+    {text:`Shine visible light (${_skM('400 nm')} and above) on zinc, and increase the intensity by a factor of at least 2. Were electrons released?`,
+     hint:`Choose zinc, set a wavelength in the visible range, and move only the intensity slider.`,
+     why:`A photon of visible light has at most ${_skM('3.1 eV')}, and the work function of zinc is ${_skM('4.3 eV')}. An electron absorbs one photon: more weak photons do not add up to a strong one.`,
+     done:function(q){return q.dim;}}]});
+  var model=_mbModel(kit);
+  kit.tabs({label:`The metal`,value:'pe-na',items:[{id:'pe-na',label:`Sodium · 2.28 eV`},{id:'pe-zn',label:`Zinc · 4.30 eV`},{id:'pe-cu',label:`Copper · 4.70 eV`}],
+    onChange:function(x){mid=x;els=[];read();}});
+  kit.predict({q:`Very bright red light hits a zinc plate and releases no electrons from it. What will release them?`,
+    opts:[`Even brighter red light`,`Ultraviolet light, even dim`,`Waiting longer`],correct:1,
+    why:`An electron absorbs one photon, and a red photon does not have enough energy. Only a more energetic photon — a higher frequency — will release it. Intensity and time do not change the photon’s energy.`},function(){});
+  canvas._probe=function(){var M=METAL[mid],E=1240/lam;return {metal:mid,lam:lam,inten:inten,V:V,E:E,Ek:E-M.W,flags:flags};};
+  var NAR=W<520;
+  function draw(ts){
+    if(_simStop[id])return;
+    if(pT==null)pT=ts;
+    var dt=Math.min((ts-pT)/1000,0.05);pT=ts;
+    var M=METAL[mid], E=1240/lam, Ek=E-M.W, emit=Ek>0, Vs=emit?Ek:0;
+    var cur=emit?(V>=Vs-0.005?0:inten*(1-V/Vs)):0;            // percent of the largest current
+    if(mid==='pe-na'&&emit&&lam>=538)flags.thr=true;
+    if(mid==='pe-na'&&Math.abs(lam-300)<=2&&emit&&cur===0&&V<=Vs+0.1)flags.stop=true;
+    if(mid==='pe-zn'&&lam>=400&&!emit&&seen.mx/seen.mn>=2-1e-9)flags.dim=true;
+    simBg(ctx,W,H);
+    var TX1=W*0.10, TX2=W*0.90, TY1=NAR?150:140, TY2=NAR?290:300, CXp=TX1+26, AXp=TX2-26, MY=(TY1+TY2)/2;
+    // the vacuum tube and its two plates
+    ctx.save();ctx.strokeStyle='rgba(148,163,184,.55)';ctx.lineWidth=1.5;ctx.fillStyle='rgba(15,23,42,.55)';
+    ctx.beginPath();ctx.roundRect(TX1,TY1,TX2-TX1,TY2-TY1,26);ctx.fill();ctx.stroke();
+    ctx.fillStyle=M.col;ctx.fillRect(CXp-5,TY1+22,10,TY2-TY1-44);
+    ctx.fillStyle='#64748b';ctx.fillRect(AXp-4,TY1+22,8,TY2-TY1-44);ctx.restore();
+    simText(ctx,M.name,CXp,TY2+16,'#e2e8f0',NAR?9.5:10.5,'center',true);
+    // the light: a beam from the upper right onto the metal plate
+    var lc=lam<380?'#a78bfa':wavelengthToHex(lam), BX=W*0.62, BY=TY1-(NAR?62:70);
+    ctx.save();ctx.globalAlpha=0.10+0.25*inten/100;ctx.fillStyle=lc;
+    ctx.beginPath();ctx.moveTo(BX-16,BY);ctx.lineTo(BX+16,BY);ctx.lineTo(CXp+6,MY+34);ctx.lineTo(CXp+6,MY-34);ctx.closePath();ctx.fill();ctx.restore();
+    simText(ctx,lam<380?`Ultraviolet`:`Visible light`,BX,BY-8,lc,NAR?9:10,'center',true);
+    accP+=dt*inten*0.22;
+    while(accP>=1){accP-=1;phs.push({s:0,o:(Math.random()-0.5)*50});}
+    phs.forEach(function(p){p.s+=dt*1.6;});
+    phs=phs.filter(function(p){return p.s<1;});
+    ctx.save();ctx.fillStyle=lc;
+    phs.forEach(function(p){var x=BX+(CXp+6-BX)*p.s,y=BY+(MY+p.o*p.s*1.2-BY)*p.s;ctx.beginPath();ctx.arc(x,y,2.4,0,Math.PI*2);ctx.fill();});
+    ctx.restore();
+    // the electrons: each leaves with a share u of the largest energy and is slowed by the reverse voltage
+    if(emit){accE+=dt*inten*0.14;
+      while(accE>=1){accE-=1;els.push({x:CXp+7,y:MY+(Math.random()-0.5)*(TY2-TY1-70),u:0.05+0.95*Math.random(),d:1});}}
+    var span=AXp-CXp-14;
+    els.forEach(function(q){var K=q.u*Ek-V*(q.x-CXp-7)/span;
+      if(q.d>0&&K<=0)q.d=-1;
+      q.x+=q.d*dt*(40+150*Math.sqrt(Math.max(0.03,Math.abs(K))));});
+    els=els.filter(function(q){return q.x>CXp+5&&q.x<AXp-6;});
+    ctx.save();ctx.fillStyle='#38bdf8';
+    els.forEach(function(q){ctx.beginPath();ctx.arc(q.x,q.y,2.6,0,Math.PI*2);ctx.fill();});ctx.restore();
+    // the readouts
+    var fs=NAR?10.5:12;
+    simText(ctx,'E = hc/λ = '+E.toFixed(2)+' eV',W*0.27,26,lc,fs,'center',true);
+    simText(ctx,'W = '+M.W.toFixed(2)+' eV',W*0.27,46,'#e2e8f0',fs,'center',true);
+    simText(ctx,emit?(cur===0?`All electrons are stopped`:`Electrons are released`):`No electrons: E < W`,W*0.27,66,emit?(cur===0?'#fbbf24':'#6ee7b7'):'#fca5a5',NAR?9:10,'center');
+    // the ammeter and the reverse voltage, under the tube
+    var AY=TY2+(NAR?48:54), bx=W*0.18, bw=W*0.64;
+    simText(ctx,`Current: ${cur.toFixed(0)}%`,W*0.5,AY-10,'#38bdf8',fs,'center',true);
+    ctx.save();ctx.fillStyle='rgba(15,30,55,.85)';ctx.beginPath();ctx.roundRect(bx,AY,bw,11,3);ctx.fill();
+    ctx.fillStyle='#38bdf8';ctx.beginPath();ctx.roundRect(bx,AY,bw*cur/100,11,3);ctx.fill();ctx.restore();
+    simText(ctx,`Reverse voltage: V = ${V.toFixed(2)} V`,W*0.5,AY+30,'#94a3b8',NAR?9.5:10.5,'center');
+    model(emit?kit.m('hf = 1240/'+lam.toFixed(0)+' = '+E.toFixed(2)+' eV > W = '+M.W.toFixed(2)+' eV'):kit.m('hf = 1240/'+lam.toFixed(0)+' = '+E.toFixed(2)+' eV < W = '+M.W.toFixed(2)+' eV'));
+    kit.check(flags);
+    requestAnimationFrame(draw);
+  }
+  requestAnimationFrame(draw);
+}
+
+// the hydrogen atom: levels, jumps and the lines they leave in the spectrum
+window._fmtBohrN=function(v){return v>=7?'∞':String(Math.round(v));};
+function simBohr(canvas){
+  // SECTION: opt-quantum.bohr
+  // PEDAGOGY: a photon carries exactly the difference between two levels;
+  // the levels crowd toward zero, so jumps to n = 1 are ultraviolet and
+  // jumps to n = 2 are the visible Balmer lines.
+  var H=460; var setup=setupCanvas(canvas,H); var ctx=setup.ctx; var W=setup.W;
+  var id=canvas.id, ni=3, nf=2, lines=[], last=null, an=null, got={};
+  var flags={red:false,balmer:false,ion:false};
+  var En=function(n){return n>=7?0:-13.6/(n*n);};
+  var mn=function(x){return x.toFixed(2).replace('-','\u2212');};      // a minus sign, not a hyphen
+  function read(){var a=document.getElementById('inp-bh-ni'),b=document.getElementById('inp-bh-nf');
+    if(a)ni=Math.round(parseFloat(a.value));if(b)nf=Math.round(parseFloat(b.value));}
+  ['inp-bh-ni','inp-bh-nf'].forEach(function(s){var e=document.getElementById(s);if(e)e.addEventListener('input',read);});
+  var go=document.getElementById('btn-bh-go'),cl=document.getElementById('btn-bh-clear');
+  if(go)go.addEventListener('click',function(){read();if(ni===nf)return;
+    var dE=Math.abs(En(nf)-En(ni)), em=En(nf)<En(ni);
+    last={a:ni,b:nf,dE:dE,lam:1240/dE,em:em};an={t0:null};
+    lines.push({lam:last.lam,em:em});if(lines.length>24)lines.shift();
+    if(em&&ni===3&&nf===2)flags.red=true;
+    if(em&&nf===2&&ni>=3&&ni<=6){got[ni]=1;if(got[3]&&got[4]&&got[5]&&got[6])flags.balmer=true;}
+    if(!em&&ni===1&&nf===7)flags.ion=true;});
+  if(cl)cl.addEventListener('click',function(){lines=[];last=null;an=null;});
+  read();
+  var kit=simKit(canvas,{missions:[
+    {text:`Produce the red line of hydrogen, ${_skM('656 nm')}`,
+     hint:`The visible lines are emitted in drops to n = 2. The red one is the least energetic of them — the smallest jump.`,
+     why:`A drop from ${_skM('n = 3')} to ${_skM('n = 2')}: ${_skM('ΔE = −1.51 − (−3.40) = 1.89 eV')}, so ${_skM('λ = 1240/1.89 ≈ 656 nm')}. This is the ${_skM('Hα')} line.`,
+     done:function(q){return q.red;}},
+    {text:`Produce all four Balmer lines that lie in visible light`,
+     hint:`Four drops to n = 2, from the four levels above it.`,
+     why:`From ${_skM('n = 3, 4, 5, 6')} to ${_skM('n = 2')}: ${_skM('656, 486, 434, 410 nm')}. The lines crowd toward the violet, because the upper levels crowd toward zero.`,
+     done:function(q){return q.balmer;}},
+    {text:`Ionize a hydrogen atom that is in the ground state`,
+     hint:`Ionization is a rise from n = 1 to ∞ — a free electron.`,
+     why:`From ${_skM('E₁ = −13.6 eV')} up to zero takes ${_skM('13.6 eV')}: an ultraviolet photon with a wavelength of ${_skM('91 nm')} or shorter.`,
+     done:function(q){return q.ion;}}]});
+  var model=_mbModel(kit);
+  kit.predict({q:`One hydrogen atom drops from n = 3 to n = 2, and another from n = 2 to n = 1. Which one emits the more energetic photon?`,
+    opts:[`The one that drops from 3 to 2`,`The one that drops from 2 to 1`,`Both emit the same energy`],correct:1,
+    why:`The levels are not evenly spaced: from 2 to 1 the difference is ${_skM('10.2 eV')}, and from 3 to 2 only ${_skM('1.89 eV')}.`},function(){});
+  canvas._probe=function(){return {ni:ni,nf:nf,last:last,lines:lines.length,flags:flags};};
+  var NAR=W<520, FR=[0,0,0.60,0.75,0.83,0.885,0.925,1];   // where each level is drawn, bottom to top (a sketch: the true gaps crowd too much)
+  function draw(ts){
+    if(_simStop[id])return;
+    simBg(ctx,W,H);
+    var LX1=NAR?14:24, LX2=NAR?W*0.56:W*0.50, LB=H-124, LT=30;
+    var ly=function(n){return LB-FR[n]*(LB-LT);};
+    for(var n=1;n<=7;n++){var y=ly(n), on=(n===ni||n===nf);
+      ctx.save();ctx.strokeStyle=n===7?'rgba(148,163,184,.6)':on?'#fbbf24':'rgba(148,163,184,.75)';ctx.lineWidth=on?2.2:1.3;
+      if(n===7)ctx.setLineDash([5,4]);ctx.beginPath();ctx.moveTo(LX1+(NAR?44:54),y);ctx.lineTo(LX2,y);ctx.stroke();ctx.restore();
+      simText(ctx,n===7?'n = ∞':'n = '+n,LX1+(NAR?40:50),y+3,on?'#fde68a':'#cbd5e1',NAR?8.5:9.5,'right',on);
+      if(n<=3||n===7||on)simText(ctx,mn(En(n))+' eV',LX2+6,y+3,on?'#fde68a':'#94a3b8',NAR?8:9,'left');}
+    // the jump, and its photon
+    var mx=(LX1+54+LX2)/2;
+    if(last){
+      if(an&&an.t0==null)an.t0=ts;
+      var k=an?Math.min(1,(ts-an.t0)/900):1, ya=ly(last.a), yb=ly(last.b), col=last.lam<380?'#a78bfa':last.lam>750?'#f87171':wavelengthToHex(last.lam);
+      simArrow(ctx,mx,ya,mx,ya+(yb-ya)*Math.max(0.12,k),'#f8fafc',2.2,9);
+      // emitted: the wave leaves to the right; absorbed: it arrives from the right
+      var x0=mx+14, x1=LX2-8, ym=(ya+yb)/2, L=(x1-x0)*k;
+      ctx.save();ctx.strokeStyle=col;ctx.lineWidth=2;ctx.beginPath();
+      for(var s=0;s<=L;s+=2){var xx=last.em?x0+s:x1-s, yy=ym+5*Math.sin(s*0.5);if(s===0)ctx.moveTo(xx,yy);else ctx.lineTo(xx,yy);}
+      ctx.stroke();ctx.restore();
+    }
+    // the readout card
+    var PX=LX2+(NAR?46:70), PW=W-PX-10, cx=PX+PW/2, fs=NAR?9.5:11.5;
+    _mbCard(ctx,PX,16,PW,NAR?150:160);
+    var dE=Math.abs(En(nf)-En(ni)), em=En(nf)<En(ni), lm=dE>0?1240/dE:0;
+    simText(ctx,ni===nf?`Choose two different levels`:em?`Photon emission`:`Photon absorption`,cx,36,ni===nf?'#94a3b8':em?'#6ee7b7':'#fca5a5',fs,'center',true);
+    if(ni!==nf){
+      simText(ctx,'ΔE = '+dE.toFixed(2)+' eV',cx,60,'#22d3ee',NAR?11:13,'center',true);
+      simText(ctx,'λ = '+(lm>=1000?lm.toFixed(0):lm.toFixed(1))+' nm',cx,84,'#fbbf24',NAR?11:13,'center',true);
+      var lo=Math.min(ni,nf);
+      simText(ctx,lm<380?`Ultraviolet`:lm>750?`Infrared`:`Visible light`,cx,106,'#e2e8f0',fs,'center');
+      simText(ctx,lo===1?`Lyman series`:lo===2?`Balmer series`:lo===3?`Paschen series`:'',cx,126,'#94a3b8',NAR?9:10,'center');
+    }
+    // the spectrum: 80 to 2500 nm on a logarithmic axis
+    var SX1=NAR?16:30, SX2=W-(NAR?16:30), SY=H-86, SH=34;
+    var sx=function(l){return SX1+(Math.log(l)-Math.log(80))/(Math.log(2500)-Math.log(80))*(SX2-SX1);};
+    ctx.save();ctx.fillStyle='#05080f';ctx.fillRect(SX1,SY,SX2-SX1,SH);
+    for(var l=380;l<750;l+=4){ctx.fillStyle=wavelengthToHex(l);ctx.globalAlpha=0.28;ctx.fillRect(sx(l),SY,sx(l+4)-sx(l)+0.6,SH);}
+    ctx.globalAlpha=1;ctx.strokeStyle='rgba(148,163,184,.6)';ctx.strokeRect(SX1,SY,SX2-SX1,SH);ctx.restore();
+    lines.forEach(function(q){var c=q.lam<380?'#c4b5fd':q.lam>750?'#fca5a5':wavelengthToHex(q.lam);
+      if(q.lam<80||q.lam>2500)return;
+      ctx.save();ctx.strokeStyle=c;ctx.lineWidth=2.2;if(!q.em)ctx.setLineDash([3,3]);ctx.beginPath();ctx.moveTo(sx(q.lam),SY+2);ctx.lineTo(sx(q.lam),SY+SH-2);ctx.stroke();ctx.restore();});
+    [100,200,400,700,1000,2000].forEach(function(l){simText(ctx,String(l),sx(l),SY+SH+13,'#7d8da6',8.5,'center');});
+    simText(ctx,'λ (nm)',SX2,SY+SH+28,'#7d8da6',8.5,'right');
+    simText(ctx,`Ultraviolet`,sx(170),SY-6,'#c4b5fd',8.5,'center');
+    simText(ctx,`Visible`,sx(530),SY-6,'#e2e8f0',8.5,'center');
+    simText(ctx,`Infrared`,sx(1400),SY-6,'#fca5a5',8.5,'center');
+    simText(ctx,`Solid line: emission · Dashed line: absorption`,(SX1+SX2)/2,H-14,'#64748b',8.5,'center');
+    if(ni!==nf)model(kit.m('ΔE = '+mn(Math.max(En(ni),En(nf)))+' − ('+mn(Math.min(En(ni),En(nf)))+') = '+dE.toFixed(2)+' eV')+' — '+kit.m('λ = 1240/'+dE.toFixed(2)+' = '+lm.toFixed(0)+' nm'));
+    else model('');
+    kit.check(flags);
+    requestAnimationFrame(draw);
+  }
+  requestAnimationFrame(draw);
+}
+
+// radioactive decay: each nucleus at random, the sample by the law
+function simRadioactivity(canvas){
+  // SECTION: opt-quantum.radioactivity
+  // PEDAGOGY: no one can say when a given nucleus decays, yet half of a
+  // large sample is gone in each half-life -- and two runs never agree exactly.
+  var H=460; var setup=setupCanvas(canvas,H); var ctx=setup.ctx; var W=setup.W;
+  var id=canvas.id, N0=400, T=3, t=0, run=false, pT=null, alive=[], hist=[], halves=[], runId=0, fresh=true;
+  var flags={half:false,eighth:false,twice:false};
+  function sample(){alive=[];for(var i=0;i<N0;i++)alive.push(true);t=0;run=false;pT=null;hist=[[0,N0]];runId++;fresh=true;}
+  function count(){var n=0;for(var i=0;i<N0;i++)if(alive[i])n++;return n;}
+  var sl=document.getElementById('inp-rd-T');
+  if(sl)sl.addEventListener('input',function(){T=parseFloat(sl.value);sample();});
+  if(sl)T=parseFloat(sl.value);
+  var go=document.getElementById('btn-rd-go'),pa=document.getElementById('btn-rd-pause'),rs=document.getElementById('btn-rd-reset');
+  if(go)go.addEventListener('click',function(){if(count()>0){run=true;pT=null;}});
+  if(pa)pa.addEventListener('click',function(){if(!run)return;run=false;var n=count();
+    if(n>=188&&n<=212){flags.half=true;halves.push({T:T,run:runId});
+      halves.forEach(function(a){halves.forEach(function(b){if(a.run!==b.run&&Math.abs(a.T-b.T)<1e-9)flags.twice=true;});});}});
+  if(rs)rs.addEventListener('click',sample);
+  sample();
+  var kit=simKit(canvas,{missions:[
+    {text:`Start, and stop the decay when half of the nuclei remain (${_skM('200 ± 12')}). How much time has passed?`,
+     hint:`Follow the counter N, and press “⏸ Pause” when it reaches about 200. Compare the time with T½.`,
+     why:`Half of the nuclei decay in one half-life — that is its definition. The time you measured is close to ${_skM('T½')}, but not exactly equal to it: decay is random.`,
+     done:function(q){return q.half;}},
+    {text:`Set ${_skM('T½ = 2 s')}, and run until ${_skM('t = 6 s')}. How many nuclei remain?`,
+     hint:`How many half-lives are 6 seconds? And what remains after each of them?`,
+     why:`Three half-lives: ${_skM('400 → 200 → 100 → 50')}, that is, an eighth. The number you got is close to 50, and deviates from it by a few nuclei either way.`,
+     done:function(q){return q.eighth;}},
+    {text:`Take a new sample with the same ${_skM('T½')}, and stop again at half. Did exactly the same time pass?`,
+     hint:`Press “↺ New sample” without changing T½, start, and stop again when N reaches about 200.`,
+     why:`Almost — but not exactly. The half-life is a statistical law: it is very precise for a sample of billions of nuclei, and noisy for a sample of hundreds. About a single nucleus nothing can be said except the probability.`,
+     done:function(q){return q.twice;}}]});
+  var model=_mbModel(kit);
+  kit.predict({q:`A sample contains 800 radioactive nuclei. About how many remain after three half-lives?`,
+    opts:['100','267',`None`],correct:0,
+    why:`In each half-life, half of what was there remains: ${_skM('800 → 400 → 200 → 100')}. The decay is not linear, and it never “ends” all at once.`},function(){});
+  canvas._probe=function(){return {T:T,t:t,N:count(),run:run,flags:flags};};
+  var NAR=W<520;
+  function draw(ts){
+    if(_simStop[id])return;
+    if(pT==null)pT=ts;
+    var dt=Math.min((ts-pT)/1000,0.05);pT=ts;
+    if(run){var p=1-Math.pow(2,-dt/T);
+      for(var i=0;i<N0;i++)if(alive[i]&&Math.random()<p)alive[i]=false;
+      var was=t;t+=dt;hist.push([t,count()]);if(hist.length>1500)hist.splice(1,2);
+      if(fresh&&Math.abs(T-2)<1e-9&&was<6&&t>=6)flags.eighth=true;
+      if(count()===0||t>=6*T)run=false;}
+    var N=count();
+    simBg(ctx,W,H);
+    // the sample: twenty by twenty nuclei
+    var GS=NAR?Math.min(W*0.44,150):Math.min(W*0.34,250), GX=NAR?10:26, GY=NAR?64:70, C=GS/20;
+    ctx.save();
+    for(var j=0;j<N0;j++){var x=GX+(j%20+0.5)*C, y=GY+(Math.floor(j/20)+0.5)*C;
+      ctx.fillStyle=alive[j]?'#a3e635':'rgba(100,116,139,.35)';ctx.beginPath();ctx.arc(x,y,Math.max(1.6,C*0.32),0,Math.PI*2);ctx.fill();}
+    ctx.restore();
+    simText(ctx,'N = '+N,GX+GS/2,GY-30,'#a3e635',NAR?13:15,'center',true);
+    simText(ctx,'t = '+t.toFixed(2)+' s',GX+GS/2,GY-12,'#fbbf24',NAR?10:11.5,'center',true);
+    simText(ctx,`Green: not yet decayed · Grey: decayed`,GX+GS/2,GY+GS+16,'#64748b',8.5,'center');
+    // N against t: the law (dashed) and this run (solid)
+    var AL=GX+GS+(NAR?34:60), AR=W-14, AT=NAR?64:60, AB=NAR?GY+GS-4:H-60;
+    _mbCard(ctx,AL-(NAR?28:36),AT-22,AR-AL+(NAR?36:46),AB-AT+52);
+    var TM=5*T, ax=function(q){return AL+q/TM*(AR-AL);}, ay=function(n){return AB-n/N0*(AB-AT);};
+    ctx.save();ctx.strokeStyle='rgba(148,163,184,.6)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(AL,AT);ctx.lineTo(AL,AB);ctx.lineTo(AR,AB);ctx.stroke();
+    ctx.strokeStyle='rgba(148,163,184,.2)';
+    [1,2,3,4].forEach(function(k){ctx.beginPath();ctx.moveTo(ax(k*T),AT);ctx.lineTo(ax(k*T),AB);ctx.stroke();});
+    [100,200].forEach(function(n){ctx.beginPath();ctx.moveTo(AL,ay(n));ctx.lineTo(AR,ay(n));ctx.stroke();});
+    ctx.restore();
+    [0,1,2,3,4,5].forEach(function(k){simText(ctx,k===0?'0':k===1?'T½':k+'T½',ax(k*T),AB+13,'#7d8da6',NAR?7.5:8.5,'center');});
+    [200,400].forEach(function(n){simText(ctx,String(n),AL-4,ay(n)+3,'#7d8da6',8.5,'right');});
+    simText(ctx,'N',AL+8,AT-6,'#94a3b8',9,'center');
+    ctx.save();ctx.strokeStyle='rgba(251,191,36,.8)';ctx.lineWidth=1.5;ctx.setLineDash([5,4]);ctx.beginPath();
+    for(var q=0;q<=TM+1e-9;q+=TM/60){var X=ax(q),Y=ay(N0*Math.pow(2,-q/T));if(q===0)ctx.moveTo(X,Y);else ctx.lineTo(X,Y);}
+    ctx.stroke();ctx.setLineDash([]);
+    ctx.strokeStyle='#a3e635';ctx.lineWidth=2;ctx.beginPath();
+    hist.forEach(function(h,ix){if(h[0]>TM)return;var X=ax(h[0]),Y=ay(h[1]);if(ix===0)ctx.moveTo(X,Y);else ctx.lineTo(X,Y);});
+    ctx.stroke();ctx.restore();
+    simText(ctx,`Dashed: the law · Solid: this sample`,(AL+AR)/2,AB+28,'#64748b',NAR?7.5:8.5,'center');
+    model(`By the law, after ${kit.m((t/T).toFixed(2))} half-lives: ${kit.m('N = '+(N0*Math.pow(2,-t/T)).toFixed(0))} · In the sample: ${kit.m('N = '+N)}`);
+    kit.check(flags);
     requestAnimationFrame(draw);
   }
   requestAnimationFrame(draw);
@@ -39539,6 +41064,11 @@ function buildSim(sim){
   else if(sim.type==='momentum-cons')extra=C(rng('mc-m1',1,8,3,0.5,'m₁',' kg','_fmtKg1')+rng('mc-m2',1,8,1.5,0.5,'m₂',' kg','_fmtKg1')+rng('mc-v1',-8,8,6,1,'v₁',' m/s','_fmtMs1')+rng('mc-v2',-8,8,-2,1,'v₂',' m/s','_fmtMs1')+rng('mc-E',2,40,12,1,`Spring energy`,' J')+btn('mc-run',`💥 Release the spring`,'btn-primary')+btn('mc-mode',`🧲 Sticking`,'btn-secondary')+btn('mc-air',`💨 Air: on`,'btn-secondary'));
   else if(sim.type==='collision')extra=C(rng('col-e',0,1,1,0.05,`Coefficient of restitution e — from 0 (stick) to 1 (elastic)`)+rng('col-m1',1,8,3,0.5,'m₁',' kg')+rng('col-m2',1,8,2,0.5,'m₂',' kg')+rng('col-v1',-8,8,4,0.5,`Initial v₁`,' m/s')+rng('col-v2',-8,8,-2,0.5,`Initial v₂`,' m/s')+btn('col-run',`▶ Start`,'btn-primary')+btn('col-reset',`↺ Reset`,'btn-secondary'));
   else if(sim.type==='energy-kinetic')extra=C(rng('ek-F',2,50,10,1,`Force F`,' N')+rng('ek-m',0.5,10,2,0.5,`Mass m`,' kg')+rng('ek-v0',0,5,0,0.5,`Initial speed v₀`,' m/s')+rng('ek-d',1,5,4,0.5,`Push distance d`,' m')+btn('ek-launch',`▶ Start!`,'btn-primary')+btn('ek-reset',`↺ Reset`,'btn-secondary'));
+  else if(sim.type==='grav-field')extra=C(rng('gf-r',1,10,1,0.05,`Distance from the center r`,' R')+rng('gf-m',1,100,10,1,`Mass of the object m`,' kg'));
+  else if(sim.type==='orbit')extra=C(rng('ob-r',6.6,46,6.8,0.2,`Orbit radius r`,' ×10³ km')+rng('ob-m',100,5000,500,100,`Satellite mass m`,' kg'));
+  else if(sim.type==='kepler')extra=C(rng('kp-a',0.4,5,1,0.1,`Semi-major axis a`,' AU')+rng('kp-e',0,0.8,0.3,0.05,`Eccentricity e`));
+  else if(sim.type==='grav-escape')extra=C(rng('ge-v',0.5,13,6,0.1,`Launch speed v₀`,' km/s')+btn('ge-go',`🚀 Launch`)+btn('ge-reset',`↺ Reset`,'btn-secondary'));
+  else if(sim.type==='power')extra=C(rng('pw-m',20,200,50,10,`Crate mass m`,' kg')+rng('pw-P',200,2000,500,20,`Crane power P`,' W')+btn('pw-go',`▶ Lift`)+btn('pw-reset',`↺ Reset`,'btn-secondary'));
   else if(sim.type==='energy-potential')extra=C(rng('ep-m',0.5,8,2,0.5,`Mass m`,' kg')+rng('ep-g',1.6,25,9.8,0.2,'g',' m/s²')+btn('ep-elastic',`🟢 Show elastic energy`,'btn-secondary')+btn('ep-reset',`↺ Reset`,'btn-secondary'));
   else if(sim.type==='energy')extra=C(rng('energy-m',0.5,4,1,0.5,`Mass m`,' kg')+rng('energy-mu',0,0.1,0,0.005,`Coefficient of friction μ`,'')+btn('energy-reset',`↺ Reset`,'btn-secondary')+btn('energy-shape',`〰 Original track`,'btn-secondary'));
   else if(sim.type==='shm-def')extra=C(rng('shm-A',2,13,8,0.5,`Amplitude A`,' cm')+rng('shm-T',0.5,5,2,0.1,`Period T`,' s')+btn('shm-pause',`⏸ Pause`,'btn-primary')+btn('shm-reset',`↺ Reset`,'btn-secondary'));
@@ -39586,6 +41116,9 @@ function buildSim(sim){
   else if(sim.type==='opt-fiber')extra=C(rng('fib-n1',1.30,1.80,1.50,0.01,`Core index n₁`,'')+rng('fib-n2',1.20,1.70,1.46,0.01,`Cladding index n₂`,'')+rng('fib-ang',2,40,12,1,`Entry angle`,'°'));
   else if(sim.type==='opt-telescope')extra=C(rng('tel-fo',30,300,150,5,`Objective focal length fₒ`,' mm')+rng('tel-fe',5,60,25,5,`Eyepiece focal length fₑ`,' mm'));
   else if(sim.type==='opt-thin-film')extra=C(rng('tf-thick',0,1000,300,1,`Film thickness t`,' nm')+rng('tf-n',1.10,2.00,1.33,0.01,`Refractive index of the film n`,'')+btn('tf-soap',`🫧 Soap film`,'btn-primary')+btn('tf-oil',`🛢 Oil on water`,'btn-secondary')+btn('tf-ar',`👓 MgF₂ on glass`,'btn-secondary'));
+  else if(sim.type==='photoelectric')extra=C(rng('pe-lam',150,700,400,2,`Wavelength λ`,' nm')+rng('pe-I',10,100,50,10,`Light intensity`,' %')+rng('pe-V',0,5,0,0.05,`Reverse voltage V`,' V'));
+  else if(sim.type==='bohr')extra=C(rng('bh-ni',1,7,3,1,`Initial level n`,'','_fmtBohrN')+rng('bh-nf',1,7,2,1,`Final level n`,'','_fmtBohrN')+btn('bh-go',`⚡ Transition`)+btn('bh-clear',`↺ Clear the spectrum`,'btn-secondary'));
+  else if(sim.type==='radioactivity')extra=C(rng('rd-T',1,10,3,0.5,`Half-life T½`,' s')+btn('rd-go',`▶ Start`)+btn('rd-pause',`⏸ Pause`,'btn-secondary')+btn('rd-reset',`↺ New sample`,'btn-secondary'));
   else if(sim.type==='opt-grating')extra=C(rng('gr-d',0.5,5.0,1.5,0.01,`Grating spacing d`,' μm')+rng('gr-lambda',380,700,550,1,`Wavelength λ`,' nm')+rng('gr-N',2,50,6,1,`Number of slits N`,'')+btn('gr-white',`🌈 White light`,'btn-secondary'));
   else if(sim.type==='elc-scope')extra=C(rng('scope-q',1,10,5,1,`Rod’s charge (magnitude)`,' nC')+btn('scope-flip',`↔ Flip sign`,'btn-secondary')+btn('scope-touch',`👆 Touch — conduction`,'btn-secondary')+btn('scope-ground',`⏚ Connect ground`,'btn-secondary'));
   else if(sim.type==='elc-coulomb')extra=C(rng('elc-q1',-5,5,2,0.5,'q₁',' μC')+rng('elc-q2',-5,5,-3,0.5,'q₂',' μC')+btn('clb-three',`⊕ Add charge q₃ (superposition)`,'btn-secondary'));
@@ -40661,6 +42194,9 @@ var FORMULA_DATA=[
     {f:'E<sub>p</sub> = ½kx²',d:`Elastic potential energy`},
     {f:'E<sub>k</sub> + E<sub>p</sub> = const',d:`Conservation (conservative forces)`},
     {f:'ΔE<sub>k</sub> + ΔE<sub>p</sub> = W<sub>f</sub>',d:`With friction (W_f is the work done by friction — negative)`},
+    {f:'P = W/t',d:`Average power`},
+    {f:'P = F·v',d:`Instantaneous power of a force along the motion`},
+    {f:'η = P<sub>out</sub>/P<sub>in</sub>',d:`Efficiency`},
   ]},
   {ch:`Chapter 10: Harmonic motion`,rows:[
     {f:'x = A·cos(ωt+φ)',d:`Harmonic motion`},
@@ -40669,6 +42205,16 @@ var FORMULA_DATA=[
     {f:'T = 2π√(L/g)',d:`Pendulum (small angles)`},
     {f:'v<sub>max</sub> = Aω',d:`Maximum speed (at the center)`},
     {f:'a<sub>max</sub> = Aω²',d:`Maximum acceleration (at the ends)`},
+  ]},
+  {ch:`Chapter 11: Gravitation and satellites`,rows:[
+    {f:'F = Gm<sub>1</sub>m<sub>2</sub>/r²',d:`Law of universal gravitation (r between the centers)`},
+    {f:'g = GM/r²',d:`Acceleration due to gravity at distance r from a planet’s center`},
+    {f:'v = √(GM/r)',d:`Speed of a satellite in circular orbit`},
+    {f:'T² = 4π²r³/GM',d:`Kepler’s third law (for an ellipse: a in place of r)`},
+    {f:'r<sub>p</sub>v<sub>p</sub> = r<sub>a</sub>v<sub>a</sub>',d:`Law of areas, at perihelion and aphelion`},
+    {f:'U = −GMm/r',d:`Gravitational potential energy (zero at infinity)`},
+    {f:'E = −GMm/2r',d:`Total energy in a circular orbit`},
+    {f:'v<sub>esc</sub> = √(2GM/R)',d:`Escape speed`},
   ]},
 ];
 
@@ -40717,6 +42263,17 @@ var FORMULA_BY_SUBJECT={
       {f:'λ = λ<sub>0</sub>√((1+β)/(1−β))',d:`Doppler effect for light (β=v/c, positive when receding)`},
       {f:'z = Δλ/λ<sub>0</sub> ≈ v/c',d:`Redshift, at low speeds`},
       {f:'E<sub>2</sub> − E<sub>1</sub> = hf',d:`Laser photon`},
+    ]},
+    {ch:`Chapter 7: Photons, atoms, and nuclei`,rows:[
+      {f:'hf = W + E<sub>k,max</sub>',d:`The photoelectric effect (W: the work function)`},
+      {f:'f<sub>0</sub> = W/h',d:`Threshold frequency`},
+      {f:'eV<sub>s</sub> = E<sub>k,max</sub>',d:`Stopping voltage`},
+      {f:'E [eV] = 1240/λ [nm]',d:`Photon energy, shortcut`},
+      {f:'E<sub>n</sub> = −13.6 eV/n²',d:`Energy levels of the hydrogen atom`},
+      {f:'hf = E<sub>i</sub> − E<sub>f</sub>',d:`Photon in a transition between levels`},
+      {f:'λ = h/mv',d:`De Broglie wavelength`},
+      {f:'N = N<sub>0</sub>·(½)^(t/T½)',d:`Law of radioactive decay`},
+      {f:'A = λN,  λ = ln2/T½',d:`Activity and the decay constant`},
     ]},
   ],
   electro:[
@@ -40817,12 +42374,15 @@ var FORMULA_REF=[
   {ch:`Physical constants`,rows:[
     {f:'g = 9.8 m/s²',d:`Free-fall acceleration (some problems tell you to take 10)`},
     {f:'G = 6.67×10⁻¹¹ N·m²/kg²',d:`Universal gravitational constant`},
+    {f:'M<sub>E</sub> = 5.97×10²⁴ kg',d:`Mass of the Earth`},
+    {f:'R<sub>E</sub> = 6.37×10⁶ m',d:`Radius of the Earth`},
     {f:'c = 3.00×10⁸ m/s',d:`Speed of light in a vacuum`},
     {f:'e = 1.6×10⁻¹⁹ C',d:`Elementary charge`},
     {f:'k = 9×10⁹ N·m²/C²',d:`Coulomb’s constant, k = 1/4πε₀`},
     {f:'ε<sub>0</sub> = 8.85×10⁻¹² F/m',d:`Permittivity of free space`},
     {f:'μ<sub>0</sub> = 4π×10⁻⁷ T·m/A',d:`Permeability of free space`},
     {f:'h = 6.63×10⁻³⁴ J·s',d:`Planck’s constant`},
+    {f:'hc = 1240 eV·nm',d:`Shortcut for photon calculations`},
     {f:'m<sub>e</sub> = 9.11×10⁻³¹ kg',d:`Electron mass`},
     {f:'m<sub>p</sub> = 1.67×10⁻²⁷ kg',d:`Proton mass`},
   ]},

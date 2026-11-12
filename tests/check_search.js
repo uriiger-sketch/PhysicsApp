@@ -54,7 +54,7 @@ const t = (name, ok, info) => { checks++; if (!ok) { fail++; console.log(`   FAI
       emptyText: ix.txt.filter(e => e.text.length < 200).length,
       glued: ix.txt.filter(e => /katex-mathml|<\/?(span|div|p|b|i|sub|sup|canvas|button|annotation)\b/i.test(e.text)).length };
   });
-  t('the index holds every topic', ix.n.sec === 107 && ix.n.txt === 107, JSON.stringify(ix.n));
+  t('the index holds every topic', ix.n.sec === 115 && ix.n.txt === 115, JSON.stringify(ix.n));
   t('all five subjects are in it', Object.keys(ix.subjects).length === 5, JSON.stringify(ix.subjects));
   t('it holds the terms and the formulas of the theory pages', ix.n.def > 100 && ix.n.frm > 120, JSON.stringify(ix.n));
   t('every topic has its theory text, as text', ix.emptyText === 0 && ix.glued === 0, `${ix.emptyText} short, ${ix.glued} with markup`);

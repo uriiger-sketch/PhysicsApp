@@ -56,6 +56,10 @@ const EXPECT = {
   'opt-modern.polarization': [500, 500 * cosd(40) ** 2],
   'opt-modern.doppler': [2, c * 2e3 / (2 * 10e9) * 3.6],
   'opt-modern.lasers': [h * c / 532e-9, 5e-3 / (h * c / 532e-9)],
+  // chapter ז, in eV and nm with hc = 1240 eV·nm as the problems give it
+  'opt-quantum.photoelectric': [1240 / 250, 1240 / 250 - 4.3, 1240 / 250 - 4.3, 1240 / 4.3],
+  'opt-quantum.bohr': [-13.6 / 16, 13.6 * (1 / 4 - 1 / 16), 1240 / (13.6 * (1 / 4 - 1 / 16)), 13.6 / 4],
+  'opt-quantum.radioactivity': [24 / 8, 6400 / 2 ** 3, 6 * 8, Math.log(2) / 8],
 };
 
 (async () => {

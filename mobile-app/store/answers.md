@@ -57,7 +57,7 @@ If any of that changes, so do these answers.
 ### App Review notes (paste into *App Review Information → Notes*)
 
 ```text
-Physfun is a complete, offline physics course for high-school students: 107 topics in five subjects (mechanics, optics, electrostatics, DC circuits, magnetism), in Hebrew and English. Everything is bundled in the app; it makes no network requests and needs no account.
+Physfun is a complete, offline physics course for high-school students: 115 topics in five subjects (mechanics, optics, electrostatics, DC circuits, magnetism), in Hebrew and English. Everything is bundled in the app; it makes no network requests and needs no account.
 
 How to try it:
 - The app opens in Hebrew in Israel and in English elsewhere, and after that always in the language of the last session; the 🌐 button at the top switches between Hebrew and English (progress is kept).
@@ -70,5 +70,5 @@ Device feature: 14 mechanics topics include a sensor lab that reads the accelero
 The same notes in Hebrew, if you prefer them (reviewers read English):
 
 ```text
-״פיזיכיף״ הוא קורס פיזיקה מלא לתיכון שפועל בלי אינטרנט: 107 סעיפים בחמישה נושאים, בעברית ובאנגלית. הכול נמצא בתוך האפליקציה; היא אינה פונה לרשת ואין בה חשבון.
+״פיזיכיף״ הוא קורס פיזיקה מלא לתיכון שפועל בלי אינטרנט: 115 סעיפים בחמישה נושאים, בעברית ובאנגלית. הכול נמצא בתוך האפליקציה; היא אינה פונה לרשת ואין בה חשבון.
 ```
