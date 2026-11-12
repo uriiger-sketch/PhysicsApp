@@ -40,7 +40,6 @@ const HARD = ['elc-millikan', 'mag-transformer', 'incline', 'opt-color-mix', 'dc
 
 async function page(b, w, h, touch) {
   const ctx = await b.newContext({ viewport: { width: w, height: h }, isMobile: !!touch, hasTouch: !!touch, deviceScaleFactor: 1 });
-  await ctx.addInitScript(() => { try { localStorage.setItem('phys_onboarded', '1'); } catch (e) {} });
   const p = await ctx.newPage();
   p._errs = [];
   p.on('pageerror', e => p._errs.push(e.message));
@@ -48,6 +47,11 @@ async function page(b, w, h, touch) {
   await p.goto(F);
   await p.waitForTimeout(900);
   await K.ready(p);
+  // The first visit's welcome is closed by the page, and only so: a start-up
+  // script that writes its flag touches localStorage before the page does,
+  // and that can leave a reloaded page (headless Chromium, file://) on
+  // another, empty storage area -- "across a reload" below then failed one
+  // run in five.
   await p.evaluate(() => { if (window.closeOnboarding) closeOnboarding(); });
   return p;
 }

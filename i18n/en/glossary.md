@@ -290,3 +290,27 @@ Settled by the four scientific-language editors; they bind every later edit.
 | כבלי התנעה · כרטיס רב-קו | jumper cables · contactless transit card |
 | מראת כיפה · מד מהירות (משטרתי) · מכ״ם מזג אוויר · מצביע לייזר | dome mirror · speed gun · weather radar · laser pointer |
 | סופר-קבל · בנק קבלים · מכונת ואן דה גראף · נקודת איפוס (שדה) | supercapacitor · capacitor bank · Van de Graaff generator · null point |
+
+## Terms added with the gravitation and modern-physics chapters (v28.46)
+
+| Hebrew | English |
+|---|---|
+| נצילות · הספק מועיל · הספק מושקע · כוח סוס | efficiency · useful power · input power · horsepower |
+| חוק הכבידה העולמי · קבוע הכבידה · תאוצת הכובד | law of universal gravitation · gravitational constant · acceleration due to gravity |
+| לוויין · מסלול מעגלי · רדיוס המסלול · חג | satellite · circular orbit · orbit radius · orbits |
+| לוויין גאוסטציונרי · חוסר משקל | geostationary satellite · weightlessness |
+| כוכב לכת · הגוף המרכזי · שביט · ירח (של כוכב לכת) | planet · central body · comet · moon |
+| חוק האליפסות · חוק השטחים · חוק המחזורים | law of ellipses · law of areas (“sweeps out equal areas in equal times”) · law of periods |
+| מוקד (אליפסה) · חצי־הציר הגדול · אקסצנטריות | focus (plural foci) · semi-major axis · eccentricity |
+| פריהליון · אפהליון · יחידה אסטרונומית | perihelion · aphelion · astronomical unit (AU) |
+| אנרגיה פוטנציאלית כבידתית · מהירות מילוט · מערכת קשורה | gravitational potential energy · escape speed · bound system |
+| פונקציית העבודה · תדירות סף · אורך גל הסף · מתח עצירה · מתח הפוך | work function · threshold frequency · threshold wavelength · stopping voltage · reverse voltage |
+| מנות (של אור) · אלקטרון־וולט | packets · electron volt (eV) |
+| רמת אנרגיה · מצב היסוד · אטום מעורר · יינון · המספר הקוונטי | energy level · ground state · excited atom · ionization · quantum number |
+| ירידה / עלייה (בין רמות) · מעבר | drop / rise · transition |
+| סדרת ליימן · בלמר · פשן · ספקטרום פליטה / בליעה | Lyman · Balmer · Paschen series · emission / absorption spectrum |
+| אורך הגל של דה־ברויי | de Broglie wavelength |
+| רדיואקטיביות · דעיכה · מתפרק · גרעין | radioactivity · decay · decays · nucleus (plural nuclei) |
+| זמן מחצית חיים · קבוע הדעיכה · אקטיביות · בקרל | half-life · decay constant · activity · becquerel (Bq) |
+| מספר אטומי · מספר מסה · איזוטופ | atomic number · mass number · isotope |
+| קרינת אלפא · בטא · גמא · ביקוע · היתוך · אנרגיית קשר | alpha · beta · gamma radiation · fission · fusion · binding energy |

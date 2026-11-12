@@ -1,4 +1,4 @@
-// Mechanics chapters ו-י (statics, motion in a plane, momentum, energy, SHM):
+// Mechanics chapters ו-יא (statics, motion in a plane, momentum, energy, SHM, gravitation):
 // every problem recomputed from first principles and put through the app's
 // own answer check, the physics the simulations and animations claim,
 // measured from what they actually draw, plus every draggable canvas driven
@@ -32,9 +32,15 @@ const EXPECT = {
   'energy.kinetic': { v: [0.5 * 2 * 9, 10 * 5, Math.sqrt(2 * (9 + 50) / 2)], W: [[18], [2], [Math.sqrt(50)]] },
   'energy.potential': { v: [3 * 10 * 8, Math.sqrt(2 * 10 * 8)], W: [[24], [160]] },
   'energy.energy-cons': { v: [5 * 10 * 4, -0.2 * 5 * 10 * 6, Math.sqrt(2 * 140 / 5), 4 / 0.2], W: [[20], [60, -12], [Math.sqrt(80)], [6]] },
+  'energy.power': { v: [400 * 10 * 15, 400 * 10 * 15 / 30, 2000 / 2500 * 100], W: [[6000], [1.8e6, 4000], [125, 0.8]] },
   'shm.shm-def': { v: [1 / 0.2, 2 * Math.PI * 5, 0.05 * 2 * Math.PI * 5], W: [[0.2], [5], [0.25]] },
   'shm.shm-spring': { v: [2 * Math.PI * Math.sqrt(2 / 200), 0.5 * 200 * 0.01, Math.sqrt(2 * 1 / 2)], W: [[0.1], [2], [Math.SQRT2]] },
   'shm.pendulum': { v: [2 * Math.PI * Math.sqrt(2.5 / 10), 1 / (2 * Math.PI * Math.sqrt(0.25)), 10 * 4 / (4 * Math.PI ** 2)], W: [[0.5], [3.14], [0.51]] },
+  // chapter יא: G = 6.67e-11; Mars 6.4e23 kg, 3.4e6 m; the satellite GM = 4.0e14, r = 7.0e6 m; the Moon GM = 4.9e12, R = 1.74e6 m
+  'gravitation.grav-law': { v: [6.67e-11 * 6.4e23 / 3.4e6 ** 2, 80 * (6.67e-11 * 6.4e23 / 3.4e6 ** 2), 3.4e6], W: [[6.67e-11 * 6.4e23 / 3.4e6], [784], [6.8e6, 1.7e6]] },
+  'gravitation.orbits': { v: [7.0e6, Math.sqrt(4.0e14 / 7.0e6), 2 * Math.PI * 7.0e6 / Math.sqrt(4.0e14 / 7.0e6), 4.0e14 / 7.0e6 ** 2], W: [[6.3e5, 6.37e6], [Math.sqrt(4.0e14 / 6.3e5)], [97], [9.8]] },
+  'gravitation.kepler': { v: [18, 18 ** 1.5, 34 / 2], W: [[36, 16], [18 ** (2 / 3), 324], [2 / 34, Math.sqrt(17)]] },
+  'gravitation.grav-energy': { v: [0.5 * 1500 ** 2 - 4.9e12 / 1.74e6, 4.9e12 / (4.9e12 / 1.74e6 - 0.5 * 1500 ** 2), Math.sqrt(2 * 4.9e12 / 1.74e6)], W: [[1.69e6, -2.816e6], [1.74e6 + 1500 ** 2 / (2 * 1.62)], [Math.sqrt(4.9e12 / 1.74e6)]] },
 };
 
 (async () => {
@@ -82,9 +88,9 @@ const EXPECT = {
   const set = (id, v) => p.evaluate(([id, v]) => { const e = document.getElementById('inp-' + id); e.value = v; e.dispatchEvent(new Event('input')); }, [id, v]);
   const num = s => parseFloat(String(s).replace('−', '-'));
 
-  console.log('\n0) every problem in chapters ו-י, recomputed and put through the answer check');
+  console.log('\n0) every problem in chapters ו-יא, recomputed and put through the answer check');
   const secs2 = await p.evaluate(() => MECH_CHAPTERS.slice(5).map(c => c.sections.map(s => c.id + '.' + s.id)).flat());
-  t('every section of chapters ו-י has an independent computation', secs2.length === 14 && secs2.every(k => EXPECT[k]), secs2.filter(k => !EXPECT[k]).join(' ') || secs2.length + ' sections');
+  t('every section of chapters ו-יא has an independent computation', secs2.length === 19 && secs2.every(k => EXPECT[k]), secs2.filter(k => !EXPECT[k]).join(' ') || secs2.length + ' sections');
   const tryAns = (k, si, inp) => p.evaluate(([k, si, inp]) => {
     const [c, s] = k.split('.');
     state.subject = 'mechanics'; state.chapter = c; state.section = s; state.tab = 'problem';
@@ -688,6 +694,6 @@ const EXPECT = {
 
   t('no page errors, touchend included', errs.length === 0, errs.length ? errs.join(' | ') : 'none');
   await b.close();
-  console.log(fail ? `\n❌ ${fail} FAILED` : '\n✅ MECHANICS ו-י: PHYSICS HOLDS AND EVERY DRAG WORKS BY TOUCH');
+  console.log(fail ? `\n❌ ${fail} FAILED` : '\n✅ MECHANICS ו-יא: PHYSICS HOLDS AND EVERY DRAG WORKS BY TOUCH');
   process.exit(fail ? 1 : 0);
 })();
