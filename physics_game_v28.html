@@ -3334,6 +3334,11 @@ const OPTICS_CHAPTERS=[
     {id:'doppler',title:'אפקט דופלר לאור',sub:'הסחה לאדום, מרחב, מהירות'},
     {id:'lasers',title:'לייזר — אור קוהרנטי',sub:'פליטה מעוררת, E=hf'},
   ]},
+  {id:'opt-quantum',icon:'⚛️',title:'פרק ז: פוטונים, אטומים וגרעינים',sections:[
+    {id:'photoelectric',title:'האפקט הפוטואלקטרי',sub:'hf = W + Eₖ, תדירות סף, מתח עצירה'},
+    {id:'bohr',title:'מודל בוהר וספקטרום המימן',sub:'Eₙ = −13.6/n² eV, סדרות הקווים'},
+    {id:'radioactivity',title:'רדיואקטיביות וזמן מחצית חיים',sub:'α, β, γ וחוק הדעיכה'},
+  ]},
 ];
 
 function getChapters(){
@@ -8081,6 +8086,295 @@ const OPTICS_CONTENT={
 },
 
 
+'opt-quantum.photoelectric':{
+  theory:{
+    title:'האפקט הפוטואלקטרי',
+    html:`
+      <p>אור שפוגע במתכת יכול לשחרר ממנה אלקטרונים. התופעה התגלתה ב־1887, ושלוש מתכונותיה סירבו בעקשנות להתיישב עם התמונה של אור כגל רציף:</p>
+      <div class="def-block"><div class="def-title">שלוש תצפיות שגל אינו מסביר</div>
+        <p>• <b>תדירות סף.</b> מתחת לתדירות מסוימת, שתלויה במתכת, לא משתחרר אף אלקטרון — גם באור חזק מאוד.<br>
+        • <b>האנרגיה תלויה בצבע.</b> האנרגיה הקינטית המרבית של האלקטרונים גדלה עם תדירות האור, ואינה תלויה כלל בעוצמתו.<br>
+        • <b>אין השהיה.</b> האלקטרונים משתחררים מיד, גם באור חלש מאוד.</p>
+      </div>
+      <p>ב־1905 הציע איינשטיין שהאור מגיע במנות — <b>פוטונים</b> — שכל אחת מהן נושאת אנרגיה ${M('hf')}. אלקטרון בולע פוטון <b>אחד</b>. חלק מהאנרגיה נדרש כדי לעזוב את המתכת, והיתר נשאר לו כאנרגיה קינטית:</p>
+      ${fBox('hf = W + E_{k,max}','משוואת איינשטיין לאפקט הפוטואלקטרי',[
+        ['hf','אנרגיית הפוטון','h = 6.63×10⁻³⁴ J·s'],
+        ['W','פונקציית העבודה: האנרגיה המזערית לשחרור אלקטרון מהמתכת','eV — תכונה של המתכת'],
+        ['E_{k,max}','האנרגיה הקינטית המרבית של האלקטרון','eV'],
+      ])}
+      ${fBox('f_0 = \\dfrac{W}{h}','תדירות הסף',[
+        ['f_0','התדירות הנמוכה ביותר שמשחררת אלקטרונים','Hz'],
+      ])}
+      <div class="def-block"><div class="def-title">מתח העצירה</div>
+        <p>מפעילים בין הלוחות מתח הפוך, שמאט את האלקטרונים, ומגדילים אותו עד שהזרם מתאפס. במתח הזה, ${M('V_s')}, גם האלקטרון המהיר ביותר נעצר רגע לפני הלוח שממול, ולכן ${M('eV_s=E_{k,max}')}. באלקטרון־וולט הקשר פשוט במיוחד: מתח עצירה של ${M('0.8\\,\\text{V}')} פירושו ${M('E_{k,max}=0.8\\,\\text{eV}')}.</p>
+      </div>
+      ${fBox('eV_s = E_{k,max} = hf - W','מתח העצירה',[
+        ['V_s','המתח ההפוך שמאפס את הזרם','V'],
+        ['e','המטען היסודי','1.6×10⁻¹⁹ C'],
+      ])}
+      <div class="mis-block"><b>⚠️ טעות נפוצה:</b> ״אור חזק יותר נותן לאלקטרונים יותר אנרגיה״. עוצמה גדולה יותר פירושה <b>יותר פוטונים</b> בשנייה — ולכן יותר אלקטרונים וזרם גדול יותר — אבל לכל פוטון אותה אנרגיה ${M('hf')}, ולכל אלקטרון אותה אנרגיה מרבית. רק שינוי ה<b>תדירות</b> משנה את האנרגיה. ומתחת לתדירות הסף גם זרקור אדיר אינו משחרר אלקטרון אחד.</div>
+      <p>קיצור שימושי: ${M('E=\\dfrac{hc}{\\lambda}')}, ובמספרים ${M('E\\,[\\text{eV}]=\\dfrac{1240}{\\lambda\\,[\\text{nm}]}')}.</p>
+      <div class="info-grid">
+        <div class="info-item"><div class="il">צזיום</div><div class="iv">W ≈ 2.1 eV</div></div>
+        <div class="info-item"><div class="il">נתרן</div><div class="iv">W ≈ 2.3 eV</div></div>
+        <div class="info-item"><div class="il">אבץ</div><div class="iv">W ≈ 4.3 eV</div></div>
+        <div class="info-item"><div class="il">נחושת</div><div class="iv">W ≈ 4.7 eV</div></div>
+      </div>
+      <div class="ex-block"><div class="ex-title">✏️ דוגמה — אור סגול על נתרן</div>
+      <p class="ex-given">אור שאורך הגל שלו ${M('400\\,\\text{nm}')} פוגע בנתרן, שפונקציית העבודה שלו ${M('2.28\\,\\text{eV}')}.</p>
+      <ol class="ex-steps">
+        <li>אנרגיית הפוטון: ${M('E=\\dfrac{1240}{400}=3.10\\,\\text{eV}')}</li>
+        <li>האנרגיה הקינטית המרבית: ${M('E_{k,max}=3.10-2.28=0.82\\,\\text{eV}')}</li>
+        <li>מתח העצירה: ${M('V_s=0.82\\,\\text{V}')}</li>
+        <li>אורך גל הסף: ${M('\\lambda_0=\\dfrac{1240}{2.28}\\approx544\\,\\text{nm}')} — אור ירוק. אור צהוב או אדום אינו משחרר מנתרן דבר.</li>
+      </ol>
+      <p class="ex-lesson"><b>הלקח:</b> הכול נקבע מהשוואה אחת — אנרגיית הפוטון מול פונקציית העבודה.</p></div>
+    `,
+    enrich:{
+      title:'על מה קיבל איינשטיין את פרס נובל?',
+      html:`<p>לא על תורת היחסות. פרס נובל לשנת 1921 ניתן לאיינשטיין ״על גילוי חוק האפקט הפוטואלקטרי״. רוברט מיליקן, שלא האמין בפוטונים, מדד במשך עשר שנים את מתח העצירה כפונקציה של התדירות כדי להפריך את המשוואה — וקיבל קו ישר ששיפועו ${M('h/e')}, בדיוק כפי שחזה איינשטיין.</p>
+      <p>האפקט נמצא היום בכל מקום: בתאים סולריים, בחיישן של כל מצלמה דיגיטלית, ובעין האלקטרונית שפותחת דלתות אוטומטיות.</p>`
+    }
+  },
+  sim:{type:'photoelectric',desc:'אור פוגע בלוח מתכת בתוך שפופרת ריק. בחרו מתכת, אורך גל ועוצמה, והפעילו מתח הפוך שמאט את האלקטרונים. מד הזרם מראה כמה מהם מגיעים ללוח שממול: התדירות קובעת אם ישתחררו ובאיזו אנרגיה, והעוצמה קובעת רק כמה.'},
+  example:{title:'האם ישתחררו אלקטרונים?',text:`אור אדום שאורך הגל שלו ${M('650\\,\\text{nm}')} פוגע בצזיום, שפונקציית העבודה שלו ${M('2.1\\,\\text{eV}')}.`,steps:[
+    {q:'מה אנרגיית הפוטון?',a:`${M('E=\\dfrac{1240}{650}\\approx1.91\\,\\text{eV}')}`},
+    {q:'האם ישתחררו אלקטרונים?',a:`לא: ${M('1.91\\,\\text{eV}<2.1\\,\\text{eV}')}. לאף פוטון אין די אנרגיה, והגדלת העוצמה לא תעזור.`},
+    {q:'מאיזה אורך גל ישתחררו?',a:`${M('\\lambda_0=\\dfrac{1240}{2.1}\\approx590\\,\\text{nm}')} — מאור כתום־צהוב וקצר ממנו.`},
+  ]},
+  quiz:[
+    {q:'אור אדום חזק מאוד פוגע בלוח אבץ ואינו משחרר אלקטרונים. מה כן ישחרר?',
+     opts:['אור אדום חזק עוד יותר','אור אולטרה־סגול, גם חלש','המתנה ארוכה יותר','קירוב המנורה אל הלוח'],correct:1,
+     explain:'לכל פוטון אדום אנרגיה של כ־1.9 eV, פחות מפונקציית העבודה של אבץ (4.3 eV), ואלקטרון בולע פוטון אחד בלבד. עוד פוטונים כאלה אינם עוזרים; דרוש פוטון אנרגטי יותר, כלומר תדירות גבוהה יותר.'},
+    {q:'מגדילים פי 2 את עוצמת האור, בלי לשנות את צבעו (מעל תדירות הסף). מה משתנה?',
+     opts:['האנרגיה המרבית של האלקטרונים מוכפלת','מספר האלקטרונים בשנייה מוכפל','מתח העצירה מוכפל','תדירות הסף יורדת'],correct:1,
+     explain:'עוצמה כפולה היא מספר כפול של פוטונים בשנייה, ולכן מספר כפול של אלקטרונים — זרם כפול. אנרגיית כל פוטון, '+tex('hf')+', לא השתנתה, ולכן גם האנרגיה המרבית ומתח העצירה לא השתנו.'},
+    {q:'פוטון של '+tex('5.0\\,\\text{eV}')+' פוגע במתכת שפונקציית העבודה שלה '+tex('2.0\\,\\text{eV}')+'. מה האנרגיה הקינטית המרבית של האלקטרון?',
+     opts:[tex('7.0\\,\\text{eV}'),tex('3.0\\,\\text{eV}'),tex('5.0\\,\\text{eV}'),tex('2.5\\,\\text{eV}')],correct:1,
+     explain:tex('E_{k,max}=hf-W=5.0-2.0=3.0\\,\\text{eV}')+'. זו האנרגיה ה<b>מרבית</b>: אלקטרונים שיצאו מעומק המתכת איבדו חלק ממנה בדרך.'},
+    {q:'האנרגיה הקינטית המרבית של האלקטרונים היא '+tex('1.5\\,\\text{eV}')+'. מה מתח העצירה?',
+     opts:[tex('1.5\\,\\text{V}'),tex('2.4\\times10^{-19}\\,\\text{V}'),tex('0.67\\,\\text{V}'),tex('3.0\\,\\text{V}')],correct:0,
+     explain:tex('eV_s=E_{k,max}')+'. אלקטרון־וולט הוא בדיוק האנרגיה שמטען e מקבל או מאבד במעבר של וולט אחד, ולכן '+tex('1.5\\,\\text{eV}')+' נעצרים במתח של '+tex('1.5\\,\\text{V}')+'.'},
+    {q:'משרטטים את מתח העצירה כפונקציה של תדירות האור. מה שיפוע הקו הישר?',
+     opts:[tex('h'),tex('h/e'),tex('W'),tex('e/h')],correct:1,
+     explain:'מ־'+tex('eV_s=hf-W')+' מתקבל '+tex('V_s=(h/e)f-W/e')+': קו ישר ששיפועו '+tex('h/e')+' — אותו שיפוע לכל מתכת — ושחותך את ציר התדירות בתדירות הסף. כך מדד מיליקן את קבוע פלאנק.'},
+    {q:'איזו תצפית אינה מוסברת כלל אם האור הוא גל רציף?',
+     opts:['אור חזק יותר נותן זרם גדול יותר','מתחת לתדירות מסוימת אין אלקטרונים, בכל עוצמה','האלקטרונים נושאים מטען שלילי','אור נע בקו ישר'],correct:1,
+     explain:'גל רציף היה מעביר לאלקטרון אנרגיה בהדרגה, ואור חזק דיו — בכל צבע — היה משחרר אותו בסופו של דבר. תדירות סף מוסברת רק אם האנרגיה מגיעה במנות של '+tex('hf')+', ואלקטרון בולע מנה אחת.'},
+  ],
+  problem:{
+    title:'אור אולטרה־סגול על אבץ',
+    text:'אור שאורך הגל שלו 250 nm פוגע בלוח אבץ, שפונקציית העבודה שלו 4.3 eV. השתמשו ב־hc = 1240 eV·nm.',
+    steps:[
+      {q:'מה אנרגיית הפוטון '+M('E')+', באלקטרון־וולט?',
+       nudge:'לפוטון של אורך גל קצר יש אנרגיה גדולה. הקיצור באלקטרון־וולט ובננומטר חוסך את ההמרות.',
+       hint:'מחלקים את hc באורך הגל: '+M('E=1240/250'),answer:'4.96',unit:'eV',tolerance:0.05,
+       explain:M('E=\\dfrac{hc}{\\lambda}=\\dfrac{1240}{250}=4.96\\,\\text{eV}')+' — יותר מפונקציית העבודה של אבץ, ולכן אלקטרונים ישתחררו.'},
+      {q:'מה האנרגיה הקינטית המרבית '+M('E_{k,max}')+' של האלקטרונים?',
+       nudge:'חלק מאנרגיית הפוטון נדרש כדי לעזוב את המתכת. מה נשאר?',
+       hint:'אנרגיית הפוטון פחות פונקציית העבודה: '+M('E_{k,max}=4.96-4.3'),answer:'0.66',unit:'eV',tolerance:0.03,
+       explain:M('E_{k,max}=hf-W=4.96-4.3=0.66\\,\\text{eV}')+'. רוב אנרגיית הפוטון שימשה רק ליציאה מהמתכת.'},
+      {q:'מה מתח העצירה '+M('V_s')+'?',
+       nudge:'איזה מתח הפוך גוזל מהאלקטרון המהיר ביותר את כל האנרגיה הקינטית שלו?',
+       hint:'מתח העצירה בוולט שווה לאנרגיה הקינטית המרבית באלקטרון־וולט: '+M('eV_s=E_{k,max}'),answer:'0.66',unit:'V',tolerance:0.03,
+       explain:M('V_s=E_{k,max}/e=0.66\\,\\text{V}')+'. במתח הפוך גדול מזה אף אלקטרון אינו מגיע ללוח שממול, והזרם אפס.'},
+      {q:'מה אורך גל הסף '+M('\\lambda_0')+' של אבץ, בננומטר?',
+       nudge:'בסף, כל אנרגיית הפוטון הולכת על פונקציית העבודה, ולאלקטרון לא נשאר דבר.',
+       hint:'אורך הגל שבו אנרגיית הפוטון שווה בדיוק לפונקציית העבודה: '+M('\\lambda_0=1240/4.3'),answer:'288',unit:'nm',tolerance:3,
+       explain:M('\\lambda_0=\\dfrac{hc}{W}=\\dfrac{1240}{4.3}\\approx288\\,\\text{nm}')+' — באולטרה־סגול. לכן אור נראה, מכל צבע ובכל עוצמה, אינו משחרר אלקטרונים מאבץ.'},
+    ]
+  }
+},
+
+'opt-quantum.bohr':{
+  theory:{
+    title:'מודל בוהר וספקטרום המימן',
+    html:`
+      <p>גז מימן חם אינו זוהר בכל הצבעים: בספקטרום שלו יש רק כמה <b>קווים</b> חדים — אדום, כחול־ירוק ושני סגולים. ועוד חידה: לפי הפיזיקה הקלסית, אלקטרון שחג סביב גרעין אמור לקרון אנרגיה בלי הפסק ולקרוס אל הגרעין בתוך שבריר שנייה. אטומים לא היו אמורים להתקיים כלל.</p>
+      <div class="def-block"><div class="def-title">ההנחות של בוהר (1913)</div>
+        <p>• האלקטרון יכול להימצא רק ב<b>מסלולים מותרים</b> מסוימים, ולכל אחד מהם אנרגיה מוגדרת. במסלול מותר הוא <b>אינו קורן</b>.<br>
+        • האטום פולט או בולע אור רק כשהאלקטרון <b>קופץ</b> בין שתי רמות — ואז נפלט או נבלע פוטון <b>אחד</b>, שהאנרגיה שלו היא בדיוק ההפרש בין הרמות.</p>
+      </div>
+      ${fBox('E_n = -\\dfrac{13.6\\,\\text{eV}}{n^2}','רמות האנרגיה של אטום המימן',[
+        ['n','המספר הקוונטי: 1, 2, 3, …','n = 1 הוא מצב היסוד'],
+        ['E_n','האנרגיה של הרמה','eV — שלילית: האלקטרון קשור'],
+      ])}
+      ${fBox('hf = E_i - E_f','אנרגיית הפוטון במעבר בין רמות',[
+        ['E_i','האנרגיה של הרמה ההתחלתית',''],
+        ['E_f','האנרגיה של הרמה הסופית',''],
+      ])}
+      <p>ירידה לרמה נמוכה יותר <b>פולטת</b> פוטון; עלייה לרמה גבוהה יותר דורשת <b>בליעה</b> של פוטון שהאנרגיה שלו שווה בדיוק להפרש. כדי לנתק את האלקטרון לגמרי ממצב היסוד — <b>יינון</b> — דרושים ${M('13.6\\,\\text{eV}')}.</p>
+      <div class="def-block"><div class="def-title">סדרות הקווים</div>
+        <p>• <b>סדרת ליימן</b> — ירידות אל ${M('n=1')}: אולטרה־סגול.<br>
+        • <b>סדרת בלמר</b> — ירידות אל ${M('n=2')}: ארבעה קווים באור הנראה — ${M('656')}, ${M('486')}, ${M('434')} ו־${M('410\\,\\text{nm}')}.<br>
+        • <b>סדרת פשן</b> — ירידות אל ${M('n=3')}: אינפרא־אדום.</p>
+      </div>
+      <div class="mis-block"><b>⚠️ טעות נפוצה:</b> ״אטום יכול לבלוע כל פוטון, ולעלות קצת״. אטום בולע רק פוטון שהאנרגיה שלו <b>מתאימה בדיוק</b> להפרש בין שתי רמות (או פוטון שדי בו ליינון). פוטון של ${M('11\\,\\text{eV}')} עובר דרך מימן במצב היסוד בלי להיבלע: ${M('10.2\\,\\text{eV}')} היו מעלים את האלקטרון ל־${M('n=2')} ו־${M('12.1\\,\\text{eV}')} ל־${M('n=3')} — ואין רמה באמצע. לכן ספקטרום הבליעה של גז הוא קווים כהים, בדיוק במקומות של קווי הפליטה שלו.</div>
+      <div class="info-grid">
+        <div class="info-item"><div class="il">n = 1</div><div class="iv">−13.6 eV</div></div>
+        <div class="info-item"><div class="il">n = 2</div><div class="iv">−3.40 eV</div></div>
+        <div class="info-item"><div class="il">n = 3</div><div class="iv">−1.51 eV</div></div>
+        <div class="info-item"><div class="il">n = 4</div><div class="iv">−0.85 eV</div></div>
+      </div>
+      <div class="ex-block"><div class="ex-title">✏️ דוגמה — הקו האדום של המימן</div>
+      <p class="ex-given">אלקטרון באטום מימן יורד מ־${M('n=3')} ל־${M('n=2')}. מה אורך הגל של הפוטון שנפלט?</p>
+      <ol class="ex-steps">
+        <li>האנרגיות: ${M('E_3=-\\dfrac{13.6}{9}=-1.51\\,\\text{eV}')} ו־${M('E_2=-\\dfrac{13.6}{4}=-3.40\\,\\text{eV}')}</li>
+        <li>אנרגיית הפוטון: ${M('hf=E_3-E_2=-1.51-(-3.40)=1.89\\,\\text{eV}')}</li>
+        <li>אורך הגל: ${M('\\lambda=\\dfrac{1240}{1.89}\\approx656\\,\\text{nm}')} — אדום</li>
+      </ol>
+      <p class="ex-lesson"><b>הלקח:</b> זה הקו ${M('H_\\alpha')}, שצובע באדום ערפיליות בכל היקום. מדידת אורך הגל שלו בגלקסיה רחוקה מגלה באיזו מהירות היא מתרחקת.</p></div>
+    `,
+    enrich:{
+      title:'מדוע דווקא המסלולים האלה? הגל של דה־ברויי',
+      html:`<p>בוהר קבע אילו מסלולים מותרים, אבל לא הסביר מדוע. ב־1924 הציע לואי דה־ברויי שגם לחלקיק יש אורך גל:</p>
+      <div class="enrich-formula">${tex('\\lambda = \\dfrac{h}{mv}', true)}</div>
+      <p>מסלול מותר הוא מסלול שהגל של האלקטרון ״נסגר״ בו על עצמו — מספר שלם של אורכי גל בהיקף, ${M('2\\pi r=n\\lambda')} — כמו גל עומד במיתר. במסלול אחר הגל היה מבטל את עצמו. שנתיים אחר כך נצפתה עקיפה של אלקטרונים בגביש: החלקיקים באמת מתנהגים כגלים.</p>`
+    }
+  },
+  sim:{type:'bohr',desc:'אטום מימן: בחרו רמה התחלתית ורמה סופית ולחצו ״מעבר״. ירידה פולטת פוטון, ועלייה בולעת פוטון; האנרגיה שלו היא ההפרש בין הרמות, והקו שלו מסומן בספקטרום שלמטה. ∞ מציין אלקטרון שהשתחרר מהאטום.'},
+  example:{title:'בליעה ממצב היסוד',text:`אטום מימן נמצא במצב היסוד, ${M('n=1')}.`,steps:[
+    {q:'איזו אנרגיה תעלה אותו ל־n = 2?',a:`${M('E_2-E_1=-3.40-(-13.6)=10.2\\,\\text{eV}')}`},
+    {q:'מה אורך הגל של פוטון כזה?',a:`${M('\\lambda=\\dfrac{1240}{10.2}\\approx122\\,\\text{nm}')} — אולטרה־סגול, הקו הראשון של סדרת ליימן.`},
+    {q:'ומה יקרה לפוטון של 9 eV?',a:'הוא לא ייבלע: אין רמה שנמצאת 9 eV מעל מצב היסוד. הגז שקוף לו.'},
+  ]},
+  quiz:[
+    {q:'אטום מימן אחד יורד מ־n = 3 ל־n = 2, ואטום אחר מ־n = 2 ל־n = 1. באיזה מעבר נפלט פוטון בעל אנרגיה גדולה יותר?',
+     opts:['מ־3 ל־2','מ־2 ל־1','אותה אנרגיה בשניהם','תלוי בטמפרטורת הגז'],correct:1,
+     explain:'הרמות אינן במרווחים שווים: '+tex('E_2-E_1=10.2\\,\\text{eV}')+', ואילו '+tex('E_3-E_2=1.89\\,\\text{eV}')+' בלבד. ככל שעולים הרמות מצטופפות, ולכן הקפיצות אל מצב היסוד הן האנרגטיות ביותר — באולטרה־סגול.'},
+    {q:'מה האנרגיה של אטום מימן ברמה n = 2?',
+     opts:[tex('-13.6\\,\\text{eV}'),tex('-6.8\\,\\text{eV}'),tex('-3.4\\,\\text{eV}'),tex('-27.2\\,\\text{eV}')],correct:2,
+     explain:tex('E_n=-13.6/n^2')+', ולכן '+tex('E_2=-13.6/4=-3.4\\,\\text{eV}')+'. חילוק ב־n במקום ב־'+tex('n^2')+' נותן את התשובה השגויה '+tex('-6.8')+'.'},
+    {q:'מדוע בספקטרום הפליטה של גז מימן יש רק קווים בודדים?',
+     opts:['כי הגז דליל מדי','כי לאלקטרון מותרות רק רמות אנרגיה מסוימות','כי העין רואה רק כמה צבעים','כי המימן בולע את שאר הצבעים'],correct:1,
+     explain:'כל פוטון נפלט בקפיצה בין שתי רמות, והאנרגיה שלו היא ההפרש ביניהן. רמות בדידות נותנות הפרשים בדידים — ולכן אורכי גל מסוימים בלבד. הקווים הם ״טביעת האצבע״ של היסוד.'},
+    {q:'אילו מעברים יוצרים את קווי המימן באור הנראה (סדרת בלמר)?',
+     opts:['ירידות אל n = 1','ירידות אל n = 2','ירידות אל n = 3','עליות מ־n = 1'],correct:1,
+     explain:'ירידות אל '+tex('n=2')+' פולטות פוטונים של 1.9 עד 3.4 eV — בדיוק בתחום הנראה. ירידות אל '+tex('n=1')+' אנרגטיות מדי (אולטרה־סגול), וירידות אל '+tex('n=3')+' חלשות מדי (אינפרא־אדום).'},
+    {q:'איזו אנרגיה דרושה כדי ליינן אטום מימן שנמצא במצב היסוד?',
+     opts:[tex('3.4\\,\\text{eV}'),tex('10.2\\,\\text{eV}'),tex('13.6\\,\\text{eV}'),tex('1.89\\,\\text{eV}')],correct:2,
+     explain:'יינון הוא העלאת האלקטרון מ־'+tex('E_1=-13.6\\,\\text{eV}')+' אל אנרגיה אפס, שבה הוא חופשי. לכן דרושים '+tex('13.6\\,\\text{eV}')+' — פוטון שאורך הגל שלו קצר מ־91 nm.'},
+    {q:'פוטון של '+tex('11\\,\\text{eV}')+' פוגע באטום מימן במצב היסוד. מה יקרה?',
+     opts:['האטום יעלה ל־n = 2, והעודף יהפוך לחום','הפוטון לא ייבלע','האטום ייונן','האטום יעלה לרמה שבין n = 2 ל־n = 3'],correct:1,
+     explain:'אטום בולע פוטון שלם או אינו בולע כלל, ורק אם האנרגיה מתאימה בדיוק להפרש בין רמות: 10.2 eV אל '+tex('n=2')+', 12.1 eV אל '+tex('n=3')+'. אין רמה ב־11 eV מעל מצב היסוד, ולכן הפוטון ממשיך בדרכו.'},
+  ],
+  problem:{
+    title:'הקו הכחול־ירוק של המימן',
+    text:'אלקטרון באטום מימן נמצא ברמה n = 4 ויורד אל n = 2. רמות האנרגיה: Eₙ = −13.6/n² eV, ו־hc = 1240 eV·nm.',
+    steps:[
+      {q:'מהי האנרגיה '+M('E_4')+' של הרמה n = 4, באלקטרון־וולט? (עם הסימן)',
+       nudge:'האנרגיה שלילית, וגודלה קטן עם ריבוע המספר הקוונטי.',
+       hint:'מציבים n = 4 בנוסחת הרמות: '+M('E_4=-13.6/4^2'),answer:'-0.85',unit:'eV',tolerance:0.01,
+       explain:M('E_4=-\\dfrac{13.6}{16}=-0.85\\,\\text{eV}')+'. הרמה קרובה לאפס: האלקטרון קשור לגרעין רק בקושי.'},
+      {q:'מה אנרגיית הפוטון שנפלט בירידה אל n = 2?',
+       nudge:'האנרגיה שהאטום מאבד עוברת כולה לפוטון אחד.',
+       hint:'ההפרש בין שתי הרמות: '+M('hf=E_4-E_2=-0.85-(-3.40)'),answer:'2.55',unit:'eV',tolerance:0.03,
+       explain:M('hf=E_4-E_2=-0.85-(-3.40)=2.55\\,\\text{eV}')+'. שימו לב לסימנים: חיסור של מספר שלילי.'},
+      {q:'מה אורך הגל '+M('\\lambda')+' של הפוטון, בננומטר?',
+       nudge:'אנרגיה גדולה יותר — אורך גל קצר יותר. הקיצור באלקטרון־וולט ובננומטר שימושי כאן.',
+       hint:'מחלקים את hc באנרגיית הפוטון: '+M('\\lambda=1240/2.55'),answer:'486',unit:'nm',tolerance:4,
+       explain:M('\\lambda=\\dfrac{hc}{E}=\\dfrac{1240}{2.55}\\approx486\\,\\text{nm}')+' — כחול־ירוק. זה הקו השני של סדרת בלמר, '+M('H_\\beta')+'.'},
+      {q:'איזו אנרגיה דרושה כדי ליינן את האטום כשהוא ברמה n = 2?',
+       nudge:'יינון הוא העלאת האלקטרון עד לאנרגיה אפס.',
+       hint:'המרחק של הרמה מאפס: '+M('0-E_2=13.6/4'),answer:'3.4',unit:'eV',tolerance:0.05,
+       explain:M('0-E_2=3.4\\,\\text{eV}')+' — רבע ממה שדרוש במצב היסוד. אטום מעורר קל הרבה יותר ליינן.'},
+    ]
+  }
+},
+
+'opt-quantum.radioactivity':{
+  theory:{
+    title:'רדיואקטיביות וזמן מחצית חיים',
+    html:`
+      <p>בגרעין האטום דחוסים ${M('Z')} פרוטונים ו־${M('N')} נייטרונים; ${M('A=Z+N')} הוא <b>מספר המסה</b>. גרעינים בעלי אותו ${M('Z')} ומספר נייטרונים שונה הם <b>איזוטופים</b> של אותו יסוד. רוב הצירופים האפשריים אינם יציבים: הגרעין <b>מתפרק</b> מעצמו, ופולט קרינה.</p>
+      <div class="def-block"><div class="def-title">שלושה סוגי קרינה</div>
+        <p>• <b>אלפא (α)</b> — גרעין הליום, שני פרוטונים ושני נייטרונים. ${M('A')} קטן ב־4 ו־${M('Z')} ב־2. נעצרת בדף נייר.<br>
+        • <b>בטא (β⁻)</b> — אלקטרון מהיר: נייטרון בגרעין הופך לפרוטון. ${M('A')} אינו משתנה ו־${M('Z')} גדל ב־1. נעצרת בלוח אלומיניום דק.<br>
+        • <b>גמא (γ)</b> — פוטון בעל אנרגיה גבוהה מאוד. ${M('A')} ו־${M('Z')} אינם משתנים. רק עופרת עבה או בטון מחלישים אותה.</p>
+      </div>
+      <p>אי אפשר לדעת <b>מתי</b> יתפרק גרעין מסוים — אבל לכל גרעין מאותו סוג אותו סיכוי להתפרק בכל שנייה. לכן מדגימה גדולה מתפרק בכל פרק זמן <b>אותו חלק</b>:</p>
+      <div class="def-block"><div class="def-title">זמן מחצית החיים</div>
+        <p>הזמן שבו מתפרקים מחצית מהגרעינים שבדגימה. אחרי זמן מחצית אחד נשארת חצי, אחרי שניים רבע, אחרי שלושה שמינית.</p>
+      </div>
+      ${fBox('N = N_0\\left(\\tfrac12\\right)^{t/T_{1/2}}','חוק הדעיכה הרדיואקטיבית',[
+        ['N','מספר הגרעינים שעדיין לא התפרקו',''],
+        ['N_0','מספר הגרעינים בהתחלה',''],
+        ['T_{1/2}','זמן מחצית החיים','תכונה של האיזוטופ'],
+      ])}
+      ${fBox('A = \\lambda N,\\quad \\lambda = \\dfrac{\\ln2}{T_{1/2}}','אקטיביות (קצב ההתפרקויות)',[
+        ['A','מספר ההתפרקויות בשנייה','Bq (בקרל) — התפרקות אחת בשנייה'],
+        ['\\lambda','קבוע הדעיכה: הסיכוי להתפרק ביחידת זמן','1/s'],
+      ])}
+      <p>האקטיביות פרופורציונית למספר הגרעינים שנותרו, ולכן גם היא נחצית בכל זמן מחצית.</p>
+      <div class="mis-block"><b>⚠️ טעות נפוצה:</b> ״אחרי שני זמני מחצית הדגימה כולה התפרקה״. בזמן המחצית השני מתפרקת מחצית <b>ממה שנשאר</b>, ולכן נשאר רבע — לא אפס. ועוד: קצב הדעיכה אינו תלוי בטמפרטורה, בלחץ או במצב הכימי של החומר. הוא נקבע בגרעין, ושום דבר שעושים לאטום מבחוץ אינו מגיע לשם.</div>
+      <div class="info-grid">
+        <div class="info-item"><div class="il">יוד־131 (רפואה)</div><div class="iv">8 ימים</div></div>
+        <div class="info-item"><div class="il">צזיום־137</div><div class="iv">30 שנים</div></div>
+        <div class="info-item"><div class="il">פחמן־14 (תיארוך)</div><div class="iv">5730 שנים</div></div>
+        <div class="info-item"><div class="il">אורניום־238</div><div class="iv">4.5 מיליארד שנים</div></div>
+      </div>
+      <div class="ex-block"><div class="ex-title">✏️ דוגמה — בן כמה העץ?</div>
+      <p class="ex-given">בפיסת עץ מאתר ארכאולוגי נמצא רבע מכמות הפחמן־14 שיש בעץ חי. זמן מחצית החיים של פחמן־14 הוא ${M('5730')} שנים.</p>
+      <ol class="ex-steps">
+        <li>רבע הוא ${M('\\left(\\tfrac12\\right)^2')}: עברו <b>שני</b> זמני מחצית.</li>
+        <li>גיל העץ: ${M('t=2\\times5730=11{,}460')} שנים.</li>
+      </ol>
+      <p class="ex-lesson"><b>הלקח:</b> צמח חי קולט פחמן־14 מהאוויר; משמת, השעון מתחיל לתקתק. כך מתארכים ממצאים עד גיל של כ־50,000 שנים.</p></div>
+    `,
+    enrich:{
+      title:'מאין האנרגיה? E = mc²',
+      html:`<p>מסת הגרעין קטנה במעט מסכום המסות של הפרוטונים והנייטרונים שמרכיבים אותו. ״המסה החסרה״ היא אנרגיית הקשר של הגרעין: ${M('E=\\Delta m\\,c^2')}.</p>
+      <p>כשגרעין כבד <b>מתבקע</b> לשניים, או כששני גרעינים קלים <b>מתמזגים</b>, התוצרים קשורים חזק יותר — ומסה קטנה הופכת לאנרגיה עצומה. ביקוע מפעיל כורים גרעיניים; היתוך מאיר את השמש, שהופכת בכל שנייה ארבעה מיליון טונות של חומר לאור.</p>`
+    }
+  },
+  sim:{type:'radioactivity',desc:'דגימה של 400 גרעינים רדיואקטיביים. כל גרעין מתפרק ברגע אקראי, אבל לכולם אותו סיכוי — ולכן המספר שנשאר יורד לאורך העקומה N₀·(½)^(t/T½). בחרו זמן מחצית, התחילו, ועצרו כדי לקרוא כמה נשארו. כל הרצה שונה במעט מקודמתה.'},
+  example:{title:'יוד רדיואקטיבי',text:`לחולה ניתנת מנה של יוד־131, שזמן מחצית החיים שלו ${M('8')} ימים. האקטיביות ההתחלתית ${M('400\\,\\text{MBq}')}.`,steps:[
+    {q:'מה האקטיביות אחרי 16 ימים?',a:`עברו שני זמני מחצית: ${M('400\\times\\left(\\tfrac12\\right)^2=100\\,\\text{MBq}')}`},
+    {q:'אחרי כמה זמן תרד לפחות מ־1% מערכה ההתחלתי?',a:`${M('\\left(\\tfrac12\\right)^7=\\tfrac1{128}<1\\%')}: אחרי שבעה זמני מחצית, כלומר ${M('56')} ימים.`},
+  ]},
+  quiz:[
+    {q:'בדגימה 800 גרעינים רדיואקטיביים. כמה יישארו, בערך, אחרי שלושה זמני מחצית?',
+     opts:['100','200','אפס','267'],correct:0,
+     explain:'בכל זמן מחצית נשארת חצי ממה שהיה: '+tex('800\\to400\\to200\\to100')+', כלומר '+tex('800\\times(\\tfrac12)^3')+'. חלוקה ב־3 (267) אינה נכונה — הדעיכה אינה לינארית.'},
+    {q:'גרעין פולט חלקיק אלפא. מה קורה למספר האטומי Z ולמספר המסה A?',
+     opts:['Z קטן ב־2, A קטן ב־4','Z גדל ב־1, A אינו משתנה','Z קטן ב־4, A קטן ב־2','שניהם אינם משתנים'],correct:0,
+     explain:'חלקיק אלפא הוא גרעין הליום: שני פרוטונים ושני נייטרונים. הגרעין מאבד 2 ממספרו האטומי ו־4 ממספר המסה — והופך ליסוד אחר, שני מקומות אחורה בטבלה המחזורית.'},
+    {q:'בדעיכת בטא (β⁻), מה קורה בגרעין?',
+     opts:['פרוטון נפלט מהגרעין','נייטרון הופך לפרוטון, ונפלט אלקטרון','אלקטרון מהקליפה נופל לגרעין','הגרעין מתפצל לשניים'],correct:1,
+     explain:'נייטרון הופך לפרוטון, והאלקטרון שנוצר נפלט במהירות גבוהה. מספר המסה אינו משתנה, והמספר האטומי גדל ב־1. האלקטרון לא היה בגרעין קודם — הוא נוצר ברגע הדעיכה.'},
+    {q:'איזו קרינה חודרת עמוק ביותר בחומר?',
+     opts:['אלפא','בטא','גמא','כולן באותה מידה'],correct:2,
+     explain:'קרינת גמא היא פוטונים חסרי מטען, והיא חולפת בחומר כמעט בלי להיבלע; דרושים סנטימטרים של עופרת כדי להחלישה. אלפא, הכבדה והטעונה, נעצרת בדף נייר או בכמה סנטימטרים של אוויר.'},
+    {q:'האקטיביות של דגימה היא 1200 Bq. מה תהיה אחרי שני זמני מחצית?',
+     opts:['600 Bq','300 Bq','אפס','400 Bq'],correct:1,
+     explain:'האקטיביות פרופורציונית למספר הגרעינים שנותרו, ולכן נחצית גם היא בכל זמן מחצית: '+tex('1200\\to600\\to300\\,\\text{Bq}')+'.'},
+    {q:'מחממים דגימה רדיואקטיבית ל־1000°C. זמן מחצית החיים שלה:',
+     opts:['מתקצר','מתארך','אינו משתנה','מתאפס'],correct:2,
+     explain:'הדעיכה מתרחשת בגרעין, והאנרגיות שם גדולות פי מיליון מאנרגיות של חום או של קשרים כימיים. לכן שום תנאי חיצוני רגיל אינו משנה את קצב הדעיכה — וזה מה שהופך אותה לשעון אמין.'},
+  ],
+  problem:{
+    title:'דגימה של יוד־131',
+    text:'זמן מחצית החיים של יוד־131 הוא 8 ימים. האקטיביות ההתחלתית של דגימה היא 6400 Bq.',
+    steps:[
+      {q:'כמה זמני מחצית עוברים ב־24 ימים?',
+       nudge:'מחלקים את הזמן שעבר בזמן מחצית החיים.',
+       hint:'הזמן שעבר חלקי זמן מחצית החיים: '+M('24/8'),answer:'3',unit:'ללא יחידות',tolerance:0,
+       explain:M('t/T_{1/2}=24/8=3')+' זמני מחצית.'},
+      {q:'מה האקטיביות של הדגימה אחרי 24 ימים, בבקרל?',
+       nudge:'בכל זמן מחצית האקטיביות נחצית — מחצית ממה שנשאר, לא מהכמות ההתחלתית.',
+       hint:'חוצים שלוש פעמים: '+M('A=6400\\times(\\tfrac12)^3'),answer:'800',unit:'Bq',tolerance:8,
+       explain:M('A=6400\\times\\left(\\tfrac12\\right)^3=\\dfrac{6400}{8}=800\\,\\text{Bq}')+'. חלוקה ב־3 הייתה נותנת 2133 — אבל הדעיכה מעריכית, לא לינארית.'},
+      {q:'אחרי כמה ימים תרד האקטיביות ל־100 Bq?',
+       nudge:'פי כמה צריכה האקטיביות לקטון? וכמה חציות זה?',
+       hint:'היחס הוא 64, שהוא שתיים בחזקת שש — שישה זמני מחצית: '+M('6\\times8'),answer:'48',unit:'ימים',tolerance:0.5,
+       explain:M('6400/100=64=2^6')+', ולכן דרושים שישה זמני מחצית: '+M('6\\times8=48')+' ימים.'},
+      {q:'מהו קבוע הדעיכה '+M('\\lambda')+' של יוד־131, ביחידות של ״ליום״ (1/day)?',
+       nudge:'קבוע הדעיכה הוא הסיכוי של גרעין להתפרק ביחידת זמן. הוא גדול כשזמן המחצית קצר.',
+       hint:'הלוגריתם הטבעי של 2, חלקי זמן מחצית החיים: '+M('\\lambda=\\ln2/T_{1/2}'),answer:'0.0866',unit:'ליום',tolerance:0.002,
+       explain:M('\\lambda=\\dfrac{\\ln2}{T_{1/2}}=\\dfrac{0.693}{8}\\approx0.0866')+' ליום: בכל יום מתפרקים כ־8.7% מהגרעינים שנותרו.'},
+    ]
+  }
+},
 };// end OPTICS_CONTENT
 
 // Merge optics into main lookup
@@ -11811,6 +12105,9 @@ function initSim(id,type,keep){
     'opt-telescope':simOptTelescope,
     'opt-thin-film':simOptThinFilm,
     'opt-grating':simOptGrating,
+    'photoelectric':simPhotoelectric,
+    'bohr':simBohr,
+    'radioactivity':simRadioactivity,
     'elc-scope':simElcScope,
     'elc-coulomb':simElcCoulomb,
     'elc-field':simElcField,
@@ -24035,6 +24332,289 @@ function simOptThinFilm(canvas){
     var list=peaks.length?peaks.map(function(q){return Math.round(q[1])+' nm';}).join(', '):'—';
     kit.model(_skM('2nt = 2 · '+nf.toFixed(2)+' · '+Math.round(t)+' nm = '+Math.round(2*nf*t)+' nm')+'; '+cond+' ⇒ מתחזקים בתחום הנראה: '+_skM(list)+'.');
     kit.check({sub:sub,t:t,lam0:lam0,R550:R550,Rlo:Rlo});
+    requestAnimationFrame(draw);
+  }
+  requestAnimationFrame(draw);
+}
+
+// ─────────────────────────────────────────────────────────────
+// PHOTONS, ATOMS AND NUCLEI: three simulations
+// ─────────────────────────────────────────────────────────────
+// the photoelectric effect: frequency decides whether, intensity decides how many
+function simPhotoelectric(canvas){
+  // SECTION: opt-quantum.photoelectric
+  // PEDAGOGY: one photon frees one electron, if hf > W; the stopping voltage
+  // measures the largest kinetic energy, and the intensity only sets the current.
+  var H=440; var setup=setupCanvas(canvas,H); var ctx=setup.ctx; var W=setup.W;
+  var id=canvas.id;
+  var METAL={'pe-na':{W:2.28,name:'נתרן',col:'#cbd5e1'},'pe-zn':{W:4.30,name:'אבץ',col:'#94a3b8'},'pe-cu':{W:4.70,name:'נחושת',col:'#c2703d'}};
+  var mid='pe-na', lam=400, inten=50, V=0, pT=null, phs=[], els=[], accP=0, accE=0, seen={k:'',mn:50,mx:50};
+  var flags={thr:false,stop:false,dim:false};
+  function read(){var a=document.getElementById('inp-pe-lam'),b=document.getElementById('inp-pe-I'),c=document.getElementById('inp-pe-V');
+    if(a)lam=parseFloat(a.value);if(b)inten=parseFloat(b.value);if(c)V=parseFloat(c.value);
+    var k=mid+'|'+lam;if(seen.k!==k)seen={k:k,mn:inten,mx:inten};
+    seen.mn=Math.min(seen.mn,inten);seen.mx=Math.max(seen.mx,inten);}
+  ['inp-pe-lam','inp-pe-I','inp-pe-V'].forEach(function(s){var e=document.getElementById(s);if(e)e.addEventListener('input',read);});
+  read();
+  var kit=simKit(canvas,{missions:[
+    {text:'מצאו את אורך הגל הארוך ביותר שעדיין משחרר אלקטרונים מנתרן',
+     hint:'הגדילו את אורך הגל עד שהזרם נעלם, וחזרו צעד אחד. מה אנרגיית הפוטון שם, לעומת W?',
+     why:'בסף, אנרגיית הפוטון שווה בדיוק לפונקציית העבודה: '+_skM('λ₀ = hc/W = 1240/2.28 ≈ 544 nm')+'. פוטון של אורך גל ארוך מזה חלש מדי, ושום עוצמה לא תעזור.',
+     done:function(q){return q.thr;}},
+    {text:'האירו נתרן באור של '+_skM('300 nm')+', ומצאו את מתח העצירה: המתח הקטן ביותר שמאפס את הזרם',
+     hint:'הגדילו את המתח ההפוך עד שמד הזרם מראה אפס — ולא יותר.',
+     why:_skM('E = 1240/300 = 4.13 eV')+', ולכן '+_skM('E_k,max = 4.13 − 2.28 = 1.85 eV')+'. המתח שעוצר גם את האלקטרון המהיר ביותר הוא '+_skM('V_s = 1.85 V')+': אלקטרון־וולט אחד לכל וולט.',
+     done:function(q){return q.stop;}},
+    {text:'האירו אבץ באור נראה ('+_skM('400 nm')+' ומעלה), והגדילו את העוצמה פי 2 לפחות. האם השתחררו אלקטרונים?',
+     hint:'בחרו באבץ, קבעו אורך גל בתחום הנראה, והזיזו רק את מחוון העוצמה.',
+     why:'לפוטון של אור נראה יש לכל היותר '+_skM('3.1 eV')+', ופונקציית העבודה של אבץ היא '+_skM('4.3 eV')+'. אלקטרון בולע פוטון אחד: יותר פוטונים חלשים אינם מצטרפים לפוטון חזק.',
+     done:function(q){return q.dim;}}]});
+  var model=_mbModel(kit);
+  kit.tabs({label:'המתכת',value:'pe-na',items:[{id:'pe-na',label:'נתרן · 2.28 eV'},{id:'pe-zn',label:'אבץ · 4.30 eV'},{id:'pe-cu',label:'נחושת · 4.70 eV'}],
+    onChange:function(x){mid=x;els=[];read();}});
+  kit.predict({q:'אור אדום חזק מאוד פוגע בלוח אבץ, ואינו משחרר ממנו אלקטרונים. מה כן ישחרר?',
+    opts:['אור אדום חזק עוד יותר','אור אולטרה־סגול, גם חלש','המתנה ארוכה יותר'],correct:1,
+    why:'אלקטרון בולע פוטון אחד, ולפוטון אדום אין די אנרגיה. רק פוטון אנרגטי יותר — תדירות גבוהה יותר — ישחרר אותו. עוצמה וזמן אינם משנים את אנרגיית הפוטון.'},function(){});
+  canvas._probe=function(){var M=METAL[mid],E=1240/lam;return {metal:mid,lam:lam,inten:inten,V:V,E:E,Ek:E-M.W,flags:flags};};
+  var NAR=W<520;
+  function draw(ts){
+    if(_simStop[id])return;
+    if(pT==null)pT=ts;
+    var dt=Math.min((ts-pT)/1000,0.05);pT=ts;
+    var M=METAL[mid], E=1240/lam, Ek=E-M.W, emit=Ek>0, Vs=emit?Ek:0;
+    var cur=emit?(V>=Vs-0.005?0:inten*(1-V/Vs)):0;            // percent of the largest current
+    if(mid==='pe-na'&&emit&&lam>=538)flags.thr=true;
+    if(mid==='pe-na'&&Math.abs(lam-300)<=2&&emit&&cur===0&&V<=Vs+0.1)flags.stop=true;
+    if(mid==='pe-zn'&&lam>=400&&!emit&&seen.mx/seen.mn>=2-1e-9)flags.dim=true;
+    simBg(ctx,W,H);
+    var TX1=W*0.10, TX2=W*0.90, TY1=NAR?150:140, TY2=NAR?290:300, CXp=TX1+26, AXp=TX2-26, MY=(TY1+TY2)/2;
+    // the vacuum tube and its two plates
+    ctx.save();ctx.strokeStyle='rgba(148,163,184,.55)';ctx.lineWidth=1.5;ctx.fillStyle='rgba(15,23,42,.55)';
+    ctx.beginPath();ctx.roundRect(TX1,TY1,TX2-TX1,TY2-TY1,26);ctx.fill();ctx.stroke();
+    ctx.fillStyle=M.col;ctx.fillRect(CXp-5,TY1+22,10,TY2-TY1-44);
+    ctx.fillStyle='#64748b';ctx.fillRect(AXp-4,TY1+22,8,TY2-TY1-44);ctx.restore();
+    simText(ctx,M.name,CXp,TY2+16,'#e2e8f0',NAR?9.5:10.5,'center',true);
+    // the light: a beam from the upper right onto the metal plate
+    var lc=lam<380?'#a78bfa':wavelengthToHex(lam), BX=W*0.62, BY=TY1-(NAR?62:70);
+    ctx.save();ctx.globalAlpha=0.10+0.25*inten/100;ctx.fillStyle=lc;
+    ctx.beginPath();ctx.moveTo(BX-16,BY);ctx.lineTo(BX+16,BY);ctx.lineTo(CXp+6,MY+34);ctx.lineTo(CXp+6,MY-34);ctx.closePath();ctx.fill();ctx.restore();
+    simText(ctx,lam<380?'אולטרה־סגול':'אור נראה',BX,BY-8,lc,NAR?9:10,'center',true);
+    accP+=dt*inten*0.22;
+    while(accP>=1){accP-=1;phs.push({s:0,o:(Math.random()-0.5)*50});}
+    phs.forEach(function(p){p.s+=dt*1.6;});
+    phs=phs.filter(function(p){return p.s<1;});
+    ctx.save();ctx.fillStyle=lc;
+    phs.forEach(function(p){var x=BX+(CXp+6-BX)*p.s,y=BY+(MY+p.o*p.s*1.2-BY)*p.s;ctx.beginPath();ctx.arc(x,y,2.4,0,Math.PI*2);ctx.fill();});
+    ctx.restore();
+    // the electrons: each leaves with a share u of the largest energy and is slowed by the reverse voltage
+    if(emit){accE+=dt*inten*0.14;
+      while(accE>=1){accE-=1;els.push({x:CXp+7,y:MY+(Math.random()-0.5)*(TY2-TY1-70),u:0.05+0.95*Math.random(),d:1});}}
+    var span=AXp-CXp-14;
+    els.forEach(function(q){var K=q.u*Ek-V*(q.x-CXp-7)/span;
+      if(q.d>0&&K<=0)q.d=-1;
+      q.x+=q.d*dt*(40+150*Math.sqrt(Math.max(0.03,Math.abs(K))));});
+    els=els.filter(function(q){return q.x>CXp+5&&q.x<AXp-6;});
+    ctx.save();ctx.fillStyle='#38bdf8';
+    els.forEach(function(q){ctx.beginPath();ctx.arc(q.x,q.y,2.6,0,Math.PI*2);ctx.fill();});ctx.restore();
+    // the readouts
+    var fs=NAR?10.5:12;
+    simText(ctx,'E = hc/λ = '+E.toFixed(2)+' eV',W*0.27,26,lc,fs,'center',true);
+    simText(ctx,'W = '+M.W.toFixed(2)+' eV',W*0.27,46,'#e2e8f0',fs,'center',true);
+    simText(ctx,emit?(cur===0?'כל האלקטרונים נעצרים':'אלקטרונים משתחררים'):'אין אלקטרונים: E < W',W*0.27,66,emit?(cur===0?'#fbbf24':'#6ee7b7'):'#fca5a5',NAR?9:10,'center');
+    // the ammeter and the reverse voltage, under the tube
+    var AY=TY2+(NAR?48:54), bx=W*0.18, bw=W*0.64;
+    simText(ctx,'זרם: '+cur.toFixed(0)+'%',W*0.5,AY-10,'#38bdf8',fs,'center',true);
+    ctx.save();ctx.fillStyle='rgba(15,30,55,.85)';ctx.beginPath();ctx.roundRect(bx,AY,bw,11,3);ctx.fill();
+    ctx.fillStyle='#38bdf8';ctx.beginPath();ctx.roundRect(bx,AY,bw*cur/100,11,3);ctx.fill();ctx.restore();
+    simText(ctx,'מתח הפוך: V = '+V.toFixed(2)+' V',W*0.5,AY+30,'#94a3b8',NAR?9.5:10.5,'center');
+    model(emit?kit.m('hf = 1240/'+lam.toFixed(0)+' = '+E.toFixed(2)+' eV > W = '+M.W.toFixed(2)+' eV'):kit.m('hf = 1240/'+lam.toFixed(0)+' = '+E.toFixed(2)+' eV < W = '+M.W.toFixed(2)+' eV'));
+    kit.check(flags);
+    requestAnimationFrame(draw);
+  }
+  requestAnimationFrame(draw);
+}
+
+// the hydrogen atom: levels, jumps and the lines they leave in the spectrum
+window._fmtBohrN=function(v){return v>=7?'∞':String(Math.round(v));};
+function simBohr(canvas){
+  // SECTION: opt-quantum.bohr
+  // PEDAGOGY: a photon carries exactly the difference between two levels;
+  // the levels crowd toward zero, so jumps to n = 1 are ultraviolet and
+  // jumps to n = 2 are the visible Balmer lines.
+  var H=460; var setup=setupCanvas(canvas,H); var ctx=setup.ctx; var W=setup.W;
+  var id=canvas.id, ni=3, nf=2, lines=[], last=null, an=null, got={};
+  var flags={red:false,balmer:false,ion:false};
+  var En=function(n){return n>=7?0:-13.6/(n*n);};
+  var mn=function(x){return x.toFixed(2).replace('-','\u2212');};      // a minus sign, not a hyphen
+  function read(){var a=document.getElementById('inp-bh-ni'),b=document.getElementById('inp-bh-nf');
+    if(a)ni=Math.round(parseFloat(a.value));if(b)nf=Math.round(parseFloat(b.value));}
+  ['inp-bh-ni','inp-bh-nf'].forEach(function(s){var e=document.getElementById(s);if(e)e.addEventListener('input',read);});
+  var go=document.getElementById('btn-bh-go'),cl=document.getElementById('btn-bh-clear');
+  if(go)go.addEventListener('click',function(){read();if(ni===nf)return;
+    var dE=Math.abs(En(nf)-En(ni)), em=En(nf)<En(ni);
+    last={a:ni,b:nf,dE:dE,lam:1240/dE,em:em};an={t0:null};
+    lines.push({lam:last.lam,em:em});if(lines.length>24)lines.shift();
+    if(em&&ni===3&&nf===2)flags.red=true;
+    if(em&&nf===2&&ni>=3&&ni<=6){got[ni]=1;if(got[3]&&got[4]&&got[5]&&got[6])flags.balmer=true;}
+    if(!em&&ni===1&&nf===7)flags.ion=true;});
+  if(cl)cl.addEventListener('click',function(){lines=[];last=null;an=null;});
+  read();
+  var kit=simKit(canvas,{missions:[
+    {text:'הפיקו את הקו האדום של המימן, '+_skM('656 nm'),
+     hint:'הקווים הנראים נפלטים בירידות אל n = 2. האדום הוא החלש שבהם — הקפיצה הקטנה ביותר.',
+     why:'ירידה מ־'+_skM('n = 3')+' אל '+_skM('n = 2')+': '+_skM('ΔE = −1.51 − (−3.40) = 1.89 eV')+', ולכן '+_skM('λ = 1240/1.89 ≈ 656 nm')+'. זה הקו '+_skM('Hα')+'.',
+     done:function(q){return q.red;}},
+    {text:'הפיקו את כל ארבעת קווי בלמר שבאור הנראה',
+     hint:'ארבע ירידות אל n = 2, מארבע הרמות שמעליה.',
+     why:'מ־'+_skM('n = 3, 4, 5, 6')+' אל '+_skM('n = 2')+': '+_skM('656, 486, 434, 410 nm')+'. הקווים מצטופפים לעבר הסגול, כי הרמות העליונות מצטופפות לעבר אפס.',
+     done:function(q){return q.balmer;}},
+    {text:'ייננו אטום מימן שנמצא במצב היסוד',
+     hint:'יינון הוא עלייה מ־n = 1 עד ∞ — אלקטרון חופשי.',
+     why:'מ־'+_skM('E₁ = −13.6 eV')+' עד אפס דרושים '+_skM('13.6 eV')+': פוטון אולטרה־סגול שאורך הגל שלו '+_skM('91 nm')+' או קצר ממנו.',
+     done:function(q){return q.ion;}}]});
+  var model=_mbModel(kit);
+  kit.predict({q:'אטום מימן אחד יורד מ־n = 3 ל־n = 2, ואטום אחר מ־n = 2 ל־n = 1. מי מהם פולט פוטון אנרגטי יותר?',
+    opts:['זה שיורד מ־3 ל־2','זה שיורד מ־2 ל־1','שניהם פולטים אותה אנרגיה'],correct:1,
+    why:'הרמות אינן במרווחים שווים: מ־2 ל־1 ההפרש הוא '+_skM('10.2 eV')+', ומ־3 ל־2 רק '+_skM('1.89 eV')+'.'},function(){});
+  canvas._probe=function(){return {ni:ni,nf:nf,last:last,lines:lines.length,flags:flags};};
+  var NAR=W<520, FR=[0,0,0.60,0.75,0.83,0.885,0.925,1];   // where each level is drawn, bottom to top (a sketch: the true gaps crowd too much)
+  function draw(ts){
+    if(_simStop[id])return;
+    simBg(ctx,W,H);
+    var LX1=NAR?14:24, LX2=NAR?W*0.56:W*0.50, LB=H-124, LT=30;
+    var ly=function(n){return LB-FR[n]*(LB-LT);};
+    for(var n=1;n<=7;n++){var y=ly(n), on=(n===ni||n===nf);
+      ctx.save();ctx.strokeStyle=n===7?'rgba(148,163,184,.6)':on?'#fbbf24':'rgba(148,163,184,.75)';ctx.lineWidth=on?2.2:1.3;
+      if(n===7)ctx.setLineDash([5,4]);ctx.beginPath();ctx.moveTo(LX1+(NAR?44:54),y);ctx.lineTo(LX2,y);ctx.stroke();ctx.restore();
+      simText(ctx,n===7?'n = ∞':'n = '+n,LX1+(NAR?40:50),y+3,on?'#fde68a':'#cbd5e1',NAR?8.5:9.5,'right',on);
+      if(n<=3||n===7||on)simText(ctx,mn(En(n))+' eV',LX2+6,y+3,on?'#fde68a':'#94a3b8',NAR?8:9,'left');}
+    // the jump, and its photon
+    var mx=(LX1+54+LX2)/2;
+    if(last){
+      if(an&&an.t0==null)an.t0=ts;
+      var k=an?Math.min(1,(ts-an.t0)/900):1, ya=ly(last.a), yb=ly(last.b), col=last.lam<380?'#a78bfa':last.lam>750?'#f87171':wavelengthToHex(last.lam);
+      simArrow(ctx,mx,ya,mx,ya+(yb-ya)*Math.max(0.12,k),'#f8fafc',2.2,9);
+      // emitted: the wave leaves to the right; absorbed: it arrives from the right
+      var x0=mx+14, x1=LX2-8, ym=(ya+yb)/2, L=(x1-x0)*k;
+      ctx.save();ctx.strokeStyle=col;ctx.lineWidth=2;ctx.beginPath();
+      for(var s=0;s<=L;s+=2){var xx=last.em?x0+s:x1-s, yy=ym+5*Math.sin(s*0.5);if(s===0)ctx.moveTo(xx,yy);else ctx.lineTo(xx,yy);}
+      ctx.stroke();ctx.restore();
+    }
+    // the readout card
+    var PX=LX2+(NAR?46:70), PW=W-PX-10, cx=PX+PW/2, fs=NAR?9.5:11.5;
+    _mbCard(ctx,PX,16,PW,NAR?150:160);
+    var dE=Math.abs(En(nf)-En(ni)), em=En(nf)<En(ni), lm=dE>0?1240/dE:0;
+    simText(ctx,ni===nf?'בחרו שתי רמות שונות':em?'פליטה של פוטון':'בליעה של פוטון',cx,36,ni===nf?'#94a3b8':em?'#6ee7b7':'#fca5a5',fs,'center',true);
+    if(ni!==nf){
+      simText(ctx,'ΔE = '+dE.toFixed(2)+' eV',cx,60,'#22d3ee',NAR?11:13,'center',true);
+      simText(ctx,'λ = '+(lm>=1000?lm.toFixed(0):lm.toFixed(1))+' nm',cx,84,'#fbbf24',NAR?11:13,'center',true);
+      var lo=Math.min(ni,nf);
+      simText(ctx,lm<380?'אולטרה־סגול':lm>750?'אינפרא־אדום':'אור נראה',cx,106,'#e2e8f0',fs,'center');
+      simText(ctx,lo===1?'סדרת ליימן':lo===2?'סדרת בלמר':lo===3?'סדרת פשן':'',cx,126,'#94a3b8',NAR?9:10,'center');
+    }
+    // the spectrum: 80 to 2500 nm on a logarithmic axis
+    var SX1=NAR?16:30, SX2=W-(NAR?16:30), SY=H-86, SH=34;
+    var sx=function(l){return SX1+(Math.log(l)-Math.log(80))/(Math.log(2500)-Math.log(80))*(SX2-SX1);};
+    ctx.save();ctx.fillStyle='#05080f';ctx.fillRect(SX1,SY,SX2-SX1,SH);
+    for(var l=380;l<750;l+=4){ctx.fillStyle=wavelengthToHex(l);ctx.globalAlpha=0.28;ctx.fillRect(sx(l),SY,sx(l+4)-sx(l)+0.6,SH);}
+    ctx.globalAlpha=1;ctx.strokeStyle='rgba(148,163,184,.6)';ctx.strokeRect(SX1,SY,SX2-SX1,SH);ctx.restore();
+    lines.forEach(function(q){var c=q.lam<380?'#c4b5fd':q.lam>750?'#fca5a5':wavelengthToHex(q.lam);
+      if(q.lam<80||q.lam>2500)return;
+      ctx.save();ctx.strokeStyle=c;ctx.lineWidth=2.2;if(!q.em)ctx.setLineDash([3,3]);ctx.beginPath();ctx.moveTo(sx(q.lam),SY+2);ctx.lineTo(sx(q.lam),SY+SH-2);ctx.stroke();ctx.restore();});
+    [100,200,400,700,1000,2000].forEach(function(l){simText(ctx,String(l),sx(l),SY+SH+13,'#7d8da6',8.5,'center');});
+    simText(ctx,'λ (nm)',SX2,SY+SH+28,'#7d8da6',8.5,'right');
+    simText(ctx,'אולטרה־סגול',sx(170),SY-6,'#c4b5fd',8.5,'center');
+    simText(ctx,'נראה',sx(530),SY-6,'#e2e8f0',8.5,'center');
+    simText(ctx,'אינפרא־אדום',sx(1400),SY-6,'#fca5a5',8.5,'center');
+    simText(ctx,'קו רציף: פליטה · קו מקווקו: בליעה',(SX1+SX2)/2,H-14,'#64748b',8.5,'center');
+    if(ni!==nf)model(kit.m('ΔE = '+mn(Math.max(En(ni),En(nf)))+' − ('+mn(Math.min(En(ni),En(nf)))+') = '+dE.toFixed(2)+' eV')+' — '+kit.m('λ = 1240/'+dE.toFixed(2)+' = '+lm.toFixed(0)+' nm'));
+    else model('');
+    kit.check(flags);
+    requestAnimationFrame(draw);
+  }
+  requestAnimationFrame(draw);
+}
+
+// radioactive decay: each nucleus at random, the sample by the law
+function simRadioactivity(canvas){
+  // SECTION: opt-quantum.radioactivity
+  // PEDAGOGY: no one can say when a given nucleus decays, yet half of a
+  // large sample is gone in each half-life -- and two runs never agree exactly.
+  var H=460; var setup=setupCanvas(canvas,H); var ctx=setup.ctx; var W=setup.W;
+  var id=canvas.id, N0=400, T=3, t=0, run=false, pT=null, alive=[], hist=[], halves=[], runId=0, fresh=true;
+  var flags={half:false,eighth:false,twice:false};
+  function sample(){alive=[];for(var i=0;i<N0;i++)alive.push(true);t=0;run=false;pT=null;hist=[[0,N0]];runId++;fresh=true;}
+  function count(){var n=0;for(var i=0;i<N0;i++)if(alive[i])n++;return n;}
+  var sl=document.getElementById('inp-rd-T');
+  if(sl)sl.addEventListener('input',function(){T=parseFloat(sl.value);sample();});
+  if(sl)T=parseFloat(sl.value);
+  var go=document.getElementById('btn-rd-go'),pa=document.getElementById('btn-rd-pause'),rs=document.getElementById('btn-rd-reset');
+  if(go)go.addEventListener('click',function(){if(count()>0){run=true;pT=null;}});
+  if(pa)pa.addEventListener('click',function(){if(!run)return;run=false;var n=count();
+    if(n>=188&&n<=212){flags.half=true;halves.push({T:T,run:runId});
+      halves.forEach(function(a){halves.forEach(function(b){if(a.run!==b.run&&Math.abs(a.T-b.T)<1e-9)flags.twice=true;});});}});
+  if(rs)rs.addEventListener('click',sample);
+  sample();
+  var kit=simKit(canvas,{missions:[
+    {text:'התחילו, ועצרו את הדעיכה כשנשארה מחצית מהגרעינים ('+_skM('200 ± 12')+'). כמה זמן עבר?',
+     hint:'עקבו אחרי המונה N, ולחצו ״עצרו״ כשהוא מגיע ל־200 בערך. השוו את הזמן ל־T½.',
+     why:'מחצית מהגרעינים מתפרקת בזמן מחצית חיים אחד — זו ההגדרה שלו. הזמן שמדדתם קרוב ל־'+_skM('T½')+', אבל לא שווה לו בדיוק: הדעיכה אקראית.',
+     done:function(q){return q.half;}},
+    {text:'קבעו '+_skM('T½ = 2 s')+', והריצו עד '+_skM('t = 6 s')+'. כמה גרעינים נשארו?',
+     hint:'כמה זמני מחצית הם 6 שניות? ומה נשאר אחרי כל אחד מהם?',
+     why:'שלושה זמני מחצית: '+_skM('400 → 200 → 100 → 50')+', כלומר שמינית. המספר שקיבלתם קרוב ל־50, וסוטה ממנו בכמה גרעינים לכאן או לכאן.',
+     done:function(q){return q.eighth;}},
+    {text:'קחו דגימה חדשה עם אותו '+_skM('T½')+', ועצרו שוב במחצית. האם עבר בדיוק אותו זמן?',
+     hint:'לחצו ״דגימה חדשה״ בלי לשנות את T½, התחילו, ועצרו שוב כש־N מגיע ל־200 בערך.',
+     why:'כמעט — אבל לא בדיוק. זמן מחצית החיים הוא חוק סטטיסטי: הוא מדויק מאוד לדגימה של מיליארדי גרעינים, ורועש לדגימה של מאות. על גרעין בודד אי אפשר לומר דבר מלבד הסיכוי.',
+     done:function(q){return q.twice;}}]});
+  var model=_mbModel(kit);
+  kit.predict({q:'בדגימה 800 גרעינים רדיואקטיביים. כמה יישארו, בערך, אחרי שלושה זמני מחצית?',
+    opts:['100','267','אף אחד'],correct:0,
+    why:'בכל זמן מחצית נשארת חצי ממה שהיה: '+_skM('800 → 400 → 200 → 100')+'. הדעיכה אינה לינארית, ולעולם אינה ״נגמרת״ בבת אחת.'},function(){});
+  canvas._probe=function(){return {T:T,t:t,N:count(),run:run,flags:flags};};
+  var NAR=W<520;
+  function draw(ts){
+    if(_simStop[id])return;
+    if(pT==null)pT=ts;
+    var dt=Math.min((ts-pT)/1000,0.05);pT=ts;
+    if(run){var p=1-Math.pow(2,-dt/T);
+      for(var i=0;i<N0;i++)if(alive[i]&&Math.random()<p)alive[i]=false;
+      var was=t;t+=dt;hist.push([t,count()]);if(hist.length>1500)hist.splice(1,2);
+      if(fresh&&Math.abs(T-2)<1e-9&&was<6&&t>=6)flags.eighth=true;
+      if(count()===0||t>=6*T)run=false;}
+    var N=count();
+    simBg(ctx,W,H);
+    // the sample: twenty by twenty nuclei
+    var GS=NAR?Math.min(W*0.44,150):Math.min(W*0.34,250), GX=NAR?10:26, GY=NAR?64:70, C=GS/20;
+    ctx.save();
+    for(var j=0;j<N0;j++){var x=GX+(j%20+0.5)*C, y=GY+(Math.floor(j/20)+0.5)*C;
+      ctx.fillStyle=alive[j]?'#a3e635':'rgba(100,116,139,.35)';ctx.beginPath();ctx.arc(x,y,Math.max(1.6,C*0.32),0,Math.PI*2);ctx.fill();}
+    ctx.restore();
+    simText(ctx,'N = '+N,GX+GS/2,GY-30,'#a3e635',NAR?13:15,'center',true);
+    simText(ctx,'t = '+t.toFixed(2)+' s',GX+GS/2,GY-12,'#fbbf24',NAR?10:11.5,'center',true);
+    simText(ctx,'ירוק: טרם התפרק · אפור: התפרק',GX+GS/2,GY+GS+16,'#64748b',8.5,'center');
+    // N against t: the law (dashed) and this run (solid)
+    var AL=GX+GS+(NAR?34:60), AR=W-14, AT=NAR?64:60, AB=NAR?GY+GS-4:H-60;
+    _mbCard(ctx,AL-(NAR?28:36),AT-22,AR-AL+(NAR?36:46),AB-AT+52);
+    var TM=5*T, ax=function(q){return AL+q/TM*(AR-AL);}, ay=function(n){return AB-n/N0*(AB-AT);};
+    ctx.save();ctx.strokeStyle='rgba(148,163,184,.6)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(AL,AT);ctx.lineTo(AL,AB);ctx.lineTo(AR,AB);ctx.stroke();
+    ctx.strokeStyle='rgba(148,163,184,.2)';
+    [1,2,3,4].forEach(function(k){ctx.beginPath();ctx.moveTo(ax(k*T),AT);ctx.lineTo(ax(k*T),AB);ctx.stroke();});
+    [100,200].forEach(function(n){ctx.beginPath();ctx.moveTo(AL,ay(n));ctx.lineTo(AR,ay(n));ctx.stroke();});
+    ctx.restore();
+    [0,1,2,3,4,5].forEach(function(k){simText(ctx,k===0?'0':k===1?'T½':k+'T½',ax(k*T),AB+13,'#7d8da6',NAR?7.5:8.5,'center');});
+    [200,400].forEach(function(n){simText(ctx,String(n),AL-4,ay(n)+3,'#7d8da6',8.5,'right');});
+    simText(ctx,'N',AL+8,AT-6,'#94a3b8',9,'center');
+    ctx.save();ctx.strokeStyle='rgba(251,191,36,.8)';ctx.lineWidth=1.5;ctx.setLineDash([5,4]);ctx.beginPath();
+    for(var q=0;q<=TM+1e-9;q+=TM/60){var X=ax(q),Y=ay(N0*Math.pow(2,-q/T));if(q===0)ctx.moveTo(X,Y);else ctx.lineTo(X,Y);}
+    ctx.stroke();ctx.setLineDash([]);
+    ctx.strokeStyle='#a3e635';ctx.lineWidth=2;ctx.beginPath();
+    hist.forEach(function(h,ix){if(h[0]>TM)return;var X=ax(h[0]),Y=ay(h[1]);if(ix===0)ctx.moveTo(X,Y);else ctx.lineTo(X,Y);});
+    ctx.stroke();ctx.restore();
+    simText(ctx,'מקווקו: החוק · רציף: הדגימה הזאת',(AL+AR)/2,AB+28,'#64748b',NAR?7.5:8.5,'center');
+    model('לפי החוק, אחרי '+kit.m((t/T).toFixed(2))+' זמני מחצית: '+kit.m('N = '+(N0*Math.pow(2,-t/T)).toFixed(0))+' · בדגימה: '+kit.m('N = '+N));
+    kit.check(flags);
     requestAnimationFrame(draw);
   }
   requestAnimationFrame(draw);
@@ -40576,6 +41156,9 @@ function buildSim(sim){
   else if(sim.type==='opt-fiber')extra=C(rng('fib-n1',1.30,1.80,1.50,0.01,'מדד שבירה ליבה n₁','')+rng('fib-n2',1.20,1.70,1.46,0.01,'מדד שבירה מעטה n₂','')+rng('fib-ang',2,40,12,1,'זווית כניסה','°'));
   else if(sim.type==='opt-telescope')extra=C(rng('tel-fo',30,300,150,5,'מוקד אובייקטיב fₒ',' mm')+rng('tel-fe',5,60,25,5,'מוקד עדשת עין fₑ',' mm'));
   else if(sim.type==='opt-thin-film')extra=C(rng('tf-thick',0,1000,300,1,'עובי קרום t',' nm')+rng('tf-n',1.10,2.00,1.33,0.01,'מדד השבירה של הקרום n','')+btn('tf-soap','🫧 קרום סבון','btn-primary')+btn('tf-oil','🛢 שמן על מים','btn-secondary')+btn('tf-ar','👓 MgF₂ על זכוכית','btn-secondary'));
+  else if(sim.type==='photoelectric')extra=C(rng('pe-lam',150,700,400,2,'אורך הגל λ',' nm')+rng('pe-I',10,100,50,10,'עוצמת האור',' %')+rng('pe-V',0,5,0,0.05,'מתח הפוך V',' V'));
+  else if(sim.type==='bohr')extra=C(rng('bh-ni',1,7,3,1,'הרמה ההתחלתית n','','_fmtBohrN')+rng('bh-nf',1,7,2,1,'הרמה הסופית n','','_fmtBohrN')+btn('bh-go','⚡ מעבר')+btn('bh-clear','↺ נקו את הספקטרום','btn-secondary'));
+  else if(sim.type==='radioactivity')extra=C(rng('rd-T',1,10,3,0.5,'זמן מחצית החיים T½',' s')+btn('rd-go','▶ התחילו')+btn('rd-pause','⏸ עצרו','btn-secondary')+btn('rd-reset','↺ דגימה חדשה','btn-secondary'));
   else if(sim.type==='opt-grating')extra=C(rng('gr-d',0.5,5.0,1.5,0.01,'מרווח סריג d',' μm')+rng('gr-lambda',380,700,550,1,'אורך גל λ',' nm')+rng('gr-N',2,50,6,1,'מספר החריצים N','')+btn('gr-white','🌈 אור לבן','btn-secondary'));
   else if(sim.type==='elc-scope')extra=C(rng('scope-q',1,10,5,1,'עוצמת מטען המוט',' nC')+btn('scope-flip','↔ החליפו סימן','btn-secondary')+btn('scope-touch','👆 געו — הולכה','btn-secondary')+btn('scope-ground','⏚ חברו הארקה','btn-secondary'));
   else if(sim.type==='elc-coulomb')extra=C(rng('elc-q1',-5,5,2,0.5,'q₁',' μC')+rng('elc-q2',-5,5,-3,0.5,'q₂',' μC')+btn('clb-three','⊕ הוסיפו מטען q₃ (סופרפוזיציה)','btn-secondary'));
@@ -41727,6 +42310,17 @@ var FORMULA_BY_SUBJECT={
       {f:'z = Δλ/λ<sub>0</sub> ≈ v/c',d:'הסחה לאדום, למהירות קטנה'},
       {f:'E<sub>2</sub> − E<sub>1</sub> = hf',d:'פוטון לייזר'},
     ]},
+    {ch:'פרק ז: פוטונים, אטומים וגרעינים',rows:[
+      {f:'hf = W + E<sub>k,max</sub>',d:'האפקט הפוטואלקטרי (W: פונקציית העבודה)'},
+      {f:'f<sub>0</sub> = W/h',d:'תדירות הסף'},
+      {f:'eV<sub>s</sub> = E<sub>k,max</sub>',d:'מתח העצירה'},
+      {f:'E [eV] = 1240/λ [nm]',d:'אנרגיית פוטון, קיצור'},
+      {f:'E<sub>n</sub> = −13.6 eV/n²',d:'רמות האנרגיה של אטום המימן'},
+      {f:'hf = E<sub>i</sub> − E<sub>f</sub>',d:'פוטון במעבר בין רמות'},
+      {f:'λ = h/mv',d:'אורך הגל של דה־ברויי'},
+      {f:'N = N<sub>0</sub>·(½)^(t/T½)',d:'חוק הדעיכה הרדיואקטיבית'},
+      {f:'A = λN,  λ = ln2/T½',d:'אקטיביות וקבוע הדעיכה'},
+    ]},
   ],
   electro:[
     {ch:'פרק א: מטענים וכוחות',rows:[
@@ -41834,6 +42428,7 @@ var FORMULA_REF=[
     {f:'ε<sub>0</sub> = 8.85×10⁻¹² F/m',d:'המקדם הדיאלקטרי של הריק'},
     {f:'μ<sub>0</sub> = 4π×10⁻⁷ T·m/A',d:'הפרמאביליות של הריק'},
     {f:'h = 6.63×10⁻³⁴ J·s',d:'קבוע פלאנק'},
+    {f:'hc = 1240 eV·nm',d:'קיצור לחישובי פוטונים'},
     {f:'m<sub>e</sub> = 9.11×10⁻³¹ kg',d:'מסת האלקטרון'},
     {f:'m<sub>p</sub> = 1.67×10⁻²⁷ kg',d:'מסת הפרוטון'},
   ]},
