@@ -1442,8 +1442,12 @@ var APP_LANGS=[
   {code:'he',name:'עברית',file:'physics_game_v28.html'},
   {code:'en',name:'English',file:'physics_game_en.html'}
 ];
-var APP_VERSION='28.46';
+var APP_VERSION='28.47';
 var APP_CHANGELOG=[
+  {v:'28.47',d:'2026-11-12',notes:[
+    `Photoelectric-effect simulation: in the Hebrew edition, the number and unit on the metal tabs (for example 2.28 eV) now read left to right`,
+    `Escape-speed simulation: the negative energy is now shown with a true minus sign`,
+  ]},
   {v:'28.46',d:'2026-11-12',notes:[
     `Mechanics, a new chapter — Gravitation and satellites: the law of universal gravitation, a satellite in circular orbit, Kepler’s laws, gravitational energy and escape speed. Every topic has theory, a simulation with missions, a quiz, and a guided problem`,
     `Mechanics, energy: a new topic — Power and efficiency, with a simulation of a crane lifting a crate`,
@@ -11668,6 +11672,7 @@ function simKit(canvas,spec){
       for(var k in bs)bs[k].setAttribute('aria-pressed',String(k===v));
       if(ch&&!quiet&&o.onChange)o.onChange(v);}
     wrap.parentNode.insertBefore(bar,wrap);
+    fx(bar);   // a value on a tab ("2.28 eV") stays one left-to-right run, like every other kit text
     return {set:set,get:function(){return cur;},el:bar};
   };
   api.keys=function(fn){

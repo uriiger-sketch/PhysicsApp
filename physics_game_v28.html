@@ -1441,8 +1441,12 @@ var APP_LANGS=[
   {code:'he',name:'עברית',file:'physics_game_v28.html'},
   {code:'en',name:'English',file:'physics_game_en.html'}
 ];
-var APP_VERSION='28.46';
+var APP_VERSION='28.47';
 var APP_CHANGELOG=[
+  {v:'28.47',d:'2026-11-12',notes:[
+    'סימולציית האפקט הפוטואלקטרי: בלשוניות לבחירת המתכת, המספר והיחידה (למשל 2.28 eV) נקראים עכשיו משמאל לימין',
+    'סימולציית מהירות המילוט: האנרגיה השלילית מוצגת עכשיו בסימן מינוס אמיתי',
+  ]},
   {v:'28.46',d:'2026-11-12',notes:[
     'מכניקה, פרק חדש — כבידה ולוויינים: חוק הכבידה העולמי, לוויין במסלול מעגלי, חוקי קפלר, אנרגיה כבידתית ומהירות מילוט. בכל סעיף תיאוריה, סימולציה עם משימות, חידון ובעיה מודרכת',
     'מכניקה, אנרגיה: סעיף חדש — הספק ונצילות, עם סימולציה של מנוף שמרים ארגז',
@@ -11673,6 +11677,7 @@ function simKit(canvas,spec){
       for(var k in bs)bs[k].setAttribute('aria-pressed',String(k===v));
       if(ch&&!quiet&&o.onChange)o.onChange(v);}
     wrap.parentNode.insertBefore(bar,wrap);
+    fx(bar);   // a value on a tab ("2.28 eV") stays one left-to-right run, like every other kit text
     return {set:set,get:function(){return cur;},el:bar};
   };
   api.keys=function(fn){
