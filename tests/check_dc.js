@@ -342,6 +342,10 @@ const t=(name,cond,detail)=>(cond?ok:bad).push(name+(detail?' — '+detail:''));
   t('two-loop: flipping marks the source as reversed', f1>f0+60, `red px ${f0} → ${f1}`);
   const lbl=await p.evaluate(()=>document.getElementById('btn-tl-flip').textContent);
   t('two-loop: the flip button relabels itself', lbl.includes(L('🔄 סוללה 2: הפוכה')), lbl.trim());
+  // clicking the button may have scrolled the page (in English it sits below
+  // the fold), so bring the diagram back and measure it again before tapping it
+  await p.evaluate(()=>document.querySelector('#app canvas').scrollIntoView({block:'center'})); await p.waitForTimeout(200);
+  bx=await box();
   await p.mouse.click(bx.x+bx.w*0.90, bx.y+bx.h*0.285); await p.waitForTimeout(400);
   t('two-loop: tapping the battery flips it back',
     (await p.evaluate(()=>document.getElementById('btn-tl-flip').textContent)).includes(L('🔋 סוללה 2: באותו כיוון')));
