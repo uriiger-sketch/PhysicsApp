@@ -3278,6 +3278,7 @@ const MECH_CHAPTERS=[
     {id:'kinetic',title:'אנרגיה קינטית ועבודה',sub:'משפט עבודה־אנרגיה'},
     {id:'potential',title:'אנרגיה פוטנציאלית',sub:'כובדית ואלסטית'},
     {id:'energy-cons',title:'שימור אנרגיה',sub:'כוחות משמרים'},
+    {id:'power',title:'הספק ונצילות',sub:'P=W/t, P=Fv, נצילות'},
   ]},
   {id:'shm',icon:'〰️',title:'פרק י: תנועה הרמונית',sections:[
     {id:'shm-def',title:'תנודות ומחזוריות',sub:'מחזור, תדירות, אמפליטודה'},
@@ -6183,6 +6184,95 @@ const CONTENT={
        hint:'ההחלקה מתחילה כשזווית המדרון מגיעה לזווית ההחלקה: '+tex('\\tan\\theta = \\mu_s = 0.30'),answer:'16.7',unit:'°',tolerance:0.5,
        explain:tex('\\theta = \\arctan(0.30) \\approx 16.7°')+' — <b>קטנה</b> מזווית ההיפוך 26.6°, ולכן הקופסה תחליק הרבה לפני שתספיק להתהפך. שני התנאים תמיד מתחרים, והקטן מביניהם הוא זה שקורה בפועל.'},
     ]},
+},
+// ════ energy.power ════
+'energy.power':{
+  theory:{
+    title:'הספק ונצילות',
+    html:`
+      <p>שני מנופים מרימים אותו מטען לאותו גובה — האחד בעשר שניות והשני בדקה. שניהם עשו <b>אותה עבודה</b>; מה שמבדיל ביניהם הוא ה<b>קצב</b> שבו היא נעשתה. לקצב הזה קוראים הספק.</p>
+      <div class="def-block"><div class="def-title">הספק</div>
+        <p>העבודה שנעשית — או האנרגיה שמומרת — ביחידת זמן. היחידה היא <b>ואט</b>: ${M('1\\,\\text{W}=1\\,\\text{J/s}')}. מנוע של ${M('1\\,\\text{kW}')} ממיר אלף ג׳ול בכל שנייה.</p>
+      </div>
+      ${fBox('P = \\dfrac{W}{t}','הספק ממוצע',[
+        ['P','הספק','W'],['W','העבודה שנעשתה','J'],['t','משך הזמן','s'],
+      ])}
+      <p>כשכוח קבוע ${M('F')} פועל בכיוון התנועה של גוף שמהירותו ${M('v')}, הגוף מתקדם בכל שנייה ${M('v')} מטרים, והכוח עושה בה עבודה ${M('F\\cdot v')}:</p>
+      ${fBox('P = F\\,v','הספק רגעי של כוח בכיוון התנועה',[
+        ['F','רכיב הכוח בכיוון המהירות','N'],['v','מהירות הגוף','m/s'],
+      ])}
+      <div class="mis-block"><b>⚠️ טעות נפוצה:</b> ״מנוע חזק יותר עושה יותר עבודה״. לא בהכרח: את העבודה קובעת המשימה — הרמת ${M('m')} לגובה ${M('h')} דורשת ${M('mgh')}, בכל מנוע. מנוע שהספקו גדול יותר עושה את <b>אותה עבודה בפחות זמן</b>. ועוד בלבול נפוץ: קילוואט־שעה, למרות שמו, אינו הספק אלא <b>אנרגיה</b> — ${M('1\\,\\text{kWh}=1000\\,\\text{W}\\times3600\\,\\text{s}=3.6\\times10^{6}\\,\\text{J}')}.</div>
+      <div class="def-block"><div class="def-title">נצילות</div>
+        <p>שום מכונה אינה הופכת את כל האנרגיה שהיא מקבלת לעבודה מועילה: חלק ממנה הופך תמיד לחום. ה<b>נצילות</b> היא החלק המועיל.</p>
+      </div>
+      ${fBox('\\eta = \\dfrac{P_{out}}{P_{in}}','נצילות',[
+        ['\\eta','נצילות','בין 0 ל־1, או באחוזים'],['P_{out}','ההספק המועיל','W'],['P_{in}','ההספק המושקע','W'],
+      ])}
+      <div class="info-grid">
+        <div class="info-item"><div class="il">אדם בהליכה</div><div class="iv">≈ 100 W</div></div>
+        <div class="info-item"><div class="il">רוכב אופניים מקצועי</div><div class="iv">≈ 400 W</div></div>
+        <div class="info-item"><div class="il">כוח סוס אחד</div><div class="iv">746 W</div></div>
+        <div class="info-item"><div class="il">מנוע של מכונית</div><div class="iv">≈ 100 kW</div></div>
+      </div>
+      <div class="ex-block"><div class="ex-title">✏️ דוגמה — מכונית בעלייה</div>
+      <p class="ex-given">מכונית שמסתה ${M('1200\\,\\text{kg}')} עולה במהירות קבועה ${M('15\\,\\text{m/s}')} בכביש ששיפועו ${M('\\sin\\theta=0.1')}. כוח ההתנגדות (אוויר וגלגול) הוא ${M('600\\,\\text{N}')}. קחו ${M('g=10\\,\\text{m/s}^2')}.</p>
+      <ol class="ex-steps">
+        <li>המהירות קבועה, ולכן הכוח המניע מאזן את רכיב הכובד ואת ההתנגדות: ${M('F=mg\\sin\\theta+f=1200\\times10\\times0.1+600=1800\\,\\text{N}')}</li>
+        <li>ההספק שהמנוע מעביר לגלגלים: ${M('P=Fv=1800\\times15=27{,}000\\,\\text{W}=27\\,\\text{kW}')}</li>
+        <li>מתוכו, להעלאת המכונית בגובה: ${M('1200\\times15=18\\,\\text{kW}')}; ולהתגברות על ההתנגדות: ${M('600\\times15=9\\,\\text{kW}')}</li>
+      </ol>
+      <p class="ex-lesson"><b>הלקח:</b> במהירות קבועה האנרגיה הקינטית אינה משתנה — כל ההספק הופך לאנרגיה פוטנציאלית ולחום.</p></div>
+    `,
+    enrich:{
+      title:'מדוע ״כוח סוס״?',
+      html:`<p>כשג׳יימס ואט ביקש למכור את מנוע הקיטור שלו, במאה ה־18, הלקוחות רצו לדעת כמה סוסים הוא יחליף. ואט מדד סוסים שסובבו טחנה וקבע: סוס מרים כ־${M('76\\,\\text{kg}')} בקצב של מטר בשנייה, כלומר כ־${M('746\\,\\text{W}')}.</p>
+      <p>היחידה שנקראת על שמו, הוואט, החליפה את הסוס — אבל ״כוח סוס״ עדיין מופיע במפרט של כל מכונית. אדם בריא מחזיק לאורך זמן כעשירית כוח סוס, ולשניות ספורות יותר מכוח סוס שלם.</p>`
+    }
+  },
+  sim:{type:'power',title:'הספק',desc:'מנוף מרים ארגז לגובה 10 m במהירות קבועה. בחרו מסה והספק ולחצו ״הרימו״: את העבודה mgh קובעים המסה והגובה בלבד, וההספק קובע בכמה זמן היא תיעשה — ובאיזו מהירות, v = P/mg.'},
+  example:{title:'הספק של משאבה',text:`משאבה מעלה ${M('600\\,\\text{kg}')} מים לגובה ${M('8\\,\\text{m}')} בכל דקה. קחו ${M('g=10\\,\\text{m/s}^2')}.`,steps:[
+    {q:'כמה עבודה היא עושה בדקה?',a:`${M('W=mgh=600\\times10\\times8=48{,}000\\,\\text{J}')}`},
+    {q:'מה ההספק המועיל שלה?',a:`${M('P=\\dfrac{W}{t}=\\dfrac{48{,}000}{60}=800\\,\\text{W}')}`},
+    {q:'המשאבה צורכת 1000 W של חשמל. מה נצילותה?',a:`${M('\\eta=\\dfrac{800}{1000}=0.8')}, כלומר 80%. חמישית מהאנרגיה החשמלית הופכת לחום.`},
+  ]},
+  quiz:[
+    {q:'מנוע עושה עבודה של '+tex('600\\,\\text{J}')+' בתוך '+tex('4\\,\\text{s}')+'. מה הספקו?',
+     opts:[tex('2400\\,\\text{W}'),tex('150\\,\\text{W}'),tex('604\\,\\text{W}'),tex('0.0067\\,\\text{W}')],correct:1,
+     explain:tex('P=W/t=600/4=150\\,\\text{W}')+'. הכפלה במקום חילוק נותנת 2400 — אבל זה מספר ביחידות J·s, ולא הספק.'},
+    {q:'שני תלמידים שמסתם שווה עולים באותו גרם מדרגות. דנה עולה בחצי מהזמן של יואב. מה נכון?',
+     opts:['דנה עשתה עבודה כפולה','עבודה שווה, ולדנה הספק כפול','עבודה שווה והספק שווה','עבודה שווה, וליואב הספק כפול'],correct:1,
+     explain:'העבודה נגד הכובד היא mgh — אותה מסה ואותו גובה, ולכן אותה עבודה. ההספק הוא העבודה חלקי הזמן: חצי מהזמן פירושו הספק כפול. לכן ריצה במדרגות מעייפת יותר מהליכה, אף שהעבודה זהה.'},
+    {q:'מכונית נוסעת במהירות קבועה '+tex('20\\,\\text{m/s}')+' מול כוח התנגדות של '+tex('500\\,\\text{N}')+'. מה ההספק שהמנוע מעביר לגלגלים?',
+     opts:[tex('25\\,\\text{W}'),tex('10\\,\\text{kW}'),tex('520\\,\\text{W}'),tex('100\\,\\text{kW}')],correct:1,
+     explain:'המהירות קבועה, ולכן הכוח המניע שווה להתנגדות, 500 N. '+tex('P=Fv=500\\times20=10{,}000\\,\\text{W}=10\\,\\text{kW}')+'. כל ההספק הזה הופך לחום באוויר ובצמיגים.'},
+    {q:'קילוואט־שעה (kWh) הוא יחידה של:',
+     opts:['הספק','אנרגיה','זמן','כוח'],correct:1,
+     explain:'הספק כפול זמן הוא אנרגיה: '+tex('1\\,\\text{kWh}=1000\\,\\text{W}\\times3600\\,\\text{s}=3.6\\times10^6\\,\\text{J}')+'. חשבון החשמל נמדד ב־kWh כי משלמים על אנרגיה, לא על הספק.'},
+    {q:'מנוע פועל בהספק קבוע. ככל שהמכונית מאיצה, הכוח המניע שהוא מספק:',
+     opts:['גדל','קטן','נשאר קבוע','מתאפס מיד'],correct:1,
+     explain:tex('P=Fv')+', ולכן בהספק קבוע '+tex('F=P/v')+' קטן כשהמהירות גדלה. לכן מכונית מאיצה בחדות מהמקום ובקושי במהירות גבוהה — ולכן יש לה מהירות מרבית: זו שבה הכוח המניע יורד עד כוח ההתנגדות.'},
+    {q:'מנוע חשמלי צורך '+tex('500\\,\\text{W}')+' ומרים מטען בהספק מועיל של '+tex('400\\,\\text{W}')+'. מה נצילותו, ומה קורה ליתר?',
+     opts:['80%; היתר הופך לחום','125%; היתר נאגר במנוע','20%; היתר הופך לחום','80%; היתר נעלם'],correct:0,
+     explain:tex('\\eta=400/500=0.8')+'. מאה הוואט הנותרים אינם נעלמים — אנרגיה נשמרת — אלא הופכים לחום בסלילים ובמסבים. נצילות גדולה מ־100% הייתה מפרה את שימור האנרגיה.'},
+  ],
+  problem:{
+    title:'מנוף בנמל',
+    text:'מנוף מרים מכולה שמסתה 400 kg לגובה 15 m במהירות קבועה, בתוך 30 s. קחו '+M('g=10\\,\\text{m/s}^2')+'.',
+    steps:[
+      {q:'כמה עבודה '+M('W')+' עושה המנוף על המכולה?',
+       nudge:'במהירות קבועה כוח המנוף שווה למשקל המכולה, והוא פועל לאורך כל הגובה.',
+       hint:'העבודה נגד הכובד היא המשקל כפול הגובה: '+M('W=mgh=400\\times10\\times15'),answer:'60000',unit:'J',tolerance:600,
+       explain:M('W=mgh=400\\times10\\times15=60{,}000\\,\\text{J}')+'. העבודה הזאת אינה תלויה בזמן ההרמה: מנוף איטי היה עושה בדיוק אותה עבודה.'},
+      {q:'מה ההספק המועיל '+M('P')+' של המנוף?',
+       nudge:'הספק הוא קצב עשיית העבודה: כמה ג׳ול בכל שנייה.',
+       hint:'העבודה חלקי הזמן שבו היא נעשתה: '+M('P=W/t=60{,}000/30'),answer:'2000',unit:'W',tolerance:20,
+       explain:M('P=W/t=60{,}000/30=2000\\,\\text{W}')+'. ובדרך אחרת: מהירות ההרמה היא '+M('v=15/30=0.5\\,\\text{m/s}')+' והכוח הוא '+M('F=mg=4000\\,\\text{N}')+', ולכן '+M('P=Fv=4000\\times0.5=2000\\,\\text{W}')+' ✓.'},
+      {q:'מנוע המנוף צורך הספק חשמלי של 2500 W. מה נצילותו, באחוזים?',
+       nudge:'איזה חלק מההספק שהמנוע מקבל הופך להספק מועיל?',
+       hint:'ההספק המועיל חלקי ההספק המושקע: '+M('\\eta=2000/2500'),answer:'80',unit:'%',tolerance:1,
+       explain:M('\\eta=2000/2500=0.8')+', כלומר 80%. חמש מאות הוואט הנותרים הופכים לחום במנוע ובכבלים.'},
+    ]
+  }
 },
 };// end CONTENT
 
@@ -11305,6 +11395,7 @@ function initSim(id,type,keep){
     'energy':simEnergy,
     'energy-kinetic':simEnergyKinetic,
     'energy-potential':simEnergyPotential,
+    'power':simPower,
     'spring':simSpring,
     'shm-def':simSHMDef,
     'spring-force':simSpringForce,
@@ -13917,6 +14008,112 @@ function simMomentumDisplay(canvas){
   requestAnimationFrame(draw);
 }
 
+
+// ─────────────────────────────────────────────────────────────
+// POWER: a crane lifts a crate 10 m at constant speed
+// ─────────────────────────────────────────────────────────────
+function simPower(canvas){
+  // SECTION: energy.power
+  // PEDAGOGY: the work mgh is set by the load and the height alone; the
+  // power sets how long it takes, and the speed of the lift is v = P/mg.
+  var H=460; var setup=setupCanvas(canvas,H); var ctx=setup.ctx; var W=setup.W;
+  var id=canvas.id, G=9.8, HT=10;
+  var m=50, P=500, y=0, t=0, run=false, fin=false, pT=null, runs=[];
+  var flags={t5:false,dbl:false,v1:false};
+  function read(){var a=document.getElementById('inp-pw-m'),b=document.getElementById('inp-pw-P');
+    if(a)m=parseFloat(a.value);if(b)P=parseFloat(b.value);}
+  function reset(){y=0;t=0;run=false;fin=false;pT=null;}
+  ['inp-pw-m','inp-pw-P'].forEach(function(s){var e=document.getElementById(s);
+    if(e)e.addEventListener('input',function(){read();reset();});});
+  var go=document.getElementById('btn-pw-go'),rs=document.getElementById('btn-pw-reset');
+  if(go)go.addEventListener('click',function(){read();reset();run=true;});
+  if(rs)rs.addEventListener('click',function(){reset();});
+  read();
+  var kit=simKit(canvas,{missions:[
+    {text:'הרימו את הארגז לגובה '+_skM('10 m')+' בתוך '+_skM('5 s')+' בדיוק',
+     hint:'העבודה היא mgh. איזה הספק עושה אותה בחמש שניות?',
+     why:_skM('P = mgh/t')+': לארגז של '+_skM('50 kg')+' העבודה היא '+_skM('50 × 9.8 × 10 = 4900 J')+', ובחמש שניות דרושים '+_skM('980 W')+'. מסה אחרת דורשת הספק אחר, באותו יחס.',
+     done:function(q){return q.t5;}},
+    {text:'הכפילו את המסה, והרימו אותה באותו זמן כמו קודם',
+     hint:'העבודה גדלה פי 2. מה צריך לקרות להספק כדי שהזמן לא ישתנה?',
+     why:'מסה כפולה פירושה עבודה כפולה, '+_skM('W = mgh')+'. כדי לעשות אותה באותו זמן דרוש הספק כפול: '+_skM('P = W/t')+'.',
+     done:function(q){return q.dbl;}},
+    {text:'הרימו ארגז במהירות קבועה של '+_skM('1 m/s')+' בדיוק',
+     hint:'בהרמה במהירות קבועה כוח המנוף שווה למשקל. מה ההספק של כוח F שפועל על גוף במהירות v?',
+     why:_skM('P = Fv = mg·v')+': לארגז של '+_skM('100 kg')+' במהירות '+_skM('1 m/s')+' דרושים '+_skM('980 N × 1 m/s = 980 W')+'. באותו הספק, ארגז כבד פי 2 יעלה לאט פי 2.',
+     done:function(q){return q.v1;}}]});
+  var model=_mbModel(kit);
+  kit.predict({q:'שני מנופים מרימים ארגזים זהים לאותו גובה. מנוף א׳ עושה זאת ב־'+_skM('10 s')+', ומנוף ב׳ ב־'+_skM('20 s')+'. מי מהם עשה עבודה גדולה יותר?',
+    opts:['מנוף א׳, המהיר','מנוף ב׳, שעבד זמן רב יותר','שניהם עשו אותה עבודה'],correct:2,
+    why:'העבודה היא '+_skM('W = mgh')+': אותה מסה ואותו גובה — אותה עבודה. ההבדל הוא בהספק: מנוף א׳ עשה אותה בחצי מהזמן, כלומר בהספק כפול.'},function(){});
+  canvas._probe=function(){return {m:m,P:P,y:y,t:t,run:run,fin:fin,runs:runs.slice(),flags:flags};};
+  function finish(){
+    fin=true;run=false;y=HT;t=m*G*HT/P;
+    runs.push({m:m,P:P,t:t});if(runs.length>12)runs.shift();
+    if(Math.abs(t-5)<=0.1)flags.t5=true;
+    if(Math.abs(P/(m*G)-1)<=0.03)flags.v1=true;
+    runs.forEach(function(a){runs.forEach(function(b){
+      if(Math.abs(b.m-2*a.m)<1e-9&&Math.abs(b.t-a.t)<=0.1)flags.dbl=true;});});
+  }
+  var NAR=W<520;
+  function draw(ts){
+    if(_simStop[id])return;
+    if(pT==null)pT=ts;
+    var dt=Math.min((ts-pT)/1000,0.05);pT=ts;
+    var v=P/(m*G), Wk=m*G*HT;
+    if(run){t+=dt;y+=v*dt;if(y>=HT)finish();}
+    simBg(ctx,W,H);
+    var GY=H-40, TOP=74, SC=(GY-TOP-34)/HT;                 // px per metre
+    var LX=NAR?W*0.27:W*0.24;                                // the crane's column
+    simGround(ctx,W,GY);
+    // the height scale
+    ctx.save();ctx.strokeStyle='rgba(148,163,184,.55)';ctx.lineWidth=1;
+    for(var k=0;k<=HT;k+=2){var yy=GY-k*SC;
+      ctx.beginPath();ctx.moveTo(LX-64,yy);ctx.lineTo(LX-56,yy);ctx.stroke();
+      simText(ctx,k+' m',LX-68,yy+3,'#94a3b8',8.5,'right');}
+    ctx.beginPath();ctx.moveTo(LX-60,GY);ctx.lineTo(LX-60,GY-HT*SC);ctx.stroke();
+    // the target line
+    ctx.strokeStyle='rgba(251,191,36,.7)';ctx.setLineDash([5,5]);
+    ctx.beginPath();ctx.moveTo(LX-56,GY-HT*SC);ctx.lineTo(LX+58,GY-HT*SC);ctx.stroke();ctx.setLineDash([]);
+    ctx.restore();
+    // mast, jib and cable
+    var JY=GY-HT*SC-40;
+    ctx.save();ctx.fillStyle='#475569';ctx.fillRect(LX+50,JY,9,GY-JY);ctx.fillRect(LX-22,JY,81,7);
+    ctx.fillStyle='#fbbf24';ctx.fillRect(LX-6,JY-4,12,15);ctx.restore();
+    var CW=NAR?46:54, CH=30, cy=GY-y*SC;
+    ctx.save();ctx.strokeStyle='#cbd5e1';ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(LX,JY+11);ctx.lineTo(LX,cy-CH);ctx.stroke();ctx.restore();
+    // the crate
+    ctx.save();ctx.fillStyle='#b45309';ctx.strokeStyle='#fcd34d';ctx.lineWidth=1.5;
+    ctx.beginPath();ctx.roundRect(LX-CW/2,cy-CH,CW,CH,4);ctx.fill();ctx.stroke();ctx.restore();
+    simText(ctx,m+' kg',LX,cy-CH/2+4,'#fff',10,'center',true);
+    if(run&&!fin){simArrow(ctx,LX+CW/2+10,cy-6,LX+CW/2+10,cy-6-Math.min(46,10+v*14),'#34d399',2.5,9);
+      simText(ctx,'v',LX+CW/2+22,cy-22,'#6ee7b7',10,'center',true);}
+    // the readout card
+    var PX=NAR?W*0.50:W*0.46, PW=W-PX-10;
+    _mbCard(ctx,PX,12,PW,NAR?196:186);
+    var cx=PX+PW/2, fs=NAR?10:11.5;
+    simText(ctx,'W = mgh = '+Wk.toFixed(0)+' J',cx,34,'#22d3ee',fs,'center',true);
+    simText(ctx,'v = P/mg = '+v.toFixed(2)+' m/s',cx,56,'#6ee7b7',fs,'center',true);
+    simText(ctx,'t = '+t.toFixed(2)+' s',cx,84,'#fbbf24',NAR?15:17,'center',true);
+    // the energy the motor has delivered so far, against the work to be done
+    var E=Math.min(P*t,Wk), bx=PX+12, bw=PW-24, by=100;
+    simText(ctx,'האנרגיה שהמנוע העביר',cx,by+2,'#94a3b8',8.5,'center');
+    ctx.save();ctx.fillStyle='rgba(15,30,55,.8)';ctx.beginPath();ctx.roundRect(bx,by+10,bw,12,3);ctx.fill();
+    var gr=ctx.createLinearGradient(bx,0,bx+bw,0);gr.addColorStop(0,'#0ea5e9');gr.addColorStop(1,'#34d399');
+    ctx.fillStyle=gr;ctx.beginPath();ctx.roundRect(bx,by+10,bw*(Wk?E/Wk:0),12,3);ctx.fill();ctx.restore();
+    simText(ctx,E.toFixed(0)+' / '+Wk.toFixed(0)+' J',cx,by+38,'#cbd5e1',9,'center');
+    // the last lifts, to compare
+    var rr=runs.slice(-3);
+    rr.forEach(function(r,i){simText(ctx,r.m+' kg · '+r.P+' W · '+r.t.toFixed(2)+' s',cx,by+58+i*14,i===rr.length-1?'#e2e8f0':'#7d8da6',8.5,'center');});
+    // one formula at a time: the work before the lift, P = Fv during it, P = W/t after it
+    if(fin)model(kit.m('P = W/t = '+Wk.toFixed(0)+' J / '+t.toFixed(2)+' s = '+P.toFixed(0)+' W'));
+    else if(run)model(kit.m('P = Fv = '+(m*G).toFixed(0)+' N × '+v.toFixed(2)+' m/s = '+P.toFixed(0)+' W'));
+    else model(kit.m('W = mgh = '+m+' × 9.8 × 10 = '+Wk.toFixed(0)+' J'));
+    kit.check(flags);
+    requestAnimationFrame(draw);
+  }
+  requestAnimationFrame(draw);
+}
 
 // ─────────────────────────────────────────────────────────────
 // MOMENTUM CONSERVATION: two balls collide
@@ -39581,6 +39778,7 @@ function buildSim(sim){
   else if(sim.type==='momentum-cons')extra=C(rng('mc-m1',1,8,3,0.5,'m₁',' kg','_fmtKg1')+rng('mc-m2',1,8,1.5,0.5,'m₂',' kg','_fmtKg1')+rng('mc-v1',-8,8,6,1,'v₁',' m/s','_fmtMs1')+rng('mc-v2',-8,8,-2,1,'v₂',' m/s','_fmtMs1')+rng('mc-E',2,40,12,1,'אנרגיית הקפיץ',' J')+btn('mc-run','💥 שחררו את הקפיץ','btn-primary')+btn('mc-mode','🧲 הצמדה','btn-secondary')+btn('mc-air','💨 אוויר: מופעל','btn-secondary'));
   else if(sim.type==='collision')extra=C(rng('col-e',0,1,1,0.05,'מקדם התקומה e — מ־0 (נצמדות) עד 1 (אלסטית)')+rng('col-m1',1,8,3,0.5,'m₁',' kg')+rng('col-m2',1,8,2,0.5,'m₂',' kg')+rng('col-v1',-8,8,4,0.5,'v₁ התחלתית',' m/s')+rng('col-v2',-8,8,-2,0.5,'v₂ התחלתית',' m/s')+btn('col-run','▶ הפעילו','btn-primary')+btn('col-reset','↺ איפוס','btn-secondary'));
   else if(sim.type==='energy-kinetic')extra=C(rng('ek-F',2,50,10,1,'כוח F',' N')+rng('ek-m',0.5,10,2,0.5,'מסה m',' kg')+rng('ek-v0',0,5,0,0.5,'מהירות התחלתית v₀',' m/s')+rng('ek-d',1,5,4,0.5,'מרחק הדחיפה d',' m')+btn('ek-launch','▶ הפעילו!','btn-primary')+btn('ek-reset','↺ איפוס','btn-secondary'));
+  else if(sim.type==='power')extra=C(rng('pw-m',20,200,50,10,'מסת הארגז m',' kg')+rng('pw-P',200,2000,500,20,'הספק המנוף P',' W')+btn('pw-go','▶ הרימו')+btn('pw-reset','↺ איפוס','btn-secondary'));
   else if(sim.type==='energy-potential')extra=C(rng('ep-m',0.5,8,2,0.5,'מסה m',' kg')+rng('ep-g',1.6,25,9.8,0.2,'g',' m/s²')+btn('ep-elastic','🟢 הציגו אנרגיה אלסטית','btn-secondary')+btn('ep-reset','↺ איפוס','btn-secondary'));
   else if(sim.type==='energy')extra=C(rng('energy-m',0.5,4,1,0.5,'מסה m',' kg')+rng('energy-mu',0,0.1,0,0.005,'מקדם חיכוך μ','')+btn('energy-reset','↺ איפוס','btn-secondary')+btn('energy-shape','〰 המסלול המקורי','btn-secondary'));
   else if(sim.type==='shm-def')extra=C(rng('shm-A',2,13,8,0.5,'אמפליטודה A',' cm')+rng('shm-T',0.5,5,2,0.1,'מחזור T',' s')+btn('shm-pause','⏸ עצרו','btn-primary')+btn('shm-reset','↺ איפוס','btn-secondary'));
@@ -40714,6 +40912,9 @@ var FORMULA_DATA=[
     {f:'E<sub>p</sub> = ½kx²',d:'אנרגיה אלסטית'},
     {f:'E<sub>k</sub> + E<sub>p</sub> = const',d:'שימור (כוחות משמרים)'},
     {f:'ΔE<sub>k</sub> + ΔE<sub>p</sub> = W<sub>f</sub>',d:'עם חיכוך (W_f היא עבודת החיכוך — שלילית)'},
+    {f:'P = W/t',d:'הספק ממוצע'},
+    {f:'P = F·v',d:'הספק רגעי של כוח בכיוון התנועה'},
+    {f:'η = P<sub>out</sub>/P<sub>in</sub>',d:'נצילות'},
   ]},
   {ch:'פרק י: תנועה הרמונית',rows:[
     {f:'x = A·cos(ωt+φ)',d:'תנועה הרמונית'},
