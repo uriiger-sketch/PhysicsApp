@@ -1362,6 +1362,51 @@ html.sim-dock-side .range-wrap .range-val{flex:0 0 auto;white-space:nowrap;}
 .rv-actions{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:14px;}
 @media (pointer:coarse){.rv-btn{min-height:44px;}.rv-link{display:inline-block;padding:6px 0;}}
 @media (max-width:520px){.rv-overlay{padding:0;}.rv-card{min-height:100%;border:0;border-radius:0;}}
+/* ENRICHMENT LABS: the entry in the topic list, the card that leads from a
+   section to its lab, and the full-screen overlay -- the list of labs, or one
+   lab in a shadow root of its own (its stylesheet is its own, not this one) */
+.xlab-entry{padding:4px 12px 2px;}
+.xlab-btn{width:100%;display:flex;align-items:center;justify-content:center;gap:8px;padding:9px 12px;background:rgba(6,182,212,.1);border:1px solid rgba(6,182,212,.36);border-radius:9px;color:var(--accent2);font-family:'AppSym','Heebo',sans-serif;font-size:.86rem;font-weight:700;cursor:pointer;transition:background .15s;}
+.xlab-btn:hover{background:rgba(6,182,212,.2);}
+.xlab-tiecard{margin-top:16px;padding:14px 16px;border:1px solid rgba(6,182,212,.36);border-radius:14px;background:linear-gradient(160deg,rgba(6,182,212,.09),rgba(6,182,212,.02));}
+.xlab-tie-h{margin-bottom:6px;font-size:.98rem;font-weight:800;color:var(--accent2);}
+.xlab-tiecard p{margin:0 0 12px;color:var(--t-body);font-size:.92rem;line-height:1.75;}
+.xlab-ov{position:fixed;inset:0;z-index:9100;display:none;flex-direction:column;background:var(--bg);color:var(--text);font-family:'AppSym','Heebo',sans-serif;}
+.xlab-ov.open{display:flex;}
+.xlab-bar{flex:none;display:flex;align-items:center;gap:8px;min-height:54px;padding:6px 14px;background:var(--hdr-bg);border-bottom:1px solid var(--border);}
+.xlab-bar [hidden]{display:none!important;}
+.xlab-bar h2{flex:1;min-width:0;margin:0;font:800 1.05rem/1.3 'AppSym','Heebo',sans-serif;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.xlab-bar h2:focus{outline:none;}
+.xlab-bar .theme-btn{margin-inline-end:0;}
+.xlab-back{flex:none;display:inline-flex;align-items:center;min-height:36px;padding:6px 13px;border:1px solid var(--border);border-radius:999px;background:var(--panel);color:var(--text);font:700 .84rem/1 'AppSym','Heebo',sans-serif;white-space:nowrap;cursor:pointer;transition:border-color .15s;}
+.xlab-back:hover{border-color:var(--accent2);}
+.xlab-body{flex:1;min-height:0;display:flex;flex-direction:column;overflow:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;}
+.xlab-host{display:block;flex:none;min-width:0;}
+/* a lab that is an application of its own (a board, a tray, an inspector)
+   takes exactly the room that is left and scrolls inside itself */
+.xlab-host.fill{flex:1 1 0;min-height:420px;}
+.xlab-hub{width:100%;max-width:1100px;margin:0 auto;padding:22px 16px 44px;}
+.xlab-lede{margin:0 0 18px;max-width:74ch;color:var(--t-body);font-size:.98rem;line-height:1.8;}
+.xlab-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,300px),1fr));gap:14px;}
+.xlab-card{display:flex;flex-direction:column;gap:9px;padding:18px 18px 16px;border:1px solid var(--border);border-radius:16px;background:var(--card-bg);color:var(--text);font-family:'AppSym','Heebo',sans-serif;text-align:start;cursor:pointer;transition:border-color .15s,transform .15s;}
+.xlab-card:hover{border-color:var(--accent2);transform:translateY(-2px);}
+.xlab-ic{font-size:1.9rem;line-height:1;}
+.xlab-ttl{font:900 1.14rem/1.3 'Rubik','Heebo',sans-serif;color:var(--text);}
+.xlab-sub{font-size:.9rem;line-height:1.7;color:var(--t-body);}
+.xlab-ask,.xlab-tie{font-size:.82rem;line-height:1.65;color:var(--muted);}
+.xlab-ask b,.xlab-tie b{font-weight:700;color:var(--t-accent);}
+.xlab-go{margin-top:auto;padding-top:6px;font-size:.88rem;font-weight:800;color:var(--accent2);}
+.xlab-tasks{flex:none;margin:10px 14px 0;border:1px solid var(--border);border-radius:12px;background:var(--panel);}
+.xlab-tasks>summary{padding:10px 14px;font-size:.92rem;font-weight:800;color:var(--text);cursor:pointer;}
+.xlab-tasks .xlab-n{font-weight:600;color:var(--muted);}
+.xlab-tasks ol{margin:0;padding:2px 14px 12px;padding-inline-start:36px;display:flex;flex-direction:column;gap:10px;}
+.xlab-tasks li{color:var(--t-body);font-size:.92rem;line-height:1.75;}
+.xlab-a{margin-top:4px;}
+.xlab-a>summary{display:inline-block;padding:2px 0;font-size:.84rem;font-weight:700;color:var(--accent2);cursor:pointer;}
+.xlab-a>div{margin-top:4px;padding:8px 12px;border-inline-start:3px solid var(--accent2);border-radius:6px;background:var(--chip);color:var(--text);}
+@media (pointer:coarse){.xlab-btn,.xlab-back{min-height:44px;}.xlab-bar .theme-btn,.xlab-bar .formula-panel-close{min-width:44px;min-height:44px;display:inline-flex;align-items:center;justify-content:center;}.xlab-a>summary{padding:8px 0;}}
+@media (max-width:520px){.xlab-bar{padding:6px 8px;gap:6px;}.xlab-hub{padding:14px 12px 36px;}.xlab-tasks{margin:8px 8px 0;}}
+@media (prefers-reduced-motion:reduce){.xlab-card{transition:none;}.xlab-card:hover{transform:none;}}
 /* the definition or formula a search result led to */
 .sr-flash{animation:srFlash 1.8s ease-out 1;}
 @keyframes srFlash{0%,35%{box-shadow:0 0 0 3px var(--gold);}100%{box-shadow:0 0 0 3px transparent;}}
@@ -38555,6 +38600,9 @@ var _pushNext=false;
 function _routeHash(){return '#/'+state.chapter+'/'+state.section+'/'+state.tab;}
 function _syncHash(){
   var h=_routeHash(),push=_pushNext;_pushNext=false;
+  // an enrichment lab is open on its own address (#/labs/…): the course
+  // behind it leaves the address alone
+  if(_XLAB_RE.test(location.hash||''))return;
   if(location.hash===h)return;
   try{history[push&&location.hash?'pushState':'replaceState'](null,'',h);}catch(e){}
 }
@@ -38576,13 +38624,18 @@ window.addEventListener('popstate',function(){
   if(typeof closeFormulaPanel==='function')closeFormulaPanel();
   if(typeof closeChangelog==='function')closeChangelog();
   if(typeof closeReview==='function')closeReview();
+  // a step onto a lab's address opens it; a step off one closes it, and the
+  // course behind (stopped while the lab was open) is drawn again
+  var wasLab=_xlabOpen();
+  if(_xlabRoute())return;
   var before=state.chapter+'.'+state.section;
   // a link to no topic, typed or followed on this page, changes nothing --
   // and the address bar says so again instead of keeping the dead link
-  if(!_applyHash()){_syncHash();return;}
+  if(!_applyHash()){_syncHash();if(wasLab){render();_xlabRefocus();}return;}
   stopSim('sim-canvas');
   render();
-  _toTop(state.chapter+'.'+state.section!==before);
+  _toTop(!wasLab&&state.chapter+'.'+state.section!==before);
+  if(wasLab)_xlabRefocus();
 });
 // A new page starts at its top. The page scrolls the window, not .main --
 // attachEvents reset .main.scrollTop, which is never scrolled, so the next
@@ -38784,7 +38837,7 @@ function buildSidebar(){
   // starting over has to be possible without clearing the browser's data
   const foot='<div class="sidebar-foot"><button class="reset-btn" onclick="resetAllProgress()">↺ איפוס ההתקדמות</button></div>';
   // sb-list is what the search results stand in for while a search is on
-  return subjectTabs+_searchBox()+'<div class="sb-list"'+(_searchQ?' hidden':'')+'>'+_rvEntry()+legend+chapters+foot+'</div>';
+  return subjectTabs+_searchBox()+'<div class="sb-list"'+(_searchQ?' hidden':'')+'>'+_rvEntry()+_xlabEntry()+legend+chapters+foot+'</div>';
 }
 
 function buildMain(ch,sec,content){
@@ -41065,6 +41118,7 @@ function buildTheory(th){
     html+=`<div class="enrich-card"><div class="enrich-title">${th.enrich.title}</div>${th.enrich.html}</div>`;
   }
   html+=sensorLabCard(`${state.chapter}.${state.section}`);
+  html+=_xlabCard(`${state.chapter}.${state.section}`);
   if(!isCompleted(state.chapter,state.section,'theory')){
     html+=`<button class="btn btn-primary" onclick="finishTheory()" style="margin-top:14px;width:100%">✅ הבנתי · 🔬 סימולציה ←</button>`;
   }else{
@@ -41340,6 +41394,1108 @@ function buildProblem(prob){
   var _tEnd=/[?!:؟]\s*$/.test(String(prob.title||'').replace(/<[^>]*>/g,''))?'':':';
   return`<div class="problem-card"><div class="problem-text"><b>${prob.title}${_tEnd}</b> ${prob.text}</div><div class="problem-steps">${steps}</div></div>`;
 }
+
+// ══════════════════════════════════════════════
+// ENRICHMENT LABS
+// ══════════════════════════════════════════════
+// Five open laboratories beyond the syllabus: a circuit bench, our velocity
+// through the Universe, a black-hole merger, the last days of a massive star,
+// the Cherenkov cone. Each is an instrument with a look of its own, so it
+// lives in a shadow root inside one full-screen overlay: the course's
+// stylesheet does not reach it, and its own does not leak out.
+//
+//   #/labs         the list of labs        openLabs()
+//   #/labs/<id>    one lab                 openLab(id)
+//
+// A lab is a function(root, ctx): it builds its page inside `root` (the
+// shadow root) and registers everything that must stop when it closes through
+// ctx -- frames, timers, observers, listeners on the document -- so a closed
+// lab costs nothing. A lab keeps nothing on the device and asks no site for
+// anything (the page's CSP would refuse). Its texts are Hebrew here, like
+// every text of the master; tools/i18n.js keeps each lab in a file of its
+// own (i18n/<lang>/lab-*.json), by the LAB:<NAME> markers below.
+//
+// What ctx gives a lab:
+//   ctx.root, ctx.host      the shadow root and its host element
+//   ctx.lang, ctx.rtl       'he' | 'en' …, and whether the page reads right to left
+//   ctx.locale              the locale for Intl ('he-IL', 'en-US')
+//   ctx.css                 the base stylesheet every lab starts from
+//   ctx.$(id)               root.getElementById(id)
+//   ctx.g2d(canvas[,opts])  the canvas's 2D context, with text laid out right
+//                           to left when it has Hebrew in it and left to right
+//                           otherwise (numbers, units, formulas), whatever the
+//                           page's direction; textAlign keeps its meaning
+//   ctx.loop(fn)            fn(timestamp) on every animation frame until the lab closes
+//   ctx.raf(fn)             one animation frame, dropped if the lab closes first
+//   ctx.later(fn,ms), ctx.every(fn,ms)   timers that end with the lab
+//   ctx.on(target,type,fn[,opts])        a listener removed when the lab closes
+//   ctx.onKey(fn)           fn(event, target): keys pressed anywhere while the
+//                           lab is open, before the course sees them; call
+//                           event.preventDefault() for a key the lab used
+//   ctx.observe(el,fn)      a ResizeObserver that ends with the lab
+//   ctx.onClose(fn)         anything else to undo
+//   ctx.theme()             'dark' | 'light';  ctx.onTheme(fn) when it changes
+//   ctx.fixMath(el)         formulas inside Hebrew text read left to right
+//   ctx.say(text)           spoken by a screen reader
+//   ctx.store               null, or -- for the one lab whose work is worth
+//                           keeping (the circuit on the bench) -- get() / set(string)
+//                           / del() on a key of its own, phys_lab_<id>. What
+//                           get() returns is input like any other save: the
+//                           lab rebuilds it field by field before using it.
+var _XL_HEB=/[֐-׿]/;
+var _XLAB_RE=/^#\/labs(?:\/([a-z0-9-]{1,40}))?$/;
+var _xlab={ov:null,live:null,cur:null,inert:[],closing:false,tie:false};
+var _XLAB_STORE_MAX=60000;
+var _XLAB_CSS=':host{display:block;}'+
+  '*,*::before,*::after{box-sizing:border-box;}'+
+  '[hidden]{display:none!important;}'+
+  // a number, a unit or a formula inside Hebrew text keeps its own order
+  '.ltr-run,.ltr{direction:ltr;unicode-bidi:isolate;}.ltr-run.nb,.ltr.nb{white-space:nowrap;}'+
+  'canvas{direction:ltr;}'+
+  ':focus-visible{outline:2px solid var(--xl-focus,#22d3ee);outline-offset:2px;}'+
+  '@media (prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;}}';
+
+var XLABS=[
+  {id:'circuit-bench',icon:'🔌',fill:true,dark:false,store:true,
+   run:typeof _xlabCircuit==='function'?_xlabCircuit:null,
+   title:'שולחן המעגלים',
+   sub:'בנו מעגל משלכם מסוללות, נגדים, קבלים, מפסקים ודיודות, ומדדו בו כל מתח, זרם והספק — גם בזמן שקבל נטען ונפרק.',
+   ask:'מה קורה לזרם בכל ענף כשמוסיפים נגד במקביל? נבאו, בנו ובדקו.',
+   tie:'מעגלי זרם ישר — חוק אוהם, חיבור בטור ובמקביל, חוקי קירכהוף, קבל במעגל'},
+  {id:'whichway',icon:'🧭',fill:false,dark:true,
+   run:typeof _xlabWhichWay==='function'?_xlabWhichWay:null,
+   title:'לאן אנחנו נעים?',
+   sub:'חמש תנועות, וקטור אחד: סיבוב כדור הארץ, ההקפה סביב השמש, תנועת השמש בין הכוכבים, סיבוב הגלקסיה ותנועתה ביחס לקרינת הרקע הקוסמית — מחושבות למקום ולרגע שתבחרו.',
+   ask:'באיזו מהירות, ולאיזה כיוון בשמיים, אתם נעים ברגע זה?',
+   tie:'מכניקה — חיבור וקטורים, תנועה מעגלית, כבידה ולוויינים · אופטיקה — אפקט דופלר'},
+  {id:'merger',icon:'🌀',fill:false,dark:true,
+   run:typeof _xlabMerger==='function'?_xlabMerger:null,
+   title:'התמזגות חורים שחורים',
+   sub:'שני חורים שחורים מקיפים זה את זה, מתקרבים ומתמזגים. המסלול, גל הכבידה שמגיע לכדור הארץ והחור השחור שנותר מחושבים אצלכם בדפדפן, לפי אירועים שנמדדו באמת.',
+   ask:'למה תדירות הגל עולה ככל שהחורים מתקרבים — וכמה מסה הופכת לאנרגיה של גלים?',
+   tie:'מכניקה — כבידה ולוויינים, חוקי קפלר, אנרגיה כבידתית'},
+  {id:'collapse',icon:'💥',fill:false,dark:false,
+   run:typeof _xlabCollapse==='function'?_xlabCollapse:null,
+   title:'ספירה לאחור לקריסת הליבה',
+   sub:'חייו של כוכב מסיבי, מבעירת המימן ועד הסופרנובה: בכל שלב הליבה מתיכה דלק כבד יותר, חמה יותר וממהרת יותר — עד שליבת הברזל קורסת בתוך פחות משנייה.',
+   ask:'למה היתוך מפיק אנרגיה עד הברזל — ולא אחריו?',
+   tie:'פוטונים, אטומים וגרעינים — היתוך, אנרגיית קשר, דעיכה רדיואקטיבית · מכניקה — כבידה'},
+  {id:'cherenkov',icon:'🔵',fill:false,dark:true,
+   run:typeof _xlabCherenkov==='function'?_xlabCherenkov:null,
+   title:'חרוט צ׳רנקוב',
+   sub:'חלקיק טעון חוצה מים מהר יותר מהאור שבתוכם, ונוצר חרוט של אור כחול — כמו הבום העל־קולי של מטוס. שנו את מהירות החלקיק ואת התווך, וראו מתי החרוט נפתח.',
+   ask:'האם אפשר לעקוף את האור? ומאיזו מהירות אלקטרון במים מתחיל לזהור?',
+   tie:'אופטיקה — מהירות האור ומדד שבירה, חזיתות גל ועקרון הויגנס, התאבכות בונה'}
+];
+function _xlabList(){return XLABS.filter(function(L){return typeof L.run==='function';});}
+function _xlabById(id){
+  var l=_xlabList();
+  for(var i=0;i<l.length;i++)if(l[i].id===id)return l[i];
+  return null;
+}
+function _xlabOpen(){return !!(_xlab.ov&&_xlab.ov.classList.contains('open'));}
+// how many history entries the labs added above the course's own (0: the page
+// was opened on a lab's address)
+function _xlabDepth(){var s=null;try{s=history.state;}catch(e){}return s&&s.xlab>0&&s.xlab<3?s.xlab:0;}
+
+// ── the entry in the topic list, and the card that leads to a lab from a section ──
+function _xlabEntry(){
+  if(!_xlabList().length)return '';
+  var tLabs='🔭 מעבדות העשרה',tTip='מעבדות פתוחות מעבר לתוכנית הלימודים: שולחן מעגלים, המהירות שלנו ביקום, חורים שחורים, סופרנובה וחרוט צ׳רנקוב';
+  return '<div class="xlab-entry"><button class="xlab-btn" onclick="openLabs()" title="'+tTip+'">'+tLabs+'</button></div>';
+}
+// section -> [lab, what in this very section the lab carries further]
+var XLAB_TIES={
+  'dc-basics.dc-resistance':['circuit-bench','חוק אוהם על שולחן העבודה: חברו סוללה ונגד, שנו את ההתנגדות וראו את נקודת העבודה נעה על אופיין הזרם־מתח. החליפו את הנגד בדיודה — ותראו רכיב שאינו מציית לחוק אוהם.'],
+  'dc-network.dc-series':['circuit-bench','בנו בעצמכם מחלק מתח משני נגדים בטור, ובדקו שהמתחים מתחלקים ביחס ההתנגדויות. אחר כך הוסיפו נגד שלישי ונבאו את המתח על כל אחד לפני שתמדדו.'],
+  'dc-network.dc-parallel':['circuit-bench','הוסיפו נגד במקביל ועקבו אחרי הזרם בכל ענף: מה קרה לזרם דרך הסוללה, ומה קרה לזרם בענף שכבר היה שם? במעבדה רואים את שניהם בבת אחת.'],
+  'dc-network.dc-mixed':['circuit-bench','כל מעגל מעורב שפתרתם על הנייר אפשר לבנות כאן ולמדוד: בדקו את ההתנגדות השקולה שחישבתם מול הזרם שהסוללה באמת מספקת.'],
+  'dc-network.dc-switch':['circuit-bench','סגרו מפסק במקביל לנגד וראו את הקצר: הזרם עוקף את הנגד, והמעבדה מסמנת את הענף שבו הזרם גדל ללא גבול כשהסוללה אידיאלית.'],
+  'dc-real.dc-emf':['circuit-bench','תנו לסוללה התנגדות פנימית ועמסו אותה: מתח ההדקים יורד ככל שהזרם גדל, בדיוק לפי הישר V = ε − Ir. מצאו את העומס שבו ההספק על הנגד מרבי.'],
+  'dc-real.dc-capacitor':['circuit-bench','טענו קבל דרך נגד וצפו בעקומה נבנית בזמן אמת: אחרי קבוע זמן אחד, RC, המתח מגיע ל־63% מערכו הסופי. שנו את R או את C ומדדו את קבוע הזמן החדש על הגרף.'],
+  'dc-kirchhoff.dc-junction':['circuit-bench','בחרו צומת במעגל שבניתם: המעבדה מציגה את כל הזרמים שנכנסים אליו ויוצאים ממנו, וסכומם תמיד אפס — שימור מטען, מול העיניים.'],
+  'dc-kirchhoff.dc-loop':['circuit-bench','המעבדה צובעת כל תיל לפי הפוטנציאל שלו. עקבו אחרי לולאה סגורה: כל עלייה בסוללה מתקזזת בירידות על הנגדים — חוק הלולאות כמפת גבהים.'],
+  'dc-kirchhoff.dc-twoloop':['circuit-bench','שתי סוללות, שתי לולאות: בנו את המעגל, נבאו את כיוון הזרם בענף המשותף, ובדקו. הפכו סוללה אחת וראו איזה זרם משנה כיוון.'],
+  'dc-kirchhoff.dc-bridge':['circuit-bench','בנו גשר ויטסטון ואזנו אותו: כשהיחסים בין הזרועות שווים, הזרם בענף האמצעי מתאפס. שנו נגד אחד מעט — וראו כמה הגשר רגיש.'],
+  'vectors.vec-ops':['whichway','חיבור וקטורים בקנה מידה קוסמי: מהירות הסיבוב של כדור הארץ, מהירות ההקפה סביב השמש ותנועת הגלקסיה כולה מתחברות, ראש־לזנב, לווקטור אחד — המהירות שלכם ביחס לקרינת הרקע הקוסמית.'],
+  'planar.circular':['whichway','גם אתם בתנועה מעגלית: כדור הארץ מסובב אתכם סביב צירו במהירות v = ωr, ו־r הוא המרחק שלכם מציר הסיבוב — ולכן המהירות תלויה בקו הרוחב. במעבדה בוחרים עיר ורואים את המהירות ואת כיוונה.'],
+  'gravitation.orbits':['whichway','כדור הארץ עצמו הוא לוויין של השמש, וחג סביבה במהירות של כ־30 קילומטרים בשנייה; השמש חגה סביב מרכז הגלקסיה מהר פי שבעה. המעבדה מחברת את כל התנועות האלה לווקטור אחד.'],
+  'opt-modern.doppler':['whichway','התנועה שלנו ביקום נמדדת באפקט דופלר: קרינת הרקע הקוסמית חמה מעט בכיוון התנועה וקרה מעט בכיוון ההפוך. מההפרש הזה, כאלפית בלבד, מחשבים מהירות של כ־370 קילומטרים בשנייה.'],
+  'gravitation.kepler':['merger','שני חורים שחורים שמקיפים זה את זה מצייתים לחוק המחזורים של קפלר — עד שגלי כבידה גוזלים מהם אנרגיה. המסלול מתכווץ, זמן המחזור מתקצר, והתדירות מטפסת עד ההתמזגות.'],
+  'gravitation.grav-energy':['merger','מהירות המילוט גדלה ככל שהגוף דחוס יותר; בחור שחור היא מגיעה למהירות האור. במעבדה רואים מה קורה כששני גופים כאלה נופלים זה אל זה, וכמה מן האנרגיה הכבידתית נפלטת כגלים.'],
+  'opt-quantum.radioactivity':['collapse','אנרגיית הקשר לנוקלאון גדלה עד הברזל, ולכן כוכב מפיק אנרגיה מהיתוך של מימן, הליום, פחמן, חמצן וצורן — ונעצר בברזל. המעבדה עוקבת אחרי השרשרת הזאת, שלב אחר שלב, עד שהליבה קורסת.'],
+  'opt-light.light-speed':['cherenkov','בתווך שקוף האור מתקדם במהירות c/n, קטנה ממהירותו בריק. חלקיק טעון יכול לעבור אותה — ואז נפלט אור בחרוט, כמו גל ההלם של מטוס על־קולי. במעבדה מוצאים את מהירות הסף בכל תווך.'],
+  'opt-refraction.snell-law':['cherenkov','מדד השבירה קובע גם את זווית השבירה וגם את מהירות האור בתווך. במעבדת צ׳רנקוב אותו n קובע זווית אחרת: זווית החרוט של האור שפולט חלקיק מהיר, cos θ = 1/(nβ).'],
+  'opt-waves.interference':['cherenkov','חרוט צ׳רנקוב הוא התאבכות בונה: כל נקודה במסלול החלקיק פולטת גל כדורי, והגלים מתחזקים רק על המעטפת המשותפת שלהם. במעבדה רואים את הגלים ואת החזית שהם בונים.']
+};
+function _xlabCard(key){
+  if(!Object.prototype.hasOwnProperty.call(XLAB_TIES,key))return '';
+  var t=XLAB_TIES[key],L=_xlabById(t[0]);if(!L)return '';
+  var tH='🔭 מעבדת העשרה:',tGo='פתחו את המעבדה';
+  return '<div class="xlab-tiecard"><div class="xlab-tie-h">'+tH+' '+L.title+'</div><p>'+t[1]+'</p>'+
+    '<button class="btn btn-secondary" onclick="openLab(\''+L.id+'\')">'+L.icon+' '+tGo+'</button></div>';
+}
+
+// ── the overlay ──
+function _xlabEnsure(){
+  if(_xlab.ov)return _xlab.ov;
+  var tBack='→ חזרה',tBackL='חזרה למסך הקודם',tX='סגירת המעבדות וחזרה לקורס';
+  var ov=document.createElement('div');ov.id='xlab-overlay';ov.className='xlab-ov';
+  ov.setAttribute('role','dialog');ov.setAttribute('aria-modal','true');ov.setAttribute('aria-labelledby','xlab-h');
+  ov.innerHTML='<div class="xlab-bar"><button class="xlab-back" id="xlab-back" onclick="xlabBack()" aria-label="'+tBackL+'">'+tBack+'</button>'+
+    '<h2 id="xlab-h" tabindex="-1"></h2>'+
+    '<button class="theme-btn xlab-theme" id="xlab-theme" onclick="toggleTheme()"></button>'+
+    '<button class="formula-panel-close" onclick="closeLabs()" aria-label="'+tX+'">✕</button></div>'+
+    '<div class="xlab-body" id="xlab-body"></div>';
+  document.body.appendChild(ov);
+  _xlab.ov=ov;
+  return ov;
+}
+function _xlabThemeBtn(){
+  var b=document.getElementById('xlab-theme');if(!b)return;
+  var light=state.theme==='light',lbl='מעבר לעיצוב '+(light?'כהה':'בהיר');
+  b.textContent=light?'☀️':'🌙';b.setAttribute('aria-label',lbl);b.title=lbl;
+}
+// the app's theme reached the open lab
+function _xlabTheme(){
+  if(!_xlabOpen())return;
+  _xlabThemeBtn();
+  var live=_xlab.live,L=_xlab.cur;
+  if(!live||!L||L.dark)return;
+  var t=state.theme==='light'?'light':'dark';
+  live.host.setAttribute('data-theme',t);
+  live.themeFns.forEach(function(fn){try{fn(t);}catch(e){}});
+}
+function _xlabUnmount(){
+  var live=_xlab.live;_xlab.live=null;_xlab.cur=null;
+  if(live){
+    live.alive=false;
+    for(var i=live.undo.length-1;i>=0;i--){try{live.undo[i]();}catch(e){}}
+    live.undo.length=0;live.themeFns.length=0;
+  }
+  var b=document.getElementById('xlab-body');if(b)b.innerHTML='';
+}
+function _xlabG2d(cv,opt){
+  // Not the course's own canvas rules (a dim label lifted toward white for
+  // its dark canvases, a dark halo behind light text): a lab has a palette of
+  // its own, a light theme included.
+  cv._themed=true;
+  var g=opt?cv.getContext('2d',opt):cv.getContext('2d');
+  if(!g||g._xl)return g;
+  var P=CanvasRenderingContext2D.prototype;
+  ['fillText','strokeText'].forEach(function(m){
+    g[m]=function(s,x,y,w){
+      var a=this.textAlign,heb=typeof s==='string'&&_XL_HEB.test(s);
+      if(a==='start')this.textAlign='left';else if(a==='end')this.textAlign='right';
+      this.direction=heb?'rtl':'ltr';
+      // a number, a unit or a formula inside a Hebrew label keeps its order
+      if(heb)s=_mathIso(s);
+      return w===undefined?P[m].call(this,s,x,y):P[m].call(this,s,x,y,w);
+    };
+  });
+  g._xl=1;
+  return g;
+}
+function _xlabHub(){
+  var tLede='מעבדות פתוחות, מעבר לתוכנית הלימודים: בכל אחת מהן הפיזיקה שלמדתם בקורס פוגשת מעגל שבניתם בעצמכם או תופעה מחזית המחקר. אין כאן חידון ואין ציון — משנים, מתבוננים ושואלים ״מה יקרה אם…״.';
+  var tAsk='שאלה לדרך:',tTie='נשען על:',tGo='פתחו את המעבדה ←';
+  return '<div class="xlab-hub"><p class="xlab-lede">'+tLede+'</p><div class="xlab-grid">'+
+    _xlabList().map(function(L){
+      return '<button class="xlab-card" data-lab="'+L.id+'" onclick="openLab(\''+L.id+'\')">'+
+        '<span class="xlab-ic" aria-hidden="true">'+L.icon+'</span>'+
+        '<span class="xlab-ttl">'+L.title+'</span>'+
+        '<span class="xlab-sub">'+L.sub+'</span>'+
+        '<span class="xlab-ask"><b>'+tAsk+'</b> '+L.ask+'</span>'+
+        '<span class="xlab-tie"><b>'+tTie+'</b> '+L.tie+'</span>'+
+        '<span class="xlab-go">'+tGo+'</span></button>';
+    }).join('')+'</div></div>';
+}
+// the inquiry tasks of a lab: a strip above it, closed until asked for
+function _xlabTasks(L){
+  if(!L.tasks||!L.tasks.length)return '';
+  var tT='🏁 משימות חקר',tA='תשובה';
+  return '<details class="xlab-tasks"><summary>'+tT+' <span class="xlab-n">('+L.tasks.length+')</span></summary><ol>'+
+    L.tasks.map(function(q){
+      return '<li><div class="xlab-q">'+q[0]+'</div><details class="xlab-a"><summary>'+tA+'</summary><div>'+q[1]+'</div></details></li>';
+    }).join('')+'</ol></details>';
+}
+function _xlabMount(L){
+  var body=document.getElementById('xlab-body');
+  body.innerHTML=_xlabTasks(L);
+  var strip=body.querySelector('.xlab-tasks');
+  if(strip){
+    if(window.renderMathInElement)try{renderMathInElement(strip,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}],throwOnError:false,strict:false});}catch(e){}
+    fixInlineMath(strip);
+  }
+  var host=document.createElement('div');
+  host.id='xlab-host';host.className='xlab-host'+(L.fill?' fill':'');
+  host.setAttribute('data-lab',L.id);
+  host.setAttribute('data-theme',L.dark||state.theme!=='light'?'dark':'light');
+  body.appendChild(host);
+  var root=host.attachShadow({mode:'open'});
+  var live={alive:true,undo:[],themeFns:[],host:host};
+  _xlab.live=live;_xlab.cur=L;
+  var rtl=document.documentElement.dir==='rtl';
+  var ctx={
+    root:root,host:host,lang:APP_LANG,rtl:rtl,locale:APP_LANG==='he'?'he-IL':'en-US',css:_XLAB_CSS,
+    $:function(id){return root.getElementById(id);},
+    g2d:_xlabG2d,
+    alive:function(){return live.alive;},
+    loop:function(fn){
+      var id=0;
+      function tick(ts){if(!live.alive)return;id=requestAnimationFrame(tick);fn(ts);}
+      id=requestAnimationFrame(tick);
+      live.undo.push(function(){cancelAnimationFrame(id);});
+    },
+    raf:function(fn){return requestAnimationFrame(function(ts){if(live.alive)fn(ts);});},
+    later:function(fn,ms){var id=setTimeout(function(){if(live.alive)fn();},ms);live.undo.push(function(){clearTimeout(id);});return id;},
+    every:function(fn,ms){var id=setInterval(function(){if(live.alive)fn();},ms);live.undo.push(function(){clearInterval(id);});return id;},
+    on:function(t,type,fn,opt){t.addEventListener(type,fn,opt);live.undo.push(function(){t.removeEventListener(type,fn,opt);});},
+    onKey:function(fn){
+      var h=function(e){var p=e.composedPath?e.composedPath():[];fn(e,p[0]||e.target);};
+      document.addEventListener('keydown',h,true);
+      live.undo.push(function(){document.removeEventListener('keydown',h,true);});
+    },
+    observe:function(el,fn){
+      if(typeof ResizeObserver==='undefined'){ctx.on(window,'resize',function(){fn();});return;}
+      var ro=new ResizeObserver(function(){if(live.alive)fn();});
+      ro.observe(el);live.undo.push(function(){ro.disconnect();});
+    },
+    onClose:function(fn){live.undo.push(fn);},
+    theme:function(){return L.dark||state.theme!=='light'?'dark':'light';},
+    onTheme:function(fn){live.themeFns.push(fn);},
+    reduced:(function(){try{return window.matchMedia('(prefers-reduced-motion: reduce)').matches;}catch(e){return false;}})(),
+    fixMath:function(el){try{fixInlineMath(el);}catch(e){}},
+    say:function(s){_say(s);},
+    store:L.store?{
+      get:function(){var v=_ls.get('phys_lab_'+L.id);return typeof v==='string'&&v.length<=_XLAB_STORE_MAX?v:null;},
+      set:function(s){s=String(s);return s.length<=_XLAB_STORE_MAX&&_ls.set('phys_lab_'+L.id,s);},
+      del:function(){_ls.del('phys_lab_'+L.id);}
+    }:null
+  };
+  try{L.run(root,ctx);}
+  catch(err){
+    // a lab that cannot start (an old browser) says so instead of leaving a
+    // blank screen; the error still reaches the console and the tests
+    var tFail='המעבדה לא נפתחה בדפדפן הזה. נסו לרענן את הדף, או לפתוח אותו בדפדפן מעודכן.';
+    _xlabUnmount();
+    body.innerHTML='<div class="locked-sec"><div class="lock-icon">🔧</div><p>'+tFail+'</p></div>';
+    setTimeout(function(){throw err;},0);
+  }
+}
+function _xlabShow(L){
+  var ov=_xlabEnsure(),was=_xlabOpen();
+  if(!was){
+    // opened from a section's card: closing leads back to that card
+    var a0=document.activeElement;
+    _xlab.tie=!!(a0&&a0.closest&&a0.closest('.xlab-tiecard'));
+    // the course behind the overlay stops: its simulation, its animations,
+    // the sensor stream; and nothing in it takes the focus
+    closeDrawer();closeFormulaPanel();closeChangelog();closeReview();
+    if(typeof closeLangMenu==='function')closeLangMenu();
+    stopSim('sim-canvas');stopTheoryAnims();slStopAll();
+    ov.classList.add('open');
+    document.body.style.overflow='hidden';
+    _xlab.inert=[];
+    [].forEach.call(document.body.children,function(c){
+      if(c===ov||c.id==='sr-live'||c.id==='onboard-overlay'||/^(SCRIPT|STYLE)$/.test(c.tagName)||c.hasAttribute('inert'))return;
+      c.setAttribute('inert','');_xlab.inert.push(c);
+    });
+  }
+  _xlabUnmount();
+  // a lab with one deliberate dark look takes the bar with it, and its theme button
+  if(L&&L.dark)ov.setAttribute('data-theme','dark');else ov.removeAttribute('data-theme');
+  var h=document.getElementById('xlab-h'),back=document.getElementById('xlab-back'),tb=document.getElementById('xlab-theme');
+  var tHub='🔭 מעבדות העשרה';
+  h.textContent=L?L.icon+' '+L.title:tHub;
+  back.hidden=!L;
+  tb.hidden=!!(L&&L.dark);
+  _xlabThemeBtn();
+  var body=document.getElementById('xlab-body');
+  body.scrollTop=0;
+  if(L)_xlabMount(L);
+  else{body.innerHTML=_xlabHub();fixInlineMath(body);}
+  _openPanel(ov,h);
+  try{h.focus({preventScroll:true});}catch(e){}
+}
+function _xlabHide(){
+  var ov=_xlab.ov;
+  if(!ov||!ov.classList.contains('open'))return;
+  _xlabUnmount();
+  _xlab.inert.forEach(function(c){c.removeAttribute('inert');});
+  _xlab.inert=[];
+  ov.classList.remove('open');
+  document.body.style.overflow='';
+  _closedPanel(ov);
+}
+// The course was drawn again while the lab closed, so the button that opened
+// the labs is a new element: the keyboard goes back onto it -- the section's
+// card, else the entry in the topic list, else the section's title.
+function _xlabRefocus(){
+  var e=_xlab.tie?document.querySelector('#app .xlab-tiecard .btn'):null;
+  if(!_focusable(e))e=document.querySelector('#sidebar-nav .xlab-btn');
+  if(!_focusable(e))e=document.getElementById('sec-title');
+  _xlab.tie=false;
+  if(_focusable(e))try{e.focus({preventScroll:true});}catch(x){}
+}
+// the address decides: called when the page opens and on every step through
+// the history. True when the address is a lab's (the overlay shows it).
+function _xlabRoute(){
+  var m=_XLAB_RE.exec(location.hash||''),closing=_xlab.closing;
+  _xlab.closing=false;
+  // ✕ on a page that was opened on a lab's address steps back onto the list's
+  // own entry: that is still the labs, so the course's address replaces it
+  if(m&&closing){try{history.replaceState(null,'',_routeHash());}catch(e){}m=null;}
+  if(!m){_xlabHide();return false;}
+  var L=m[1]?_xlabById(m[1]):null;
+  // a lab that does not exist: the list, and the address says so
+  if(m[1]&&!L){try{history.replaceState(history.state,'','#/labs');}catch(e){}}
+  if(!_xlabList().length){_xlabHide();return false;}
+  _xlabShow(L);
+  return true;
+}
+function _xlabGo(id){
+  var L=id?_xlabById(id):null;
+  if((id&&!L)||!_xlabList().length)return;
+  var hash='#/labs'+(L?'/'+L.id:'');
+  if(location.hash!==hash){
+    // from the course: one step above it; from the list to a lab: two
+    var d=_xlabOpen()?Math.min(2,_xlabDepth()+1):1;
+    try{history.pushState({xlab:d},'',hash);}catch(e){}
+  }
+  _xlabShow(L);
+}
+window.openLabs=function(){_xlabGo('');};
+window.openLab=function(id){_xlabGo(String(id));};
+// one step back: from a lab to where it was opened from (the list, or a
+// section of the course); from the list to the course
+window.xlabBack=function(){
+  if(!_xlabOpen())return;
+  if(_xlabDepth()>0){history.back();return;}
+  // the page was opened on this address: there is no step to go back to
+  if(_xlab.cur){try{history.replaceState(null,'','#/labs');}catch(e){}_xlabShow(null);}
+  else window.closeLabs();
+};
+window.closeLabs=function(){
+  if(!_xlabOpen())return;
+  var d=_xlabDepth();
+  if(d>0){_xlab.closing=true;history.go(-d);return;}
+  _xlabHide();
+  try{history.replaceState(null,'',_routeHash());}catch(e){}
+  render();
+  _xlabRefocus();
+};
+
+// ==== LAB:CHERENKOV BEGIN
+// The Cherenkov cone: a charged particle in a transparent medium, faster or
+// slower than light is there. The phase shells, the front (their envelope,
+// exact for any β(t), caustic included) and the photon rays follow from the
+// particle's history at the 589 nm phase velocity; the spectrum is Frank-Tamm
+// with the medium's own dispersion n(λ); "slowing down" integrates the
+// collision stopping power (Rohrlich-Carlson for e⁻, Bethe for μ⁻ and p, the
+// Sternheimer density effect). One deliberate dark look: the glow is seen in
+// the dark. The tank is drawn left to right in every language (the particle
+// travels along +x); the text around it follows the page.
+function _xlabCherenkov(root,ctx){
+  "use strict";
+  const he=ctx.lang==='he';
+  // a number with its unit, a formula or a citation inside Hebrew text: one
+  // left-to-right island (a short one is not broken across lines)
+  const ltr=s=>'<span class="ltr'+(s.length<=16?' nb':'')+'">'+s+'</span>';
+  // ── texts ──
+  const T={
+    h1:'האם חלקיק יכול <em>לעקוף</em> את האור?',
+    eyebrow:'קרינת ואבילוב–צ׳רנקוב · מודל אינטראקטיבי',
+    lead:'רק את האור <i>שבתוך תווך</i>. הקליפות, החזית והקרניים נבנות ממסלולו של החלקיק, לפי מהירות הפאזה של אור באורך גל 589 nm. גררו על פני המכל, או הזיזו את המחוון, כדי לנוע בזמן; מקש הרווח מפעיל ועוצר.',
+    aSim:'הדמיה',aCanvas:'חתך דרך מסלול החלקיק, עם קליפות הפאזה וחזית צ׳רנקוב',
+    cmpP:'מהירות החלקיק',cmpC:'האור · <span class="ltr u">589 nm</span>',
+    play:'הפעילו',pause:'עצרו',aTime:'זמן',aKeys:'קפיצה לנקודת זמן',
+    aPanel:'קריאות ובקרים',
+    rBs:'החלקיק',rNBs:'פליטה רק מעל 1',
+    rTh:'זווית הפוטון θ<sub>c</sub>',rPh:'חצי־זווית החרוט φ',
+    rG:'גורם לורנץ',rKE:'אנרגיה קינטית',rN:'תפוקת פוטונים',rNs:'לס״מ, 300–600 nm',
+    rV:'האור, מהירות פאזה',
+    motion:'תנועה',mAccel:'האצה',mConst:'קבועה',mStop:'האטה',
+    bPeak:'β בשיא',bConst:'β',bEntry:'β בכניסה',
+    betaHint:'סולם לוגריתמי ב־1 − β, מ־0.3 עד 0.99999, כדי שאפשר יהיה להגיע גם למהירויות אולטרה־יחסותיות.',
+    part:'חלקיק',medium:'תווך',playback:'קצב ההצגה',
+    tShells:'קליפות השדה',tRays:'קרני פוטונים',tLabels:'זוויות ותוויות',
+    aSpec:'ספקטרום פרנק–טאם',aSpecCv:'מספר הפוטונים לסנטימטר ולננומטר כפונקציה של אורך הגל',
+    specH:'למה הזוהר כחול',
+    specP:'מספר הפוטונים לפי נוסחת פרנק–טאם גדל כמו 1/λ², ולכן הספקטרום נוטה אל הסגול ואל העל־סגול הקרוב. העקומה הרציפה מתאימה ל־β הנוכחי, והמקווקוות — לגבול β → 1. הנפיצה נכללת דרך n(λ), ולכן הפליטה יכולה להתחיל בעל־סגול בשעה ש־589 nm עדיין מתחת לסף.',
+    specU:'פוטונים לס״מ, 300–600 nm (z = 1)',
+    notesH:'מה בדיוק ההנפשה מראה',
+    n1h:'הטבעות הן קליפות פאזה, לא הבזקים',
+    n1p:'כל מעגל אפור הוא קליפת הויגנס של אור באורך גל 589 nm: מרכזה ב־x(t′) ורדיוסה (c/n)(t − t′). זהו מבנה פאזה של תדירות אחת; בתווך סיבתי בעל נפיצה, חזית האות האמיתית נעה במהירות c. מתחת לסף הקליפות מקננות זו בתוך זו: אין להן מעטפת ואין קרינת צ׳רנקוב, רק שדה שנישא עם המטען (ועוד קרינת האצה זניחה כאשר β משתנה). התחלה פתאומית, עצירה פתאומית או חציית גבול בין תווכים כן פולטות חזית כדורית ממשית (בעיית טאם למסלול סופי), והיא מתאבכת עם החרוט; הקליפה של t = 0 מסמנת היכן הייתה חזית כזאת.',
+    n2h:'החרוט הוא מעטפת, ויש בה קאוסטיקות',
+    n2p:'גזירה של |r − x(t′)|² = (c/n)²(t − t′)² לפי t′ קובעת שנקודת ההשקה על כל קליפה נמצאת בזווית θc(t′) מכיוון המהירות, cos θc = 1/(nβ(t′)), לכל β(t). חצי זווית הראש של החרוט היא φ = 90° − θc. הבהירות משורטטת ביחס ישר ל־sin²θc. כשהחלקיק מאיץ, θc גדלה, הקרניים מתכנסות והמעטפת מתקפלת לחוד: קאוסטיקה של עוצמה, המסומנת באדום. חלקיק מאט נותן חזית חלקה ומתבדרת.',
+    n3h:'איזו ״מהירות אור״?',
+    n3a:'התנאי n(ω)β > 1 מתייחס למהירות הפאזה ונבדק לכל תדירות בנפרד, ולכן הפליטה מתחילה בעל־סגול הקרוב לפני שהיא מתחילה ב־589 nm (ראו את עמודת 300 nm בטבלה שלמטה). הרחק מספי בליעה, לקרני רנטגן n < 1 והן אינן נפלטות; ממש מתחת לספי הבליעה של הקליפות הפנימיות n > 1, ונצפית פליטת צ׳רנקוב חלשה של קרני רנטגן. פולסים של אור נעים במהירות החבורה,',
+    n3b:'בתווך שנבחר ב־589 nm, ולכן חזית הפולס הנצפית צרה מעט מחרוט הפאזה (הקריאה שמתחת ל־φ).',
+    n4h:'קיטוב ומאזן אנרגיה',
+    n4p:'האור מקוטב קיטוב קווי מלא: השדה E נמצא במישור שמכיל את המסלול ואת כיוון הפוטון. הוא נושא חלק זעיר מאיבוד האנרגיה: כ־1 keV/cm בתחום 300–600 nm (כ־3 keV/cm בתחום 200–700 nm), לעומת כ־2 MeV/cm שהולכים ליינון — בסדר גודל של 0.1%.',
+    n5h:'תיקונים קוונטיים ותווכים מהונדסים',
+    n5p:'שימור אנרגיה ותנע (גינזבורג, 1940) מוסיף איבר רתע, שבו k = nω/c הוא מספר הגל בתוך התווך. לאלקטרון של 1 MeV ב־400 nm גודלו כ־6.5 × 10⁻⁷. הוא גדל עם אנרגיית הפוטון, וגם במבנים בעלי מדד שבירה גבוה. טיפולים קוונטיים מנבאים קטעונים בספקטרום ואפקטים של ספין ושל תנע זוויתי מסלולי (Kaminer ואחרים, '+ltr('PRX 6, 011006, 2016')+'); פליטה ללא סף הודגמה בגבישים פוטוניים (Luo ואחרים, '+ltr('Science 299, 368, 2003')+') ובמטא־חומרים היפרבוליים (Liu ואחרים, '+ltr('Nat. Photon. 11, 289, 2017')+').',
+    n6h:'גבולות המודל',
+    n6p:'<b>האצה</b> היא רצף ההסבר; שום דבר אינו מאיץ כך מטען בתוך מים. <b>האטה</b> מחשבת את β(t) מכושר העצירה בהתנגשויות: נוסחת רוהרליך–קרלסון ל־e⁻, נוסחת בתה ל־μ⁻ ול־p, I = 78 eV למים (ICRU 90), ותיקון הצפיפות של שטרנהיימר. היא מתעלמת מקרינת בלימה, מפיזור מרובה (מסלולים אמיתיים של אלקטרונים מפותלים, והטבעת מיטשטשת) ומאינטראקציות הדרוניות: מסלול של פרוטון שאורכו מטרים אינו פיזיקלי, כי λ<sub>I</sub> ≈ 83 cm במים. המסלול נקטע ב־β = 0.3. קרינת מעבר בכניסה לתווך אינה משורטטת.',
+    aTbl:'אנרגיות הסף',
+    thP:'חלקיק',thM:'מסה',thB:'β בסף',thG:'γ בסף',thK5:'אנרגיה קינטית ב־589 nm',thK3:'אנרגיה קינטית ב־300 nm',
+    foot:'כל מדדי השבירה נתונים ביחס לריק. המקורות העיקריים: מים — משוואת סלמאייר של Daimon ו־Masumura (2007) ב־'+ltr('20 °C')+', n(589 nm) = 1.33335 (1.33299 ביחס לאוויר), בהתאמה ל־IAPWS R9-97; סיליקה מותכת — Malitson (1965); אירוג׳ל, מים כבדים וקרח — עקומה מדודה שהותאמה ל־n שלהם ב־589 nm בסקלת לורנץ–לורנץ; זכוכית העופרת היא Schott SF6; האוויר לפי Ciddor (1996). הערות לכל תווך מופיעות מתחת לתפריט התווך. הגאומטריה היא חתך דו־ממדי דרך ציר המסלול; החזית התלת־ממדית היא משטח הסיבוב של העקומה הבהירה.',
+    // on the canvas
+    cShell:'הקליפה של t = 0',cCaustic:'קאוסטיקה',cFront:'חזית צ׳רנקוב',
+    sWl:'אורך גל (nm)',sY:'פוטונים / (cm·nm)',sAbs:'נבלע',sNone:'אין פליטה באף אורך גל',
+    // key time points
+    kStart:'התחלה',kThr:'סף',kCone:'חרוט',kBelow:'מתחת לסף',kEnd:'סוף',
+    // the stage's caption
+    sSub:'איטי מהאור שבתווך',sNear:'קרוב לסף',sCross:'הסף נחצה',sCher:'תחום צ׳רנקוב',sAgain:'שוב מתחת לסף',sTrack:'סוף המסלול',
+    tNo:'אין קרינת צ׳רנקוב',tNoYet:'עדיין אין קרינת צ׳רנקוב',tUV:'פליטה בעל־סגול בלבד',tOverlap:'הקליפות מתחילות להיחתך',
+    tCone:'חרוט קוהרנטי של אור',tStopped:'הפליטה נפסקה',tTrack:'המסלול מסתיים ב־β = 0.3',
+    bTrack:'הטווח שנותר מכאן קטן מ־0.3% מאורך המסלול, ולכן החלקיק מוצג כנח. האור שכבר נפלט ממשיך להתפשט במהירות c/n; מסלול סופי נוחת על מישור הגלאי כטבעת שרוחבה בערך L·tan θc.',
+    bCross:'nβ עבר זה עתה את 1. כל קליפה חדשה מבצבצת אל מעבר לקודמות, והמשיק המשותף שלהן — חזית צ׳רנקוב — נפתח מ־θc = 0.',
+    hAccel:'רצף ההסבר: β עולה בהדרגה מ־0.45 מערך השיא ועד ערך השיא. שימו לב לקאוסטיקה.',
+    hConst:'תנועה קצובה אידיאלית, בלי איבוד אנרגיה: החרוט הישר שבספרי הלימוד.',
+    vis:'בתחום הנראה',partial:'חלק מהתחום',cosEq:'cos θc = 1/nβ',sinEq:'sin φ = 1/nβ'
+  };
+  // ── the page ──
+  const CSS=`
+:host{--abyss:#030d17;--deep:#06192a;--panel:#0a2235;--rule:#173550;--ink:#e4eef6;--mute:#8ea7ba;--faint:#7590a6;
+  --cher:#6aaeff;--cher-soft:#2c5f9a;--amber:#f3c47e;--red:#ff8f7a;--xl-focus:#6aaeff;
+  --f-body:'AppSym','Heebo',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --f-display:'Iowan Old Style',Georgia,'Times New Roman',serif;
+  --f-mono:ui-monospace,'SF Mono','Cascadia Mono',Menlo,Consolas,'DejaVu Sans Mono',monospace;
+  --f-label:var(--f-mono);
+  color-scheme:dark;background:var(--abyss);color:var(--ink);}
+.wrap[lang=he]{--f-display:'AppSym','Heebo',sans-serif;--f-label:'AppSym','Heebo',sans-serif;}
+.wrap{max-width:1180px;margin:0 auto;padding:14px 16px 36px;display:grid;gap:16px;font-family:var(--f-body);font-size:15px;line-height:1.55;-webkit-font-smoothing:antialiased;}
+header{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 14px;}
+.eyebrow{font-family:var(--f-label);font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--cher);}
+h1{font-family:var(--f-display);font-weight:400;font-size:clamp(26px,4.4vw,36px);line-height:1.05;margin:0;text-wrap:balance;letter-spacing:-.01em;}
+h1 em{color:var(--cher);font-style:italic;}
+.wrap[lang=he] h1{font-weight:700;line-height:1.15;letter-spacing:0;}
+.wrap[lang=he] h1 em{font-style:normal;}
+.wrap[lang=he] .eyebrow,.wrap[lang=he] .stage-k,.wrap[lang=he] .cmp-l{letter-spacing:.03em;font-weight:600;}
+.lead{color:var(--mute);margin:0;font-size:13px;flex-basis:100%;max-width:90ch;}
+h2{font-family:var(--f-display);font-weight:400;font-size:22px;line-height:1.1;margin:0;text-wrap:balance;}
+.wrap[lang=he] h2{font-weight:700;font-size:20px;line-height:1.25;}
+.mono{font-family:var(--f-mono);}
+.lab{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:14px;align-items:start;}
+@media (max-width:900px){.lab{grid-template-columns:minmax(0,1fr);}.ro{grid-template-columns:repeat(4,minmax(0,1fr));}}
+@media (max-width:480px){.ro small{display:none;}.ro dd{font-size:13.5px;}.ro div{padding:5px 6px;}.ro{grid-template-columns:repeat(2,minmax(0,1fr));}}
+.stage-col{display:grid;gap:8px;min-width:0;}
+.stage{margin:0;border:1px solid var(--rule);border-radius:6px;overflow:hidden;background:var(--deep);}
+.stage-head{padding:8px 12px;display:grid;gap:1px;border-bottom:1px solid var(--rule);min-height:76px;align-content:start;}
+.stage-k{font-family:var(--f-label);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--cher);}
+.wrap[lang=he] .stage-k{font-size:11.5px;}
+.stage-t{font-family:var(--f-display);font-size:19px;line-height:1.15;}
+.wrap[lang=he] .stage-t{font-weight:700;font-size:17.5px;line-height:1.3;}
+.stage-b{color:var(--mute);font-size:12.5px;line-height:1.4;max-width:80ch;}
+.wrap[lang=he] .stage-b{font-size:13px;line-height:1.55;}
+.canvas-box{position:relative;aspect-ratio:16/9;max-width:100%;touch-action:pan-y;cursor:ew-resize;direction:ltr;}
+@media (max-width:560px){.canvas-box{aspect-ratio:1/0.78;}}
+.canvas-box canvas{position:absolute;inset:0;width:100%;height:100%;display:block;}
+.clock{position:absolute;right:8px;top:6px;font-family:var(--f-mono);font-size:11px;color:var(--mute);background:rgba(3,13,23,.6);padding:3px 7px;border-radius:3px;font-variant-numeric:tabular-nums;pointer-events:none;}
+/* a relation, read left to right in every language: particle, sign, light */
+.compare{display:grid;grid-template-columns:1fr auto 1fr;align-items:end;gap:8px;padding:6px 12px;border-top:1px solid var(--rule);background:var(--panel);direction:ltr;}
+.cmp-l{font-family:var(--f-label);font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;}
+.cmp-p .cmp-l{text-align:left;}.cmp-c .cmp-l{text-align:right;}
+/* a unit keeps its own letters: nm, not NM */
+.u{text-transform:none;letter-spacing:0;}
+.wrap[lang=he] .cmp-l{font-size:11.5px;}
+.cmp-v{font-family:var(--f-mono);font-size:clamp(20px,3.6vw,26px);line-height:1.15;font-variant-numeric:tabular-nums;}
+.cmp-p .cmp-l,.cmp-p .cmp-v{color:var(--amber);}
+.cmp-c .cmp-l,.cmp-c .cmp-v{color:var(--cher);}
+.cmp-c{text-align:right;}
+.cmp-op{font-family:var(--f-mono);font-size:22px;color:var(--ink);padding-bottom:2px;}
+.transport{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:10px;align-items:center;}
+.btn{font:500 14px var(--f-body);color:var(--ink);background:var(--panel);border:1px solid var(--rule);border-radius:4px;padding:6px 12px;cursor:pointer;min-height:36px;}
+.btn:hover{border-color:var(--cher-soft);}
+.play{min-width:84px;display:inline-flex;gap:8px;align-items:center;justify-content:center;}
+.play svg{width:13px;height:13px;fill:currentColor;}
+.tval{font-family:var(--f-mono);font-size:12.5px;color:var(--mute);font-variant-numeric:tabular-nums;min-width:8ch;text-align:end;direction:ltr;}
+.wrap[dir=rtl] .tval{text-align:left;}
+/* time and speed run left to right, like the tank */
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:28px;background:transparent;margin:0;direction:ltr;}
+input[type=range]::-webkit-slider-runnable-track{height:4px;background:var(--rule);border-radius:2px;}
+input[type=range]::-moz-range-track{height:4px;background:var(--rule);border-radius:2px;}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;background:var(--amber);margin-top:-7px;border:3px solid var(--abyss);box-shadow:0 0 0 1px var(--amber);}
+input[type=range]::-moz-range-thumb{width:14px;height:14px;border-radius:50%;background:var(--amber);border:3px solid var(--abyss);}
+.keys{display:flex;flex-wrap:wrap;gap:6px;}
+.key{font:500 11.5px var(--f-label);color:var(--mute);background:transparent;border:1px solid var(--rule);border-radius:999px;padding:3px 10px;cursor:pointer;font-variant-numeric:tabular-nums;}
+.wrap[lang=he] .key{font-size:12.5px;}
+.key .ltr{font-family:var(--f-mono);font-size:11.5px;}
+.key:hover{color:var(--ink);border-color:var(--cher-soft);}
+.key b{color:var(--ink);font-weight:500;}
+.panel{display:grid;gap:11px;border:1px solid var(--rule);border-radius:6px;padding:12px;background:var(--deep);min-width:0;}
+.ro{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--rule);border:1px solid var(--rule);border-radius:4px;overflow:hidden;margin:0;}
+.ro div{background:var(--panel);padding:6px 8px;display:grid;gap:1px;min-width:0;}
+.ro dt{font-family:var(--f-label);font-size:10px;letter-spacing:.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--mute);}
+.wrap[lang=he] .ro dt{font-size:11.5px;letter-spacing:0;}
+.ro dd{margin:0;font-family:var(--f-mono);font-size:15px;line-height:1.3;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;direction:ltr;}
+.wrap[dir=rtl] .ro dd{text-align:right;}
+.ro small{font-family:var(--f-label);font-size:9.5px;line-height:1.35;color:var(--faint);}
+.wrap[lang=he] .ro small{font-size:10.5px;}
+.ro small.f{font-family:var(--f-mono);direction:ltr;}
+.wrap[dir=rtl] .ro small.f{text-align:right;}
+.ro .hot dd{color:var(--cher);}
+.ctl{display:grid;gap:5px;min-width:0;}
+.row2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px;}
+.ctl > label,.ctl > .lbl{font-family:var(--f-label);font-size:10px;letter-spacing:.04em;color:var(--mute);display:flex;justify-content:space-between;gap:8px;}
+.wrap[lang=he] .ctl > label,.wrap[lang=he] .ctl > .lbl{font-size:12px;letter-spacing:0;}
+.ctl output{color:var(--amber);font-family:var(--f-mono);font-variant-numeric:tabular-nums;letter-spacing:0;direction:ltr;}
+.seg{display:flex;border:1px solid var(--rule);border-radius:4px;overflow:hidden;}
+.seg button{flex:1;font:500 12px var(--f-body);color:var(--mute);background:var(--panel);border:0;border-inline-end:1px solid var(--rule);padding:5px 4px;cursor:pointer;min-height:32px;}
+.seg button:last-child{border-inline-end:0;}
+.seg button[aria-pressed="true"]{background:var(--cher-soft);color:var(--ink);}
+.wrap[lang=he] .seg button{font-size:13px;}
+select{font:500 12.5px var(--f-body);color:var(--ink);background:var(--panel);border:1px solid var(--rule);border-radius:4px;padding:5px 8px;min-height:32px;width:100%;}
+.hint{font-size:11.5px;line-height:1.4;color:var(--mute);margin:0;}
+.wrap[lang=he] .hint{font-size:12px;line-height:1.55;}
+.toggles{display:flex;flex-wrap:wrap;gap:4px 12px;}
+.toggles label{display:flex;gap:6px;align-items:center;font-size:12px;color:var(--mute);cursor:pointer;}
+.toggles input{accent-color:var(--cher);}
+.spectrum{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:14px;align-items:start;}
+@media (max-width:900px){.spectrum{grid-template-columns:minmax(0,1fr);}}
+.spec-box{border:1px solid var(--rule);border-radius:6px;background:var(--deep);padding:8px 8px 4px;min-width:0;direction:ltr;}
+.spec-c{position:relative;height:180px;}
+.spec-c canvas{position:absolute;inset:0;width:100%;height:100%;}
+.spec-side{display:grid;gap:7px;min-width:0;}
+.spec-side p{margin:0;color:var(--mute);font-size:12.5px;line-height:1.45;}
+.wrap[lang=he] .spec-side p,.wrap[lang=he] .note p{font-size:13px;line-height:1.65;}
+.big{font-family:var(--f-mono);font-size:22px;color:var(--cher);font-variant-numeric:tabular-nums;line-height:1.1;direction:ltr;}
+.wrap[dir=rtl] .big{text-align:right;}
+.unit{font-family:var(--f-label);font-size:12px;}
+/* a formula: left to right, and from the left, in every language */
+.eq{font-family:var(--f-mono);font-size:12px;color:var(--ink);background:var(--panel);border:1px solid var(--rule);border-radius:4px;padding:6px 9px;overflow-x:auto;white-space:nowrap;direction:ltr;text-align:left;}
+.notes{display:grid;gap:8px;}
+.notes-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1px;background:var(--rule);border:1px solid var(--rule);border-radius:6px;overflow:hidden;}
+@media (max-width:1000px){.notes-grid{grid-template-columns:repeat(2,minmax(0,1fr));}}
+@media (max-width:640px){.notes-grid{grid-template-columns:minmax(0,1fr);}}
+.note{background:var(--deep);padding:11px 12px;display:grid;gap:5px;align-content:start;min-width:0;}
+.note h3{margin:0;font:600 13px/1.3 var(--f-body);}
+.wrap[lang=he] .note h3{font-size:14px;line-height:1.4;}
+.note p{margin:0;color:var(--mute);font-size:12.5px;line-height:1.45;max-width:65ch;}
+.note p b{color:var(--ink);font-weight:500;}
+.note .eq{font-size:11.5px;}
+table{border-collapse:collapse;width:100%;font-family:var(--f-mono);font-size:12px;font-variant-numeric:tabular-nums;}
+th,td{text-align:start;padding:4px 10px;border-bottom:1px solid var(--rule);white-space:nowrap;}
+/* no capitals here: β, γ and nm are not Β, Γ and NM */
+th{color:var(--mute);font-family:var(--f-label);font-weight:400;font-size:10.5px;letter-spacing:.04em;}
+.wrap[lang=he] th{font-size:11.5px;letter-spacing:0;}
+td.n{direction:ltr;}
+.wrap[dir=rtl] td.n{text-align:right;}
+td.p{font-family:var(--f-body);font-size:13px;}
+.tbl{overflow-x:auto;border:1px solid var(--rule);border-radius:6px;background:var(--deep);}
+footer{color:var(--mute);font-size:11.5px;max-width:80ch;}
+.wrap[lang=he] footer{font-size:12px;line-height:1.65;}
+@media (pointer:coarse){.btn,.seg button,select{min-height:40px;}.key{padding:8px 12px;}.toggles label{padding:6px 0;}}
+`;
+  const dirAttr=ctx.rtl?'rtl':'ltr';
+  root.innerHTML='<style>'+ctx.css+CSS+'</style>'+`
+<main class="wrap" lang="${ctx.lang}" dir="${dirAttr}">
+  <header>
+    <h1>${T.h1}</h1>
+    <div class="eyebrow">${T.eyebrow}</div>
+    <p class="lead">${T.lead}</p>
+  </header>
+  <section class="lab" aria-label="${T.aSim}">
+    <div class="stage-col">
+      <figure class="stage">
+        <div class="stage-head">
+          <span class="stage-k" id="capK"></span>
+          <span class="stage-t" id="capT" aria-live="polite"></span>
+          <span class="stage-b" id="capB"></span>
+        </div>
+        <div class="canvas-box" id="box">
+          <canvas id="sim" dir="ltr" aria-label="${T.aCanvas}"></canvas>
+          <div class="clock" id="clock">t = 0</div>
+        </div>
+        <div class="compare">
+          <div class="cmp-p"><div class="cmp-l" dir="${dirAttr}">${T.cmpP}</div><div class="cmp-v" id="cmpP">0.000c</div></div>
+          <div class="cmp-op" id="cmpOp">&lt;</div>
+          <div class="cmp-c"><div class="cmp-l" dir="${dirAttr}">${T.cmpC}</div><div class="cmp-v" id="cmpC">0.750c</div></div>
+        </div>
+      </figure>
+      <div class="transport">
+        <button class="btn play" id="play" type="button"><svg id="playIco" viewBox="0 0 12 12" aria-hidden="true"></svg><span id="playTxt"></span></button>
+        <input type="range" id="scrub" min="0" max="1000" step="1" value="0" aria-label="${T.aTime}">
+        <output class="tval" id="tval">0.00</output>
+      </div>
+      <div class="keys" id="keys" role="group" aria-label="${T.aKeys}"></div>
+    </div>
+    <aside class="panel" aria-label="${T.aPanel}">
+      <dl class="ro">
+        <div><dt><span class="ltr">β = v/c</span></dt><dd id="rB">—</dd><small>${T.rBs}</small></div>
+        <div><dt><span class="ltr">nβ</span></dt><dd id="rNB">—</dd><small>${T.rNBs}</small></div>
+        <div class="hot"><dt>${T.rTh}</dt><dd id="rTh">—</dd><small id="rThs" class="f">${T.cosEq}</small></div>
+        <div class="hot"><dt>${T.rPh}</dt><dd id="rPh">—</dd><small id="rPhs" class="f">${T.sinEq}</small></div>
+        <div><dt><span class="ltr">γ</span></dt><dd id="rG">—</dd><small>${T.rG}</small></div>
+        <div><dt>${T.rKE}</dt><dd id="rKE">—</dd><small id="rKEs"></small></div>
+        <div class="hot"><dt>${T.rN}</dt><dd id="rN">—</dd><small>${T.rNs}</small></div>
+        <div><dt>${T.rV}</dt><dd id="rV">—</dd><small id="rVs"></small></div>
+      </dl>
+      <div class="ctl">
+        <span class="lbl" id="lMode">${T.motion}</span>
+        <div class="seg" id="segMode" role="group" aria-labelledby="lMode">
+          <button type="button" data-v="accel" aria-pressed="true">${T.mAccel}</button>
+          <button type="button" data-v="const" aria-pressed="false">${T.mConst}</button>
+          <button type="button" data-v="stop" aria-pressed="false">${T.mStop}</button>
+        </div>
+        <p class="hint" id="modeHint"></p>
+      </div>
+      <div class="ctl">
+        <label for="beta"><span id="betaLbl"></span><output id="betaOut">0.950</output></label>
+        <input type="range" id="beta" min="0" max="1000" step="1" value="237" aria-describedby="betaHint">
+        <p class="hint" id="betaHint">${T.betaHint}</p>
+      </div>
+      <div class="row2">
+        <div class="ctl">
+          <span class="lbl" id="lPart">${T.part}</span>
+          <div class="seg" id="segPart" dir="ltr" role="group" aria-labelledby="lPart">
+            <button type="button" data-v="e" aria-pressed="true">e⁻</button>
+            <button type="button" data-v="mu" aria-pressed="false">μ⁻</button>
+            <button type="button" data-v="p" aria-pressed="false">p</button>
+          </div>
+        </div>
+        <div class="ctl">
+          <label for="medium"><span>${T.medium}</span></label>
+          <select id="medium"></select>
+        </div>
+      </div>
+      <p class="hint" id="medHint"></p>
+      <div class="ctl">
+        <span class="lbl" id="lSpeed">${T.playback}</span>
+        <div class="seg" id="segSpeed" dir="ltr" role="group" aria-labelledby="lSpeed">
+          <button type="button" data-v="0.25" aria-pressed="false">¼×</button>
+          <button type="button" data-v="0.5" aria-pressed="false">½×</button>
+          <button type="button" data-v="1" aria-pressed="true">1×</button>
+          <button type="button" data-v="2" aria-pressed="false">2×</button>
+        </div>
+      </div>
+      <div class="toggles">
+        <label><input type="checkbox" id="tShells" checked> ${T.tShells}</label>
+        <label><input type="checkbox" id="tRays" checked> ${T.tRays}</label>
+        <label><input type="checkbox" id="tLabels" checked> ${T.tLabels}</label>
+      </div>
+    </aside>
+  </section>
+  <section class="spectrum" aria-label="${T.aSpec}">
+    <div class="spec-box">
+      <div class="spec-c"><canvas id="spec" dir="ltr" aria-label="${T.aSpecCv}"></canvas></div>
+    </div>
+    <div class="spec-side">
+      <h2>${T.specH}</h2>
+      <div class="eq">d²N/dx dλ = (2πα z² / λ²) · [1 − 1/(β² n(λ)²)]</div>
+      <p>${T.specP}</p>
+      <div><div class="big" id="sN">—</div><p class="unit">${T.specU}</p></div>
+    </div>
+  </section>
+  <section class="notes">
+    <h2>${T.notesH}</h2>
+    <div class="notes-grid">
+      <div class="note"><h3>${T.n1h}</h3><p>${T.n1p}</p></div>
+      <div class="note"><h3>${T.n2h}</h3><p>${T.n2p}</p><div class="eq">cos θc = 1/(nβ) · θc,max = arccos(1/n) = <span id="nThMax">41.4°</span></div></div>
+      <div class="note"><h3>${T.n3h}</h3><p>${T.n3a} <span class="mono ltr" id="nVg">0.740c</span> ${T.n3b}</p></div>
+      <div class="note"><h3>${T.n4h}</h3><p>${T.n4p}</p></div>
+      <div class="note"><h3>${T.n5h}</h3><p>${T.n5p}</p><div class="eq">cos θc = 1/(nβ) + ħk(n² − 1)/(2n²p)</div></div>
+      <div class="note"><h3>${T.n6h}</h3><p>${T.n6p}</p></div>
+    </div>
+  </section>
+  <section class="notes" aria-label="${T.aTbl}">
+    <h2 style="font-size:18px" id="tblH"></h2>
+    <div class="tbl"><table>
+      <thead><tr><th>${T.thP}</th><th>${T.thM}</th><th>${T.thB}</th><th>${T.thG}</th><th>${T.thK5}</th><th>${T.thK3}</th></tr></thead>
+      <tbody id="tbl"></tbody>
+    </table></div>
+  </section>
+  <footer>${T.foot}</footer>
+</main>`;
+
+  const ALPHA=1/137.035999084, ME=0.51099895, LREF=589.3;
+  const sell=(B,C)=>l=>{const x=(l/1000)**2;let s=1;for(let i=0;i<B.length;i++)s+=B[i]*x/(x-C[i]);return Math.sqrt(s);};
+  const nWater=sell([5.684027565e-1,1.726177391e-1,2.086189578e-2,1.130748688e-1],[5.101829712e-3,1.821153936e-2,2.620722293e-2,1.069792721e1]);
+  const nSil=sell([0.6961663,0.4079426,0.8974794],[0.0684043**2,0.1162414**2,9.896161**2]);
+  // Lorentz–Lorenz rescaling of a base dispersion curve to a target n at 589.3 nm (density-like scaling)
+  const llScale=(base,nT)=>{const LL=n=>(n*n-1)/(n*n+2),f=LL(nT)/LL(base(LREF));return l=>{const L=LL(base(l))*f;return Math.sqrt((1+2*L)/(1-L));};};
+  const nSF6=sell([1.72448482,0.390104889,1.04572858],[0.0134871947,0.0569318095,118.557185]);
+  const nDia=sell([4.3356,0.3306],[0.1060**2,0.1750**2]);
+  const nAir=l=>{const s2=(1000/l)**2;return 1+(5792105/(238.0185-s2)+167917/(57.362-s2))*1e-8;};
+  // name: in the menu; inName: inside a sentence ("the threshold in water")
+  const MEDIA={
+    water:{name:'מים',inName:'במים',n:nWater,rho:1.0,ZA:0.55509,I:78e-6,dens:{C:3.5017,x0:0.24,x1:2.8004,a:0.09116,k:3.4773},
+      note:'סופר־קמיוקנדה, הייפר־קמיוקנדה, בריכות של כורים גרעיניים. התאמת סלמאייר של Daimon ו־Masumura (2007), ב־'+ltr('20 °C')+'.'},
+    d2o:{name:'מים כבדים',inName:'במים כבדים',n:llScale(nWater,1.3284),rho:1.1044,ZA:0.49931,I:79.7e-6,
+      note:'התווך של גלאי SNO. n_D = 1.3284; צורת הנפיצה נלקחה מ־H₂O.'},
+    ice:{name:'קרח קרחוני',inName:'בקרח קרחוני',n:llScale(nWater,1.3098),rho:0.917,ZA:0.55509,I:78e-6,
+      note:'IceCube, עמוק בקרח של אנטארקטיקה. n_D = 1.3098; צורת הנפיצה נלקחה ממים.'},
+    silica:{name:'סיליקה מותכת',inName:'בסיליקה מותכת',n:nSil,rho:2.20,ZA:0.49930,I:139.2e-6,cut:160,
+      note:'קרנים מקוורץ, מוטות DIRC, קלורימטרים של סיבים. משוואת סלמאייר של Malitson (1965).'},
+    sf6:{name:'זכוכית עופרת',inName:'בזכוכית עופרת (SF6)',n:nSF6,rho:5.18,ZA:0.430,I:406e-6,cut:370,
+      note:'קלורימטרים אלקטרומגנטיים (OPAL, NA62). משוואת סלמאייר לזכוכית SF6 של Schott; אטומה מתחת ל־370 nm בקירוב. Z/A ו־I הוערכו מהרכב של 72% PbO ו־28% SiO₂, לפי כלל החיבוריות של בראג.'},
+    diamond:{name:'יהלום',inName:'ביהלום',n:nDia,rho:3.515,ZA:0.49954,I:81e-6,cut:225,
+      note:'התווך המצוי בעל מדד השבירה הגבוה ביותר: θc מגיעה עד 65.6°. משוואת סלמאייר בת שני איברים; מתחת ל־225 nm האור נבלע (פער האנרגיה).'},
+    aerogel:{name:'אירוג׳ל',inName:'באירוג׳ל',n:llScale(nSil,1.030),rho:0.143,ZA:0.49930,I:139.2e-6,
+      note:'התווך של גלאי RICH (LHCb, Belle II). סיליקה שמדד השבירה שלה הותאם ל־n = 1.030; פיזור ריילי אינו נלקח בחשבון.'},
+    air:{name:'אוויר',inName:'באוויר (בגובה פני הים)',n:nAir,rho:1.225e-3,ZA:0.49919,I:85.7e-6,dens:{C:10.5961,x0:1.7418,x1:4.2759,a:0.10914,k:3.3994},cut:290,
+      note:'טלסקופי צ׳רנקוב אטמוספריים (H.E.S.S., MAGIC, VERITAS, CTAO). אוויר תקני לפי Ciddor (1996), '+ltr('15 °C, 101.325 kPa')+'. האוזון בולע מתחת ל־290 nm בקירוב.'}
+  };
+  // long: in the table; of: inside a sentence ("the slowing down of an electron")
+  const PARTS={e:{name:"e⁻",long:'אלקטרון',of:'של אלקטרון',m:ME},mu:{name:"μ⁻",long:'מיואון',of:'של מיואון',m:105.6583755},p:{name:"p",long:'פרוטון',of:'של פרוטון',m:938.27208816}};
+
+  const S={mode:"accel",part:"e",med:"water",B:0.95,speed:1,t:0,playing:true,hold:0,shells:true,rays:true,labels:true};
+  let P=null; // profile
+  const reduce=ctx.reduced;
+  const $=id=>root.getElementById(id);
+  // labels on the canvas: Hebrew in the page's own face, numbers in the instrument's
+  const F_NUM="ui-monospace, 'SF Mono', Menlo, Consolas, monospace";
+  const F_LBL=he?"'Heebo', sans-serif":F_NUM, F_TXT=he?"'Heebo', sans-serif":"system-ui, sans-serif";
+  $("medium").innerHTML=Object.keys(MEDIA).map(k=>'<option value="'+k+'">'+MEDIA[k].name+'</option>').join('');
+
+  // ---------- stopping powers (MeV/cm) ----------
+  // Sternheimer density-effect correction; tabulated parameters for water, Sternheimer–Peierls general fit otherwise
+  function dens(med){
+    if(med.dens)return med.dens;
+    const hw=28.816e-6*Math.sqrt(med.rho*med.ZA), C=2*Math.log(med.I/hw)+1;
+    let x0,x1;if(med.I<100e-6){x1=2;x0=C<3.681?0.2:0.326*C-1.0;}else{x1=3;x0=C<5.215?0.2:0.326*C-1.5;}
+    const k=3,a=(C-2*Math.LN10*x0)/Math.pow(x1-x0,k);return med.dens={C,x0,x1,a,k};
+  }
+  function delta(bg,med){const d=dens(med),x=Math.log10(bg);
+    if(x>=d.x1)return 2*Math.LN10*x-d.C;if(x>=d.x0)return 2*Math.LN10*x-d.C+d.a*Math.pow(d.x1-x,d.k);return 0;}
+  function dEdx(KE){
+    const med=MEDIA[S.med], M=PARTS[S.part].m;
+    const g=1+KE/M, b2=1-1/(g*g);
+    if(S.part==="e"){
+      const tau=KE/ME, Ir=med.I/ME;
+      const F=1-b2+(tau*tau/8-(2*tau+1)*Math.LN2)/((tau+1)**2);
+      return 0.1535375*med.rho*med.ZA/b2*(Math.log(tau*tau*(tau+2)/(2*Ir*Ir))+F-delta(Math.sqrt(b2)*g,med));
+    }
+    const bg2=b2*g*g, r=ME/M, Tmax=2*ME*bg2/(1+2*g*r+r*r);
+    return 0.307075*med.rho*med.ZA/b2*(0.5*Math.log(2*ME*bg2*Tmax/(med.I*med.I))-b2-delta(Math.sqrt(bg2),med)/2);
+  }
+
+  // ---------- profile ----------
+  const N=3000;
+  function smooth(u){u=Math.min(1,Math.max(0,u));return u*u*(3-2*u);}
+  function build(){
+    const med=MEDIA[S.med], n=med.n(LREF), B=S.B;
+    const beta=new Float64Array(N+1), x=new Float64Array(N+1);
+    let T_=10, unit=null, tEnd=T_;
+    if(S.mode!=="stop"){
+      const b0=0.45*B, ta=0.6*T_;
+      const f=t=>S.mode==="const"?B:b0+(B-b0)*smooth(t/ta);
+      for(let i=0;i<=N;i++){const t=i*T_/N;beta[i]=f(t);if(i)x[i]=x[i-1]+0.5*(beta[i]+beta[i-1])*T_/N;}
+    }else{
+      const M=PARTS[S.part].m, KE0=M*(1/Math.sqrt(1-B*B)-1);
+      let KEe=M*(1/Math.sqrt(1-0.09)-1); if(KEe>=KE0*0.9)KEe=KE0*0.3;
+      const K=6000, ts=[0], ss=[0], bs=[B]; let t=0,s=0;
+      for(let k=1;k<=K;k++){
+        const a=KE0*Math.pow(KEe/KE0,(k-1)/K), b=KE0*Math.pow(KEe/KE0,k/K), m=0.5*(a+b);
+        const ds=(a-b)/dEdx(m), g=1+m/M, bm=Math.sqrt(1-1/(g*g));
+        s+=ds;t+=ds/bm;const gb=1+b/M;ts.push(t);ss.push(s);bs.push(Math.sqrt(1-1/(gb*gb)));
+      }
+      const L=s/8; // cm per display unit
+      tEnd=t/L; T_=tEnd*1.32; unit={L,track:s};
+      let j=0;
+      for(let i=0;i<=N;i++){
+        const td=i*T_/N, tp=td*L;
+        if(tp>=t){beta[i]=0;x[i]=s/L;continue;}
+        while(j<ts.length-2&&ts[j+1]<tp)j++;
+        const u=(tp-ts[j])/(ts[j+1]-ts[j]);
+        beta[i]=bs[j]+(bs[j+1]-bs[j])*u; x[i]=(ss[j]+(ss[j+1]-ss[j])*u)/L;
+      }
+    }
+    let tOn=null,tOff=null;
+    for(let i=0;i<=N;i++){const t=i*T_/N,e=n*beta[i]>1;if(tOn===null){if(e)tOn=t;}else if(!e){tOff=t;break;}}
+    P={beta,x,T:T_,n,tOn,tOff,tEnd,unit,xEnd:x[N]};
+  }
+  function at(arr,t){const f=t/P.T*N;let i=Math.floor(f);if(i<0)return arr[0];if(i>=N)return arr[N];const u=f-i;return arr[i]*(1-u)+arr[i+1]*u;}
+  const bAt=t=>at(P.beta,t), xAt=t=>at(P.x,t);
+
+  // ---------- canvas ----------
+  const box=$("box"), cv=$("sim"), cx=ctx.g2d(cv);
+  let W=0,H=0,DPR=1,view={x0:0,s:1};
+  function resize(){
+    const r=box.getBoundingClientRect();DPR=Math.min(2,window.devicePixelRatio||1);
+    W=r.width;H=r.height;cv.width=Math.round(W*DPR);cv.height=Math.round(H*DPR);
+    cx.setTransform(DPR,0,0,DPR,0,0);setView();draw();
+  }
+  function setView(){const span=P.xEnd;const x0=-0.07*span,x1=span*1.12;view={x0,s:W/(x1-x0)};}
+  const X=x=>(x-view.x0)*view.s, Y=y=>H/2-y*view.s;
+
+  function fmtLen(cm){if(cm>=100)return (cm/100).toPrecision(2).replace(/\.0+$/,"")+" m";if(cm>=1)return +cm.toPrecision(2)+" cm";if(cm>=0.1)return +(cm*10).toPrecision(2)+" mm";return +(cm*1e4).toPrecision(2)+" µm";}
+  function ceilNice(v){const e=Math.pow(10,Math.floor(Math.log10(v))),f=v/e;return [1,1.5,2,2.5,3,4,5,6,8,10].find(k=>k>=f-1e-9)*e;}
+  function niceNum(v){const e=Math.pow(10,Math.floor(Math.log10(v))),f=v/e;return (f<1.5?1:f<3.5?2:f<7.5?5:10)*e;}
+
+  function draw(){
+    if(!W)return;
+    const t=S.t,n=P.n,T_=P.T;
+    // water
+    const g=cx.createLinearGradient(0,0,0,H);g.addColorStop(0,"#0a2a42");g.addColorStop(.55,"#071d30");g.addColorStop(1,"#041220");
+    cx.fillStyle=g;cx.fillRect(0,0,W,H);
+    // track axis
+    cx.strokeStyle="rgba(142,167,186,0.18)";cx.lineWidth=1;cx.setLineDash([2,5]);
+    cx.beginPath();cx.moveTo(0,Y(0));cx.lineTo(W,Y(0));cx.stroke();cx.setLineDash([]);
+
+    const tStop=P.unit?Math.min(P.tEnd,T_):T_;
+    // shells
+    const NS=120,dE=T_/NS;
+    if(S.shells){
+      cx.lineWidth=1;
+      for(let k=0;k*dE<=t&&k*dE<=tStop;k++){
+        const te=k*dE,r=(t-te)/n*view.s;if(r<0.5)continue;
+        const emit=n*bAt(te)>1;
+        cx.strokeStyle=k===0?"rgba(160,205,240,0.55)":emit?"rgba(120,175,225,0.20)":"rgba(150,180,200,0.17)";
+        cx.beginPath();cx.arc(X(xAt(te)),Y(0),r,0,Math.PI*2);cx.stroke();
+      }
+    }
+    // envelope (exact): tangent point at θc(t') on each shell
+    const NE=1100,segs=[];let cur=null;
+    const tl=Math.min(t,tStop);
+    for(let i=0;i<=NE;i++){
+      const te=tl*i/NE,b=bAt(te);
+      if(n*b>1&&te<=t){const c=1/(n*b),sn=Math.sqrt(1-c*c),r=(t-te)/n,xe=xAt(te);if(!cur){cur=[];segs.push(cur);}cur.push([xe+r*c,r*sn,sn*sn]);}
+      else cur=null;
+    }
+    // brightness ∝ sin²θc (Frank–Tamm), normalised to the β→1 limit
+    const s2max=1-1/(n*n);
+    const glow=()=>{cx.strokeStyle="rgba(70,140,255,0.16)";cx.lineWidth=7;cx.shadowColor="rgba(106,174,255,0.8)";cx.shadowBlur=12;
+      for(const sg of segs){if(sg.length<2)continue;for(const sgn of [1,-1]){cx.beginPath();sg.forEach((p,i)=>{const px=X(p[0]),py=Y(sgn*p[1]);i?cx.lineTo(px,py):cx.moveTo(px,py);});cx.stroke();}}cx.shadowBlur=0;};
+    const core=()=>{cx.lineWidth=2;for(const sg of segs){for(let i=1;i<sg.length;i++){const a=Math.min(1,0.08+0.92*sg[i][2]/s2max);cx.strokeStyle=`rgba(150,200,255,${a.toFixed(3)})`;
+        for(const sgn of [1,-1]){cx.beginPath();cx.moveTo(X(sg[i-1][0]),Y(sgn*sg[i-1][1]));cx.lineTo(X(sg[i][0]),Y(sgn*sg[i][1]));cx.stroke();}}}};
+    if(segs.length){glow();core();}
+    // caustic: where the envelope point stops moving and reverses (dp/dt' = 0)
+    let cusp=null;
+    for(const sg of segs){for(let i=2;i<sg.length;i++){const ax=sg[i-1][0]-sg[i-2][0],ay=sg[i-1][1]-sg[i-2][1],bx=sg[i][0]-sg[i-1][0],by=sg[i][1]-sg[i-1][1];
+      if(ax*bx+ay*by<0&&Math.hypot(sg[i][0]-xAt(t),sg[i][1])*view.s>20){cusp=sg[i-1];break;}}}
+    // photon rays from fixed emission instants
+    let lastRay=null;
+    if(S.rays){
+      const NR=10;
+      for(let k=1;k<NR*1.5;k++){
+        const te=k*T_/NR;if(te>=t||te>tStop)break;
+        const b=bAt(te);if(n*b<=1)continue;
+        const c=1/(n*b),sn=Math.sqrt(1-c*c),r=(t-te)/n,xe=xAt(te);
+        cx.strokeStyle="rgba(140,196,255,0.45)";cx.lineWidth=1;cx.setLineDash([3,4]);
+        for(const sgn of [1,-1]){cx.beginPath();cx.moveTo(X(xe),Y(0));cx.lineTo(X(xe+r*c),Y(sgn*r*sn));cx.stroke();}
+        cx.setLineDash([]);
+        for(const sgn of [1,-1]){cx.fillStyle="#cfe6ff";cx.beginPath();cx.arc(X(xe+r*c),Y(sgn*r*sn),2.2,0,7);cx.fill();}
+        cx.fillStyle="rgba(140,196,255,0.7)";cx.beginPath();cx.arc(X(xe),Y(0),1.8,0,7);cx.fill();
+        if(r*view.s>40){const tg=(xAt(Math.max(P.tOn||0,0))+xAt(t))/2,d=Math.abs(xe-tg);if(!lastRay||d<lastRay.d)lastRay={xe,th:Math.acos(c),d};}
+      }
+    }
+    // threshold ticks
+    const tick=(tt,txt)=>{const px=X(xAt(tt));cx.strokeStyle="rgba(243,196,126,0.6)";cx.lineWidth=1;cx.beginPath();cx.moveTo(px,Y(0)-7);cx.lineTo(px,Y(0)+7);cx.stroke();
+      if(S.labels){cx.fillStyle="rgba(243,196,126,0.85)";cx.font="10.5px "+F_NUM;cx.textAlign="center";cx.fillText(txt,px,Y(0)+20);}};
+    if(P.tOn!==null&&P.tOn>0&&t>=P.tOn)tick(P.tOn,"nβ = 1");
+    if(P.tOff!==null&&t>=P.tOff)tick(P.tOff,"nβ = 1");
+
+    // particle + trail
+    const xp=xAt(t),bp=bAt(t),stopped=P.unit&&t>=P.tEnd;
+    const tr0=Math.max(0,t-0.06*T_);
+    const gt=cx.createLinearGradient(X(xAt(tr0)),0,X(xp),0);gt.addColorStop(0,"rgba(243,196,126,0)");gt.addColorStop(1,"rgba(243,196,126,0.75)");
+    cx.strokeStyle=gt;cx.lineWidth=2;cx.beginPath();cx.moveTo(X(xAt(tr0)),Y(0));cx.lineTo(X(xp),Y(0));cx.stroke();
+    const rg=cx.createRadialGradient(X(xp),Y(0),0,X(xp),Y(0),16);rg.addColorStop(0,stopped?"rgba(243,196,126,0.35)":"rgba(255,228,180,0.9)");rg.addColorStop(1,"rgba(243,196,126,0)");
+    cx.fillStyle=rg;cx.beginPath();cx.arc(X(xp),Y(0),16,0,7);cx.fill();
+    cx.fillStyle=stopped?"#a58a62":"#fff4de";cx.beginPath();cx.arc(X(xp),Y(0),3.6,0,7);cx.fill();
+
+    if(S.labels){
+      cx.textAlign="left";
+      // first shell label
+      const r0=t/n*view.s;
+      if(S.shells&&r0>30){const a=0.95,px=X(xAt(0))+r0*Math.cos(a),py=Y(0)+r0*Math.sin(a);
+        if(px>4&&px<W-120&&py>14&&py<H-26){cx.font="11px "+F_LBL;cx.fillStyle="rgba(170,210,240,0.85)";cx.fillText(T.cShell,px+6,py);}}
+      // particle label
+      cx.font="11px "+F_NUM;
+      cx.fillStyle="rgba(243,196,126,0.95)";
+      cx.textAlign="right";cx.fillText(PARTS[S.part].name+"  β = "+fb(bp),Math.min(W-8,X(xp)+40),Y(0)+46);cx.textAlign="left";
+      // φ at tip
+      if(!stopped&&n*bp>1){const c=1/(n*bp),phi=Math.asin(c),R=30;
+        cx.strokeStyle="rgba(243,196,126,0.75)";cx.lineWidth=1;cx.beginPath();cx.arc(X(xp),Y(0),R,Math.PI,Math.PI+phi);cx.stroke();
+        cx.fillStyle="rgba(243,196,126,0.95)";cx.textAlign="right";
+        const am=Math.PI+phi/2;cx.fillText("φ "+(phi*180/Math.PI).toFixed(1)+"°",X(xp)+(R+6)*Math.cos(am),Y(0)+(R+6)*Math.sin(am)-2);}
+      // θc at latest ray origin
+      if(lastRay){const R=26,px=X(lastRay.xe);cx.strokeStyle="rgba(140,196,255,0.85)";cx.lineWidth=1;cx.beginPath();cx.arc(px,Y(0),R,0,lastRay.th);cx.stroke();
+        cx.fillStyle="rgba(170,210,255,0.95)";cx.textAlign="left";const am=lastRay.th/2;cx.fillText("θc "+(lastRay.th*180/Math.PI).toFixed(1)+"°",px+(R+5)*Math.cos(am),Y(0)+(R+5)*Math.sin(am)+8);}
+      cx.font="11px "+F_LBL;
+      if(cusp){const px=X(cusp[0]),py=Y(cusp[1]);cx.strokeStyle="rgba(255,143,122,0.9)";cx.lineWidth=1.2;cx.beginPath();cx.arc(px,py,5,0,7);cx.stroke();
+        cx.fillStyle="rgba(255,170,150,0.95)";cx.textAlign=px>W*0.6?"right":"left";cx.fillText(T.cCaustic,px+(px>W*0.6?-9:9),py-6);cx.textAlign="left";}
+      // front label
+      if(segs.length){const sg=segs[segs.length-1];const p=sg[Math.floor(sg.length*0.45)];
+        if(p){const px=X(p[0]),py=Y(p[1]);if(py>18&&px>8&&px<W-130){cx.fillStyle="#9fcbff";cx.textAlign="left";cx.fillText(T.cFront,px+10,py-6);}}}
+    }
+    // scale bar
+    cx.textAlign="left";cx.font="10.5px "+F_NUM;
+    let len,lab;
+    if(P.unit){const cm=niceNum(P.unit.L*(W*0.18/view.s));len=cm/P.unit.L;lab=fmtLen(cm);}else{len=1;lab="1 L";}
+    const bx=12,by=H-12,bw=len*view.s;
+    cx.strokeStyle="rgba(200,220,235,0.7)";cx.lineWidth=1.2;cx.beginPath();cx.moveTo(bx,by-4);cx.lineTo(bx,by);cx.lineTo(bx+bw,by);cx.lineTo(bx+bw,by-4);cx.stroke();
+    cx.fillStyle="rgba(200,220,235,0.8)";cx.fillText(lab,bx+bw+6,by+1);
+  }
+
+  // ---------- spectrum ----------
+  const sc=$("spec"),sx=ctx.g2d(sc);let SW=0,SH=0;
+  function rs(){const r=sc.getBoundingClientRect();SW=r.width;SH=r.height;sc.width=Math.round(SW*DPR);sc.height=Math.round(SH*DPR);sx.setTransform(DPR,0,0,DPR,0,0);lastSpecB=-1;drawSpec(bAt(S.t));}
+  function ftf(l,b){const n=MEDIA[S.med].n(l),q=1-1/(b*b*n*n);return q>0?2*Math.PI*ALPHA*q/((l*1e-7)**2)*1e-7:0;}
+  function yieldN(b){let s=0;const M=300;for(let i=0;i<=M;i++){const l=300+300*i/M,w=(i===0||i===M)?1:(i%2?4:2);s+=w*ftf(l,b);}return s*(1/M*300)/3;}
+  function lamRGB(l){let r=0,g=0,b=0;
+    if(l<380)return [120,100,170];
+    if(l<440){r=-(l-440)/60;b=1;}else if(l<490){g=(l-440)/50;b=1;}else if(l<510){g=1;b=-(l-510)/20;}else if(l<580){r=(l-510)/70;g=1;}else if(l<645){r=1;g=-(l-645)/65;}else{r=1;}
+    let f=1;if(l>700)f=0.3+0.7*(780-l)/80;else if(l<420)f=0.3+0.7*(l-380)/40;
+    return [r,g,b].map(v=>Math.round(255*Math.pow(v*f,0.8)));}
+  let lastSpecB=-1;
+  function drawSpec(b){
+    if(!SW||Math.abs(b-lastSpecB)<2e-4)return;lastSpecB=b;
+    const L0=250,L1=700,padL=44,padR=10,padT=12,padB=30,w=SW-padL-padR,h=SH-padT-padB;
+    let ymax=0;for(let l=L0;l<=L1;l+=5)ymax=Math.max(ymax,ftf(l,0.99999));ymax=ceilNice(ymax*1.04);
+    const xs=l=>padL+(l-L0)/(L1-L0)*w, ys=v=>padT+h-v/ymax*h;
+    sx.clearRect(0,0,SW,SH);
+    sx.font="10.5px "+F_NUM;sx.fillStyle="#7590a6";sx.strokeStyle="#173550";sx.lineWidth=1;
+    const step=niceNum(ymax/4);
+    for(let v=0;v<=ymax+1e-9;v+=step){const y=ys(v);sx.beginPath();sx.moveTo(padL,y);sx.lineTo(SW-padR,y);sx.stroke();sx.textAlign="right";sx.fillText(+v.toPrecision(3),padL-6,y+3.5);}
+    sx.textAlign="center";for(let l=300;l<=700;l+=100){sx.fillText(l,xs(l),SH-padB+16);}
+    sx.font="10.5px "+F_LBL;
+    sx.fillText(T.sWl,padL+w/2,SH-2);
+    sx.save();sx.translate(10,padT+h/2);sx.rotate(-Math.PI/2);sx.fillText(T.sY,0,0);sx.restore();
+    // UV band
+    sx.fillStyle="rgba(120,100,170,0.08)";sx.fillRect(xs(L0),padT,xs(380)-xs(L0),h);
+    const cut=MEDIA[S.med].cut||0;
+    sx.fillStyle="#7590a6";sx.textAlign="left";if(cut<=L0){sx.font="10.5px "+F_NUM;sx.fillText("UV",xs(L0)+4,padT+12);}
+    if(cut>L0){sx.fillStyle="rgba(3,13,23,0.55)";sx.fillRect(xs(L0),padT,xs(cut)-xs(L0),h);sx.strokeStyle="rgba(255,143,122,0.6)";sx.setLineDash([3,3]);sx.beginPath();sx.moveTo(xs(cut),padT);sx.lineTo(xs(cut),padT+h);sx.stroke();sx.setLineDash([]);
+      sx.font="10.5px "+F_LBL;sx.fillStyle="rgba(255,170,150,0.9)";sx.textAlign="left";sx.fillText(T.sAbs,xs(L0)+4,padT+12);}
+    // filled spectrum
+    for(let px=Math.ceil(xs(L0));px<=xs(L1);px++){const l=L0+(px-padL)/w*(L1-L0),v=ftf(l,b);if(v<=0)continue;const [r,g,bb]=lamRGB(l);sx.fillStyle=`rgba(${r},${g},${bb},0.55)`;sx.fillRect(px,ys(v),1.2,padT+h-ys(v));}
+    // curves
+    const curve=(bb,dash,col)=>{sx.setLineDash(dash);sx.strokeStyle=col;sx.lineWidth=1.6;sx.beginPath();let st=false;for(let l=L0;l<=L1;l+=2){const v=ftf(l,bb),y=ys(v);st?sx.lineTo(xs(l),y):(sx.moveTo(xs(l),y),st=true);}sx.stroke();sx.setLineDash([]);};
+    curve(0.99999,[4,4],"rgba(228,238,246,0.45)");
+    curve(b,[],"#e4eef6");
+    if(ftf(L0,b)===0){sx.fillStyle="#8ea7ba";sx.textAlign="center";sx.font="12px "+F_TXT;sx.fillText(T.sNone,xs(Math.max(cut,L0))+(SW-padR-xs(Math.max(cut,L0)))/2,padT+h*0.45);}
+  }
+
+  // ---------- UI ----------
+  const deg=r=>{const d=r*180/Math.PI;return d.toFixed(d<5?3:2)+"°";};
+  // digits enough to resolve 1−β
+  function fb(b){if(b>=1)return "1";const d=Math.min(7,Math.max(3,Math.ceil(-Math.log10(1-b))+1));return b.toFixed(d);}
+  function v10(v){return v<10?v.toPrecision(3):v.toFixed(1);}
+  function fnb(x){return x.toFixed(Math.abs(x-1)<1e-3?6:4);}
+  function fmtE(MeV){if(MeV<1)return (MeV*1000).toPrecision(3)+" keV";if(MeV<1000)return MeV.toPrecision(4)+" MeV";return (MeV/1000).toPrecision(4)+" GeV";}
+  function fmtT(t){if(!P.unit)return t.toFixed(2)+" L/c";const ps=t*P.unit.L/0.0299792458;return ps<1000?ps.toPrecision(3)+" ps":(ps/1000).toPrecision(3)+" ns";}
+  const LMIN=250;
+  function lamCut(b){const m=MEDIA[S.med];let lo=LMIN,hi=1000;if(m.n(hi)*b>1)return hi;for(let i=0;i<40;i++){const mid=(lo+hi)/2;m.n(mid)*b>1?lo=mid:hi=mid;}return lo;}
+  function stage(t,b){
+    const n=P.n,nb=n*b,bt=fb(1/n),nmx=MEDIA[S.med].n(LMIN);
+    const uv=nb<=1&&nmx*b>1;
+    if(P.unit&&t>=P.tEnd)return [T.sTrack,T.tTrack,T.bTrack];
+    if(uv&&(P.tOn===null||t<P.tOn))
+      return [T.sNear,T.tUV,'מתחת לסף ב־589 nm, אבל n(λ) גדול יותר בעל־סגול הקרוב, ולכן קיים חרוט חלש עבור λ קצר מ־'+lamCut(b).toFixed(0)+' nm. המכל מציג רק את 589 nm.'];
+    if(P.tOn===null)return [T.sSub,T.tNo,'β = '+fb(b)+' נשאר מתחת ל־1/n = '+bt+'. הקליפות מקננות זו בתוך זו בלי להיחתך, ולכן אין להן מעטפת. העלו את β מעל '+bt+' כדי לראות את החזית.'];
+    if(t<P.tOn)return [T.sSub,T.tNoYet,'β = '+fb(b)+' < 1/n = '+bt+'. כל קליפה מקיפה את כל הקליפות שאחריה, ולכן אין להן משיק משותף. השדה נע עם המטען; נפלטת רק קרינת האצה זניחה.'];
+    if(P.tOff!==null&&t>=P.tOff)return [T.sAgain,T.tStopped,'β ירד אל מתחת ל־1/n = '+bt+' (ב־589 nm). אור חדש באורך גל 589 nm אינו נפלט עוד; החזית שכבר יצאה מתנתקת וממשיכה להתפשט החוצה במהירות c/n. הפליטה בעל־סגול נמשכת עוד מעט, עד ש־β < 1/n(λ).'];
+    if(P.tOn>0&&t<P.tOn+0.12*P.T)return [T.sCross,T.tOverlap,T.bCross];
+    const th=Math.acos(1/nb);
+    return [T.sCher,T.tCone,'cos θc = 1/(nβ) = '+(1/nb).toFixed(nb<1.01?6:4)+', ולכן פוטונים של 589 nm יוצאים בזווית θc = '+deg(th)+' מן המסלול. הקליפות מתחברות באותה פאזה רק על החזית; בהירותה גדלה כמו sin²θc.'];
+  }
+  // text that changes with time is written only when it changes, and its
+  // formulas are set left to right inside the Hebrew around them
+  const _last={};
+  function setText(id,s,math){
+    if(_last[id]===s)return;_last[id]=s;
+    const el=$(id);el.textContent=s;
+    if(math&&ctx.rtl)ctx.fixMath(el);
+  }
+  function setHTML(id,h,math){
+    if(_last[id]===h)return;_last[id]=h;
+    const el=$(id);el.innerHTML=h;
+    if(math&&ctx.rtl)ctx.fixMath(el);
+  }
+  function update(){
+    const t=S.t,b=bAt(t),n=P.n,M=PARTS[S.part].m,g=b>0?1/Math.sqrt(1-b*b):1;
+    const st=stage(t,b);setText("capK",st[0]);setText("capT",st[1],true);setText("capB",st[2],true);
+    setText("cmpP",fb(b)+"c");setText("cmpC",fb(1/n)+"c");
+    setText("cmpOp",n*b>1?">":"<");
+    setText("rB",fb(b));setText("rNB",fnb(n*b));
+    if(n*b>1){const th=Math.acos(1/(n*b));setText("rTh",deg(th));setText("rPh",deg(Math.PI/2-th));
+      {const vg=1/P.ng,pg=Math.atan2(vg*Math.sin(th),b-vg*Math.cos(th));
+        $("rPhs").className="";setHTML("rPhs",'חזית הפולס '+ltr((pg*180/Math.PI).toFixed(1)+'° (v_g)'));}
+      const m=MEDIA[S.med],q=l=>{const v=1/(m.n(l)*b);return v<1?Math.acos(v)*180/Math.PI:null;},a=q(700),c=q(400);
+      $("rThs").className="";
+      setHTML("rThs",(a!==null&&c!==null)?ltr(a.toFixed(2)+'–'+c.toFixed(2)+'°')+' '+T.vis:T.partial);}
+    else{setText("rTh","—");setText("rPh","—");$("rThs").className="f";$("rPhs").className="f";setHTML("rThs",T.cosEq);setHTML("rPhs",T.sinEq);}
+    setText("rG",g.toFixed(4));setText("rKE",fmtE((g-1)*M));
+    setHTML("rKEs",'סף: '+ltr(fmtE(M*(n/Math.sqrt(n*n-1)-1)))+' ב־'+ltr('589 nm'));
+    const Yd=yieldN(b),fy=v=>v<=0?"0":v<10?v.toPrecision(2):v.toFixed(0);setText("rN",fy(Yd));setText("sN",Yd<=0?"0":v10(Yd));
+    setText("clock","t = "+fmtT(t));setText("tval",fmtT(t));
+    $("scrub").value=Math.round(t/P.T*1000);
+    drawSpec(b);
+  }
+  function staticUI(){
+    const m=MEDIA[S.med],n=P.n;
+    setText("rV",fb(1/n)+"c");
+    const d=1e-3,ng=n-LREF*(m.n(LREF+d)-m.n(LREF-d))/(2*d);P.ng=ng;
+    setHTML("rVs",ltr('n = '+(n<1.01?n.toFixed(6):n.toFixed(4)))+' ב־'+ltr('589 nm'));
+    setText("nVg",(1/ng).toFixed(3)+"c");setText("nThMax",(Math.acos(1/n)*180/Math.PI).toFixed(1)+"°");
+    setText("tblH",'סף הפליטה '+m.inName);setHTML("medHint",m.note,true);
+    const gth=n/Math.sqrt(n*n-1),n3=m.n(300),g3=n3/Math.sqrt(n3*n3-1);
+    $("tbl").innerHTML=Object.values(PARTS).map(p=>'<tr><td class="p">'+p.long+' '+ltr(p.name)+'</td><td class="n">'+fmtE(p.m)+'</td><td class="n">'+fb(1/n)+'</td><td class="n">'+gth.toFixed(4)+'</td><td class="n">'+fmtE(p.m*(gth-1))+'</td><td class="n">'+fmtE(p.m*(g3-1))+'</td></tr>').join("");
+    let hint=S.mode==="accel"?T.hAccel:S.mode==="const"?T.hConst:'האטה פיזיקלית, לפי dE/dx, '+PARTS[S.part].of+' '+m.inName+', במסלול ישר.';
+    if(P.unit)hint+=' '+'אורך המסלול: '+fmtLen(P.unit.track)+'.';
+    setText("modeHint",hint,true);
+    setText("betaLbl",S.mode==="accel"?T.bPeak:S.mode==="const"?T.bConst:T.bEntry,true);
+    // key time points
+    const keys=[[T.kStart,0]];
+    if(P.tOn!==null&&P.tOn>0)keys.push([T.kThr,P.tOn]);
+    if(P.tOn!==null){const tc=P.tOff!==null?(P.tOn+P.tOff)/2:P.tOn+0.65*(P.T-P.tOn);keys.push([T.kCone,tc]);}
+    if(P.tOff!==null)keys.push([T.kBelow,P.tOff]);
+    keys.push([T.kEnd,P.T]);
+    $("keys").innerHTML="";
+    keys.forEach(k=>{const bt=document.createElement("button");bt.type="button";bt.className="key";bt.innerHTML='<b>'+k[0]+'</b> '+ltr(fmtT(k[1]));bt.onclick=()=>{setPlaying(false);S.t=k[1];draw();update();};$("keys").appendChild(bt);});
+  }
+  function rebuild(keepFrac){
+    const f=S.t/(P?P.T:1);build();S.t=keepFrac?Math.min(P.T,f*P.T):S.t;setView();staticUI();lastSpecB=-1;draw();update();
+  }
+  function setPlaying(p){S.playing=p;S.hold=0;
+    $("play").setAttribute("aria-label",p?T.pause:T.play);$("playTxt").textContent=p?T.pause:T.play;
+    $("playIco").innerHTML=p?'<rect x="2" y="1" width="3" height="10"/><rect x="7" y="1" width="3" height="10"/>':'<path d="M2 1 L11 6 L2 11 Z"/>';}
+  $("play").onclick=()=>{if(!S.playing&&S.t>=P.T-1e-9)S.t=0;setPlaying(!S.playing);};
+  $("scrub").addEventListener("input",e=>{setPlaying(false);S.t=e.target.value/1000*P.T;draw();update();});
+  function seg(id,key,num,after){const el=$(id);el.addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;
+    el.querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed",x===b?"true":"false"));S[key]=num?+b.dataset.v:b.dataset.v;after&&after();});}
+  seg("segMode","mode",false,()=>{S.t=0;rebuild(false);setPlaying(true);});
+  seg("segPart","part",false,()=>rebuild(true));
+  seg("segSpeed","speed",true);
+  $("medium").addEventListener("change",e=>{S.med=e.target.value;rebuild(true);});
+  const BX0=-Math.log10(0.7),BX1=5;
+  const u2b=u=>1-Math.pow(10,-(BX0+(BX1-BX0)*u/1000));
+  $("beta").addEventListener("input",e=>{S.B=u2b(+e.target.value);$("betaOut").textContent=fb(S.B);rebuild(true);});
+  ["Shells","Rays","Labels"].forEach(k=>$("t"+k).addEventListener("change",e=>{S[k.toLowerCase()]=e.target.checked;draw();}));
+  // drag to scrub
+  let drag=null;
+  box.addEventListener("pointerdown",e=>{drag={x:e.clientX,t:S.t,was:S.playing};setPlaying(false);try{box.setPointerCapture(e.pointerId);}catch(x){}});
+  box.addEventListener("pointermove",e=>{if(!drag)return;S.t=Math.min(P.T,Math.max(0,drag.t+(e.clientX-drag.x)/W*P.T*0.9));draw();update();});
+  const end=()=>{drag=null;};box.addEventListener("pointerup",end);box.addEventListener("pointercancel",end);
+  ctx.onKey((e,t)=>{if(e.altKey||e.ctrlKey||e.metaKey)return;if(t&&t.matches&&t.matches("input,select,button,textarea,summary,a"))return;
+    if(e.code==="Space"){e.preventDefault();$("play").click();}});
+
+  // loop
+  let last=performance.now();
+  function frame(now){
+    const dt=Math.min(0.05,(now-last)/1000);last=now;
+    if(S.playing){
+      if(S.t>=P.T){S.hold+=dt;if(S.hold>1.4){S.t=0;S.hold=0;}}
+      else S.t=Math.min(P.T,S.t+dt*S.speed*P.T/10);
+      draw();update();
+    }
+  }
+  build();
+  S.t=P.T*0.8;
+  setPlaying(!reduce);
+  // the static prose: formulas inside the Hebrew read left to right
+  if(ctx.rtl)root.querySelectorAll('.lead,.spec-side p,.note p,.hint,footer,th,.ro dt,.ro small:not(.f),.unit').forEach(el=>ctx.fixMath(el));
+  ctx.observe(box,()=>{resize();rs();});
+  ctx.observe(sc,()=>rs());
+  staticUI();resize();rs();update();
+  if(document.fonts&&document.fonts.ready)document.fonts.ready.then(()=>{if(!ctx.alive())return;lastSpecB=-1;draw();update();});
+  ctx.loop(frame);
+}
+// ==== LAB:CHERENKOV END
 
 // ══════════════════════════════════════════════
 // EVENT HANDLERS
@@ -42638,6 +43794,7 @@ window.toggleTheme=function(){
   applyTheme(next);
   ensureContrast();
   ['formula-panel','changelog-panel','mobile-drawer'].forEach(function(i){var e=document.getElementById(i);if(e)ensureContrast(e);});
+  _xlabTheme();
   // (applyTheme updates the button's icon and label)
 };
 
@@ -42802,6 +43959,13 @@ function closeOnboarding(){
 // KEYBOARD SHORTCUTS
 // ══════════════════════════════════════════════════════════════════
 document.addEventListener('keydown',function(e){
+  // An open enrichment lab owns the keyboard (its own listener ran first, in
+  // the capture phase): Escape it did not use is one step back, and no key
+  // reaches the course hidden behind it.
+  if(_xlabOpen()&&!document.getElementById('onboard-overlay')){
+    if(e.key==='Escape'&&!e.defaultPrevented)window.xlabBack();
+    return;
+  }
   var tag=e.target.tagName;
   // Typing belongs to the field: a capital F in an answer used to open the
   // formula sheet (Shift+F) and a capital D flipped the theme. A slider and a
@@ -42852,6 +44016,8 @@ document.addEventListener('keydown',function(e){
     case 'F': if(e.shiftKey){e.preventDefault();openFormulaPanel();} break;
     // Shift+D → toggle theme
     case 'D': if(e.shiftKey){e.preventDefault();window.toggleTheme();} break;
+    // Shift+L → the enrichment labs
+    case 'L': if(e.shiftKey){e.preventDefault();window.openLabs();} break;
   }
 },false);
 
@@ -42960,13 +44126,14 @@ function showSimTooltip(desc){
 }
 
 window.resetAllProgress=function(){
-  if(!confirm('למחוק את כל ההתקדמות — XP, חידונים, בעיות וסימוני הנושאים? אי אפשר לשחזר.')) return;
+  if(!confirm('למחוק את כל ההתקדמות — XP, חידונים, בעיות, סימוני הנושאים והמעגל השמור בשולחן המעגלים? אי אפשר לשחזר.')) return;
   state.xp=0; state.completed={}; state.quizState={};
   state.problemState={}; state.visited={}; state.lastPos={}; state.missions={}; _quizHints={};
   _ls.del(SAVE_KEY);
   // the sim tips already shown are a record of where the learner has been
   // (on a shared school computer, for the next one to read): they go too
-  try{Object.keys(window.localStorage).forEach(function(k){if(/^simtip_/.test(k))_ls.del(k);});}catch(e){}
+  // ...and what an enrichment lab kept (the circuit on the bench)
+  try{Object.keys(window.localStorage).forEach(function(k){if(/^(simtip_|phys_lab_)/.test(k))_ls.del(k);});}catch(e){}
   _lastChapterSummaryShown='';
   closeDrawer();
   render();
@@ -42981,6 +44148,8 @@ _applyHash();
 _validPos();
 createFormuleFAB();
 render();
+// a link to an enrichment lab (#/labs/…) opens it over the course
+_xlabRoute();
 // Show onboarding on very first visit
 if(!_ls.get('phys_onboarded'))showOnboarding();
 </script>
