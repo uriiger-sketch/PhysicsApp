@@ -15,10 +15,12 @@ leaves the device.
 | `phys_onboarded` | That the welcome tour was seen |
 | `simtip_<chapter>.<section>` | That a simulation's tip was shown |
 | `phys_simpin` | Whether a simulation's diagram stays pinned to the top of a phone's screen (📌) |
+| `phys_lab_circuit-bench` | The circuit on the Circuit Bench (the enrichment lab): its parts, their values and places, and the view's settings |
 
 **To erase it:**
 - **↺ Reset progress** (״איפוס ההתקדמות״), at the foot of the topics list,
-  erases progress, typed answers and the tip record.
+  erases progress, typed answers, the tip record and the circuit kept by the
+  Circuit Bench.
 - Clearing the site's data in the browser erases everything.
 
 On a shared computer, use reset before leaving, or use a private window.

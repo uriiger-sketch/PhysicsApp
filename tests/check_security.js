@@ -226,7 +226,9 @@ function staticChecks(name, src, isApp) {
 
   // ── 4. hostile addresses go nowhere
   for (const h of ['#/__proto__/constructor/quiz', '#/constructor/prototype', '#/%3Cimg%20src=x%20onerror=window.__pwn=1%3E/a/theory',
-    `#/${sec.c}/${sec.s}/quiz"><svg onload=window.__pwn=1>`, '#/' + 'a'.repeat(5000) + '/b']) {
+    `#/${sec.c}/${sec.s}/quiz"><svg onload=window.__pwn=1>`, '#/' + 'a'.repeat(5000) + '/b',
+    // the enrichment labs' addresses (#/labs/<id>) take a lab's id and nothing else
+    '#/labs/__proto__', '#/labs/constructor', '#/labs/%3Cimg%20src=x%20onerror=window.__pwn=1%3E']) {
     // followed on the page (popstate), then opened afresh (boot)
     for (const how of ['followed', 'opened']) {
       if (how === 'opened') await p.goto('about:blank');

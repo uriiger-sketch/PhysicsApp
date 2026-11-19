@@ -34,6 +34,12 @@ summary:
   reaches HTML only escaped.
 - **No requests to Google.** No page address is sent to any site
   (`no-referrer`).
+- **The enrichment labs** are part of the same page, under the same policy:
+  each runs in a shadow root, loads nothing and sends nothing, and an address
+  `#/labs/<id>` opens a lab only by its exact id. One lab keeps something on
+  the device (the circuit on the Circuit Bench, `phys_lab_circuit-bench`): it
+  is read back as untrusted input, rebuilt field by field, and "reset
+  progress" erases it.
 - **The build:** a translation cannot add markup or code to a generated
   edition.
 - **CI:**
@@ -44,7 +50,9 @@ summary:
   - a secret scan of the tree.
 
 Every one of these is an invariant checked by `tests/check_security.js`
-(on both editions) and by CI. The repeatable review procedure is the
+(on both editions) and by CI; the labs' own (their addresses, the poisoned
+circuit record, no request and no CSP violation from any lab) by
+`tests/check_labs.js`. The repeatable review procedure is the
 `security-sweep` skill in `.claude/skills/security-sweep/`.
 
 ## Owner checklist (settings outside the code)

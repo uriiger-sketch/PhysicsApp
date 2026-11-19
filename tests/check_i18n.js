@@ -108,6 +108,34 @@ const HOOK = `(() => {
     }, [act, SCAN.toString()]);
     note('panel ' + act, r);
   }
+  // the enrichment labs: the list, then every lab -- the text and labels of
+  // its own shadow root (which the scan above does not enter) and every
+  // string it draws
+  const labIds = await p.evaluate(() => (typeof _xlabList === 'function' ? _xlabList().map(L => L.id) : []));
+  const SHADOW = () => {
+    const HEB = /[֐-׿]/, out = [], host = document.getElementById('xlab-host'), root = host && host.shadowRoot;
+    if (!root) return out;
+    root.querySelectorAll('details').forEach(d => { d.open = true; });
+    const w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT); let n;
+    while ((n = w.nextNode())) {
+      const t = n.textContent; if (!t || !t.trim()) continue;
+      const el = n.parentElement; if (!el || el.closest('script,style')) continue;
+      if (HEB.test(t)) out.push('text: ' + t.trim().slice(0, 70));
+      if (/⟦\d+⟧/.test(t)) out.push('placeholder: ' + t.trim().slice(0, 70));
+    }
+    root.querySelectorAll('[title],[aria-label],[placeholder],[alt]').forEach(el => {
+      for (const a of ['title', 'aria-label', 'placeholder', 'alt']) { const v = el.getAttribute(a); if (v && HEB.test(v)) out.push(a + ': ' + v.slice(0, 70)); }
+    });
+    return out;
+  };
+  for (const id of [null].concat(labIds)) {
+    await p.evaluate(i => { window.__cv = []; if (i) openLab(i); else openLabs(); }, id);
+    await p.waitForTimeout(id ? 1500 : 300);
+    await p.evaluate(() => { document.querySelectorAll('#xlab-overlay details').forEach(d => { d.open = true; }); });
+    note('labs ' + (id || '(the list)'), (await p.evaluate(SHADOW)).concat(await p.evaluate(SCAN)));
+    views++;
+    await p.evaluate(() => closeLabs()); await p.waitForTimeout(400);
+  }
   await b.close();
 
   const keys = Object.keys(found);

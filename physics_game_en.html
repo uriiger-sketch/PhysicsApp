@@ -41411,31 +41411,50 @@ var XLABS=[
    title:`Circuit Bench`,
    sub:`Build your own circuit from batteries, resistors, capacitors, switches, and diodes, and measure every voltage, current, and power in it — even while a capacitor charges and discharges.`,
    ask:`What happens to the current in each branch when you add a resistor in parallel? Predict, build, and check.`,
-   tie:`DC circuits — Ohm’s law, series and parallel connections, Kirchhoff’s laws, a capacitor in a circuit`},
+   tie:`DC circuits — Ohm’s law, series and parallel connections, Kirchhoff’s laws, a capacitor in a circuit`,
+   kw:`electric circuit battery resistor capacitor diode switch voltage current power Ohm Kirchhoff`},
   {id:'whichway',icon:'🧭',fill:false,dark:true,
    run:typeof _xlabWhichWay==='function'?_xlabWhichWay:null,
    title:`Which Way Am I Moving?`,
    sub:`Five motions, one vector: Earth’s spin, its orbit around the Sun, the Sun’s motion among the stars, the Galaxy’s rotation, and its motion relative to the cosmic microwave background — computed for the place and the moment you choose.`,
    ask:`How fast, and toward which point in the sky, are you moving right now?`,
-   tie:`Mechanics — vector addition, circular motion, gravitation and satellites · Optics — the Doppler effect`},
+   tie:`Mechanics — vector addition, circular motion, gravitation and satellites · Optics — the Doppler effect`,
+   kw:`velocity speed Earth Sun Galaxy Milky Way cosmic microwave background CMB vector Universe`},
   {id:'merger',icon:'🌀',fill:false,dark:true,
    run:typeof _xlabMerger==='function'?_xlabMerger:null,
    title:`Binary Black Hole Merger`,
    sub:`Two black holes orbit each other, spiral inward, and merge. The orbit, the gravitational wave that reaches Earth, and the black hole left behind are computed in your browser, for events that were actually measured.`,
    ask:`Why does the wave’s frequency rise as the holes approach — and how much mass becomes wave energy?`,
-   tie:`Mechanics — gravitation and satellites, Kepler’s laws, gravitational energy`},
+   tie:`Mechanics — gravitation and satellites, Kepler’s laws, gravitational energy`,
+   kw:`black hole gravitational waves LIGO general relativity Einstein event horizon`},
   {id:'collapse',icon:'💥',fill:false,dark:false,
    run:typeof _xlabCollapse==='function'?_xlabCollapse:null,
    title:`Countdown to Core Collapse`,
    sub:`The life of a massive star, from hydrogen burning to the supernova: at every stage the core fuses a heavier fuel, hotter and in more of a hurry — until the iron core collapses in under a second.`,
    ask:`Why does fusion release energy up to iron — and not beyond it?`,
-   tie:`Photons, atoms, and nuclei — fusion, binding energy, radioactive decay · Mechanics — gravitation`},
+   tie:`Photons, atoms, and nuclei — fusion, binding energy, radioactive decay · Mechanics — gravitation`,
+   kw:`supernova star nuclear fusion iron neutrino neutron star`},
   {id:'cherenkov',icon:'🔵',fill:false,dark:true,
    run:typeof _xlabCherenkov==='function'?_xlabCherenkov:null,
    title:`Cherenkov Cone Lab`,
    sub:`A charged particle crosses water faster than light does there, and a cone of blue light forms — like the sonic boom of an airplane. Change the particle’s speed and the medium, and see when the cone opens.`,
    ask:`Can anything outrun light? And at what speed does an electron in water start to glow?`,
-   tie:`Optics — the speed of light and the refractive index, wavefronts and Huygens’ principle, constructive interference`}
+   tie:`Optics — the speed of light and the refractive index, wavefronts and Huygens’ principle, constructive interference`,
+   kw:`Cherenkov Cerenkov radiation speed of light refractive index shock wave sonic boom`,
+   tasks:[
+    [`Set the motion to “Constant” and lower β until the cone disappears. At what speed does that happen in water — and why exactly there?`,
+     `The cone disappears when nβ drops below 1, that is, when β is less than 1/n = 0.750: exactly the speed of light in water, c/n. A slower particle does not catch up with the waves it creates; each shell encloses all the later ones, and they have no common envelope.`],
+    [`Set β = 0.95 in water and read the photon angle θc. Compute it yourself from cos θc = 1/(nβ). What is the largest angle possible in water?`,
+     `cos θc = 1/(1.333 · 0.95) = 0.79, so θc ≈ 38°, as the readout shows. The angle grows with speed, and the limit is reached as β approaches 1: cos θc = 1/n, so θc = 41.4°. A particle cannot move faster than c, so no cone is wider than that.`],
+    [`Replace the water with diamond, and then with air. What happens to the threshold speed and to the cone angle, and why?`,
+     `In diamond, n = 2.42: light is much slower there (c/n ≈ 0.41c), so a speed of β ≈ 0.41 is enough to exceed it, and the angle reaches 65.6°. In air, n = 1.0003: light is hardly slowed, the threshold is β ≈ 0.9997, and the cone is very narrow — θc is less than 1.4°. The larger the refractive index, the lower the threshold and the wider the cone.`],
+    [`Look at the spectrum plot. At which end of the visible range are more photons emitted — the red or the violet? Estimate by what factor.`,
+     `The number of photons per nanometer grows as 1/λ². At 400 nm about (700/400)² ≈ 3 times as many photons are emitted as at 700 nm — and a little more, because n also grows at short wavelengths. That is why the glow is blue-violet, and why most of it is emitted in the ultraviolet.`],
+    [`In the threshold table, an electron in water needs a kinetic energy of 262 keV to glow, and a proton needs 480 MeV. Why is the difference so large?`,
+     `The threshold is set by the speed, not by the energy: both particles must reach the same speed, β = 0.750. The proton’s mass is 1836 times the electron’s, so at the same speed its kinetic energy is 1836 times larger too.`],
+    [`How is the Cherenkov cone like the sonic boom of an airplane — and which limit is not exceeded here?`,
+     `In both cases the source of the waves moves faster than the waves it creates, and the spherical waves add up on an envelope shaped like a cone. The tip half-angle obeys sin φ = wave speed divided by source speed: 1/(nβ) here, and 1/M (M is the Mach number) for the airplane. But the speed of light in a vacuum, c, is not exceeded: the particle is faster only than light inside the medium, whose speed is c/n.`]
+   ]}
 ];
 function _xlabList(){return XLABS.filter(function(L){return typeof L.run==='function';});}
 function _xlabById(id){
@@ -42481,6 +42500,8 @@ window.navigate=(c,s)=>{
 // ══════════════════════════════════════════════════════════════════
 // SEARCH -- one field over every topic, term and formula of the course
 // ══════════════════════════════════════════════════════════════════
+// (The enrichment labs are found as well -- by name, by what their card says
+// and by a few keywords -- in a group of their own, after the course's.)
 // 107 topics in five subjects are more than a list shows at a glance. The
 // field at the head of the topic list finds a topic by its name, a term by
 // its definition, a formula by what it gives or by its letters ("f=ma"), and
@@ -42509,7 +42530,7 @@ function _sFoldF(x){return _sFold(x).replace(/[\s·⋅×*^−]/g,'');}
 function _sPlain(node){return (node.textContent||'').replace(/\s+/g,' ').trim();}
 function _searchIndex(){
   if(_searchIx)return _searchIx;
-  var ix={sec:[],def:[],frm:[],txt:[]};
+  var ix={sec:[],def:[],frm:[],txt:[],lab:[]};
   var L={mechanics:MECH_CHAPTERS,optics:OPTICS_CHAPTERS,electro:ELECTRO_CHAPTERS,circuits:DC_CHAPTERS,magnetism:MAG_CHAPTERS};
   // inert: a template runs no script and loads nothing
   var tpl=function(html){var d=document.createElement('template');
@@ -42544,6 +42565,11 @@ function _searchIndex(){
       ix.txt.push({at:at,text:text,fX:_sFold(text)});
     });
   });});
+  _xlabList().forEach(function(Lb){
+    var title=_sPlain(tpl(Lb.title)),sub=_sPlain(tpl(Lb.sub));
+    ix.lab.push({id:Lb.id,icon:Lb.icon,title:title,sub:sub,fT:_sFold(title),
+      fX:_sFold(sub+' '+_sPlain(tpl(Lb.ask))+' '+_sPlain(tpl(Lb.tie))+' '+(Lb.kw||''))});
+  });
   return (_searchIx=ix);
 }
 // Every word of the query must be found. Topics come first -- by title, then
@@ -42557,7 +42583,7 @@ function _searchFind(q){
   if(fq.replace(/ /g,'').length<2)return null;
   var ix=_searchIndex(),w0=words[0];
   var all=function(h){for(var i=0;i<words.length;i++)if(h.indexOf(words[i])<0)return false;return true;};
-  var out={words:words,sec:[],def:[],frm:[],txt:[]},listed={};
+  var out={words:words,sec:[],def:[],frm:[],txt:[],lab:[]},listed={};
   ix.sec.forEach(function(e){
     var r=all(e.fT)?(e.fT.indexOf(w0)===0?0:1):all(e.fT+' '+e.fS)?2:all(e.fC+' '+e.fT+' '+e.fS)?3:-1;
     if(r<0)return;
@@ -42573,9 +42599,10 @@ function _searchFind(q){
     if(r>=0)out.frm.push({e:e,r:r});
   });
   ix.txt.forEach(function(e){if(!listed[e.at.c+'.'+e.at.s]&&all(e.fX))out.txt.push({e:e,r:0});});
+  ix.lab.forEach(function(e){var r=all(e.fT)?0:all(e.fT+' '+e.fX)?1:-1;if(r>=0)out.lab.push({e:e,r:r});});
   // (sort is stable: within a rank the course's own order is kept)
-  ['sec','def','frm'].forEach(function(k){out[k].sort(function(a,b){return a.r-b.r;});});
-  out.n=out.sec.length+out.def.length+out.frm.length+out.txt.length;
+  ['sec','def','frm','lab'].forEach(function(k){out[k].sort(function(a,b){return a.r-b.r;});});
+  out.n=out.sec.length+out.def.length+out.frm.length+out.txt.length+out.lab.length;
   return out;
 }
 // the text, escaped, with the query's words marked
@@ -42607,7 +42634,7 @@ function _searchHTML(q){
     return '<div class="sr-none">'+tNone+'</div>';
   }
   var W=res.words,subj={};_S_SUBJ.forEach(function(x){subj[x[0]]=x[1];});
-  var tTopics=`Topics`,tTerms=`Terms and definitions`,tFormulas=`Formula sheet`,tText=`In the text`;
+  var tTopics=`Topics`,tTerms=`Terms and definitions`,tFormulas=`Formula sheet`,tText=`In the text`,tLabs=`Enrichment labs`;
   var where=function(at){return subj[at.subj]+' · '+_escHtml(at.ch);};
   var dot=function(at){var done=isCompleted(at.c,at.s,'problem'),seen=!!state.visited[at.c+'.'+at.s];
     return '<span class="sec-dot '+(done?'done':seen?'seen':'fresh')+'"></span>';};
@@ -42632,6 +42659,10 @@ function _searchHTML(q){
   if(res.txt.length)html+=group(tText)+cap(res.txt,8,function(x){var e=x.e;
     return '<button class="sec-btn sr-hit'+here(e.at)+'"'+go(e.at)+'><span class="sr-ic" aria-hidden="true">📄</span><span class="sr-main"><span class="sr-t">'+_escHtml(e.at.title)+'</span>'+
       '<span class="sr-sub">'+_sSnip(e.text,e.fX,W)+'</span></span></button>';});
+  // (a lab's id is the app's own: letters, digits and hyphens)
+  if(res.lab.length)html+=group(tLabs)+res.lab.map(function(x){var e=x.e;
+    return '<button class="sec-btn sr-hit sr-lab" onclick="_searchLab(\''+e.id+'\',this)"><span class="sr-ic" aria-hidden="true">🔭</span><span class="sr-main"><span class="sr-t">'+_sMark(e.title,W)+'</span>'+
+      '<span class="sr-sub">'+_sMark(e.sub,W)+'</span></span></button>';}).join('');
   return html;
 }
 function _searchBox(){
@@ -42701,6 +42732,11 @@ window._searchNav=function(e){
   if(e.key==='ArrowDown'){if(hits[i+1])hits[i+1].focus();}
   else if(i>0)hits[i-1].focus();
   else{var root=_searchRoot(box),inp=root&&root.querySelector('.ts-inp');if(inp)inp.focus();}
+};
+// Opens the lab a result names (in the drawer the search is over, as for a topic).
+window._searchLab=function(id,el){
+  if(el&&el.closest&&el.closest('#mobile-drawer')){_searchQ='';clearTimeout(_searchSay);}
+  window.openLab(id);
 };
 // Opens the topic a result names, in whichever subject it is, and brings the
 // definition or formula that was found into view.
