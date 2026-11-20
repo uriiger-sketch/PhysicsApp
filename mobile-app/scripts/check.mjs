@@ -11,7 +11,8 @@
 // device's language; each edition typesets with the app's own KaTeX, breaks no
 // rule of its CSP, throws nothing, reaches for no other site, hides 🖨, opens
 // no window; 🌐 keeps the topic; topics and tabs go into the history (the
-// Android back button walks it); the sensor lab has the secure context it needs.
+// Android back button walks it); the sensor lab has the secure context it
+// needs; every enrichment lab opens and draws, and "back" closes it.
 
 import fs from 'node:fs';
 import path from 'node:path';
@@ -133,6 +134,21 @@ for (const [lang, file] of Object.entries(EDITIONS)) {
     await s.page.evaluate((h) => { location.hash = h; }, '#/' + route);
     await s.page.waitForTimeout(700);
     t(`${file}: ${route} drawn`, await s.page.evaluate(() => { const c = document.getElementById('sim-canvas'); return !!c && c.width > 0; }));
+  }
+
+  // the enrichment labs: each opens offline, under the app's CSP, and draws;
+  // the back button -- Android's -- closes it and returns to the course
+  const labs = await s.page.evaluate(() => _xlabList().map((L) => L.id));
+  t(`${file}: the five enrichment labs are in the app`, labs.length === 5, labs.join(' '));
+  for (const id of labs) {
+    await s.page.evaluate((i) => openLab(i), id);
+    await s.page.waitForTimeout(1300);
+    const lab = await s.page.evaluate(() => { const h = document.getElementById('xlab-host'), r = h && h.shadowRoot;
+      return { open: _xlabOpen(), kids: r ? r.children.length : 0, canvases: r ? r.querySelectorAll('canvas').length : 0 }; });
+    t(`${file}: lab ${id} opens and draws`, lab.open && lab.kids >= 2 && lab.canvases > 0, JSON.stringify(lab));
+    await s.page.goBack();
+    await s.page.waitForTimeout(600);
+    t(`${file}: back closes lab ${id}`, await s.page.evaluate(() => !_xlabOpen() && /^#\/[\w-]+\/[\w-]+\/\w+$/.test(location.hash)));
   }
 
   // 🌐: the other edition, same topic and tab
