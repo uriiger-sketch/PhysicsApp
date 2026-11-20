@@ -34,6 +34,11 @@ const t = (name, ok, info) => {
   else if (process.env.VERBOSE) console.log(`   PASS ${name}`);
 };
 const near = (a, b, tol) => Math.abs(a - b) <= tol;
+// the number a readout opens with: a true minus sign, a no-break space before the unit
+const num = x => parseFloat(String(x).replace(/\u2212/g, '-').replace(/\u00A0/g, ' ').trim());
+// a quantity with an SI prefix ("−48.0 mW", "2.500 mJ", "0 J") in its base unit
+const SI = { f: 1e-15, p: 1e-12, n: 1e-9, '\u00B5': 1e-6, m: 1e-3, '': 1, k: 1e3, M: 1e6, G: 1e9 };
+const qty = x => { const m = /^([+-]?[\d.]+)\s*([fpn\u00B5mkMG]?)[A-Za-z\u03A9]\b/.exec(String(x).replace(/\u2212/g, '-').replace(/\u00A0/g, ' ').trim()); return m ? parseFloat(m[1]) * SI[m[2]] : NaN; };
 
 // what every page gets: the welcome tour off, CSP violations and canvas text recorded,
 // animation frames counted
@@ -80,10 +85,11 @@ const SCAN = () => {
 // screen, and a short number-and-unit must not be torn across two lines
 const BIDI = () => {
   const host = document.getElementById('xlab-host'), root = host && host.shadowRoot;
-  const HEB = /[֐-׿]/;
+  const HEB = /[\u0590-\u05FF]/;
   const A = 'A-Za-z0-9\\u00B5\\u0370-\\u03FF\\u2070-\\u209F\\u00B2\\u00B3\\u00B9\\u00B0%\\u2032\\u2033\\u210F\\u2609\\u2295\\u263E';
-  const SEQ = new RegExp('[' + A + '(\\[|][' + A + ' \\u00A0()\\[\\]{}.,:;=\\u2248\\u2260<>\\u2264\\u2265\\u00B1\\u00D7\\u00B7*/^_|\\u221A\\u221D\\u2192+\\-\\u2212\\u2013\\u223C~\\u2019\']*[' + A + ')\\]|]', 'g');
-  const core = new RegExp('[' + A + ']'), out = [];
+  const OPS = '=\\u2248\\u2260<>\\u2264\\u2265\\u00B1\\u00D7\\u00B7*/^_|\\u221A\\u221D\\u2192+\\-\\u2212\\u2013\\u223C~';
+  const SEQ = new RegExp('[' + A + '(\\[|<>\\u2264\\u2265\\u2248\\u2212\\u00B1\\u221A][' + A + ' \\u00A0()\\[\\]{}.,:;' + OPS + '\\u2019\']*[' + A + ')\\]|]', 'g');
+  const JOINED = new RegExp('[ \\u00A0(' + OPS + ']'), core = new RegExp('[' + A + ']'), out = [];
   document.querySelectorAll('#xlab-overlay details').forEach(d => { d.open = true; });
   if (root) root.querySelectorAll('details').forEach(d => { d.open = true; });
   const scan = (r, where) => {
@@ -98,17 +104,19 @@ const BIDI = () => {
       SEQ.lastIndex = 0; let m;
       while ((m = SEQ.exec(s0))) {
         const s = m[0].replace(/[ .,:;]+$/, ''); if (s.length < 3) continue;
-        if (!/[  =≈<>≤≥±×·*/^+\-−–(]/.test(s.slice(1))) continue;
-        let i0 = 0, i1 = s.length - 1;
-        while (i0 < i1 && !core.test(s[i0])) i0++;
-        while (i1 > i0 && !core.test(s[i1])) i1--;
-        if (i1 - i0 < 2) continue;
-        const a = m.index + i0, z = m.index + i1, rg = document.createRange();
-        rg.setStart(n, a); rg.setEnd(n, a + 1); const ra = rg.getClientRects()[0];
-        rg.setStart(n, z); rg.setEnd(n, z + 1); const rz = rg.getClientRects()[0];
-        if (!ra || !rz || (!ra.width && !rz.width)) continue;
-        if (Math.abs(ra.top - rz.top) > 4) { if (s.length <= 14 && /^[\d.,−-]+[  ]*[°µA-Za-zΩ%]/.test(s)) out.push(where + ' torn «' + s + '»'); continue; }
-        if (ra.left > rz.left + 1) out.push(where + ' reversed «' + s + '» in «' + s0.trim().slice(0, 50) + '»');
+        // one word cannot be put out of order; a run that opens with a sign or a comparison can
+        if (!JOINED.test(s.slice(1)) && !/^[<>\u2264\u2265\u2248\u2212\u00B1]/.test(s)) continue;
+        const rg = document.createRange(), pts = [];
+        for (let i = 0; i < s.length; i++) {
+          if (!core.test(s[i])) continue;
+          rg.setStart(n, m.index + i); rg.setEnd(n, m.index + i + 1);
+          const b = rg.getClientRects()[0]; if (b && b.width) pts.push([b.left, b.top]);
+        }
+        if (pts.length < 2) continue;
+        let torn = false, rev = false;
+        for (let i = 1; i < pts.length; i++) { if (Math.abs(pts[i][1] - pts[i - 1][1]) > 4) { torn = true; continue; } if (pts[i][0] < pts[i - 1][0] - 0.5) rev = true; }
+        if (rev) out.push(where + ' reversed «' + s + '» in «' + s0.trim().slice(0, 50) + '»');
+        else if (torn && s.length <= 14 && /^[\d.,\u2212-]+[ \u00A0]*[\u00B0\u00B5A-Za-z\u03A9%]/.test(s)) out.push(where + ' torn «' + s + '»');
       }
     }
   };
@@ -175,6 +183,109 @@ const PHYSICS = {
     for (const m of ['water', 'd2o', 'ice', 'silica', 'sf6', 'diamond', 'aerogel', 'air'])
       for (const md of ['accel', 'const', 'stop']) { await set(m, md, 600, 0.5); await p.waitForTimeout(40); }
     await set('water', 'accel', 237, 0.8);
+    return rows;
+  },
+
+  // The bench is driven the way a learner drives it: a circuit is loaded as text ("Load a circuit
+  // from text"), and the numbers are read from the circuit's own summary -- the power of every part
+  // and the energy since the reset.
+  async 'circuit-bench'(p) {
+    const rows = [];
+    const load = async (text, wait) => {
+      await p.evaluate(tx => { const r = document.getElementById('xlab-host').shadowRoot;
+        r.querySelector('#btn-more').click(); r.querySelector('#menu-paste').click();
+        r.querySelector('#paste-text').value = tx; r.querySelector('#paste-do').click(); }, text);
+      await p.waitForTimeout(wait || 450);
+    };
+    const read = () => p.evaluate(() => { const r = document.getElementById('xlab-host').shadowRoot, o = { pw: {}, led: [] };
+      const bc = r.querySelector('#btn-circuit'); o.bad = bc.classList.contains('bad'); o.loaded = r.querySelector('#modal').hidden;
+      r.querySelectorAll('.pw .pwrow').forEach(e => { o.pw[e.querySelector('b').textContent] = e.querySelector('em').textContent; });
+      r.querySelectorAll('dl.ledger dd').forEach(e => o.led.push(e.textContent));
+      o.sum = [...r.querySelectorAll('.pwsum b')].map(e => e.textContent); return o; });
+    const P = (v, id) => qty(v.pw[id]);
+    const DIV = c => `battery B1 0,0 0,6 emf=12 r=0\nresistor R1 0,0 5,0 R=1k\nresistor R2 5,0 5,6 R=2k\nwire W1 5,6 0,6\nswitch S1 5,0 9,0 closed=${c}\nresistor R3 9,0 9,6 R=1k\nwire W2 9,6 5,6`;
+    // a voltage divider: 12 V across 1 kΩ + 2 kΩ
+    await load(DIV(0)); let v = await read();
+    rows.push(['circuit bench: a circuit loads from text', v.loaded && Object.keys(v.pw).length === 3, JSON.stringify(v.pw)]);
+    rows.push(['circuit bench: divider, 12 V over 1 kΩ + 2 kΩ gives 4 V and 8 V (16 mW and 32 mW)', near(P(v, 'R1'), 0.016, 1e-4) && near(P(v, 'R2'), 0.032, 1e-4) && near(P(v, 'B1'), -0.048, 1e-4), JSON.stringify(v.pw)]);
+    rows.push(['circuit bench: what the source delivers is what the parts absorb (Σp = 0)', qty(v.sum[0]) === qty(v.sum[1]) && near(qty(v.sum[0]), 0.048, 1e-5), v.sum.join(' = ')]);
+    // the same divider under a 1 kΩ load: Thévenin 8 V behind 667 Ω, so 4.8 V on the load
+    await load(DIV(1)); v = await read();
+    rows.push(['circuit bench: loaded divider sags to 4.8 V (23.0 mW in the 1 kΩ load)', near(P(v, 'R3'), 4.8 * 4.8 / 1000, 1e-4) && near(P(v, 'R2'), 4.8 * 4.8 / 2000, 1e-4) && near(P(v, 'R1'), 7.2 * 7.2 / 1000, 1e-4), JSON.stringify(v.pw)]);
+    // a real battery: ε = 9 V, r = 2.2 Ω; the load's power peaks at R = r, where it is ε²/4r
+    const BAT = R => `battery B1 0,0 0,6 emf=9 r=2.2\nwire W1 0,0 8,0\nresistor R1 8,0 8,6 R=${R}\nwire W2 8,6 0,6`;
+    const pr = {}; for (const R of [15, 2.2, 1, 5]) { await load(BAT(R), 300); pr[R] = P(await read(), 'R1'); }
+    rows.push(['circuit bench: real battery, I = ε/(R + r): 4.11 W in 15 Ω', near(pr[15], 15 * Math.pow(9 / 17.2, 2), 0.006), pr[15]]);
+    rows.push(['circuit bench: the load takes the most power when R = r, ε²/4r = 9.20 W', near(pr[2.2], 81 / 8.8, 0.006) && pr[1] < pr[2.2] && pr[5] < pr[2.2], JSON.stringify(pr)]);
+    // two ideal batteries of different emf on the same two points: no finite solution, and the bench says so
+    const TWO = r => `battery B1 0,0 0,6 emf=9 r=0\nwire W4 0,0 4,0\nbattery B2 4,0 4,6 emf=6 r=${r}\nwire W1 4,6 0,6\nwire W2 4,0 8,0\nresistor R1 8,0 8,6 R=100\nwire W3 8,6 4,6`;
+    await load(TWO(0)); v = await read();
+    rows.push(['circuit bench: two unequal ideal batteries in parallel are reported as a fault, not solved', v.bad && !Object.keys(v.pw).length, JSON.stringify(v.pw)]);
+    await load(TWO(0.5)); v = await read();
+    rows.push(['circuit bench: with r = 0.5 Ω in the 6 V battery, 6 A flows backwards through it (54 W absorbed)', !v.bad && near(P(v, 'B2'), 54, 0.06) && near(P(v, 'R1'), 0.81, 0.002) && near(P(v, 'B1'), -54.81, 0.06), JSON.stringify(v.pw)]);
+    // a Wheatstone bridge: balanced when R1/R3 = R2/R4, and then nothing flows in the middle
+    const BR = R4 => `battery B1 -3,0 -3,8 emf=10 r=0\nwire W1 -3,0 4,0\nwire W2 4,8 -3,8\nresistor R1 4,0 0,4 R=1k\nresistor R2 4,0 8,4 R=1.5k\nresistor R3 0,4 4,8 R=2.2k\nresistor R4 8,4 4,8 R=${R4}\nresistor R5 0,4 8,4 R=100`;
+    await load(BR('3.3k')); v = await read(); const balanced = !('R5' in v.pw) && Object.keys(v.pw).length === 5;
+    await load(BR('2.2k')); v = await read();
+    rows.push(['circuit bench: Wheatstone bridge, no power in the middle arm at R4 = 3.3 kΩ, some at 2.2 kΩ', balanced && P(v, 'R5') > 1e-6, JSON.stringify(v.pw)]);
+    // a diode and a resistor: the operating point of the Shockley law on the load line
+    await load('battery B1 0,0 0,6 emf=5 r=0\nresistor R1 0,0 4,0 R=220\nwire W1 4,0 8,0\ndiode D1 8,0 8,6 Is=1p n=1 T=300\nwire W2 8,6 0,6'); v = await read();
+    let vd = 0.6; for (let k = 0; k < 60; k++) vd = 0.025852 * Math.log((5 - vd) / 220 / 1e-12 + 1);
+    rows.push(['circuit bench: diode operating point, i = Is(e^(v/VT) − 1) on the line i = (5 V − v)/R', near(P(v, 'D1'), vd * (5 - vd) / 220, 1e-4) && near(P(v, 'R1'), Math.pow(5 - vd, 2) / 220, 5e-4), JSON.stringify(v.pw) + ' v = ' + vd.toFixed(4)]);
+    await load('battery B1 0,0 0,6 emf=5 r=0\nresistor R1 0,0 4,0 R=220\nwire W1 4,0 8,0\ndiode D1 8,6 8,0 Is=1p n=1 T=300\nwire W2 8,6 0,6'); v = await read();
+    rows.push(['circuit bench: reversed, the diode passes only its saturation current (5 V × 1 pA)', near(P(v, 'D1'), 5e-12, 1e-13), JSON.stringify(v.pw)]);
+    // two capacitors joined by an ideal wire: charge is conserved, half of the energy is not
+    await load('capacitor C1 0,0 0,6 C=100u V0=10\nwire W3 0,0 4,0\nwire W1 4,0 8,0\ncapacitor C2 8,0 8,6 C=100u V0=0\nwire W2 8,6 0,6', 700); v = await read();
+    rows.push(['circuit bench: two 100 µF capacitors, 10 V and 0 V, share to 5 V: 5 mJ → 2.5 mJ, and 2.5 mJ is accounted for', near(qty(v.led[2]), -2.5e-3, 1e-6) && near(qty(v.led[3]), 2.5e-3, 1e-6), JSON.stringify(v.led)]);
+    // charging a capacitor to the end: of the work Cε² done by the battery, half is stored and half is heat, whatever R is
+    await load('battery B1 0,0 0,6 emf=9 r=0\nresistor R1 0,0 8,0 R=1k\ncapacitor C1 8,0 8,6 C=100u V0=0\nwire W1 8,6 0,6', 200);
+    await p.evaluate(() => { const r = document.getElementById('xlab-host').shadowRoot; for (let k = 0; k < 6; k++) r.querySelector('#btn-faster').click(); });
+    await p.waitForFunction(() => { const d = document.getElementById('xlab-host').shadowRoot.querySelectorAll('dl.ledger dd'); return d.length > 2 && /^8\.100\s*mJ/.test(d[0].textContent.replace(/\u00A0/g, ' ')); }, null, { timeout: 15000 }).catch(() => {});
+    v = await read();
+    rows.push(['circuit bench: charging through R, the battery does Cε² = 8.1 mJ of work; half is stored, half is heat', near(qty(v.led[0]), 8.1e-3, 2e-6) && near(qty(v.led[1]), 4.05e-3, 2e-6) && near(qty(v.led[2]), 4.05e-3, 2e-6), JSON.stringify(v.led)]);
+    // a part's name is text: markup in it is not HTML
+    await load('resistor <img/src=x/onerror=window.__pwn=1> 0,0 4,0 R=1k\nbattery B1 0,0 0,4 emf=9 r=0\nwire W1 0,4 4,4\nwire W9 4,4 4,0');
+    const h = await p.evaluate(() => { const r = document.getElementById('xlab-host').shadowRoot; return { pwn: window.__pwn, img: r.querySelectorAll('img').length }; });
+    rows.push(['circuit bench: markup in a pasted name runs nothing and builds no element', h.pwn === undefined && h.img === 0, JSON.stringify(h)]);
+    return rows;
+  },
+
+  async merger(p) {
+    const rows = [];
+    const pick = async k => { await p.evaluate(x => { const r = document.getElementById('xlab-host').shadowRoot, s = r.getElementById('preset'); s.value = x; s.dispatchEvent(new Event('change', { bubbles: true })); }, k); await p.waitForTimeout(550); };
+    const scrub = async f => { await p.evaluate(x => { const s = document.getElementById('xlab-host').shadowRoot.getElementById('scrub'); s.value = Math.round(+s.min + x * (s.max - s.min)); s.dispatchEvent(new Event('input', { bubbles: true })); }, f); await p.waitForTimeout(160); };
+    const read = () => p.evaluate(() => { const r = document.getElementById('xlab-host').shadowRoot, o = {};
+      for (const i of ['fM', 'fS', 'fE', 'fK', 'f220', 'sMc', 'sZ', 'areaTxt', 'rF', 'rR', 'rV', 'rE']) o[i] = r.getElementById(i).textContent;
+      o.m1 = +r.getElementById('m1').value; o.m2 = +r.getElementById('m2').value; return o; });
+    await pick('gw250114'); let v = await read();
+    const Mf = num(v.fM), af = num(v.fS), E = num(v.fE), z = num(v.sZ), M = v.m1 + v.m2, TS = 4.925491e-6;   // GM☉/c³ in seconds
+    rows.push(['merger: GW250114 leaves a 62.6 M☉ black hole of spin 0.69', near(Mf, 62.63, 0.05) && near(af, 0.686, 0.003), v.fM + ', ' + v.fS]);
+    rows.push(['merger: mass–energy balance, M_f + E/c² = m₁ + m₂', near(Mf + E, M, 0.02), `${Mf} + ${E} against ${M}`]);
+    rows.push(['merger: E = Δm·c²: 3.17 M☉ is 5.67×10⁴⁷ J', near(E * 1.98841e30 * Math.pow(299792458, 2), 5.67e47, 0.02e47) && /5\.6[67]×10⁴⁷ J/.test(v.fE), v.fE]);
+    const Mc = Math.pow(v.m1 * v.m2, 0.6) / Math.pow(M, 0.2), mc = v.sMc.split('/').map(num);
+    rows.push(['merger: chirp mass (m₁m₂)^(3/5)/(m₁+m₂)^(1/5), and (1+z) times that at the detector', near(mc[0], Mc, 0.01) && near(mc[1], Mc * (1 + z), 0.02), v.sMc + ' against ' + Mc.toFixed(2)]);
+    // the area of a Kerr horizon is 8π(GM/c²)²(1 + √(1 − χ²)): the remnant's against the sum of the two
+    const A = (m, c) => m * m * (1 + Math.sqrt(1 - c * c)), ar = A(Mf, af) / (A(v.m1, 0) + A(v.m2, 0)), shown = num(v.areaTxt.split('=')[1]);
+    rows.push(['merger: the horizon area grows (Hawking’s area theorem): A_f/(A₁+A₂) = 1.56', near(shown, ar, 0.003) && shown > 1, v.areaTxt + ' against ' + ar.toFixed(4)]);
+    // the ringdown's fundamental tone is the (2,2,0) mode of the remnant (Berti–Cardoso–Will fit), redshifted
+    const f220 = (1.5251 - 1.1568 * Math.pow(1 - af, 0.1292)) / (2 * Math.PI * Mf * TS) / (1 + z);
+    rows.push(['merger: the ringdown tone is the Kerr (2,2,0) mode of the remnant, 251 Hz at the detector', near(num(v.f220), f220, 0.005 * f220), v.f220 + ' against ' + f220.toFixed(1)]);
+    // the inspiral: a Keplerian orbit, radiating at twice its frequency
+    await scrub(0.3); v = await read();
+    const vc = num(v.rV), rg = num(v.rR.split('·')[1]), f = num(v.rF);
+    rows.push(['merger: the orbit is Keplerian, (v/c)² = GM/(rc²)', near(vc * vc * rg, 1, 0.012), v.rV + ', ' + v.rR]);
+    rows.push(['merger: the wave is at twice the orbital frequency, (v/c)³ = πGMf(1+z)/c³', near(Math.PI * M * TS * (1 + z) * f / Math.pow(vc, 3), 1, 0.03), v.rV + ', ' + v.rF]);
+    const fs = []; for (const x of [0, 0.2, 0.4, 0.6]) { await scrub(x); fs.push(num((await read()).rF)); }
+    rows.push(['merger: the frequency chirps upward as the orbit shrinks', fs[0] < fs[1] && fs[1] < fs[2] && fs[2] < fs[3], fs.join(' < ')]);
+    await scrub(1); v = await read();
+    rows.push(['merger: the energy radiated by the end is the mass deficit of the remnant', near(num(v.rE), E, 0.011), v.rE + ' against ' + v.fE]);
+    // GW150914 against the catalogue (GWTC-1: 63.1 M☉, spin 0.69, 3.1 M☉c² radiated)
+    await pick('gw150914'); v = await read();
+    rows.push(['merger: GW150914 → 63 M☉, spin 0.68–0.69, about 3 M☉c² radiated (GWTC-1)', near(num(v.fM), 63.1, 0.4) && near(num(v.fS), 0.69, 0.02) && near(num(v.fE), 3.1, 0.2), `${v.fM}, ${v.fS}, ${v.fE}`]);
+    // symmetry: equal masses with equal spins have no preferred direction to recoil in
+    await pick('aligned'); v = await read();
+    rows.push(['merger: equal masses with equal spins do not recoil', num(v.fK) === 0, v.fK]);
+    for (const k of ['gw231123', 'gw190814', 'gw190521', 'anti', 'gw250114']) await pick(k);
     return rows;
   },
 };

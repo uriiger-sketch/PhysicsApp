@@ -43008,6 +43008,10 @@ td{font-family:var(--f-mono);font-variant-numeric:tabular-nums;text-align:right;
     }
     Ecum[0] = Ebind(xs);
     for (let i=1;i<N;i++) Ecum[i] = Ecum[i-1] + 0.5*(LUM[i]+LUM[i-1])*DT;
+    /* the running total ends exactly at the fit's radiated energy: the post-Newtonian flux of the
+       inspiral and its binding energy differ by about a percent, and the two totals on the page must agree */
+    { const kE = (Erad - Ecum[0])/(Ecum[N-1] - Ecum[0]);
+      if (kE > 0.9 && kE < 1.1) for (let i=1;i<N;i++) Ecum[i] = Ecum[0] + kE*(Ecum[i]-Ecum[0]); }
     let ipk=0; for (let i=1;i<N;i++) if (AMP[i]>AMP[ipk]) ipk=i;
     const tpk = T[ipk];
     let Lpk=0; for (let i=0;i<N;i++) Lpk=Math.max(Lpk,LUM[i]);
@@ -44379,7 +44383,7 @@ kbd{font:500 12px var(--mono);padding:2px 6px;border:1px solid var(--line-2);bor
       }
       for (q = 0; q < diodes.length; q++) {
         c = comps[diodes[q]];
-        if (c.over) { s.fault[c.e] = 1; s.badIsl.add(net.ir[c.na]); issues.push({ level: 'error', kind: 'overflow', message: nm(c.id) + ' נדחפת הרחק מעבר לכל מה שמשוואת הדיודה יכולה לתאר (יותר מפי ' + ltr('10^99') + ' מזרם הרוויה שלה). חברו אליה נגד בטור.', ids: [c.id] }); }
+        if (c.over) { s.fault[c.e] = 1; s.badIsl.add(net.ir[c.na]); issues.push({ level: 'error', kind: 'overflow', message: nm(c.id) + ' נדחפת הרחק מעבר לכל מה שמשוואת הדיודה יכולה לתאר (יותר מפי ' + ltr('10⁹⁹') + ' מזרם הרוויה שלה). חברו אליה נגד בטור.', ids: [c.id] }); }
         else if (c.forced && Math.abs(s.i[c.e]) > 1e3) issues.push({ level: 'warn', kind: 'diode-forced', message: nm(c.id) + ' מוחזקת במתח ' + ltr(eng(s.v[c.e], 'V')) + ' על ידי רכיבים אידיאליים, בלי שום התנגדות בטור. משוואת הדיודה האידיאלית נותנת אז ' + ltr(Math.abs(s.i[c.e]) >= 1e15 ? s.i[c.e].toExponential(1) + ' A' : eng(s.i[c.e], 'A')) + ', זרם ששום דיודה אמיתית אינה עומדת בו. הוסיפו נגד בטור.', ids: [c.id] });
       }
       if (!s.conv) issues.push({ level: 'warn', kind: 'numerical', message: 'הפותר לא התכנס עד הסוף במעגל הזה; המספרים המוצגים הם ההערכה הטובה ביותר שלו.', ids: [] });
@@ -44752,6 +44756,8 @@ kbd{font:500 12px var(--mono);padding:2px 6px;border:1px solid var(--line-2);bor
     const e = Math.floor(Math.log10(Math.abs(x))), m = x / Math.pow(10, e);
     return (m < 0 ? MINUS : '') + Math.abs(m).toFixed(Math.max(0, (digits || 3) - 1)) + TIMES + '10' + sup(e);
   }
+  // a ratio to one significant figure: 6×10⁻⁹
+  function sci1(x) { const s = x.toExponential(0).split('e'); return s[0].replace('-', MINUS) + TIMES + '10' + sup(+s[1]); }
   // 4700 -> "4.70 kΩ". digits = significant figures.
   function fmt(x, unit, digits) {
     digits = digits || 3; unit = unit || '';
@@ -46167,12 +46173,12 @@ kbd{font:500 12px var(--mono);padding:2px 6px;border:1px solid var(--line-2);bor
       let html = '<div class="pwsum"><span>' + TX.pDel + ' <b class="ltr">' + fmt(del, 'W', 4) + '</b></span><span>=</span><span>' + TX.pAbs + ' <b class="ltr">' + fmt(abs, 'W', 4) + '</b></span></div>';
       html += shown.map(x => '<div class="pwrow ' + (x.p < 0 ? 'neg' : 'pos') + '"><b>' + esc(x.id) + '</b><span class="bar"><i style="width:' + (100 * Math.abs(x.p) / top).toFixed(1) + '%"></i></span><em>' + fmt(x.p, 'W', 3) + '</em><small>' + (x.p < 0 ? (x.type === 'capacitor' ? 'נפרק' : 'מספקת') : x.type === 'capacitor' ? 'אוגר' : x.type === 'battery' ? 'בטעינה' : 'חימום') + '</small></div>').join('');
       if (!shown.length) html += '<p class="note">' + TX.noPower + '</p>';
-      html += '<p class="note tight">' + ltr('Σ' + V('p') + ' = ' + (Math.abs(resid) <= 1e-9 * top ? '0' : fmt(resid, 'W', 2))) + (top > 1e-30 ? '  (אי־התאמה יחסית ' + ltr(Math.abs(resid) / top < 1e-15 ? '&lt; 10⁻¹⁵' : (Math.abs(resid) / top).toExponential(0).replace('e-', '×10^−')) + ')' : '') + '</p>';
+      html += '<p class="note tight">' + ltr('Σ' + V('p') + ' = ' + (Math.abs(resid) <= 1e-9 * top ? '0' : fmt(resid, 'W', 2))) + (top > 1e-30 ? '  (אי־התאמה יחסית ' + ltr(Math.abs(resid) / top < 1e-15 ? '&lt; 10⁻¹⁵' : sci1(Math.abs(resid) / top)) + ')' : '') + '</p>';
       if (R.pw._html !== html) { R.pw.innerHTML = html; R.pw._html = html; }
       const en = st.energy, dU = en.stored - en.stored0, scale = Math.max(Math.abs(en.emf), Math.abs(en.heat), Math.abs(dU), Math.abs(en.jump), 1e-30);
       const rows = [['העבודה שעשו מקורות הכא״מ', fmt(en.emf, 'J', 4)], ['חום בנגדים, בתילים, בדיודות ובתוך הסוללות', fmt(en.heat, 'J', 4)], ['השינוי באנרגיה האגורה בקבלים', ltr(fmt(dU, 'J', 4)) + '  (כעת ' + ltr(fmt(en.stored, 'J', 4)) + ')']];
       if (Math.abs(en.jump) > 1e-12 * scale) rows.push(['אבד במעברי מטען דרך התנגדות אפס', fmt(en.jump, 'J', 4)]);
-      rows.push(['המאזן נסגר עד כדי', ltr(Math.abs(en.residual) <= 1e-12 * scale ? '0 J' : fmt(en.residual, 'J', 2)) + (scale > 1e-30 && Math.abs(en.residual) > 1e-12 * scale ? '  (' + ltr((Math.abs(en.residual) / scale).toExponential(0).replace('e-', '×10^−')) + ' מהערך הגדול ביותר: שגיאת אינטגרציה)' : '')]);
+      rows.push(['המאזן נסגר עד כדי', ltr(Math.abs(en.residual) <= 1e-12 * scale ? '0 J' : fmt(en.residual, 'J', 2)) + (scale > 1e-30 && Math.abs(en.residual) > 1e-12 * scale ? '  (' + ltr(sci1(Math.abs(en.residual) / scale)) + ' מהערך הגדול ביותר: שגיאת אינטגרציה)' : '')]);
       const lh = rows.map(r => '<dt>' + r[0] + '</dt><dd>' + r[1] + '</dd>').join('');
       if (R.ledger._html !== lh) { R.ledger.innerHTML = lh; R.ledger._html = lh; }
       const ev = st.event, et = ev ? 'ברגע ' + ltr('t = ' + fmtTime(ev.t)) + ', ' + listIds(ev.ids) + ' הגיעו למתח משותף דרך התנגדות אפס, בלי שחלף זמן. המטען נשמר, אבל ' + ltr(fmt(ev.lost, 'J', 4)) + ' נעלמו מהמאזן' + (ev.work > 0 ? ' (הכא״מ עשה עבודה של ' + ltr(fmt(ev.work, 'J', 4)) + ', ורק ' + ltr(fmt(ev.dU, 'J', 4)) + ' נאגרו)' : '') + '. זהו הגבול ' + ltr('R → 0') + ' של חימום רגיל: הכניסו למסלול התנגדות כלשהי, ובדיוק האנרגיה הזאת תופיע כחום — קטנה ככל שתהיה R.' : '';
@@ -46190,7 +46196,14 @@ kbd{font:500 12px var(--mono);padding:2px 6px;border:1px solid var(--line-2);bor
     restEq(p, port) {
       if (!port) return '';
       const sub = (a, b) => V(a) + '<sub>' + b + '</sub>';
-      if (port.kind === 'line') return '<b>שאר המעגל</b> ' + ltr(sub('V', 'th') + ' = ' + fmt(port.Vth, 'V', 3) + ' &nbsp; ' + sub('R', 'th') + ' = ' + fmt(port.Rth, 'Ω', 3) + (isNum(port.Isc) ? ' &nbsp; ' + sub('I', 'sc') + ' = ' + fmt(port.Isc, 'A', 3) : '') + (p.type === 'capacitor' ? ' &nbsp; τ = ' + sub('R', 'th') + V('C') + ' = ' + fmtTime(port.Rth * p.C) : ''));
+      if (port.kind === 'line') {
+        // every equality is kept whole: the line breaks only between two of them
+        const g = s => '<span class="ltr nb">' + s + '</span>';
+        const eqs = [g(sub('V', 'th') + ' = ' + fmt(port.Vth, 'V', 3)), g(sub('R', 'th') + ' = ' + fmt(port.Rth, 'Ω', 3))];
+        if (isNum(port.Isc)) eqs.push(g(sub('I', 'sc') + ' = ' + fmt(port.Isc, 'A', 3)));
+        if (p.type === 'capacitor') eqs.push(g('τ = ' + sub('R', 'th') + V('C') + ' = ' + fmtTime(port.Rth * p.C)));
+        return '<b>שאר המעגל</b> ' + ltr(eqs.join(' &nbsp; '));
+      }
       if (port.kind === 'forced') return '<b>שאר המעגל</b> קובע ' + ltr(V('v') + ' = ' + fmt(port.Vth, 'V', 3)) + ' (' + ltr(sub('R', 'th') + ' = 0') + (port.viaCap ? ', דרך קבל: נכון לרגע זה' : '') + ')';
       if (port.kind === 'open') return '<b>שאר המעגל</b> אינו מציע מסלול בין a ל־b, ולכן ' + ltr(V('i') + ' = 0');
       if (port.kind === 'curve') return '<b>שאר המעגל</b> אינו ליניארי: ' + ltr(sub('V', 'oc') + ' = ' + fmt(port.Voc, 'V', 3)) + ', שיפוע ' + ltr(fmt(port.Rdyn, 'Ω', 3)) + ' כאן' + (p.type === 'capacitor' ? ', מקומית ' + ltr('τ = ' + fmtTime(port.Rdyn * p.C)) : '');
@@ -46291,7 +46304,7 @@ kbd{font:500 12px var(--mono);padding:2px 6px;border:1px solid var(--line-2);bor
       if (port && isNum(port.Vth) && (port.kind === 'line' || port.kind === 'forced')) { Plot.line(ctx, [[f.X(port.Vth), f.Y0], [f.X(port.Vth), f.Y1]], T.c.rest, 2, [6, 4]); }
       ctx.restore();
       if (port && isNum(port.Vth) && (port.kind === 'line' || port.kind === 'forced')) { const x = f.X(port.Vth); if (x > f.X0 && x < f.X1) Plot.note(ctx, port.kind === 'line' ? 'בדרך אל ' + cvl(fmt(port.Vth, 'V', 3)) : 'מוחזק כאן', x + (x > (f.X0 + f.X1) / 2 ? -6 : 6), f.Y0 + 10, T.c.rest, x > (f.X0 + f.X1) / 2 ? 'right' : 'left'); }
-      if (Math.abs(f.X(cs.v) - f.X(0)) > 56) Plot.note(ctx, 'U = ½qv', (2 * f.X(cs.v) + f.X(0)) / 3, (f.Y(0) * 2 + f.Y(C * cs.v)) / 3 + (cs.v > 0 ? 2 : -2), T.c['mark-ink'], 'center');
+      if (Math.abs(f.X(cs.v) - f.X(0)) > 56) Plot.note(ctx, 'U = ½qv', (2 * f.X(cs.v) + f.X(0)) / 3, (f.Y(0) * 2 + f.Y(C * cs.v)) / 3 + (cs.v > 0 ? 2 : -2), T.c.ink, 'center');   // the page's ink with the panel's halo: read on the tinted triangle in both themes
       Plot.point(ctx, f, cs.v, cs.q, fmt(cs.v, 'V', 3), fmt(cs.q, 'C', 3));
       this.setNote(R.qvLegend, [['own', ltr(esc(p.id) + ':  q = Cv')], ['area', 'אנרגיה אגורה ' + ltr(fmt(cs.u, 'J', 3))], ['op', 'כעת']].map(x => '<span class="lg ' + x[0] + '"><i></i>' + x[1] + '</span>').join(''));
       this.setNote(R.qvEq, this.restEq(p, port));
@@ -46584,7 +46597,7 @@ kbd{font:500 12px var(--mono);padding:2px 6px;border:1px solid var(--line-2);bor
         item('menu-about', 'book', 'מוסכמות ומודל', () => this.aboutDialog()),
         item('menu-keys', 'keys', 'קיצורי מקלדת', () => this.keysDialog()),
         el('h3', { text: 'מה מוצג על הלוח' }),
-        sw('opt-potential', 'הפוטנציאל כצבע התיל', 'הפוטנציאל'), sw('opt-flow', 'ראשי חצים של הזרם', 'flow'), sw('opt-values', 'ערכי הרכיבים', 'values'), sw('opt-nodev', 'תווית פוטנציאל בכל צומת', 'nodeV'),
+        sw('opt-potential', 'הפוטנציאל כצבע התיל', 'potential'), sw('opt-flow', 'ראשי חצים של הזרם', 'flow'), sw('opt-values', 'ערכי הרכיבים', 'values'), sw('opt-nodev', 'תווית פוטנציאל בכל צומת', 'nodeV'),
         seg('סמל הנגד', 'iec', [[false, 'זיגזג'], [true, 'מלבן']]));
       this.modal('עוד', menu);
     },
