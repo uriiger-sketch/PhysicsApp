@@ -121,6 +121,13 @@ const BIDI = () => {
     }
   };
   scan(root, 'lab'); scan(document.querySelector('#xlab-overlay .xlab-tasks'), 'tasks'); scan(document.querySelector('#xlab-overlay .xlab-hub'), 'list');
+  // the tasks and the list are isolated by the page's own detector: a formula it cut in two
+  // ("1 kΩ · 100" + "µ" + "F = 0.1 s") is laid out piece by piece, right to left
+  document.querySelectorAll('#xlab-overlay .xlab-tasks .ltr-run, #xlab-overlay .xlab-hub .ltr-run').forEach(a => {
+    const tx = a.nextSibling, b = tx && tx.nodeType === 3 ? tx.nextSibling : null;
+    if (b && b.nodeType === 1 && b.classList.contains('ltr-run') && !HEB.test(tx.nodeValue) && /[A-Za-z0-9\u00B5\u0370-\u03FF=+\u2212\u00D7\u00B7\/^]/.test(tx.nodeValue))
+      out.push('tasks cut «' + a.textContent.slice(-24) + '» [' + tx.nodeValue + '] «' + b.textContent.slice(0, 24) + '»');
+  });
   return [...new Set(out)];
 };
 // the open lab: is anything drawn? (a 2D canvas with more than one colour, or a WebGL canvas with a context)
