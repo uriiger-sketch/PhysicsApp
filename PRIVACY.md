@@ -15,10 +15,12 @@ leaves the device.
 | `phys_onboarded` | That the welcome tour was seen |
 | `simtip_<chapter>.<section>` | That a simulation's tip was shown |
 | `phys_simpin` | Whether a simulation's diagram stays pinned to the top of a phone's screen (📌) |
+| `phys_lab_circuit-bench` | The circuit on the Circuit Bench (the enrichment lab): its parts, their values and places, and the view's settings |
 
 **To erase it:**
 - **↺ Reset progress** (״איפוס ההתקדמות״), at the foot of the topics list,
-  erases progress, typed answers and the tip record.
+  erases progress, typed answers, the tip record and the circuit kept by the
+  Circuit Bench.
 - Clearing the site's data in the browser erases everything.
 
 On a shared computer, use reset before leaving, or use a private window.
@@ -40,3 +42,14 @@ On a shared computer, use reset before leaving, or use a private window.
 The sensor lab reads the phone's motion sensor only after the learner presses
 its start button (iOS asks for permission at that moment). Samples are drawn
 on the screen and kept only in memory. They are never stored or sent.
+
+## The enrichment labs
+
+- **Circuit Bench.** The circuit is kept on the device (the key above).
+  "Copy the circuit as text" writes that text to the device's clipboard when
+  the learner presses the button; the app never reads the clipboard.
+- **Which Way Am I Moving?** reads the device's time zone to choose the place
+  it opens on. The place, the coordinates, the date and the time a learner
+  sets are used for the calculation on the screen and kept only in memory:
+  never stored, never sent. The app does not ask for the device's location.
+- The other labs keep nothing and read nothing of the device.

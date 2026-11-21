@@ -229,6 +229,15 @@ function codeRegions(code, base) {
     [/^\/\/ ── a small kit shared by the DC circuit simulations/m, 'sims-circuits'],
     [/^\/\/ RENDER ENGINE/m, 'ui'],
     [/^\/\/ PHONE SENSOR LABS/m, 'sensors'],
+    // the enrichment labs: the list and the overlay in one file, each lab in
+    // its own (between its LAB:<NAME> BEGIN and END lines)
+    [/^\/\/ ENRICHMENT LABS/m, 'labs'],
+    [/^\/\/ ==== LAB:CIRCUIT BEGIN/m, 'lab-circuit'],
+    [/^\/\/ ==== LAB:WHICHWAY BEGIN/m, 'lab-whichway'],
+    [/^\/\/ ==== LAB:MERGER BEGIN/m, 'lab-merger'],
+    [/^\/\/ ==== LAB:COLLAPSE BEGIN/m, 'lab-collapse'],
+    [/^\/\/ ==== LAB:CHERENKOV BEGIN/m, 'lab-cherenkov'],
+    [/^\/\/ ==== LAB:[A-Z]+ END/m, 'labs'],
     [/^\/\/ EVENT HANDLERS/m, 'ui'],
   ];
   const at = [];

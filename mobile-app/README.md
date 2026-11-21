@@ -19,7 +19,7 @@ website's pages and here** (see `CLAUDE.md` at the repository root).
 |---|---|
 | Android Studio project (`android/`), Xcode project (`ios/`) | Developer accounts: Google Play ($25 once), Apple Developer Program ($99 a year) |
 | The app's web bundle, built and checked (`npm run build`, `npm run check`) | The signing keys, kept by you, never in the repository |
-| Icon (from your design), launch screens, feature graphics, 48 screenshots (`store/`) | Running the uploads: the *Store apps* workflow builds, signs and uploads on GitHub's machines (no Mac needed) once your App Store Connect key is in the repository's secrets |
+| Icon (from your design), launch screens, feature graphics, 56 screenshots (`store/`) | Running the uploads: the *Store apps* workflow builds, signs and uploads on GitHub's machines (no Mac needed) once your App Store Connect key is in the repository's secrets |
 | Listing texts in Hebrew and English, privacy policy, questionnaire answers (`store/`) | Creating the store entries, uploading, pressing *Submit* |
 
 ## Contents
@@ -207,7 +207,7 @@ and in GitHub:
    *App Store listing* ticked. It uploads:
    - the build, which TestFlight shows after Apple's processing;
    - the listing in both languages: names, subtitles, descriptions, keywords,
-     promotional texts, URLs, categories, review notes and 24 screenshots.
+     promotional texts, URLs, categories, review notes and 28 screenshots.
 
    Nothing is submitted for review.
 7. **In App Store Connect, what only its forms take:**

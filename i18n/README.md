@@ -14,6 +14,7 @@ The app is one page per language, all generated from one master:
 | `tests/check_i18n_badges.js` | the edition shows the same SI unit badges as the Hebrew (the build works them out from the Hebrew wording) |
 | `tests/check_i18n_progress.js` | progress, XP and every quiz answer are the same after switching language with the 🌐 menu |
 | `tests/check_i18n_labels.js` | no canvas label is lost in translation (a label that does not fit is not drawn), every slider at both ends |
+| `tests/check_labs.js` | the enrichment labs (which live in shadow roots, out of reach of the tests above): on an edition, no Hebrew in a lab's text, labels or canvas; on the master, every number, unit and formula inside a lab's Hebrew reads left to right on screen |
 | `tests/_lang.js` | gives every subject test the words of the page's language, so the same test runs on any edition |
 
 The 🌐 menu in the header (`APP_LANGS` in the master) lists the languages; a
@@ -37,6 +38,14 @@ that changes in the master becomes a new unit (the old translation is kept in
 
 Strings the code compares or searches for are logic, not display text; they
 are listed in `i18n/<lang>/_logic.txt` and never translated.
+
+Which file a unit lives in follows the master's own section markers
+(`codeRegions` in `tools/i18n.js`): the content of each subject, its
+simulations, the interface, the sensor labs — and the enrichment labs, the
+list and the overlay in `labs.json` and every lab in a file of its own
+(`lab-circuit.json`, `lab-whichway.json`, `lab-merger.json`,
+`lab-collapse.json`, `lab-cherenkov.json`), between its
+`// ==== LAB:<NAME> BEGIN` and `END` lines.
 
 ## Translation files
 

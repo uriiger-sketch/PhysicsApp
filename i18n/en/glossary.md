@@ -314,3 +314,47 @@ Settled by the four scientific-language editors; they bind every later edit.
 | זמן מחצית חיים · קבוע הדעיכה · אקטיביות · בקרל | half-life · decay constant · activity · becquerel (Bq) |
 | מספר אטומי · מספר מסה · איזוטופ | atomic number · mass number · isotope |
 | קרינת אלפא · בטא · גמא · ביקוע · היתוך · אנרגיית קשר | alpha · beta · gamma radiation · fission · fusion · binding energy |
+
+## Terms added with the enrichment labs (v28.48)
+
+The five labs have their own files (`labs.json` for the list, the cards and the
+inquiry tasks; `lab-*.json` for each lab). Their register is that of the
+artifacts they were built from: a notch above the course, with the terms of
+the research literature, each glossed in the Hebrew where a Bagrut student
+would not know it. A lab's name is a proper name, in title case.
+
+| Hebrew | English |
+|---|---|
+| מעבדות העשרה · משימות חקר | enrichment labs · inquiry tasks |
+| שולחן המעגלים · לאן אנחנו נעים? · התמזגות חורים שחורים · ספירה לאחור לקריסת הליבה · חרוט צ׳רנקוב | Circuit Bench · Which Way Am I Moving? · Binary Black Hole Merger · Countdown to Core Collapse · Cherenkov Cone Lab |
+| תיל אידיאלי / אמיתי · סוללה אידיאלית / אמיתית | ideal / real wire · ideal / real battery |
+| נקודת הייחוס · גשש · חלונית הנתונים | reference (the 0 V mark) · probe · inspector |
+| אופיין · קו עומס · נקודת העבודה | (i–v) characteristic · load line · operating point |
+| משפט תבנין · מקור תבנין · מתח מעגל פתוח · זרם קצר | Thévenin’s theorem · Thévenin source · open-circuit voltage · short-circuit current |
+| מאזן האנרגיה · משפט טלגן · מוסכמת הסימנים (פסיבית) | energy ledger · Tellegen’s theorem · (passive) sign convention |
+| זרם הרוויה · מקדם האידיאליות · ממתח קדמי / אחורי | saturation current · ideality factor · forward / reverse bias |
+| קרינת הרקע הקוסמית · דיפול · אפקס | cosmic microwave background (CMB) · dipole · apex |
+| תקן המנוחה המקומי · המהירות העצמית (של השמש) · התנועה העצמית (של קשת A*) | Local Standard of Rest (LSR) · peculiar motion · proper motion (of Sgr A*) |
+| מישור המילקה · עלייה ישרה ונטייה · קו אורך / רוחב גלקטי | ecliptic · right ascension and declination · Galactic longitude / latitude |
+| יממה כוכבית · שנה גלקטית · נקיפה · אברציה | sidereal day · Galactic year · precession · aberration |
+| גודלי המהירויות · חיבור החצים | speeds · adding the arrows (the vector sum) |
+| גלי כבידה · מעוות · ציוץ · מסת הציוץ | gravitational waves · strain · chirp · chirp mass |
+| התקרבות ספירלית · התמזגות · צלצול ודעיכה | inspiral · merger · ringdown |
+| החור השחור שנותר · רתע (״בעיטה״) · אופק · חור שחור של קר | remnant black hole · recoil (kick) · horizon · Kerr black hole |
+| אופנים קוואזי־נורמליים · הסחה לאדום · משפט השטח של הוקינג | quasinormal modes · redshift · Hawking area theorem |
+| הקירוב הפוסט־ניוטוני · יחסות נומרית | post-Newtonian approximation · numerical relativity |
+| קריסת הליבה · ניתור · גל הלם (תקוע) · פריצת גל ההלם | core collapse · bounce · (stalled) shock · shock breakout |
+| בעירת מימן בליבה / בקליפה · בעירה נפיצה · אפר | core / shell hydrogen burning · explosive burning · ash |
+| ליבה הסעתית · הסעה (קונבקציה) · מעטפת · על־ענק אדום | convective core · convection · envelope · red supergiant |
+| שבר האלקטרונים · לכידת אלקטרונים · פוטו־פירוק | electron fraction (Yₑ) · electron capture · photodisintegration |
+| לחץ הניוון · מסת צ׳נדרסקאר · כוכב נייטרונים (ראשוני) | degeneracy pressure · Chandrasekhar mass · (proto-)neutron star |
+| ספיחה · רדיוס הרווח · מתכתיות · בהירות | accretion · gain radius · metallicity · luminosity |
+| קרינת צ׳רנקוב · מהירות הסף · חזית הגל · מעטפת (של גלים) · בום על־קולי | Cherenkov radiation · threshold speed · wavefront · envelope · sonic boom |
+
+- **Numbers with units, formulas and Latin names inside Hebrew** are written as
+  explicit left-to-right islands in the labs (`ltr(...)` in a lab's code,
+  `<span class="ltr-run">` in a task). A translation keeps the island and
+  moves it where English word order needs it.
+- **A circuit as text** (the Circuit Bench's “Copy the circuit as text”) is
+  data: its keywords (`resistor`, `battery`, `emf=`…) are the same in every
+  language and are never translated.
