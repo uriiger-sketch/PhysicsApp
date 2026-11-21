@@ -26,6 +26,9 @@ const SHOTS = [
   { route: 'mag-field/mag-solenoid/sim',
     he: 'מכניקה, אופטיקה, חשמל ומגנטיות', en: 'Mechanics, optics, electricity and magnetism',
     subHe: 'בלי חשבון · בלי פרסומות · עובד גם בלי אינטרנט', subEn: 'No account · no ads · works offline' },
+  // an enrichment lab (the labs open on their own address, #/labs/<id>); its animation is given time to start
+  { route: 'labs/merger', wait: 3200,
+    he: 'מעבדות העשרה: מהמעגל שבניתם ועד חורים שחורים', en: 'Enrichment labs: from your own circuit to black holes' },
 ];
 
 // w x h logical px at dpr = the store's pixel size; cap = headline band; m = side margin
@@ -80,7 +83,7 @@ for (const d of DEVICES.filter((x) => !only || x.store === only)) {
     fs.mkdirSync(dir, { recursive: true });
     for (const [i, shot] of SHOTS.entries()) {
       await page.goto(`${ORIGIN}/${EDITION[lang]}#/${shot.route}`);
-      await page.waitForTimeout(1600);
+      await page.waitForTimeout(shot.wait || 1600);
       if (shot.unlock) {
         await page.evaluate((k) => { state.completed[k] = true; saveState(); render(); window.scrollTo(0, 0); }, shot.unlock);
         await page.waitForTimeout(900);
