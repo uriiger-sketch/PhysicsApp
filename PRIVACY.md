@@ -42,3 +42,14 @@ On a shared computer, use reset before leaving, or use a private window.
 The sensor lab reads the phone's motion sensor only after the learner presses
 its start button (iOS asks for permission at that moment). Samples are drawn
 on the screen and kept only in memory. They are never stored or sent.
+
+## The enrichment labs
+
+- **Circuit Bench.** The circuit is kept on the device (the key above).
+  "Copy the circuit as text" writes that text to the device's clipboard when
+  the learner presses the button; the app never reads the clipboard.
+- **Which Way Am I Moving?** reads the device's time zone to choose the place
+  it opens on. The place, the coordinates, the date and the time a learner
+  sets are used for the calculation on the screen and kept only in memory:
+  never stored, never sent. The app does not ask for the device's location.
+- The other labs keep nothing and read nothing of the device.
