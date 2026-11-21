@@ -288,13 +288,122 @@ const PHYSICS = {
     for (const k of ['gw231123', 'gw190814', 'gw190521', 'anti', 'gw250114']) await pick(k);
     return rows;
   },
+
+  // A place and an instant are typed in, and the lab's own table is read: every motion with its speed
+  // and its direction in Galactic coordinates (l, b). The numbers are the same in every language.
+  async whichway(p) {
+    const rows = [], D = Math.PI / 180;
+    const at = async (lat, lon, date, time) => {
+      await p.evaluate(([la, lo, d, tm]) => { const r = document.getElementById('xlab-host').shadowRoot, $ = id => r.getElementById(id);
+        if ($('live').checked) $('live').click();
+        const f = (id, v) => { const e = $(id); e.value = v; e.dispatchEvent(new Event('input', { bubbles: true })); e.dispatchEvent(new Event('change', { bubbles: true })); };
+        f('lat', la); f('lon', lo); f('date', d); f('time', tm); }, [lat, lon, date, time]);
+      await p.waitForTimeout(350);
+      return p.evaluate(() => { const r = document.getElementById('xlab-host').shadowRoot;
+        return { place: r.getElementById('place').value, when: r.getElementById('when').textContent, legend: r.getElementById('annualLegend').textContent,
+          t: [...r.getElementById('ledger').querySelectorAll('tr')].map(tr => [...tr.children].map(c => c.textContent.trim().replace(/\s+/g, ' '))).filter(c => c.length > 1 && /\d/.test(c[1])) }; });
+    };
+    const vec = c => { const lb = c[2].split(',').map(num), v = num(c[1]); return [v * Math.cos(lb[1] * D) * Math.cos(lb[0] * D), v * Math.cos(lb[1] * D) * Math.sin(lb[0] * D), v * Math.sin(lb[1] * D)]; };
+    const add = (...a) => a.reduce((x, y) => [x[0] + y[0], x[1] + y[1], x[2] + y[2]]), len = v => Math.hypot(v[0], v[1], v[2]);
+    const sep = (u, w) => Math.acos(Math.max(-1, Math.min(1, (u[0] * w[0] + u[1] * w[1] + u[2] * w[2]) / (len(u) * len(w))))) / D;
+    const opened = await p.evaluate(() => document.getElementById('xlab-host').shadowRoot.getElementById('place').value);
+    rows.push(['which way: on a device in Israel the lab opens on Tel Aviv', opened === 'telaviv', opened]);
+    // Tel Aviv, 19 November 2026 at noon
+    let v = await at('32.0853', '34.7818', '2026-11-19', '12:00'), T = v.t;
+    rows.push(['which way: the table has the five motions, their total and the sum of speeds', T.length === 7 && /10:00 UTC/.test(v.when), `${T.length} rows, ${v.when}`]);
+    // 1. the spin: v = ωρ, ρ the distance from the axis on the WGS-84 ellipsoid
+    const rho = lat => { const a = 6378.137, e2 = 0.00669437999, s = Math.sin(lat * D); return a / Math.sqrt(1 - e2 * s * s) * Math.cos(lat * D); }, OM = 7.2921150e-5;
+    rows.push(['which way: spin at Tel Aviv is ωρ = 0.394 km/s, due east on the horizon', near(num(T[0][1]), OM * rho(32.0853), 0.0006) && /90°/.test(T[0][4]), T[0].join(' ; ')]);
+    // 2. the orbit: faster than the mean 29.78 km/s in November, when the Sun is nearer
+    const vNov = num(T[1][1]);
+    // 3. the Sun among the stars: (U, V, W) = (11.1, 12.24, 7.25) km/s, toward Hercules
+    rows.push(['which way: the Sun moves at |(U,V,W)| = 18.04 km/s relative to the stars around it', near(num(T[2][1]), Math.hypot(11.1, 12.24, 7.25), 0.01), T[2].join(' ; ')]);
+    // 4. around the Galaxy: the proper motion of Sgr A* times the distance to it, less the Sun's own V
+    rows.push(['which way: the Galaxy carries us at 4.74 μR₀ − V = 236.3 km/s, toward l = 90°', near(num(T[3][1]), 4.74047 * 6.411 * 8.178 - 12.24, 0.15) && /^90\.0°, [+−]0\.0°$/.test(T[3][2]), T[3].join(' ; ')]);
+    // 5. the three motions of the Sun add up to the dipole Planck measured: 369.82 km/s toward (264.02°, +48.25°)
+    const sun = add(vec(T[2]), vec(T[3]), vec(T[4])), pl = [Math.cos(48.253 * D) * Math.cos(264.021 * D), Math.cos(48.253 * D) * Math.sin(264.021 * D), Math.sin(48.253 * D)];
+    rows.push(['which way: the Sun’s three motions add, as vectors, to Planck’s dipole: 369.82 km/s toward (264.0°, +48.3°)', near(len(sun), 369.82, 1.5) && sep(sun, pl) < 0.3, `${len(sun).toFixed(2)} km/s, ${sep(sun, pl).toFixed(2)}° away`]);
+    // 6. all five add to the total of the table; the speeds do not
+    const all = add(sun, vec(T[0]), vec(T[1])), tot = num(T[5][1]), sum = T.slice(0, 5).reduce((a, c) => a + num(c[1]), 0);
+    rows.push(['which way: the five arrows add to the total of the table (396.6 km/s)', near(len(all), tot, 1.5) && sep(all, vec(T[5])) < 0.3 && near(tot, 396.61, 0.02), `${len(all).toFixed(2)} against ${T[5][1]}`]);
+    rows.push(['which way: adding the speeds instead gives 848 km/s, more than twice too much', near(num(T[6][1]), sum, 0.06) && num(T[6][1]) > 2 * tot, `${T[6][1]} against ${sum.toFixed(2)}`]);
+    // 7. through the year: fastest in mid-December, slowest in mid-June, by about twice the part of the orbital speed along the apex
+    const mm = (v.legend.replace(/−/g, '-').match(/([\d.]+)\s*km\/s/g) || []).map(num);
+    rows.push(['which way: through the year the speed swings between 341 and 399 km/s (December and June)', near(mm[0], 399.15, 0.02) && near(mm[1], 341.46, 0.02) && near((mm[0] + mm[1]) / 2, 370.3, 0.6), v.legend.slice(0, 110)]);
+    // Quito, 21 June: on the equator the spin is fastest; near aphelion the orbit is slowest
+    v = await at('-0.1807', '-78.4678', '2026-06-21', '12:00'); T = v.t;
+    rows.push(['which way: on the equator the spin is ωa = 0.465 km/s', near(num(T[0][1]), OM * rho(-0.1807), 0.0006), T[0].join(' ; ')]);
+    rows.push(['which way: Earth is faster near the Sun: 30.1 km/s in November, 29.3 km/s in June (the mean is 29.78)', vNov > 29.9 && vNov < 30.3 && num(T[1][1]) < 29.5 && num(T[1][1]) > 29.2, `${vNov} and ${T[1][1]}`]);
+    // the pole: no spin at all
+    await p.evaluate(() => { const s = document.getElementById('xlab-host').shadowRoot.getElementById('place'); s.value = 'pole'; s.dispatchEvent(new Event('change', { bubbles: true })); });
+    await p.waitForTimeout(350);
+    const pole = await p.evaluate(() => [...document.getElementById('xlab-host').shadowRoot.getElementById('ledger').querySelectorAll('tr')].map(tr => [...tr.children].map(c => c.textContent.trim())).filter(c => c.length > 1 && /\d/.test(c[1]))[0]);
+    rows.push(['which way: on the rotation axis the spin is zero', num(pole[1]) < 0.0006, pole.join(' ; ')]);
+    await p.evaluate(() => { const r = document.getElementById('xlab-host').shadowRoot, s = r.getElementById('place'); s.value = 'telaviv'; s.dispatchEvent(new Event('change', { bubbles: true })); });
+    return rows;
+  },
+
+  // The star's clock is set with the slider (0 to 100000), and the lab's readouts are read:
+  // the time left, the star's age, and the centre's temperature, density and electron fraction.
+  async collapse(p) {
+    const rows = [];
+    const SUP = { '⁰': 0, '¹': 1, '²': 2, '³': 3, '⁴': 4, '⁵': 5, '⁶': 6, '⁷': 7, '⁸': 8, '⁹': 9 };
+    // "7.2 × 10⁶", "1.7 × 10⁴", "6.8 × 10⁻²", "35.0 MK", "1.89 GK", "5.9"
+    const val = x => { const t = String(x).replace(/ /g, ' ').trim(), m = /^([\d.]+)(?:\s*×\s*10([⁻⁰¹²³⁴⁵⁶⁷⁸⁹]+))?\s*(MK|GK)?/.exec(t); if (!m) return NaN;
+      let e = 0; if (m[2]) { const neg = m[2][0] === '⁻'; e = +[...m[2].replace('⁻', '')].map(c => SUP[c]).join(''); if (neg) e = -e; }
+      return parseFloat(m[1]) * Math.pow(10, e) * (m[3] === 'MK' ? 1e6 : m[3] === 'GK' ? 1e9 : 1); };
+    // a time with its unit, in the words of either edition, in seconds
+    const YR = 3.15576e7, UNITS = [['Myr', 1e6 * YR], ['מיליון שנה', 1e6 * YR], ['kyr', 1e3 * YR], ['אלף שנה', 1e3 * YR], ['yr', YR], ['שנים', YR], ['ימים', 86400], ['שעות', 3600], ['דקות', 60], ['min', 60], ['ms', 1e-3], ['µs', 1e-6], ['d', 86400], ['h', 3600], ['s', 1]];
+    const secs = x => { const t = String(x).replace(/ /g, ' '), m = /([\d.]+)\s*(.*)$/.exec(t); if (!m) return NaN; const u = UNITS.find(q => m[2].trim().indexOf(q[0]) === 0); return u ? parseFloat(m[1]) * u[1] : NaN; };
+    const mass = async m => { await p.evaluate(x => document.getElementById('xlab-host').shadowRoot.querySelector('label[for=m' + x + ']').click(), m); await p.waitForTimeout(450); };
+    const at = async u => {
+      await p.evaluate(x => { const s = document.getElementById('xlab-host').shadowRoot.getElementById('scrub'); s.value = x; s.dispatchEvent(new Event('input', { bubbles: true })); }, u);
+      await p.waitForTimeout(300);
+      return p.evaluate(() => { const r = document.getElementById('xlab-host').shadowRoot, g = i => r.getElementById(i).innerText;
+        const c = g('hRead').split('\n').map(x => x.trim()).filter(Boolean);
+        return { clock: g('hClock'), age: g('hAge'), T: c[1], rho: c[3], Ye: c[5], Lk: c[6], L: c[7], star: g('hStar'), card: r.getElementById('stagecard').innerText }; });
+    };
+    if (await p.evaluate(() => { const b = document.getElementById('xlab-host').shadowRoot.getElementById('play'); return b.getAttribute('aria-pressed') === 'true'; })) await p.evaluate(() => document.getElementById('xlab-host').shadowRoot.getElementById('play').click());
+    await mass('15');
+    const H = await at(5000), He = await at(20000), C = await at(33000), O = await at(45000), Si = await at(55000);
+    const life = (secs(H.clock) + secs(H.age)) / (1e6 * YR);
+    rows.push(['collapse: a 15 M☉ star lives 13.1 million years (time left + age)', near(life, 13.107, 0.01), `${H.clock} + ${H.age}`]);
+    rows.push(['collapse: hydrogen burns by the CNO cycle near 35 MK', near(val(H.T), 35e6, 2e6) && /¹⁴N\(p,γ\)¹⁵O/.test(H.card), H.T]);
+    rows.push(['collapse: each fuel burns hotter: H < He < C < O < Si, up to 3 GK', val(H.T) < val(He.T) && val(He.T) < val(C.T) && val(C.T) < val(O.T) && val(O.T) < val(Si.T) && near(val(Si.T), 3.3e9, 0.2e9), [H.T, He.T, C.T, O.T, Si.T].join(' < ')]);
+    rows.push(['collapse: …and denser, from a few g cm⁻³ to tens of millions', val(H.rho) < 10 && val(He.rho) > 500 && val(C.rho) > 1e5 && val(O.rho) > 5e6 && val(Si.rho) > 3e7, [H.rho, He.rho, C.rho, O.rho, Si.rho].join(' < ')]);
+    const left = [H, He, C, O, Si].map(x => secs(x.clock));
+    rows.push(['collapse: …and faster: millions of years, then centuries, years, days', left.every((x, i) => i === 0 || x < left[i - 1]) && left[0] > 1e6 * YR && left[2] < 1e3 * YR && left[4] < 30 * 86400, [H, He, C, O, Si].map(x => x.clock).join(' | ')]);
+    rows.push(['collapse: once hydrogen is gone the centre has one electron per two nucleons (Yₑ ≈ 0.5)', num(H.Ye) > 0.6 && near(num(He.Ye), 0.4994, 0.001) && near(num(O.Ye), 0.4987, 0.001), [H.Ye, He.Ye, O.Ye].join(', ')]);
+    rows.push(['collapse: electron captures in silicon burning lower Yₑ to 0.46', near(num(Si.Ye), 0.4634, 0.003), Si.Ye]);
+    rows.push(['collapse: neutrinos carry more than light once carbon burns: L_ν/L_γ from 0.07 to 10⁴ and more', val(H.L) < 0.1 && val(He.L) < 0.1 && val(C.L) > 5 && near(val(O.L), 1.7e4, 0.1e4) && val(Si.L) > 1e5, [H.L, He.L, C.L, O.L, Si.L].join(', ')]);
+    rows.push(['collapse: at oxygen burning 2 years are left, at 1.9 GK and 7×10⁶ g cm⁻³', near(secs(O.clock) / YR, 2.07, 0.01) && near(val(O.T), 1.89e9, 0.01e9) && near(val(O.rho), 7.2e6, 0.1e6) && /¹⁶O \+ ¹⁶O/.test(O.card), `${O.clock}, ${O.T}, ${O.rho}`]);
+    // the collapse: iron is photodisintegrated, and the centre passes the density of a nucleus
+    const col = await at(66000), bo = await at(72000);
+    rows.push(['collapse: iron is torn apart, ⁵⁶Fe + γ → 13 α + 4 n, at 124 MeV a nucleus', /⁵⁶Fe \+ γ → 13 α \+ 4 n \(−124\.4 MeV\)/.test(col.card) && val(col.rho) > 1e10, col.rho]);
+    rows.push(['collapse: the centre overshoots the density of a nucleus (2.7×10¹⁴ g cm⁻³) by about 30% and bounces', near(val(bo.rho) / 2.7e14, 1.3, 0.06) && near(val(bo.T), 111.5e9, 1e9) && near(num(bo.Ye), 0.249, 0.002), `${bo.rho}, ${bo.T}, ${bo.Ye}`]);
+    rows.push(['collapse: the neutrino burst at bounce shines at over 10⁵² erg s⁻¹', val(bo.L) > 1e52 && val(bo.L) < 1e54, bo.L]);
+    // what is left: a neutron star lighter than the matter that made it, by its binding energy
+    const end = await at(99000), mg = num((/M_g ≈ ([\d.]+)/.exec(end.card) || [])[1]), mb = num((/M_b ([\d.]+)/.exec(end.card) || [])[1]);
+    rows.push(['collapse: a 1.40 M☉ neutron star is left of 1.55 M☉ of matter: M_g = M_b − 0.075 M_g²', near(mg, 1.40, 0.005) && near(mb - 0.075 * mg * mg, mg, 0.01) && /M_NS 1\.40/.test(end.star), `${mg} of ${mb}; ${end.star}`]);
+    // its binding energy, 0.6β/(1 − β/2)·Mc² with β = GM/Rc², is the 3×10⁵³ erg the neutrinos carry (R = 12 km)
+    const beta = 1.4766 * mg / 12, Eb = 0.6 * beta / (1 - beta / 2) * mg * 1.98841e33 * Math.pow(2.99792458e10, 2);
+    rows.push(['collapse: the binding energy of that neutron star is about 3×10⁵³ erg, a hundred times the explosion', Eb > 2.4e53 && Eb < 3.4e53 && /E 0\.9\d? B|E 0\.90 B/.test(end.star), `${Eb.toExponential(2)} erg; ${end.star}`]);
+    // a heavier star lives a shorter life and leaves a heavier neutron star
+    await mass('25'); const H25 = await at(5000), end25 = await at(99000);
+    const life25 = (secs(H25.clock) + secs(H25.age)) / (1e6 * YR);
+    rows.push(['collapse: a 25 M☉ star lives 7.6 million years and leaves a 1.73 M☉ neutron star', near(life25, 7.559, 0.01) && /M_NS 1\.73/.test(end25.star), `${life25.toFixed(3)} Myr; ${end25.star}`]);
+    for (const tb of ['kip', 'lum', 'hr', 'rt']) { await p.evaluate(x => document.getElementById('xlab-host').shadowRoot.querySelector('.tabs button[data-tab=' + x + ']').click(), tb); await p.waitForTimeout(150); }
+    await mass('20'); await at(60000); await mass('15'); await at(6238);
+    return rows;
+  },
 };
 
 (async () => {
   const b = await chromium.launch({ executablePath: require('./_browser'), args: ['--no-sandbox'] });
   const errs = [], away = [];
   const newPage = async (w, h) => {
-    const ctx = await b.newContext({ viewport: { width: w, height: h }, isMobile: w < 700, hasTouch: w < 700 });
+    // the tests' device is in Israel: "Which Way" opens on the place of the device's time zone
+    const ctx = await b.newContext({ viewport: { width: w, height: h }, isMobile: w < 700, hasTouch: w < 700, timezoneId: 'Asia/Jerusalem' });
     await ctx.addInitScript(INIT);
     await ctx.route(/^(https?|wss?):/, r => { away.push(r.request().url()); r.abort(); });
     const p = await ctx.newPage();

@@ -47440,8 +47440,8 @@ const PLACES = [
   { id: 'pole', name: 'תחנת הקוטב הדרומי', lat: -90, lon: 0, tz: 'Antarctica/McMurdo' },
   { id: 'custom', name: 'קואורדינטות אחרות', lat: null, lon: null, tz: deviceTZ },
 ];
-// where the lab opens: the place of the device's own time zone when the list has one, else the artifact's (Lagos)
-const HOME = PLACES.find(p => p.lat !== null && p.tz === deviceTZ) || PLACES.find(p => p.id === 'lagos');
+// where the lab opens: the place of the device's own time zone when the list has one, else the course's home
+const HOME = PLACES.find(p => p.lat !== null && p.tz === deviceTZ) || PLACES.find(p => p.id === 'telaviv');
 
 // Bright stars (J2000 RA°, Dec°) for "toward" descriptions
 const STARS = [
@@ -51388,7 +51388,7 @@ function evalState(m,mo){
 /* ---------- model notes & references (rendered into the collapsed sources panel) ---------- */
 const NOTES=[
  '<b>משכי השלבים, וערכי T ו־ρ במרכז ו־'+ltr('M, L, R')+' של הכוכב באמצע כל שלב,</b> הם ערכי הקוד KEPLER מתוך '+ltr('Woosley, Heger &amp; Weaver (2002)')+', טבלה I '+cite(1,'[1]')+'. בין נקודות העוגן האלה המודל מבצע אינטרפולציה ב־'+ltr('log T')+' וב־'+ltr('log ρ')+'.',
- '<b>זמני ההתכווצות שבין השלבים, מסות הקליפות בשלבי הביניים וליבת הברזל של הכוכב בן '+ltr('20 M☉')+'</b> הם הערכות להמחשה, שמתיישבות עם [1] ועם [13]. ליבות הברזל הסופיות, 1.45 ו־'+ltr('1.62 M☉')+' בכוכבים של 15 ושל '+ltr('25 M☉')+', לקוחות מ־[1].',
+ '<b>זמני ההתכווצות שבין השלבים, מסות הקליפות בשלבי הביניים וליבת הברזל בכוכב של '+ltr('20 M☉')+'</b> הם הערכות להמחשה, שמתיישבות עם [1] ועם [13]. ליבות הברזל הסופיות, 1.45 ו־'+ltr('1.62 M☉')+' בכוכבים של 15 ושל '+ltr('25 M☉')+', לקוחות מ־[1].',
  '<b>בעירת ההליום</b> מחושבת באינטגרציה, במודל של אזור אחד, של התחרות '+ltr('3α / ¹²C(α,γ)')+'; איבר לכידת ה־α מוגבר בתחילת השלב, כדי לייצג הליום טרי שמתערבב אל הליבה ההסעתית הגדלה, וכך X(¹²C) מגיע לשיא ליד 0.44. החישוב מנורמל כך שבמרכז '+ltr('X(¹²C) = 0.21, 0.15, 0.13')+' עם אזילת ה־He, בהתאמה ל־[1]: מעל '+ltr('~19 M☉')+', '+ltr('X(¹²C) ≲ 0.15')+'.',
  '<b>תוצרי הבעירה המאוחרים מקובצים:</b> ״Mg״ כולל גם ²³Na ו־Al, ״Ar–Ca״ מכסה את התחום מ־³⁶Ar עד ⁴²Ca, ו״קבוצת הברזל״ (״קב׳ Fe״ בפס ההרכב) היא חומר ב־QSE/NSE, שהגרעין השכיח בו נקבע לפי Yₑ.',
  '<b>Yₑ:</b> '+ltr('η ≈ 1.3 × 10⁻³')+' אחרי בעירת ה־He, במתכתיות Z קדם־שמשית ('+ltr('0.0018 Z/0.02')+' ב־[1]); '+ltr('η ≈ 0.01')+' עם אזילת ה־O במרכז, ו־0.024 בהצתת ה־Si [1]; ערב הסופרנובה '+ltr('Yₑ = 0.432')+' בכוכב של '+ltr('15 M☉')+' [2]; לכידת ה־ν מקפיאה את '+ltr('Y_L ≈ 0.29')+' ('+ltr('0.288–0.297')+' בכוכבי אב שונים [15]), ו־'+ltr('Yₑ ≈ 0.25')+' בניתור '+ltr('[4, 16]')+'.',
