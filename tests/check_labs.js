@@ -10,7 +10,7 @@
 // to the course, the browser's back button does the same, a link to a lab
 // opens it, a link to no lab opens nothing; the card in a section leads to its
 // lab and back to that section; the course behind an open lab is inert.
-// Every lab, at a desktop's width and a phone's: it draws, throws nothing,
+// Every lab, at a desktop's width and a narrow phone's: it draws, throws nothing,
 // breaks no rule of the page's CSP, asks no other site for anything, fits the
 // screen, follows the theme (or keeps its one dark look), and once closed runs
 // nothing. Its language: on the Hebrew master the lab reads right to left and
@@ -250,6 +250,18 @@ const PHYSICS = {
     await p.waitForFunction(() => { const d = document.getElementById('xlab-host').shadowRoot.querySelectorAll('dl.ledger dd'); return d.length > 2 && /^8\.100\s*mJ/.test(d[0].textContent.replace(/\u00A0/g, ' ')); }, null, { timeout: 15000 }).catch(() => {});
     v = await read();
     rows.push(['circuit bench: charging through R, the battery does Cε² = 8.1 mJ of work; half is stored, half is heat', near(qty(v.led[0]), 8.1e-3, 2e-6) && near(qty(v.led[1]), 4.05e-3, 2e-6) && near(qty(v.led[2]), 4.05e-3, 2e-6), JSON.stringify(v.led)]);
+    // a switch of the "More" menu changes the bench's own setting, in every language (its key is not a word to translate)
+    const opt = await p.evaluate(async () => { const r = document.getElementById('xlab-host').shadowRoot;
+      r.querySelector('#btn-more').click(); const b = r.querySelector('#opt-potential'), before = b.getAttribute('aria-checked'); b.click();
+      await new Promise(f => setTimeout(f, 700));
+      let saved = null; try { saved = JSON.parse(localStorage.getItem('phys_lab_circuit-bench')).opts; } catch (e) {}
+      const after = b.getAttribute('aria-checked'); b.click(); await new Promise(f => setTimeout(f, 500));
+      let back = null; try { back = JSON.parse(localStorage.getItem('phys_lab_circuit-bench')).opts; } catch (e) {}
+      r.querySelector('#modal [aria-label], #modal button').closest('#modal') && r.querySelectorAll('#modal button')[0].click();
+      return { before, after, saved, back, keys: saved ? Object.keys(saved).sort().join(',') : '' }; });
+    rows.push(['circuit bench: "potential as wire color" switches the bench\u2019s own setting off and on again', opt.before === 'true' && opt.after === 'false' && opt.saved && opt.saved.potential === false && opt.back && opt.back.potential === true && opt.keys === 'flow,iec,nodeV,potential,values', JSON.stringify(opt)]);
+    await p.keyboard.press('Escape'); await p.waitForTimeout(200);
+    if (!(await p.evaluate(() => _xlabOpen()))) { await p.evaluate(() => openLab('circuit-bench')); await p.waitForTimeout(900); }
     // a part's name is text: markup in it is not HTML
     await load('resistor <img/src=x/onerror=window.__pwn=1> 0,0 4,0 R=1k\nbattery B1 0,0 0,4 emf=9 r=0\nwire W1 0,4 4,4\nwire W9 4,4 4,0');
     const h = await p.evaluate(() => { const r = document.getElementById('xlab-host').shadowRoot; return { pwn: window.__pwn, img: r.querySelectorAll('img').length }; });
@@ -308,7 +320,8 @@ const PHYSICS = {
       await p.waitForTimeout(350);
       return p.evaluate(() => { const r = document.getElementById('xlab-host').shadowRoot;
         return { place: r.getElementById('place').value, when: r.getElementById('when').textContent, legend: r.getElementById('annualLegend').textContent,
-          t: [...r.getElementById('ledger').querySelectorAll('tr')].map(tr => [...tr.children].map(c => c.textContent.trim().replace(/\s+/g, ' '))).filter(c => c.length > 1 && /\d/.test(c[1])) }; });
+          // a direction's cell: its value (the cell also holds the column's short name, shown on a phone)
+          t: [...r.getElementById('ledger').querySelectorAll('tr')].map(tr => [...tr.children].map(c => (c.querySelector('.v') || c).textContent.trim().replace(/\s+/g, ' '))).filter(c => c.length > 1 && /\d/.test(c[1])) }; });
     };
     const vec = c => { const lb = c[2].split(',').map(num), v = num(c[1]); return [v * Math.cos(lb[1] * D) * Math.cos(lb[0] * D), v * Math.cos(lb[1] * D) * Math.sin(lb[0] * D), v * Math.sin(lb[1] * D)]; };
     const add = (...a) => a.reduce((x, y) => [x[0] + y[0], x[1] + y[1], x[2] + y[2]]), len = v => Math.hypot(v[0], v[1], v[2]);
@@ -344,7 +357,7 @@ const PHYSICS = {
     // the pole: no spin at all
     await p.evaluate(() => { const s = document.getElementById('xlab-host').shadowRoot.getElementById('place'); s.value = 'pole'; s.dispatchEvent(new Event('change', { bubbles: true })); });
     await p.waitForTimeout(350);
-    const pole = await p.evaluate(() => [...document.getElementById('xlab-host').shadowRoot.getElementById('ledger').querySelectorAll('tr')].map(tr => [...tr.children].map(c => c.textContent.trim())).filter(c => c.length > 1 && /\d/.test(c[1]))[0]);
+    const pole = await p.evaluate(() => [...document.getElementById('xlab-host').shadowRoot.getElementById('ledger').querySelectorAll('tr')].map(tr => [...tr.children].map(c => (c.querySelector('.v') || c).textContent.trim())).filter(c => c.length > 1 && /\d/.test(c[1]))[0]);
     rows.push(['which way: on the rotation axis the spin is zero', num(pole[1]) < 0.0006, pole.join(' ; ')]);
     await p.evaluate(() => { const r = document.getElementById('xlab-host').shadowRoot, s = r.getElementById('place'); s.value = 'telaviv'; s.dispatchEvent(new Event('change', { bubbles: true })); });
     return rows;
@@ -537,7 +550,8 @@ const PHYSICS = {
   await ctx.close();
 
   // ── 2. every lab, at a desktop's width and a phone's ─────────────────────
-  for (const [w, h] of [[1280, 860], [390, 780]]) {
+  // 360 px: the narrowest phone in common use (anything that fits it fits the wider ones)
+  for (const [w, h] of [[1280, 860], [360, 740]]) {
     ({ ctx, p } = await newPage(w, h));
     // on the quiz tab the course itself animates nothing: what runs is the lab's
     await p.goto(URL); await ready(p);

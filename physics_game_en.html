@@ -1487,8 +1487,17 @@ var APP_LANGS=[
   {code:'he',name:'עברית',file:'physics_game_v28.html'},
   {code:'en',name:'English',file:'physics_game_en.html'}
 ];
-var APP_VERSION='28.47';
+var APP_VERSION='28.48';
 var APP_CHANGELOG=[
+  {v:'28.48',d:'2026-11-21',notes:[
+    `Enrichment labs (🔭 at the head of the topic list; from the keyboard: Shift+L): five open labs beyond the syllabus. In each one the physics of the course meets a circuit you built yourself or a phenomenon from the frontier of research, and each has inquiry tasks with full answers`,
+    `Circuit Bench: build a circuit from batteries, resistors, capacitors, switches, diodes, and wires, and measure every voltage, current, and power in it — with a characteristic and a load line for every part, the junction rule at every junction, and an energy ledger, even while a capacitor charges. Eight ready-made examples, and the circuit you built is kept on your device`,
+    `Which Way Am I Moving?: Earth’s spin, its orbit around the Sun, the Sun’s motion among the stars, the Galaxy’s rotation, and its motion relative to the cosmic microwave background — five motions computed for the place and the instant you choose, and added into one vector`,
+    `Binary Black Hole Merger: the orbit, the gravitational wave that reaches Earth, and the remnant black hole, for events that were actually measured — with the chirp mass, the energy radiated, and the Hawking area theorem`,
+    `Countdown to Core Collapse: the life of a massive star, from hydrogen burning to the supernova, stage by stage — the nuclear reactions, the central temperature and density, the neutrinos, and the neutron star left behind`,
+    `Cherenkov Cone Lab: a charged particle moving through a medium faster than light does there — the threshold speed, the cone angle, and the spectrum, in eight media`,
+    `From the course to the labs: 21 topics now carry a card that leads to the lab that takes the same subject further, and the search finds the labs too`,
+  ]},
   {v:'28.47',d:'2026-11-12',notes:[
     `Photoelectric-effect simulation: in the Hebrew edition, the number and unit on the metal tabs (for example 2.28 eV) now read left to right`,
     `Escape-speed simulation: the negative energy is now shown with a true minus sign`,
@@ -41651,6 +41660,14 @@ function _xlabMount(L){
   if(strip){
     if(window.renderMathInElement)try{renderMathInElement(strip,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}],throwOnError:false,strict:false});}catch(e){}
     fixInlineMath(strip);
+    // a number stays on one line with the unit after it ("4.8 V", "2.2 kΩ", "29.8 km/s"), also where
+    // a long formula breaks across two lines. Done after the formulas were isolated: the detector
+    // above knows a number and its unit by the plain space between them
+    var tw=document.createTreeWalker(strip,NodeFilter.SHOW_TEXT),tn;
+    while((tn=tw.nextNode())){
+      var tv=tn.nodeValue,nv=tv.replace(/(\d) (?=[A-Za-zµΩ°][A-Za-zµΩ°\/²³☉]{0,6}(?![A-Za-z]))/g,'$1\u00A0');
+      if(nv!==tv)tn.nodeValue=nv;
+    }
   }
   var host=document.createElement('div');
   host.id='xlab-host';host.className='xlab-host'+(L.fill?' fill':'');
@@ -42671,6 +42688,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
 /* a readout: left to right, from the cell's own start */
 .kv dd{margin:0;font-family:var(--f-mono);font-variant-numeric:tabular-nums;font-size:15.68px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;direction:ltr;}
 .wrap[dir=rtl] .kv dd{text-align:right;}
+.kv dd.wr{white-space:normal;overflow:visible;line-height:1.25;}
 .kv dd small{color:var(--muted);font-size:11.84px;}
 .kv dd small.w{font-family:var(--f-body);}
 .wrap[lang=he] .kv dd small.w{font-size:13px;}
@@ -42764,7 +42782,7 @@ td{font-family:var(--f-mono);font-variant-numeric:tabular-nums;text-align:right;
         <dl class="kv">
           <div><dt>${TX.rT}</dt><dd id="rT">–</dd></div>
           <div><dt>${TX.rF}</dt><dd id="rF">–</dd></div>
-          <div><dt>${TX.rR}</dt><dd id="rR">–</dd></div>
+          <div><dt>${TX.rR}</dt><dd id="rR" class="wr">–</dd></div>
           <div><dt>${TX.rV}</dt><dd id="rV">–</dd></div>
           <div><dt>${TX.rN}</dt><dd id="rN">–</dd></div>
           <div><dt>${TX.rH}</dt><dd id="rH">–</dd></div>
@@ -43338,7 +43356,8 @@ td{font-family:var(--f-mono);font-variant-numeric:tabular-nums;text-align:right;
     const pre = t<M.tm;
     $('rT').textContent=fmtMs(msec);
     $('rF').innerHTML=f.toFixed(f<100?1:0)+' <small>Hz</small>';
-    $('rR').innerHTML= pre ? (sep*M.M*RSUN_KM).toFixed(0)+' <small>km · '+sep.toFixed(2)+' GM/c²</small>' : `<small class="w">single horizon</small>`;
+    // each number stays with its unit; on a narrow phone the readout breaks after the "·" instead of being cut off
+    $('rR').innerHTML= pre ? (sep*M.M*RSUN_KM).toFixed(0)+'\u00A0<small>km · '+sep.toFixed(2)+'\u00A0GM/c²</small>' : `<small class="w">single horizon</small>`;
     $('rV').textContent= pre ? Math.cbrt(Om).toFixed(3)+' c' : '–';
     const nCyc=(interp(M.PH,M.tpk)-interp(M.PH,t))/PI;
     $('rN').textContent= nCyc>0 ? nCyc.toFixed(nCyc<10?1:0) : '–';
@@ -46643,7 +46662,7 @@ kbd{font:500 12px var(--mono);padding:2px 6px;border:1px solid var(--line-2);bor
           `Ideal wire and closed switch: ${ltr(V('v') + ' = 0')} exactly, not a small resistance. Open switch: ${ltr(V('i') + ' = 0')}.`,
           `Battery: ${ltr(V('v') + ' = ε + ' + V('i') + V('r'))}; ideal when ${ltr(V('r') + ' = 0')}.`,
           `Capacitor: ${ltr(V('i') + ' = ' + V('C') + ' d' + V('v') + '/d' + V('t'))}.`,
-          `Diode: ${ltr(V('i') + ' = ' + V('I') + '<sub>s</sub>(e<sup>' + V('v') + '/' + V('n') + V('V') + '<sub>T</sub></sup> − 1)')}, ${ltr(V('V') + '<sub>T</sub> = 25.852 mV × ' + V('T') + '/300 K')}. No series resistance, no breakdown.`) +
+          `Diode: ${ltr(V('i') + ' = ' + V('I') + '<sub>s</sub>(e<sup>' + V('v') + '/' + V('n') + V('V') + '<sub>T</sub></sup> − 1)')}, ${ltr(V('V') + '<sub>T</sub> = 25.852&nbsp;mV × ' + V('T') + '/300&nbsp;K')}. No series resistance, no breakdown.`) +
         H(`Limits`) + UL(
           `Where ideal parts leave a current split undetermined (two ideal wires in parallel, equal ideal batteries in parallel) the symmetric limit is shown: equal resistances taken to zero.`,
           `A loop of ideal emfs that do not cancel, with zero resistance, has no finite current. It is reported, not papered over; the rest of the board keeps working.`,
@@ -46805,7 +46824,7 @@ function _xlabWhichWay(root,ctx){
   // left-to-right island (a short one is not broken across lines)
   const ltr=s=>'<span class="ltr'+(s.length<=16?' nb':'')+'">'+s+'</span>';
   // a formula, or a symbol with its sign and its value: left to right, never broken
-  const eqn=s=>'<span class="ltr nb">'+s+'</span>';
+  const eqn=s=>'<span class="ltr nb eq">'+s+'</span>';
   // the same on a canvas: a pair of coordinates, or a number written in groups,
   // stays one left-to-right piece inside a Hebrew label
   const iso=s=>he?'⁦'+s+'⁩':s;
@@ -46854,6 +46873,7 @@ function _xlabWhichWay(root,ctx){
     now:`Now`,live:`Live clock`,
     hLedger:`Velocity ledger`,
     thMotion:`Motion`,thToward:`Toward <span class="ltr u">(l, b)</span>`,thEq:`<span class="ltr u">RA, Dec</span>`,thSky:`Your sky (alt, az)`,
+    kToward:`Galactic <span class="ltr u">(l, b)</span>`,kEq:`RA, Dec`,kSky:`Alt, az`,
     sumSpeeds:`Sum of speeds`,
     aAnnual:`Speed through the year`,
     hAnnual:`Your speed against the CMB through`,
@@ -46983,6 +47003,29 @@ td.name{white-space:nowrap;}
 td.name .sw{display:inline-block;width:10px;height:10px;border-radius:2px;margin-inline-end:8px;vertical-align:-1px;}
 tr.total td{border-bottom:0;font-weight:600;}
 tr.sum td{color:var(--muted);border-bottom:0;}
+td.dir .dk{display:none;}
+/* a phone: five columns do not fit, and a table that scrolls sideways cuts a number where it likes
+   ("65.7°" for 265.7°). Every motion becomes a block: its name and speed, then the three directions,
+   each beside the short name of its column */
+@media (max-width:620px){
+  .tablewrap{overflow-x:visible;}
+  .wrap[lang] table:not(.prec){min-width:0;display:block;}
+  .wrap[lang] table:not(.prec) thead{display:none;}
+  .wrap[lang] table:not(.prec) tbody{display:block;}
+  .wrap[lang] table:not(.prec) tr{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 12px;padding:10px 0;border-bottom:1px solid var(--line);}
+  .wrap[lang] table:not(.prec) tr.total,.wrap[lang] table:not(.prec) tr.sum{border-bottom:0;}
+  .wrap[lang] table:not(.prec) td{border:0;padding:0;}
+  .wrap[lang] table:not(.prec) td.name{white-space:normal;min-width:0;font-weight:500;}
+  .wrap[lang] table:not(.prec) td.dir{grid-column:1/-1;display:flex;justify-content:space-between;align-items:baseline;gap:12px;direction:inherit;white-space:normal;text-align:start;}
+  .wrap[lang] table:not(.prec) td.dir .dk{display:inline;flex:none;font-family:var(--f-body);font-size:12.5px;color:var(--muted);}
+  .wrap[lang] table:not(.prec) td.dir .v{direction:ltr;unicode-bidi:isolate;min-width:0;text-align:left;}
+  .wrap[dir=rtl] table:not(.prec) td.dir .v{text-align:left;}
+  .wrap[dir=ltr] table:not(.prec) td.dir .v{text-align:right;}
+  .wrap[lang=he] table:not(.prec) td.dir .w{display:inline;}
+  .wrap[lang] table:not(.prec) tr.sum td[colspan]{display:none;}
+  /* an equation of the notes breaks at its spaces instead of running out of its panel */
+  .notes .eq{white-space:normal;}
+}
 .annual{display:flex;flex-direction:column;gap:10px;}
 .annual .chartbox{position:relative;height:210px;cursor:ew-resize;touch-action:pan-y;direction:ltr;}
 .annual canvas{width:100%;height:100%;display:block;}
@@ -47521,7 +47564,8 @@ const MONTH_1 = Array.from({ length: 12 }, (_, m) => new Intl.DateTimeFormat(xl.
 
 // ---------- formatting ----------
 const fv = v => v < 1 ? v.toFixed(3) : v < 100 ? v.toFixed(2) : v.toFixed(1);
-const sgn = x => (x < 0 ? '−' : '+') + Math.abs(x).toFixed(1);
+// (the sign is that of the rounded number: a horizon-level −0.004° reads +0.0°, not −0.0°)
+const sgn = x => { const r = +(+x).toFixed(1); return (r < 0 ? '−' : '+') + Math.abs(r).toFixed(1); };
 const fRA = deg => { let h = deg / 15; let hh = Math.floor(h), mm = Math.round((h - hh) * 60); if (mm === 60) { hh = (hh + 1) % 24; mm = 0; } return `${hh}h ${pad(mm)}m`; };
 const compass = az => [`N`,`NNE`,`NE`,`ENE`,`E`,`ESE`,`SE`,`SSE`,`S`,`SSW`,`SW`,`WSW`,`W`,`WNW`,`NW`,`NNW`][Math.round(az / 22.5) % 16];
 const ease = x => x <= 0 ? 0 : x >= 1 ? 1 : x * x * (3 - 2 * x);
@@ -50437,13 +50481,16 @@ function renderCaption(force) {
 }
 
 // ---------- ledger ----------
+// a direction: its value, and the column's short name (shown on a phone, where every motion is a block of its own)
+// (the two numbers of a direction stay on one line; only the compass word may go under them)
+const dirCell = (k, v) => '<td class="dir"><span class="dk">' + k + '</span><span class="v">' + v.replace(/, /g, ',\u00A0').replace(/(\d+h) /, '$1\u00A0') + '</span></td>';
 function renderLedger() {
   const D = S.D; const rows = [...D.comp, D.total].map(c => '<tr' + (c.id === 'total' ? ' class="total"' : '') + '>' +
     '<td class="name"><span class="sw" style="background:' + COL[c.id] + '"></span>' + c.name + '</td>' +
     '<td class="num">' + (c.id === 'total' ? c.speed.toFixed(2) : fv(c.speed)) + '</td>' +
-    '<td class="dir">' + (c.speed > 1e-9 ? c.l.toFixed(1) + '°, ' + sgn(c.b) + '°' : '—') + '</td>' +
-    '<td class="dir">' + (c.speed > 1e-9 ? fRA(c.ra) + ', ' + sgn(c.dec) + '°' : '—') + '</td>' +
-    '<td class="dir">' + (c.speed > 1e-9 ? sgn(c.alt) + '°, ' + c.az.toFixed(0) + '° <span class="w">' + compass(c.az) + '</span>' : '—') + '</td></tr>').join('');
+    dirCell(TX.kToward, c.speed > 1e-9 ? c.l.toFixed(1) + '°, ' + sgn(c.b) + '°' : '—') +
+    dirCell(TX.kEq, c.speed > 1e-9 ? fRA(c.ra) + ', ' + sgn(c.dec) + '°' : '—') +
+    dirCell(TX.kSky, c.speed > 1e-9 ? sgn(c.alt) + '°, ' + c.az.toFixed(0) + '° <span class="w">' + compass(c.az) + '</span>' : '—') + '</tr>').join('');
   setHTML($('ledger'), rows + '<tr class="sum"><td class="name">' + TX.sumSpeeds + '</td><td class="num">' + D.sumSpeeds.toFixed(1) + '</td><td colspan="3"></td></tr>');
 }
 
@@ -50682,7 +50729,11 @@ h1{font:600 clamp(24px,4.4vw,34px)/1.05 var(--k-f-display);margin:3px 0 0;letter
 .wrap[lang=he] .hud-bl .tx{font-family:var(--k-f-label);font-size:11.5px}
 .hud-bl .tx .ltr{font-family:var(--k-f-mono);font-size:10.5px}
 @media (max-width:519px){.hud-bl span:last-child{display:none}.hud-tl .ck{font-size:20px}.hud-tl .st{font-size:15px}
-  .wrap[lang=he] .hud-tl .ck{font-size:17px}.wrap[lang=he] .hud-tl .st{font-size:14.5px}}
+  .wrap[lang=he] .hud-tl .ck{font-size:17px}.wrap[lang=he] .hud-tl .st{font-size:14.5px}
+  /* on a narrow phone the countdown ("collapse in 7.113 Myr", and its longer Hebrew) is wider than
+     the room beside the readouts: there it takes two lines instead of running under them */
+  .hud-tl .ck{white-space:normal;text-wrap:balance}}
+@media (max-width:379px){.hud-tl{max-width:50%}.hud-tr{font-size:10px;gap:1px 6px}}
 
 .under{padding:9px 14px 10px;display:grid;gap:7px;background:var(--k-surface)}
 .rx{font:400 15px/1.3 var(--k-f-display);text-align:center;min-height:1.3em;overflow-x:auto;white-space:nowrap}

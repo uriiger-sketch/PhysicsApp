@@ -63,6 +63,7 @@ How to try it:
 - The app opens in Hebrew in Israel and in English elsewhere, and after that always in the language of the last session; the 🌐 button at the top switches between Hebrew and English (progress is kept).
 - The topic list is at the side of the screen (on iPhone, behind ☰). Every topic has four tabs: Theory, Simulation (interactive: drag the objects on the diagram), Quiz, and Problem (a guided, multi-step problem that unlocks once the quiz is done).
 - 📐 opens the formula sheet.
+- 🔭 Enrichment labs, at the head of the topic list, opens five open labs (a circuit bench, our velocity through the Universe, a black hole merger, a star's core collapse, the Cherenkov cone). They are computed on the device like everything else; the circuit a learner builds is kept on the device only.
 
 Device feature: 14 mechanics topics include a sensor lab that reads the accelerometer after the user taps "▶ Start sensor" (for example Mechanics → Chapter 10: Harmonic motion → Simple pendulum → Simulation). Readings are drawn on screen and never stored or sent.
 ```

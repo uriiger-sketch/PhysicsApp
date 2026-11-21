@@ -6,8 +6,9 @@ text here is within it (`node scripts/listing-check.mjs` counts them).
 
 The facts in the descriptions are the app's own: five subjects, 28 chapters,
 115 topics, each with theory, a simulation, a quiz and a guided problem;
-14 sensor labs in mechanics; offline, no account, no ads, nothing
-collected. Change a number here when the course changes.
+14 sensor labs in mechanics; five enrichment labs beyond the syllabus;
+offline, no account, no ads, nothing collected. Change a number here when the
+course changes.
 
 | | Hebrew (he / iw-IL) | English (en-US) |
 |---|---|---|
@@ -71,6 +72,14 @@ here (see CLAUDE.md at the repository root).
 מודדים עם הטלפון
 מעבדת החיישנים הופכת את הטלפון למכשיר מדידה: מודדים את זמן המחזור של מטוטלת, מוצאים את הזווית שבה הטלפון מתחיל להחליק, רואים את המשקל המדומה משתנה במעלית, תופסים את חוסר המשקל בזריקה ומוצאים את מרכז המסה של הטלפון עצמו.
 
+מעבדות העשרה
+חמש מעבדות פתוחות, מעבר לתוכנית הלימודים, שבהן הפיזיקה של הקורס פוגשת את חזית המחקר — לכל אחת משימות חקר עם תשובות מלאות:
+• שולחן המעגלים — בונים מעגל משלכם ומודדים בו כל מתח, זרם והספק
+• לאן אנחנו נעים? — המהירות שלכם ביקום, מסיבוב כדור הארץ ועד קרינת הרקע הקוסמית
+• התמזגות חורים שחורים — המסלול, גל הכבידה והחור השחור שנותר
+• ספירה לאחור לקריסת הליבה — חייו של כוכב מסיבי, עד הסופרנובה
+• חרוט צ׳רנקוב — חלקיק שנע מהר יותר מהאור שבמים
+
 ועוד
 • חזרה מעורבת: שאלות מכל הנושאים שסיימתם, בסדר מעורב — קודם אלה שטעיתם בהן
 • חיפוש של נושא, מושג או נוסחה בכל הקורס
@@ -87,7 +96,7 @@ here (see CLAUDE.md at the repository root).
 
 ### What's new · מה חדש (App Store 4000, Google Play release notes 500)
 ```text
-הגרסה הראשונה של פיזיכיף: הקורס כולו — חמישה נושאים ו־115 סעיפים — באייפון, באייפד וב־Android, גם בלי אינטרנט.
+הגרסה הראשונה של פיזיכיף: הקורס כולו — חמישה נושאים ו־115 סעיפים, וחמש מעבדות העשרה — באייפון, באייפד וב־Android, גם בלי אינטרנט.
 ```
 
 ---
@@ -139,6 +148,14 @@ EVERY TOPIC IN FOUR STEPS
 MEASURE WITH YOUR PHONE
 The sensor lab turns the phone into a lab instrument: time a pendulum, find the angle at which the phone starts to slide, watch its apparent weight change in an elevator, catch the weightlessness of a toss, and find the phone's own center of mass.
 
+ENRICHMENT LABS
+Five open labs beyond the syllabus, where the physics of the course meets the frontier of research, each with inquiry tasks and full answers:
+• Circuit Bench — build your own circuit and measure every voltage, current and power in it
+• Which Way Am I Moving? — your velocity through the Universe, from Earth's spin to the cosmic microwave background
+• Binary Black Hole Merger — the orbit, the gravitational wave and the black hole left behind
+• Countdown to Core Collapse — the life of a massive star, up to the supernova
+• Cherenkov Cone Lab — a particle moving faster than light does in water
+
 ALSO
 • Mixed review: questions from every topic you have finished, in mixed order, the ones you got wrong first
 • Search for a topic, a term or a formula across the whole course
@@ -155,7 +172,7 @@ No account, no ads, no tracking. The app collects nothing and connects to nothin
 
 ### What's new (App Store 4000, Google Play release notes 500)
 ```text
-The first release of Physfun: the whole course — five subjects and 115 topics — on iPhone, iPad and Android, offline.
+The first release of Physfun: the whole course — five subjects and 115 topics, and five enrichment labs — on iPhone, iPad and Android, offline.
 ```
 
 ---
